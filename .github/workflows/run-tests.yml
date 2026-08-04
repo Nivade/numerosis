@@ -26,16 +26,19 @@ jobs:
     timeout-minutes: 5
     strategy:
       fail-fast: true
+      # Matrix matches what composer.json actually claims to support.
+      # Widen only with a green run behind it — Laravel 11/12 and Windows were
+      # in the generator's matrix but nothing here has ever been tested on them.
+      # MySQL services land here with the tenancy harness (Phase 8): tenant
+      # provisioning needs CREATE DATABASE, which sqlite cannot provide.
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        php: [8.5, 8.4, 8.3]
-        laravel: [13.*, 12.*]
-        stability: [prefer-lowest, prefer-stable]
+        os: [ubuntu-latest]
+        php: [8.5, 8.4]
+        laravel: [13.*]
+        stability: [prefer-stable]
         include:
           - laravel: 13.*
             testbench: 11.*
-          - laravel: 12.*
-            testbench: 10.*
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
 

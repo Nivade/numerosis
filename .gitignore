@@ -25,8 +25,8 @@ _ide_helper_models.php
 /.vscode
 
 # Misc
+# Local overrides only — the committed configs are the .dist variants.
 phpunit.xml
 phpstan.neon
-testbench.yaml
 /docs
 /coverage

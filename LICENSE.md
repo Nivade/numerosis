@@ -1,16 +1,14 @@
-The MIT License (MIT)
+# Proprietary License
 
-Copyright (c) :vendor_name <author@domain.com>
+Copyright (c) 2026 Niels van Deursen <nhavandeursen@gmail.com>. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This software and its source code are proprietary and confidential. No license,
+express or implied, is granted to any person or entity to use, copy, modify,
+merge, publish, distribute, sublicense, or sell copies of this software, except
+under a separate written agreement signed by the copyright holder.
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+Unauthorized copying, distribution, or use of this software, in whole or in
+part, by any means, is strictly prohibited.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
