@@ -1,37 +1,376 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Nvade\Numerosis\Tests;
 
+use Filament\Facades\Filament;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
+use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\NumerosisServiceProvider;
+use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
 use Orchestra\Testbench\TestCase as Orchestra;
 
-class TestCase extends Orchestra
+abstract class TestCase extends Orchestra
 {
-    protected function setUp(): void
+    /**
+     * Laravel resolves a factory from the model's namespace below
+     * App\Models by default; the package equivalent is
+     * Nvade\Numerosis\Models, so the resolver must preserve everything
+     * after that prefix (sub-namespaces included) rather than just
+     * class_basename() — see .claude/rules/testing.md's factory-namespace
+     * note and Phase 4.3 of the package-extraction plan.
+     *
+     * @param  class-string  $modelName
+     */
+    private static function factoryNameFor(string $modelName): string
     {
-        parent::setUp();
+        $suffix = str_starts_with($modelName, 'Nvade\\Numerosis\\Models\\')
+            ? substr($modelName, strlen('Nvade\\Numerosis\\Models\\'))
+            : class_basename($modelName);
 
-        Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'Nvade\\Numerosis\\Database\\Factories\\'.class_basename($modelName).'Factory'
-        );
+        return 'Nvade\\Numerosis\\Database\\Factories\\'.$suffix.'Factory';
     }
 
-    protected function getPackageProviders($app)
+    protected function getPackageProviders($app): array
     {
         return [
             NumerosisServiceProvider::class,
         ];
     }
 
-    public function getEnvironmentSetUp($app)
-    {
-        config()->set('database.default', 'testing');
+    /**
+     * Throwaway connection teardown drops tenant databases through.
+     *
+     * @see deleteTenantDatabases()
+     */
+    private const MAINTENANCE_CONNECTION = 'tenant_teardown';
 
-        /*
-         foreach (\Illuminate\Support\Facades\File::allFiles(__DIR__ . '/../database/migrations') as $migration) {
-            (include $migration->getRealPath())->up();
-         }
-         */
+    /**
+     * Central tables this test has written to, so teardown clears exactly those.
+     *
+     * @var array<string, true>
+     */
+    private array $dirtyCentralTables = [];
+
+    /**
+     * Enter a tenant panel the way an HTTP request would.
+     *
+     * Filament runs its own tenancy alongside stancl's and the two share no
+     * state. `$tenant->run()` switches the database, cache, guard and
+     * permission registrar — everything stancl owns — but Filament keeps its
+     * current tenant in its own manager, and `TenantAdminPanelProvider`
+     * declares `->tenant(Tenant::class, 'id')`, so every route in that panel
+     * carries a `{tenant}` parameter filled from `Filament::getTenant()`.
+     *
+     * A real request sets that through Filament's own middleware. A
+     * `Livewire::test()` never issues a request, so it stays null and the
+     * first route() call in a rendered sidebar throws
+     * "Missing required parameter for [Route: filament.tenantAdmin...]" —
+     * which reads like a routing bug and is not one.
+     *
+     * Setting only two of these three is the trap this helper removes.
+     */
+    protected function actingAsTenantPanelUser(Tenant $tenant, Authenticatable $user, string $panel = 'tenantAdmin'): void
+    {
+        $this->actingAs($user, Config::string('auth.defaults.guards.context.tenant'));
+
+        Filament::setCurrentPanel(Filament::getPanel($panel));
+        Filament::setTenant($tenant);
+    }
+
+    /**
+     * Build a tenant subdomain the same way the app does — via
+     * `config('numerosis.domains.tenant_pattern')` — rather than a hardcoded
+     * `.nvade.dev` fixture, so tests stay correct if `DOMAIN`/`CENTRAL_SUBDOMAIN`
+     * ever change.
+     */
+    protected function tenantDomain(string $id): string
+    {
+        return str_replace('{tenant}', $id, Config::string('numerosis.domains.tenant_pattern'));
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Factory::guessFactoryNamesUsing(self::factoryNameFor(...));
+
+        $this->recordCentralWrites();
+
+        // Registered here rather than called from tearDown() so both run *after*
+        // RefreshDatabase's rollback, which is registered the same way during
+        // parent::setUp().
+        //
+        // deleteCentralWrites: central and default point at the same database,
+        // so deleting while that transaction still holds its row locks blocks
+        // for the full innodb_lock_wait_timeout.
+        //
+        // deleteTenantDatabases: a test that ends inside tenant context leaves
+        // the default connection pointed at the tenant database, so dropping it
+        // first makes the rollback reconnect to a database that no longer
+        // exists and throw `Unknown database`.
+        $this->beforeApplicationDestroyed(function (): void {
+            // Each step gets its own finally, because the exception these
+            // guards exist for (the lock-wait timeout this whole file is
+            // about) is thrown by deleteCentralWrites() — the *first* step.
+            // Sharing one try block therefore skipped exactly the cleanup
+            // that matters most: deleteTenantDatabases() never ran on the
+            // failing tests, leaking a physical database per occurrence.
+            // disconnectAllConnections() still runs last regardless, so a
+            // test that fails here does not hand its own stranded
+            // transaction to the next one.
+            try {
+                try {
+                    try {
+                        $this->deleteCentralWrites();
+                    } finally {
+                        $this->deleteTenantDatabases();
+                    }
+                } finally {
+                    $this->disconnectAllConnections();
+                }
+            } finally {
+                Features::forceForTesting(null);
+            }
+        });
+    }
+
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+
+        $this->keepSchema();
+
+        // TurnstileFeature::$forcedForTesting is a plain static, not
+        // container-scoped, so a test that calls forceForTesting() would
+        // otherwise leak its override into whichever test runs next in the
+        // same process — same class of trap as Tenant::unsetEventDispatcher()
+        // (see .claude/rules/testing.md).
+        TurnstileFeature::forceForTesting(null);
+    }
+
+    /**
+     * Stop RefreshDatabase from scheduling a `migrate:fresh` for the next test.
+     *
+     * RefreshDatabase resets its migrated flag when a test's transaction is gone
+     * by teardown:
+     *
+     *     if ($connection->getPdo() && ! $connection->getPdo()->inTransaction()) {
+     *         RefreshDatabaseState::$migrated = false;
+     *     }
+     *
+     * Every test that bootstraps tenancy trips it. stancl's
+     * DatabaseTenancyBootstrapper purges the default connection when it switches
+     * to the tenant database, so `getPdo()` returns a fresh session that was
+     * never in the transaction. The next test then pays a full rebuild of the
+     * central schema — about 3s, on a suite where most tests touch tenancy.
+     *
+     * No test issues DDL against that schema, so the rebuild only ever restores
+     * what is already there. Rows a lost transaction committed are the real
+     * consequence, and deleteCentralWrites() handles those.
+     */
+    private function keepSchema(): void
+    {
+        RefreshDatabaseState::$migrated = true;
+    }
+
+    /**
+     * Note every table written on the `central` connection.
+     *
+     * RefreshDatabase only transacts the default connection, so nothing rolls
+     * these back — see deleteCentralWrites(). The listener sits on the event
+     * dispatcher rather than on the connection so it survives the DB::purge()
+     * calls that tenancy and this class make.
+     */
+    private function recordCentralWrites(): void
+    {
+        $central = Config::string('tenancy.database.central_connection', 'central');
+
+        DB::listen(function (QueryExecuted $query) use ($central): void {
+            if ($query->connectionName !== $central) {
+                return;
+            }
+
+            if (preg_match('/^\s*(?:insert(?:\s+ignore)?\s+into|replace\s+into|update)\s+`?([\w-]+)`?/i', $query->sql, $matches) !== 1) {
+                return;
+            }
+
+            $this->dirtyCentralTables[$matches[1]] = true;
+        });
+    }
+
+    /**
+     * Undo the writes RefreshDatabase cannot.
+     *
+     * Models using stancl's CentralConnection trait (Tenant,
+     * PendingTenantProvision) and anything else resolving the `central`
+     * connection write on a session RefreshDatabase never opened a transaction
+     * on, so their rows survive into the next test and collide on unique keys —
+     * `users.email`, `subscriptions.stripe_id`, `tenants.id`.
+     *
+     * Transacting `central` too is not an option: stancl's MySQLDatabaseManager
+     * issues its `CREATE DATABASE` on that connection, and MySQL implicitly
+     * commits on DDL, so any test creating a tenant would lose the transaction
+     * mid-test anyway.
+     *
+     * The list is recorded rather than hardcoded so a new central-connection
+     * model needs no change here.
+     */
+    private function deleteCentralWrites(): void
+    {
+        if (! $this->app || $this->dirtyCentralTables === []) {
+            return;
+        }
+
+        $connection = DB::connection(Config::string('tenancy.database.central_connection', 'central'));
+
+        // Deleting in write order would mean tracking dependencies between the
+        // tables; the rows are all going regardless.
+        $connection->statement('SET FOREIGN_KEY_CHECKS = 0');
+
+        try {
+            foreach (array_keys($this->dirtyCentralTables) as $table) {
+                $connection->table($table)->delete();
+            }
+        } finally {
+            $connection->statement('SET FOREIGN_KEY_CHECKS = 1');
+
+            $this->dirtyCentralTables = [];
+        }
+    }
+
+    /**
+     * QUEUE_CONNECTION=sync in testing means creating a Tenant model runs the
+     * TenantCreated pipeline (CreateDatabase/MigrateDatabase/SeedTenantDatabase)
+     * synchronously, provisioning a real physical database. RefreshDatabase
+     * only rolls back the central `tenants` row inside a transaction — the
+     * CREATE DATABASE statement is DDL and survives that rollback — so without
+     * this, every test that creates a Tenant leaves an orphaned database behind.
+     *
+     * The DROP is issued directly rather than relying on the TenantDeleted ->
+     * DeleteDatabase listener: Tenant::unsetEventDispatcher() is static, so a
+     * single test calling it silences model events for every later test in the
+     * process, and their databases would then never be dropped.
+     *
+     * It must not go through the default connection. MySQL implicitly commits
+     * on DDL, so a `DROP DATABASE` there ends the RefreshDatabase transaction
+     * and commits everything the test wrote, leaving rows that collide with the
+     * next test.
+     *
+     * The table check is pinned to the central connection for the same reason:
+     * a test that ends inside tenant context leaves the default connection
+     * pointed at the tenant database, where `tenants` does not exist — so an
+     * unpinned check reads false and every such test leaks its database.
+     */
+    private function deleteTenantDatabases(): void
+    {
+        $central = Config::string('tenancy.database.central_connection', 'central');
+
+        if (! $this->app || ! Schema::connection($central)->hasTable('tenants')) {
+            return;
+        }
+
+        $tenants = Tenant::query()->get();
+
+        Tenant::query()->delete();
+
+        // Databases the clone helper made are known by name, so the common case
+        // costs nothing.
+        $databases = CloneTenantSchema::takeCreatedDatabases();
+
+        // Tenants created outside the clone path — tests that fake the queue and
+        // migrate by hand, or that swap the pipeline back — are not recorded, so
+        // fall back to their derived names. Still no INFORMATION_SCHEMA scan.
+        $prefix = Config::string('tenancy.database.prefix', 'tenant');
+
+        foreach ($tenants as $tenant) {
+            $databases[] = $prefix.$tenant->getTenantKey();
+        }
+
+        // Never the template: it is built once per process, and dropping it here
+        // would make the next test rebuild it, which is the cost this avoids.
+        $template = CloneTenantSchema::templateDatabase();
+
+        $databases = array_filter(
+            array_unique($databases),
+            fn (string $database): bool => $database !== $template,
+        );
+
+        if ($databases === []) {
+            return;
+        }
+
+        $connection = $this->maintenanceConnection();
+
+        foreach ($databases as $database) {
+            $name = str_replace('`', '``', $database);
+
+            $connection->statement("DROP DATABASE IF EXISTS `{$name}`");
+        }
+
+        DB::purge(self::MAINTENANCE_CONNECTION);
+    }
+
+    /**
+     * Closes every named connection's PDO object at the end of each test.
+     *
+     * `DatabaseTenancyBootstrapper` purges (discards) the default connection's
+     * PDO object whenever `$tenant->run()` switches context, mid-test, with no
+     * guaranteed COMMIT/ROLLBACK on the connection being replaced. If that
+     * connection was inside RefreshDatabase's open transaction — true of any
+     * test that writes through the default connection before calling
+     * `$tenant->run()` — the abandoned PDO object's underlying MySQL session
+     * is never closed by Laravel, so it never triggers the server-side
+     * auto-rollback a clean disconnect would. It just sits there as an idle
+     * (`Sleep`) connection, still holding whatever row/table locks its last
+     * statement took, for the rest of the process — this is the actual
+     * mechanism behind the "stranded transaction" in the lock-wait-timeout
+     * failures documented below and in `.claude/rules/testing.md`.
+     *
+     * `RefreshDatabase`'s own rollback does not fix this: it calls rollback on
+     * whichever PDO object the connection resolver holds *now*, not on the one
+     * that got orphaned mid-test. Explicitly purging every connection name
+     * here forces PHP to drop the last reference to each PDO object, which
+     * closes the socket and lets MySQL roll back and free the locks itself —
+     * whether or not Laravel's own transaction-depth bookkeeping ever ran a
+     * ROLLBACK statement against it.
+     */
+    private function disconnectAllConnections(): void
+    {
+        if (! $this->app) {
+            return;
+        }
+
+        foreach (['mysql', 'central', 'tenant'] as $name) {
+            DB::purge($name);
+        }
+    }
+
+    /**
+     * A connection with its own PDO session, so the DDL above cannot commit a
+     * transaction any other connection is holding.
+     */
+    private function maintenanceConnection(): Connection
+    {
+        $central = Config::string('tenancy.database.central_connection', 'central');
+
+        /** @var array<string, mixed> $config */
+        $config = config("database.connections.{$central}");
+
+        config(['database.connections.'.self::MAINTENANCE_CONNECTION => $config]);
+
+        DB::purge(self::MAINTENANCE_CONNECTION);
+
+        return DB::connection(self::MAINTENANCE_CONNECTION);
     }
 }

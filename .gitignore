@@ -28,5 +28,4 @@ _ide_helper_models.php
 # Local overrides only — the committed configs are the .dist variants.
 phpunit.xml
 phpstan.neon
-/docs
 /coverage

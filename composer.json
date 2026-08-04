@@ -38,7 +38,8 @@
     "autoload": {
         "psr-4": {
             "Nvade\\Numerosis\\": "src/",
-            "Nvade\\Numerosis\\Database\\Factories\\": "database/factories/"
+            "Nvade\\Numerosis\\Database\\Factories\\": "database/factories/",
+            "Nvade\\Numerosis\\Database\\Seeders\\": "database/seeders/"
         }
     },
     "autoload-dev": {

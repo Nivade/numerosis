@@ -1,0 +1,36 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Nvade\Numerosis\Actions\Billing\Checkout;
+
+use Nvade\Numerosis\Data\Billing\CheckoutIntent;
+use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
+use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Http\Requests\Billing\StartCheckoutRequest;
+use Nvade\Numerosis\Services\Billing\Checkout\LocalCheckoutGateway;
+use Nvade\Numerosis\Services\Billing\Checkout\RedirectResponsable;
+use Illuminate\Contracts\Support\Responsable;
+use Lorisleiva\Actions\Concerns\AsAction;
+
+// See .claude/rules/billing-checkout.md.
+class StartLocalCheckout
+{
+    use AsAction;
+
+    public function __construct(private readonly LocalCheckoutGateway $gateway) {}
+
+    public function handle(TenantRegistrationData $registration): CheckoutIntent
+    {
+        return $this->gateway->begin($registration);
+    }
+
+    public function asController(StartCheckoutRequest $request): Responsable
+    {
+        $intent = $this->handle($request->toRegistrationData());
+
+        assert($intent instanceof RedirectCheckout);
+
+        return new RedirectResponsable($intent->url, ['success' => 'Your tenant is being set up.']);
+    }
+}

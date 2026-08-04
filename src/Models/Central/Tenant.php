@@ -1,0 +1,255 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Nvade\Numerosis\Models\Central;
+
+use Nvade\Numerosis\Concerns\Billing\Billable;
+use Nvade\Numerosis\Contracts\Subscribable;
+use Nvade\Numerosis\Models\Tenant\User;
+use Nvade\Numerosis\Observers\TenantObserver;
+use Nvade\Numerosis\Support\Cache\CacheKeys;
+use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Database\Factories\Central\TenantFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
+use Laravel\Cashier\Invoice;
+use Stancl\Tenancy\Contracts\TenantWithDatabase;
+use Stancl\Tenancy\Database\Concerns\HasDatabase;
+use Stancl\Tenancy\Database\Concerns\HasDomains;
+use Stancl\Tenancy\Database\Concerns\InvalidatesResolverCache;
+use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
+
+/**
+ * @property string $id
+ * @property string $name
+ * @property string|null $stripe_id
+ * @property string|null $pm_type
+ * @property string|null $pm_last_four
+ * @property Carbon|null $trial_ends_at
+ * @property Carbon|null $suspended_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property array<string, mixed>|null $data
+ * @property-read string $title
+ * @property-read string $slug
+ * @property-read string $initials
+ * @property-read Collection<int, CentralUser> $users
+ * @property-read int|null $users_count
+ * @property-read Collection<int, Domain> $domains
+ * @property-read int|null $domains_count
+ * @property-read Collection<int, Subscription> $subscriptions
+ * @property-read int|null $subscriptions_count
+ *
+ * @mixin Model
+ */
+#[Fillable([
+    'id',
+    'data',
+    'stripe_id',
+    'pm_type',
+    'pm_last_four',
+    'trial_ends_at',
+    'registration_date',
+    'created_by',
+    'provisioned_at',
+    'suspended_at',
+    'name',
+])]
+#[ObservedBy(TenantObserver::class)]
+class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
+{
+    use Billable;
+    use HasDatabase;
+    use HasDomains;
+
+    /** @use HasFactory<TenantFactory> */
+    use HasFactory;
+
+    /**
+     * Invalidates DomainTenantResolver's cache (see
+     * TenancyServiceProvider::register()) when a domain is renamed off of
+     * this tenant or the tenant is deleted.
+     */
+    use InvalidatesResolverCache;
+
+    /** @var list<string> */
+    protected static array $additionalCustomColumns = [];
+
+    /**
+     * @param  list<string>  $columns
+     */
+    public static function addCustomColumns(array $columns): void
+    {
+        static::$additionalCustomColumns = array_values(array_unique([
+            ...static::$additionalCustomColumns,
+            ...$columns,
+        ]));
+    }
+
+    /**
+     * Every attribute not listed here is folded into the `data` JSON column by
+     * {@see \Stancl\VirtualColumn\VirtualColumn}, whose default is `['id']`
+     * alone. The billing columns and `provisioned_at` are real columns, so
+     * leaving them out wrote them to `data` and left the columns NULL — which
+     * silently breaks every SQL-level read of them (`whereNotNull('provisioned_at')`,
+     * Cashier's `stripe_id` lookups, the webhook's customer resolution), even
+     * though `$tenant->provisioned_at` still reads back fine off the model.
+     *
+     * `name` is deliberately absent: there is no `name` column, so it belongs
+     * in `data`.
+     *
+     * `addTenantColumns()` must be called from a service provider's `register()`,
+     * before any tenant model boots or saves. A late call silently folds the
+     * column into the `data` JSON blob — the exact bug this API prevents.
+     *
+     * @return list<string>
+     */
+    public static function getCustomColumns(): array
+    {
+        return [
+            'id',
+            'created_at',
+            'updated_at',
+            'stripe_id',
+            'pm_type',
+            'pm_last_four',
+            'trial_ends_at',
+            'provisioned_at',
+            'suspended_at',
+            ...static::$additionalCustomColumns,
+            ...Numerosis::tenantColumns(),
+        ];
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'suspended_at' => 'datetime',
+        ];
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
+    }
+
+    /**
+     * @return BelongsToMany<CentralUser, $this, Membership>
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            CentralUser::class,
+            'memberships',
+            'tenant_id',
+            'global_user_id',
+            'id',
+            'global_id'
+        )
+            ->using(Membership::class)
+            ->withPivot(['role', 'invited_by', 'invited_at', 'joined_at'])
+            ->withTimestamps();
+    }
+
+    /**
+     * @return BelongsToMany<CentralUser, $this, Membership>
+     */
+    public function members(): BelongsToMany
+    {
+        return $this->users(); // Alias for better readability
+    }
+
+    /**
+     * Get the tenant owner (the user who created/owns the subscription).
+     */
+    public function owner(): ?CentralUser
+    {
+        // Get the first membership with 'owner' role
+        $membership = $this->users()
+            ->wherePivot('role', 'owner')
+            ->first();
+
+        return $membership;
+    }
+
+    public function primaryDomain(): ?Domain
+    {
+        return global_cache()->remember(
+            CacheKeys::tenantPrimaryDomain($this->id),
+            now()->addHour(),
+            fn () => $this->domains()
+                ->orderByDesc('created_at')
+                ->limit(1)
+                ->first()
+        );
+    }
+
+    public function latestInvoice(): ?Invoice
+    {
+        // Called as a method, never as $this->latestSubscription: it returns
+        // ?Subscription rather than a Relation, so Eloquent's magic property
+        // access throws LogicException for it. The @property-read that used
+        // to advertise otherwise is gone for the same reason — it was what
+        // stopped PHPStan seeing this.
+        return $this->latestSubscription()?->latestInvoice([
+            'download' => true,
+        ]);
+    }
+
+    public function admin(): ?User
+    {
+        $admin = $this->run(fn ($tenant) => User::role('admin')->first());
+
+        return $admin instanceof User ? $admin : null;
+    }
+
+    /**
+     * Get the email address that should be associated with the Stripe customer.
+     */
+    public function stripeEmail(): ?string
+    {
+        // Get the owner's email for Stripe dashboard identification
+        return $this->owner()?->email;
+    }
+
+    /**
+     * @return Attribute<string, never>
+     */
+    protected function title(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => Str::ucfirst($this->id)
+        );
+    }
+
+    /**
+     * @return Attribute<string, never>
+     */
+    protected function slug(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => Str::slug($this->name)
+        );
+    }
+
+    /**
+     * @return Attribute<string, never>
+     */
+    protected function initials(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => collect(preg_split('/\s+/', (string) ($this->name ?? '')) ?: [])
+                ->map(fn ($p) => mb_strtoupper(mb_substr($p, 0, 1)))
+                ->take(2)
+                ->implode('')
+        );
+    }
+}

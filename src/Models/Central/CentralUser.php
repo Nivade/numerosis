@@ -1,0 +1,179 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Nvade\Numerosis\Models\Central;
+
+use Nvade\Numerosis\Concerns\Billing\Billable;
+use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
+use Nvade\Numerosis\Contracts\Subscribable;
+use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
+use Nvade\Numerosis\Models\SocialiteLogin;
+use Nvade\Numerosis\Models\Tenant as Workspace;
+use Nvade\Numerosis\Models\User;
+use Nvade\Numerosis\Observers\CentralUserObserver;
+use Filament\Panel;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Guarded;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Attributes\Table;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
+use Laravel\Cashier\Subscription;
+use Stancl\Tenancy\Database\Concerns\CentralConnection;
+use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
+
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property string $password
+ * @property string $global_id
+ * @property Carbon|null $last_seen_at
+ * @property Carbon|null $email_verified_at
+ * @property string|null $remember_token
+ * @property Carbon|null $deleted_at
+ * @property string|null $stripe_id
+ * @property string|null $pm_type
+ * @property string|null $pm_last_four
+ * @property Carbon|null $trial_ends_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, SocialiteLogin> $socialiteLogins
+ * @property-read int|null $socialite_logins_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, Tenant> $tenants
+ * @property-read int|null $tenants_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, Subscription> $subscriptions
+ * @property-read int|null $subscriptions_count
+ *
+ * @mixin Model
+ */
+#[Table(name: 'users')]
+#[ObservedBy(CentralUserObserver::class)]
+#[Fillable([
+    'name',
+    'email',
+    'password',
+    'global_id',
+    'last_seen_at',
+    'email_verified_at',
+    'display_status',
+    'stripe_id',
+    'pm_last_four',
+    'pm_type',
+    'trial_ends_at',
+])]
+#[Guarded([
+    'id',
+])]
+#[Hidden([
+    'password',
+    'remember_token',
+])]
+class CentralUser extends User implements CentralUserModel, HasTenants, Subscribable
+{
+    use Billable;
+    use CentralConnection;
+    use ResourceSyncing;
+    use SoftDeletes;
+
+    protected $with = [
+        'tenants.domains',
+    ];
+
+    /**
+     * @return HasMany<SocialiteLogin, $this>
+     */
+    public function socialiteLogins(): HasMany
+    {
+        return $this->hasMany(SocialiteLogin::class);
+    }
+
+    /**
+     * @see HasTenants::tenants()
+     *
+     * @return BelongsToMany<Tenant, $this, Membership, 'pivot'>
+     */
+    public function tenants(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Tenant::class,
+            'memberships',
+            'global_user_id',
+            'tenant_id',
+            'global_id'
+        )
+            ->using(Membership::class)
+            ->withPivot(['role', 'invited_by', 'invited_at', 'joined_at']);
+
+    }
+
+    /**
+     * Get the user's initials
+     */
+    public function initials(): string
+    {
+        return Str::of($this->name)
+            ->explode(' ')
+            ->map(fn (string $name) => Str::of($name)->substr(0, 1))
+            ->implode('');
+    }
+
+    public function getTenantModelName(): string
+    {
+        return Workspace\User::class;
+    }
+
+    public function getGlobalIdentifierKeyName(): string
+    {
+        return 'global_id';
+    }
+
+    public function getGlobalIdentifierKey(): string
+    {
+        return $this->global_id;
+    }
+
+    public function getCentralModelName(): string
+    {
+        return static::class;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function getSyncedAttributeNames(): array
+    {
+        return [
+            'name',
+            'email',
+            'password',
+            'email_verified_at',
+        ];
+    }
+
+    /**
+     * @return string|list<string>
+     */
+    public function guardName(): string|array
+    {
+        return 'web';
+    }
+
+    /**
+     * @return array<int, Tenant>|Collection<int, Tenant>
+     */
+    public function getTenants(Panel $panel): array|Collection
+    {
+        return $this->tenants;
+    }
+
+    public function getForeignKey(): string
+    {
+        return 'user_id';
+    }
+}

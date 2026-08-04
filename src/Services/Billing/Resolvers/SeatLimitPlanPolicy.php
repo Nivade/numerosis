@@ -1,0 +1,51 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Nvade\Numerosis\Services\Billing\Resolvers;
+
+use Nvade\Numerosis\Contracts\Billing\Plan;
+use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
+use Nvade\Numerosis\Contracts\Subscribable;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Illuminate\Validation\ValidationException;
+
+/**
+ * The seat check formerly BillingService::checkPlanEligibility() — carried
+ * over unused, since nothing called it. Wired to StartSubscriptionCheckout
+ * and SwapSubscriptionPlan now.
+ */
+class SeatLimitPlanPolicy implements PlanPolicy
+{
+    public function assertEligible(Subscribable $for, Plan $plan): void
+    {
+        if (! $for instanceof Tenant) {
+            return;
+        }
+
+        $maxUsers = $plan->metadata()['options']['max_users'] ?? null;
+
+        if ($maxUsers === null) {
+            return;
+        }
+
+        $currentUsers = $for->users()->count();
+
+        if ($currentUsers > $maxUsers) {
+            throw ValidationException::withMessages([
+                'plan' => "You have {$currentUsers} users but this plan only allows {$maxUsers}. Please remove users or choose a higher tier plan.",
+            ]);
+        }
+    }
+
+    public function canSwap(Subscribable $for, Plan $from, Plan $to): bool
+    {
+        try {
+            $this->assertEligible($for, $to);
+
+            return true;
+        } catch (ValidationException) {
+            return false;
+        }
+    }
+}

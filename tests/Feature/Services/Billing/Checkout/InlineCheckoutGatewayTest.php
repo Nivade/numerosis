@@ -1,0 +1,71 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Nvade\Numerosis\Tests\Feature\Services\Billing\Checkout;
+
+use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
+use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\Central\PaymentPlan;
+use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Services\Billing\Checkout\InlineCheckoutGateway;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Nvade\Numerosis\Tests\TestCase;
+
+/**
+ * Hits real Stripe test mode (customer + SetupIntent creation) — no mocking
+ * seam exists for this in the codebase yet, matching
+ * StartSubscriptionCheckoutTest's existing convention.
+ */
+class InlineCheckoutGatewayTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_it_creates_a_setup_intent_and_returns_an_inline_checkout(): void
+    {
+        $user = CentralUser::factory()->create();
+        $this->actingAs($user);
+
+        // InlineCheckoutGateway::begin() only checks a price is configured
+        // locally — it never sends it to Stripe (that happens later, in
+        // CreateInlineSubscription) — so a placeholder id is fine here.
+        PaymentPlan::create([
+            'name' => 'Basic',
+            'slug' => 'basic',
+            'description' => 'Basic Plan',
+            'monthly_id' => 'price_test_monthly',
+            'yearly_id' => 'price_test_yearly',
+            'monthly_price' => 1000,
+            'yearly_price' => 10000,
+            'available' => true,
+        ]);
+
+        PendingTenantProvision::factory()->create([
+            'domain' => 'inline-test',
+            'global_id' => $user->global_id,
+        ]);
+
+        $intent = app(InlineCheckoutGateway::class)->begin(new TenantRegistrationData(
+            company_name: 'Inline Test Co',
+            domain: 'inline-test',
+            global_id: $user->global_id,
+            payment_plan: 'basic',
+            billing_cycle: BillingCycle::Monthly,
+        ));
+
+        $this->assertInstanceOf(InlineCheckout::class, $intent);
+        $this->assertNotEmpty($intent->clientSecret);
+        $this->assertNotEmpty($intent->publishableKey);
+
+        $pending = PendingTenantProvision::find('inline-test');
+        $this->assertNotNull($pending);
+        $this->assertSame('basic', $pending->payment_plan);
+        $this->assertSame(BillingCycle::Monthly, $pending->billing_cycle);
+        $this->assertNotNull($pending->stripe_setup_intent_id);
+
+        $user->refresh();
+        $this->assertNotNull($user->stripe_id);
+    }
+}

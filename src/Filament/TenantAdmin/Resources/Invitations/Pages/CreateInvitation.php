@@ -1,0 +1,55 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\Pages;
+
+use Nvade\Numerosis\Events\Invitations\InvitationIssued;
+use Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\InvitationResource;
+use Nvade\Numerosis\Models\Tenant\Invitation;
+use Nvade\Numerosis\Models\Tenant\User;
+use Filament\Notifications\Notification;
+use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+
+class CreateInvitation extends CreateRecord
+{
+    protected static string $resource = InvitationResource::class;
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $authenticated = Auth::user();
+
+        throw_unless($authenticated, AuthenticationException::class);
+
+        $data['invited_by'] = User::where('global_id', $authenticated->global_id)->firstOrFail()->id;
+        $data['tenant_id'] = tenant('id');
+
+        return $data;
+    }
+
+    protected function handleRecordCreation(array $data): Model
+    {
+        /** @var Invitation $invitation */
+        $invitation = static::getModel()::create($data);
+
+        event(new InvitationIssued($invitation));
+
+        return $invitation;
+    }
+
+    protected function getCreatedNotification(): ?Notification
+    {
+        return Notification::make()
+            ->success()
+            ->title('Invitation sent')
+            ->body('The invitation has been sent to '.($this->record instanceof Invitation ? $this->record->email : 'the invitee'));
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return self::getResource()::getUrl('index');
+    }
+}

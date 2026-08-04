@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "solid-php",
+  "owner": "fusengine",
+  "repo": "agents",
+  "path": "plugins/laravel-expert/skills/solid-php",
+  "branch": "main",
+  "sha": "f1a678d0df039cf2693cac655dbfb6494768511d",
+  "source": "manual"
+}

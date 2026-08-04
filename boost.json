@@ -1,0 +1,33 @@
+{
+    "agents": [
+        "claude_code"
+    ],
+    "cloud": false,
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch": false,
+    "packages": [
+        "filament/filament",
+        "spatie/laravel-permission",
+        "alizharb/filament-activity-log",
+        "barryvdh/laravel-debugbar",
+        "lorisleiva/laravel-actions",
+        "internachi/modular"
+    ],
+    "sail": true,
+    "skills": [
+        "cashier-stripe-development",
+        "laravel-best-practices",
+        "socialite-development",
+        "fluxui-development",
+        "livewire-development",
+        "pest-testing",
+        "echo-vue-development",
+        "echo-development",
+        "tailwindcss-development",
+        "modular",
+        "laravel-actions",
+        "laravel-permission-development",
+        "debug-using-debugbar"
+    ]
+}
