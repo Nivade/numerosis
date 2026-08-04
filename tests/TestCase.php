@@ -7,7 +7,6 @@ namespace Nvade\Numerosis\Tests;
 use Filament\Facades\Filament;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Connection;
-use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Config;
@@ -22,25 +21,6 @@ use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra
 {
-    /**
-     * Laravel resolves a factory from the model's namespace below
-     * App\Models by default; the package equivalent is
-     * Nvade\Numerosis\Models, so the resolver must preserve everything
-     * after that prefix (sub-namespaces included) rather than just
-     * class_basename() — see .claude/rules/testing.md's factory-namespace
-     * note and Phase 4.3 of the package-extraction plan.
-     *
-     * @param  class-string  $modelName
-     */
-    private static function factoryNameFor(string $modelName): string
-    {
-        $suffix = str_starts_with($modelName, 'Nvade\\Numerosis\\Models\\')
-            ? substr($modelName, strlen('Nvade\\Numerosis\\Models\\'))
-            : class_basename($modelName);
-
-        return 'Nvade\\Numerosis\\Database\\Factories\\'.$suffix.'Factory';
-    }
-
     protected function getPackageProviders($app): array
     {
         return [
@@ -102,8 +82,6 @@ abstract class TestCase extends Orchestra
     protected function setUp(): void
     {
         parent::setUp();
-
-        Factory::guessFactoryNamesUsing(self::factoryNameFor(...));
 
         $this->recordCentralWrites();
 

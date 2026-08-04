@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Tenant;
 
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Policies\ModulePolicy;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
@@ -14,6 +12,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Policies\ModulePolicy;
 
 /**
  * @property int $id
@@ -39,7 +39,7 @@ use Illuminate\Support\Carbon;
     'billing_cycle',
     'migrated_at',
 ])]
-class Module extends Model
+abstract class Module extends Model
 {
     /** @use HasFactory<Factory<static>> */
     use HasFactory;

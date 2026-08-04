@@ -5,12 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Models\Tenant;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Nvade\Numerosis\Contracts\Auth\TenantUserModel;
-use Nvade\Numerosis\Enums\Tenant\DisplayStatus;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\User as BaseUser;
-use Nvade\Numerosis\Observers\TenantUserObserver;
-use Nvade\Numerosis\Policies\UserPolicy;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -19,6 +13,12 @@ use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Nvade\Numerosis\Contracts\Auth\TenantUserModel;
+use Nvade\Numerosis\Enums\Tenant\DisplayStatus;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\User as BaseUser;
+use Nvade\Numerosis\Observers\TenantUserObserver;
+use Nvade\Numerosis\Policies\UserPolicy;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -77,7 +77,7 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
     'password',
     'remember_token',
 ])]
-class User extends BaseUser implements TenantUserModel
+abstract class User extends BaseUser implements TenantUserModel
 {
     use LogsActivity;
     use ResourceSyncing;

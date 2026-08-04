@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-use App\Features\Auth\EmailVerificationFeature;
-use App\Features\Auth\PasswordResetFeature;
-use App\Features\Billing\BillingNotificationsFeature;
-use App\Features\Invitations\InvitationsFeature;
-use App\Features\Modules\ModuleSystemFeature;
-use App\Features\Observability\ActivityLogFeature;
-use App\Features\Social\SocialLoginFeature;
-use App\Features\Tenancy\MembershipsFeature;
-use App\Features\Tenancy\RegistrationWizardFeature;
-use App\Features\Turnstile\TurnstileFeature;
-use App\Features\Ui\AccountPagesFeature;
-use App\Features\Ui\AdminPanelFeature;
-use App\Features\Ui\MarketingPagesFeature;
-use App\Features\Ui\TenantPanelFeature;
+use Nvade\Numerosis\Features\Auth\EmailVerificationFeature;
+use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
+use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
+use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
+use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
+use Nvade\Numerosis\Features\Observability\ActivityLogFeature;
+use Nvade\Numerosis\Features\Social\SocialLoginFeature;
+use Nvade\Numerosis\Features\Tenancy\MembershipsFeature;
+use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
+use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
+use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
+use Nvade\Numerosis\Features\Ui\AdminPanelFeature;
+use Nvade\Numerosis\Features\Ui\MarketingPagesFeature;
+use Nvade\Numerosis\Features\Ui\TenantPanelFeature;
 
 return [
 
@@ -108,7 +108,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | 'home' and 'tenants.mine' are called from ~20 sites outside their own
-    | route file (see App\Support\Routes\RouteNames). Phase 8 of the
+    | route file (see Nvade\Numerosis\Support\Routes\RouteNames). Phase 8 of the
     | opt-in-feature-classes plan gates the routes that register these two
     | names, so every caller reads the name from here instead of a literal
     | string — a disabled feature that renamed or removed the route would
@@ -159,7 +159,7 @@ return [
     | Cache
     |--------------------------------------------------------------------------
     |
-    | Prefix for every key in App\Support\Cache\CacheKeys. Does not change
+    | Prefix for every key in Nvade\Numerosis\Support\Cache\CacheKeys. Does not change
     | which keys are tenant-scoped (Cache::) vs global (global_cache()) —
     | see .claude/rules/tenant-caching.md.
     |

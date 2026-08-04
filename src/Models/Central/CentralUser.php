@@ -4,14 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Nvade\Numerosis\Concerns\Billing\Billable;
-use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
-use Nvade\Numerosis\Contracts\Subscribable;
-use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
-use Nvade\Numerosis\Models\SocialiteLogin;
-use Nvade\Numerosis\Models\Tenant as Workspace;
-use Nvade\Numerosis\Models\User;
-use Nvade\Numerosis\Observers\CentralUserObserver;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
@@ -26,6 +18,14 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Subscription;
+use Nvade\Numerosis\Concerns\Billing\Billable;
+use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
+use Nvade\Numerosis\Contracts\Subscribable;
+use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
+use Nvade\Numerosis\Models\SocialiteLogin;
+use Nvade\Numerosis\Models\Tenant as Workspace;
+use Nvade\Numerosis\Models\User;
+use Nvade\Numerosis\Observers\CentralUserObserver;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 
@@ -74,7 +74,7 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
     'password',
     'remember_token',
 ])]
-class CentralUser extends User implements CentralUserModel, HasTenants, Subscribable
+abstract class CentralUser extends User implements CentralUserModel, HasTenants, Subscribable
 {
     use Billable;
     use CentralConnection;

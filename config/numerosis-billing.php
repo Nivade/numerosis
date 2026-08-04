@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-use App\Contracts\Billing\BillableResolver;
-use App\Contracts\Billing\CheckoutGateway;
-use App\Contracts\Billing\ModuleCatalog;
-use App\Contracts\Billing\MoneyFormatter;
-use App\Contracts\Billing\PaymentPlanRepository;
-use App\Contracts\Billing\PlanPolicy;
-use App\Contracts\Billing\SubscriptionRepository;
-use App\Contracts\Billing\TrialResolver;
-use App\Contracts\Billing\UnpaidTenantQuota;
-use App\Models\Central\Subscription;
-use App\Models\Central\SubscriptionItem;
-use App\Models\Central\Tenant;
-use App\Services\Billing\Checkout\InlineCheckoutGateway;
-use App\Services\Billing\Modules\EloquentModuleCatalog;
-use App\Services\Billing\Plans\EloquentPaymentPlanRepository;
-use App\Services\Billing\Resolvers\CashierMoneyFormatter;
-use App\Services\Billing\Resolvers\DefaultUnpaidTenantQuota;
-use App\Services\Billing\Resolvers\PlanOrDefaultTrialResolver;
-use App\Services\Billing\Resolvers\SeatLimitPlanPolicy;
-use App\Services\Billing\Resolvers\TenantOrUserBillableResolver;
-use App\Services\Billing\Subscriptions\EloquentSubscriptionRepository;
+use Nvade\Numerosis\Contracts\Billing\BillableResolver;
+use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
+use Nvade\Numerosis\Contracts\Billing\ModuleCatalog;
+use Nvade\Numerosis\Contracts\Billing\MoneyFormatter;
+use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
+use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
+use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
+use Nvade\Numerosis\Contracts\Billing\TrialResolver;
+use Nvade\Numerosis\Contracts\Billing\UnpaidTenantQuota;
+use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Models\Central\SubscriptionItem;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Services\Billing\Checkout\InlineCheckoutGateway;
+use Nvade\Numerosis\Services\Billing\Modules\EloquentModuleCatalog;
+use Nvade\Numerosis\Services\Billing\Plans\EloquentPaymentPlanRepository;
+use Nvade\Numerosis\Services\Billing\Resolvers\CashierMoneyFormatter;
+use Nvade\Numerosis\Services\Billing\Resolvers\DefaultUnpaidTenantQuota;
+use Nvade\Numerosis\Services\Billing\Resolvers\PlanOrDefaultTrialResolver;
+use Nvade\Numerosis\Services\Billing\Resolvers\SeatLimitPlanPolicy;
+use Nvade\Numerosis\Services\Billing\Resolvers\TenantOrUserBillableResolver;
+use Nvade\Numerosis\Services\Billing\Subscriptions\EloquentSubscriptionRepository;
 
 return [
 

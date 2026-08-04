@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Support;
 
-use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
-use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
-use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
+use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
+use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
+use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 class Numerosis
@@ -114,5 +114,36 @@ class Numerosis
         // + tenant-subdomain shape this app needs — and it's a no-op on `local`/
         // testing envs, so dev hosts never need listing here.
         $middleware->trustHosts();
+    }
+
+    /**
+     * Laravel's default `Factory::resolveFactoryName()` strips the host
+     * app's own `Models\` prefix and rebuilds the factory name under the
+     * host's own namespace — correct for a single-repo app, wrong here,
+     * since every model factory lives under `Nvade\Numerosis\Database\
+     * Factories\*` regardless of whether the model being factoried is the
+     * package's own class or a thin-app stub (`App\Models\Central\Tenant
+     * extends \Nvade\Numerosis\Models\Central\Tenant {}`) published from
+     * `numerosis/stubs/`. Both call sites — `NumerosisServiceProvider`
+     * for real apps, `Tests\TestCase` for the package's own suite — must
+     * call this one resolver rather than keep separate copies, since a
+     * model's factory-namespace segment (`Central\Tenant` → `Central\
+     * TenantFactory`) is exactly the kind of detail that drifts between
+     * two hand-written copies (see .claude/rules/testing.md's cache-key
+     * bullet for the general shape of this trap).
+     *
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $modelName
+     * @return class-string<\Illuminate\Database\Eloquent\Factories\Factory<\Illuminate\Database\Eloquent\Model>>
+     */
+    public static function factoryNameFor(string $modelName): string
+    {
+        $suffix = str_contains($modelName, '\\Models\\')
+            ? substr($modelName, strpos($modelName, '\\Models\\') + strlen('\\Models\\'))
+            : class_basename($modelName);
+
+        /** @var class-string<\Illuminate\Database\Eloquent\Factories\Factory<\Illuminate\Database\Eloquent\Model>> $factoryName */
+        $factoryName = 'Nvade\\Numerosis\\Database\\Factories\\'.$suffix.'Factory';
+
+        return $factoryName;
     }
 }

@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Tenant;
 
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Policies\InvitationPolicy;
-use Nvade\Numerosis\Database\Factories\Tenant\InvitationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Collection;
@@ -16,6 +13,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Database\Factories\Tenant\InvitationFactory;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Policies\InvitationPolicy;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -48,7 +48,7 @@ use Spatie\Activitylog\Support\LogOptions;
     'expires_at',
     'accepted_at',
 ])]
-class Invitation extends Model
+abstract class Invitation extends Model
 {
     /** @use HasFactory<InvitationFactory> */
     use HasFactory;

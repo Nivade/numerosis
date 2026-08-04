@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
-use Nvade\Numerosis\Database\Factories\Central\PendingTenantProvisionFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\WithoutIncrementing;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Nvade\Numerosis\Database\Factories\Central\PendingTenantProvisionFactory;
+use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\TenantProvisionStatus;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -40,7 +40,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  */
 #[WithoutIncrementing]
 #[UseFactory(PendingTenantProvisionFactory::class)]
-class PendingTenantProvision extends Model
+abstract class PendingTenantProvision extends Model
 {
     use CentralConnection;
 

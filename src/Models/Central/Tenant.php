@@ -4,13 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Nvade\Numerosis\Concerns\Billing\Billable;
-use Nvade\Numerosis\Contracts\Subscribable;
-use Nvade\Numerosis\Models\Tenant\User;
-use Nvade\Numerosis\Observers\TenantObserver;
-use Nvade\Numerosis\Support\Cache\CacheKeys;
-use Nvade\Numerosis\Support\Numerosis;
-use Nvade\Numerosis\Database\Factories\Central\TenantFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -21,6 +14,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Invoice;
+use Nvade\Numerosis\Concerns\Billing\Billable;
+use Nvade\Numerosis\Contracts\Subscribable;
+use Nvade\Numerosis\Database\Factories\Central\TenantFactory;
+use Nvade\Numerosis\Models\Tenant\User;
+use Nvade\Numerosis\Observers\TenantObserver;
+use Nvade\Numerosis\Support\Cache\CacheKeys;
+use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
@@ -64,7 +64,7 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
     'name',
 ])]
 #[ObservedBy(TenantObserver::class)]
-class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
+abstract class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
 {
     use Billable;
     use HasDatabase;

@@ -2,12 +2,22 @@
 
 declare(strict_types=1);
 
-use App\Actions\Tenancy\AddTenantOwner;
-use App\Actions\Tenancy\CreateTenant;
-use App\Actions\Tenancy\ProvisionTenant;
-use App\Contracts\Tenancy\ProvisionsTenant;
-use App\Contracts\Tenancy\TenantDomainPolicy;
-use App\Services\Tenancy\DefaultTenantDomainPolicy;
+use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
+use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
+use Nvade\Numerosis\Contracts\Auth\SocialAccountRepository;
+use Nvade\Numerosis\Contracts\Invitations\InvitationRepository;
+use Nvade\Numerosis\Contracts\Modules\ModuleRegistry;
+use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
+use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
+use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
+use Nvade\Numerosis\Services\Tenancy\DefaultTenantDomainPolicy;
+use Nvade\Numerosis\Support\Defaults\EloquentInvitationRepository;
+use Nvade\Numerosis\Support\Defaults\EloquentModuleRegistry;
+use Nvade\Numerosis\Support\Defaults\EloquentSocialAccountRepository;
+use Nvade\Numerosis\Support\Defaults\NotifiesTenantOwnerDirectly;
+use Nvade\Numerosis\Support\Defaults\StanclTenantDatabaseManager;
 
 return [
 
@@ -57,6 +67,11 @@ return [
     'implementations' => [
         TenantDomainPolicy::class => DefaultTenantDomainPolicy::class,
         ProvisionsTenant::class => ProvisionTenant::class,
+        TenantDatabaseManager::class => StanclTenantDatabaseManager::class,
+        InvitationRepository::class => EloquentInvitationRepository::class,
+        ModuleRegistry::class => EloquentModuleRegistry::class,
+        SocialAccountRepository::class => EloquentSocialAccountRepository::class,
+        NotifiesTenantOwner::class => NotifiesTenantOwnerDirectly::class,
     ],
 
 ];

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Nvade\Numerosis\Observers\DomainObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\WithoutIncrementing;
@@ -16,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Request;
+use Nvade\Numerosis\Observers\DomainObserver;
 use Stancl\Tenancy\Database\Concerns\InvalidatesTenantsResolverCache;
 
 /**
@@ -31,7 +31,7 @@ use Stancl\Tenancy\Database\Concerns\InvalidatesTenantsResolverCache;
  */
 #[WithoutIncrementing]
 #[ObservedBy(DomainObserver::class)]
-class Domain extends \Stancl\Tenancy\Database\Models\Domain
+abstract class Domain extends \Stancl\Tenancy\Database\Models\Domain
 {
     /** @use HasFactory<Factory<static>> */
     use HasFactory;

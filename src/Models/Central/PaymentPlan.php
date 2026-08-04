@@ -4,12 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Nvade\Numerosis\Contracts\Billing\Plan;
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Facades\Billing;
-use Nvade\Numerosis\Observers\PaymentPlanObserver;
-use Nvade\Numerosis\Support\Cache\CacheKeys;
-use Nvade\Numerosis\Database\Factories\Central\PaymentPlanFactory;
 use Illuminate\Database\Eloquent\Attributes\Appends;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
@@ -20,6 +14,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Nvade\Numerosis\Contracts\Billing\Plan;
+use Nvade\Numerosis\Database\Factories\Central\PaymentPlanFactory;
+use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Facades\Billing;
+use Nvade\Numerosis\Observers\PaymentPlanObserver;
+use Nvade\Numerosis\Support\Cache\CacheKeys;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -53,7 +53,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
     'metadata',
 ])]
 #[ObservedBy(PaymentPlanObserver::class)]
-class PaymentPlan extends Model implements Plan
+abstract class PaymentPlan extends Model implements Plan
 {
     use CentralConnection;
 
