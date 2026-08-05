@@ -64,6 +64,12 @@ class InstallNumerosisCommand extends Command
     {
         $this->call('vendor:publish', ['--tag' => 'numerosis-config', '--force' => false]);
         $this->call('vendor:publish', ['--tag' => 'numerosis-models', '--force' => false]);
+
+        // verifyTenantMigrationPath() below checks this directory exists —
+        // config/tenancy.php's default '--path' points at it, but nothing
+        // creates it unless this tag is published too. Without this, a
+        // fresh install always fails the check it added itself.
+        $this->call('vendor:publish', ['--tag' => 'numerosis-tenant-migrations', '--force' => false]);
     }
 
     /**
@@ -113,10 +119,21 @@ class InstallNumerosisCommand extends Command
         /** @var array<string, mixed> $connections */
         $connections = Config::array('database.connections');
 
-        foreach (['central', 'tenant'] as $name) {
-            if (! array_key_exists($name, $connections)) {
-                $this->failures[] = "config('database.connections.{$name}') is missing — see docs/host-requirements.md's config/database.php row.";
-            }
+        // Only 'central' is a static config key. 'tenant' is stancl's
+        // reserved name for a connection it builds dynamically at
+        // tenancy-bootstrap time from 'template_tenant_connection' — it
+        // never exists in config('database.connections') outside a request
+        // that has actually initialized tenancy, so checking for it here
+        // always fails on a freshly installed host. See config/tenancy.php's
+        // own "don't name your template connection tenant" comment.
+        if (! array_key_exists('central', $connections)) {
+            $this->failures[] = "config('database.connections.central') is missing — see docs/host-requirements.md's config/database.php row.";
+        }
+
+        $template = Config::get('tenancy.database.template_tenant_connection');
+
+        if ($template !== null && ! array_key_exists($template, $connections)) {
+            $this->failures[] = "config('tenancy.database.template_tenant_connection') names '{$template}', which is not in config('database.connections').";
         }
     }
 
