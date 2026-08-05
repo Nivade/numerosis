@@ -78,7 +78,7 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
     'password',
     'remember_token',
 ])]
-abstract class User extends BaseUser implements TenantUserModel
+class User extends BaseUser implements TenantUserModel
 {
     use LogsActivity;
     use ResourceSyncing;

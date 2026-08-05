@@ -39,7 +39,7 @@ use Nvade\Numerosis\Policies\ModulePolicy;
     'billing_cycle',
     'migrated_at',
 ])]
-abstract class Module extends Model
+class Module extends Model
 {
     /** @use HasFactory<Factory<static>> */
     use HasFactory;

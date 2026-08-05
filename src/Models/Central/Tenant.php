@@ -64,7 +64,7 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
     'name',
 ])]
 #[ObservedBy(TenantObserver::class)]
-abstract class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
+class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
 {
     use Billable;
     use HasDatabase;

@@ -40,7 +40,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  */
 #[WithoutIncrementing]
 #[UseFactory(PendingTenantProvisionFactory::class)]
-abstract class PendingTenantProvision extends Model
+class PendingTenantProvision extends Model
 {
     use CentralConnection;
 

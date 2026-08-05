@@ -36,7 +36,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property-read int|null $items_count
  */
 #[UseFactory(SubscriptionFactory::class)]
-abstract class Subscription extends \Laravel\Cashier\Subscription
+class Subscription extends \Laravel\Cashier\Subscription
 {
     use CentralConnection;
 

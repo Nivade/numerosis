@@ -16,6 +16,15 @@ use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
 use Nvade\Numerosis\Features\Ui\AdminPanelFeature;
 use Nvade\Numerosis\Features\Ui\MarketingPagesFeature;
 use Nvade\Numerosis\Features\Ui\TenantPanelFeature;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\Central\Domain;
+use Nvade\Numerosis\Models\Central\PaymentPlan;
+use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Tenant\Invitation;
+use Nvade\Numerosis\Models\Tenant\Module;
+use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 
 return [
 
@@ -167,6 +176,33 @@ return [
 
     'cache' => [
         'prefix' => env('NUMEROSIS_CACHE_PREFIX', 'numerosis'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Model overrides
+    |--------------------------------------------------------------------------
+    |
+    | Every package call site that touches one of these 9 models resolves it
+    | through `Numerosis::model()` rather than referencing the class
+    | literally, so a host wanting its own subclass (extra columns,
+    | relationships, methods) sets one key here instead of editing call
+    | sites. Left `null`, each resolves to the package's own concrete class
+    | — the package models are not abstract, so this is a pure override, not
+    | a requirement to publish a stub before anything runs.
+    |
+    */
+
+    'models' => [
+        Tenant::class => env('NUMEROSIS_MODEL_TENANT'),
+        Domain::class => env('NUMEROSIS_MODEL_DOMAIN'),
+        CentralUser::class => env('NUMEROSIS_MODEL_CENTRAL_USER'),
+        Subscription::class => env('NUMEROSIS_MODEL_SUBSCRIPTION'),
+        PaymentPlan::class => env('NUMEROSIS_MODEL_PAYMENT_PLAN'),
+        PendingTenantProvision::class => env('NUMEROSIS_MODEL_PENDING_TENANT_PROVISION'),
+        Invitation::class => env('NUMEROSIS_MODEL_INVITATION'),
+        Module::class => env('NUMEROSIS_MODEL_MODULE'),
+        TenantUser::class => env('NUMEROSIS_MODEL_TENANT_USER'),
     ],
 
 ];

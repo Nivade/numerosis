@@ -75,7 +75,7 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
     'password',
     'remember_token',
 ])]
-abstract class CentralUser extends User implements CentralUserModel, HasTenants, Subscribable
+class CentralUser extends User implements CentralUserModel, HasTenants, Subscribable
 {
     use Billable;
     use CentralConnection;

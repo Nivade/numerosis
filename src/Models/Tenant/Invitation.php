@@ -49,7 +49,7 @@ use Spatie\Activitylog\Support\LogOptions;
     'expires_at',
     'accepted_at',
 ])]
-abstract class Invitation extends Model
+class Invitation extends Model
 {
     /** @use HasFactory<InvitationFactory> */
     use HasFactory;

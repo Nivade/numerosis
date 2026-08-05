@@ -54,7 +54,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
     'metadata',
 ])]
 #[ObservedBy(PaymentPlanObserver::class)]
-abstract class PaymentPlan extends Model implements Plan
+class PaymentPlan extends Model implements Plan
 {
     use CentralConnection;
 

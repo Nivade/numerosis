@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
-use ReflectionClass;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 class Numerosis
@@ -154,18 +153,15 @@ class Numerosis
      * The reverse of `factoryNameFor()`: given a factory, resolve the model it
      * builds. Laravel's default `Factory::modelName()` resolver rebuilds the
      * model class under the *host* app's namespace (`app()->getNamespace()`),
-     * which is correct for a package model the host has published a concrete
-     * stub for (`App\Models\Central\Tenant`), but wrong for the many models
-     * that live entirely inside the package and never get a stub (`Membership`,
-     * `Role`, `SocialiteLogin`, …) — those still need
-     * `Nvade\Numerosis\Models\…`.
-     *
-     * Resolution order: if the package's own class under that `Models\`
-     * suffix exists and is not `abstract`, use it (the no-stub case).
-     * Abstract means a stub is required — fall back to the host's own model
-     * namespace, same two call sites `factoryNameFor()`'s docblock
-     * describes (`NumerosisServiceProvider` for real apps, the package's
-     * own Workbench models for its test suite).
+     * which is right when a host (or this package's own Workbench test
+     * harness) has published a concrete stub extending the package model —
+     * ~100 of this package's own test files are typed against exactly that
+     * stub (`App\Models\Central\Tenant` etc) — and wrong for a fresh consumer
+     * with no stubs published at all, where the package model itself (always
+     * concrete, never requires a stub) is the only class that exists.
+     * Resolution order is therefore "prefer the stub if one exists," not
+     * "prefer the stub if the package model is abstract" — the package model
+     * is never abstract, so the latter would never fall through to the stub.
      *
      * @param  class-string<\Illuminate\Database\Eloquent\Factories\Factory<\Illuminate\Database\Eloquent\Model>>  $factoryName
      * @return class-string<\Illuminate\Database\Eloquent\Model>
@@ -178,72 +174,47 @@ class Numerosis
 
         $suffix = preg_replace('/Factory$/', '', $suffix) ?? $suffix;
 
-        $packageModel = 'Nvade\\Numerosis\\Models\\'.$suffix;
-
-        if (class_exists($packageModel) && ! (new ReflectionClass($packageModel))->isAbstract()) {
-            /** @var class-string<\Illuminate\Database\Eloquent\Model> $packageModel */
-            return $packageModel;
-        }
-
-        /** @var class-string<\Illuminate\Database\Eloquent\Model> $hostModel */
         $hostModel = rtrim((string) app()->getNamespace(), '\\').'\\Models\\'.$suffix;
 
-        return $hostModel;
+        if (class_exists($hostModel)) {
+            /** @var class-string<\Illuminate\Database\Eloquent\Model> $hostModel */
+            return $hostModel;
+        }
+
+        /** @var class-string<\Illuminate\Database\Eloquent\Model> $packageModel */
+        $packageModel = 'Nvade\\Numerosis\\Models\\'.$suffix;
+
+        return $packageModel;
     }
 
     /**
-     * Resolve the concrete class for one of the package's abstract models
-     * (`Tenant`, `Domain`, `CentralUser`, `Subscription`, `PaymentPlan`,
-     * `PendingTenantProvision`, `Tenant\Invitation`, `Tenant\Module`,
-     * `Tenant\User` — see .claude/plans/package-extraction.md Phase 4.4).
+     * Resolve the class one of the package's own call sites should use for a
+     * given model. The 9 models this covers (`Tenant`, `Domain`,
+     * `CentralUser`, `Subscription`, `PaymentPlan`, `PendingTenantProvision`,
+     * `Tenant\Invitation`, `Tenant\Module`, `Tenant\User`) are concrete, so
+     * calling `Tenant::query()` etc directly always works — this is a pure
+     * override mechanism, not a requirement.
      *
-     * Every one of these is `abstract`, so any call written literally as
-     * `Tenant::query()`/`Tenant::find(...)`/etc — anywhere in this package's
-     * own source — resolves `new static` inside Eloquent's base methods to
-     * the abstract class itself and throws `Cannot instantiate abstract
-     * class`. This is not a test-only artifact: it throws in a real request
-     * too, the moment that line runs. Package code must call
-     * `Numerosis::model(Tenant::class)::query()` (or store the resolved
-     * class-string in a local first) instead of the literal class name for
-     * any static Eloquent call.
-     *
-     * Same host-stub-namespace convention `modelNameFor()`'s fallback uses:
-     * `Nvade\Numerosis\Models\Central\Tenant` → `App\Models\Central\Tenant`.
-     * A concrete (non-abstract) argument passes through unchanged, so this
-     * is safe to call unconditionally even on a model that turns out not to
-     * need a stub.
-     *
-     * Generic over the model type: PHPStan resolves the return type to
-     * `class-string<TModel>` for whichever concrete subclass was passed in
-     * (e.g. `class-string<Tenant>`, not the erased `class-string<Model>`),
-     * so a call site doing `Numerosis::model(Tenant::class)::find(...)`
-     * keeps Eloquent's normal return-type narrowing instead of collapsing
-     * every downstream property/method access to the base `Model` type. The
-     * host-stub branch below returns a *different* class than the generic
-     * parameter (`App\Models\Central\Tenant` extends, but is not,
-     * `Nvade\Numerosis\Models\Central\Tenant`) — PHPStan cannot express
-     * "TModel's host subclass" so this is accepted as slightly optimistic:
-     * true at runtime because the stub is declared to extend TModel, which
-     * is all any caller relies on.
+     * Config-first: `numerosis.models.{$model}` lets a host redirect every
+     * package call site touching that model to its own subclass (extra
+     * columns, relationships, methods) by setting one config key, instead of
+     * editing each call site by hand. Unset (the default), this returns
+     * `$model` unchanged — see D8 in .claude/plans/package-extraction.md for
+     * why the previous design (abstract package models + 108 hand-written
+     * wrapper calls with a by-convention host-namespace fallback) was
+     * dropped: it produced six distinct instantiation-by-proxy bugs across
+     * sessions and never actually read config despite being justified by it.
      *
      * @template TModel of \Illuminate\Database\Eloquent\Model
      *
-     * @param  class-string<TModel>  $abstractModel
+     * @param  class-string<TModel>  $model
      * @return class-string<TModel>
      */
-    public static function model(string $abstractModel): string
+    public static function model(string $model): string
     {
-        if (! (new ReflectionClass($abstractModel))->isAbstract()) {
-            return $abstractModel;
-        }
+        $override = Config::get("numerosis.models.{$model}");
 
-        $suffix = str_contains($abstractModel, '\\Models\\')
-            ? substr($abstractModel, strpos($abstractModel, '\\Models\\') + strlen('\\Models\\'))
-            : class_basename($abstractModel);
-
-        /** @var class-string<TModel> $hostModel */
-        $hostModel = rtrim((string) app()->getNamespace(), '\\').'\\Models\\'.$suffix;
-
-        return $hostModel;
+        /** @var class-string<TModel> */
+        return is_string($override) ? $override : $model;
     }
 }

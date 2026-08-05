@@ -31,7 +31,7 @@ use Stancl\Tenancy\Database\Concerns\InvalidatesTenantsResolverCache;
  */
 #[WithoutIncrementing]
 #[ObservedBy(DomainObserver::class)]
-abstract class Domain extends \Stancl\Tenancy\Database\Models\Domain
+class Domain extends \Stancl\Tenancy\Database\Models\Domain
 {
     /** @use HasFactory<Factory<static>> */
     use HasFactory;
