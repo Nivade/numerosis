@@ -6,6 +6,8 @@ namespace Nvade\Numerosis;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
+use Livewire\Livewire;
 use Nvade\Numerosis\Commands\InstallNumerosisCommand;
 use Nvade\Numerosis\Commands\NumerosisCommand;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
@@ -16,6 +18,21 @@ use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
 use Nvade\Numerosis\Console\Commands\RollbackTenantModule;
 use Nvade\Numerosis\Console\Commands\SeedTenantModule;
+use Nvade\Numerosis\Events\Auth\SocialAccountConnected;
+use Nvade\Numerosis\Events\Auth\SocialAccountDisconnected;
+use Nvade\Numerosis\Events\Billing\PaymentFailed;
+use Nvade\Numerosis\Events\Billing\PaymentSettled;
+use Nvade\Numerosis\Events\Billing\TenantSuspended;
+use Nvade\Numerosis\Events\Invitations\InvitationIssued;
+use Nvade\Numerosis\Events\Modules\ModulePurchased;
+use Nvade\Numerosis\Listeners\Auth\LogSocialAccountConnected;
+use Nvade\Numerosis\Listeners\Auth\LogSocialAccountDisconnected;
+use Nvade\Numerosis\Listeners\Billing\SendPaymentConfirmedNotification;
+use Nvade\Numerosis\Listeners\Billing\SendPaymentFailedNotification;
+use Nvade\Numerosis\Listeners\Billing\SendTenantSuspendedNotification;
+use Nvade\Numerosis\Listeners\Invitations\SendInvitationNotification;
+use Nvade\Numerosis\Listeners\Modules\QueueModuleMigration;
+use Nvade\Numerosis\Livewire\Billing\Checkout;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Support\Features;
@@ -86,6 +103,16 @@ class NumerosisServiceProvider extends PackageServiceProvider
             $this->app->make($feature)->bootstrap();
         }
 
+        $this->registerEventListeners();
+
+        // Always-on, not behind RegistrationWizardFeature: the standalone
+        // /checkout/{domain} route and the wizard's embedded
+        // <livewire:billing.checkout /> both address this component by the
+        // dotted name below, which Livewire's Finder can only resolve for
+        // package classes when explicitly registered — same reason
+        // RegistrationWizardFeature registers its own four step components.
+        Livewire::addComponent(name: 'billing.checkout', class: Checkout::class);
+
         // Tenant migrations are never auto-run centrally — stancl runs them
         // per-tenant via config('tenancy.migration_parameters'), which the
         // host must point at this absolute vendor path (see
@@ -121,5 +148,43 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         $this->publishGroup($modelStubs, 'numerosis-models');
         $this->publishGroup($modelStubs, 'numerosis-stubs');
+    }
+
+    /**
+     * Laravel's event discovery only ever scans the *host application's*
+     * `app/Listeners`, so every listener this package ships was silently
+     * unregistered once the code moved into `src/` — the events still fired
+     * and still drove local state (a tenant really was suspended), only the
+     * outbound side effect never happened. `BillingNotificationsFeature`'s
+     * docblock still asserts these are "auto-discovered by Laravel's event
+     * discovery"; that was true in the monolith and is false here.
+     *
+     * Registration is unconditional on purpose: each listener already gates
+     * itself on its own feature with an early return inside `handle()`, which
+     * is the arrangement those feature classes document. Gating here as well
+     * would move the decision to boot time and silently change what
+     * `Features::forceForTesting()` can still influence mid-request.
+     *
+     * Not listed here, because they are already registered elsewhere and
+     * would fire twice: `SyncTenantToStripeOnSave`
+     * (`BillingServiceProvider::configureStripeSync()`), `UpdateSyncedResource`
+     * and `LogSyncedResourceChangedInForeignDatabase`
+     * (`TenancyServiceProvider::events()`).
+     */
+    protected function registerEventListeners(): void
+    {
+        $listeners = [
+            SocialAccountConnected::class => LogSocialAccountConnected::class,
+            SocialAccountDisconnected::class => LogSocialAccountDisconnected::class,
+            PaymentSettled::class => SendPaymentConfirmedNotification::class,
+            PaymentFailed::class => SendPaymentFailedNotification::class,
+            TenantSuspended::class => SendTenantSuspendedNotification::class,
+            InvitationIssued::class => SendInvitationNotification::class,
+            ModulePurchased::class => QueueModuleMigration::class,
+        ];
+
+        foreach ($listeners as $event => $listener) {
+            Event::listen($event, $listener);
+        }
     }
 }

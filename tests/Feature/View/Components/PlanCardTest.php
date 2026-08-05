@@ -35,7 +35,7 @@ class PlanCardTest extends TestCase
         $price = resolve(BillingService::class)->formatAmount($plan->getPrice($cycle));
 
         return $this->blade(
-            '<x-billing.plan-card :plan="$plan" :billing-cycle="$cycle" :price="$price" :type="$type" />',
+            '<x-numerosis::billing.plan-card :plan="$plan" :billing-cycle="$cycle" :price="$price" :type="$type" />',
             ['plan' => $plan, 'cycle' => $cycle, 'price' => $price, 'type' => $type],
         );
     }

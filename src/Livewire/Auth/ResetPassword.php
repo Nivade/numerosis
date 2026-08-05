@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Livewire\Auth;
 
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
@@ -79,5 +80,10 @@ class ResetPassword extends Component
         Session::flash('status', __($statusMessage));
 
         $this->redirectRoute('login', navigate: true);
+    }
+
+    public function render(): View
+    {
+        return view('numerosis::livewire.auth.reset-password');
     }
 }

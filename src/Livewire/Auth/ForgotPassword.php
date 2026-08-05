@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Auth;
 
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
@@ -30,5 +31,10 @@ class ForgotPassword extends Component
         Password::sendResetLink($this->only('email'));
 
         Session::flash('status', __('A reset link will be sent if the account exists.'));
+    }
+
+    public function render(): View
+    {
+        return view('numerosis::livewire.auth.forgot-password');
     }
 }

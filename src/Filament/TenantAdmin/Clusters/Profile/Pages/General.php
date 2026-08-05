@@ -22,6 +22,7 @@ use Nvade\Numerosis\Filament\Concerns\InteractsWithRecord;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\ProfileCluster;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Models\User;
+use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * @property-read Schema $form
@@ -89,7 +90,7 @@ class General extends Page implements HasForms
                     ->columns(2),
             ])
             ->statePath('data')
-            ->model(TenantUser::class);
+            ->model(Numerosis::model(TenantUser::class));
     }
 
     /**

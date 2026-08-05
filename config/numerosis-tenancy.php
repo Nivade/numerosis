@@ -2,10 +2,22 @@
 
 declare(strict_types=1);
 
+use Nvade\Numerosis\Actions\Auth\AuthenticateLoginCandidate;
+use Nvade\Numerosis\Actions\Auth\CreateRegisteredUser;
+use Nvade\Numerosis\Actions\Auth\FindLoginCandidate;
+use Nvade\Numerosis\Actions\Auth\ResolvePostLoginRedirectUrl;
+use Nvade\Numerosis\Actions\Auth\SendEmailVerificationNotification;
+use Nvade\Numerosis\Actions\Invitations\CreateInvitedUser;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
+use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
+use Nvade\Numerosis\Contracts\Auth\CreatesRegisteredUser;
+use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
+use Nvade\Numerosis\Contracts\Auth\ResolvesPostLoginRedirectUrl;
+use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
 use Nvade\Numerosis\Contracts\Auth\SocialAccountRepository;
+use Nvade\Numerosis\Contracts\Invitations\CreatesInvitedUser;
 use Nvade\Numerosis\Contracts\Invitations\InvitationRepository;
 use Nvade\Numerosis\Contracts\Modules\ModuleRegistry;
 use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
@@ -72,6 +84,18 @@ return [
         ModuleRegistry::class => EloquentModuleRegistry::class,
         SocialAccountRepository::class => EloquentSocialAccountRepository::class,
         NotifiesTenantOwner::class => NotifiesTenantOwnerDirectly::class,
+        // Auth/invitation contracts: previously bound only in saas-m's
+        // AppServiceProvider, which stays in thin-app per the extraction
+        // plan's "app-specific bindings" table — but these back the
+        // package's own PasswordlessLogin/Register/Accept Livewire
+        // components, so an unbound default leaves the package broken for
+        // any consumer until they re-derive this list by hand.
+        ResolvesLoginCandidate::class => FindLoginCandidate::class,
+        AuthenticatesLoginCandidate::class => AuthenticateLoginCandidate::class,
+        ResolvesPostLoginRedirectUrl::class => ResolvePostLoginRedirectUrl::class,
+        CreatesRegisteredUser::class => CreateRegisteredUser::class,
+        SendsEmailVerificationNotification::class => SendEmailVerificationNotification::class,
+        CreatesInvitedUser::class => CreateInvitedUser::class,
     ],
 
 ];

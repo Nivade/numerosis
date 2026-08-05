@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Auth;
 
+use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -11,6 +12,7 @@ use Nvade\Numerosis\Actions\Auth\RegisterUser;
 use Nvade\Numerosis\Contracts\Auth\ResolvesPostLoginRedirectUrl;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Support\Numerosis;
 
 #[Layout('layouts::auth')]
 class Register extends Component
@@ -32,7 +34,7 @@ class Register extends Component
     {
         $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.CentralUser::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.Numerosis::model(CentralUser::class)],
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
             'turnstileResponse' => TurnstileFeature::rules(),
         ]);
@@ -47,5 +49,10 @@ class Register extends Component
         RegisterUser::run($validated);
 
         $this->redirect(app(ResolvesPostLoginRedirectUrl::class)->url(), navigate: true);
+    }
+
+    public function render(): View
+    {
+        return view('numerosis::livewire.auth.register');
     }
 }

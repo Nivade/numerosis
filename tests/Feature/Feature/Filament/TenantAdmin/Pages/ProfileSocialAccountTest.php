@@ -29,7 +29,7 @@ class ProfileSocialAccountTest extends TestCase
         $this->assertDatabaseHas('socialite_logins', [
             'user_id' => $user->id,
             'provider' => 'google',
-        ]);
+        ], 'central');
 
         // Test disconnection in tenant context
         $tenant->run(function () use ($tenant, $user) {

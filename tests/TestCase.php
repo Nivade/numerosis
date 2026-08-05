@@ -102,8 +102,41 @@ abstract class TestCase extends Orchestra
             'subdomain' => 'central',
         ]);
 
+        // config/app.php's own 'domain' key (saas-m: env('DOMAIN', 'localhost'))
+        // is a host-owned framework config file, never published by this
+        // package — Testbench's skeleton app.php has no such key at all, so
+        // every DefaultTenantDomainPolicy/CreateTenantDomain/Filament-Tenant
+        // call reading Config::string('app.domain') threw on NULL.
+        $app['config']->set('app.domain', 'numerosistest.test');
+
+        // Numerosis::routes() only binds routes/web.php to the Host header
+        // matching a configured central domain (Route::domain($domain), one
+        // group per entry in tenancy.central_domains). A relative-URL
+        // request ($this->postJson('billing/webhook')) has to resolve
+        // against that same host, or it 404s on a route that is, in fact,
+        // registered — reads like a routing bug, is a harness default.
+        //
+        // Setting config('app.url') alone does not fix this: Testbench's
+        // `SetRequestForConsole` bootstrapper binds a default Request with
+        // Host 'localhost' into the container *before* this method runs,
+        // and Illuminate\Routing\UrlGenerator prefers that bound request's
+        // root over config('app.url') whenever one is already bound —
+        // url()/route()/prepareUrlForRequest() (what postJson() uses to
+        // build its request URL) all silently keep resolving 'localhost'
+        // regardless of the config value. URL::forceRootUrl() is the
+        // documented override for exactly this: it wins over the bound
+        // request unconditionally.
+        $app['config']->set('app.url', 'http://central.numerosistest.test');
+        \Illuminate\Support\Facades\URL::forceRootUrl('http://central.numerosistest.test');
+
+        // Config key itself, not just the PDO init string — LockWaitTimeoutTest
+        // asserts the two agree via Config::integer('database.lock_wait_timeout'),
+        // same key saas-m's own config/database.php exposes at the top level.
+        $lockWaitTimeout = 10;
+        $app['config']->set('database.lock_wait_timeout', $lockWaitTimeout);
+
         $mysqlOptions = extension_loaded('pdo_mysql') ? [
-            (PHP_VERSION_ID >= 80500 ? \Pdo\Mysql::ATTR_INIT_COMMAND : PDO::MYSQL_ATTR_INIT_COMMAND) => 'SET SESSION lock_wait_timeout = 10, innodb_lock_wait_timeout = 10',
+            (PHP_VERSION_ID >= 80500 ? \Pdo\Mysql::ATTR_INIT_COMMAND : PDO::MYSQL_ATTR_INIT_COMMAND) => "SET SESSION lock_wait_timeout = {$lockWaitTimeout}, innodb_lock_wait_timeout = {$lockWaitTimeout}",
         ] : [];
 
         $mysql = [
@@ -175,6 +208,20 @@ abstract class TestCase extends Orchestra
             'model' => \App\Models\Tenant\User::class,
         ]);
         $app['config']->set('auth.social.providers', []);
+
+        // Password::sendResetLink() resolves its user model through the
+        // 'passwords' broker config, not through 'providers' directly —
+        // without this, ForgotPassword/ResetPassword fall back to Laravel's
+        // own generic Illuminate\Foundation\Auth\User (no Notifiable trait),
+        // which surfaces as "Call to undefined method ...User::notify()"
+        // rather than a config-missing error.
+        $app['config']->set('auth.defaults.passwords', 'users');
+        $app['config']->set('auth.passwords.users', [
+            'provider' => 'central_users',
+            'table' => 'password_reset_tokens',
+            'expire' => 60,
+            'throttle' => 60,
+        ]);
 
         $app['config']->set('session.domain', '.numerosistest.test');
         $app['config']->set('session.driver', 'array');
@@ -254,9 +301,36 @@ abstract class TestCase extends Orchestra
      * unresolvable and any test asserting or generating one fails with
      * `Route [...] not defined`, which reads like a missing feature rather
      * than a harness gap.
+     *
+     * `Numerosis::routes()` registers a `Route::middleware('tenant')` group
+     * (see `routes/tenant.php`'s consumer), but the aliases/groups that name
+     * resolves to are registered by `Numerosis::middleware()` — a separate
+     * method taking `Illuminate\Foundation\Configuration\Middleware`, the
+     * config object `bootstrap/app.php`'s `withMiddleware()` hands a real
+     * host. Testbench never constructs one, so this replicates that method's
+     * body directly against the router instead — same "the package never
+     * owns a panel" reasoning `getPackageProviders()`'s docblock gives for
+     * the Workbench panel providers. Skipping this doesn't fail at route
+     * *registration* time (`Route::middleware('tenant')` just stores the
+     * group name), it fails the moment a *request* hits a tenant route and
+     * the router tries to resolve `'tenant'` as a middleware class:
+     * `BindingResolutionException: Target class [tenant] does not exist.`
      */
     protected function defineRoutes($router): void
     {
+        $router->aliasMiddleware('invitation.status', \Nvade\Numerosis\Http\Middleware\CheckInvitationStatus::class);
+        $router->aliasMiddleware('tenancy.identification', \Nvade\Numerosis\Providers\TenancyServiceProvider::TENANCY_IDENTIFICATION);
+        $router->aliasMiddleware('tenancy.route', \Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains::class);
+        $router->aliasMiddleware('tenancy.session', \Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant::class);
+
+        $router->middlewareGroup('tenant', [
+            'web',
+            'tenancy.identification',
+            'tenancy.route',
+            'tenancy.session',
+        ]);
+        $router->middlewareGroup('universal', []);
+
         Numerosis::routes();
     }
 
