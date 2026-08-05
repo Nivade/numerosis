@@ -9,12 +9,19 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Modules\MigrateModules;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\Group;
 use RuntimeException;
 
 class MigrateModulesTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Needs a real app-modules/alerts package installed on the node to get
+     * past MigrateModules' "Module [x] not found" guard — structurally a
+     * thin-app concern (numerosis ships the module system, not modules).
+     */
+    #[Group('thin-app')]
     public function test_it_migrates_then_seeds_the_module(): void
     {
         $tenant = Tenant::factory()->create();

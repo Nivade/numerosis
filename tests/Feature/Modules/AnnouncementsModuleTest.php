@@ -11,7 +11,14 @@ use Nvade\Announcements\Models\Announcement;
 use Nvade\Numerosis\Actions\Modules\MigrateModules;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\Group;
 
+/**
+ * Tests the nvade/announcements app-side module package, which isn't
+ * (and per decision #6 never will be) a numerosis dependency — thin-app
+ * owns it.
+ */
+#[Group('thin-app')]
 class AnnouncementsModuleTest extends TestCase
 {
     use RefreshDatabase;

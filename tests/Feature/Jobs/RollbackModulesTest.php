@@ -10,12 +10,19 @@ use Illuminate\Support\Facades\DB;
 use Nvade\Numerosis\Actions\Modules\MigrateModules;
 use Nvade\Numerosis\Actions\Modules\RollbackModules;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\Group;
 use RuntimeException;
 
 class RollbackModulesTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Needs a real app-modules/alerts package installed on the node (its
+     * MigrateModules call underneath hits the same "Module [x] not found"
+     * guard MigrateModulesTest documents) — thin-app concern, not package.
+     */
+    #[Group('thin-app')]
     public function test_it_rolls_back_a_single_module(): void
     {
         $tenant = Tenant::factory()->create();

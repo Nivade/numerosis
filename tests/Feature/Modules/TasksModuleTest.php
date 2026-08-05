@@ -14,7 +14,13 @@ use Nvade\Numerosis\Tests\TestCase;
 use Nvade\Tasks\Enums\TaskPriority;
 use Nvade\Tasks\Enums\TaskStatus;
 use Nvade\Tasks\Models\Task;
+use PHPUnit\Framework\Attributes\Group;
 
+/**
+ * Tests the nvade/tasks app-side module package — not a numerosis
+ * dependency (decision #6), thin-app owns it.
+ */
+#[Group('thin-app')]
 class TasksModuleTest extends TestCase
 {
     use RefreshDatabase;

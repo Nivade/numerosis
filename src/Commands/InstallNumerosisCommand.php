@@ -132,7 +132,7 @@ class InstallNumerosisCommand extends Command
 
         $template = Config::get('tenancy.database.template_tenant_connection');
 
-        if ($template !== null && ! array_key_exists($template, $connections)) {
+        if (is_string($template) && ! array_key_exists($template, $connections)) {
             $this->failures[] = "config('tenancy.database.template_tenant_connection') names '{$template}', which is not in config('database.connections').";
         }
     }

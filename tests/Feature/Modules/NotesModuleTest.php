@@ -12,7 +12,13 @@ use Nvade\Notes\Models\Note;
 use Nvade\Numerosis\Actions\Modules\MigrateModules;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\Group;
 
+/**
+ * Tests the nvade/notes app-side module package — not a numerosis
+ * dependency (decision #6), thin-app owns it.
+ */
+#[Group('thin-app')]
 class NotesModuleTest extends TestCase
 {
     use RefreshDatabase;

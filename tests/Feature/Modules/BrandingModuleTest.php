@@ -11,7 +11,13 @@ use Nvade\Branding\Models\BrandingSettings;
 use Nvade\Numerosis\Actions\Modules\MigrateModules;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\Group;
 
+/**
+ * Tests the nvade/branding app-side module package — not a numerosis
+ * dependency (decision #6), thin-app owns it.
+ */
+#[Group('thin-app')]
 class BrandingModuleTest extends TestCase
 {
     use RefreshDatabase;

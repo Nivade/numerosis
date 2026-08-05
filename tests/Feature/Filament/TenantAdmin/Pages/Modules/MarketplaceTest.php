@@ -14,11 +14,18 @@ use Nvade\Numerosis\Filament\TenantAdmin\Pages\Modules\Marketplace;
 use Nvade\Numerosis\Models\Central\ModuleOffering;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\Group;
 
 class MarketplaceTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Needs a real app-modules/alerts package installed on the node —
+     * getModules() filters by internachi/modular's registry, which only
+     * ever sees packages actually present. Thin-app concern, not package.
+     */
+    #[Group('thin-app')]
     public function test_it_lists_only_available_modules_installed_on_this_node(): void
     {
         // 'ghost-module' is catalogued but has no app-modules/* package on
@@ -44,6 +51,7 @@ class MarketplaceTest extends TestCase
         });
     }
 
+    #[Group('thin-app')]
     public function test_a_purchased_module_is_marked_as_such(): void
     {
         ModuleOffering::factory()->create(['slug' => 'alerts', 'name' => 'Alerts']);

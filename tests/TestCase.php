@@ -290,6 +290,41 @@ abstract class TestCase extends Orchestra
         $app['config']->set('activitylog.default_auth_driver', null);
         $app['config']->set('activitylog.subject_returns_soft_deleted_models', false);
         $app['config']->set('activitylog.enabled', true);
+
+        $this->stubViteManifest($app);
+    }
+
+    /**
+     * The package ships Vite *sources* only (resources/css, resources/js) —
+     * the host owns the build (Phase 9 / docs/host-requirements.md). The
+     * Workbench harness has no build step of its own, so every view that
+     * hits @vite() throws ViteManifestNotFoundException instead of exercising
+     * whatever the test actually cares about. Writing a fake manifest is
+     * correct here specifically because tests never fetch the referenced
+     * assets — they render server-side HTML and assert against that, so a
+     * manifest entry only needs to resolve to *some* file path, never a real
+     * built one.
+     */
+    private function stubViteManifest(\Illuminate\Foundation\Application $app): void
+    {
+        $buildDir = $app->publicPath('build');
+
+        if (! is_dir($buildDir)) {
+            mkdir($buildDir, 0755, true);
+        }
+
+        $entries = ['resources/css/app.css', 'resources/js/app.js', 'resources/js/central.js', 'resources/js/tenant.js'];
+        $manifest = [];
+
+        foreach ($entries as $entry) {
+            $manifest[$entry] = [
+                'file' => 'assets/'.basename($entry),
+                'src' => $entry,
+                'isEntry' => true,
+            ];
+        }
+
+        file_put_contents($buildDir.'/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
     }
 
     /**

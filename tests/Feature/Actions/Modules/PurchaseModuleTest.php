@@ -29,9 +29,17 @@ use Nvade\Numerosis\Exceptions\Billing\SubscriptionRequired;
 use Nvade\Numerosis\Models\Central\ModuleOffering;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\Group;
 use Stripe\Exception\ApiConnectionException;
 use Stripe\StripeClient;
 
+/**
+ * Most of this file exercises PurchaseModule::handle() past its
+ * ModuleNotInstalled guard, which only ever passes when a real
+ * app-modules/alerts package is present on the node — structurally a
+ * thin-app concern (numerosis ships the module system, not modules).
+ */
+#[Group('thin-app')]
 class PurchaseModuleTest extends TestCase
 {
     use RefreshDatabase;

@@ -18,6 +18,7 @@ use Nvade\Branding\Models\BrandingSettings;
 use Nvade\Branding\Support\BrandingCache;
 use Nvade\Numerosis\Actions\Modules\MigrateModules;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * The middleware now lives in the branding module and is registered by
@@ -28,7 +29,11 @@ use Nvade\Numerosis\Tests\TestCase;
  * (the cached payload) rather than re-reading FilamentColor, because
  * Filament's ColorManager::getColors() memoises on first call for the life of
  * the container and ignores every later register().
+ *
+ * Tests the nvade/branding app-side module package — not a numerosis
+ * dependency (decision #6), thin-app owns it.
  */
+#[Group('thin-app')]
 class ApplyBrandingTest extends TestCase
 {
     use RefreshDatabase;
