@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Queries;
 
+use App\Models\Central\CentralUser;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\User as TenantUser;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Queries\FindUserByGlobalId;
 use Nvade\Numerosis\Enums\Tenancy\Context;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Tests\Concerns\PinsGlobalCache;
 use Nvade\Numerosis\Tests\TestCase;
 

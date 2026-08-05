@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Resources\Users;
 
-use Nvade\Numerosis\Filament\Admin\Resources\Users\Pages\EditUser;
-use Nvade\Numerosis\Filament\Admin\Resources\Users\Pages\ListUsers;
-use Nvade\Numerosis\Models\Central\CentralUser as User;
 use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -15,12 +12,19 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Nvade\Numerosis\Filament\Admin\Resources\Users\Pages\EditUser;
+use Nvade\Numerosis\Filament\Admin\Resources\Users\Pages\ListUsers;
+use Nvade\Numerosis\Models\Central\CentralUser as User;
+use Nvade\Numerosis\Support\Numerosis;
 
 class UserResource extends Resource
 {
-    protected static ?string $model = User::class;
-
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
+
+    public static function getModel(): string
+    {
+        return Numerosis::model(User::class);
+    }
 
     public static function getNavigationGroup(): ?string
     {

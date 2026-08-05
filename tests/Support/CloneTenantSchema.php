@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Support;
 
-use Nvade\Numerosis\Jobs\SeedTenantDatabase;
-use Nvade\Numerosis\Models\Central\Tenant;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Connection;
@@ -14,6 +12,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Nvade\Numerosis\Jobs\SeedTenantDatabase;
+use Nvade\Numerosis\Models\Central\Tenant;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Jobs\CreateDatabase;
 use Stancl\Tenancy\Jobs\MigrateDatabase;
@@ -127,11 +127,20 @@ class CloneTenantSchema implements ShouldQueue
 
         self::central()->statement("DROP DATABASE IF EXISTS `{$database}`");
 
+        // Tenant is abstract (see .claude/plans/package-extraction.md Phase
+        // 4.4) — forceCreate() calls `new static`, which late static binding
+        // resolves to whatever class the call was written against. Written
+        // as Tenant::forceCreate(...) that would be the abstract class
+        // itself; going through the configured concrete class instead is
+        // what a real request does via config('tenancy.tenant_model').
+        /** @var class-string<Tenant> $tenantClass */
+        $tenantClass = Config::string('tenancy.tenant_model');
+
         // withoutEvents keeps this out of the TenantCreated pipeline that the
         // test bootstrap points at this very class, which would recurse. It
         // also stops the delete below from firing DeleteDatabase and taking
         // the template with it.
-        $tenant = Tenant::withoutEvents(fn () => Tenant::forceCreate(['id' => self::TEMPLATE_ID]));
+        $tenant = $tenantClass::withoutEvents(fn () => $tenantClass::forceCreate(['id' => self::TEMPLATE_ID]));
 
         app()->call([new CreateDatabase($tenant), 'handle']);
         app()->call([new MigrateDatabase($tenant), 'handle']);
@@ -139,7 +148,7 @@ class CloneTenantSchema implements ShouldQueue
 
         // The row goes but the database stays: a surviving row would make
         // Tests\TestCase teardown delete the tenant, and the template with it.
-        Tenant::withoutEvents(fn () => $tenant->delete());
+        $tenantClass::withoutEvents(fn () => $tenant->delete());
 
         return $database;
     }

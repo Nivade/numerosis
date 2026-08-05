@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Console;
 
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use App\Models\Central\CentralUser;
+use App\Models\Central\PendingTenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Nvade\Numerosis\Enums\TenantProvisionStatus;
 use Nvade\Numerosis\Tests\TestCase;
 
 class PruneStalledTenantProvisionsTest extends TestCase

@@ -4,16 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\TenantAdmin\Pages;
 
-use Nvade\Numerosis\Actions\Billing\AddVatNumber;
-use Nvade\Numerosis\Actions\Billing\Checkout\StartPlanChangeCheckout;
-use Nvade\Numerosis\Actions\Billing\Subscriptions\SwapSubscriptionPlan;
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
-use Nvade\Numerosis\Exceptions\Tenancy\TenantNotInitialized;
-use Nvade\Numerosis\Facades\Billing as BillingFacade;
-use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Models\Central\Subscription;
-use Nvade\Numerosis\Models\Central\Tenant;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -27,6 +17,17 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
 use Livewire\Attributes\Computed;
+use Nvade\Numerosis\Actions\Billing\AddVatNumber;
+use Nvade\Numerosis\Actions\Billing\Checkout\StartPlanChangeCheckout;
+use Nvade\Numerosis\Actions\Billing\Subscriptions\SwapSubscriptionPlan;
+use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
+use Nvade\Numerosis\Exceptions\Tenancy\TenantNotInitialized;
+use Nvade\Numerosis\Facades\Billing as BillingFacade;
+use Nvade\Numerosis\Models\Central\PaymentPlan;
+use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Support\Numerosis;
 use Stripe\Exception\ApiErrorException;
 
 /**
@@ -46,7 +47,7 @@ class Billing extends Page implements HasForms
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-credit-card';
 
-    protected string $view = 'filament.tenant-admin.pages.billing';
+    protected string $view = 'numerosis::filament.tenant-admin.pages.billing';
 
     protected static bool $shouldRegisterNavigation = false;
 
@@ -145,7 +146,7 @@ class Billing extends Page implements HasForms
             return null;
         }
 
-        return PaymentPlan::query()
+        return Numerosis::model(PaymentPlan::class)::query()
             ->where('monthly_id', $priceId)
             ->orWhere('yearly_id', $priceId)
             ->first();
@@ -157,7 +158,7 @@ class Billing extends Page implements HasForms
     #[Computed]
     public function plans(): Collection
     {
-        return PaymentPlan::query()
+        return Numerosis::model(PaymentPlan::class)::query()
             ->available()
             ->with(['availableFeatures'])
             ->orderBy('monthly_price')
@@ -172,7 +173,7 @@ class Billing extends Page implements HasForms
 
     public function changePlan(string $planSlug, string $cycle): void
     {
-        $plan = PaymentPlan::where('slug', $planSlug)->firstOrFail();
+        $plan = Numerosis::model(PaymentPlan::class)::where('slug', $planSlug)->firstOrFail();
         $billingCycle = BillingCycle::from($cycle);
         $priceId = $plan->getPriceId($billingCycle);
 

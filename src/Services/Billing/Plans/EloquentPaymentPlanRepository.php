@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Billing\Plans;
 
+use Illuminate\Support\Collection;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
-use Illuminate\Support\Collection;
+use Nvade\Numerosis\Support\Numerosis;
 
 class EloquentPaymentPlanRepository implements PaymentPlanRepository
 {
@@ -21,17 +22,17 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
      */
     public function findBySlug(string $slug): ?Plan
     {
-        return PaymentPlan::available()->firstWhere('slug', $slug);
+        return Numerosis::model(PaymentPlan::class)::available()->firstWhere('slug', $slug);
     }
 
     public function findAnyBySlug(string $slug): ?Plan
     {
-        return PaymentPlan::firstWhere('slug', $slug);
+        return Numerosis::model(PaymentPlan::class)::firstWhere('slug', $slug);
     }
 
     public function findByPriceId(string $priceId): ?Plan
     {
-        return PaymentPlan::query()
+        return Numerosis::model(PaymentPlan::class)::query()
             ->where('monthly_id', $priceId)
             ->orWhere('yearly_id', $priceId)
             ->first();
@@ -51,7 +52,7 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
         return global_cache()->remember(
             CacheKeys::availablePaymentPlans(),
             now()->addHour(),
-            fn () => PaymentPlan::available()->orderBy('monthly_price')->get()
+            fn () => Numerosis::model(PaymentPlan::class)::available()->orderBy('monthly_price')->get()
         );
     }
 }

@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Roles\Pag
 
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Roles\RoleResource;
 
-class CreateRole extends \Nvade\Numerosis\Filament\Nvade\Numerosis\Resources\Roles\Pages\CreateRole
+class CreateRole extends \Nvade\Numerosis\Filament\App\Resources\Roles\Pages\CreateRole
 {
     protected static string $resource = RoleResource::class;
 }

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Services\Billing\Plans;
 
-use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Services\Billing\Plans\EloquentPaymentPlanRepository;
+use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Nvade\Numerosis\Services\Billing\Plans\EloquentPaymentPlanRepository;
 use Nvade\Numerosis\Tests\Concerns\PinsGlobalCache;
 use Nvade\Numerosis\Tests\TestCase;
 

@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Auth;
 
+use Illuminate\Validation\Rules\Password;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
 use Nvade\Numerosis\Actions\Auth\RegisterUser;
 use Nvade\Numerosis\Contracts\Auth\ResolvesPostLoginRedirectUrl;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Illuminate\Validation\Rules\Password;
-use Livewire\Attributes\Layout;
-use Livewire\Component;
 
-#[Layout('layouts.auth')]
+#[Layout('layouts::auth')]
 class Register extends Component
 {
     public string $name = '';

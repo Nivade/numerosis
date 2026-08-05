@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Tenancy;
 
+use App\Models\Central\CentralUser;
+use App\Models\Central\PaymentPlan;
+use App\Models\Central\Tenant;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Actions\Billing\Subscriptions\RecordSubscription;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
@@ -11,11 +16,6 @@ use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Tests\TestCase;
 
 class CreateTenantTest extends TestCase

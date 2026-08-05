@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Auth;
 
-use Nvade\Numerosis\Actions\Auth\ConnectSocialAccount;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\SocialiteLogin;
+use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Nvade\Numerosis\Actions\Auth\ConnectSocialAccount;
+use Nvade\Numerosis\Models\SocialiteLogin;
 use Nvade\Numerosis\Tests\TestCase;
 
 class ConnectSocialAccountTest extends TestCase

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Filament\Pages;
 
-use Nvade\Numerosis\Filament\Concerns\InteractsWithRecord;
-use Nvade\Numerosis\Models\Central\CentralUser;
+use App\Models\Central\CentralUser;
 use Filament\Pages\Page;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Nvade\Numerosis\Filament\Concerns\InteractsWithRecord;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

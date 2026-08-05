@@ -9,6 +9,13 @@ use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Commands\InstallNumerosisCommand;
 use Nvade\Numerosis\Commands\NumerosisCommand;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
+use Nvade\Numerosis\Console\Commands\DeleteTenants;
+use Nvade\Numerosis\Console\Commands\MigrateTenantModule;
+use Nvade\Numerosis\Console\Commands\PruneOrphanedStripeCustomers;
+use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
+use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
+use Nvade\Numerosis\Console\Commands\RollbackTenantModule;
+use Nvade\Numerosis\Console\Commands\SeedTenantModule;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Support\Features;
@@ -30,7 +37,14 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->discoversMigrations(true, '/database/migrations/central')
             ->runsMigrations()
             ->hasCommand(NumerosisCommand::class)
-            ->hasCommand(InstallNumerosisCommand::class);
+            ->hasCommand(InstallNumerosisCommand::class)
+            ->hasCommand(DeleteTenants::class)
+            ->hasCommand(MigrateTenantModule::class)
+            ->hasCommand(RollbackTenantModule::class)
+            ->hasCommand(SeedTenantModule::class)
+            ->hasCommand(PruneOrphanedStripeCustomers::class)
+            ->hasCommand(PruneOrphanedTenantDatabases::class)
+            ->hasCommand(PruneStalledTenantProvisions::class);
     }
 
     public function packageRegistered(): void
@@ -60,6 +74,13 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // (App\Models\Central\Tenant) whose factory actually lives in this
         // package. See Numerosis::factoryNameFor()'s docblock.
         Factory::guessFactoryNamesUsing(Numerosis::factoryNameFor(...));
+
+        // The reverse direction: `Tenant::factory()` on a host-published stub
+        // must build a `Tenant\TenantFactory` that yields the *stub*, not the
+        // abstract package model — but a factory for a model with no stub
+        // (`Membership`, `Role`, …) must still yield the package model
+        // directly. See Numerosis::modelNameFor()'s docblock.
+        Factory::guessModelNamesUsing(fn (Factory $factory): string => Numerosis::modelNameFor($factory::class));
 
         foreach (Features::all() as $feature) {
             $this->app->make($feature)->bootstrap();

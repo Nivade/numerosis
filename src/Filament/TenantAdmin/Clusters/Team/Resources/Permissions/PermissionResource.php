@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Permissions;
 
-use Nvade\Numerosis\Filament\Nvade\Numerosis\Resources\Permissions\PermissionResource as BasePermissionResource;
+use Nvade\Numerosis\Filament\App\Resources\Permissions\PermissionResource as BasePermissionResource;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Permissions\Pages\CreatePermission;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Permissions\Pages\EditPermission;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Permissions\Pages\ListPermissions;

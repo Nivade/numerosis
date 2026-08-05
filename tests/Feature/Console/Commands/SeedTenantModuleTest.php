@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Console\Commands;
 
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Permission;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\PendingCommand;
+use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

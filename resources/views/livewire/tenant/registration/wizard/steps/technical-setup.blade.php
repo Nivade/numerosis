@@ -1,5 +1,5 @@
 <div class="space-y-8">
-    <x-registration.header
+    <x-numerosis::registration.header
         icon="globe-alt"
         title="Technical Setup"
         description="Configure your unique workspace identifier that will be used to access your platform"
@@ -27,7 +27,7 @@
                 </flux:input.group>
             </div>
 
-            <x-ui.info-box type="warning" title="Important: Choose carefully - this cannot be changed later" class="mt-4">
+            <x-numerosis::ui.info-box type="warning" title="Important: Choose carefully - this cannot be changed later" class="mt-4">
                 <ul class="mt-2 space-y-1">
                     <li class="flex items-center space-x-2">
                         <span class="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
@@ -42,21 +42,21 @@
                         <span>Cannot start or end with a hyphen</span>
                     </li>
                 </ul>
-            </x-ui.info-box>
+            </x-numerosis::ui.info-box>
 
             <flux:error name="domain" id="domain-error" class="mt-2"/>
         </flux:field>
 
         @if($domain && $errors->missing('domain'))
-            <x-ui.info-box type="success" title="Your workspace URL will be:">
+            <x-numerosis::ui.info-box type="success" title="Your workspace URL will be:">
                 <p class="text-lg font-mono mt-1">
                     https://{{ $domain }}.{{ config('app.domain') }}
                 </p>
-            </x-ui.info-box>
+            </x-numerosis::ui.info-box>
         @endif
     </div>
 
-    <x-registration.navigation
+    <x-numerosis::registration.navigation
         :disabled="!$domain || $errors->has('domain')"
     />
 </div>

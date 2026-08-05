@@ -1,10 +1,10 @@
 <div class="space-y-4" wire:key="social-accounts-manager">
     @php
-        $providers = \App\Support\Features::enabled(\App\Features\Social\SocialLoginFeature::NAME)
-            ? \App\Support\Social\ConfiguredProviders::all()
+        $providers = \Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Social\SocialLoginFeature::NAME)
+            ? \Nvade\Numerosis\Support\Social\ConfiguredProviders::all()
             : [];
 
-        /** @var \App\Models\Central\CentralUser $centralUser */
+        /** @var \Nvade\Numerosis\Models\Central\CentralUser $centralUser */
         $centralUser = Auth::guard('web')->user();
         // Force fresh query to get updated social accounts
         $connectedProviders = $centralUser?->socialiteLogins()->pluck('provider')->toArray() ?? [];

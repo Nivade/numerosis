@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Events\Auth;
 
+use App\Models\Central\CentralUser;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Actions\Auth\ConnectSocialAccount;
 use Nvade\Numerosis\Actions\Auth\DisconnectSocialAccount;
 use Nvade\Numerosis\Events\Auth\SocialAccountDisconnected;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Tests\TestCase;
 
 class SocialAccountDisconnectedTest extends TestCase

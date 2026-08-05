@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Invitations;
 
+use Illuminate\Support\Facades\DB;
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationAlreadyAccepted;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationExpired;
@@ -12,8 +14,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Invitation;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Models\User;
-use Illuminate\Support\Facades\DB;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Support\Numerosis;
 
 class AcceptInvitation
 {
@@ -36,7 +37,10 @@ class AcceptInvitation
             throw new InvitationExpired(__('This invitation has expired.'));
         }
 
-        $tenant = $invitation->tenant ?? Tenant::find($invitation->tenant_id);
+        $tenantClass = Numerosis::model(Tenant::class);
+
+        /** @var Tenant|null $tenant */
+        $tenant = $invitation->tenant ?? $tenantClass::find($invitation->tenant_id);
 
         if ($tenant === null) {
             throw new InvitationTenantMismatch(__('Invalid tenant for invitation.'));
@@ -57,9 +61,11 @@ class AcceptInvitation
         // LoginUser (no Tenant\User to resolve), and accepting via the
         // password form for someone whose CentralUser already exists
         // elsewhere silently fails the same way.
-        $tenant->run(function () use ($user, $invitation): void {
-            DB::transaction(function () use ($user, $invitation): void {
-                TenantUser::firstOrCreate(
+        $tenantUserClass = Numerosis::model(TenantUser::class);
+
+        $tenant->run(function () use ($user, $invitation, $tenantUserClass): void {
+            DB::transaction(function () use ($user, $invitation, $tenantUserClass): void {
+                $tenantUserClass::firstOrCreate(
                     ['global_id' => $user->global_id],
                     [
                         'name' => $user->name,

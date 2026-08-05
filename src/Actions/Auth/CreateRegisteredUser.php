@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
-use Nvade\Numerosis\Contracts\Auth\CreatesRegisteredUser;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Illuminate\Support\Facades\Hash;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Auth\CreatesRegisteredUser;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * @method static CentralUser run(array{name: string, email: string, password: string} $data)
@@ -31,6 +32,8 @@ class CreateRegisteredUser implements CreatesRegisteredUser
     {
         $data['password'] = Hash::make($data['password']);
 
-        return CentralUser::create($data);
+        $centralUserClass = Numerosis::model(CentralUser::class);
+
+        return $centralUserClass::create($data);
     }
 }

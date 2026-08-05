@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use Nvade\Numerosis\Actions\Billing\Checkout\ResolveSavedPaymentMethod;
-use Nvade\Numerosis\Exceptions\Billing\SavedPaymentMethodUnavailable;
-use Nvade\Numerosis\Models\Central\CentralUser;
+use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
+use Nvade\Numerosis\Actions\Billing\Checkout\ResolveSavedPaymentMethod;
+use Nvade\Numerosis\Exceptions\Billing\SavedPaymentMethodUnavailable;
 
 uses(RefreshDatabase::class);
 

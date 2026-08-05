@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Livewire\Auth;
 
+use App\Models\Central\CentralUser;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\User as TenantUser;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesPostLoginRedirectUrl;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Livewire\Auth\PasswordlessLogin;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Livewire\Livewire;
-use RyanChandler\LaravelCloudflareTurnstile\Facades\Turnstile;
 use Nvade\Numerosis\Tests\TestCase;
+use RyanChandler\LaravelCloudflareTurnstile\Facades\Turnstile;
 
 class PasswordlessLoginTest extends TestCase
 {

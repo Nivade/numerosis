@@ -4,12 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages;
 
-use Nvade\Numerosis\Actions\Auth\ResendVerificationNotification;
-use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
-use Nvade\Numerosis\Filament\Concerns\InteractsWithRecord;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\ProfileCluster;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
-use Nvade\Numerosis\Models\User;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
@@ -22,6 +16,12 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Concerns\EvaluatesClosures;
 use Filament\Support\Icons\Heroicon;
+use Nvade\Numerosis\Actions\Auth\ResendVerificationNotification;
+use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Filament\Concerns\InteractsWithRecord;
+use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\ProfileCluster;
+use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use Nvade\Numerosis\Models\User;
 
 /**
  * @property-read Schema $form
@@ -38,7 +38,7 @@ class General extends Page implements HasForms
 
     protected static string|null|BackedEnum $navigationIcon = Heroicon::OutlinedUser;
 
-    protected string $view = 'filament.tenant-admin.clusters.profile.pages.generic';
+    protected string $view = 'numerosis::filament.tenant-admin.clusters.profile.pages.generic';
 
     /** @var array<string, mixed>|null */
     public ?array $data = [];
@@ -82,7 +82,7 @@ class General extends Page implements HasForms
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
                         ViewField::make('email_verified_at')
-                            ->view('filament.tenant-admin.components.email-verification-status')
+                            ->view('numerosis::filament.tenant-admin.components.email-verification-status')
                             ->columnSpanFull(),
                     ])
                     ->footerActions($this->getFormActions())

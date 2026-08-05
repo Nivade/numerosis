@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Auth;
 
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\View\View;
+use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Layout;
 use Nvade\Numerosis\Concerns\Auth\ThrottlesLoginAttempts;
 use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesPostLoginRedirectUrl;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Contracts\View\View;
-use Illuminate\Validation\ValidationException;
-use Livewire\Attributes\Layout;
 use Spatie\OneTimePasswords\Livewire\OneTimePasswordComponent;
 use Spatie\OneTimePasswords\Rules\OneTimePasswordRule;
 
-#[Layout('layouts.auth')]
+#[Layout('layouts::auth')]
 class PasswordlessLogin extends OneTimePasswordComponent
 {
     use ThrottlesLoginAttempts;
@@ -95,7 +95,7 @@ class PasswordlessLogin extends OneTimePasswordComponent
     public function render(): View
     {
         /** @var view-string $view */
-        $view = 'livewire.auth.passwordless-login.'.$this->showViewName();
+        $view = 'numerosis::livewire.auth.passwordless-login.'.$this->showViewName();
 
         return view($view);
     }

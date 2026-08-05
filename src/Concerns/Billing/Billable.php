@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Concerns\Billing;
 
-use Nvade\Numerosis\Models\Central\Subscription;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use LogicException;
+use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * Cashier's billable behaviour with a polymorphic subscription relation.
@@ -35,7 +36,7 @@ trait Billable
      */
     public function subscriptions(): MorphMany
     {
-        return $this->morphMany(Subscription::class, 'subscribable')
+        return $this->morphMany(Numerosis::model(Subscription::class), 'subscribable')
             ->latest('created_at');
     }
 

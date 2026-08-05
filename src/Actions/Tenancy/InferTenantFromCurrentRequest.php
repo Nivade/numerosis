@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Tenancy;
 
-use Nvade\Numerosis\Models\Central\Tenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Support\Numerosis;
 
 class InferTenantFromCurrentRequest
 {
@@ -30,7 +31,7 @@ class InferTenantFromCurrentRequest
 
         $subdomain = Str::before($host, '.');
 
-        return Tenant::firstWhere('id', $subdomain);
+        return Numerosis::model(Tenant::class)::firstWhere('id', $subdomain);
     }
 
     public function asController(): void

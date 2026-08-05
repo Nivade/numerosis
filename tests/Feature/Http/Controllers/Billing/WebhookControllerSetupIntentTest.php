@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Http\Controllers\Billing;
 
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Facades\Billing;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use App\Models\Central\CentralUser;
+use App\Models\Central\PaymentPlan;
+use App\Models\Central\PendingTenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
+use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

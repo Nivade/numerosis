@@ -1,7 +1,7 @@
 <div class="flex flex-col items-center text-center gap-4">
     <flux:icon name="alert-octagon" class="h-12 w-12 text-red-500" />
 
-    <x-auth-header
+    <x-numerosis::auth-header
         :title="__('Invitation expired')"
         :description="__('This invitation has expired. Please contact :name to request a new invitation.', ['name' => $invitation->inviter->name])"
     />

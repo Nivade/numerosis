@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Http\Controllers\Billing;
 
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Subscription;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Notifications\Billing\PaymentFailed;
-use Nvade\Numerosis\Notifications\Billing\TenantSuspended;
+use App\Models\Central\CentralUser;
+use App\Models\Central\Subscription;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Notification;
+use Nvade\Numerosis\Notifications\Billing\PaymentFailed;
+use Nvade\Numerosis\Notifications\Billing\TenantSuspended;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

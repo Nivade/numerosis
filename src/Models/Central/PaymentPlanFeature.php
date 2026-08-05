@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Nvade\Numerosis\Observers\PaymentPlanFeatureObserver;
-use Nvade\Numerosis\Database\Factories\PaymentPlanFeatureFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Table;
@@ -14,6 +12,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Nvade\Numerosis\Database\Factories\PaymentPlanFeatureFactory;
+use Nvade\Numerosis\Observers\PaymentPlanFeatureObserver;
+use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * @property int $id
@@ -52,7 +53,7 @@ class PaymentPlanFeature extends Pivot
      */
     public function paymentPlan(): BelongsTo
     {
-        return $this->belongsTo(PaymentPlan::class);
+        return $this->belongsTo(Numerosis::model(PaymentPlan::class));
     }
 
     /**

@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Database\Factories\Central;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\SubscriptionItem;
 
-class SubscriptionItemFactory extends \Laravel\Cashier\Nvade\Numerosis\Database\Factories\SubscriptionItemFactory
+class SubscriptionItemFactory extends \Laravel\Cashier\Database\Factories\SubscriptionItemFactory
 {
     protected $model = SubscriptionItem::class;
 

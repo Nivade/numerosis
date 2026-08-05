@@ -20,6 +20,7 @@ use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Observers\PaymentPlanObserver;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
+use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -179,7 +180,7 @@ abstract class PaymentPlan extends Model implements Plan
         $popularPlanId = global_cache()->remember(
             CacheKeys::popularPaymentPlanId(),
             now()->addMinutes(5),
-            fn () => Subscription::select('payment_plan_id')
+            fn () => Numerosis::model(Subscription::class)::select('payment_plan_id')
                 ->selectRaw('COUNT(*) AS plan_count')
                 ->groupBy('payment_plan_id')
                 ->orderByDesc('plan_count')

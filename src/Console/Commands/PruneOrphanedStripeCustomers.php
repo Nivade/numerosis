@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Console\Commands;
 
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
 use Laravel\Cashier\Cashier;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Support\Numerosis;
 use Stripe\Exception\InvalidRequestException;
 
 #[Description('Delete Stripe customers created during abandoned checkouts that never converted to a subscription')]
@@ -24,7 +25,9 @@ class PruneOrphanedStripeCustomers extends Command
         $hours = (int) $this->option('hours');
         $dryRun = (bool) $this->option('dry-run');
 
-        CentralUser::query()
+        $centralUserClass = Numerosis::model(CentralUser::class);
+
+        $centralUserClass::query()
             ->whereNotNull('stripe_id')
             ->whereDoesntHave('subscriptions')
             ->chunkById(100, function ($users) use ($hours, $dryRun) {

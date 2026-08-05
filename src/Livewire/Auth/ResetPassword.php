@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Auth;
 
-use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
@@ -16,8 +15,9 @@ use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 
-#[Layout('layouts.auth')]
+#[Layout('layouts::auth')]
 class ResetPassword extends Component
 {
     #[Locked]

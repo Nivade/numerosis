@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Modules;
 
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Module;
 use Illuminate\Database\QueryException;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Tenant\Module;
+use Nvade\Numerosis\Support\Numerosis;
 use PDOException;
 use Stancl\Tenancy\Contracts\Tenant as TenantContract;
 
@@ -34,12 +35,17 @@ class ReconcileModuleSubscriptionItems
         try {
             tenancy()->initialize($tenant);
 
-            Module::query()
+            $moduleClass = Numerosis::model(Module::class);
+
+            $moduleClass::query()
                 ->where('enabled', true)
                 ->whereNotNull('stripe_subscription_item_id')
                 ->whereNotIn('stripe_subscription_item_id', $currentItemIds)
                 ->get()
-                ->each(fn (Module $module) => $module->disable());
+                ->each(function ($module): void {
+                    /** @var Module $module */
+                    $module->disable();
+                });
         } catch (QueryException|PDOException $e) {
             report($e);
         } finally {

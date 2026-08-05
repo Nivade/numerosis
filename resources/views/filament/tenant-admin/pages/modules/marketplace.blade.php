@@ -4,7 +4,7 @@
         x-init="init()"
         class="space-y-6"
     >
-        <x-billing.payment-error :message="$paymentError" />
+        <x-numerosis::billing.payment-error :message="$paymentError" />
 
         @php($modules = $this->getModules())
 
@@ -25,7 +25,7 @@
                         'border-gray-200 dark:border-zinc-800 shadow-sm hover:shadow-md hover:-translate-y-0.5' => ! $module['purchased'],
                     ])>
                         <a
-                            href="{{ \App\Filament\TenantAdmin\Pages\Modules\ModuleDetail::getUrl(['slug' => $module['slug']]) }}"
+                            href="{{ \Nvade\Numerosis\Filament\TenantAdmin\Pages\Modules\ModuleDetail::getUrl(['slug' => $module['slug']]) }}"
                             wire:navigate
                             class="flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg"
                         >
@@ -51,7 +51,7 @@
                                     </x-filament::badge>
                                 @else
                                     <x-filament::badge color="gray">
-                                        {{ $module['billing_mode'] === \App\Enums\ModuleBillingMode::OneTime ? 'One-time' : 'Subscription' }}
+                                        {{ $module['billing_mode'] === \Nvade\Numerosis\Enums\ModuleBillingMode::OneTime ? 'One-time' : 'Subscription' }}
                                     </x-filament::badge>
                                 @endif
                             </div>

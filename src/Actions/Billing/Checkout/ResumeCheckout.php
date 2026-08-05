@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
+use Laravel\Cashier\Cashier;
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Services\Billing\Checkout\ResumedCheckout;
-use Laravel\Cashier\Cashier;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Support\Numerosis;
 use Stripe\Exception\ApiErrorException;
 
 /**
@@ -26,7 +27,8 @@ class ResumeCheckout
 
     public function handle(string $domain): ResumedCheckout
     {
-        $pending = PendingTenantProvision::find($domain);
+        /** @var PendingTenantProvision|null $pending */
+        $pending = Numerosis::model(PendingTenantProvision::class)::find($domain);
 
         if (! $pending) {
             throw new CheckoutSessionExpired(__('billing.checkout.session_expired'));

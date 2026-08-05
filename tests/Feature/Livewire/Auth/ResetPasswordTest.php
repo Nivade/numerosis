@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Livewire\Auth;
 
-use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
-use Nvade\Numerosis\Livewire\Auth\ResetPassword;
-use Nvade\Numerosis\Models\Central\CentralUser;
+use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Password;
 use Livewire\Livewire;
-use RyanChandler\LaravelCloudflareTurnstile\Facades\Turnstile;
+use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
+use Nvade\Numerosis\Livewire\Auth\ResetPassword;
 use Nvade\Numerosis\Tests\TestCase;
+use RyanChandler\LaravelCloudflareTurnstile\Facades\Turnstile;
 
 class ResetPasswordTest extends TestCase
 {

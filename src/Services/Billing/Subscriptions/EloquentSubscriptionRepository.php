@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Billing\Subscriptions;
 
+use Illuminate\Database\UniqueConstraintViolationException;
+use Laravel\Cashier\Subscription as CashierSubscription;
 use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Nvade\Numerosis\Models\Central\Subscription;
-use Illuminate\Database\UniqueConstraintViolationException;
-use Laravel\Cashier\Subscription as CashierSubscription;
+use Nvade\Numerosis\Support\Numerosis;
 use RuntimeException;
 
 class EloquentSubscriptionRepository implements SubscriptionRepository
 {
     public function findByStripeId(string $stripeId): ?CashierSubscription
     {
-        return Subscription::query()->where('stripe_id', $stripeId)->first();
+        $subscriptionClass = Numerosis::model(Subscription::class);
+
+        return $subscriptionClass::query()->where('stripe_id', $stripeId)->first();
     }
 
     /**
@@ -33,9 +36,11 @@ class EloquentSubscriptionRepository implements SubscriptionRepository
      */
     public function record(SubscriptionData $data): CashierSubscription
     {
+        $subscriptionClass = Numerosis::model(Subscription::class);
+
         try {
             /** @var Subscription $subscription */
-            $subscription = Subscription::query()->updateOrCreate(
+            $subscription = $subscriptionClass::query()->updateOrCreate(
                 ['stripe_id' => $data->stripe_id],
                 $data->except('items', 'stripe_id')->toArray(),
             );

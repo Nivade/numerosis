@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Features;
 
+use App\Models\Central\Tenant;
+use App\Models\Tenant\User as TenantUser;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Features\Ui\TenantPanelFeature;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Users\UserResource;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Support\Features;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Tests\TestCase;
 
 class MembershipsDisabledTest extends TestCase

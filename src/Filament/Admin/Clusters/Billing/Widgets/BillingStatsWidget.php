@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets;
 
-use Nvade\Numerosis\Models\Central\Subscription;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
+use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Support\Numerosis;
 
 class BillingStatsWidget extends StatsOverviewWidget
 {
     protected function getStats(): array
     {
-        $activeSubscriptions = Subscription::query()
+        $subscriptionClass = Numerosis::model(Subscription::class);
+
+        $activeSubscriptions = $subscriptionClass::query()
             ->where('stripe_status', 'active')
             ->with('paymentPlan')
             ->get();
@@ -30,7 +33,7 @@ class BillingStatsWidget extends StatsOverviewWidget
                 ->description('Monthly Recurring Revenue')
                 ->descriptionIcon('heroicon-m-currency-dollar')
                 ->color('primary'),
-            Stat::make('Total Subscriptions', Subscription::query()->count())
+            Stat::make('Total Subscriptions', $subscriptionClass::query()->count())
                 ->description('Total subscription records')
                 ->descriptionIcon('heroicon-m-list-bullet'),
         ];

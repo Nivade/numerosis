@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Http\Middleware;
 
-use Nvade\Numerosis\Http\Middleware\UpdateUserLastSeenMiddleware;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use App\Models\Central\CentralUser;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Http\Middleware\UpdateUserLastSeenMiddleware;
 use Nvade\Numerosis\Tests\TestCase;
 
 class UpdateUserLastSeenMiddlewareTest extends TestCase

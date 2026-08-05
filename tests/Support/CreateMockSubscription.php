@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Support;
 
-use Nvade\Numerosis\Models\Central\Subscription;
-use Nvade\Numerosis\Models\Central\SubscriptionItem;
+use App\Models\Central\Subscription;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Models\Central\SubscriptionItem;
 use Spatie\LaravelData\Data;
 
 class CreateMockSubscription

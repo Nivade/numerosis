@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Role;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
+use Nvade\Numerosis\Models\Role;
 
 uses(RefreshDatabase::class);
 

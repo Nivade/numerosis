@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Database\Factories\Tenant;
 
-use Nvade\Numerosis\Models\Tenant\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Models\Tenant\User;
 
 /**
  * Laravel resolves a factory from the model's namespace below `Nvade\Numerosis\Models`, so
@@ -19,10 +19,13 @@ use Illuminate\Support\Str;
  *
  * @extends Factory<User>
  */
+// No `protected $model` override: User is abstract (see
+// .claude/plans/package-extraction.md Phase 4.4) — a hardcoded $model here
+// bypasses Numerosis::modelNameFor()'s global resolver and forces `new
+// static` inside Eloquent's create()/make() to instantiate the abstract
+// class directly, which throws.
 class UserFactory extends Factory
 {
-    protected $model = User::class;
-
     /**
      * The current password being used by the factory.
      */

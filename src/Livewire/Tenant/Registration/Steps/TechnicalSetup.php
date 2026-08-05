@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Tenant\Registration\Steps;
 
+use Illuminate\Contracts\View\View;
+use Illuminate\Validation\Rule;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Rules\DomainIsAvailable;
-use Illuminate\Contracts\View\View;
-use Illuminate\Validation\Rule;
 use Spatie\LivewireWizard\Components\StepComponent;
 
 class TechnicalSetup extends StepComponent
@@ -94,6 +94,6 @@ class TechnicalSetup extends StepComponent
 
     public function render(): View
     {
-        return view('livewire.tenant.registration.wizard.steps.technical-setup');
+        return view('numerosis::livewire.tenant.registration.wizard.steps.technical-setup');
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Billing\Checkout;
 
+use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
@@ -17,7 +18,7 @@ use Nvade\Numerosis\Exceptions\Billing\StripePriceNotConfigured;
 use Nvade\Numerosis\Exceptions\Billing\UnsupportedBillable;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Support\Numerosis;
 
 class InlineCheckoutGateway implements CheckoutGateway
 {
@@ -65,7 +66,7 @@ class InlineCheckoutGateway implements CheckoutGateway
         // would overwrite a stranger's stored SetupIntent, leaving the
         // rightful owner resuming a checkout against a Stripe customer that
         // is not theirs (ResolveSetupIntent then locks them out entirely).
-        PendingTenantProvision::where('domain', $registration->domain)
+        Numerosis::model(PendingTenantProvision::class)::where('domain', $registration->domain)
             ->where('global_id', $registration->global_id)
             ->update([
                 'payment_plan' => $registration->payment_plan,

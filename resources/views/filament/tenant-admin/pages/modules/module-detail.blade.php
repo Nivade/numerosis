@@ -4,7 +4,7 @@
         x-init="init()"
         class="space-y-6"
     >
-        <x-billing.payment-error :message="$paymentError" />
+        <x-numerosis::billing.payment-error :message="$paymentError" />
 
         @php
             $offer = $this->offer();
@@ -13,7 +13,7 @@
         @endphp
 
         <a
-            href="{{ \App\Filament\TenantAdmin\Pages\Modules\Marketplace::getUrl() }}"
+            href="{{ \Nvade\Numerosis\Filament\TenantAdmin\Pages\Modules\Marketplace::getUrl() }}"
             wire:navigate
             class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
         >
@@ -51,7 +51,7 @@
                                 </x-filament::badge>
                             @else
                                 <x-filament::badge color="gray">
-                                    {{ $offer->billingMode() === \App\Enums\ModuleBillingMode::OneTime ? 'One-time purchase' : 'Subscription' }}
+                                    {{ $offer->billingMode() === \Nvade\Numerosis\Enums\ModuleBillingMode::OneTime ? 'One-time purchase' : 'Subscription' }}
                                 </x-filament::badge>
                             @endif
                         </div>
@@ -73,7 +73,7 @@
                         </p>
                     </div>
                 @else
-                    @if($offer->billingMode() === \App\Enums\ModuleBillingMode::OneTime)
+                    @if($offer->billingMode() === \Nvade\Numerosis\Enums\ModuleBillingMode::OneTime)
                         <div class="flex items-baseline gap-1.5">
                             <span class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
                                 {{ $this->oneTimePrice() ?? '—' }}

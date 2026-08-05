@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Subscriptions;
 
+use App\Models\Central\CentralUser;
+use App\Models\Central\PaymentPlan;
+use App\Models\Central\Tenant;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Billing\Subscriptions\RecordSubscription;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Tests\TestCase;
 
 class RecordSubscriptionTest extends TestCase

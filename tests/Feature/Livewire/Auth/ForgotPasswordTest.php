@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Livewire\Auth;
 
-use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
-use Nvade\Numerosis\Livewire\Auth\ForgotPassword;
-use Nvade\Numerosis\Models\Central\CentralUser;
+use App\Models\Central\CentralUser;
 use Illuminate\Auth\Notifications\ResetPassword as ResetPasswordNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
-use RyanChandler\LaravelCloudflareTurnstile\Facades\Turnstile;
+use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
+use Nvade\Numerosis\Livewire\Auth\ForgotPassword;
 use Nvade\Numerosis\Tests\TestCase;
+use RyanChandler\LaravelCloudflareTurnstile\Facades\Turnstile;
 
 class ForgotPasswordTest extends TestCase
 {

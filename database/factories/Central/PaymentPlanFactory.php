@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Database\Factories\Central;
 
-use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
+// No `protected $model` override: PaymentPlan is abstract (see
+// .claude/plans/package-extraction.md Phase 4.4). A hardcoded $model here
+// bypasses Numerosis::modelNameFor()'s resolver — registered globally via
+// Factory::guessModelNamesUsing() — and forces every `new static` inside
+// Eloquent's own create()/make() to instantiate the abstract class directly,
+// which throws. Let the resolver route to the host's concrete stub instead.
 /** @extends \Illuminate\Database\Eloquent\Factories\Factory<\Nvade\Numerosis\Models\Central\PaymentPlan> */
 class PaymentPlanFactory extends Factory
 {
-    protected $model = PaymentPlan::class;
-
     /**
      * Define the model's default state.
      */

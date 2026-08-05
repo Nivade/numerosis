@@ -16,16 +16,248 @@ use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
 use Orchestra\Testbench\TestCase as Orchestra;
+use PDO;
+use Workbench\App\Providers\Filament\AdminPanelProvider;
+use Workbench\App\Providers\Filament\TenantAdminPanelProvider;
 
 abstract class TestCase extends Orchestra
 {
+    /**
+     * The two Filament panel providers are Workbench-only stand-ins for
+     * what a real host (thin-app, Phase 7/8) will register — see their own
+     * class docblocks. They belong here, not in NumerosisServiceProvider,
+     * for the same reason `getEnvironmentSetUp()` below hand-sets
+     * `config('tenancy.*')` etc: the package never owns a panel.
+     */
     protected function getPackageProviders($app): array
     {
         return [
             NumerosisServiceProvider::class,
+            AdminPanelProvider::class,
+            TenantAdminPanelProvider::class,
         ];
+    }
+
+    /**
+     * Testbench's `ignorePackageDiscoveriesFrom()` defaults to `['*']` unless
+     * either this is overridden or the test case composes `WithWorkbench` —
+     * without one of those, `PackageManifest::getManifest()` rejects every
+     * vendor package's discovered providers *and* aliases, silently, no
+     * error at boot. Every vendor dependency this package relies on
+     * (`livewire/livewire`'s `Livewire` facade alias and `livewire.finder`
+     * binding, `filament/filament`'s facades, …) is reached through Laravel's
+     * own auto-discovery, exactly like a real consuming app — nothing here
+     * hand-registers a provider or alias that discovery already supplies, so
+     * this one override is the fix, not a per-package alias list.
+     */
+    public function ignorePackageDiscoveriesFrom(): array
+    {
+        return [];
+    }
+
+    /**
+     * Everything `docs/host-requirements.md` says a host must own. The
+     * package's own suite has to *be* that host for its tests: none of
+     * `config/{tenancy,database,auth,session,filesystems,permission}.php`
+     * ship from the package (`mergeConfigFrom` merges one level deep, so a
+     * package-owned `tenancy.php` would silently drop whatever bootstrapper
+     * a real consumer appends — see that doc's `config/tenancy.php` row),
+     * so nothing here is a shortcut; it is the same shape a real thin-app
+     * install would set, pointed at the Workbench stub models under
+     * `workbench/app/Models` instead of a real host's `App\Models`.
+     *
+     * `DOMAIN`/`CENTRAL_SUBDOMAIN` are set via `putenv()`, not
+     * `$app['config']->set()`, because `config/numerosis.php`'s
+     * `domains.tenant_pattern` and `numerosis-tenancy`'s siblings compute
+     * their defaults with `env()` *inside the config file*, at
+     * `mergeConfigFrom()` time — after this method returns but before any
+     * test runs. Setting the process env here, before that merge happens,
+     * is what makes `env('DOMAIN')` resolve inside those files at all.
+     */
+    protected function getEnvironmentSetUp($app): void
+    {
+        putenv('DOMAIN=numerosistest.test');
+        putenv('CENTRAL_SUBDOMAIN=central');
+        putenv('SESSION_DOMAIN=.numerosistest.test');
+        $_ENV['DOMAIN'] = 'numerosistest.test';
+        $_ENV['CENTRAL_SUBDOMAIN'] = 'central';
+        $_ENV['SESSION_DOMAIN'] = '.numerosistest.test';
+
+        $app['config']->set('app.key', 'base64:'.base64_encode(str_repeat('a', 32)));
+
+        // routes/auth.php reads config('app.central.default') for the OAuth
+        // redirect route's ->domain() — a config/app.php key, so a
+        // framework config thin-app owns for real, not something the
+        // package ships (see docs/host-requirements.md). Route::domain(null)
+        // silently returns the *current* domain string instead of `$this`
+        // (Illuminate\Routing\Route::domain()'s getter branch), so leaving
+        // this unset doesn't throw where it's read — it throws one line
+        // later on the string returned in place of the route.
+        $app['config']->set('app.central', [
+            'domain' => 'numerosistest.test',
+            'default' => 'central.numerosistest.test',
+            'subdomain' => 'central',
+        ]);
+
+        $mysqlOptions = extension_loaded('pdo_mysql') ? [
+            (PHP_VERSION_ID >= 80500 ? \Pdo\Mysql::ATTR_INIT_COMMAND : PDO::MYSQL_ATTR_INIT_COMMAND) => 'SET SESSION lock_wait_timeout = 10, innodb_lock_wait_timeout = 10',
+        ] : [];
+
+        $mysql = [
+            'driver' => 'mysql',
+            'host' => '127.0.0.1',
+            'port' => '3306',
+            'database' => 'testing',
+            'username' => 'root',
+            'password' => 'root',
+            'unix_socket' => '',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_0900_ai_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => $mysqlOptions,
+        ];
+
+        $app['config']->set('database.default', 'mysql');
+        $app['config']->set('database.connections.mysql', $mysql);
+        $app['config']->set('database.connections.central', $mysql);
+        $app['config']->set('database.connections.tenant', $mysql);
+
+        $app['config']->set('tenancy.tenant_model', \App\Models\Central\Tenant::class);
+        $app['config']->set('tenancy.id_generator', \Stancl\Tenancy\UUIDGenerator::class);
+        $app['config']->set('tenancy.domain_model', \App\Models\Central\Domain::class);
+        $app['config']->set('tenancy.central_user_model', \App\Models\Central\CentralUser::class);
+        $app['config']->set('tenancy.tenant_user_model', \App\Models\Tenant\User::class);
+        $app['config']->set('tenancy.central_domains', ['central.numerosistest.test']);
+        $app['config']->set('tenancy.bootstrappers', [
+            \Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper::class,
+            \Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper::class,
+            \Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper::class,
+            \Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper::class,
+            \Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper::class,
+            \Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper::class,
+        ]);
+        $app['config']->set('tenancy.database.central_connection', 'central');
+        $app['config']->set('tenancy.database.prefix', 'tenant');
+        $app['config']->set('tenancy.database.suffix', '');
+        $app['config']->set('tenancy.filesystem.suffix_base', 'tenant');
+        $app['config']->set('tenancy.filesystem.disks', ['local', 'public']);
+        $app['config']->set('tenancy.filesystem.root_override', [
+            'local' => '%storage_path%/app/private/',
+            'public' => '%storage_path%/app/public/',
+        ]);
+        $app['config']->set('tenancy.filesystem.suffix_storage_path', true);
+        $app['config']->set('tenancy.cache.tag_base', 'tenant');
+        $app['config']->set('tenancy.migration_parameters', [
+            '--force' => true,
+            '--path' => [realpath(__DIR__.'/../database/migrations/tenant')],
+            '--realpath' => true,
+        ]);
+        $app['config']->set('tenancy.seeder_parameters', [
+            '--class' => \Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder::class,
+        ]);
+
+        $app['config']->set('auth.defaults.guards.context.central', 'web');
+        $app['config']->set('auth.defaults.guards.context.tenant', 'tenant');
+        $app['config']->set('auth.guards.web', ['driver' => 'session', 'provider' => 'central_users']);
+        $app['config']->set('auth.guards.tenant', ['driver' => 'session', 'provider' => 'tenant_users']);
+        $app['config']->set('auth.providers.central_users', [
+            'driver' => 'eloquent',
+            'model' => \App\Models\Central\CentralUser::class,
+        ]);
+        $app['config']->set('auth.providers.tenant_users', [
+            'driver' => 'eloquent',
+            'model' => \App\Models\Tenant\User::class,
+        ]);
+        $app['config']->set('auth.social.providers', []);
+
+        $app['config']->set('session.domain', '.numerosistest.test');
+        $app['config']->set('session.driver', 'array');
+
+        $app['config']->set('filesystems.disks.local', [
+            'driver' => 'local',
+            'root' => storage_path('app/private'),
+            'serve' => true,
+            'throw' => false,
+        ]);
+        $app['config']->set('filesystems.disks.public', [
+            'driver' => 'local',
+            'root' => storage_path('app/public'),
+            'url' => '/storage',
+            'visibility' => 'public',
+            'throw' => false,
+        ]);
+        $app['config']->set('filesystems.disks.livewire', [
+            'driver' => 'local',
+            'root' => storage_path('app/private'),
+            'throw' => false,
+        ]);
+        $app['config']->set('livewire.temporary_file_upload.disk', 'livewire');
+
+        // Livewire's own default config already points 'pages'/'layouts' at
+        // resource_path('views/{pages,layouts}') — correct for a plain
+        // Laravel app, wrong here, since those files ship from the package
+        // (routes/{web,tenant}.php's `Route::livewire('...', 'pages::...')`,
+        // and resources/views/layouts/app/header.blade.php's
+        // `<livewire:layouts::header />`). See docs/host-requirements.md's
+        // `config/livewire.php` row.
+        $app['config']->set('livewire.component_namespaces', [
+            'layouts' => dirname(__DIR__).'/resources/views/layouts',
+            'pages' => dirname(__DIR__).'/resources/views/pages',
+        ]);
+
+        $app['config']->set('permission.models.permission', \Nvade\Numerosis\Models\Permission::class);
+        $app['config']->set('permission.models.role', \Nvade\Numerosis\Models\Role::class);
+        $app['config']->set('permission.column_names.model_morph_key', 'model_id');
+        $app['config']->set('permission.table_names', [
+            'roles' => 'roles',
+            'permissions' => 'permissions',
+            'model_has_permissions' => 'model_has_permissions',
+            'model_has_roles' => 'model_has_roles',
+            'role_has_permissions' => 'role_has_permissions',
+        ]);
+        $app['config']->set('permission.cache.store', 'array');
+
+        $app['config']->set('cashier.model', \App\Models\Central\Tenant::class);
+        $app['config']->set('cashier.key', 'pk_test_dummy');
+        $app['config']->set('cashier.secret', 'sk_test_dummy');
+        $app['config']->set('cashier.currency', 'usd');
+
+        $app['config']->set('queue.default', 'sync');
+        $app['config']->set('mail.default', 'array');
+
+        // spatie/laravel-activitylog: not a "suggest" in composer.json terms
+        // despite the config name — Tenant\User and Tenant\Invitation compose
+        // LogsActivity unconditionally (see composer.json's "require" list),
+        // so its config/migration must exist regardless of ActivityLogFeature
+        // (which only gates the Filament UI on top of it).
+        $app['config']->set('activitylog.database_connection', null);
+        $app['config']->set('activitylog.table_name', 'activity_log');
+        $app['config']->set('activitylog.activity_model', \Spatie\Activitylog\Models\Activity::class);
+        $app['config']->set('activitylog.default_log_name', 'default');
+        $app['config']->set('activitylog.default_auth_driver', null);
+        $app['config']->set('activitylog.subject_returns_soft_deleted_models', false);
+        $app['config']->set('activitylog.enabled', true);
+    }
+
+    /**
+     * A real host loads these via `Numerosis::routes()` from
+     * `bootstrap/app.php`'s `withRouting(using: ...)` — Testbench has no
+     * such hook, but `defineRoutes()` is the same "run once before every
+     * test" moment. Without this, every named route the package ships
+     * (`login`, `home`, `features`, `checkout.subscription`, …) is
+     * unresolvable and any test asserting or generating one fails with
+     * `Route [...] not defined`, which reads like a missing feature rather
+     * than a harness gap.
+     */
+    protected function defineRoutes($router): void
+    {
+        Numerosis::routes();
     }
 
     /**
@@ -258,9 +490,11 @@ abstract class TestCase extends Orchestra
             return;
         }
 
-        $tenants = Tenant::query()->get();
+        $tenantClass = $this->tenantModelClass();
 
-        Tenant::query()->delete();
+        $tenants = $tenantClass::query()->get();
+
+        $tenantClass::query()->delete();
 
         // Databases the clone helper made are known by name, so the common case
         // costs nothing.
@@ -350,5 +584,25 @@ abstract class TestCase extends Orchestra
         DB::purge(self::MAINTENANCE_CONNECTION);
 
         return DB::connection(self::MAINTENANCE_CONNECTION);
+    }
+
+    /**
+     * `Nvade\Numerosis\Models\Central\Tenant` is `abstract` (see
+     * `.claude/plans/package-extraction.md` Phase 4.4) — a call written as
+     * `Tenant::query()` still compiles, but late static binding resolves
+     * `static` to the literal class the call was written against, so
+     * `new static` inside Eloquent's own `query()`/`forceCreate()` tries to
+     * instantiate the abstract class itself and throws. Every static call
+     * must go through the *configured* concrete class instead, matching how
+     * a real request resolves `config('tenancy.tenant_model')`.
+     *
+     * @return class-string<Tenant>
+     */
+    private function tenantModelClass(): string
+    {
+        /** @var class-string<Tenant> $class */
+        $class = Config::string('tenancy.tenant_model');
+
+        return $class;
     }
 }

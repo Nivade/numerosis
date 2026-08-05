@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Listeners\Auth;
 
+use App\Models\Central\CentralUser;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Events\Auth\SocialAccountDisconnected;
 use Nvade\Numerosis\Listeners\Auth\LogSocialAccountDisconnected;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Activitylog\Models\Activity;
 use Nvade\Numerosis\Tests\TestCase;
+use Spatie\Activitylog\Models\Activity;
 
 class LogSocialAccountDisconnectedTest extends TestCase
 {

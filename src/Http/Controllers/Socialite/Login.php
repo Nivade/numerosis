@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Http\Controllers\Socialite;
 
+use Illuminate\Contracts\Config\Repository;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Redirector;
+use Illuminate\Routing\UrlGenerator;
+use Illuminate\Support\Collection;
+use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\AbstractProvider;
+use Laravel\Socialite\Two\User;
 use Nvade\Numerosis\Actions\Auth\ConnectSocialAccount;
 use Nvade\Numerosis\Actions\Auth\LoginUser;
 use Nvade\Numerosis\Actions\Invitations\AcceptInvitation;
@@ -14,16 +23,8 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\SocialiteLogin;
 use Nvade\Numerosis\Models\Tenant\Invitation;
+use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Routes\RouteNames;
-use Illuminate\Contracts\Config\Repository;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Routing\Redirector;
-use Illuminate\Routing\UrlGenerator;
-use Illuminate\Support\Collection;
-use Laravel\Socialite\Facades\Socialite;
-use Laravel\Socialite\Two\AbstractProvider;
-use Laravel\Socialite\Two\User;
 
 class Login extends Controller
 {
@@ -42,7 +43,9 @@ class Login extends Controller
             ->firstWhere('provider_id', (string) $socialUser->getId())?->user;
 
         if (! $user) {
-            $user = CentralUser::firstOrCreate(
+            $centralUserClass = Numerosis::model(CentralUser::class);
+
+            $user = $centralUserClass::firstOrCreate(
                 ['email' => $socialUser->getEmail()],
                 ['name' => $socialUser->name]
             );
@@ -127,7 +130,9 @@ class Login extends Controller
             return null;
         }
 
-        $tenant = Tenant::find($tenantId);
+        $tenantClass = Numerosis::model(Tenant::class);
+
+        $tenant = $tenantClass::find($tenantId);
 
         if (! $tenant instanceof Tenant) {
             return null;
@@ -148,7 +153,9 @@ class Login extends Controller
             return null;
         }
 
-        $tenant = Tenant::find($context['tenant'] ?? null);
+        $tenantClass = Numerosis::model(Tenant::class);
+
+        $tenant = $tenantClass::find($context['tenant'] ?? null);
         if (! $tenant instanceof Tenant) {
             return to_route(RouteNames::invitationShow(), ['token' => $context['token'] ?? ''])
                 ->with('error', __('Invalid tenant for invitation.'));
@@ -158,8 +165,10 @@ class Login extends Controller
             tenancy()->initialize($tenant);
         }
 
+        $invitationClass = Numerosis::model(Invitation::class);
+
         /** @var Invitation|null $invitation */
-        $invitation = $tenant->run(fn () => Invitation::find($context['invitation']));
+        $invitation = $tenant->run(fn () => $invitationClass::find($context['invitation']));
 
         if ($invitation === null) {
             return to_route(RouteNames::invitationShow(), ['token' => $context['token'] ?? ''])

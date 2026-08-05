@@ -4,16 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\TenantAdmin\Resources\Modules;
 
-use Nvade\Numerosis\Actions\Modules\CancelModule;
-use Nvade\Numerosis\Actions\Queries\GetAuthenticatedTenantUser;
-use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
-use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
-use Nvade\Numerosis\Filament\Concerns\NotifiesUser;
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\BaseResource;
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\Modules\Pages\ListModules;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Module;
-use Nvade\Numerosis\Support\Features;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Checkbox;
@@ -28,16 +18,30 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
+use Nvade\Numerosis\Actions\Modules\CancelModule;
+use Nvade\Numerosis\Actions\Queries\GetAuthenticatedTenantUser;
+use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
+use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
+use Nvade\Numerosis\Filament\Concerns\NotifiesUser;
+use Nvade\Numerosis\Filament\TenantAdmin\Resources\BaseResource;
+use Nvade\Numerosis\Filament\TenantAdmin\Resources\Modules\Pages\ListModules;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Tenant\Module;
+use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\Numerosis;
 
 class ModuleResource extends BaseResource
 {
     use NotifiesUser;
 
-    protected static ?string $model = Module::class;
-
     protected static ?string $slug = 'modules';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
+    public static function getModel(): string
+    {
+        return Numerosis::model(Module::class);
+    }
 
     public static function canAccess(): bool
     {
@@ -85,7 +89,7 @@ class ModuleResource extends BaseResource
     public static function table(Table $table): Table
     {
         return $table
-            ->query(fn (Builder $query): Builder => Module::query()->whereNotNull('purchased_at'))
+            ->query(fn (Builder $query): Builder => Numerosis::model(Module::class)::query()->whereNotNull('purchased_at'))
             ->columns([
                 Stack::make([
                     TextColumn::make('name')

@@ -2,10 +2,8 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Filament\Nvade\Numerosis\Resources\Permissions;
+namespace Nvade\Numerosis\Filament\App\Resources\Permissions;
 
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\BaseResource;
-use Nvade\Numerosis\Models\Permission;
 use BackedEnum;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
@@ -26,6 +24,8 @@ use Filament\Tables\Table;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Filament\TenantAdmin\Resources\BaseResource;
+use Nvade\Numerosis\Models\Permission;
 
 class PermissionResource extends BaseResource
 {
@@ -173,7 +173,7 @@ class PermissionResource extends BaseResource
     }
 
     /**
-     * Shared with {@see \Nvade\Numerosis\Filament\Nvade\Numerosis\Resources\Roles\RelationManagers\PermissionsRelationManager},
+     * Shared with {@see \Nvade\Numerosis\Filament\App\Resources\Roles\RelationManagers\PermissionsRelationManager},
      * which filters the same column with the same labels.
      *
      * @return array<string, string>

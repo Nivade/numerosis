@@ -5,7 +5,7 @@
 ])
 
 @php
-    /** @var \App\Contracts\Billing\Plan $plan */
+    /** @var \Nvade\Numerosis\Contracts\Billing\Plan $plan */
     $trialDays = $plan->trialDays();
 @endphp
 
@@ -18,20 +18,20 @@
 @if($trialDays !== null && $trialDays > 0)
     <div {{ $attributes->merge(['class' => 'space-y-2']) }}>
         <div class="flex items-center justify-between">
-            <x-ui.text variant="muted" size="sm">
+            <x-numerosis::ui.text variant="muted" size="sm">
                 Free trial
-            </x-ui.text>
-            <x-ui.text variant="default" size="sm" class="font-medium">
+            </x-numerosis::ui.text>
+            <x-numerosis::ui.text variant="default" size="sm" class="font-medium">
                 {{ $trialDays }} {{ Str::plural('day', $trialDays) }}
-            </x-ui.text>
+            </x-numerosis::ui.text>
         </div>
         <div class="flex items-center justify-between">
-            <x-ui.text variant="muted" size="sm">
-                Then, billed {{ $billingCycle === \App\Enums\BillingCycle::Monthly ? 'monthly' : 'yearly' }}
-            </x-ui.text>
-            <x-ui.text variant="default" size="sm" class="font-medium">
+            <x-numerosis::ui.text variant="muted" size="sm">
+                Then, billed {{ $billingCycle === \Nvade\Numerosis\Enums\BillingCycle::Monthly ? 'monthly' : 'yearly' }}
+            </x-numerosis::ui.text>
+            <x-numerosis::ui.text variant="default" size="sm" class="font-medium">
                 {{ $price }}{{ $billingCycle->label() }}
-            </x-ui.text>
+            </x-numerosis::ui.text>
         </div>
     </div>
 @endif

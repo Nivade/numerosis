@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Modules;
 
-use Nvade\Numerosis\Actions\Modules\CancelModule;
-use Nvade\Numerosis\Enums\ModuleBillingMode;
-use Nvade\Numerosis\Exceptions\Billing\ModuleBillingNotAuthorized;
-use Nvade\Numerosis\Exceptions\Billing\ModuleNotFound;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\ModuleOffering;
-use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Models\Central\Subscription;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Permission;
-use Nvade\Numerosis\Models\Tenant\Module;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use App\Models\Central\CentralUser;
+use App\Models\Central\PaymentPlan;
+use App\Models\Central\Subscription;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\Module;
+use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
 use LogicException;
+use Nvade\Numerosis\Actions\Modules\CancelModule;
+use Nvade\Numerosis\Enums\ModuleBillingMode;
+use Nvade\Numerosis\Exceptions\Billing\ModuleBillingNotAuthorized;
+use Nvade\Numerosis\Exceptions\Billing\ModuleNotFound;
+use Nvade\Numerosis\Models\Central\ModuleOffering;
+use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
 
 class CancelModuleTest extends TestCase

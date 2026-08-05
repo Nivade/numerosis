@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Console\Commands;
 
-use Nvade\Numerosis\Models\Central\Tenant;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Support\Numerosis;
 
 #[Description('Drop tenant databases that have no matching tenant record, and tenants suspended and never paid for too long')]
 #[Signature('tenancy:prune-orphaned-databases
@@ -33,8 +34,10 @@ class PruneOrphanedTenantDatabases extends Command
     {
         $prefix = Config::string('tenancy.database.prefix', 'tenant');
 
+        $tenantClass = Numerosis::model(Tenant::class);
+
         /** @var Collection<int, string> $tenantIds */
-        $tenantIds = Tenant::query()->pluck('id');
+        $tenantIds = $tenantClass::query()->pluck('id');
 
         $expected = $tenantIds->map(fn (string $id): string => $prefix.$id)->all();
 
@@ -101,7 +104,9 @@ class PruneOrphanedTenantDatabases extends Command
         $days = (int) $this->option('days');
         $cutoff = now()->subDays($days);
 
-        $suspended = Tenant::query()
+        $tenantClass = Numerosis::model(Tenant::class);
+
+        $suspended = $tenantClass::query()
             ->whereNotNull('suspended_at')
             ->where('suspended_at', '<', $cutoff);
 

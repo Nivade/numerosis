@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Filament\Nvade\Numerosis\Resources\Roles\RelationManagers;
+namespace Nvade\Numerosis\Filament\App\Resources\Roles\RelationManagers;
 
-use Nvade\Numerosis\Filament\Nvade\Numerosis\Resources\Permissions\PermissionResource;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
@@ -21,6 +20,7 @@ use Filament\Tables\Table;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Filament\App\Resources\Permissions\PermissionResource;
 
 class PermissionsRelationManager extends RelationManager
 {

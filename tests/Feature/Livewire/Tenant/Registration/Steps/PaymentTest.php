@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Livewire\Tenant\Registration\Steps;
 
-use Nvade\Numerosis\Livewire\Tenant\Registration\Registration;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Support\State\RegistrationState;
+use App\Models\Central\CentralUser;
+use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Nvade\Numerosis\Livewire\Tenant\Registration\Registration;
+use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
+use Nvade\Numerosis\Support\State\RegistrationState;
 use Nvade\Numerosis\Tests\TestCase;
 
 class PaymentTest extends TestCase

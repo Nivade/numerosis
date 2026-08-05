@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Tenancy;
 
+use App\Models\Central\CentralUser;
+use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\Tenant;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
@@ -11,13 +16,8 @@ use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Enums\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Event;
-use RuntimeException;
 use Nvade\Numerosis\Tests\TestCase;
+use RuntimeException;
 
 /**
  * FinalizeTenantProvisioning is the only thing that reports provisioning as

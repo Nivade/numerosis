@@ -38,7 +38,7 @@
                 </div>
 
                 <div class="relative aspect-square rounded-2xl bg-zinc-100 dark:bg-zinc-800/50 overflow-hidden ring-1 ring-zinc-200 dark:ring-white/10 flex items-center justify-center p-12">
-                   <x-app-logo class="size-48 opacity-20" />
+                   <x-numerosis::app-logo class="size-48 opacity-20" />
                    <div class="absolute inset-0 flex items-center justify-center">
                        <flux:heading level="2" class="text-3xl font-bold">Making work flow.</flux:heading>
                    </div>

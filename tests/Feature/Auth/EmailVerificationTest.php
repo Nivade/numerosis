@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Auth;
 
-use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
-use Nvade\Numerosis\Models\Central\CentralUser;
+use App\Models\Central\CentralUser;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\Notification as NotificationBase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
-use RuntimeException;
+use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
 use Nvade\Numerosis\Tests\TestCase;
+use RuntimeException;
 
 class EmailVerificationTest extends TestCase
 {

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Http\Controllers\Socialite;
 
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Invitation;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use App\Models\Central\CentralUser;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\Invitation;
+use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Invitations;
 
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Invitation;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\Invitation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use Nvade\Numerosis\Tests\TestCase;

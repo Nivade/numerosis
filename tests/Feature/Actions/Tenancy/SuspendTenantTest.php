@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Tenancy;
 
-use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Notifications\Billing\TenantSuspended;
+use App\Models\Central\CentralUser;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
+use Nvade\Numerosis\Notifications\Billing\TenantSuspended;
 use Nvade\Numerosis\Tests\TestCase;
 
 class SuspendTenantTest extends TestCase

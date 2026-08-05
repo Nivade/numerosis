@@ -1,17 +1,18 @@
 <?php
 
-use App\Actions\Queries\GetAuthenticatedUser;
-use App\Actions\Tenancy\MarkProvisionCancelled;
-use App\Enums\TenantProvisionStatus;
-use App\Models\Central\CentralUser;
-use App\Models\Central\PendingTenantProvision;
-use App\Models\Central\Tenant;
+use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Actions\Tenancy\MarkProvisionCancelled;
+use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Support\Numerosis;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
-new #[Layout('layouts.app')]
+new #[Layout('layouts::app')]
 class extends Component
 {
     public ?CentralUser $user = null;
@@ -62,7 +63,7 @@ class extends Component
         $this->readyTenants = $tenants->whereNotNull('provisioned_at');
         $this->provisioningTenants = $tenants->whereNull('provisioned_at');
 
-        $this->pendingTenants = PendingTenantProvision::query()
+        $this->pendingTenants = Numerosis::model(PendingTenantProvision::class)::query()
             ->where('global_id', $this->user->global_id)
             ->whereNotIn('domain', $tenants->pluck('id'))
             ->get();
@@ -75,7 +76,7 @@ class extends Component
      */
     public function cancelProvision(string $domain): void
     {
-        $owned = PendingTenantProvision::where('domain', $domain)
+        $owned = Numerosis::model(PendingTenantProvision::class)::where('domain', $domain)
             ->where('global_id', $this->user?->global_id)
             ->exists();
 
@@ -103,15 +104,15 @@ class extends Component
     <div class="flex w-full flex-1 flex-col gap-4 ">
         <div class="flex items-start justify-between">
             <div>
-                <x-ui.heading :level="1">Your Tenants</x-ui.heading>
-                <x-ui.subheading class="mt-1">All organizations you belong to</x-ui.subheading>
+                <x-numerosis::ui.heading :level="1">Your Tenants</x-numerosis::ui.heading>
+                <x-numerosis::ui.subheading class="mt-1">All organizations you belong to</x-numerosis::ui.subheading>
             </div>
 
             <div class="flex items-center gap-3">
-                <x-ui.badge variant="default">
+                <x-numerosis::ui.badge variant="default">
                     {{ $readyTenants->count() }} total
-                </x-ui.badge>
-                @if (\App\Support\Features::enabled(\App\Features\Tenancy\RegistrationWizardFeature::NAME))
+                </x-numerosis::ui.badge>
+                @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
                     <flux:button href="{{ route('tenants.create') }}" wire:navigate icon="plus" variant="primary" size="sm">
                         New Tenant
                     </flux:button>
@@ -119,45 +120,45 @@ class extends Component
             </div>
         </div>
 
-        <x-ui.card :padding="false">
+        <x-numerosis::ui.card :padding="false">
             @if($readyTenants->isEmpty() && $provisioningTenants->isEmpty() && $pendingTenants->isEmpty())
-                <x-ui.empty-state
+                <x-numerosis::ui.empty-state
                     icon="folder-plus"
                     title="You're not a member of any tenants yet"
                     description="Create your first tenant to get started, or ask an owner to invite you."
                 >
-                    @if (\App\Support\Features::enabled(\App\Features\Tenancy\RegistrationWizardFeature::NAME))
+                    @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
                         <x-slot:action>
                             <flux:button href="{{ route('tenants.create') }}" wire:navigate variant="primary">
                                 Create Tenant
                             </flux:button>
                         </x-slot:action>
                     @endif
-                </x-ui.empty-state>
+                </x-numerosis::ui.empty-state>
             @else
-                <x-ui.list>
+                <x-numerosis::ui.list>
                     <div @if($this->isWorkOutstanding()) wire:poll.5s="refreshTenants" @endif>
                         @foreach($pendingTenants as $pending)
-                            <x-ui.list.item class="flex flex-row gap-3 justify-between">
+                            <x-numerosis::ui.list.item class="flex flex-row gap-3 justify-between">
                                 <div class="min-w-0 flex items-start gap-3">
-                                    <x-ui.avatar class="hidden sm:flex" initials="…" />
+                                    <x-numerosis::ui.avatar class="hidden sm:flex" initials="…" />
 
                                     <div class="min-w-0">
-                                        <x-ui.text variant="default" size="sm" class="font-medium truncate">
+                                        <x-numerosis::ui.text variant="default" size="sm" class="font-medium truncate">
                                             {{ $pending->company_name }}
-                                        </x-ui.text>
-                                        <x-ui.text variant="subtle" size="xs" class="mt-0.5 truncate">
+                                        </x-numerosis::ui.text>
+                                        <x-numerosis::ui.text variant="subtle" size="xs" class="mt-0.5 truncate">
                                             @if($pending->hasFailed())
                                                 Setup failed: {{ $pending->error }}
                                             @else
                                                 {{ $pending->domain }} — setting up…
                                             @endif
-                                        </x-ui.text>
+                                        </x-numerosis::ui.text>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0 justify-end">
                                     @if($pending->hasFailed())
-                                        @if (\App\Support\Features::enabled(\App\Features\Tenancy\RegistrationWizardFeature::NAME))
+                                        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
                                             <flux:button href="{{ route('tenants.create') }}" wire:navigate variant="ghost" size="sm">
                                                 Try again
                                             </flux:button>
@@ -200,27 +201,27 @@ class extends Component
                                         <flux:icon.loading class="h-4 w-4 text-zinc-400" />
                                     @endif
                                 </div>
-                            </x-ui.list.item>
+                            </x-numerosis::ui.list.item>
                         @endforeach
 
                         @foreach($provisioningTenants as $tenant)
-                            <x-ui.list.item class="flex flex-row gap-3 justify-between">
+                            <x-numerosis::ui.list.item class="flex flex-row gap-3 justify-between">
                                 <div class="min-w-0 flex items-start gap-3">
-                                    <x-ui.avatar class="hidden sm:flex" :initials="$tenant->initials ?: 'T'" />
+                                    <x-numerosis::ui.avatar class="hidden sm:flex" :initials="$tenant->initials ?: 'T'" />
 
                                     <div class="min-w-0">
-                                        <x-ui.text variant="default" size="sm" class="font-medium truncate">
+                                        <x-numerosis::ui.text variant="default" size="sm" class="font-medium truncate">
                                             {{ $tenant->name }}
-                                        </x-ui.text>
-                                        <x-ui.text variant="subtle" size="xs" class="mt-0.5 truncate">
+                                        </x-numerosis::ui.text>
+                                        <x-numerosis::ui.text variant="subtle" size="xs" class="mt-0.5 truncate">
                                             Setting up…
-                                        </x-ui.text>
+                                        </x-numerosis::ui.text>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0 justify-end">
                                     <flux:icon.loading class="h-4 w-4 text-zinc-400" />
                                 </div>
-                            </x-ui.list.item>
+                            </x-numerosis::ui.list.item>
                         @endforeach
                     </div>
 
@@ -236,19 +237,19 @@ class extends Component
                             $subscription = $tenant->subscriptions->first();
                             $awaitingPayment = $subscription && ! in_array($subscription->stripe_status, ['active', 'trialing'], true);
                         @endphp
-                        <x-ui.list.item class="flex flex-row gap-3 justify-between focus-within:ring-2 focus-within:ring-black/10 dark:focus-within:ring-white/15">
+                        <x-numerosis::ui.list.item class="flex flex-row gap-3 justify-between focus-within:ring-2 focus-within:ring-black/10 dark:focus-within:ring-white/15">
                             <div class="min-w-0 flex items-start gap-3">
-                                <x-ui.avatar class="hidden sm:flex" :initials="$tenant->initials ?: 'T'" />
+                                <x-numerosis::ui.avatar class="hidden sm:flex" :initials="$tenant->initials ?: 'T'" />
 
                                 <div class="min-w-0">
-                                    <x-ui.text variant="default" size="sm" class="font-medium truncate">
+                                    <x-numerosis::ui.text variant="default" size="sm" class="font-medium truncate">
                                         {{ $tenant->name }}
-                                    </x-ui.text>
-                                    <x-ui.text variant="subtle" size="xs" class="mt-0.5 truncate">
+                                    </x-numerosis::ui.text>
+                                    <x-numerosis::ui.text variant="subtle" size="xs" class="mt-0.5 truncate">
                                         {{ $tenant->primaryDomain()->domain ?? 'No domain configured' }}
-                                    </x-ui.text>
+                                    </x-numerosis::ui.text>
                                     @if($awaitingPayment)
-                                        <x-billing.awaiting-payment-card class="mt-2" />
+                                        <x-numerosis::billing.awaiting-payment-card class="mt-2" />
                                     @endif
                                 </div>
                             </div>
@@ -271,10 +272,10 @@ class extends Component
                                 </flux:button>
                                 @endif
                             </div>
-                        </x-ui.list.item>
+                        </x-numerosis::ui.list.item>
                     @endforeach
-                </x-ui.list>
+                </x-numerosis::ui.list>
             @endif
-        </x-ui.card>
+        </x-numerosis::ui.card>
     </div>
 </section>

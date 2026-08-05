@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Events\Tenancy;
 
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Support\Numerosis;
 
 class TenantProvisioningCancelled implements ShouldBroadcast
 {
@@ -25,9 +26,11 @@ class TenantProvisioningCancelled implements ShouldBroadcast
     {
         // The channel is keyed on the CentralUser id, but failures are raised
         // from contexts that only carry the global_id, so resolve it here.
+        $centralUserClass = Numerosis::model(CentralUser::class);
+
         /** @var int|null $ownerId */
         $ownerId = $this->globalId
-            ? CentralUser::where('global_id', $this->globalId)->value('id')
+            ? $centralUserClass::where('global_id', $this->globalId)->value('id')
             : null;
 
         return $ownerId !== null ? [new PrivateChannel("user.{$ownerId}")] : [];

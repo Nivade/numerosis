@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature;
 
+use App\Models\Central\CentralUser;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\User as TenantUser;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Livewire\Livewire;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\General;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\Security;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
-use Livewire\Livewire;
 use Nvade\Numerosis\Tests\TestCase;
 
 class ProfileSyncTest extends TestCase

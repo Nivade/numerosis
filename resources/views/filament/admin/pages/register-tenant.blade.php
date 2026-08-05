@@ -1,1 +1,1 @@
-@livewire('tenant.registration.registration')
+@livewire('tenant-registration')

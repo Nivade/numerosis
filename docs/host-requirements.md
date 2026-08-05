@@ -53,6 +53,7 @@ does not need to be set twice.
 | `defaults.guards.context.central` | e.g. `'web'` | never the literal `'web'` at call sites — `App\Support\Routes\RouteNames`-style indirection, read through this key, is how `AuthGuardBootstrapper` and every panel `authGuard()` call agree on a name |
 | `defaults.guards.context.tenant` | e.g. `'tenant'` | same |
 | both providers | pointing at the host's concrete central/tenant user models | Spatie's guard-name resolution (`Guard::getConfigAuthGuards()`) matches `auth.guards.*.provider` against the model class — this is what makes `CentralUser::guardName()` / `Tenant\User::guardName()` resolve correctly without hardcoding either name on the model |
+| `social.providers` | an array, `[]` if `SocialLoginFeature` is off | `Nvade\Numerosis\Support\Social\ConfiguredProviders::all()` (used by the social-login button grid and the tenant panel's social-accounts manager) reads this with `Config::array(...)`, which throws `InvalidArgumentException` rather than returning `[]` when the key is missing entirely — a config key merely absent, not empty, surfaces as a 500 from an otherwise-unrelated view. |
 
 **Do not** name a guard literally `central` alongside `web` — saas-m tried
 this, found two session guards over one model meant a user could authenticate
@@ -82,9 +83,25 @@ note is here so a host extending that group doesn't reorder it.
 |---|---|---|
 | `filesystems.disks.livewire` | separate disk, same physical root as `local` (`storage_path('app/private')`), **not** listed in `tenancy.filesystem.disks` | Livewire's `livewire/upload-file` route is registered by Livewire's own service provider with only the `web` middleware group — it never passes through `tenancy.identification`, so it always runs central. If `local`'s root is tenant-suffixed (correct, for genuinely tenant-isolated files) and Livewire uploads also go through `local`, the upload writes to the un-suffixed central path while the tenant-panel page validating it looks in the tenant-suffixed path. The failure reads as `"The logo field must be a file of type: image/*."` — a mimetype rejection — not a 404 or a missing-file error, because `TemporaryUploadedFile::getMimeType()` silently can't find the file at the wrong path. See `tenant-filesystem.md`. |
 | `livewire.temporary_file_upload.disk` | `'livewire'`, not `'local'` | points Livewire's own config at the fixed-root disk above |
+| `livewire.component_namespaces` | `['layouts' => <path to the package's `resources/views/layouts`>, 'pages' => <path to the package's `resources/views/pages`>]` | Livewire's own default config points `'layouts'`/`'pages'` at `resource_path('views/{layouts,pages}')` — correct for a plain single-repo app, wrong here: those files ship from the package, not the host. Without this override, `Route::livewire('/tenants/mine', 'numerosis::pages.tenant.mine')` and `<livewire:layouts::header />` (used by `resources/views/layouts/app/header.blade.php`) fail with `Unable to find component: [...]`, which reads like a missing route/view rather than a namespace pointed at the wrong directory. A host that vendors the package can point this at `base_path('vendor/nvade/numerosis/resources/views/{layouts,pages}')`, or publish those two directories locally and point at the published copy — either works, since Livewire's Finder just needs a real filesystem path. |
+| `livewire.component_layout` | `'layouts::app'` | Livewire's own default; unaffected by the row above as long as `'layouts'` resolves per that row — listed here only so the two are read together. |
 
 ## `config/cashier.php`, `config/permission.php`, `config/broadcasting.php`
 
 Published as-is by their own packages (`laravel/cashier`,
 `spatie/laravel-permission`, the framework's broadcasting stub). The package
 does not modify these; it only assumes their default shape.
+
+## `config/app.php`
+
+Ordinary framework file, entirely host-owned — except one non-obvious key
+`routes/auth.php` reads directly:
+
+| Key | Required value / shape | Why |
+|---|---|---|
+| `central.default` | the central app's own hostname, e.g. `'central.'.env('DOMAIN')` | `routes/auth.php`'s OAuth redirect route calls `Route::get(...)->domain(config('app.central.default'))->name('oauth')`. Leaving this key unset doesn't throw where it's read: `Illuminate\Routing\Route::domain(null)` is a *getter* branch, returning the route's current domain string instead of `$this`, so the failure surfaces one line later as `Call to a member function name() on string` — reads like a routing bug in the package, is a missing host config key. |
+
+`central.domain` / `central.subdomain` are also referenced by
+`config/numerosis.php`'s example default for `NUMEROSIS_TENANT_DOMAIN` — see
+`.env.example`'s `DOMAIN`/`CENTRAL_SUBDOMAIN` keys, which is what those
+values normally derive from.

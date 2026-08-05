@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Tenancy;
 
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Exceptions\Tenancy\NoPromotableUser;
 use Nvade\Numerosis\Models\Tenant\User;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Support\Numerosis;
 
 class PromoteFirstUserToAdmin
 {
@@ -14,9 +15,12 @@ class PromoteFirstUserToAdmin
 
     public function handle(\Nvade\Numerosis\Models\Central\Tenant $tenant): void
     {
-        $tenant->run(function () {
+        $userClass = Numerosis::model(User::class);
 
-            $user = User::where('is_bot', false)->first();
+        $tenant->run(function () use ($userClass) {
+
+            /** @var User|null $user */
+            $user = $userClass::where('is_bot', false)->first();
 
             throw_unless($user, NoPromotableUser::class, 'No non-bot users found');
 

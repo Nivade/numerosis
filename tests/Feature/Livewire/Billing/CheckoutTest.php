@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Livewire\Billing;
 
-use Nvade\Numerosis\Livewire\Billing\Checkout;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Nvade\Numerosis\Models\Central\Subscription;
+use App\Models\Central\CentralUser;
+use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\Subscription;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
+use Nvade\Numerosis\Livewire\Billing\Checkout;
 use Nvade\Numerosis\Tests\TestCase;
 
 class CheckoutTest extends TestCase

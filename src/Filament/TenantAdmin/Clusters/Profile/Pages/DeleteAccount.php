@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages;
 
-use Nvade\Numerosis\Actions\Auth\DeleteUserAccount;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\ProfileCluster;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -20,6 +17,9 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
+use Nvade\Numerosis\Actions\Auth\DeleteUserAccount;
+use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\ProfileCluster;
+use Nvade\Numerosis\Models\Central\CentralUser;
 
 class DeleteAccount extends Page implements HasForms
 {
@@ -32,7 +32,7 @@ class DeleteAccount extends Page implements HasForms
 
     protected static string|null|BackedEnum $navigationIcon = Heroicon::OutlinedTrash;
 
-    protected string $view = 'filament.tenant-admin.clusters.profile.pages.generic';
+    protected string $view = 'numerosis::filament.tenant-admin.clusters.profile.pages.generic';
 
     public function form(Schema $schema): Schema
     {

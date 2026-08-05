@@ -14,14 +14,14 @@
                 </p>
             </div>
             <!-- Progress Steps -->
-            <x-ui.stepper
+            <x-numerosis::ui.stepper
                 :steps="['Company Info', 'Technical Setup', 'Plan', 'Payment']"
                 :current="$this->getCurrentStepNumber()"
             />
 
 
             <!-- Alert Messages -->
-            <x-ui.alert closable />
+            <x-numerosis::ui.alert closable />
 
             <!-- Registration Form -->
             <div class="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl shadow-zinc-200/50 dark:shadow-none border border-zinc-200 dark:border-zinc-800 p-8 md:p-12 transition-all duration-500">

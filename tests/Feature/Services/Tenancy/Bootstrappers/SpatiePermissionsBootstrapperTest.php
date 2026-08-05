@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Services\Tenancy\Bootstrappers;
 
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Permission;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\PermissionRegistrar;
+use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
+use Spatie\Permission\PermissionRegistrar;
 
 class SpatiePermissionsBootstrapperTest extends TestCase
 {

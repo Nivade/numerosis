@@ -19,6 +19,7 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\User as BaseUser;
 use Nvade\Numerosis\Observers\TenantUserObserver;
 use Nvade\Numerosis\Policies\UserPolicy;
+use Nvade\Numerosis\Support\Numerosis;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -116,7 +117,7 @@ abstract class User extends BaseUser implements TenantUserModel
 
     public function getCentralModelName(): string
     {
-        return CentralUser::class;
+        return Numerosis::model(CentralUser::class);
     }
 
     /**

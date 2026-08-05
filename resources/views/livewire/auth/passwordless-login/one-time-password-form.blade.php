@@ -1,5 +1,5 @@
 <div x-data="{ resendText: '{{ __('one-time-passwords::form.resend_code') }}', isResending: false }" class="flex flex-col gap-6">
-    <x-auth-header :title="__('one-time-passwords::form.one_time_password_form_title')" :description="null" />
+    <x-numerosis::auth-header :title="__('one-time-passwords::form.one_time_password_form_title')" :description="null" />
 
     <form wire:submit="submitOneTimePassword" class="flex flex-col gap-6">
         <flux:input

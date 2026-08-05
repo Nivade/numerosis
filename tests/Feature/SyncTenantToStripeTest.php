@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature;
 
-use Nvade\Numerosis\Actions\Billing\SyncTenantToStripe;
-use Nvade\Numerosis\Models\Central\Tenant;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Nvade\Numerosis\Actions\Billing\SyncTenantToStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 class SyncTenantToStripeTest extends TestCase

@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
 use Nvade\Numerosis\Database\Factories\Tenant\InvitationFactory;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Policies\InvitationPolicy;
+use Nvade\Numerosis\Support\Numerosis;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -82,7 +83,7 @@ abstract class Invitation extends Model
      */
     public function inviter(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'invited_by');
+        return $this->belongsTo(Numerosis::model(User::class), 'invited_by');
     }
 
     /**
@@ -90,7 +91,7 @@ abstract class Invitation extends Model
      */
     public function tenant(): BelongsTo
     {
-        return $this->belongsTo(Tenant::class);
+        return $this->belongsTo(Numerosis::model(Tenant::class));
     }
 
     public function isExpired(): bool

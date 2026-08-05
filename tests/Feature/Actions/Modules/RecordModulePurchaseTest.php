@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Modules;
 
+use App\Models\Central\Tenant;
+use App\Models\Tenant\Module;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Modules\RecordModulePurchase;
 use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Models\Central\ModuleOffering;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Module;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Tests\TestCase;
 
 class RecordModulePurchaseTest extends TestCase

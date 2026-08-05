@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Jobs;
 
-use Nvade\Numerosis\Actions\Modules\MigrateModules;
-use Nvade\Numerosis\Actions\Modules\RollbackModules;
-use Nvade\Numerosis\Models\Central\Tenant;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
+use Nvade\Numerosis\Actions\Modules\MigrateModules;
+use Nvade\Numerosis\Actions\Modules\RollbackModules;
 use Nvade\Numerosis\Tests\TestCase;
+use RuntimeException;
 
 class RollbackModulesTest extends TestCase
 {

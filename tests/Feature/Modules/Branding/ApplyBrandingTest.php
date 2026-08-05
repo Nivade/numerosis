@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Modules\Branding;
 
-use Nvade\Numerosis\Actions\Modules\MigrateModules;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Module;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\Module;
 use Filament\Facades\Filament;
 use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentColor;
@@ -17,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Nvade\Branding\Http\Middleware\ApplyBranding;
 use Nvade\Branding\Models\BrandingSettings;
 use Nvade\Branding\Support\BrandingCache;
+use Nvade\Numerosis\Actions\Modules\MigrateModules;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

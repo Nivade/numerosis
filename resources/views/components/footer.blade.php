@@ -3,7 +3,7 @@
         <div class="grid gap-8 md:grid-cols-3">
             <div class="space-y-3">
                 <a href="{{ url('/') }}" aria-label="{{ config('app.name') }} home" class="flex items-center gap-2 rounded-md p-1 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500">
-                    <x-app-logo />
+                    <x-numerosis::app-logo />
                     <span class="font-semibold">{{ config('app.name') }}</span>
                 </a>
                 <p class="text-sm text-zinc-600 dark:text-zinc-300 max-w-sm">
@@ -15,14 +15,14 @@
                 <div>
                     <h3 class="text-sm font-semibold mb-3">Product</h3>
                     <ul class="space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
-                        @if (\App\Support\Features::enabled(\App\Features\Ui\MarketingPagesFeature::NAME))
+                        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\MarketingPagesFeature::NAME))
                             <li>
                                 <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500" href="{{ route('features') }}" wire:navigate aria-label="Features">
                                     Features
                                 </a>
                             </li>
                         @endif
-                        @if (\App\Support\Features::enabled(\App\Features\Tenancy\RegistrationWizardFeature::NAME))
+                        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
                             <li>
                                 <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500" href="{{ route('tenants.create') }}" wire:navigate aria-label="Create workspace">
                                     Create workspace
@@ -35,7 +35,7 @@
                             </a>
                         </li>
                         @auth
-                            @if (\App\Support\Features::enabled(\App\Features\Ui\AccountPagesFeature::NAME))
+                            @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\AccountPagesFeature::NAME))
                                 <li>
                                     <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500" href="{{ route('tenants.mine') }}" wire:navigate aria-label="My Tenants">
                                         {{ __('My Tenants') }}
@@ -62,7 +62,7 @@
                     </ul>
                 </div>
 
-                @if (\App\Support\Features::enabled(\App\Features\Ui\MarketingPagesFeature::NAME))
+                @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\MarketingPagesFeature::NAME))
                     <div>
                         <h3 class="text-sm font-semibold mb-3">Company</h3>
                         <ul class="space-y-2 text-sm text-zinc-600 dark:text-zinc-300">

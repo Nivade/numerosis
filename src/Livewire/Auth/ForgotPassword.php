@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Auth;
 
-use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 
-#[Layout('layouts.auth')]
+#[Layout('layouts::auth')]
 class ForgotPassword extends Component
 {
     public string $email = '';

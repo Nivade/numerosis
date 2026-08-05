@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Checkout;
 
+use App\Models\Central\CentralUser;
+use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\Subscription;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveSetupIntent;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Exceptions\Billing\SetupIntentNotConfirmed;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Services\Billing\Checkout\ResolvedSetupIntent;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Tests\TestCase;
 
 class ResolveSetupIntentTest extends TestCase

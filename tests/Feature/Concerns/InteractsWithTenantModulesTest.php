@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Concerns;
 
-use Nvade\Numerosis\Concerns\InteractsWithTenantModules;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Module;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\Module;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Nvade\Numerosis\Concerns\InteractsWithTenantModules;
 use Nvade\Numerosis\Tests\TestCase;
 
 class InteractsWithTenantModulesTest extends TestCase

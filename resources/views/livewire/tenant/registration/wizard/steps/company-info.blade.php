@@ -1,5 +1,5 @@
 <div class="space-y-8">
-    <x-registration.header
+    <x-numerosis::registration.header
         icon="building-office-2"
         title="Company Information"
         description="Tell us about your organization"
@@ -16,7 +16,7 @@
         <flux:error name="company_name"/>
     </flux:field>
 
-    <x-registration.navigation
+    <x-numerosis::registration.navigation
         :show-back="false"
         :disabled="!$company_name"
     />

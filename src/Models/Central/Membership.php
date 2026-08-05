@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Nvade\Numerosis\Observers\MembershipObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Table;
@@ -13,6 +12,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Nvade\Numerosis\Observers\MembershipObserver;
+use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 use Stancl\Tenancy\Database\Models\TenantPivot;
 
@@ -62,7 +63,7 @@ class Membership extends TenantPivot
      */
     public function tenant(): BelongsTo
     {
-        return $this->belongsTo(Tenant::class);
+        return $this->belongsTo(Numerosis::model(Tenant::class));
     }
 
     /**
@@ -70,7 +71,7 @@ class Membership extends TenantPivot
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(CentralUser::class);
+        return $this->belongsTo(Numerosis::model(CentralUser::class));
     }
 
     /**
@@ -78,7 +79,7 @@ class Membership extends TenantPivot
      */
     public function inviter(): BelongsTo
     {
-        return $this->belongsTo(CentralUser::class, 'invited_by');
+        return $this->belongsTo(Numerosis::model(CentralUser::class), 'invited_by');
     }
 
     public function isOwner(): bool

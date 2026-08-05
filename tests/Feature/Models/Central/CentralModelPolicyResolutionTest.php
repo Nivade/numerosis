@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Models\Central;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Gate;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Permission;
 use Nvade\Numerosis\Models\Central\Role;
 use Nvade\Numerosis\Policies\PermissionPolicy;
 use Nvade\Numerosis\Policies\RolePolicy;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Gate;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -51,7 +51,16 @@ class CentralModelPolicyResolutionTest extends TestCase
 
     public function test_a_central_user_without_permissions_cannot_manage_users_roles_or_permissions(): void
     {
-        $this->seed(\Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder::class);
+        // Not $this->seed(): stancl's `Commands\Seed` extends Laravel's
+        // `SeedCommand` without overriding its inherited `$signature`
+        // (`'db:seed {--class=...}'`), and `Illuminate\Console\Command::
+        // __construct()` builds the command's name from `$signature` when
+        // set, ignoring `protected $name = 'tenants:seed'` entirely — so
+        // under test (where Laravel's own `db:seed` never registers because
+        // `SeedServiceProvider` guards on `runningInConsole()`), `db:seed`
+        // resolves to stancl's command instead, which requires `--tenants`.
+        // Calling the seeder directly sidesteps the console layer.
+        (new \Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder)->run();
 
         // A decoy user first: Nvade\Numerosis\Observers\CentralUserObserver::created()
         // runs PromoteFirstCentralUserToAdmin on every new CentralUser, which

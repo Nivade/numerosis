@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Invitations;
 
+use App\Models\Central\CentralUser;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\Invitation;
+use App\Models\Tenant\User as TenantUser;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Invitations\AcceptInvitation;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationAlreadyAccepted;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationExpired;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Invitation;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Tests\TestCase;
 
 class AcceptInvitationTest extends TestCase

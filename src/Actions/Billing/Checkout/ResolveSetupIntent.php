@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
+use Laravel\Cashier\Cashier;
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Exceptions\Billing\SetupIntentNotConfirmed;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Services\Billing\Checkout\ResolvedSetupIntent;
-use Laravel\Cashier\Cashier;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Support\Numerosis;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentMethod;
 
@@ -28,7 +29,8 @@ class ResolveSetupIntent
 
     public function handle(string $setupIntentId): ResolvedSetupIntent
     {
-        $pending = PendingTenantProvision::where('stripe_setup_intent_id', $setupIntentId)->first();
+        /** @var PendingTenantProvision|null $pending */
+        $pending = Numerosis::model(PendingTenantProvision::class)::where('stripe_setup_intent_id', $setupIntentId)->first();
 
         if (! $pending) {
             throw new CheckoutSessionExpired(__('billing.checkout.session_expired'));

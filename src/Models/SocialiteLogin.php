@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models;
 
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -41,6 +42,6 @@ class SocialiteLogin extends Model
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(CentralUser::class);
+        return $this->belongsTo(Numerosis::model(CentralUser::class));
     }
 }

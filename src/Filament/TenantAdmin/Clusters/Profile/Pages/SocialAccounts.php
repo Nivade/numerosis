@@ -4,11 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages;
 
-use Nvade\Numerosis\Actions\Auth\DisconnectSocialAccount;
-use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\ProfileCluster;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\User;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -22,6 +17,11 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Locked;
+use Nvade\Numerosis\Actions\Auth\DisconnectSocialAccount;
+use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\ProfileCluster;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\User;
 
 /**
  * @property-read Schema $form
@@ -40,7 +40,7 @@ class SocialAccounts extends Page implements HasForms
 
     protected static string|null|BackedEnum $navigationIcon = Heroicon::OutlinedLink;
 
-    protected string $view = 'filament.tenant-admin.clusters.profile.pages.generic';
+    protected string $view = 'numerosis::filament.tenant-admin.clusters.profile.pages.generic';
 
     public function mount(): void
     {
@@ -70,7 +70,7 @@ class SocialAccounts extends Page implements HasForms
                     ->icon('heroicon-o-share')
                     ->schema([
                         ViewField::make('social_accounts')
-                            ->view('filament.tenant-admin.components.social-accounts-manager')
+                            ->view('numerosis::filament.tenant-admin.components.social-accounts-manager')
                             ->viewData(fn (): array => [
                                 'currentUrl' => url()->current(),
                             ])

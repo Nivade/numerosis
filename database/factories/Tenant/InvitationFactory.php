@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Database\Factories\Tenant;
 
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Invitation;
-use Nvade\Numerosis\Models\Tenant\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Tenant\User;
 
+// No `protected $model` override: Invitation is abstract (see
+// .claude/plans/package-extraction.md Phase 4.4) — a hardcoded $model here
+// bypasses Numerosis::modelNameFor()'s global resolver and forces `new
+// static` inside Eloquent's create()/make() to instantiate the abstract
+// class directly, which throws.
 /** @extends \Illuminate\Database\Eloquent\Factories\Factory<\Nvade\Numerosis\Models\Tenant\Invitation> */
 class InvitationFactory extends Factory
 {
-    protected $model = Invitation::class;
-
     /**
      * Define the model's default state.
      */

@@ -8,9 +8,9 @@
 <div class="rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm p-6 h-full">
     <div class="flex items-center gap-2 mb-4">
         <flux:icon.map-pin class="size-4 text-zinc-400" />
-        <x-ui.text variant="subtle" size="xs" class="uppercase tracking-wider font-semibold">
+        <x-numerosis::ui.text variant="subtle" size="xs" class="uppercase tracking-wider font-semibold">
             Billing address
-        </x-ui.text>
+        </x-numerosis::ui.text>
     </div>
 
     <div x-show="!addressElementReady" x-cloak class="space-y-3" aria-hidden="true">

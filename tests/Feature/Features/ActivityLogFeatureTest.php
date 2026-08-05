@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Features;
 
 use AlizHarb\ActivityLog\ActivityLogPlugin;
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\Activities\ActivityResource;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\User as TenantUser;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Nvade\Numerosis\Filament\TenantAdmin\Resources\Activities\ActivityResource;
 use Nvade\Numerosis\Tests\TestCase;
 
 class ActivityLogFeatureTest extends TestCase

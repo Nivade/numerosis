@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Tenancy;
 
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Support\Numerosis;
 
 // See .claude/rules/tenant-provisioning.md.
 class AddTenantOwner
@@ -17,7 +18,10 @@ class AddTenantOwner
 
     public function handle(Tenant $tenant, TenantProvisionData $data): void
     {
-        $user = CentralUser::where('global_id', $data->registration->global_id)->firstOrFail();
+        $centralUserClass = Numerosis::model(CentralUser::class);
+
+        /** @var CentralUser $user */
+        $user = $centralUserClass::where('global_id', $data->registration->global_id)->firstOrFail();
 
         if ($user->tenants()->where('tenants.id', $tenant->id)->exists()) {
             return;
@@ -36,8 +40,10 @@ class AddTenantOwner
         // SeedTenantDatabase) before this link — see module-marketplace.md
         // on why $tenant->run() is only safe to use unguarded in contexts
         // like this.
-        $tenant->run(function () use ($user): void {
-            TenantUser::firstOrCreate(
+        $tenantUserClass = Numerosis::model(TenantUser::class);
+
+        $tenant->run(function () use ($user, $tenantUserClass): void {
+            $tenantUserClass::firstOrCreate(
                 ['global_id' => $user->global_id],
                 [
                     'name' => $user->name,

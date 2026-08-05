@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Events\Auth;
 
-use Nvade\Numerosis\Actions\Auth\ConnectSocialAccount;
-use Nvade\Numerosis\Events\Auth\SocialAccountConnected;
-use Nvade\Numerosis\Models\Central\CentralUser;
+use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Nvade\Numerosis\Actions\Auth\ConnectSocialAccount;
+use Nvade\Numerosis\Events\Auth\SocialAccountConnected;
 use Nvade\Numerosis\Tests\TestCase;
 
 class SocialAccountConnectedTest extends TestCase

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Tenant\Registration\Steps;
 
+use Illuminate\Support\Collection;
+use Illuminate\View\View;
+use Livewire\Attributes\Validate;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
@@ -12,9 +15,7 @@ use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Illuminate\Support\Collection;
-use Illuminate\View\View;
-use Livewire\Attributes\Validate;
+use Nvade\Numerosis\Support\Numerosis;
 use Spatie\LivewireWizard\Components\StepComponent;
 
 class Plan extends StepComponent
@@ -156,7 +157,7 @@ class Plan extends StepComponent
      */
     public function getPaymentPlans(): Collection
     {
-        return PaymentPlan::available()
+        return Numerosis::model(PaymentPlan::class)::available()
             ->orderBy('monthly_price', 'asc')
             ->get();
     }
@@ -168,7 +169,7 @@ class Plan extends StepComponent
      */
     public function render()
     {
-        return view('livewire.tenant.registration.wizard.steps.plan', [
+        return view('numerosis::livewire.tenant.registration.wizard.steps.plan', [
             'paymentPlans' => $this->getPaymentPlans(),
         ]);
     }

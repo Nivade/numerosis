@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Filament\Nvade\Numerosis\Resources\Permissions\RelationManagers;
+namespace Nvade\Numerosis\Filament\App\Resources\Permissions\RelationManagers;
 
 use Filament\Actions\AttachAction;
 use Filament\Actions\DetachAction;

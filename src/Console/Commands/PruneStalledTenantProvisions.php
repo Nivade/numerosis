@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Console\Commands;
 
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Support\Numerosis;
 
 #[Description('Release abandoned domain reservations and alert on tenant provisioning that never completed')]
 #[Signature('tenancy:prune-stalled-provisions
@@ -34,7 +35,7 @@ class PruneStalledTenantProvisions extends Command
      */
     private function releaseAbandonedReservations(Carbon $cutoff, bool $dryRun): void
     {
-        $abandoned = PendingTenantProvision::query()
+        $abandoned = Numerosis::model(PendingTenantProvision::class)::query()
             ->where('status', TenantProvisionStatus::Reserved)
             ->where('created_at', '<', $cutoff);
 
@@ -60,10 +61,11 @@ class PruneStalledTenantProvisions extends Command
      */
     private function flagStalledProvisions(Carbon $cutoff, bool $dryRun): void
     {
-        PendingTenantProvision::query()
+        Numerosis::model(PendingTenantProvision::class)::query()
             ->where('status', TenantProvisionStatus::Provisioning)
             ->where('created_at', '<', $cutoff)
-            ->each(function (PendingTenantProvision $pending) use ($dryRun) {
+            ->each(function ($pending) use ($dryRun) {
+                /** @var PendingTenantProvision $pending */
                 if ($dryRun) {
                     $this->line("Would flag stalled provision {$pending->domain}");
 

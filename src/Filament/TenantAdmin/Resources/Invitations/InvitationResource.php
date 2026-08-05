@@ -4,13 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations;
 
-use Nvade\Numerosis\Events\Invitations\InvitationIssued;
-use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\BaseResource;
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\Pages\CreateInvitation;
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\Pages\ListInvitations;
-use Nvade\Numerosis\Models\Tenant\Invitation;
-use Nvade\Numerosis\Support\Features;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -25,11 +18,17 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Nvade\Numerosis\Events\Invitations\InvitationIssued;
+use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
+use Nvade\Numerosis\Filament\TenantAdmin\Resources\BaseResource;
+use Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\Pages\CreateInvitation;
+use Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\Pages\ListInvitations;
+use Nvade\Numerosis\Models\Tenant\Invitation;
+use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\Numerosis;
 
 class InvitationResource extends BaseResource
 {
-    protected static ?string $model = Invitation::class;
-
     protected static ?string $recordTitleAttribute = 'email';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedEnvelope;
@@ -37,6 +36,11 @@ class InvitationResource extends BaseResource
     protected static ?string $navigationLabel = 'Team Invitations';
 
     protected static ?string $modelLabel = 'Invitation';
+
+    public static function getModel(): string
+    {
+        return Numerosis::model(Invitation::class);
+    }
 
     public static function canAccess(): bool
     {

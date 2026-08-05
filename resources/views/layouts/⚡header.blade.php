@@ -1,7 +1,7 @@
 <?php
 
-use App\Actions\Queries\GetAuthenticatedUser;
-use App\Models\Central\CentralUser;
+use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Models\Central\CentralUser;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Config;
 use Livewire\Attributes\Computed;
@@ -23,12 +23,12 @@ new class extends Component {
 <flux:header container class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
     <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left"/>
     <a wire:navigate
-       href="{{ \App\Support\Features::enabled(\App\Features\Ui\AccountPagesFeature::NAME) ? route('tenants.mine') : route(\App\Support\Routes\RouteNames::home()) }}"
+       href="{{ \Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\AccountPagesFeature::NAME) ? route('tenants.mine') : route(\Nvade\Numerosis\Support\Routes\RouteNames::home()) }}"
        class="ms-2 me-5 flex items-center space-x-2 rtl:space-x-reverse lg:ms-0"
     >
-        <x-app-logo/>
+        <x-numerosis::app-logo/>
     </a>
-    @if (\App\Support\Features::enabled(\App\Features\Ui\MarketingPagesFeature::NAME))
+    @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\MarketingPagesFeature::NAME))
         <flux:navbar class="-mb-px max-lg:hidden">
             <flux:navbar.item icon="bolt" :href="route('features')" :current="request()->routeIs('features')"
                               wire:navigate>
@@ -95,19 +95,19 @@ new class extends Component {
                     </div>
                 </flux:menu.radio.group>
                 <flux:menu.separator/>
-                @if (\App\Support\Features::enabled(\App\Features\Ui\AccountPagesFeature::NAME))
+                @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\AccountPagesFeature::NAME))
                     <flux:menu.radio.group>
                         <flux:menu.item :href="route('settings.profile')" icon="cog"
                                         wire:navigate>{{ __('Settings') }}</flux:menu.item>
                     </flux:menu.radio.group>
                 @endif
                 @if($this->user->tenants->isNotEmpty())
-                    <x-ui.accordion>
-                        <x-ui.accordion.item name="tenants">
-                            <x-ui.accordion.heading icon="building-office">
+                    <x-numerosis::ui.accordion>
+                        <x-numerosis::ui.accordion.item name="tenants">
+                            <x-numerosis::ui.accordion.heading icon="building-office">
                                 {{ __('Tenants') }}
-                            </x-ui.accordion.heading>
-                            <x-ui.accordion.content>
+                            </x-numerosis::ui.accordion.heading>
+                            <x-numerosis::ui.accordion.content>
                                 <div class="space-y-0.5 ps-4">
                                     @foreach ($this->user->tenants as $tenant)
                                         @php($route = tenant_route($tenant->primaryDomain()->getHost(), 'home'))
@@ -116,9 +116,9 @@ new class extends Component {
                                         </flux:menu.item>
                                     @endforeach
                                 </div>
-                            </x-ui.accordion.content>
-                        </x-ui.accordion.item>
-                    </x-ui.accordion>
+                            </x-numerosis::ui.accordion.content>
+                        </x-numerosis::ui.accordion.item>
+                    </x-numerosis::ui.accordion>
                 @endif
                 <flux:menu.separator/>
                 <form method="POST" action="{{ route('logout') }}" class="w-full">
@@ -137,14 +137,14 @@ new class extends Component {
     <flux:sidebar stashable sticky
                   class="lg:hidden border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
         <flux:sidebar.toggle class="lg:hidden" icon="x-mark"/>
-        <a href="{{ \App\Support\Features::enabled(\App\Features\Ui\AccountPagesFeature::NAME) ? route('tenants.mine') : route(\App\Support\Routes\RouteNames::home()) }}" class="ms-1 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
-            <x-app-logo/>
+        <a href="{{ \Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\AccountPagesFeature::NAME) ? route('tenants.mine') : route(\Nvade\Numerosis\Support\Routes\RouteNames::home()) }}" class="ms-1 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
+            <x-numerosis::app-logo/>
         </a>
         <flux:navlist variant="outline">
             @auth
                 @if($this->user->tenants->isNotEmpty())
                     <flux:navlist.group :heading="__('Tenants')">
-                        @foreach ($this->user->tenants as /** @var \App\Models\Central\Tenant */ $tenant)
+                        @foreach ($this->user->tenants as /** @var \Nvade\Numerosis\Models\Central\Tenant */ $tenant)
                             @php($route = tenant_route($tenant->id, 'home'))
                             <flux:navlist.item :href="$route" :target="str_starts_with($route, 'http') ? '_blank' : '_self'">
                                 {{ $tenant->name }}

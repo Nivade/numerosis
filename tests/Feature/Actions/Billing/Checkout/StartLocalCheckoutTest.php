@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Checkout;
 
+use App\Models\Central\CentralUser;
+use App\Models\Central\PendingTenantProvision;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Route;
+use Lorisleiva\Actions\Decorators\UniqueJobDecorator;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartLocalCheckout;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Enums\TenantProvisionStatus;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\Route;
-use Lorisleiva\Actions\Decorators\UniqueJobDecorator;
 use Nvade\Numerosis\Tests\TestCase;
 
 class StartLocalCheckoutTest extends TestCase

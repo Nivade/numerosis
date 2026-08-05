@@ -123,7 +123,7 @@
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center space-y-8">
             <flux:heading level="2" class="text-3xl font-bold">Ready to transform your team's workflow?</flux:heading>
             <p class="text-zinc-600 dark:text-zinc-300 max-w-xl mx-auto">Join thousands of teams who are already building better together.</p>
-            @if (\App\Support\Features::enabled(\App\Features\Tenancy\RegistrationWizardFeature::NAME))
+            @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
                 <flux:button as="a" variant="primary" href="{{ route('tenants.create') }}" wire:navigate icon="rocket-launch">
                     Create your workspace for free
                 </flux:button>

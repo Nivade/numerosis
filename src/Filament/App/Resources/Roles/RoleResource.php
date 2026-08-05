@@ -2,11 +2,8 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Filament\Nvade\Numerosis\Resources\Roles;
+namespace Nvade\Numerosis\Filament\App\Resources\Roles;
 
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\BaseResource;
-use Nvade\Numerosis\Models\Permission;
-use Nvade\Numerosis\Models\Role;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -27,6 +24,9 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Filament\TenantAdmin\Resources\BaseResource;
+use Nvade\Numerosis\Models\Permission;
+use Nvade\Numerosis\Models\Role;
 
 class RoleResource extends BaseResource
 {

@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Laravel\Cashier\SubscriptionItem;
 use Nvade\Numerosis\Database\Factories\Central\SubscriptionFactory;
+use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -55,7 +56,7 @@ abstract class Subscription extends \Laravel\Cashier\Subscription
      */
     public function paymentPlan(): BelongsTo
     {
-        return $this->belongsTo(PaymentPlan::class, 'payment_plan_id');
+        return $this->belongsTo(Numerosis::model(PaymentPlan::class), 'payment_plan_id');
     }
 
     /**

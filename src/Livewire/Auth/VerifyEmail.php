@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Auth;
 
-use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
-use Nvade\Numerosis\Livewire\Actions\Logout;
-use Nvade\Numerosis\Support\Features;
-use Nvade\Numerosis\Support\Routes\RouteNames;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
+use Nvade\Numerosis\Livewire\Actions\Logout;
+use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\Routes\RouteNames;
 
-#[Layout('layouts.auth')]
+#[Layout('layouts::auth')]
 class VerifyEmail extends Component
 {
     /**

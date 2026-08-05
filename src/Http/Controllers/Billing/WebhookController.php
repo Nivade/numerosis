@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Http\Controllers\Billing;
 
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Laravel\Cashier\Cashier;
+use Laravel\Cashier\Exceptions\IncompletePayment;
+use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookController;
+use Laravel\Cashier\Subscription;
 use Nvade\Numerosis\Actions\Billing\Checkout\FinalizeCheckoutSubscription;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveAttachedPaymentMethod;
 use Nvade\Numerosis\Actions\Billing\FindTenantByStripeCustomer;
@@ -19,13 +26,7 @@ use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
-use Laravel\Cashier\Cashier;
-use Laravel\Cashier\Exceptions\IncompletePayment;
-use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookController;
-use Laravel\Cashier\Subscription;
+use Nvade\Numerosis\Support\Numerosis;
 use Stripe\Exception\ApiErrorException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -76,7 +77,10 @@ class WebhookController extends CashierWebhookController
         // CompleteRedirectCheckout already ran, the pending row is gone and
         // this is a no-op fallback.
         $domain = $metadata['domain'] ?? null;
-        $pending = is_string($domain) ? PendingTenantProvision::find($domain) : null;
+        $pendingClass = Numerosis::model(PendingTenantProvision::class);
+
+        /** @var PendingTenantProvision|null $pending */
+        $pending = is_string($domain) ? $pendingClass::find($domain) : null;
 
         if ($pending !== null) {
             $registration = new TenantRegistrationData(
@@ -87,8 +91,10 @@ class WebhookController extends CashierWebhookController
                 billing_cycle: $pending->billing_cycle,
             );
 
+            $centralUserClass = Numerosis::model(CentralUser::class);
+
             /** @var int|null $userId */
-            $userId = CentralUser::where('global_id', $registration->global_id)->value('id');
+            $userId = $centralUserClass::where('global_id', $registration->global_id)->value('id');
 
             // Queued rather than provisioned inline: Stripe times out webhook
             // responses and retries, and creating/migrating/seeding a tenant
@@ -154,13 +160,19 @@ class WebhookController extends CashierWebhookController
             return $this->successMethod();
         }
 
-        $billable = CentralUser::where('stripe_id', $customerId)->first();
+        $centralUserClass = Numerosis::model(CentralUser::class);
+
+        /** @var CentralUser|null $billable */
+        $billable = $centralUserClass::where('stripe_id', $customerId)->first();
 
         if ($billable === null) {
             return $this->successMethod();
         }
 
-        $candidates = PendingTenantProvision::where('global_id', $billable->global_id)
+        $pendingClass = Numerosis::model(PendingTenantProvision::class);
+
+        /** @var \Illuminate\Support\Collection<int, PendingTenantProvision> $candidates */
+        $candidates = $pendingClass::where('global_id', $billable->global_id)
             ->whereNull('stripe_subscription_id')
             ->get();
 
@@ -349,7 +361,9 @@ class WebhookController extends CashierWebhookController
         // settling async payment method. A no-op for cards, which never
         // leave the pending row in AwaitingPayment — see SettleCheckout.
         if ($subscriptionId !== null) {
-            PendingTenantProvision::where('stripe_subscription_id', $subscriptionId)
+            $pendingClass = Numerosis::model(PendingTenantProvision::class);
+
+            $pendingClass::where('stripe_subscription_id', $subscriptionId)
                 ->where('status', TenantProvisionStatus::AwaitingPayment)
                 ->update(['status' => TenantProvisionStatus::Provisioning]);
         }

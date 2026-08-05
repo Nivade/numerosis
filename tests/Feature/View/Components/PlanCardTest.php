@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\View\Components;
 
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Services\Billing\BillingService;
+use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestView;
+use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Services\Billing\BillingService;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

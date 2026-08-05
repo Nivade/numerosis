@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans;
 
+use BackedEnum;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
 use Nvade\Numerosis\Filament\Admin\Clusters\Billing\BillingCluster;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\CreatePaymentPlan;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\EditPaymentPlan;
@@ -11,20 +17,18 @@ use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\ListPaym
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Schemas\PaymentPlanForm;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Tables\PaymentPlansTable;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
-use BackedEnum;
-use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
-use Filament\Support\Enums\Width;
-use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Table;
+use Nvade\Numerosis\Support\Numerosis;
 
 class PaymentPlanResource extends Resource
 {
-    protected static ?string $model = PaymentPlan::class;
-
     protected static ?string $cluster = BillingCluster::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
+    public static function getModel(): string
+    {
+        return Numerosis::model(PaymentPlan::class);
+    }
 
     public static function getMaxContentWidth(): Width
     {

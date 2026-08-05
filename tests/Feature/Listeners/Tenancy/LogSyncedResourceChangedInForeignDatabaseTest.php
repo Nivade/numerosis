@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Listeners\Tenancy;
 
-use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
-use Stancl\Tenancy\Events\SyncedResourceChangedInForeignDatabase;
+use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
 use Nvade\Numerosis\Tests\TestCase;
+use Stancl\Tenancy\Events\SyncedResourceChangedInForeignDatabase;
 
 class LogSyncedResourceChangedInForeignDatabaseTest extends TestCase
 {

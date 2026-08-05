@@ -10,7 +10,7 @@ use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Roles\Pages\Lis
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\TeamCluster;
 use Nvade\Numerosis\Models\Role;
 
-class RoleResource extends \Nvade\Numerosis\Filament\Nvade\Numerosis\Resources\Roles\RoleResource
+class RoleResource extends \Nvade\Numerosis\Filament\App\Resources\Roles\RoleResource
 {
     protected static ?string $model = Role::class;
 

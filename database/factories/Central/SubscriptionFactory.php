@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Database\Factories\Central;
 
-use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 
-class SubscriptionFactory extends \Laravel\Cashier\Nvade\Numerosis\Database\Factories\SubscriptionFactory
+// No `protected $model` override: Subscription is abstract (see
+// .claude/plans/package-extraction.md Phase 4.4) — a hardcoded $model here
+// bypasses Numerosis::modelNameFor()'s global resolver and forces `new
+// static` inside Eloquent's create()/make() to instantiate the abstract
+// class directly, which throws.
+class SubscriptionFactory extends \Laravel\Cashier\Database\Factories\SubscriptionFactory
 {
-    protected $model = Subscription::class;
-
     /**
      * Define the model's default state.
      */

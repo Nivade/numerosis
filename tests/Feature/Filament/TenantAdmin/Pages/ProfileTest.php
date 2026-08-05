@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Filament\TenantAdmin\Pages;
 
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\General;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\Security;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\SocialAccounts;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant;
+use App\Models\Central\CentralUser;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
+use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\General;
+use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\Security;
+use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\SocialAccounts;
 use Nvade\Numerosis\Tests\TestCase;
 
 class ProfileTest extends TestCase

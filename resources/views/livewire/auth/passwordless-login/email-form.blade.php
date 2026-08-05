@@ -1,13 +1,13 @@
 <div class="flex flex-col gap-6">
-    <x-auth-header :title="__('Log in to your account')" :description="__('Enter your email to receive a login code')" />
+    <x-numerosis::auth-header :title="__('Log in to your account')" :description="__('Enter your email to receive a login code')" />
 
     <!-- Session Status -->
-    <x-ui.auth-session-status class="text-center" :status="session('status')" />
+    <x-numerosis::ui.auth-session-status class="text-center" :status="session('status')" />
 
-    <x-auth.buttons.grid />
+    <x-numerosis::auth.buttons.grid />
 
-    @if (\App\Support\Features::enabled(\App\Features\Social\SocialLoginFeature::NAME))
-        <x-auth.social-divider />
+    @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Social\SocialLoginFeature::NAME))
+        <x-numerosis::auth.social-divider />
     @endif
 
     <form wire:submit="submitEmail" class="flex flex-col gap-6">
@@ -22,7 +22,7 @@
             placeholder="email@example.com"
         />
 
-        <x-turnstile-field />
+        <x-numerosis::turnstile-field />
 
         <!-- Remember Me -->
         <flux:checkbox wire:model="remember" :label="__('Remember me')" />

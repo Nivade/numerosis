@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Auth;
 
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Role;
+use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\Tests\TestCase;
 
 class PromoteFirstCentralUserToAdminTest extends TestCase

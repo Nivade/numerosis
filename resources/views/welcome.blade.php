@@ -17,13 +17,13 @@
 
                     <div class="flex flex-wrap items-center gap-3">
                         @auth
-                            @if (\App\Support\Features::enabled(\App\Features\Ui\AccountPagesFeature::NAME))
+                            @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\AccountPagesFeature::NAME))
                                 <flux:button as="a" variant="primary" href="{{ route('tenants.mine') }}" wire:navigate icon="home">
                                     Go to Dashboard
                                 </flux:button>
                             @endif
                         @else
-                            @if (\App\Support\Features::enabled(\App\Features\Tenancy\RegistrationWizardFeature::NAME))
+                            @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
                                 <flux:button as="a" variant="primary" href="{{ route('tenants.create') }}" wire:navigate icon="rocket-launch">
                                     Get started — it's free
                                 </flux:button>
@@ -150,7 +150,7 @@
                 </div>
             </div>
 
-            @if (\App\Support\Features::enabled(\App\Features\Tenancy\RegistrationWizardFeature::NAME))
+            @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
                 <div class="mt-12 sm:mt-16 text-center">
                     <flux:button as="a" variant="primary" href="{{ route('tenants.create') }}" wire:navigate icon="rocket-launch">
                         Create your workspace

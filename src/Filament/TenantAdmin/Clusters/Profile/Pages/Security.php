@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages;
 
-use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
-use Nvade\Numerosis\Filament\Concerns\InteractsWithRecord;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\ProfileCluster;
-use Nvade\Numerosis\Models\User;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
@@ -19,6 +15,10 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Hash;
+use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Filament\Concerns\InteractsWithRecord;
+use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\ProfileCluster;
+use Nvade\Numerosis\Models\User;
 
 /**
  * @property-read Schema $form
@@ -34,7 +34,7 @@ class Security extends Page implements HasForms
 
     protected static string|null|BackedEnum $navigationIcon = Heroicon::OutlinedShieldCheck;
 
-    protected string $view = 'filament.tenant-admin.clusters.profile.pages.generic';
+    protected string $view = 'numerosis::filament.tenant-admin.clusters.profile.pages.generic';
 
     /** @var array<string, mixed>|null */
     public ?array $data = [];

@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Billing;
 
+use Illuminate\Support\Facades\Config;
+use Illuminate\View\View;
+use Laravel\Cashier\Exceptions\IncompletePayment;
+use Laravel\Cashier\Subscription;
+use Livewire\Attributes\Locked;
+use Livewire\Component;
 use Nvade\Numerosis\Actions\Billing\Checkout\AssertPendingReservationIsFresh;
 use Nvade\Numerosis\Actions\Billing\Checkout\CreateInlineSubscription;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveSavedPaymentMethod;
@@ -21,13 +27,8 @@ use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Routes\RouteNames;
-use Illuminate\Support\Facades\Config;
-use Illuminate\View\View;
-use Laravel\Cashier\Exceptions\IncompletePayment;
-use Laravel\Cashier\Subscription;
-use Livewire\Attributes\Locked;
-use Livewire\Component;
 
 /**
  * The single implementation of the inline-checkout protocol, reached two ways:
@@ -188,7 +189,10 @@ class Checkout extends Component
             return;
         }
 
-        $pending = PendingTenantProvision::find($this->pendingDomain);
+        $pendingClass = Numerosis::model(PendingTenantProvision::class);
+
+        /** @var PendingTenantProvision|null $pending */
+        $pending = $pendingClass::find($this->pendingDomain);
 
         if (! $pending || $pending->global_id !== $billable->global_id) {
             $this->paymentError = __('billing.checkout.session_expired');
@@ -255,7 +259,10 @@ class Checkout extends Component
      */
     private function settleFromPendingSubscription(): void
     {
-        $pending = PendingTenantProvision::find($this->pendingDomain);
+        $pendingClass = Numerosis::model(PendingTenantProvision::class);
+
+        /** @var PendingTenantProvision|null $pending */
+        $pending = $pendingClass::find($this->pendingDomain);
         $billable = GetAuthenticatedUser::run();
 
         $subscription = $pending?->stripe_subscription_id !== null && $billable instanceof CentralUser
@@ -273,7 +280,10 @@ class Checkout extends Component
 
     private function settle(Subscription $subscription): void
     {
-        $pending = PendingTenantProvision::find($this->pendingDomain);
+        $pendingClass = Numerosis::model(PendingTenantProvision::class);
+
+        /** @var PendingTenantProvision|null $pending */
+        $pending = $pendingClass::find($this->pendingDomain);
         $billable = GetAuthenticatedUser::run();
 
         // Re-derived rather than assumed, behind #[Locked] rather than
@@ -299,6 +309,6 @@ class Checkout extends Component
 
     public function render(): View
     {
-        return view('livewire.billing.checkout');
+        return view('numerosis::livewire.billing.checkout');
     }
 }

@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Modules;
 
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\ModuleOffer;
 use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Models\Tenant\Module;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * @method static Module run(ModuleOffer $offer, ?string $subscriptionItemId, ?BillingCycle $cycle)
@@ -18,7 +19,10 @@ class RecordModulePurchase
 
     public function handle(ModuleOffer $offer, ?string $subscriptionItemId, ?BillingCycle $cycle): Module
     {
-        return Module::updateOrCreate(
+        $moduleClass = Numerosis::model(Module::class);
+
+        /** @var Module */
+        return $moduleClass::updateOrCreate(
             ['name' => $offer->slug()],
             [
                 'description' => $offer->description(),

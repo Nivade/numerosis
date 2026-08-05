@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Database\Factories\Central;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Enums\TenantProvisionStatus;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Illuminate\Database\Eloquent\Factories\Factory;
 
+// No `protected $model` override: PendingTenantProvision is abstract (see
+// .claude/plans/package-extraction.md Phase 4.4) — a hardcoded $model here
+// bypasses Numerosis::modelNameFor()'s global resolver and forces `new
+// static` inside Eloquent's create()/make() to instantiate the abstract
+// class directly, which throws.
 /** @extends Factory<PendingTenantProvision> */
 class PendingTenantProvisionFactory extends Factory
 {
-    protected $model = PendingTenantProvision::class;
-
     public function definition(): array
     {
         return [

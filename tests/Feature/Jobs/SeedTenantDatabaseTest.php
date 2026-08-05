@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
-use Nvade\Numerosis\Jobs\SeedTenantDatabase;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Nvade\Numerosis\Models\Central\Tenant;
+use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Jobs\SeedTenantDatabase;
 
 uses(RefreshDatabase::class);
 

@@ -22,6 +22,6 @@ class CompanyInfo extends StepComponent
 
     public function render(): View
     {
-        return view('livewire.tenant.registration.wizard.steps.company-info');
+        return view('numerosis::livewire.tenant.registration.wizard.steps.company-info');
     }
 }

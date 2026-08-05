@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Livewire;
 
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Nvade\Numerosis\Models\Central\Tenant;
+use App\Models\Central\CentralUser;
+use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Nvade\Numerosis\Enums\TenantProvisionStatus;
 use Nvade\Numerosis\Tests\TestCase;
 
 class TenantsMineTest extends TestCase

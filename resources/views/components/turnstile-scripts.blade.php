@@ -1,4 +1,4 @@
-@if (\App\Features\Turnstile\TurnstileFeature::isEnabled())
+@if (\Nvade\Numerosis\Features\Turnstile\TurnstileFeature::isEnabled())
     <x-turnstile.scripts />
 
     <script>

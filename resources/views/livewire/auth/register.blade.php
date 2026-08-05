@@ -1,8 +1,8 @@
 <div class="flex flex-col gap-6">
-    <x-auth-header :title="__('Create an account')" :description="__('Enter your details below to create your account')" />
+    <x-numerosis::auth-header :title="__('Create an account')" :description="__('Enter your details below to create your account')" />
 
     <!-- Session Status -->
-    <x-ui.auth-session-status class="text-center" :status="session('status')" />
+    <x-numerosis::ui.auth-session-status class="text-center" :status="session('status')" />
 
     <form wire:submit="register" class="flex flex-col gap-6">
         <!-- Name -->
@@ -48,7 +48,7 @@
             viewable
         />
 
-        <x-turnstile-field />
+        <x-numerosis::turnstile-field />
 
         <div class="flex items-center justify-end">
             <flux:button type="submit" variant="primary" class="w-full">

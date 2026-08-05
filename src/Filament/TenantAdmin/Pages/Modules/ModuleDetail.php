@@ -4,14 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\TenantAdmin\Pages\Modules;
 
-use Nvade\Numerosis\Concerns\Billing\ConfirmsPayments;
-use Nvade\Numerosis\Concerns\Modules\PurchasesModules;
-use Nvade\Numerosis\Contracts\Billing\ModuleOffer;
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Exceptions\Tenancy\TenantNotInitialized;
-use Nvade\Numerosis\Facades\Billing as BillingFacade;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Module;
 use BackedEnum;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -20,6 +12,15 @@ use Illuminate\Support\Str;
 use InterNACHI\Modular\Support\Facades\Modules;
 use InterNACHI\Modular\Support\ModuleConfig;
 use Livewire\Attributes\Computed;
+use Nvade\Numerosis\Concerns\Billing\ConfirmsPayments;
+use Nvade\Numerosis\Concerns\Modules\PurchasesModules;
+use Nvade\Numerosis\Contracts\Billing\ModuleOffer;
+use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Exceptions\Tenancy\TenantNotInitialized;
+use Nvade\Numerosis\Facades\Billing as BillingFacade;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Tenant\Module;
+use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * Product page for a single module, reached by clicking a card on
@@ -39,7 +40,7 @@ class ModuleDetail extends Page implements HasActions
 
     protected static bool $shouldRegisterNavigation = false;
 
-    protected string $view = 'filament.tenant-admin.pages.modules.module-detail';
+    protected string $view = 'numerosis::filament.tenant-admin.pages.modules.module-detail';
 
     protected static ?string $slug = 'modules/{slug}';
 
@@ -80,7 +81,9 @@ class ModuleDetail extends Page implements HasActions
     #[Computed]
     public function purchased(): bool
     {
-        return Module::query()
+        $moduleClass = Numerosis::model(Module::class);
+
+        return $moduleClass::query()
             ->where('name', $this->moduleSlug)
             ->whereNotNull('purchased_at')
             ->exists();

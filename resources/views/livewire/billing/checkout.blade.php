@@ -6,7 +6,7 @@
         </div>
     @endunless
 
-    <x-billing.payment-error :message="$paymentError" />
+    <x-numerosis::billing.payment-error :message="$paymentError" />
 
     @if($checkoutClientSecret && $checkoutPublishableKey)
         <div
@@ -32,7 +32,7 @@
 
                     <div class="space-y-2">
                         @foreach($savedPaymentMethods as $pm)
-                            <x-billing.saved-payment-method-option :pm="$pm" :checked="$loop->first" />
+                            <x-numerosis::billing.saved-payment-method-option :pm="$pm" :checked="$loop->first" />
                         @endforeach
 
                         <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-gray-300 dark:border-zinc-700 p-4 text-zinc-500 dark:text-zinc-400 transition-colors hover:border-gray-400 dark:hover:border-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-200 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 has-[:focus-visible]:ring-offset-2">
@@ -57,8 +57,8 @@
             @endif
 
             <div x-show="mode === 'new'" class="space-y-8">
-                <x-billing.payment-element />
-                <x-billing.address-element />
+                <x-numerosis::billing.payment-element />
+                <x-numerosis::billing.address-element />
 
                 <div class="flex justify-end pt-4 border-t border-gray-200 dark:border-zinc-700">
                     <flux:button

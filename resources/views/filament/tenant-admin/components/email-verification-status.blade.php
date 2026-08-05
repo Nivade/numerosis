@@ -1,6 +1,6 @@
-@php use App\Actions\Queries\GetAuthenticatedUser; @endphp
+@php use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser; @endphp
 <div class="text-sm">
-    @if (! \App\Actions\Queries\GetAuthenticatedUser::run()->hasVerifiedEmail())
+    @if (! \Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser::run()->hasVerifiedEmail())
         <div class="flex items-center gap-x-3">
             <p class="text-gray-600 dark:text-gray-400">
                 Your email address is unverified.

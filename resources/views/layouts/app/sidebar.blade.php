@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
-        @include('partials.head')
+        @include('numerosis::partials.head')
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
         <div class="flex min-h-screen">
@@ -10,7 +10,7 @@
                 <flux:sidebar.toggle class="lg:hidden" icon="x-mark"/>
 
                 <a href="{{ route('tenants.mine') }}" class="me-5 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
-                    <x-app-logo/>
+                    <x-numerosis::app-logo/>
                 </a>
 
                 <flux:navlist variant="outline">
@@ -76,13 +76,13 @@
                         @endphp
 
                         @if($tenants->isNotEmpty())
-                            <x-accordion>
-                                <x-accordion.item name="tenants">
-                                    <x-accordion.heading icon="building-office">
+                            <x-numerosis::ui.accordion>
+                                <x-numerosis::ui.accordion.item name="tenants">
+                                    <x-numerosis::ui.accordion.heading icon="building-office">
                                         {{ __('Tenants') }}
-                                    </x-accordion.heading>
+                                    </x-numerosis::ui.accordion.heading>
 
-                                    <x-accordion.content>
+                                    <x-numerosis::ui.accordion.content>
                                         <div class="space-y-0.5 ps-4">
                                             @foreach ($tenants as $tenant)
                                                 @php
@@ -94,9 +94,9 @@
                                                 </flux:menu.item>
                                             @endforeach
                                         </div>
-                                    </x-accordion.content>
-                                </x-accordion.item>
-                            </x-accordion>
+                                    </x-numerosis::ui.accordion.content>
+                                </x-numerosis::ui.accordion.item>
+                            </x-numerosis::ui.accordion>
                         @endif
 
                         <flux:menu.separator/>
@@ -153,13 +153,13 @@
                             </flux:menu.radio.group>
 
                             @if($tenants->isNotEmpty())
-                                <x-accordion>
-                                    <x-accordion.item name="tenants-mobile">
-                                        <x-accordion.heading icon="building-office">
+                                <x-numerosis::ui.accordion>
+                                    <x-numerosis::ui.accordion.item name="tenants-mobile">
+                                        <x-numerosis::ui.accordion.heading icon="building-office">
                                             {{ __('Tenants') }}
-                                        </x-accordion.heading>
+                                        </x-numerosis::ui.accordion.heading>
 
-                                        <x-accordion.content>
+                                        <x-numerosis::ui.accordion.content>
                                             <div class="space-y-0.5 ps-4">
                                                 @foreach ($tenants as $tenant)
                                                     @php
@@ -171,9 +171,9 @@
                                                     </flux:menu.item>
                                                 @endforeach
                                             </div>
-                                        </x-accordion.content>
-                                    </x-accordion.item>
-                                </x-accordion>
+                                        </x-numerosis::ui.accordion.content>
+                                    </x-numerosis::ui.accordion.item>
+                                </x-numerosis::ui.accordion>
                             @endif
 
                             <flux:menu.separator/>

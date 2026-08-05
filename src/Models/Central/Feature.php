@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Nvade\Numerosis\Database\Factories\Central\FeatureFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
@@ -13,6 +12,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Database\Factories\Central\FeatureFactory;
+use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * @property int $id
@@ -53,7 +54,7 @@ class Feature extends Model
     public function paymentPlans(): BelongsToMany
     {
         return $this->belongsToMany(
-            PaymentPlan::class,
+            Numerosis::model(PaymentPlan::class),
             'payment_plan_features',
         )
             ->using(PaymentPlanFeature::class)

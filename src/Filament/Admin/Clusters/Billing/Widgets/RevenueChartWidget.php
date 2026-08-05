@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets;
 
-use Nvade\Numerosis\Models\Central\Subscription;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
+use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Support\Numerosis;
 
 class RevenueChartWidget extends ChartWidget
 {
@@ -15,12 +16,14 @@ class RevenueChartWidget extends ChartWidget
 
     protected function getData(): array
     {
-        $data = (new Collection(range(5, 0)))->mapWithKeys(function ($monthsAgo) {
+        $subscriptionClass = Numerosis::model(Subscription::class);
+
+        $data = (new Collection(range(5, 0)))->mapWithKeys(function ($monthsAgo) use ($subscriptionClass) {
             $date = Date::now()->subMonths($monthsAgo);
             $month = $date->format('M');
 
             // Mocking some data for now if no real records exist
-            $count = Subscription::query()
+            $count = $subscriptionClass::query()
                 ->where('created_at', '<=', $date->endOfMonth())
                 ->where('stripe_status', 'active')
                 ->count();

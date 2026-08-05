@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Tenant\Registration\Steps;
 
+use Illuminate\View\View;
 use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Illuminate\View\View;
+use Nvade\Numerosis\Support\Numerosis;
 use Spatie\LivewireWizard\Components\StepComponent;
 
 class Payment extends StepComponent
@@ -28,8 +29,8 @@ class Payment extends StepComponent
         $paymentPlanSlug = $this->state()->get('payment_plan');
         $billingCycle = $this->state()->get('billing_cycle');
 
-        return view('livewire.tenant.registration.wizard.steps.payment', [
-            'plan' => is_string($paymentPlanSlug) ? PaymentPlan::available()->where('slug', $paymentPlanSlug)->first() : null,
+        return view('numerosis::livewire.tenant.registration.wizard.steps.payment', [
+            'plan' => is_string($paymentPlanSlug) ? Numerosis::model(PaymentPlan::class)::available()->where('slug', $paymentPlanSlug)->first() : null,
             'billingCycle' => is_string($billingCycle) ? BillingCycle::from($billingCycle) : BillingCycle::Monthly,
             'domain' => $this->state()->get('domain'),
         ]);

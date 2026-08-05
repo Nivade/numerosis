@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
+use ReflectionClass;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 class Numerosis
@@ -42,6 +43,8 @@ class Numerosis
      */
     public static function routes(): void
     {
+        $routes = dirname(__DIR__, 2).'/routes';
+
         foreach (Config::array('tenancy.central_domains') as $domain) {
             if (! is_string($domain)) {
                 continue;
@@ -49,10 +52,10 @@ class Numerosis
 
             Route::middleware('web')
                 ->domain($domain)
-                ->group(base_path('routes/web.php'));
+                ->group($routes.'/web.php');
         }
 
-        Route::middleware('tenant')->group(base_path('routes/tenant.php'));
+        Route::middleware('tenant')->group($routes.'/tenant.php');
     }
 
     /**
@@ -145,5 +148,102 @@ class Numerosis
         $factoryName = 'Nvade\\Numerosis\\Database\\Factories\\'.$suffix.'Factory';
 
         return $factoryName;
+    }
+
+    /**
+     * The reverse of `factoryNameFor()`: given a factory, resolve the model it
+     * builds. Laravel's default `Factory::modelName()` resolver rebuilds the
+     * model class under the *host* app's namespace (`app()->getNamespace()`),
+     * which is correct for a package model the host has published a concrete
+     * stub for (`App\Models\Central\Tenant`), but wrong for the many models
+     * that live entirely inside the package and never get a stub (`Membership`,
+     * `Role`, `SocialiteLogin`, …) — those still need
+     * `Nvade\Numerosis\Models\…`.
+     *
+     * Resolution order: if the package's own class under that `Models\`
+     * suffix exists and is not `abstract`, use it (the no-stub case).
+     * Abstract means a stub is required — fall back to the host's own model
+     * namespace, same two call sites `factoryNameFor()`'s docblock
+     * describes (`NumerosisServiceProvider` for real apps, the package's
+     * own Workbench models for its test suite).
+     *
+     * @param  class-string<\Illuminate\Database\Eloquent\Factories\Factory<\Illuminate\Database\Eloquent\Model>>  $factoryName
+     * @return class-string<\Illuminate\Database\Eloquent\Model>
+     */
+    public static function modelNameFor(string $factoryName): string
+    {
+        $suffix = str_contains($factoryName, '\\Database\\Factories\\')
+            ? substr($factoryName, strpos($factoryName, '\\Database\\Factories\\') + strlen('\\Database\\Factories\\'))
+            : class_basename($factoryName);
+
+        $suffix = preg_replace('/Factory$/', '', $suffix) ?? $suffix;
+
+        $packageModel = 'Nvade\\Numerosis\\Models\\'.$suffix;
+
+        if (class_exists($packageModel) && ! (new ReflectionClass($packageModel))->isAbstract()) {
+            /** @var class-string<\Illuminate\Database\Eloquent\Model> $packageModel */
+            return $packageModel;
+        }
+
+        /** @var class-string<\Illuminate\Database\Eloquent\Model> $hostModel */
+        $hostModel = rtrim((string) app()->getNamespace(), '\\').'\\Models\\'.$suffix;
+
+        return $hostModel;
+    }
+
+    /**
+     * Resolve the concrete class for one of the package's abstract models
+     * (`Tenant`, `Domain`, `CentralUser`, `Subscription`, `PaymentPlan`,
+     * `PendingTenantProvision`, `Tenant\Invitation`, `Tenant\Module`,
+     * `Tenant\User` — see .claude/plans/package-extraction.md Phase 4.4).
+     *
+     * Every one of these is `abstract`, so any call written literally as
+     * `Tenant::query()`/`Tenant::find(...)`/etc — anywhere in this package's
+     * own source — resolves `new static` inside Eloquent's base methods to
+     * the abstract class itself and throws `Cannot instantiate abstract
+     * class`. This is not a test-only artifact: it throws in a real request
+     * too, the moment that line runs. Package code must call
+     * `Numerosis::model(Tenant::class)::query()` (or store the resolved
+     * class-string in a local first) instead of the literal class name for
+     * any static Eloquent call.
+     *
+     * Same host-stub-namespace convention `modelNameFor()`'s fallback uses:
+     * `Nvade\Numerosis\Models\Central\Tenant` → `App\Models\Central\Tenant`.
+     * A concrete (non-abstract) argument passes through unchanged, so this
+     * is safe to call unconditionally even on a model that turns out not to
+     * need a stub.
+     *
+     * Generic over the model type: PHPStan resolves the return type to
+     * `class-string<TModel>` for whichever concrete subclass was passed in
+     * (e.g. `class-string<Tenant>`, not the erased `class-string<Model>`),
+     * so a call site doing `Numerosis::model(Tenant::class)::find(...)`
+     * keeps Eloquent's normal return-type narrowing instead of collapsing
+     * every downstream property/method access to the base `Model` type. The
+     * host-stub branch below returns a *different* class than the generic
+     * parameter (`App\Models\Central\Tenant` extends, but is not,
+     * `Nvade\Numerosis\Models\Central\Tenant`) — PHPStan cannot express
+     * "TModel's host subclass" so this is accepted as slightly optimistic:
+     * true at runtime because the stub is declared to extend TModel, which
+     * is all any caller relies on.
+     *
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  class-string<TModel>  $abstractModel
+     * @return class-string<TModel>
+     */
+    public static function model(string $abstractModel): string
+    {
+        if (! (new ReflectionClass($abstractModel))->isAbstract()) {
+            return $abstractModel;
+        }
+
+        $suffix = str_contains($abstractModel, '\\Models\\')
+            ? substr($abstractModel, strpos($abstractModel, '\\Models\\') + strlen('\\Models\\'))
+            : class_basename($abstractModel);
+
+        /** @var class-string<TModel> $hostModel */
+        $hostModel = rtrim((string) app()->getNamespace(), '\\').'\\Models\\'.$suffix;
+
+        return $hostModel;
     }
 }

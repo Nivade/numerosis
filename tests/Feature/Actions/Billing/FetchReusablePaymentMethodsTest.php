@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Nvade\Numerosis\Actions\Billing\FetchReusablePaymentMethods;
-use Nvade\Numerosis\Models\Central\CentralUser;
+use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
+use Nvade\Numerosis\Actions\Billing\FetchReusablePaymentMethods;
 
 uses(RefreshDatabase::class);
 

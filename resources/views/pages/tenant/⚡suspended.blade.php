@@ -1,7 +1,7 @@
 <?php
 
-use App\Actions\Queries\GetAuthenticatedUser;
-use App\Models\Central\Tenant;
+use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Models\Central\Tenant;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -63,7 +63,7 @@ class extends Component
         </p>
     @endif
 
-    <flux:button href="{{ route(\App\Support\Routes\RouteNames::home()) }}" variant="ghost" size="sm">
+    <flux:button href="{{ route(\Nvade\Numerosis\Support\Routes\RouteNames::home()) }}" variant="ghost" size="sm">
         Back to home
     </flux:button>
 </div>

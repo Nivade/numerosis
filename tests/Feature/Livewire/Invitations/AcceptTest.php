@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Livewire\Invitations;
 
-use Nvade\Numerosis\Contracts\Invitations\CreatesInvitedUser;
-use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
-use Nvade\Numerosis\Livewire\Invitations\Accept;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Invitation;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use App\Models\Central\CentralUser;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\Invitation;
+use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
-use RyanChandler\LaravelCloudflareTurnstile\Facades\Turnstile;
+use Nvade\Numerosis\Contracts\Invitations\CreatesInvitedUser;
+use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
+use Nvade\Numerosis\Livewire\Invitations\Accept;
+use Nvade\Numerosis\Models\Tenant\Invitation as AbstractInvitation;
 use Nvade\Numerosis\Tests\TestCase;
+use RyanChandler\LaravelCloudflareTurnstile\Facades\Turnstile;
 
 class AcceptTest extends TestCase
 {
@@ -129,7 +130,7 @@ class AcceptTest extends TestCase
 
         $this->app->singleton(CreatesInvitedUser::class, fn () => new class implements CreatesInvitedUser
         {
-            public function create(Invitation $invitation, string $name, string $password): CentralUser
+            public function create(AbstractInvitation $invitation, string $name, string $password): CentralUser
             {
                 return CentralUser::create([
                     'name' => 'Overridden: '.$name,

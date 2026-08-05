@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Modules;
 
-use Nvade\Numerosis\Actions\Modules\MigrateModules;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Permission;
-use Nvade\Numerosis\Models\Tenant\User;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Nvade\Notes\Models\Note;
+use Nvade\Numerosis\Actions\Modules\MigrateModules;
+use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
 
 class NotesModuleTest extends TestCase

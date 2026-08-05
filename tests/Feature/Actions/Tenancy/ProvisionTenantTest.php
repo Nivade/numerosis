@@ -4,16 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Tenancy;
 
-use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
-use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
-use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
-use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Nvade\Numerosis\Models\Central\Tenant;
+use App\Models\Central\CentralUser;
+use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
@@ -21,9 +14,16 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Lorisleiva\Actions\Decorators\JobDecorator;
+use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
+use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
+use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
+use Nvade\Numerosis\Tests\TestCase;
 use RuntimeException;
 use Stancl\Tenancy\Jobs\CreateDatabase;
-use Nvade\Numerosis\Tests\TestCase;
 
 class ProvisionTenantTest extends TestCase
 {

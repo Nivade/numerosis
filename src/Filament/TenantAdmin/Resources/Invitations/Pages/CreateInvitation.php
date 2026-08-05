@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\Pages;
 
-use Nvade\Numerosis\Events\Invitations\InvitationIssued;
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\InvitationResource;
-use Nvade\Numerosis\Models\Tenant\Invitation;
-use Nvade\Numerosis\Models\Tenant\User;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Nvade\Numerosis\Events\Invitations\InvitationIssued;
+use Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\InvitationResource;
+use Nvade\Numerosis\Models\Tenant\Invitation;
+use Nvade\Numerosis\Models\Tenant\User;
+use Nvade\Numerosis\Support\Numerosis;
 
 class CreateInvitation extends CreateRecord
 {
@@ -24,7 +25,12 @@ class CreateInvitation extends CreateRecord
 
         throw_unless($authenticated, AuthenticationException::class);
 
-        $data['invited_by'] = User::where('global_id', $authenticated->global_id)->firstOrFail()->id;
+        $userClass = Numerosis::model(User::class);
+
+        /** @var User $invitedBy */
+        $invitedBy = $userClass::where('global_id', $authenticated->global_id)->firstOrFail();
+
+        $data['invited_by'] = $invitedBy->id;
         $data['tenant_id'] = tenant('id');
 
         return $data;

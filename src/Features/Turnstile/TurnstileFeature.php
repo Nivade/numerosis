@@ -8,11 +8,11 @@ use Nvade\Numerosis\Contracts\NamedFeature;
 use RyanChandler\LaravelCloudflareTurnstile\Rules\Turnstile as TurnstileRule;
 
 /**
- * The single on/off switch for Turnstile. `<x-turnstile-field>` and
- * `<x-turnstile-scripts>` (resources/views/components/) are always
+ * The single on/off switch for Turnstile. `<x-numerosis::turnstile-field>` and
+ * `<x-numerosis::turnstile-scripts>` (resources/views/components/) are always
  * discoverable Blade components — they never fail to resolve — but both
  * render nothing unless `self::isEnabled()` is true, so a Livewire form
- * referencing `<x-turnstile-field />` unconditionally never breaks
+ * referencing `<x-numerosis::turnstile-field />` unconditionally never breaks
  * regardless of whether this feature is wired up.
  *
  * `isEnabled()` is just "was `bootstrap()` called" — and that only happens

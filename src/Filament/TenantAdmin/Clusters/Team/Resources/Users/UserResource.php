@@ -4,14 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Users;
 
-use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
-use Nvade\Numerosis\Features\Tenancy\MembershipsFeature;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Users\Pages\EditUser;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Users\Pages\ListUsers;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\TeamCluster;
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\BaseResource;
-use Nvade\Numerosis\Models\Tenant\User;
-use Nvade\Numerosis\Support\Features;
 use BackedEnum;
 use Filament\Actions\Action as GlobalAction;
 use Filament\Actions\EditAction;
@@ -29,15 +21,27 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Auth\PasswordBroker;
 use Illuminate\Database\Eloquent\Builder;
+use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
+use Nvade\Numerosis\Features\Tenancy\MembershipsFeature;
+use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Users\Pages\EditUser;
+use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Users\Pages\ListUsers;
+use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\TeamCluster;
+use Nvade\Numerosis\Filament\TenantAdmin\Resources\BaseResource;
+use Nvade\Numerosis\Models\Tenant\User;
+use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\Numerosis;
 use UnitEnum;
 
 class UserResource extends BaseResource
 {
-    protected static ?string $model = User::class;
-
     protected static ?string $cluster = TeamCluster::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
+
+    public static function getModel(): string
+    {
+        return Numerosis::model(User::class);
+    }
 
     protected static string|UnitEnum|null $navigationGroup = 'People';
 

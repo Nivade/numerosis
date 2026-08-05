@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Livewire\Tenant\Registration\Steps;
 
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
-use Nvade\Numerosis\Models\Central\PaymentPlan;
+use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
 use Nvade\Numerosis\Tests\TestCase;
 
 class PlanTest extends TestCase

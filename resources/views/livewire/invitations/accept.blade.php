@@ -1,5 +1,5 @@
 <div class="flex flex-col gap-6">
-    <x-auth-header
+    <x-numerosis::auth-header
         :title="__('Accept Invitation')"
         :description="__('You\'ve been invited by :name to join their organization', ['name' => $invitation->inviter->name])"
     />
@@ -52,20 +52,20 @@
             />
         @endunless
 
-        <x-turnstile-field />
+        <x-numerosis::turnstile-field />
 
         <flux:button variant="primary" type="submit" class="w-full">
             {{ $existingUser ? __('Accept Invitation') : __('Create account & accept') }}
         </flux:button>
     </form>
 
-    @if (\App\Support\Features::enabled(\App\Features\Social\SocialLoginFeature::NAME))
+    @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Social\SocialLoginFeature::NAME))
         <div class="flex items-center gap-3">
             <div class="h-px grow bg-zinc-200 dark:bg-zinc-800"></div>
             <span class="text-xs text-zinc-500">{{ __('or') }}</span>
             <div class="h-px grow bg-zinc-200 dark:bg-zinc-800"></div>
         </div>
 
-        <x-auth.buttons.grid :invitation="$this->invitation" />
+        <x-numerosis::auth.buttons.grid :invitation="$this->invitation" />
     @endif
 </div>

@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\TenantAdmin\Pages\Modules;
 
+use BackedEnum;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Pages\Page;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
+use InterNACHI\Modular\Support\Facades\Modules;
+use InterNACHI\Modular\Support\ModuleConfig;
+use Livewire\Attributes\Computed;
 use Nvade\Numerosis\Concerns\Billing\ConfirmsPayments;
 use Nvade\Numerosis\Concerns\Modules\PurchasesModules;
 use Nvade\Numerosis\Contracts\Billing\ModuleCatalog;
@@ -14,15 +23,7 @@ use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Support\Features;
-use BackedEnum;
-use Filament\Actions\Concerns\InteractsWithActions;
-use Filament\Actions\Contracts\HasActions;
-use Filament\Pages\Page;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
-use InterNACHI\Modular\Support\Facades\Modules;
-use InterNACHI\Modular\Support\ModuleConfig;
-use Livewire\Attributes\Computed;
+use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * No writes on render: the old SynchronizeModules::make()->handle() call on
@@ -39,7 +40,7 @@ class Marketplace extends Page implements HasActions
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shopping-bag';
 
-    protected string $view = 'filament.tenant-admin.pages.modules.marketplace';
+    protected string $view = 'numerosis::filament.tenant-admin.pages.modules.marketplace';
 
     /**
      * This page's directory (app/Filament/TenantAdmin/Pages/Modules) is under
@@ -95,7 +96,9 @@ class Marketplace extends Page implements HasActions
             ->map(fn (ModuleConfig $module): string => Str::lower($module->name))
             ->values();
 
-        $tenantModules = Module::whereIn('name', $installedSlugs)->get()->keyBy('name');
+        $moduleClass = Numerosis::model(Module::class);
+
+        $tenantModules = $moduleClass::whereIn('name', $installedSlugs)->get()->keyBy('name');
 
         return resolve(ModuleCatalog::class)->available()
             ->filter(fn (ModuleOffer $offer): bool => $installedSlugs->contains($offer->slug()))

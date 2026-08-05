@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets;
 
-use Nvade\Numerosis\Filament\Admin\Clusters\Billing\BillingCluster;
-use Nvade\Numerosis\Models\Central\Subscription;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
+use Nvade\Numerosis\Filament\Admin\Clusters\Billing\BillingCluster;
+use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Support\Numerosis;
 
 class RecentSubscriptionsTable extends TableWidget
 {
@@ -20,9 +21,11 @@ class RecentSubscriptionsTable extends TableWidget
 
     public function table(Table $table): Table
     {
+        $subscriptionClass = Numerosis::model(Subscription::class);
+
         return $table
             ->query(
-                Subscription::query()->latest()->limit(10)
+                $subscriptionClass::query()->latest()->limit(10)
             )
             ->columns([
                 TextColumn::make('subscribable_id')

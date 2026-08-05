@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Modules;
 
-use Nvade\Numerosis\Models\Tenant\Module;
 use Illuminate\Support\Str;
 use InterNACHI\Modular\Support\Facades\Modules;
 use InterNACHI\Modular\Support\ModuleConfig;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Models\Tenant\Module;
+use Nvade\Numerosis\Support\Numerosis;
 
 class SynchronizeModules
 {
@@ -20,12 +21,14 @@ class SynchronizeModules
             return;
         }
 
-        Modules::modules()->each(function ($module): void {
+        $moduleClass = Numerosis::model(Module::class);
+
+        Modules::modules()->each(function ($module) use ($moduleClass): void {
             if (! $module instanceof ModuleConfig) {
                 return;
             }
 
-            Module::updateOrCreate(
+            $moduleClass::updateOrCreate(
                 ['name' => Str::lower($module->name)],
                 ['description' => $this->describe($module)],
             );

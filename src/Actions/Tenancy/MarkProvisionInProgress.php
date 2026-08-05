@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Tenancy;
 
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\TenantProvisionStatus;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Support\Numerosis;
 
 class MarkProvisionInProgress
 {
@@ -15,7 +16,9 @@ class MarkProvisionInProgress
 
     public function handle(TenantRegistrationData $registration): void
     {
-        PendingTenantProvision::updateOrCreate(
+        $pendingClass = Numerosis::model(PendingTenantProvision::class);
+
+        $pendingClass::updateOrCreate(
             ['domain' => $registration->domain],
             [
                 'company_name' => $registration->company_name,

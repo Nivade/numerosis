@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Filament\TenantAdmin\Pages;
 
-use Nvade\Numerosis\Filament\TenantAdmin\Pages\Billing;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant;
+use App\Models\Central\CentralUser;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Nvade\Numerosis\Filament\TenantAdmin\Pages\Billing;
 use Nvade\Numerosis\Tests\TestCase;
 
 class BillingTest extends TestCase

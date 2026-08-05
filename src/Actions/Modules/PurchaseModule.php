@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Modules;
 
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
+use InterNACHI\Modular\Support\Facades\Modules;
+use Laravel\Cashier\Cashier;
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Modules\Concerns\GuardsModuleBilling;
 use Nvade\Numerosis\Contracts\Billing\ModuleCatalog;
 use Nvade\Numerosis\Enums\BillingCycle;
@@ -22,11 +27,7 @@ use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Gate;
-use InterNACHI\Modular\Support\Facades\Modules;
-use Laravel\Cashier\Cashier;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Support\Numerosis;
 use Stripe\Exception\ApiErrorException;
 use Throwable;
 
@@ -64,7 +65,9 @@ class PurchaseModule
 
         throw_unless(Modules::module($slug), ModuleNotInstalled::class, "Module not installed: {$slug}");
 
-        throw_if(Module::where('name', $slug)->whereNotNull('purchased_at')->exists(), ModuleAlreadyPurchased::class, "Module already purchased: {$slug}");
+        $moduleClass = Numerosis::model(Module::class);
+
+        throw_if($moduleClass::where('name', $slug)->whereNotNull('purchased_at')->exists(), ModuleAlreadyPurchased::class, "Module already purchased: {$slug}");
 
         throw_unless($this->hasBillingAddress($tenant), BillingAddressRequired::class, 'A billing address is required before purchasing a module.');
 

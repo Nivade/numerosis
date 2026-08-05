@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Feature\Filament\TenantAdmin\Pages;
 
-use Nvade\Numerosis\Actions\Auth\ConnectSocialAccount;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\SocialAccounts;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant;
+use App\Models\Central\CentralUser;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Nvade\Numerosis\Actions\Auth\ConnectSocialAccount;
+use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\SocialAccounts;
 use Nvade\Numerosis\Tests\TestCase;
 
 class ProfileSocialAccountTest extends TestCase

@@ -9,9 +9,9 @@
 <div class="rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm p-6 h-full">
     <div class="flex items-center gap-2 mb-4">
         <flux:icon.credit-card class="size-4 text-zinc-400" />
-        <x-ui.text variant="subtle" size="xs" class="uppercase tracking-wider font-semibold">
+        <x-numerosis::ui.text variant="subtle" size="xs" class="uppercase tracking-wider font-semibold">
             Payment method
-        </x-ui.text>
+        </x-numerosis::ui.text>
     </div>
 
     {{-- Placeholder while Stripe.js loads and the Element mounts, so the panel never flashes empty. --}}
@@ -28,8 +28,8 @@
 
     <div x-show="errorMessage" x-cloak class="mt-4 flex items-start gap-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 px-4 py-3">
         <flux:icon.exclamation-triangle class="size-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-        <x-ui.text size="sm" class="text-red-700 dark:text-red-300" x-text="errorMessage"></x-ui.text>
+        <x-numerosis::ui.text size="sm" class="text-red-700 dark:text-red-300" x-text="errorMessage"></x-numerosis::ui.text>
     </div>
 
-    <x-billing.secure-badge class="pt-5" />
+    <x-numerosis::billing.secure-badge class="pt-5" />
 </div>

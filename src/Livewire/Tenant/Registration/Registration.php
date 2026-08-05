@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Tenant\Registration;
 
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\TechnicalSetup;
-use Nvade\Numerosis\Support\State\RegistrationState;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
+use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
+use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
+use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\TechnicalSetup;
+use Nvade\Numerosis\Support\State\RegistrationState;
 use Spatie\LivewireWizard\Components\WizardComponent;
 
 class Registration extends WizardComponent
@@ -30,10 +30,10 @@ class Registration extends WizardComponent
     #[Url(as: 'step', history: false)]
     public ?string $currentStepName = null;
 
-    #[Layout('layouts.app.none')]
+    #[Layout('layouts::app.none')]
     public function render(): View
     {
-        return view('livewire.tenant.registration.wizard.index', [
+        return view('numerosis::livewire.tenant.registration.wizard.index', [
             'currentStepState' => $this->getCurrentStepState(),
             'currentStepName' => $this->currentStepName,
         ]);

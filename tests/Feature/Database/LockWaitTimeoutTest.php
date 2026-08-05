@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Database;
 
-use Nvade\Numerosis\Models\Central\Tenant;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * MySQL's default `lock_wait_timeout` (metadata/DDL locks) is 31536000

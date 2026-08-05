@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Modules;
 
-use Nvade\Numerosis\Actions\Modules\MigrateModules;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Permission;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Nvade\Announcements\Models\Announcement;
+use Nvade\Numerosis\Actions\Modules\MigrateModules;
+use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
 
 class AnnouncementsModuleTest extends TestCase

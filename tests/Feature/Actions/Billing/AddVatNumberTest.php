@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Billing;
 
-use Nvade\Numerosis\Actions\Billing\AddVatNumber;
-use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
-use Nvade\Numerosis\Models\Central\Tenant;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
+use Nvade\Numerosis\Actions\Billing\AddVatNumber;
+use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
 use Nvade\Numerosis\Tests\TestCase;
 
 class AddVatNumberTest extends TestCase

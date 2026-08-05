@@ -1,8 +1,8 @@
  <div class="flex flex-col gap-6">
-    <x-auth-header :title="__('Forgot password')" :description="__('Enter your email to receive a password reset link')" />
+    <x-numerosis::auth-header :title="__('Forgot password')" :description="__('Enter your email to receive a password reset link')" />
 
     <!-- Session Status -->
-    <x-ui.auth-session-status class="text-center" :status="session('status')" />
+    <x-numerosis::ui.auth-session-status class="text-center" :status="session('status')" />
 
     <form wire:submit="sendPasswordResetLink" class="flex flex-col gap-6">
         <!-- Email Address -->
@@ -16,7 +16,7 @@
             viewable
         />
 
-        <x-turnstile-field />
+        <x-numerosis::turnstile-field />
 
         <flux:button variant="primary" type="submit" class="w-full">{{ __('Email password reset link') }}</flux:button>
     </form>

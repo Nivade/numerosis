@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Modules;
 
-use Nvade\Numerosis\Actions\Modules\ReconcileModuleSubscriptionItems;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Module;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\Module;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Nvade\Numerosis\Actions\Modules\ReconcileModuleSubscriptionItems;
 use Nvade\Numerosis\Tests\TestCase;
 
 class ReconcileModuleSubscriptionItemsTest extends TestCase

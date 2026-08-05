@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Filament\App;
 
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Roles\Pages\ListRoles;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Permission;
-use Nvade\Numerosis\Models\Tenant\User;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
-use Spatie\Permission\Models\Role;
+use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Roles\Pages\ListRoles;
+use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
+use Spatie\Permission\Models\Role;
 
 class RoleResourceUiTest extends TestCase
 {

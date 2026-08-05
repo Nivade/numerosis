@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Http\Middleware;
 
-use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
-use Nvade\Numerosis\Models\Central\Tenant;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
 use Nvade\Numerosis\Tests\TestCase;
 
 class EnsureTenantSubscriptionActiveTest extends TestCase

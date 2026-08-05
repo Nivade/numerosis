@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Listeners\Billing;
 
-use Nvade\Numerosis\Events\Billing\PaymentSettled;
-use Nvade\Numerosis\Listeners\Billing\SendPaymentConfirmedNotification;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Notifications\Billing\PaymentConfirmed;
+use App\Models\Central\CentralUser;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Nvade\Numerosis\Events\Billing\PaymentSettled;
+use Nvade\Numerosis\Listeners\Billing\SendPaymentConfirmedNotification;
+use Nvade\Numerosis\Notifications\Billing\PaymentConfirmed;
 use Nvade\Numerosis\Tests\TestCase;
 
 class SendPaymentConfirmedNotificationTest extends TestCase

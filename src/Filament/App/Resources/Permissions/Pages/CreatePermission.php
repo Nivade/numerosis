@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Filament\Nvade\Numerosis\Resources\Permissions\Pages;
+namespace Nvade\Numerosis\Filament\App\Resources\Permissions\Pages;
 
 use Filament\Resources\Pages\CreateRecord;
 

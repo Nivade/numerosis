@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Listeners\Modules;
 
+use App\Models\Central\Tenant;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Nvade\Numerosis\Actions\Modules\MigrateModules;
 use Nvade\Numerosis\Events\Modules\ModulePurchased;
 use Nvade\Numerosis\Listeners\Modules\QueueModuleMigration;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Queue;
 use Nvade\Numerosis\Tests\TestCase;
 
 class QueueModuleMigrationTest extends TestCase

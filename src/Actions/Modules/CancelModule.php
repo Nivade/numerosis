@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Modules;
 
+use Illuminate\Support\Facades\Gate;
+use Laravel\Cashier\SubscriptionItem;
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Modules\Concerns\GuardsModuleBilling;
 use Nvade\Numerosis\Contracts\Billing\ModuleCatalog;
 use Nvade\Numerosis\Enums\ModuleBillingMode;
@@ -13,9 +16,7 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
-use Illuminate\Support\Facades\Gate;
-use Laravel\Cashier\SubscriptionItem;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * See .claude/rules/module-marketplace.md.
@@ -33,7 +34,10 @@ class CancelModule
     {
         $this->assertRunningInsideTenant($tenant);
 
-        $module = Module::where('name', $slug)->whereNotNull('purchased_at')->first();
+        $moduleClass = Numerosis::model(Module::class);
+
+        /** @var Module|null $module */
+        $module = $moduleClass::where('name', $slug)->whereNotNull('purchased_at')->first();
 
         throw_unless($module, ModuleNotFound::class, "Module not purchased: {$slug}");
 

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Features;
 
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\InvitationResource;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
+use Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\InvitationResource;
 use Nvade\Numerosis\Tests\TestCase;
 
 class InvitationsFeatureTest extends TestCase

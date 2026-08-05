@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Tenancy;
 
+use Illuminate\Support\Facades\Cache;
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Tenant as CentralTenant;
-use Illuminate\Support\Facades\Cache;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Contracts\Tenant;
 
 // See .claude/rules/tenant-provisioning.md.
@@ -20,7 +21,7 @@ class MarkTenantProvisioned
     {
         $tenant->update(['provisioned_at' => now()]);
 
-        PendingTenantProvision::where('domain', $tenant->getTenantKey())->delete();
+        Numerosis::model(PendingTenantProvision::class)::where('domain', $tenant->getTenantKey())->delete();
 
         // "Provisioning finished" and "no chain in flight for this domain"
         // are the same fact — see Fix 3 in .claude/rules/tenant-provisioning.md.

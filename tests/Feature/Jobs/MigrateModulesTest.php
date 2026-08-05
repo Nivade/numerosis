@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Jobs;
 
-use Nvade\Numerosis\Actions\Modules\MigrateModules;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Permission;
+use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use RuntimeException;
+use Nvade\Numerosis\Actions\Modules\MigrateModules;
+use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
+use RuntimeException;
 
 class MigrateModulesTest extends TestCase
 {

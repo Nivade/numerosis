@@ -26,6 +26,7 @@ use Nvade\Numerosis\Models\SocialiteLogin;
 use Nvade\Numerosis\Models\Tenant as Workspace;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Observers\CentralUserObserver;
+use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 
@@ -101,7 +102,7 @@ abstract class CentralUser extends User implements CentralUserModel, HasTenants,
     public function tenants(): BelongsToMany
     {
         return $this->belongsToMany(
-            Tenant::class,
+            Numerosis::model(Tenant::class),
             'memberships',
             'global_user_id',
             'tenant_id',
@@ -125,7 +126,7 @@ abstract class CentralUser extends User implements CentralUserModel, HasTenants,
 
     public function getTenantModelName(): string
     {
-        return Workspace\User::class;
+        return Numerosis::model(Workspace\User::class);
     }
 
     public function getGlobalIdentifierKeyName(): string

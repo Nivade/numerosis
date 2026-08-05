@@ -1,5 +1,5 @@
 @php
-    use App\Enums\BillingCycle;
+    use Nvade\Numerosis\Enums\BillingCycle;
 
     $subscription = $this->subscription;
 @endphp
@@ -8,7 +8,7 @@
     <div class="space-y-10">
         {{-- Shorter payment-status-banner already renders panel-wide, see
              TenantAdminPanelProvider's CONTENT_START render hook. --}}
-        <x-billing.dunning-alert :subscription="$subscription" />
+        <x-numerosis::billing.dunning-alert :subscription="$subscription" />
 
         {{-- Current Subscription Overview --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -125,7 +125,7 @@
                 </p>
 
                 {{-- Billing Cycle Toggle --}}
-                <x-billing.cycle-toggle :billing-cycle="$billingCycle" max-savings="20" class="mt-6" />
+                <x-numerosis::billing.cycle-toggle :billing-cycle="$billingCycle" max-savings="20" class="mt-6" />
             </div>
 
             {{-- Plan Cards Grid --}}
@@ -139,7 +139,7 @@
                         $incentive = $plan->getIncentive($billingCycle);
                     @endphp
 
-                    <x-billing.plan-card
+                    <x-numerosis::billing.plan-card
                         :plan="$plan"
                         :billing-cycle="$billingCycle"
                         :is-current-cycle="$isCurrentCycle"
@@ -203,7 +203,7 @@
                                         <p class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
                                             {{ $plan->name }}
                                             <span class="text-xs font-normal text-gray-500 dark:text-gray-400">
-                                                ({{ $billingCycle === \App\Enums\BillingCycle::Monthly ? 'Monthly' : 'Yearly' }})
+                                                ({{ $billingCycle === \Nvade\Numerosis\Enums\BillingCycle::Monthly ? 'Monthly' : 'Yearly' }})
                                             </span>
                                         </p>
                                         <p class="mt-1 text-lg font-bold text-blue-600 dark:text-blue-400">

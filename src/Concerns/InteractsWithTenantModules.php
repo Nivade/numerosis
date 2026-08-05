@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Concerns;
 
-use Nvade\Numerosis\Actions\Tenancy\InferTenantFromCurrentRequest;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Module;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
+use Nvade\Numerosis\Actions\Tenancy\InferTenantFromCurrentRequest;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Tenant\Module;
+use Nvade\Numerosis\Support\Numerosis;
 
 trait InteractsWithTenantModules
 {
@@ -36,9 +37,11 @@ trait InteractsWithTenantModules
             return $this->enabledModuleNames;
         }
 
+        $moduleClass = Numerosis::model(Module::class);
+
         if (tenancy()->initialized) {
             /** @var Collection<int, string> $names */
-            $names = Module::where('enabled', true)->pluck('name');
+            $names = $moduleClass::where('enabled', true)->pluck('name');
 
             return $this->enabledModuleNames = $names;
         }
@@ -66,7 +69,7 @@ trait InteractsWithTenantModules
 
         try {
             /** @var Collection<int, string> $names */
-            $names = Module::on($tenantConnName)->where('enabled', true)->pluck('name');
+            $names = $moduleClass::on($tenantConnName)->where('enabled', true)->pluck('name');
 
             return $this->enabledModuleNames = $names;
         } catch (QueryException|InvalidArgumentException $e) {

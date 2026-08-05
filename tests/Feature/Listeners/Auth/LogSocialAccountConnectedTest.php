@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Listeners\Auth;
 
+use App\Models\Central\CentralUser;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Auth\ConnectSocialAccount;
 use Nvade\Numerosis\Events\Auth\SocialAccountConnected;
 use Nvade\Numerosis\Listeners\Auth\LogSocialAccountConnected;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Activitylog\Models\Activity;
 use Nvade\Numerosis\Tests\TestCase;
+use Spatie\Activitylog\Models\Activity;
 
 class LogSocialAccountConnectedTest extends TestCase
 {

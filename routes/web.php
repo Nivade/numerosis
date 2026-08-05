@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Request;
 use Nvade\Numerosis\Actions\Billing\Checkout\CompleteRedirectCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartLocalCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
@@ -16,7 +17,6 @@ use Nvade\Numerosis\Livewire\Settings\Profile;
 use Nvade\Numerosis\Livewire\Tenant;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Routes\RouteNames;
-use Illuminate\Http\Request;
 
 //
 
@@ -28,14 +28,14 @@ use Illuminate\Http\Request;
 // one route name guaranteed to exist on the central domain regardless of
 // panel registration. All three depend on this staying unconditional.
 Route::get('/', function () {
-    return view('welcome')->layout('layouts.app');
+    return view('numerosis::welcome')->layout('numerosis::layouts.app');
 })->name(RouteNames::home());
 
 if (Features::enabled(MarketingPagesFeature::NAME)) {
-    Route::view('terms', 'terms')->name('terms');
-    Route::view('privacy', 'privacy')->name('privacy');
-    Route::view('about', 'about')->name('about');
-    Route::view('features', 'features')->name('features');
+    Route::view('terms', 'numerosis::terms')->name('terms');
+    Route::view('privacy', 'numerosis::privacy')->name('privacy');
+    Route::view('about', 'numerosis::about')->name('about');
+    Route::view('features', 'numerosis::features')->name('features');
 }
 
 // Stripe Webhooks - No auth/CSRF protection needed
@@ -56,7 +56,7 @@ Route::middleware(['auth:web'])->group(function () {
 
         Route::livewire('settings/appearance', Appearance::class)->name('settings.appearance');
 
-        Route::livewire('/tenants/mine', 'pages::tenant.mine')->name(RouteNames::tenantsMine());
+        Route::livewire('/tenants/mine', 'numerosis::pages.tenant.mine')->name(RouteNames::tenantsMine());
     }
 
     if (Features::enabled(RegistrationWizardFeature::NAME)) {

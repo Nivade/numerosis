@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions;
 
+use BackedEnum;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
 use Nvade\Numerosis\Filament\Admin\Clusters\Billing\BillingCluster;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Pages\CreateSubscription;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Pages\EditSubscription;
@@ -11,20 +17,18 @@ use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Pages\ListSub
 use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Schemas\SubscriptionForm;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Tables\SubscriptionsTable;
 use Nvade\Numerosis\Models\Central\Subscription;
-use BackedEnum;
-use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
-use Filament\Support\Enums\Width;
-use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Table;
+use Nvade\Numerosis\Support\Numerosis;
 
 class SubscriptionResource extends Resource
 {
-    protected static ?string $model = Subscription::class;
-
     protected static ?string $cluster = BillingCluster::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
+    public static function getModel(): string
+    {
+        return Numerosis::model(Subscription::class);
+    }
 
     public static function getMaxContentWidth(): Width
     {

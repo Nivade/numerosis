@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Role;
-use Lorisleiva\Actions\Concerns\AsAction;
 
 class PromoteFirstCentralUserToAdmin
 {
@@ -15,7 +15,13 @@ class PromoteFirstCentralUserToAdmin
     // Mirrors Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin; no-ops if unseeded.
     public function handle(CentralUser $user): void
     {
-        if (CentralUser::query()->whereKeyNot($user->getKey())->exists()) {
+        // Not CentralUser::query(): CentralUser is abstract (see
+        // .claude/plans/package-extraction.md Phase 4.4), and late static
+        // binding on a call written as `CentralUser::` resolves `new static`
+        // to the abstract class itself. $user::query() resolves against the
+        // host's concrete stub instead, since $user is always an instance of
+        // it.
+        if ($user::query()->whereKeyNot($user->getKey())->exists()) {
             return;
         }
 

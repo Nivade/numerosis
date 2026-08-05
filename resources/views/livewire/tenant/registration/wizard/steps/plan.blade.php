@@ -1,5 +1,5 @@
 <div class="space-y-8">
-    <x-registration.header
+    <x-numerosis::registration.header
         icon="sparkles"
         title="Choose Your Plan"
         description="Select the plan that best fits your needs"
@@ -10,16 +10,16 @@
         @php
             $maxSavings = $paymentPlans->map(fn($plan) => $plan->getSavingsPercentage())->max();
         @endphp
-        <x-billing.cycle-toggle :billing-cycle="$billingCycle" :max-savings="$maxSavings" class="mb-8" />
+        <x-numerosis::billing.cycle-toggle :billing-cycle="$billingCycle" :max-savings="$maxSavings" class="mb-8" />
 
         <flux:field>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 @foreach($paymentPlans as $paymentPlan)
-                    <x-billing.plan-card
+                    <x-numerosis::billing.plan-card
                         :plan="$paymentPlan"
                         :billing-cycle="$billingCycle"
-                        :price="resolve(\App\Services\Billing\BillingService::class)->formatAmount($paymentPlan->getPrice($billingCycle instanceof \App\Enums\BillingCycle ? $billingCycle : \App\Enums\BillingCycle::from($billingCycle)))"
-                        :incentive="$paymentPlan->getIncentive($billingCycle instanceof \App\Enums\BillingCycle ? $billingCycle : \App\Enums\BillingCycle::from($billingCycle))"
+                        :price="resolve(\Nvade\Numerosis\Services\Billing\BillingService::class)->formatAmount($paymentPlan->getPrice($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle : \Nvade\Numerosis\Enums\BillingCycle::from($billingCycle)))"
+                        :incentive="$paymentPlan->getIncentive($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle : \Nvade\Numerosis\Enums\BillingCycle::from($billingCycle))"
                         type="selectable"
                     />
                 @endforeach
@@ -45,9 +45,9 @@
         <flux:error name="terms"/>
     </div>
 
-    <x-billing.payment-error :message="$checkoutError" />
+    <x-numerosis::billing.payment-error :message="$checkoutError" />
 
-    <x-registration.navigation
+    <x-numerosis::registration.navigation
         continue-label="Continue to Payment"
         continue-action="register"
         :disabled="!$terms"
@@ -59,11 +59,11 @@
             <flux:button
                 tag="a"
                 href="{{ route('checkout.subscription.dev', [
-                    'billing_cycle' => $billingCycle instanceof \App\Enums\BillingCycle ? $billingCycle->value : $billingCycle,
+                    'billing_cycle' => $billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle->value : $billingCycle,
                     'company_name' => $this->state()->get('company_name'),
                     'domain' => $this->state()->get('domain'),
                     'payment_plan' => $payment_plan,
-                    'global_id' => \App\Actions\Queries\GetAuthenticatedUser::run()?->global_id,
+                    'global_id' => \Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser::run()?->global_id,
                 ]) }}"
                 variant="ghost"
                 size="sm"

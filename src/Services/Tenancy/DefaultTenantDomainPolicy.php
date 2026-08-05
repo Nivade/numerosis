@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Tenancy;
 
-use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
-use Nvade\Numerosis\Models\Central\Domain;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Validation\ValidationException;
+use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
+use Nvade\Numerosis\Models\Central\Domain;
+use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * Checks format, reserved words, and whether the domain already belongs to a
@@ -38,7 +39,9 @@ class DefaultTenantDomainPolicy implements TenantDomainPolicy
             ]);
         }
 
-        if (Domain::where('domain', $domain.'.'.Config::string('app.domain'))->exists()) {
+        $domainClass = Numerosis::model(Domain::class);
+
+        if ($domainClass::where('domain', $domain.'.'.Config::string('app.domain'))->exists()) {
             throw ValidationException::withMessages([
                 'domain' => 'This domain is already taken.',
             ]);

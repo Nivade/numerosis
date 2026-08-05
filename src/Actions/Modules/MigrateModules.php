@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Modules;
 
-use Nvade\Numerosis\Models\Tenant\Module;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Artisan;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Models\Tenant\Module;
+use Nvade\Numerosis\Support\Numerosis;
 use RuntimeException;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 
@@ -43,8 +44,10 @@ class MigrateModules implements ShouldQueue
         // not just "enabled", signal a module's own code (e.g. the branding
         // module's ApplyBranding middleware) and every module resource assume
         // when they query their own tables.
-        $tenant->run(function () use ($module): void {
-            Module::where('name', $module)->update(['migrated_at' => now()]);
+        $moduleClass = Numerosis::model(Module::class);
+
+        $tenant->run(function () use ($module, $moduleClass): void {
+            $moduleClass::where('name', $module)->update(['migrated_at' => now()]);
         });
     }
 }

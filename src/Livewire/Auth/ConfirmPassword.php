@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Auth;
 
-use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
-use Nvade\Numerosis\Support\Features;
-use Nvade\Numerosis\Support\Routes\RouteNames;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
+use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\Routes\RouteNames;
 
-#[Layout('layouts.auth')]
+#[Layout('layouts::auth')]
 class ConfirmPassword extends Component
 {
     public string $password = '';

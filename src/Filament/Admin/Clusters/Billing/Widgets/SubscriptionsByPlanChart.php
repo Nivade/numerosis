@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets;
 
+use Filament\Widgets\ChartWidget;
 use Nvade\Numerosis\Filament\Admin\Clusters\Billing\BillingCluster;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Subscription;
-use Filament\Widgets\ChartWidget;
+use Nvade\Numerosis\Support\Numerosis;
 
 class SubscriptionsByPlanChart extends ChartWidget
 {
@@ -19,13 +20,16 @@ class SubscriptionsByPlanChart extends ChartWidget
 
     protected function getData(): array
     {
-        $data = Subscription::query()
+        $subscriptionClass = Numerosis::model(Subscription::class);
+        $paymentPlanClass = Numerosis::model(PaymentPlan::class);
+
+        $data = $subscriptionClass::query()
             ->where('stripe_status', 'active')
             ->selectRaw('payment_plan_id, count(*) as total')
             ->groupBy('payment_plan_id')
             ->get()
-            ->mapWithKeys(function (Subscription $item): array {
-                $planName = PaymentPlan::find($item->payment_plan_id)->name ?? 'Unknown';
+            ->mapWithKeys(function (Subscription $item) use ($paymentPlanClass): array {
+                $planName = $paymentPlanClass::find($item->payment_plan_id)->name ?? 'Unknown';
 
                 return [$planName => $item->getAttribute('total')];
             });

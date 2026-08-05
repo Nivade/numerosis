@@ -10,8 +10,8 @@
 ])
 
 @php
-    /** @var \App\Models\Central\PaymentPlan $plan */
-    /** @var \App\Enums\BillingCycle $billingCycle */
+    /** @var \Nvade\Numerosis\Models\Central\PaymentPlan $plan */
+    /** @var \Nvade\Numerosis\Enums\BillingCycle $billingCycle */
     $isPopular = $plan->is_popular;
 
     // `$price` arrives already formatted ("€ 10,00"), so it cannot be compared
@@ -77,7 +77,7 @@
                         </div>
 
                         {{-- Savings Message --}}
-                        @if($billingCycle === \App\Enums\BillingCycle::Yearly && $plan->getSavingsPercentage() > 0)
+                        @if($billingCycle === \Nvade\Numerosis\Enums\BillingCycle::Yearly && $plan->getSavingsPercentage() > 0)
                             <p class="text-[11px] font-semibold text-green-600 dark:text-green-400 mt-1 uppercase tracking-wider">
                                 Save {{ $plan->getSavingsPercentage() }}% with annual billing
                             </p>
@@ -105,7 +105,7 @@
 
                     <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-3">
                         @foreach($plan->availableFeatures()->take(6)->get() as $feature)
-                            <x-feature-line :feature="$feature"/>
+                            <x-numerosis::feature-line :feature="$feature"/>
                         @endforeach
                     </ul>
 
@@ -124,7 +124,7 @@
 
                                     <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                                         @foreach($plan->features()->get() as $feature)
-                                            <x-feature-line
+                                            <x-numerosis::feature-line
                                                 :feature="$feature"
                                                 :available="$feature->pivot->available"
                                             />
@@ -198,7 +198,7 @@
         {{-- Features List --}}
         <div class="flex-1 space-y-4 mb-8">
             @foreach ($plan->availableFeatures as $feature)
-                <x-feature-line :feature="$feature" />
+                <x-numerosis::feature-line :feature="$feature" />
             @endforeach
         </div>
 
@@ -224,7 +224,7 @@
                     variant="{{ $isPopular ? 'filled' : 'outline' }}"
                 >
                     @if($isCurrentPlan)
-                        Switch to {{ $billingCycle === \App\Enums\BillingCycle::Monthly ? 'Monthly' : 'Yearly' }}
+                        Switch to {{ $billingCycle === \Nvade\Numerosis\Enums\BillingCycle::Monthly ? 'Monthly' : 'Yearly' }}
                     @else
                         {{ $subscription ? 'Change Plan' : 'Get Started' }}
                     @endif

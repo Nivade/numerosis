@@ -4,11 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Resources\Tenants;
 
-use Nvade\Numerosis\Filament\Admin\Resources\Tenants\Pages\CreateTenant;
-use Nvade\Numerosis\Filament\Admin\Resources\Tenants\Pages\EditTenant;
-use Nvade\Numerosis\Filament\Admin\Resources\Tenants\Pages\ListTenants;
-use Nvade\Numerosis\Filament\Admin\Resources\Tenants\RelationManagers\DomainsRelationManager;
-use Nvade\Numerosis\Models\Central\Tenant;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -25,15 +20,24 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Filament\Admin\Resources\Tenants\Pages\CreateTenant;
+use Nvade\Numerosis\Filament\Admin\Resources\Tenants\Pages\EditTenant;
+use Nvade\Numerosis\Filament\Admin\Resources\Tenants\Pages\ListTenants;
+use Nvade\Numerosis\Filament\Admin\Resources\Tenants\RelationManagers\DomainsRelationManager;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Support\Numerosis;
 use UnitEnum;
 
 class TenantResource extends Resource
 {
-    protected static ?string $model = Tenant::class;
-
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static string|UnitEnum|null $navigationGroup = 'Customers';
+
+    public static function getModel(): string
+    {
+        return Numerosis::model(Tenant::class);
+    }
 
     public static function form(Schema $schema): Schema
     {

@@ -1,7 +1,7 @@
 <section class="w-full">
-    @include('partials.settings-heading')
+    @include('numerosis::partials.settings-heading')
 
-    <x-settings.layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
+    <x-numerosis::settings.layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
         <form wire:submit="updatePassword" class="mt-6 space-y-6">
             @if(Auth::user()->password)
                 <flux:input
@@ -31,10 +31,10 @@
                     <flux:button variant="primary" type="submit" class="w-full">{{ __('Save') }}</flux:button>
                 </div>
 
-                <x-ui.action-message class="me-3" on="password-updated">
+                <x-numerosis::ui.action-message class="me-3" on="password-updated">
                     {{ __('Saved.') }}
-                </x-ui.action-message>
+                </x-numerosis::ui.action-message>
             </div>
         </form>
-    </x-settings.layout>
+    </x-numerosis::settings.layout>
 </section>

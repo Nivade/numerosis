@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Invitations;
 
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Session;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
 use Nvade\Numerosis\Actions\Auth\LoginUser;
 use Nvade\Numerosis\Actions\Invitations\AcceptInvitation;
 use Nvade\Numerosis\Contracts\Invitations\CreatesInvitedUser;
@@ -12,12 +16,9 @@ use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Tenant\Invitation;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
-use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\Session;
-use Livewire\Attributes\Layout;
-use Livewire\Component;
+use Nvade\Numerosis\Support\Numerosis;
 
-#[Layout('layouts.auth')]
+#[Layout('layouts::auth')]
 class Accept extends Component
 {
     public Invitation $invitation;
@@ -34,9 +35,16 @@ class Accept extends Component
 
     public function mount(string $token): void
     {
-        $this->invitation = Invitation::where('token', $token)->firstOrFail();
+        $invitationClass = Numerosis::model(Invitation::class);
 
-        $this->existingUser = CentralUser::where('email', $this->invitation->email)->exists();
+        /** @var Invitation $invitation */
+        $invitation = $invitationClass::where('token', $token)->firstOrFail();
+
+        $this->invitation = $invitation;
+
+        $centralUserClass = Numerosis::model(CentralUser::class);
+
+        $this->existingUser = $centralUserClass::where('email', $this->invitation->email)->exists();
     }
 
     public function accept(LoginUser $loginUser): void
@@ -45,7 +53,10 @@ class Accept extends Component
             'turnstileResponse' => TurnstileFeature::rules(),
         ]);
 
-        $centralUser = CentralUser::where('email', $this->invitation->email)->first();
+        $centralUserClass = Numerosis::model(CentralUser::class);
+
+        /** @var CentralUser|null $centralUser */
+        $centralUser = $centralUserClass::where('email', $this->invitation->email)->first();
 
         if ($centralUser === null) {
             $this->validate([
@@ -64,7 +75,10 @@ class Accept extends Component
             return;
         }
 
-        $user = TenantUser::where('global_id', $centralUser->global_id)->firstOrFail();
+        $tenantUserClass = Numerosis::model(TenantUser::class);
+
+        /** @var TenantUser $user */
+        $user = $tenantUserClass::where('global_id', $centralUser->global_id)->firstOrFail();
 
         LoginUser::run($user, remember: false);
 
@@ -73,6 +87,6 @@ class Accept extends Component
 
     public function render(): View
     {
-        return view('livewire.invitations.accept');
+        return view('numerosis::livewire.invitations.accept');
     }
 }

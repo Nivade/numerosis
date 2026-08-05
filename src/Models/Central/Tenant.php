@@ -147,7 +147,7 @@ abstract class Tenant extends BaseTenant implements Subscribable, TenantWithData
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(
-            CentralUser::class,
+            Numerosis::model(CentralUser::class),
             'memberships',
             'tenant_id',
             'global_user_id',
@@ -206,7 +206,9 @@ abstract class Tenant extends BaseTenant implements Subscribable, TenantWithData
 
     public function admin(): ?User
     {
-        $admin = $this->run(fn ($tenant) => User::role('admin')->first());
+        $userClass = Numerosis::model(User::class);
+
+        $admin = $this->run(fn ($tenant) => $userClass::role('admin')->first());
 
         return $admin instanceof User ? $admin : null;
     }
