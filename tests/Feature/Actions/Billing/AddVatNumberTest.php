@@ -9,14 +9,17 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Actions\Billing\AddVatNumber;
 use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
+use Nvade\Numerosis\Tests\Concerns\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 class AddVatNumberTest extends TestCase
 {
+    use FakesStripe;
     use RefreshDatabase;
 
     public function test_it_adds_a_vat_number_using_the_customers_existing_address(): void
     {
+        $this->fakeStripe();
         Tenant::unsetEventDispatcher();
         $tenant = Tenant::factory()->create();
 
@@ -41,6 +44,7 @@ class AddVatNumberTest extends TestCase
 
     public function test_it_refuses_a_country_it_cannot_infer_a_tax_id_type_for(): void
     {
+        $this->fakeStripe();
         Tenant::unsetEventDispatcher();
         $tenant = Tenant::factory()->create();
 
