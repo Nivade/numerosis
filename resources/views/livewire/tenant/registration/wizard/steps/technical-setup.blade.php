@@ -22,7 +22,7 @@
                         wire:keydown.enter="continue"
                     />
                     <flux:input.group.suffix>
-                        {{ '.' . config('app.domain') }}
+                        {{ '.' . config('numerosis.domains.apex') }}
                     </flux:input.group.suffix>
                 </flux:input.group>
             </div>
@@ -50,7 +50,7 @@
         @if($domain && $errors->missing('domain'))
             <x-numerosis::ui.info-box type="success" title="Your workspace URL will be:">
                 <p class="text-lg font-mono mt-1">
-                    https://{{ $domain }}.{{ config('app.domain') }}
+                    https://{{ $domain }}.{{ config('numerosis.domains.apex') }}
                 </p>
             </x-numerosis::ui.info-box>
         @endif

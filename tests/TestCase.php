@@ -89,26 +89,17 @@ abstract class TestCase extends Orchestra
 
         $app['config']->set('app.key', 'base64:'.base64_encode(str_repeat('a', 32)));
 
-        // routes/auth.php reads config('app.central.default') for the OAuth
-        // redirect route's ->domain() — a config/app.php key, so a
-        // framework config thin-app owns for real, not something the
-        // package ships (see docs/host-requirements.md). Route::domain(null)
-        // silently returns the *current* domain string instead of `$this`
-        // (Illuminate\Routing\Route::domain()'s getter branch), so leaving
-        // this unset doesn't throw where it's read — it throws one line
-        // later on the string returned in place of the route.
-        $app['config']->set('app.central', [
-            'domain' => 'numerosistest.test',
-            'default' => 'central.numerosistest.test',
-            'subdomain' => 'central',
-        ]);
-
-        // config/app.php's own 'domain' key (saas-m: env('DOMAIN', 'localhost'))
-        // is a host-owned framework config file, never published by this
-        // package — Testbench's skeleton app.php has no such key at all, so
-        // every DefaultTenantDomainPolicy/CreateTenantDomain/Filament-Tenant
-        // call reading Config::string('app.domain') threw on NULL.
-        $app['config']->set('app.domain', 'numerosistest.test');
+        // These three used to be hand-set as `app.domain`, `app.host` and
+        // `app.central.*` — keys this package invented inside Laravel's own
+        // config/app.php, which is exactly why the harness had to supply them
+        // at all: a framework config file cannot receive a package default
+        // through mergeConfigFrom(). They are `numerosis.domains.*` now and
+        // carry real defaults derived from APP_URL, so this block only
+        // overrides them to the harness's own hostname rather than rescuing
+        // the package from a NULL.
+        $app['config']->set('numerosis.domains.apex', 'numerosistest.test');
+        $app['config']->set('numerosis.domains.central', 'central.numerosistest.test');
+        $app['config']->set('numerosis.domains.tenant_pattern', '{tenant}.numerosistest.test');
 
         // Numerosis::routes() only binds routes/web.php to the Host header
         // matching a configured central domain (Route::domain($domain), one

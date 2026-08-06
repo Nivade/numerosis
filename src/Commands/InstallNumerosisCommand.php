@@ -80,8 +80,7 @@ class InstallNumerosisCommand extends Command
         $this->verifyLivewireDiskExclusion();
         $this->verifyLivewireUploadDisk();
         $this->verifyLivewireComponentNamespaces();
-        $this->verifyAppDomain();
-        $this->verifyCentralDefaultDomain();
+        $this->verifyDomainConfig();
         $this->verifyTenantMigrationPath();
         $this->verifyStripeKeys();
         $this->verifyModelOverrides();
@@ -190,9 +189,14 @@ class InstallNumerosisCommand extends Command
 
         $env = File::get($envPath);
 
+        // No DOMAIN / CENTRAL_SUBDOMAIN here any more: the domain values now
+        // derive from APP_URL (config/numerosis.php's `domains` block, via
+        // Support\Domains), so a host that sets nothing is already correct.
+        // NUMEROSIS_APEX_DOMAIN / NUMEROSIS_CENTRAL_DOMAIN exist only to
+        // override that derivation, and appending a *commented* override is
+        // noise while appending an uncommented one would replace a working
+        // default with a guess.
         $keys = [
-            'DOMAIN' => 'localhost',
-            'CENTRAL_SUBDOMAIN' => 'app',
             'SESSION_DOMAIN' => 'null',
             'STRIPE_KEY' => 'pk_test_your_stripe_publishable_key',
             'STRIPE_SECRET' => 'sk_test_your_stripe_secret_key',
@@ -548,21 +552,41 @@ class InstallNumerosisCommand extends Command
         }
     }
 
-    private function verifyAppDomain(): void
+    /**
+     * Replaces the former `verifyAppDomain()`/`verifyCentralDefaultDomain()`,
+     * which checked `app.domain` and `app.central.default` — keys this
+     * package invented inside Laravel's own config/app.php and therefore
+     * could not supply a default for. They live under `numerosis.domains.*`
+     * now and default off `APP_URL`, so "unset" is no longer reachable
+     * through the package's own config file.
+     *
+     * It is still reachable one way, which is why this check survives at all:
+     * a host holding a **published** copy of config/numerosis.php from before
+     * these keys existed. Laravel's `mergeConfigFrom()` merges only one level
+     * deep, so the host's older `domains` array wins wholesale and the new
+     * keys are simply absent — the same silent-loss shape D13 documents for
+     * the deleted numerosis-billing/tenancy config files. The failures that
+     * produces are worth naming: `Config::string()` throws on a missing key
+     * rather than defaulting, taking out tenant creation and both panel
+     * domain screens; and `Route::domain(null)` is a *getter* branch
+     * returning the route's current domain string instead of `$this`, so
+     * routes/auth.php fails one line later as
+     * "Call to a member function name() on string".
+     */
+    private function verifyDomainConfig(): void
     {
-        $domain = Config::get('app.domain');
+        foreach (['apex', 'central'] as $key) {
+            $value = Config::get("numerosis.domains.{$key}");
 
-        if (! is_string($domain) || $domain === '') {
-            $this->failures[] = "config('app.domain') is unset — DefaultTenantDomainPolicy and CreateTenantDomain read it with Config::string(), which throws rather than defaulting, so tenant creation and the panel's domain screens both break.";
+            if (! is_string($value) || $value === '') {
+                $this->failures[] = "config('numerosis.domains.{$key}') is unset. The package ships a default derived from APP_URL, so this almost always means config/numerosis.php was published before this key existed — re-publish it with `php artisan vendor:publish --tag=numerosis-config --force`, re-applying your own edits.";
+            }
         }
-    }
 
-    private function verifyCentralDefaultDomain(): void
-    {
-        $domain = Config::get('app.central.default');
+        $pattern = Config::get('numerosis.domains.tenant_pattern');
 
-        if (! is_string($domain) || $domain === '') {
-            $this->failures[] = "config('app.central.default') is unset — routes/auth.php calls ->domain(...) with it, and Route::domain(null) is a getter, so the failure surfaces one line later as 'Call to a member function name() on string'.";
+        if (! is_string($pattern) || ! str_contains($pattern, '{tenant}')) {
+            $this->failures[] = "config('numerosis.domains.tenant_pattern') must contain the literal '{tenant}' placeholder — Filament's ->tenantDomain() substitutes it, and a pattern without it routes every tenant to the same host.";
         }
     }
 

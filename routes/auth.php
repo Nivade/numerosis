@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Social\SocialLoginFeature;
 use Nvade\Numerosis\Http\Controllers\Socialite as Social;
@@ -10,14 +11,13 @@ use Nvade\Numerosis\Livewire\Auth\PasswordlessLogin;
 use Nvade\Numerosis\Livewire\Auth\Register;
 use Nvade\Numerosis\Livewire\Auth\ResetPassword;
 use Nvade\Numerosis\Support\Features;
-use Illuminate\Support\Facades\Route;
 
 if (Features::enabled(SocialLoginFeature::NAME)) {
     Route::get('/oauth/{driver}/callback', Social\Login::class)
         ->name('oauth.callback');
 
     Route::get('/oauth/{driver}', Social\Redirect::class)
-        ->domain(config('app.central.default'))
+        ->domain(config('numerosis.domains.central'))
         ->name('oauth');
 }
 

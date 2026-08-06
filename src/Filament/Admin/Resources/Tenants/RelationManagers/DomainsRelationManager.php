@@ -28,7 +28,7 @@ class DomainsRelationManager extends RelationManager
                 TextInput::make('id')
                     ->label('Subdomain')
                     ->prefix('https://')
-                    ->suffix('.'.Config::string('app.domain'))
+                    ->suffix('.'.Config::string('numerosis.domains.apex'))
                     ->columnSpanFull()
                     ->maxLength(255),
             ]);

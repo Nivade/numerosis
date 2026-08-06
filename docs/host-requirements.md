@@ -109,18 +109,44 @@ API call:
 
 ## `config/app.php`
 
-Ordinary framework file, entirely host-owned — except one non-obvious key
-`routes/auth.php` reads directly:
+**Nothing.** Ordinary framework file, entirely host-owned, and this package no
+longer reads a single key out of it beyond `app.name`/`app.url`/`app.env`,
+which Laravel defines itself.
+
+It used to require five: `app.domain`, `app.host` and
+`app.central.{domain,default,subdomain}`. Those were package keys living in a
+framework file, which had two costs worth remembering if anyone is tempted to
+add a sixth. First, `mergeConfigFrom()` can only supply defaults for a
+package's *own* config file, so keys placed in `config/app.php` can have no
+default at all — every consumer had to hand-edit Laravel's config, and
+`numerosis:install` could only *check* for them and describe the resulting
+error. Second, they drifted: `app.domain` derived from `env('DOMAIN')` while
+`app.host` derived from `env('DOMAIN_NAME').'.'.env('DOMAIN_EXTENSION')`, and
+`Domain::getUrl()` read the second while `CreateTenantDomain` and
+`DefaultTenantDomainPolicy` read the first — so a tenant's stored domain and
+its generated URL could name different hosts with nothing comparing them.
+
+They are `config/numerosis.php`'s `domains` block now; see the section below.
+
+## `config/numerosis.php` — `domains`
+
+Package-owned, with defaults derived from `APP_URL`
+(`Nvade\Numerosis\Support\Domains`), so **a host that sets none of these still
+boots**. Override through the env keys when the derivation is wrong for your
+deployment.
 
 | Key | Required value / shape | Why | Checked by |
 |---|---|---|---|
-| `domain` | the bare apex domain the app serves, e.g. `example.com` | read with `Config::string('app.domain')` by `DefaultTenantDomainPolicy`, `CreateTenantDomain` and two Filament tenant screens. `Config::string()` throws `InvalidArgumentException` on a missing key rather than returning a default, so an unset key takes out tenant creation *and* the panel screens that list domains. | `verifyAppDomain()` |
-| `central.default` | the central app's own hostname, e.g. `'central.'.env('DOMAIN')` | `routes/auth.php`'s OAuth redirect route calls `Route::get(...)->domain(config('app.central.default'))->name('oauth')`. Leaving this key unset doesn't throw where it's read: `Illuminate\Routing\Route::domain(null)` is a *getter* branch, returning the route's current domain string instead of `$this`, so the failure surfaces one line later as `Call to a member function name() on string` — reads like a routing bug in the package, is a missing host config key. | `verifyCentralDefaultDomain()` |
+| `domains.apex` (`NUMEROSIS_APEX_DOMAIN`) | the registrable domain tenant subdomains hang off, e.g. `example.com` | Read by `DefaultTenantDomainPolicy`, `CreateTenantDomain`, `Domain::getUrl()` and two Filament tenant screens. The default strips the leading label from `APP_URL`'s host when it has three or more labels — correct for `app.example.com`, and correct by luck of label count for `app.example.co.uk`, but **wrong for a two-label-suffix domain served at its apex** (`example.co.uk` would reduce to `co.uk`). Set this explicitly on such a domain; doing it properly needs the Public Suffix List, which is not worth a dependency for a default. | `verifyDomainConfig()` |
+| `domains.central` (`NUMEROSIS_CENTRAL_DOMAIN`) | the hostname the central app answers on, e.g. `app.example.com` | `routes/auth.php`'s OAuth redirect route calls `Route::get(...)->domain(config('numerosis.domains.central'))->name('oauth')`. If this is ever null, the failure does not surface where it is read: `Illuminate\Routing\Route::domain(null)` is a *getter* branch returning the route's current domain string instead of `$this`, so it fails one line later as `Call to a member function name() on string` — reads like a routing bug in the package. Defaults to `APP_URL`'s host verbatim. | `verifyDomainConfig()` |
+| `domains.tenant_pattern` (`NUMEROSIS_TENANT_DOMAIN`) | must contain the literal `{tenant}`, e.g. `{tenant}.example.com` | Passed to Filament's `->tenantDomain()`, which substitutes the placeholder. A pattern without it routes every tenant to the same host. Defaults to `'{tenant}.'.domains.apex` — **not** `APP_URL`'s host, which may carry the central subdomain and would put every tenant one level too deep. | `verifyDomainConfig()` |
 
-`central.domain` / `central.subdomain` are also referenced by
-`config/numerosis.php`'s example default for `NUMEROSIS_TENANT_DOMAIN` — see
-`.env.example`'s `DOMAIN`/`CENTRAL_SUBDOMAIN` keys, which is what those
-values normally derive from.
+**A host that published `config/numerosis.php` before these keys existed loses
+them silently.** `mergeConfigFrom()` merges one level deep, so an older
+`domains` array wins wholesale and the new keys are simply absent — the same
+shape D13 records for the deleted `numerosis-billing`/`numerosis-tenancy`
+files. `verifyDomainConfig()` exists for exactly that case; re-publish with
+`--tag=numerosis-config --force` and re-apply your edits.
 
 ## `database/seeders/DatabaseSeeder.php` — the host's own file
 

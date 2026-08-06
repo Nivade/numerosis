@@ -84,7 +84,7 @@ class InterviewShowcaseTest extends TestCase
 
         // 4. Assert: Central State
         $this->assertDatabaseHas('tenants', ['id' => $tenantDomain]);
-        $this->assertDatabaseHas('domains', ['domain' => $tenantDomain.'.'.Config::string('app.domain')]);
+        $this->assertDatabaseHas('domains', ['domain' => $tenantDomain.'.'.Config::string('numerosis.domains.apex')]);
         $this->assertDatabaseHas('subscriptions', [
             'subscribable_id' => $tenantDomain,
             'stripe_status' => 'active',

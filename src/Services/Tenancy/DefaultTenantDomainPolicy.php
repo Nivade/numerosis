@@ -41,7 +41,7 @@ class DefaultTenantDomainPolicy implements TenantDomainPolicy
 
         $domainClass = Numerosis::model(Domain::class);
 
-        if ($domainClass::where('domain', $domain.'.'.Config::string('app.domain'))->exists()) {
+        if ($domainClass::where('domain', $domain.'.'.Config::string('numerosis.domains.apex'))->exists()) {
             throw ValidationException::withMessages([
                 'domain' => 'This domain is already taken.',
             ]);

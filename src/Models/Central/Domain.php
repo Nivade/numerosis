@@ -57,7 +57,7 @@ class Domain extends \Stancl\Tenancy\Database\Models\Domain
 
     public function getHost(): string
     {
-        return $this->id.'.'.Config::string('app.host');
+        return $this->id.'.'.Config::string('numerosis.domains.apex');
     }
 
     /**

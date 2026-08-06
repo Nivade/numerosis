@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Resources\Tenants\Pages;
 
-use Nvade\Numerosis\Filament\Admin\Resources\Tenants\TenantResource;
-use Nvade\Numerosis\Models\Central\Tenant;
 use Exception;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
+use Nvade\Numerosis\Filament\Admin\Resources\Tenants\TenantResource;
+use Nvade\Numerosis\Models\Central\Tenant;
 use RuntimeException;
 
 class CreateTenant extends CreateRecord
@@ -36,7 +36,7 @@ class CreateTenant extends CreateRecord
 
             try {
                 $record->domains()->create([
-                    'domain' => $domain.'.'.Config::string('app.domain', 'localhost'),
+                    'domain' => $domain.'.'.Config::string('numerosis.domains.apex'),
                 ]);
             } catch (Exception $e) {
                 throw new RuntimeException('Failed to create domain for tenant: '.$e->getMessage(), $e->getCode(), $e);

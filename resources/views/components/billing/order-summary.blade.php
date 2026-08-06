@@ -33,7 +33,7 @@
                 {{ $plan->name }} plan
             </x-numerosis::ui.text>
             <x-numerosis::ui.text variant="subtle" size="xs" class="mt-1 truncate">
-                {{ $domain }}.{{ config('app.domain') }}
+                {{ $domain }}.{{ config('numerosis.domains.apex') }}
             </x-numerosis::ui.text>
         </div>
 

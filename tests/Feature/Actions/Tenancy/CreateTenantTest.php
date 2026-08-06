@@ -49,7 +49,7 @@ class CreateTenantTest extends TestCase
         // explicitly rather than relying on incidental query ordering.
         $this->assertDatabaseHas('tenants', ['id' => $tenantId], 'central');
         $this->assertDatabaseHas('domains', [
-            'domain' => $tenantId.'.'.Config::string('app.domain'),
+            'domain' => $tenantId.'.'.Config::string('numerosis.domains.apex'),
             'tenant_id' => $tenantId,
         ], 'central');
         $this->assertFalse($user->tenants()->where('tenants.id', $tenantId)->exists());
@@ -108,7 +108,7 @@ class CreateTenantTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('domains', [
-            'domain' => $tenantId.'.'.Config::string('app.domain'),
+            'domain' => $tenantId.'.'.Config::string('numerosis.domains.apex'),
             'tenant_id' => $tenantId,
         ]);
 

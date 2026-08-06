@@ -38,7 +38,7 @@ class ProvisionTenantTest extends TestCase
         $this->assertDatabaseHas('tenants', ['id' => 'provisionme']);
         $this->assertDatabaseHas('domains', [
             'tenant_id' => 'provisionme',
-            'domain' => 'provisionme.'.Config::string('app.domain'),
+            'domain' => 'provisionme.'.Config::string('numerosis.domains.apex'),
         ]);
     }
 

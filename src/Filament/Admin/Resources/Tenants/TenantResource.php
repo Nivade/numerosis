@@ -62,7 +62,7 @@ class TenantResource extends Resource
                         ->visible(fn ($context) => $context === 'create')
                         ->unique(table: 'domains', ignoreRecord: true)
                         ->prefix('https://')
-                        ->suffix('.'.Config::string('app.domain')),
+                        ->suffix('.'.Config::string('numerosis.domains.apex')),
                     TextInput::make('email')->email(),
                     TextInput::make('phone')->tel(),
                     TextInput::make('mobile')->tel(),
