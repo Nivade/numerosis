@@ -49,6 +49,23 @@ updated: 2026-07-31
   behaviour that depends on callback order needs re-checking the same way
   when ported.
 
+- **A view test that renders a component from a `suggest`-only package
+  asserts nothing, and passes.** Blade leaves an unregistered
+  `<flux:button …>` as literal text rather than erroring, so
+  `assertSee('/oauth/google')` fails while `assertDontSee(...)` passes
+  *vacuously* — the file reads like one broken assertion in an otherwise
+  working test. Moving `livewire/flux` to `require-dev` in numerosis turned
+  1 failure into 5, every one of them a real bug the literal rendering had
+  been hiding (an unset `auth.social.routes.*` reaching `route()` as
+  `route(null)`; four Lucide icons the package shipped under the wrong view
+  namespace). **If package code renders another package's components, that
+  package belongs in `require-dev` even when it is `suggest` for
+  consumers** — otherwise the view suite is measuring string literals.
+  Same family as the `ArchTest` that scanned `base_path('app')` under
+  Testbench: empty directory, zero assertions, reported *risky* rather than
+  failing. Treat "risky" and "one odd failure in a green file" as the same
+  signal — an assertion that never ran.
+
 - **`assertDatabaseHas()`/`assertDatabaseMissing()` default to the *default*
   connection, which under `RefreshDatabase` is a transaction — a central-connection
   write (autocommit, see above) is invisible to it under MySQL's REPEATABLE-READ
