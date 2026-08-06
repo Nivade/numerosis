@@ -22,14 +22,14 @@ Overwrite this block; never append.
 
 | | |
 |---|---|
-| Session | 2026-08-07 (review session — **Phase 1 and Phase 2 done**) |
-| numerosis | `8ce9a16`, clean. Phase 2: deleted `src/Numerosis.php` and `NumerosisCommand`, fixed stale D13 comment, collapsed `numerosis-stubs`→`numerosis-models`, rewrote README status block |
-| thin-app | `9533af4`, dirty only with pre-existing unrelated `docker-compose.yml`/`app.css`/`vite.config.js` edits + untracked `public/{css,js,fonts}` build output |
+| Session | 2026-08-07 (review session — **Phase 1, Phase 2, Phase 3 done**) |
+| numerosis | `3de87a3`, clean. Phase 3: added `Numerosis::broadcastChannelsPath()`, deleted dead `Facades\Numerosis` (0 real callers, alias dropped from `composer.json`), added `NumerosisSeamTest` (7 tests, every assertion mutation-verified) |
+| thin-app | `ce200ca`, dirty only with pre-existing unrelated `docker-compose.yml`/`app.css`/`vite.config.js` edits + untracked `public/{css,js,fonts}` build output. `bootstrap/app.php` now has zero `vendor/nvade` strings; live `GET /login` with correct `Host:` header confirmed 200 |
 | saas-m | frozen, untouched. Archive still pending explicit user go-ahead (task 6.3). **Its `.claude/rules/` copies are now 3 files behind numerosis** — left alone deliberately, the repo is frozen and about to be archived |
-| Package suite | **408 passed / 7 skipped / 1 failed in 57.5s**, measured 2026-08-07 after Phase 2. The 1 failure (`RegisterTenantTest` missing `livewire.js` in response) is **pre-existing** — reproduced identically against `git stash` before Phase 2's changes, unrelated to this session |
+| Package suite | **415 passed / 7 skipped / 1 failed in 55.2s**, measured 2026-08-07 after Phase 3 (408 + 7 new seam tests). The 1 failure (`RegisterTenantTest` missing `livewire.js` in response) is **pre-existing**, unchanged from Phase 2 baseline |
 | PHPStan | **clean**, baseline unchanged |
 | thin-app suite | **does not exist.** `tests/{Feature,Unit}/ExampleTest.php` only; Pest not installed; no `.github/` |
-| Next | **Phase 3** — close the last host seam (`broadcastChannelsPath()`, facade decision, seam tests) |
+| Next | **Phase 4** — verification that survives install day (`numerosis:install --check`, failure-path tests, config schema version) |
 
 Prerequisites: `cd ~/repos/private/numerosis && docker compose up -d`, then
 `vendor/bin/pest --ci`, `composer analyse`, `vendor/bin/pint --dirty --format
@@ -211,7 +211,7 @@ All independent of Phase 1 and of each other. Safe to do first if 1.1 stalls.
 
 ---
 
-## Phase 3 — Close the last host seam
+## Phase 3 — Close the last host seam — **DONE 2026-08-07 (`numerosis@3de87a3`, `thin-app@ce200ca`)**
 
 ### 3.1 `Numerosis::broadcastChannelsPath()`
 
