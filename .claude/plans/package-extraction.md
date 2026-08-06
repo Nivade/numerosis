@@ -4,182 +4,577 @@
 repo, the exact command, what "done" looks like, and what to do when it fails.
 Do not improvise past a step's text. When a step says STOP, stop and ask.
 
-**Status 2026-08-04:** Phase 0 ✅ complete. Phase 1: steps 1.1-1.7 ✅ done
-(verified + two bugs fixed: 1.5 dropped the `tenant-registration` Livewire
-component; 1.4's `tenant_pattern` default parsed `APP_URL`'s host, which
-includes the central subdomain, instead of matching `env('DOMAIN')`). 1.7
-split `config/billing.php` into `config/numerosis-tenancy.php`
-(provisioning steps, `TenantDomainPolicy`/`ProvisionsTenant` bindings, bound
-from `TenancyServiceProvider::register()`) and `config/numerosis-billing.php`
-(everything else, bound from `BillingServiceProvider::register()` as
-before); `config/billing.php` deleted. 1.8 wrote
-`~/repos/private/numerosis/DEPENDENCIES.md` (all 31 saas-m `require` entries
-triaged, each with exactly one verdict — verified programmatically). **Phase
-1 complete.**
+**This file is canonical and lives in numerosis** (D11). saas-m and thin-app
+hold a pointer, not a copy. Dated session notes belong in
+`package-extraction-log.md`, never here — this file is overwritten, that one
+is appended to.
 
-Phase 2: 2.1 done —
-`App\Features\Ui\{AdminPanel,TenantPanel}Feature` gate their panel
-providers' `register()` (skip `Filament::registerPanel()`, since
-bootstrap/providers.php can't read config that early — provider's own
-`register()` can); `App\Features\Tenancy\MembershipsFeature` gates
-`UserResource::canAccess()`/`shouldRegisterNavigation()`, same
-directory-discovery trap as `ModuleResource`/`Marketplace`. All three
-registered in `config('numerosis.features')`.
+Read the **Live status** and **Steps to proceed** blocks below, then the
+Decisions section. `Plan review` (R1-R10) holds reasoning for decisions
+already taken; R1-R4 are **closed** by D8-D13.
 
-2.2 done, following the existing `tests/Feature/Features/*FeatureTest.php` +
-`*DisabledTest.php` pair convention (14 files already there) instead of the
-plan's single `FeatureIsolationTest.php` — codebase already had the
-per-feature-pair pattern established, so matched it rather than introducing
-a second style. Added: `AdminPanelFeatureTest`/`AdminPanelDisabledTest`
-(assert `'admin'` key present/absent in `Filament::getPanels()` —
-`FilamentManager` has no `hasPanel()`), `TenantPanelFeatureTest`/
-`TenantPanelDisabledTest` (same, `'tenantAdmin'` key), `MembershipsFeatureTest`/
-`MembershipsDisabledTest` (`UserResource::canAccess()`, gated by `UserPolicy`
-having no `viewAny` — test user needs `viewAny users` permission granted via
-`Permission::firstOrCreate(['name' => 'viewAny users', 'guard_name' =>
-'tenant'])`, same pattern as `MarketplaceTest`). Disabled-test for Memberships
-force-enables `TenantPanelFeature` alongside disabling Memberships — forcing
-`[]` entirely made `actingAsTenantPanelUser()` throw before reaching the
-assertion, since `Filament::getPanel('tenantAdmin')` requires the panel
-feature on. All 6 new tests pass; Pint clean; PHPStan unchanged (3
-pre-existing errors, none in new files). **Phase 2 complete.**
+---
 
-`~/repos/private/thin-app` does not exist yet.
+## Live status
 
-**Phase 3, 2026-08-05:** 3.1 done — `App\Support\Numerosis` gained
-`routes()`, `broadcasting()`, `csrfExceptions()`, `middleware(Middleware
-$middleware)`, bodies moved verbatim from `bootstrap/app.php`. `bootstrap/app.php`
-now calls all four; `withMiddleware()` still calls
-`$middleware->preventRequestForgery(except: Numerosis::csrfExceptions())`
-itself rather than folding that call into `Numerosis::middleware()`, per the
-plan's own reasoning (except-list is the one piece a consumer is likely to
-extend). Pint clean; PHPStan unchanged (3 pre-existing errors, none touching
-either changed file).
+Overwrite this block; never append to it. Fifteen lines, hard limit.
 
-**Full-suite check found the plan's step-done criterion stale, not my
-change:** working tree already carried a large uncommitted diff *before*
-Phase 3 started (see `git status` — billing/tenancy renames, feature classes,
-config split), so "still 9 failures" (0.4's clean-master baseline) was never
-the right comparison here. Full run showed **22 failed, 1 skipped, 409
-passed**. Isolated by `git stash push -- app/Support/Numerosis.php
-bootstrap/app.php` and re-running the failing subset
-(`RegistrationWizardDisabledTest`, `CentralModelPolicyResolutionTest`,
-`ConnectSocialAccountTest`, `RecordSubscriptionTest`, `ActivityLogDisabledTest`)
-— identical 8 failed/7 passed with Phase 3's two files reverted, so none of
-the 22 trace to this step; stash popped, Phase 3 changes restored.
-**Dug into and fixed, 2026-08-05.** All 22 traced to five root causes, none
-caused by Phase 1-3 work — every failing file was unmodified against `HEAD`
-(`ddd7c35`), so this was pre-existing breakage on `master` itself that had
-just never been measured with a full run since landing:
+| | |
+|---|---|
+| Phase | 6 (package harness) in progress; 7.1-7.4 done ahead of it per D10 |
+| numerosis | `6718d5d`, clean |
+| thin-app | `41bcd57`, clean, boots to `ViteManifestNotFoundException` (Phase 9 boundary, expected) |
+| saas-m | frozen at `c66cc72`; only `.claude/` pointers change here |
+| Package suite | 32 failed / 327 passed / 7 skipped / 1 risky — measured 2026-08-06 at `92d120f`, **not re-bucketed since D9 closed** |
+| PHPStan | clean against a 240-entry baseline (`--debug --memory-limit=1G` required) |
+| Resume at | Step 1 below |
 
-1. **`assertDatabaseHas()` blind spot on `central`-connection tables (4
-   failures, `ConnectSocialAccountTest` + `RecordSubscriptionTest`).** Models
-   using `CentralConnection` commit immediately on a different named
-   connection than the test's `RefreshDatabase` transaction (default
-   connection), and MySQL's REPEATABLE-READ snapshot on that transaction
-   predates the commit — "table is empty" is a snapshot artifact, not a
-   missing row. Fixed by passing `'central'` as the explicit connection arg.
-   Not documented anywhere before this — added as a new case to
-   `.claude/rules/testing.md` (TODO: not yet written — see follow-up below).
-2. **Test bug (1 failure, `RegistrationWizardDisabledTest`).** `Features::
-   forceForTesting([])` disabled every feature including `MarketingPagesFeature`,
-   which gates the `features` route the same test asserts still renders.
-   Fixed: force everything except `RegistrationWizardFeature` explicitly.
-3. **Test contradicted a documented, deliberately-deferred gap (1 failure,
-   `CentralModelPolicyResolutionTest`).** Asserted `Gate::getPolicyFor(CentralUser::class)`
-   resolves `UserPolicy` — but `auth-guards.md` records this as accepted,
-   unresolved (moving `#[UsePolicy]` onto the shared base needs a real
-   decision, not a silent slip-in while fixing tests). Fixed the test to
-   assert the current, documented behavior (`assertNull`) instead of
-   implementing the deferred fix myself.
-4. **Real app bug, not a test bug (14 failures, `ChatPanelTest` +
-   `ChannelViewTest`).** `ChatServiceProvider::boot()` calls `Livewire::
-   addComponent(name:, viewPath:, class:)` with both `viewPath` and `class`
-   set — but `Livewire\Finder\Finder::addComponent()` only stores one of the
-   two (`if ($class !== null) {...} elseif ($viewPath !== null) {...}`), so
-   `viewPath` is silently dropped whenever `class` is also given. Livewire
-   then falls back to its own naming convention, which resolves against the
-   host app's `resources/views/`, not the module's — `FileNotFoundException`,
-   not a missing-registration error. (The test files' use of a `⚡` SFC marker
-   in the component name turned out to be a red herring — Livewire's `Finder`
-   already strips that character before building the lookup path, so it
-   never was the mismatch.) Fixed: added an explicit `render(): View` to
-   `ChatPanel`, `ChannelView`, `StatusPicker` returning `view('chat::livewire.*')`
-   — the `chat::` namespace is already auto-registered by `internachi/modular`
-   per-module, confirmed via `view()->exists('chat::filament.topbar-button')`.
-   Trimmed the now-dead `viewPath:` args from `ChatServiceProvider::boot()`.
-5. **Same bug as #2, surfaced later (1 failure, `ActivityLogDisabledTest`,
-   masked by lock-wait noise in the first full run).** Same `forceForTesting([])`
-   blast-radius trap — killed `TenantPanelFeature` too, so `Filament::
-   getPanel('tenantAdmin')` returned null before the plugin check ran. Fixed
-   the same way: force everything except `ActivityLogFeature`.
+Suite prerequisites: `docker start saas-m-mysql-1` (numerosis's harness points
+at `127.0.0.1:3306`), and `php -d memory_limit=1G vendor/bin/pest`.
 
-All five fixes verified individually, then Pint (clean) + PHPStan (same 3
-pre-existing errors, none in touched files) + full suite:
-**1 failed, 1 skipped, 430 passed** — one remaining `SQLSTATE 1205` lock-wait
-failure, `CentralModelPolicyResolutionTest::test_a_central_user_without_permissions…`.
+---
 
-**That one turned out fixable too, not just "known-flaky."** Root cause,
-specific to this test: `RoleAndPermissionSeeder` wrote `Role`/`Permission`
-rows via the *default* connection (ambient, no override) inside
-`RefreshDatabase`'s open, uncommitted transaction; `PromoteFirstCentralUserToAdmin`
-then called `$user->assignRole()` on a `CentralUser`, whose `model_has_roles`
-pivot insert goes through `CentralUser`'s own `central` connection — and that
-insert's FK check needs a shared lock on the very `roles` row the default
-connection was still sitting on, uncommitted, for the rest of the test.
-Guaranteed block every run, not timing luck. Fixed by pinning
-`RoleAndPermissionSeeder`'s writes to the `central` connection explicitly
-(`Role::on($central)`/`Permission::on($central)`) — safe specifically because
-this seeder only ever writes `guard_name = 'web'` rows, which
-`auth-guards.md` establishes as central-guard by definition; `Role`/`Permission`
-themselves stay ambient-connection (still used in tenant context via
-`SpatiePermissionsBootstrapper`), so nothing broader changed. Seeding via
-`central` commits immediately (autocommit) — nothing left to block on.
-`TestCase::recordCentralWrites()`/`deleteCentralWrites()` already tracks and
-cleans up *any* table written via the central connection generically, so this
-didn't need new teardown wiring.
+## Steps to proceed
 
-Fixing the lock cleared the way to a **second, previously-masked bug** in the
-same test: `test_a_central_user_without_permissions_cannot_manage_users_roles_or_permissions`
-created exactly one `CentralUser`, and `CentralUserObserver::created()` →
-`PromoteFirstCentralUserToAdmin` auto-promotes whichever `CentralUser` is the
-*only* row in the central `users` table to the (now fully-permissioned)
-`admin` role — so the test's own "user" was actually being granted every
-permission it meant to assert the absence of. The failure had always just
-been swallowed by the lock-wait timeout before reaching that assertion.
-Fixed the same way `PromoteFirstCentralUserToAdminTest` already does it: a
-decoy `CentralUser::factory()->create()` before the one under test, so the
-real subject is never "the first" central user.
+Done in order. Each is independently committable; commit at every
+green-or-better point (R6) — never end a session with an uncommitted tree.
 
-Verified with the specific test (4/4 green), then Pint (clean) + PHPStan
-(same 3 pre-existing errors) + one more full run: **0 failed, 1 skipped, 431
-passed.** Tree is genuinely clean now — not "known-failures accepted," fully
-green. This is a stronger baseline than 0.4's documented "9 failures" ever
-was; worth updating that section once this work is committed.
+1. **`numerosis:install` must set `numerosis.models.*`.** It publishes the
+   model stubs and never points config at them, so a fresh consumer gets the
+   class-string mismatch that shows up as `SQLSTATE 1205`, i.e. reads as the
+   documented lock-wait bucket rather than as a config gap (found in
+   `92d120f`'s harness, same gap applies to any host). Decide the mechanism
+   against what the command already does for its 6 `.env` keys. **Done when:**
+   a fresh publish-then-install leaves `numerosis.models` pointing at the
+   published stubs, or fails loudly saying it doesn't.
 
-Both bug classes now written into `.claude/rules/testing.md` — (1) the
-`assertDatabaseHas()`-on-`central`-tables snapshot-isolation trap, distinct
-from the teardown-only central-connection issue already documented there,
-and (2) the cross-connection seeding-vs-FK-check lock (pin seeding side's
-connection to match the writing side's), in case the general ~9-site class
-resurfaces elsewhere.
+2. **Close R9 with a test, not discipline.** One test parses
+   `docs/host-requirements.md`'s tables and asserts every key it names has a
+   matching assertion in `InstallNumerosisCommand`. Then add the six
+   assertions that are currently missing (`app.domain`, `app.central.default`,
+   `auth.passwords.users`, `auth.social.providers`,
+   `livewire.component_namespaces`, `database.lock_wait_timeout`).
+   **Done when:** the test fails if a row is added to the doc and nowhere else.
 
-3.2 done — `~/repos/private/numerosis/docs/host-requirements.md` written:
-per-file table (`config/tenancy.php`, `database.php`, `auth.php`,
-`session.php`, `filesystems.php`+`livewire.php`, `cashier`/`permission`/
-`broadcasting`) of exactly which keys the host must own and why, reasons
-copied from the relevant `.claude/rules/*.md` files. **Phase 3 complete.**
+3. **Re-bucket the remaining failures from scratch.** The old ~29 Stripe and
+   ~17 `Unknown database` estimates are both stale — D9 closed Stripe, and
+   `92d120f`'s model-config fix absorbed an unknown share of what was filed
+   under contention. Get a fresh per-cause breakdown *before* deciding whether
+   the `DB::listen`-with-connection-name diagnosis is still needed.
+   **Done when:** every remaining failure is attributed to a named cause with
+   a decision attached, in this file's Live status.
 
-The 22-failure dirty tree is also resolved now (see above) — full suite is
-**0 failed, 1 skipped, 431 passed**, genuinely green, not just down to the
-accepted lock-wait baseline. Rules write-up done. Next: commit Phase 1-3
-work, then Phase 4 (freeze, copy, rename) — 4.0's precondition (clean tree,
-suite green) is now met.
+4. **Audit convention-based registration, as an executable artifact.**
+   Enumerate what the monolith got for free from `app/`: event discovery
+   (fixed), policies, Livewire component names, Blade view namespace and
+   components, factory guessing, migration paths, translations, commands,
+   broadcast channels, morph map. Land it as arch tests plus a
+   `numerosis:doctor` command — not a one-off pass, since this class has
+   already bitten five times in five different shapes.
 
-**Phase 4 started 2026-08-05.** saas-m frozen as of commit `c66cc72`
-(numerosis Phase-0 skeleton config committed separately, `676a702`). From
-this point saas-m is read-only per 4.1 — no further feature work or fixes
-land here; anything needed goes into numerosis or thin-app instead.
+5. **Arch test for D12's premise.** Fail on any bare `X::method()` static call
+   against the 9 models inside `src/` that bypasses `Numerosis::model()`.
+   Models are concrete now, so a bypass no longer crashes — it silently
+   ignores the host's override, which is *quieter* than the bug it replaced.
+   `pest-plugin-arch` is already installed.
+
+6. **Phase 6.6 — R8's Phase-5 debt**, gated behind a green suite. Rewire the
+   5 contracts' call sites (they are decorative today: swapping a binding
+   changes nothing); redo the 6 deleted traits with the suite to verify;
+   export `Testing\InteractsWithTenantPanel` **and** the Stripe fake
+   (`FakeStripeHttpClient`/`FakesStripe`, currently under `tests/Support`)
+   from `src/Testing/` — thin-app's Phase 7.5 tests need both, and a copy is
+   how they drift.
+
+7. **Make the numbers reproducible off this machine.** Add a MySQL service to
+   `.github/workflows/run-tests.yml` (6.1 required it; the workflow still
+   says it lands "with the tenancy harness (Phase 8)"), give numerosis its own
+   compose MySQL instead of borrowing `saas-m-mysql-1` from the repo being
+   archived, and bake `memory_limit=1G` into `phpunit.xml.dist` and the
+   composer `test`/`analyse` scripts so exit 255 stops being re-derived every
+   session.
+
+Then Phase 6's exit gate (R2), which is three conditions, not one: zero
+failures, PHPStan baseline not grown, and every `thin-app`-group exclusion
+traceable to a row in R2's table. Then 7.5 → 8 → 9 → 10.
+
+---
+## Decisions taken — 2026-08-05 (supersede R1-R4; do not re-open)
+
+Four decisions, made by the user after the review below. They are decisions
+**8-11** in the 1.2 "already made" list; the review text they resolve is kept
+underneath for its reasoning, not as an open question.
+
+### D8 — Package models become concrete. Abstract is dropped. (resolves R1)
+
+The 9 abstract models revert to concrete classes. A host that wants its own
+subclass points **config** at it, exactly as stancl and Cashier already do —
+about 9 config reads, instead of 108 `Numerosis::model()` call sites that
+nothing enforces. Six distinct instantiation-by-proxy shapes were found by
+running code, each after the previous sweep was declared complete; that is the
+evidence this decision rests on.
+
+Migration, in this order — it is a mechanical pass, but the order matters:
+
+1. Drop `abstract` from the 9 classes in `src/Models/`. Re-declare nothing:
+   `#[UsePolicy]`/`#[UseFactory]` attributes stay where they already are.
+2. Delete the 108 `Numerosis::model(X::class)` wrappers, reverting each to a
+   plain `X::` call / relation argument / class-string. Grep pattern:
+   `Numerosis::model(` across `src`, `resources`, `database`, `tests`.
+3. Keep `Numerosis::model()` itself, reduced to **config lookup only**, for
+   the ~9 places that genuinely honour a host override (Cashier's three
+   `use*Model()` calls, stancl's `tenancy.*_model` keys, `getCentralModelName()`
+   /`getTenantModelName()`). It must no longer derive class names by string
+   convention — that convention is what silently disagreed with config.
+4. Model stubs (`stubs/Models/**`, the `numerosis-models`/`numerosis-stubs`
+   publish groups) become **optional convenience**, not a precondition for the
+   package booting. `numerosis:install` must stop implying they are required.
+5. The ~100 test files whose `use` lines were sed-rewritten from the package
+   namespace to `App\Models\…` should keep working (the stubs still extend the
+   package classes) — but the Workbench stubs are now one valid host shape
+   among several, not the only way the package runs. Add one test that boots
+   the package with **no** stubs published at all; that is the case the
+   abstract design made impossible and the case a fresh consumer actually hits.
+6. `factoryNameFor()`/`modelNameFor()` keep their jobs, but `modelNameFor()`'s
+   "package model is abstract, so fall back to the host namespace" branch goes
+   away with the abstractness.
+
+Expect this pass to *remove* PHPStan errors (the generic `TModel` narrowing
+loss that `Numerosis::model()` introduced) rather than add them.
+
+### D9 — Stripe tests use an HTTP fake plus recorded fixtures (resolves R2's Stripe row)
+
+`Http::preventStrayRequests()` plus recorded response fixtures for the ~29
+tests that currently call the live API with a dummy key. Deterministic,
+offline, and a stray real call fails loudly instead of silently hitting
+Stripe. The ~6 tests that already `markTestSkipped()` on an unset key may keep
+that shape — they are integration tests by intent — but nothing new should be
+added in that style.
+
+### D10 — thin-app is stood up now, before Phase 6 finishes (resolves R3)
+
+Do 7.1-7.4 next: create the app, add the path repo, copy `docker/` + the
+framework configs + `bootstrap/app.php`, run `numerosis:install`. Rationale is
+in R3 — every host-seam bug so far was found by having a second consumer, and
+the Workbench harness is accumulating stand-ins whose only job is to imitate
+thin-app. Amended order of execution:
+
+`… → 5 → 6.1-6.2 → 7.1-7.4 → 6.3-6.6 → 7.5 → 8 → 9 → 10`
+
+### D11 — Plan and rules move to numerosis; saas-m keeps a pointer (resolves R4)
+
+`numerosis/.claude/` becomes canonical for both this plan and `rules/`.
+saas-m's copies are replaced by a one-line pointer. Do this **with** the
+INDEX line that Phase 10 currently defers: "bare commit hashes in these rules
+refer to the archived saas-m repo" — the rules already cite `c66cc72`,
+`ddd7c35`, `de06293`, `438f12f`, `549223e`, `6b8c78c` and nothing in numerosis
+explains where those live. thin-app gets a pointer too, not a third copy.
+
+**Executed 2026-08-06, with one deviation from the wording above.** The
+*plan* became a pointer in both saas-m and thin-app, as written — that file
+is what actually drifted for four sessions. The *rules* did not: all 12 files
+stay byte-identical in each repo, and each non-canonical `INDEX.md` gained a
+banner naming numerosis as canonical, plus the archived-hash line. Reason:
+deleting them buys nothing the banner doesn't (divergence is detectable by
+`diff -rq`, which is now clean apart from the two INDEX banners) and costs
+the archive its self-contained record, plus leaves anyone working in thin-app
+without the traps at hand. **If a rule ever needs changing, change
+numerosis's copy and re-copy — do not edit a non-canonical copy in place,
+and re-run `diff -rq` after.**
+
+### Taken from the rules files, not escalated
+
+- **Module tests** (~16): tag `->group('thin-app')`, exclude the group in
+  `phpunit.xml.dist`, and move them once D10's app exists. Not deleted —
+  `.claude/rules` and the Pest convention both forbid deleting tests without
+  approval, and quarantining is not deleting.
+- **Vite** (~15): stub the manifest in the package harness. Phase 9 already
+  says the host owns the build, so asserting on real built assets here tests
+  something the package does not own.
+- **PHPStan** (R7): add `tests` and `workbench` to `phpstan.neon.dist`'s
+  `paths`, then generate a baseline to freeze the current 295 errors, so new
+  errors fail immediately. `.claude/rules/static-analysis.md` is explicit that
+  this is what a baseline is for, and `testing.md` is explicit that excluding
+  `tests/` is how rename-drift hides — this extraction proved both again.
+
+### D12 — D8 amended: config-first resolver kept at every call site, not just ~9 (R1 reopened then reclosed, 2026-08-05)
+
+When step 1 below was actually executed, D8's option (b) was presented to
+the user as "consumer subclass reaches ~9 Cashier/stancl integration points
+but never the package's other ~70 internal call sites" — and the user
+paused to reopen R1 rather than accept that loss silently. A third option,
+not on the table when D8 was written, was chosen instead:
+
+**Models are concrete** (D8's core fix — no `abstract`, so no
+instantiation-by-proxy crash class, no stub-publish precondition), **but
+`Numerosis::model()` stays at all ~108 call sites and becomes config-first**
+instead of being deleted down to ~9 call sites. Default (no override) costs
+one `Config::get()` lookup and returns the package's own class unchanged —
+zero behavioural difference from a bare literal reference. A host that sets
+`numerosis.models.<FQCN>` redirects every one of those ~108 call sites to
+its subclass in one place, not just the framework-integration handful.
+
+Implemented in `numerosis@f665a96`:
+
+- `config/numerosis.php` gained a `'models'` array, one key per of the 9
+  models, each `env(...)`-driven, default `null` (⇒ package's own class).
+- `Numerosis::model()` rewritten: `Config::get("numerosis.models.{$model}")`,
+  returns the override if it's a string, else `$model` unchanged. No more
+  `ReflectionClass::isAbstract()` check (nothing is abstract) and no more
+  by-convention `app()->getNamespace()` guessing — config or nothing.
+- The ~108 call sites were **not touched** — they already call through
+  `Numerosis::model()` from prior sessions' work, which is exactly what this
+  design keeps. (A same-session detour reverted ~70 of them to literal
+  calls while pursuing D8's original option (b), then reverted *that* back
+  to the wrapper once the user chose this design — see the model file diffs
+  in `f665a96` for the net result: only the 9 model files' `abstract`
+  keyword and `config/numerosis.php`/`Numerosis.php` actually changed.)
+- `modelNameFor()` (the Factory→Model resolver, a *separate* mechanism from
+  `model()` — governs what a package factory builds, not what a package
+  call site references) had its host-fallback condition **fixed**, not left
+  alone: it used to trigger on "package model is abstract," which can no
+  longer ever be true. Retriggering on "does a host/workbench stub class
+  exist" was required to keep the ~100 sed-rewritten test files (typed
+  against `App\Models\Central\Tenant` etc, per D8 point 5) working — this
+  was found by running the suite (104 new-looking failures, all
+  `TypeError: Cannot assign … to property … of type App\Models\…`), not by
+  reasoning about the change in advance. **If this file is touched again:
+  `model()` and `modelNameFor()` solve different problems and must not be
+  collapsed into one — `model()` is call-site override, `modelNameFor()` is
+  factory-target resolution, and they can legitimately disagree (a factory
+  builds the stub even when no config override is set, because the stub
+  exists on disk).**
+
+Verified: full suite before/after this file's own change stayed within the
+same known-flaky range (89/104/149 across three runs of the *same* code —
+matches `testing.md`'s documented lock-wait/order contention, not this
+change); grepped explicitly for `Cannot instantiate abstract`/`TypeError`
+across all three runs, found none. PHPStan: 295 → 301, but diffed line by
+line against the pre-change list — 3 pre-existing `PaymentPlan::$id`
+errors were *fixed* (predicted by D8: narrowing improves once the model is
+concrete) and the only additions are 9 more instances of an
+`env()`-in-config warning this file already carried 5 of for its
+pre-existing `schedule`/`domains`/`cache` sections — not a new violation
+class. Pint clean.
+
+R1 is closed again by this decision; do not reopen a third time without
+new evidence, same as D8's original text asked.
+
+### D13 — One config file. The three-file split (1.7) is reversed. (2026-08-06)
+
+`config/numerosis-billing.php` and `config/numerosis-tenancy.php` are gone;
+their contents live in `config/numerosis.php` under nested `'billing'` and
+`'tenancy'` keys. Shipped as `numerosis@59f026f`; execution plan kept at
+`numerosis/.claude/plans/federated-wandering-wozniak.md`.
+
+**Nested, not flattened, because two keys genuinely collide.** `models` means
+per-model class overrides at the core level (D12's mechanism) and Cashier
+model bindings in billing; `implementations` exists in both billing and
+tenancy. Flat merge would have silently dropped one of each pair — the
+config-shaped version of exactly the drift this plan keeps finding elsewhere.
+
+Also removed: `BillingServiceProvider`/`TenancyServiceProvider` each ran their
+own `mergeConfigFrom()` plus a `publishes()` under `billing-config` /
+`tenancy-config`. Both tags were dead — `numerosis:install` only ever
+published `numerosis-config`, the tag `hasConfigFile()` emits — so the
+package had three merge paths and one publish path that mattered.
+`hasConfigFile()` now names one file and owns both.
+
+**A host holding published copies of the deleted files loses its
+customisations silently.** Nothing errors: the package merges its own
+defaults under `numerosis.billing.*`, and the host's orphaned
+`numerosis-billing.php` is simply never read again. Any host on a pre-`59f026f`
+version must delete both files and re-publish `numerosis-config`.
+thin-app was repaired this way in `thin-app@41bcd57` (its three files were
+byte-identical to package defaults, so nothing had to be re-applied);
+**saas-m needs no action — it is frozen and its published copies are
+historical**, which is why the earlier "Consequence for saas-m" note below
+pointed at the wrong repo.
+
+---
+
+## Plan review — flaws and corrections (2026-08-05)
+
+Written after reading the whole plan plus the actual state of
+`~/repos/private/numerosis` (`ab29e89` + 11 uncommitted files). Findings are
+ordered by how much later work they invalidate, not by when they appear in the
+document. Each states the flaw, then the correction to apply. **R1-R3 are
+decisions, not chores — make them before writing more Phase 6 code.**
+
+### R1 — The abstract-model design has no enforcement, and its resolver
+### ignores the config it was justified by
+
+**Flaw, part one: two competing model-resolution mechanisms, only one of them
+real.** Decision 1.2 #4 says "Config-driven models + contracts. Package ships
+abstract bases and contracts; thin-app owns concrete classes; **config points
+at them**." That is not what was built. `Numerosis::model()`
+(`src/Support/Numerosis.php:234`) resolves purely by *string convention* —
+`app()->getNamespace().'\\Models\\'.$suffix` — and never reads config at all.
+`config/numerosis.php` and `config/numerosis-tenancy.php` contain **zero**
+model keys (verified by grep). So today:
+
+- a host whose stub is `App\Models\Central\Tenant` works by luck of naming;
+- a host that satisfies `tenancy.tenant_model` with any other class name
+  (`App\Models\Workspace`, a domain-layer namespace, a module) has a
+  correctly-configured app that still breaks, because 108 call sites resolve
+  the *convention* name instead of the *configured* one;
+- if the stub is simply missing, `model()` returns a class-string that does not
+  exist and the failure surfaces far from the cause, exactly the failure shape
+  `.claude/rules/testing.md` warns about for factory resolution.
+
+**Flaw, part two: "the sweep is complete" has been claimed four times and been
+wrong four times.** Instantiation-by-proxy sites found so far, each discovered
+by running code after the previous sweep was declared done: (1) static calls,
+(2) Eloquent relation definitions, (3) vendor code handed a class-string
+(`getTenantModelName()`), (4) Filament `Resource::$model`, (5) validation-rule
+strings (`'unique:'.CentralUser::class`), plus a `.blade.php` call site no
+`grep … src` could reach. The plan's own notes already concluded twice that
+"grep-by-known-pattern is not exhaustive by construction" — and then reached
+for a wider grep instead of a mechanism. There is no reason to believe a sixth
+class does not exist (queue payloads serialising a model class name, morph
+maps, `Relation::enforceMorphMap()`, `Gate::policy(X::class, …)`, Livewire
+`#[Locked]` model properties, `Rule::exists()`, config files referencing
+models, Filament `RelationManager::$relationship` resolution).
+
+**Correction — pick one of two, do not carry both:**
+
+**(a) Keep abstract, but make completeness a property instead of a memory.**
+Add an arch test in numerosis that fails on *any* reference to one of the 9
+abstract model classes outside an approved position (a `use` for a type-hint,
+a docblock, or an argument to `Numerosis::model()`). Pest's `arch()` can
+express this; a PHPStan custom rule is stronger and runs on every analyse.
+Without it, every future contributor re-runs this sweep by hand. Also make
+`Numerosis::model()` read config first and fall back to the convention:
+
+```php
+// config/numerosis.php
+'models' => [
+    Central\Tenant::class            => env('NUMEROSIS_MODEL_TENANT'),   // null ⇒ convention
+    Central\CentralUser::class       => null,
+    // … all 9
+],
+```
+
+and have `model()` throw a named exception (`HostModelMissing`) naming the
+abstract class, the resolved class-string, and the config key to set, rather
+than returning a class-string that does not exist. Memoize the result — it is
+currently a `new ReflectionClass()` per call on relation-resolution paths.
+
+**(b) Drop abstract entirely; ship concrete models, keep the config swap.**
+This is what stancl and Cashier themselves do, and it deletes the whole bug
+class at once: `Tenant::find()` inside the package just works, no stub publish
+is required before the package runs, `numerosis:install` stops being mandatory
+for a smoke test, and all 108 `Numerosis::model()` wrappers collapse back to
+plain calls except at the few points where a host override genuinely matters
+(the tenancy/billing model config keys, which stancl and Cashier already read
+themselves). The cost is that a host extending a model must point config at
+its subclass *and* the package's own internal calls keep using the package
+class unless routed through the resolver — i.e. the same indirection, but
+needed at ~9 config-read sites instead of 108 call sites.
+
+**Recommendation: (b), with (a)'s arch test kept for the residual sites.** The
+evidence for it is in this document: five distinct proxy-instantiation classes,
+~100 test files that had to be sed-rewritten, and a resolver that duplicates
+`factoryNameFor()`/`modelNameFor()`'s convention logic a third time. Abstract
+bought exactly one thing — forcing the host to own the class — and the plan
+never weighed that against the cost, because the cost was not yet visible.
+Whichever is chosen, **record the decision in 1.2 as decision #8 with the
+reasoning**, so it is not silently re-opened.
+
+### R2 — Phase 6 has no exit criterion, so it cannot end
+
+Four "Phase 6 status" sections, three of them pause notes, and each session
+re-triages the same buckets (Stripe, modules, tenant-database teardown, vite).
+The plan never says what a *finished* package test suite looks like. Add:
+
+**6.5 — Test-suite scope, decided once (do this before more fixing):**
+
+| Bucket | Decision to make | Recommended |
+|---|---|---|
+| `tests/Feature/Modules/*` (~24 failures) | These test app-side module packages that structurally cannot exist here (6.3's own table says so) | Tag `->group('thin-app')` and exclude the group in `phpunit.xml.dist`; move them in Phase 7. Not deletion, so the no-delete rule holds |
+| Stripe live-API tests (~29) | Real test key / `Cashier::fake()` / HTTP fake / skip guard | `Http::preventStrayRequests()` + recorded fixtures for the deterministic ones, `markTestSkipped()` keyed on a real `STRIPE_SECRET` for the rest. Decide once, apply in bulk |
+| Vite manifest | Stub or skip | Stub a manifest in the harness — Phase 9 says the host owns the build, so asserting on real assets here tests nothing the package owns |
+| `Unknown database 'tenantX'` teardown (~19) | Genuine bug in the harness or in the Workbench panel provider's second bootstrap cycle | Investigate before Phase 7 — this is the one bucket that may be a *package* bug, not a harness gap |
+
+**Then write a numeric gate into Phase 6:** "Phase 6 is complete when
+`vendor/bin/pest --ci` is 0 failed, with every skip/exclusion traceable to a
+row in the table above." Phase 7 does not start before that, except as R3
+allows.
+
+### R3 — Build thin-app earlier, not after Phase 6 is green
+
+The two highest-value bugs found in the last three sessions were found *only*
+because a second consumer existed: `base_path('routes/web.php')` (invisible
+while saas-m's own file happened to sit at that path) and the systemic
+`numerosis::` view-namespace gap (invisible while views were the app's own).
+Both are host-seam bugs, and the Workbench harness is a weak proxy for a host —
+it is already accumulating stand-ins (two Workbench panel providers, hand-set
+`app.domain`, `app.central.default`, `auth.passwords.users`,
+`livewire.component_namespaces`, `URL::forceRootUrl`) whose only purpose is to
+imitate what thin-app will really own.
+
+**Correction: move 7.1-7.4 (create app, path repo, copy `docker/`+configs,
+`numerosis:install`) ahead of finishing Phase 6.** A booting thin-app resolves
+several Phase-6 buckets by construction (module tests get a real home, panel
+providers stop being Workbench fiction, host config stops being guessed) and
+makes `numerosis:install`'s verification list executable against a real host
+instead of hypothetical. Keep Phase 6.1/6.2 (MySQL harness, test-support layer)
+where they are — those are prerequisites for anything. Update "Order of
+execution" at the end of the document to reflect the split:
+`… → 5 → 6.1-6.2 → 7.1-7.4 → 6.3-6.5 → 7.5 → 8 → 9 → 10`.
+
+### R4 — The freeze (4.1) is already being violated, by this file — **CLOSED by D11, executed 2026-08-06**
+
+saas-m is declared read-only from Phase 4.1, yet every session since has
+written status notes into `.claude/plans/package-extraction.md` **in saas-m**
+(the working tree carries exactly that modification right now), and the last
+three sessions' hard-won facts (view-namespace prefixing, instantiation by
+proxy, `URL::forceRootUrl` under Testbench, `Config::string()` on an unset key
+surfacing one line later) were written *here* rather than into numerosis's
+`.claude/rules/`. Since 4.2 copied `.claude/` into numerosis, there are now two
+diverging copies and thin-app will make three.
+
+**Correction:**
+1. State explicitly in 4.1 that `.claude/**` and this plan are **exempt** from
+   the freeze — or, better,
+2. Move the plan and the rules to numerosis now, leave a one-line pointer in
+   saas-m, and make numerosis's `.claude/rules/` the canonical copy. Everything
+   learned since Phase 4 is about the *package*, not about saas-m.
+3. Move Phase 10's "add a line to `.claude/rules/INDEX.md` in both repos
+   stating that bare commit hashes refer to the archived saas-m" **to the
+   moment the rules are copied**, not to archive time. It is already needed:
+   the rules in numerosis cite `c66cc72`, `ddd7c35`, `de06293`, `438f12f`,
+   `549223e`, `6b8c78c` and nothing in that repo explains where they live.
+
+### R5 — 0.4's "known-good baselines" are stale and actively misleading — **CLOSED: 0.4's numerosis row now points at Live status**
+
+0.4 still says numerosis is "`vendor/bin/pest` 2 passed; `vendor/bin/phpstan
+analyse` clean at level 9. These must stay green at every step." Reality:
+**105 failed / 286 passed / 8 skipped**, PHPStan **309 findings**. An agent
+following 0.4 literally would conclude the repo is catastrophically broken and
+start reverting.
+
+**Correction:** replace 0.4's numerosis row with a pointer to a single
+**Live status** block (see R6) and forbid frozen numbers anywhere else in the
+document. saas-m's row is fine — that repo is frozen, so its numbers cannot
+drift.
+
+### R6 — The status prose is append-only and has outgrown the plan — **CLOSED 2026-08-06: log split out, Live status block added**
+
+~430 lines of status precede the first instruction; four Phase 6 status
+sections, at least one line in them already annotated as having gone stale
+before it was read back ("nothing committed yet" → "by the start of the next
+session that commit had in fact landed"). The document's own stated audience —
+an agent with no prior context — must now read a session log before reaching
+step 1.
+
+**Correction:**
+1. Create `.claude/plans/package-extraction-log.md` and move every dated status
+   section into it verbatim. The findings have real value (they are the only
+   record of five bug classes); the value is archival, not navigational.
+2. Keep at the top of this file a **Live status** block of at most 15 lines,
+   overwritten rather than appended, with exactly: current phase, last commit
+   in each repo, working-tree state, latest measured suite numbers + date, and
+   a single "resume here" pointer.
+3. Rule for future sessions: **never end a session with an uncommitted numerosis
+   tree.** Two sessions have now done so, and the plan itself observes that the
+   resulting "nothing committed yet" notes go stale. Commit at every
+   green-or-better measurement point; a commit is the status, the prose is the
+   commentary.
+
+### R7 — PHPStan in numerosis is configured so it cannot catch the bugs this — **CLOSED: `tests`+`workbench` analysed, 240-entry baseline**
+### extraction actually produces
+
+`phpstan.neon.dist` sets `paths: [src, config, database]` — **`tests/` and
+`workbench/` are not analysed** — and `phpstan-baseline.neon` is a **0-byte
+file** while the run reports 309 findings. Both are backwards for this project:
+
+- `.claude/rules/testing.md` records that including `tests/` in saas-m
+  "surfaced 89 errors, 24 real dead references across seven files nobody had
+  run", and it is the exact reason rename-drift is caught statically there.
+  This extraction is one enormous rename, and it proved the point again: ~100
+  test files importing abstract models were found by *running* the suite, not
+  statically, because `tests/` is invisible to PHPStan here.
+- `.claude/rules/static-analysis.md` says the baseline exists so that **new**
+  errors fail immediately. An empty baseline against 309 live findings means
+  every run is red, so no new error is distinguishable — the same "red on
+  master, signal gone" state that file criticises in saas-m, reproduced
+  deliberately in a fresh repo.
+
+**Correction:** add `tests` and `workbench` to `paths`, then
+`vendor/bin/phpstan analyse --generate-baseline` **now** to freeze the current
+count, and treat any growth as a failure. Note in the step that
+`--debug --memory-limit=1G` is required in this environment (broken
+`turbo-ext`, default 128M exhausts) so the next agent does not read exit 255 as
+a code error.
+
+### R8 — Deferred work from Phase 5 exists only in prose and will be lost
+
+Three deferrals are recorded in status text with good reasons, and appear in no
+step, table, or checklist:
+
+1. **Contract call sites never rewired** (5.3): `Livewire\Invitations\Accept`,
+   `CheckInvitationStatus`, `Http\Controllers\Socialite\Login`,
+   `ProvisionTenant`, and the 4 notification listeners still query models
+   directly instead of going through the 5 new contracts. The contracts are
+   therefore decorative — a consumer swapping the binding changes nothing.
+2. **Six traits written then deleted** (`IsTenantModel`, `IsCentralUser`,
+   `IsTenantUser`, `HasGlobalIdentity`, `BelongsToTenant`, `HasTenants`)
+   because PHPStan flags an uncomposed trait. The duplication they were
+   extracting is still in `CentralUser`/`Tenant\User`.
+3. **`Testing\InteractsWithTenantPanel`** (6.2's own requirement): exporting
+   `actingAsTenantPanelUser()` for consumers was never reported done, and
+   thin-app's Phase 7 tests need it.
+
+**Correction:** add a **Phase 6.6 — Phase 5 debt** section listing all three as
+real steps with done-criteria, gated behind R2's green suite (which is the
+condition their deferral cited). Deferral with a reason is fine; deferral into
+prose is how it becomes never.
+
+### R9 — `numerosis:install` and `docs/host-requirements.md` will drift
+
+5.2 enumerates 6 verifications. Phase 6 then discovered at least 6 more
+host-owned keys the hard way (`app.domain`, `app.central.default`,
+`auth.social.providers`, `auth.passwords.users`,
+`livewire.component_namespaces`, `database.lock_wait_timeout`), each surfacing
+as a misleading error — `Route::domain(null)` failing one line later as `Call
+to a member function name() on string` is the clearest example. They went into
+the doc; the command still checks the original 6.
+
+**Correction:** state the invariant explicitly in 5.2 — **every row in
+`docs/host-requirements.md` has a matching assertion in `numerosis:install`,
+and every assertion names the failure signature the host would otherwise see.**
+Add a test that fails when the two lists diverge (parse the doc's table, assert
+each key appears in the command). Otherwise the doc is the real spec and the
+command is a partial copy of it, which is the exact drift shape
+`.claude/rules/auth-login.md` documents for the two login components.
+
+### R10 — Smaller corrections, apply in place
+
+- **`Numerosis` is becoming a god object**: `addTenantColumns`, `tenantColumns`,
+  `routes`, `middleware`, `broadcasting`, `csrfExceptions`, `model`,
+  `factoryNameFor`, `modelNameFor`. The three name-resolution methods duplicate
+  the same `\\Models\\`-suffix string surgery three times. Extract a
+  `Support\ModelResolver` owning all three (and R1's config lookup + memoization);
+  leave `Numerosis` as the host-seam facade only.
+- **Phase 10's end-to-end gate is manual** (register through the wizard, log
+  into the panel). Given that the whole extraction's risk is host-seam wiring,
+  make it a Pest browser test in thin-app instead — it is the only check that
+  covers routes + panels + provisioning + assets together, and it will be run
+  more than once.
+- **Phase 4.2's `.claude/` "both repos" row** is what created R4's divergence;
+  amend it to "canonical copy in numerosis, pointer in thin-app".
+- **Workbench panel providers** (added in Phase 6) duplicate what thin-app's
+  Phase 7/8 providers will own. Note in Phase 8 that they must stay minimal
+  stand-ins and must not accrue plugin/theme logic — two panel definitions
+  drifting is the same failure `.claude/rules/auth-login.md` records for the
+  two login components.
+- **PHP-version seam**: numerosis is developed on host 8.4.1 while saas-m and
+  thin-app run 8.5 in Docker. CI covers both, but state the rule in 0.1 —
+  the package's `composer.json` PHP constraint is the floor, and package code
+  must not use 8.5-only syntax even though thin-app would accept it.
+
+---
 
 ---
 
@@ -252,8 +647,11 @@ touching its area; they are short:
 - saas-m PHPStan: **red on master** — ~98 errors outside the 44-entry baseline
   (9 under `app/`, 89 under `tests/`). Compare counts before and after your
   change; do not try to reach zero.
-- numerosis: `vendor/bin/pest` 2 passed; `vendor/bin/phpstan analyse` clean at
-  level 9. These must stay green at every step.
+- numerosis: **no frozen number belongs here.** Read the **Live status** block
+  at the top of this file, which is overwritten each session; anything written
+  into 0.4 goes stale within one session and then reads as a target it never
+  was. (This row previously claimed "2 passed, PHPStan clean" against a suite
+  that was 105 failed.)
 
 ---
 
@@ -277,14 +675,26 @@ not a production target — that is why `thin-app` exists.
 2. **Namespace `Nvade\Numerosis\` in `src/`.** thin-app keeps `App\`.
 3. **Feature classes, not booleans.** `App\Contracts\NamedFeature` +
    `App\Features\*` listed in `config('numerosis.features')`. Already built.
-4. **Config-driven models + contracts.** Package ships abstract bases and
-   contracts; thin-app owns concrete classes; config points at them.
+4. **Config-driven models + contracts.** ~~Package ships abstract bases and
+   contracts; thin-app owns concrete classes; config points at them.~~
+   **Amended by D8, 2026-08-05:** the package ships *concrete* models and
+   contracts; a host that wants its own subclass points config at it. The
+   abstract-base half of this decision was tried, cost six distinct
+   instantiation-by-proxy bug shapes, and was reversed — the "config points at
+   them" half stands and is now the only mechanism.
 5. **Filament panels become plugins.** The package never owns a panel.
 6. **Modules stay app-side.** numerosis ships the module *system* only. The 6
    modules (alerts, announcements, branding, **chat**, notes, tasks) move to
    `thin-app/app-modules/*` as symlinked path repos.
 7. **Proprietary, private git only.** No Packagist. thin-app requires numerosis
    through a path repo during development.
+8. **Package models are concrete** (D8, supersedes the abstract half of #4).
+9. **Stripe tests use an HTTP fake plus recorded fixtures** (D9).
+10. **thin-app is stood up before Phase 6 finishes** (D10).
+11. **Plan and rules live in numerosis; the other two repos hold pointers**
+    (D11).
+12. **One config file** — `config/numerosis.php`, billing and tenancy nested
+    under their own keys; the 1.7 three-file split is reversed (D13).
 
 ### 1.3 Already landed inside saas-m (do not redo)
 
@@ -489,6 +899,26 @@ it).
 **Done when:** `grep -rn "'billing\." app routes database tests` returns zero
 hits and `vendor/bin/sail artisan test --compact --filter=Billing` passes.
 
+**Reversed 2026-08-06.** Three-file split undone in the package repo — see
+`~/.claude/plans/federated-wandering-wozniak.md` (numerosis repo). All three
+merge back into one `config/numerosis.php`, with billing/tenancy content
+nested under `'billing'`/`'tenancy'` top-level keys (avoids a real key
+collision: `numerosis.php`'s `models` — per-model class overrides — and
+`numerosis-billing.php`'s `models` — Cashier model bindings — are two
+different shapes sharing the same top-level name once merged flat).
+`BillingServiceProvider`/`TenancyServiceProvider` drop their own
+`mergeConfigFrom()`/`publishes()` (`billing-config`/`tenancy-config` tags,
+already dead — `numerosis:install` only ever called `numerosis-config`,
+the tag `hasConfigFile()` emits); the package's own `hasConfigFile()` call
+narrows from three names to one.
+
+**Shipped as `numerosis@59f026f`; recorded as D13 above — read that, not
+this paragraph, for the consequences.** The original note here told saas-m
+to re-publish its own copies; wrong repo. saas-m is frozen and archived, so
+its `config/numerosis-*.php` are historical artefacts and need no action.
+The host that actually mattered was thin-app, repaired in
+`thin-app@41bcd57`.
+
 ### 1.8 Dependency triage — produces a document, not code
 
 **Do:** create `~/repos/private/numerosis/DEPENDENCIES.md` listing every package
@@ -604,6 +1034,11 @@ into that doc; a consumer without the reason will "fix" it wrong.
 ## Phase 4 — Freeze, copy, rename
 
 This is the irreversible-feeling phase. Read it fully before starting.
+
+> **Amended by D8 (2026-08-05):** step 4.4 below — "models: abstract base in
+> the package, concrete in thin-app" — is **reversed**. Package models are
+> concrete; stubs are optional convenience, not a precondition for booting.
+> Read D8's migration list before touching anything in `src/Models/`.
 
 ### 4.0 Preconditions (all must hold)
 
@@ -753,7 +1188,8 @@ All in numerosis, host PHP.
 
 Replace the skeleton's `configurePackage()` body so it:
 
-- `mergeConfigFrom` for `numerosis`, `numerosis-tenancy`, `numerosis-billing`;
+- `mergeConfigFrom` for `numerosis` (three files until D13 merged them into
+  one, 2026-08-06);
 - `loadViewsFrom(__DIR__.'/../resources/views', 'numerosis')`;
 - `loadTranslationsFrom(__DIR__.'/../resources/lang', 'numerosis')`;
 - `loadMigrationsFrom(__DIR__.'/../database/migrations/central')` — **central
@@ -962,6 +1398,12 @@ that bare commit hashes in the rules refer to that archived repo.
 Phase 1 → 2 → 3 (all in saas-m, suite stays green) → 4 (freeze + copy + rename)
 → 5 (wire package) → 6 (harness) → 7 (thin-app) → 8 (Filament plugins) →
 9 (assets) → 10 (gate, then archive).
+
+**Amended by R3:** `… → 5 → 6.1-6.2 → 7.1-7.4 → 6.3-6.6 → 7.5 → 8 → 9 → 10`.
+thin-app comes up *before* the package suite is finished, because a real host
+is the only thing that has ever caught the host-seam bugs (`base_path()` in
+`Numerosis::routes()`, the missing `numerosis::` view namespace), and because
+several remaining Phase-6 failures are things a host owns.
 
 Phases 1-3 ship value even if the extraction stalls: saas-m ends up
 de-hardcoded either way.

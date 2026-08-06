@@ -4,6 +4,10 @@ Gotcha/invariant/why-this-way/cross-file trap stuff, learned from codebase. Not 
 
 One line per file, under ~150 chars. Update index when rules file add/rename/remove.
 
+**This copy is canonical (D11).** saas-m and thin-app carry byte-identical copies that must not be edited in place — change a rule here, then re-copy.
+
+**Bare commit hashes in these rules refer to the archived saas-m repo** (`git@gitlab.com:nvade_/saas-m.git`), not numerosis — `c66cc72`, `ddd7c35`, `de06293`, `438f12f`, `549223e`, `6b8c78c` are all saas-m's. Hashes for this package or thin-app always name their repo.
+
 <!-- topic-index:start -->
 - [auth-guards.md](auth-guards.md) — default guard follow tenancy context; `web` central guard; why models must not container-bound.
 - [auth-login.md](auth-login.md) — two passwordless-login components, two domains, protections drift between; Livewire method order not enforced.
