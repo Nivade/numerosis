@@ -8,6 +8,12 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Livewire\Livewire;
+use Nvade\Numerosis\Actions\Auth\AuthenticateLoginCandidate;
+use Nvade\Numerosis\Actions\Auth\CreateRegisteredUser;
+use Nvade\Numerosis\Actions\Auth\FindLoginCandidate;
+use Nvade\Numerosis\Actions\Auth\ResolvePostLoginRedirectUrl;
+use Nvade\Numerosis\Actions\Auth\SendEmailVerificationNotification;
+use Nvade\Numerosis\Actions\Invitations\CreateInvitedUser;
 use Nvade\Numerosis\Commands\InstallNumerosisCommand;
 use Nvade\Numerosis\Commands\NumerosisCommand;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
@@ -18,6 +24,12 @@ use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
 use Nvade\Numerosis\Console\Commands\RollbackTenantModule;
 use Nvade\Numerosis\Console\Commands\SeedTenantModule;
+use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
+use Nvade\Numerosis\Contracts\Auth\CreatesRegisteredUser;
+use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
+use Nvade\Numerosis\Contracts\Auth\ResolvesPostLoginRedirectUrl;
+use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
+use Nvade\Numerosis\Contracts\Invitations\CreatesInvitedUser;
 use Nvade\Numerosis\Events\Auth\SocialAccountConnected;
 use Nvade\Numerosis\Events\Auth\SocialAccountDisconnected;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
@@ -74,6 +86,13 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // consumer can already replace any other package binding.
         $this->app->register(TenancyServiceProvider::class);
         $this->app->register(BillingServiceProvider::class);
+
+        $this->app->bind(ResolvesLoginCandidate::class, FindLoginCandidate::class);
+        $this->app->bind(AuthenticatesLoginCandidate::class, AuthenticateLoginCandidate::class);
+        $this->app->bind(ResolvesPostLoginRedirectUrl::class, ResolvePostLoginRedirectUrl::class);
+        $this->app->bind(CreatesRegisteredUser::class, CreateRegisteredUser::class);
+        $this->app->bind(SendsEmailVerificationNotification::class, SendEmailVerificationNotification::class);
+        $this->app->bind(CreatesInvitedUser::class, CreateInvitedUser::class);
     }
 
     public function packageBooted(): void
