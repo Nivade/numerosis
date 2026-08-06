@@ -207,6 +207,22 @@ class Numerosis
     }
 
     /**
+     * Absolute path to the package's own tenant migrations, for a host's
+     * `config('tenancy.migration_parameters')['--path']`. `__DIR__`-relative
+     * for the same reason the Filament plugins' discovery paths are:
+     * `InstalledVersions::getInstallPath()` is wrong when this package is the
+     * root project (Workbench), and a hardcoded `vendor/nvade/numerosis/...`
+     * string is wrong the moment the file moves. Pointing tenancy config at
+     * this instead of a published copy under `database/migrations/tenant` is
+     * the intended shape — publishing that tag remains the opt-in escape
+     * hatch for a host that needs to customise a migration.
+     */
+    public static function tenantMigrationPath(): string
+    {
+        return dirname(__DIR__, 2).'/database/migrations/tenant';
+    }
+
+    /**
      * Resolve the class one of the package's own call sites should use for a
      * given model. The 9 models this covers (`Tenant`, `Domain`,
      * `CentralUser`, `Subscription`, `PaymentPlan`, `PendingTenantProvision`,

@@ -180,7 +180,7 @@ abstract class TestCase extends Orchestra
         $app['config']->set('tenancy.cache.tag_base', 'tenant');
         $app['config']->set('tenancy.migration_parameters', [
             '--force' => true,
-            '--path' => [realpath(__DIR__.'/../database/migrations/tenant')],
+            '--path' => [Numerosis::tenantMigrationPath()],
             '--realpath' => true,
         ]);
         $app['config']->set('tenancy.seeder_parameters', [

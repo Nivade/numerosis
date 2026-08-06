@@ -21,6 +21,7 @@ use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
+use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * Publishes config + model stubs, appends the env keys host-requirements.md
@@ -111,11 +112,12 @@ class InstallNumerosisCommand extends Command
         $this->call('vendor:publish', ['--tag' => 'numerosis-config', '--force' => false]);
         $this->call('vendor:publish', ['--tag' => 'numerosis-models', '--force' => false]);
 
-        // verifyTenantMigrationPath() below checks this directory exists —
-        // config/tenancy.php's default '--path' points at it, but nothing
-        // creates it unless this tag is published too. Without this, a
-        // fresh install always fails the check it added itself.
-        $this->call('vendor:publish', ['--tag' => 'numerosis-tenant-migrations', '--force' => false]);
+        // numerosis-tenant-migrations is NOT published here: the default,
+        // verified path is the vendor directory itself
+        // (Numerosis::tenantMigrationPath()), and publishing is only the
+        // opt-in escape hatch for a host that needs to customise a
+        // migration. Auto-publishing it here would recreate the duplicated,
+        // drifting copy this command exists to prevent.
 
         // resources/views/partials/styles.blade.php calls
         // @vite('resources/js/central.js') / 'resources/js/tenant.js'
@@ -590,6 +592,15 @@ class InstallNumerosisCommand extends Command
         }
     }
 
+    /**
+     * The package's own migrations must be read straight from the vendor
+     * directory (`Numerosis::tenantMigrationPath()`), not from a copy the
+     * host published — publishing is the opt-in customisation escape hatch,
+     * not the default path. This checks the host's `--path` list includes
+     * the vendor path itself, rather than merely checking some directory
+     * exists, which is the question that let a duplicated, drifting copy
+     * pass silently before.
+     */
     private function verifyTenantMigrationPath(): void
     {
         /** @var array<string, mixed> $parameters */
@@ -602,6 +613,9 @@ class InstallNumerosisCommand extends Command
             return;
         }
 
+        $vendorPath = Numerosis::tenantMigrationPath();
+        $foundVendorPath = false;
+
         foreach ($paths as $path) {
             if (! is_string($path)) {
                 $this->failures[] = "config('tenancy.migration_parameters')['--path'] contains a non-string entry.";
@@ -610,7 +624,13 @@ class InstallNumerosisCommand extends Command
             }
 
             if (! str_starts_with($path, DIRECTORY_SEPARATOR)) {
-                $this->failures[] = "config('tenancy.migration_parameters')['--path'] must be absolute, got '{$path}' — pass --realpath and point it at vendor/nvade/numerosis/database/migrations/tenant.";
+                $this->failures[] = "config('tenancy.migration_parameters')['--path'] must be absolute, got '{$path}' — pass --realpath and point it at Numerosis::tenantMigrationPath().";
+
+                continue;
+            }
+
+            if ($path === $vendorPath) {
+                $foundVendorPath = true;
 
                 continue;
             }
@@ -618,6 +638,10 @@ class InstallNumerosisCommand extends Command
             if (! File::isDirectory($path)) {
                 $this->failures[] = "config('tenancy.migration_parameters')['--path'] entry '{$path}' does not exist.";
             }
+        }
+
+        if (! $foundVendorPath) {
+            $this->failures[] = "config('tenancy.migration_parameters')['--path'] does not include Numerosis::tenantMigrationPath() ('{$vendorPath}') — point it there instead of a published copy under database/migrations/tenant.";
         }
     }
 
