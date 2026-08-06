@@ -16,8 +16,8 @@ documents the keys it needs present:
 
 | Key | Required value / shape | Why | Checked by |
 |---|---|---|---|
-| `tenant_model` | host's concrete `Tenant` model (extends the package's abstract base) | package ships an abstract base only — see `.claude/plans/package-extraction.md` Phase 4.4 | `verifyTenancyModels()` |
-| `domain_model` | host's concrete `Domain` model | same | `verifyTenancyModels()` |
+| `tenant_model` | the package's concrete `Tenant` model, or a host subclass registered through `numerosis.models.*` (see the `config/numerosis.php` — `models` section below) | package models are concrete, not abstract — see D8 in `.claude/plans/package-extraction.md` | `verifyTenancyModels()` |
+| `domain_model` | the package's concrete `Domain` model, or a host subclass, same as above | same | `verifyTenancyModels()` |
 | `central_user_model` | host's concrete `CentralUser` model | `App\Contracts\Auth\CentralUserModel`; read by `UserModelResolver` | `verifyTenancyModels()` |
 | `tenant_user_model` | host's concrete tenant `User` model | `App\Contracts\Auth\TenantUserModel`; same resolver | `verifyTenancyModels()` |
 | `central_domains` | list of every hostname serving the central app | consumed by `Numerosis::routes()` — one `Route::middleware('web')->domain($domain)` group per entry | `verifyCentralDomains()` |
@@ -185,3 +185,18 @@ publishes stubs, and verifies them either way.
 | `models.<package FQCN>` | the host subclass for that model, set through its `NUMEROSIS_MODEL_*` env key | Publishing a stub does **nothing on its own.** All ~108 package call sites resolve through `Numerosis::model()`, which returns the package's own class unless this key names something else (D12). A host that creates rows through the stub while this stays unset gets package class-strings written into morph columns (`LinkSubscriptionToTenant`'s `subscribable_type` is the clearest), so a later polymorphic lookup finds nothing, Cashier's `updateOrCreate` falls through to an `insert`, and that insert collides on a unique key — **surfacing as `SQLSTATE 1205`/`1062` on an unrelated statement**, i.e. reading exactly like the lock-wait contention `testing.md` documents. | `verifyModelOverrides()` |
 | the value's class | must exist and must extend the package model it overrides | `Numerosis::model()` returns the value verbatim; a typo'd or unrelated class reaches Eloquent, not this package's own error handling. | `verifyModelOverrides()` |
 | the value's `.env` form | **single-quoted**: `NUMEROSIS_MODEL_TENANT='App\Models\Central\Tenant'` | phpdotenv reads `\M` inside a *double-quoted* value as an unrecognised escape sequence and throws `InvalidFileException` for the **entire .env file** — one double-quoted class-string here stops the app booting at all, with an error naming neither this key nor this package. Bare (unquoted) also works; double-quoted never does. | — written by `appendModelOverrides()`; a hand-edited `.env` fails at boot, before any command runs |
+
+## `config/numerosis.php` — `modules`
+
+Package-owned, both keys default to empty — the package ships the module
+*system*, never a module, so a host running none needs to set nothing.
+
+| Key | Required value / shape | Why | Checked by |
+|---|---|---|---|
+| `modules.catalogue` | array of module definitions (slug, name, price ids in minor units, `monthly_id`/`yearly_id` for recurring modules) | seeds the central `modules` table via `Database\Seeders\Central\ModuleOfferingSeeder`; a recurring module needs both interval price ids since Stripe rejects a subscription whose items don't share a billing interval — `ModuleForm` enforces the same pairing | — host *data*, not package invariant; nothing to assert beyond what `ModuleForm`'s own validation already covers |
+| `modules.plugins` | map of module slug to its Filament plugin class | `NumerosisTenantPlugin` registers a tenant's plugin only when that module is enabled for them; core holds no reference to any concrete module | — host *data*; a wrong or missing class-string surfaces as an ordinary Filament plugin-resolution error, not a package-specific one |
+
+Both are host data rather than package invariants, which is why neither has a
+`verify*()` — `HostRequirementsTest` requires a reason for a dash in the
+"Checked by" column, and "nothing to assert beyond what X already validates"
+is that reason.

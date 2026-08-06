@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Support;
 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
+use Nvade\Numerosis\Models\User as NumerosisUser;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
+use Stancl\Tenancy\Contracts\Tenant;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 class Numerosis
@@ -239,6 +244,37 @@ class Numerosis
             $base.'/resources/css' => resource_path('css'),
             $base.'/resources/js' => resource_path('js'),
         ];
+    }
+
+    /**
+     * Exception context/throttling for `bootstrap/app.php`'s
+     * `withExceptions()`. Reads `tenancy()->initialized` at **report** time,
+     * which is wrong for a job that failed inside `$tenant->run()` — see
+     * .claude/rules/exception-handling.md. `TagsSentryScopeWithTenant` is the
+     * existing fix for that case; this method is not it.
+     *
+     * Does not call `Integration::handles($exceptions)` — Sentry is a
+     * `suggest`, wiring it stays with the host.
+     */
+    public static function exceptions(Exceptions $exceptions): void
+    {
+        $exceptions->context(function (): array {
+            $tenantId = tenancy()->initialized && tenancy()->tenant instanceof Tenant
+                ? (string) tenancy()->tenant->getTenantKey()
+                : null;
+
+            $user = Auth::user();
+
+            return [
+                'tenant_id' => $tenantId,
+                'guard' => Auth::getDefaultDriver(),
+                'user_global_id' => $user instanceof NumerosisUser ? $user->global_id : null,
+            ];
+        });
+
+        $exceptions->dontReportDuplicates();
+
+        $exceptions->throttle(fn () => Limit::perMinute(30));
     }
 
     /**
