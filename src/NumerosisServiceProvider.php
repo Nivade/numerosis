@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Config;
@@ -135,6 +136,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         $this->registerEventListeners();
 
+        $this->registerSchedule();
+
         // Always-on, not behind RegistrationWizardFeature: the standalone
         // /checkout/{domain} route and the wizard's embedded
         // <livewire:billing.checkout /> both address this component by the
@@ -223,6 +226,49 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         $this->publishGroup($modelStubs, 'numerosis-models');
         $this->publishGroup($modelStubs, 'numerosis-stubs');
+    }
+
+    /**
+     * The package's own cron entries, registered here rather than in a
+     * `routes/console.php` this package used to ship.
+     *
+     * That file was never loaded by anything. `bootstrap/app.php`'s
+     * `withRouting(commands: ...)` takes exactly one path and a host app
+     * passes its *own* `routes/console.php` to it — so every command below
+     * silently never ran in a consumer, including
+     * `tenancy:prune-stalled-provisions`, which is the only sweeper for the
+     * abandoned `reserved` rows `.claude/rules/tenant-provisioning.md`
+     * describes. `artisan schedule:list` in thin-app reported "No scheduled
+     * tasks have been defined" right up until this method existed. A package
+     * cannot rely on the host loading a routes file the host does not know
+     * about; `callAfterResolving()` needs nothing from the host at all.
+     *
+     * Deferred through `callAfterResolving()` rather than resolving the
+     * scheduler here, because building a `Schedule` forces the cache and
+     * queue managers to resolve during boot — expensive on every HTTP
+     * request, when only the scheduler process ever reads it.
+     */
+    protected function registerSchedule(): void
+    {
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
+            // Not a `numerosis.schedule.*` key: Telescope has exactly one
+            // owner already (whether the package is installed at all), so a
+            // second switch could only ever disagree with it. Referenced as a
+            // string, not `Telescope::class` — laravel/telescope is a
+            // `suggest`, so importing it would leave PHPStan resolving a class
+            // that is absent from this package's own vendor tree.
+            if (class_exists('Laravel\Telescope\Telescope')) {
+                $schedule->command('telescope:prune')->daily();
+            }
+
+            if (Config::boolean('numerosis.schedule.prune_orphaned_customers')) {
+                $schedule->command('billing:prune-orphaned-customers')->daily();
+            }
+
+            if (Config::boolean('numerosis.schedule.prune_stalled_provisions')) {
+                $schedule->command('tenancy:prune-stalled-provisions')->hourly();
+            }
+        });
     }
 
     /**
