@@ -195,6 +195,26 @@ abstract class TestCase extends Orchestra
             '--class' => \Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder::class,
         ]);
 
+        // Every test in this suite creates models via the Workbench stubs
+        // (App\Models\Central\Tenant etc, not the package's own concrete
+        // classes) — the exact host shape D8/D12's config-first
+        // Numerosis::model() was designed for. Without this, package code
+        // that writes a class-string through Numerosis::model() (e.g.
+        // LinkSubscriptionToTenant's subscribable_type) disagrees with the
+        // class actually used to create the row, and a polymorphic lookup
+        // that filters on that column silently finds nothing.
+        $app['config']->set('numerosis.models', [
+            Tenant::class => \App\Models\Central\Tenant::class,
+            \Nvade\Numerosis\Models\Central\Domain::class => \App\Models\Central\Domain::class,
+            \Nvade\Numerosis\Models\Central\CentralUser::class => \App\Models\Central\CentralUser::class,
+            \Nvade\Numerosis\Models\Central\Subscription::class => \App\Models\Central\Subscription::class,
+            \Nvade\Numerosis\Models\Central\PaymentPlan::class => \App\Models\Central\PaymentPlan::class,
+            \Nvade\Numerosis\Models\Central\PendingTenantProvision::class => \App\Models\Central\PendingTenantProvision::class,
+            \Nvade\Numerosis\Models\Tenant\Invitation::class => \App\Models\Tenant\Invitation::class,
+            \Nvade\Numerosis\Models\Tenant\Module::class => \App\Models\Tenant\Module::class,
+            \Nvade\Numerosis\Models\Tenant\User::class => \App\Models\Tenant\User::class,
+        ]);
+
         $app['config']->set('auth.defaults.guards.context.central', 'web');
         $app['config']->set('auth.defaults.guards.context.tenant', 'tenant');
         $app['config']->set('auth.guards.web', ['driver' => 'session', 'provider' => 'central_users']);
