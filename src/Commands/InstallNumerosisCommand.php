@@ -66,6 +66,7 @@ class InstallNumerosisCommand extends Command
         $this->verifyAuthGuards();
         $this->verifyAuthPasswordBroker();
         $this->verifySocialProviders();
+        $this->verifySocialRoutes();
         $this->verifyLivewireDiskExclusion();
         $this->verifyLivewireUploadDisk();
         $this->verifyLivewireComponentNamespaces();
@@ -381,6 +382,26 @@ class InstallNumerosisCommand extends Command
     {
         if (! is_array(Config::get('auth.social.providers'))) {
             $this->failures[] = "config('auth.social.providers') must be an array (use [] when SocialLoginFeature is off) — a missing key throws InvalidArgumentException from whichever view renders the social-login buttons.";
+        }
+    }
+
+    /**
+     * Both names are read *inside* a `route()` call, so an unset key becomes
+     * `route(null)` and the host sees `Route [] not defined` raised from a
+     * Blade view — naming neither the config key nor the route it wanted.
+     */
+    private function verifySocialRoutes(): void
+    {
+        if (! is_array(Config::get('auth.social.providers')) || Config::get('auth.social.providers') === []) {
+            return;
+        }
+
+        foreach (['redirect', 'login'] as $route) {
+            $name = Config::get("auth.social.routes.{$route}.name");
+
+            if (! is_string($name) || $name === '') {
+                $this->failures[] = "config('auth.social.routes.{$route}.name') must name a route — the social-login views pass it straight to route(), so an unset key surfaces as `Route [] not defined` from a view rather than as missing config.";
+            }
         }
     }
 

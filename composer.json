@@ -53,6 +53,7 @@
         "laravel/boost": "^2.4",
         "laravel/pint": "^1.14",
         "laravel/socialite": "^5.21",
+        "livewire/flux": "^2.0",
         "nunomaduro/collision": "^8.8",
         "orchestra/testbench": "^11.0",
         "pestphp/pest": "^4.0",

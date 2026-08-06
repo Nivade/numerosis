@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Livewire\Livewire;
@@ -131,6 +132,31 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // package classes when explicitly registered — same reason
         // RegistrationWizardFeature registers its own four step components.
         Livewire::addComponent(name: 'billing.checkout', class: Checkout::class);
+
+        // `hasViews()` above registers resources/views under the `numerosis::`
+        // namespace, which is not where Flux looks: `<flux:icon.x />` compiles
+        // to a lookup in the anonymous-component namespace Flux registers with
+        // `Blade::anonymousComponentPath(…, 'flux')`. Four of this package's
+        // own views use Lucide icons Flux does not ship (`folder-git-2`,
+        // `book-open-text`, `layout-grid`, `chevrons-up-down`), and
+        // resources/views/flux/icon holds them — so without this line every
+        // page rendering the header or sidebar dies with `Flux component
+        // [icon.folder-git-2] does not exist`, from a vendor stub, naming
+        // neither this package nor the view that asked. saas-m never saw it:
+        // its copies sat in the app's own resource_path('views/flux'), which
+        // is the first path Flux registers.
+        //
+        // Deferred to `booted()` so it lands *after* Flux's own two paths.
+        // Registration order is resolution order, so the host's
+        // resource_path('views/flux') still wins (a consumer can override any
+        // of these), then Flux's stubs, then this — which means the stale
+        // resources/views/flux/navlist/group.blade.php in here, a
+        // Prettier-reformatted copy of Flux's own stub that quietly lost
+        // `rtl:rotate-180`, stays unreachable rather than shadowing the real
+        // component.
+        $this->app->booted(function (): void {
+            Blade::anonymousComponentPath(__DIR__.'/../resources/views/flux', 'flux');
+        });
 
         // Tenant migrations are never auto-run centrally — stancl runs them
         // per-tenant via config('tenancy.migration_parameters'), which the

@@ -246,6 +246,15 @@ abstract class TestCase extends Orchestra
             'gitlab' => ['label' => 'GitLab', 'hover' => '', 'icon' => 'heroicon-o-code-bracket'],
         ]);
 
+        // The button component resolves its href as
+        // route(config('auth.social.routes.redirect.name')) — with the key
+        // unset that is route(null), i.e. `Route [] not defined` from a view,
+        // which names neither the config key nor the route.
+        $app['config']->set('auth.social.routes', [
+            'login' => ['name' => 'oauth.callback'],
+            'redirect' => ['name' => 'oauth'],
+        ]);
+
         foreach (['google', 'discord'] as $driver) {
             $app['config']->set("services.{$driver}", [
                 'client_id' => "{$driver}-test-client-id",
