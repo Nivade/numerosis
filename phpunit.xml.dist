@@ -15,6 +15,15 @@
     cacheDirectory=".phpunit.cache"
     backupStaticProperties="false"
 >
+    <php>
+        <!-- turbo-ext is broken in this environment (see R7 in
+             .claude/plans/package-extraction.md) and the default 128M
+             exhausts under the full suite. Baked in here so a bare
+             `vendor/bin/pest` no longer needs `php -d memory_limit=1G`
+             re-derived every session. -->
+        <ini name="memory_limit" value="1G"/>
+    </php>
+
     <testsuites>
         <testsuite name="Nvade Test Suite">
             <directory>tests</directory>

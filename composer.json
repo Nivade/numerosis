@@ -111,13 +111,13 @@
             "@build",
             "@php vendor/bin/testbench serve --ansi"
         ],
-        "analyse": "vendor/bin/phpstan analyse",
-        "test": "vendor/bin/pest",
-        "test-coverage": "vendor/bin/pest --coverage",
+        "analyse": "@php -d memory_limit=1G vendor/bin/phpstan analyse",
+        "test": "@php -d memory_limit=1G vendor/bin/pest",
+        "test-coverage": "@php -d memory_limit=1G vendor/bin/pest --coverage",
         "format": "vendor/bin/pint",
         "lint": [
-            "@php vendor/bin/pint --ansi",
-            "@php vendor/bin/phpstan analyse --verbose --ansi"
+            "@php -d memory_limit=1G vendor/bin/pint --ansi",
+            "@php -d memory_limit=1G vendor/bin/phpstan analyse --verbose --ansi"
         ]
     },
     "config": {

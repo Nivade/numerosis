@@ -22,13 +22,13 @@ Overwrite this block; never append to it. Fifteen lines, hard limit.
 | | |
 |---|---|
 | Phase | 6 — **R2's exit gate is met** (see below); 7.1-7.4 already done per D10 |
-| numerosis | `34a7f13`, clean |
+| numerosis | pending commit (step 5 + `SeedTenantDatabase` fix), on top of `34a7f13` |
 | thin-app | `11b29d1`, clean, boots to `ViteManifestNotFoundException` (Phase 9 boundary, expected) |
 | saas-m | frozen at `c66cc72`; only `.claude/` pointers change here |
-| Package suite | **0 failed / 372 passed / 7 skipped in ~64s** — measured 2026-08-06, from a genuinely fresh `testing` DB |
-| PHPStan | clean, baseline grew 247 → 252 (5 traceable entries, see step 4) |
+| Package suite | **0 failed / 373 passed / 7 skipped in ~65s** — measured 2026-08-06, MySQL volume dropped and recreated from nothing, twice, both landed identical |
+| PHPStan | clean, baseline 252 unchanged |
 | Exclusions | 14 `#[Group('thin-app')]` across 11 files, all module-package tests (R2 row 1) |
-| Resume at | Steps 2-4 closed this run (audit, arch test, Phase 6.6 debt — contracts rewired+bound, `HasGlobalIdentity` redone, `Testing\InteractsWithTenantPanel`/Stripe fake exported to `src/Testing/`). Next: step 5 (CI MySQL service, numerosis's own compose, bake `memory_limit=1G` into `phpunit.xml.dist`/composer scripts) |
+| Resume at | Steps 2-5 all closed this run. Step 5 found and fixed a real bug: `SeedTenantDatabase` never worked on a fresh MySQL volume (stancl's `tenants:seed` command is broken upstream) — see `.claude/rules/tenant-provisioning.md`. Next: Phase 7.5, then Phase 8 (panels → plugins) |
 
 Phase 6's three exit conditions (R2) are all satisfied as of `fad542e`:
 zero failures, baseline growth traceable, every exclusion traceable. The 7
@@ -40,13 +40,19 @@ re-derive, read there first. Still open in step 2: no `numerosis:doctor`
 command (findings became fixes + tests instead); policies/factories/
 migrations/commands/morph-map/broadcast-channels checked clean.
 
-Suite prerequisites: `docker start saas-m-mysql-1` (numerosis's harness points
-at `127.0.0.1:3306`), and `php -d memory_limit=1G vendor/bin/pest`. **If the
-suite fails oddly after a long-idle local DB, drop and recreate `testing`
-before assuming your change is at fault** — a stale schema can silently
-diverge from current migration files (`RefreshDatabaseState`'s migrated-pin
-means it's never forcibly rebuilt); see the log's cache-table bug for what
-that looked like.
+Suite prerequisites: `docker compose up -d` (numerosis's own `docker-compose.yml`,
+step 5 — no longer `saas-m-mysql-1`; harness points at `127.0.0.1:3306`
+regardless of which container answers it), and `vendor/bin/pest`
+(`memory_limit=1G` now baked into `phpunit.xml.dist`, no `-d` flag needed).
+**If the suite fails oddly after a long-idle local DB, drop and recreate
+`testing` before assuming your change is at fault** — a stale schema can
+silently diverge from current migration files (`RefreshDatabaseState`'s
+migrated-pin means it's never forcibly rebuilt); see the log's cache-table
+bug for what that looked like. **A genuinely fresh MySQL volume (no
+`tenantphpunittemplate` left over from an older session) is a stronger test
+than a recreated `testing` alone** — it's what step 5 used to find a real,
+previously-invisible production bug in `SeedTenantDatabase`; see
+`.claude/rules/tenant-provisioning.md`'s `Commands\Seed` bullet.
 
 ---
 
@@ -195,13 +201,45 @@ green-or-better point (R6) — never end a session with an uncommitted tree.
      honouring a nullable interface signature it never actually returns
      null from).
 
-5. **Make the numbers reproducible off this machine.** Add a MySQL service to
-   `.github/workflows/run-tests.yml` (6.1 required it; the workflow still
-   says it lands "with the tenancy harness (Phase 8)"), give numerosis its own
-   compose MySQL instead of borrowing `saas-m-mysql-1` from the repo being
-   archived, and bake `memory_limit=1G` into `phpunit.xml.dist` and the
-   composer `test`/`analyse` scripts so exit 255 stops being re-derived every
-   session.
+5. **DONE 2026-08-06 — reproducible numbers off this machine.**
+   - `docker-compose.yml` added: single `mysql:8.4` service (matching
+     saas-m's own image choice), root/root, `MYSQL_DATABASE=testing`,
+     named volume — numerosis no longer borrows `saas-m-mysql-1` from the
+     repo being archived.
+   - `.github/workflows/run-tests.yml` gets a matching `mysql` service
+     (same image/credentials/port, health-checked) plus the `pdo_mysql`
+     PHP extension, which the extension list never had — CI could not
+     have connected to MySQL at all before this, only to sqlite (never
+     configured) or nothing.
+   - `memory_limit=1G` baked into `phpunit.xml.dist`'s `<php><ini>` block
+     and every relevant composer script (`test`, `test-coverage`,
+     `analyse`, `lint`) via `@php -d memory_limit=1G`, so `-d
+     memory_limit=1G` stops being re-derived by hand every session.
+   - **A genuinely fresh MySQL volume surfaced a real, previously-invisible
+     production bug**, not just a CI-config gap:
+     `Nvade\Numerosis\Jobs\SeedTenantDatabase` called
+     `Artisan::call('tenants:seed', ['--tenants' => ...])`, which has
+     always thrown `CommandNotFoundException` — `Stancl\Tenancy\Commands\Seed`
+     inherits `Illuminate\Database\Console\Seeds\SeedCommand`'s
+     `$signature`, which silently overwrites the command's intended name
+     back to `db:seed` during construction, and separately never gets its
+     `--tenants` option registered either. Every previous "0 failed"
+     measurement of this suite ran against a MySQL volume where
+     `tenantphpunittemplate` already existed from an older session, so
+     `Tests\Support\CloneTenantSchema` never rebuilt it and this path
+     never actually ran — meaning **every tenant this package has ever
+     provisioned for real would have hit this**, since production's
+     `ProvisionTenant` chain uses the same `SeedTenantDatabase` job. Full
+     writeup and the fix (seed directly via the container instead of
+     through the broken command) in
+     `.claude/rules/tenant-provisioning.md`'s new `Commands\Seed` bullet;
+     regression tests rewritten in `SeedTenantDatabaseTest` to match (no
+     more `Artisan`/`ConsoleKernel` mocking — binds a throwing fake
+     `TenantDatabaseSeeder` instead, same idiom as step 4's contract
+     override tests).
+   - Verified: two consecutive full runs against a MySQL volume dropped
+     and recreated from nothing both landed 0 failed / 373 passed / 7
+     skipped (~65s each). PHPStan and Pint clean.
 
 Phase 6's exit gate (R2) — zero failures, PHPStan baseline not grown, every
 `thin-app`-group exclusion traceable — **is met as of `a48c746`**; see Live

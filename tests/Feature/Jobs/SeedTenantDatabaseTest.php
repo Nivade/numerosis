@@ -4,84 +4,46 @@ declare(strict_types=1);
 
 use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Tenant;
-use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
+use Illuminate\Database\Seeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Enums\TenantProvisionStatus;
 use Nvade\Numerosis\Jobs\SeedTenantDatabase;
+use Nvade\Numerosis\Models\Role;
 
 uses(RefreshDatabase::class);
 
-it('throws when tenants:seed exits non-zero', function () {
-    $tenant = Tenant::forceCreate(['id' => 'test-tenant-'.uniqid()]);
+it('throws when the seeder fails', function () {
+    $tenant = Tenant::factory()->create();
 
-    // Not Artisan::shouldReceive(): Facade::createMock() mocks the class of
-    // whatever is currently bound, and under Testbench that is
-    // Orchestra\Testbench\Console\Kernel, which is `final` — Mockery refuses
-    // it with "marked final and its methods cannot be replaced". The facade's
-    // accessor is the *interface*, so replacing the binding is both possible
-    // and closer to what the job actually depends on.
-    //
-    // A hand-written stub rather than Mockery::mock(ConsoleKernel::class):
-    // shouldReceive() is typed as a union including HigherOrderMessage, so
-    // chaining ->once() off it is a level-9 method.notFound and would need
-    // two new baseline entries to say nothing.
-    $kernel = new class implements ConsoleKernel
+    // Overriding the binding, not mocking Artisan: the job resolves
+    // TenantDatabaseSeeder straight from the container — see the job's own
+    // docblock for why it no longer goes through Artisan::call() at all.
+    app()->bind(TenantDatabaseSeeder::class, fn () => new class extends Seeder
     {
-        public int $calls = 0;
-
-        public int $outputs = 0;
-
-        public function bootstrap() {}
-
-        public function handle($input, $output = null)
+        public function run(): void
         {
-            return 0;
+            throw new RuntimeException('seeder blew up');
         }
-
-        /**
-         * @param  array<string, mixed>  $parameters
-         */
-        public function call($command, array $parameters = [], $outputBuffer = null)
-        {
-            $this->calls++;
-
-            return 1;
-        }
-
-        /**
-         * @param  array<string, mixed>  $parameters
-         */
-        public function queue($command, array $parameters = []): never
-        {
-            throw new RuntimeException('The job under test never queues a command.');
-        }
-
-        /**
-         * @return array<string, Symfony\Component\Console\Command\Command>
-         */
-        public function all()
-        {
-            return [];
-        }
-
-        public function output()
-        {
-            $this->outputs++;
-
-            return 'seeder blew up';
-        }
-
-        public function terminate($input, $status) {}
-    };
-
-    app()->instance(ConsoleKernel::class, $kernel);
+    });
 
     $job = new SeedTenantDatabase($tenant);
 
     expect(fn () => $job->handle())->toThrow(RuntimeException::class, 'seeder blew up');
 
-    expect($kernel->calls)->toBe(1)
-        ->and($kernel->outputs)->toBe(1);
+    expect(tenancy()->initialized)->toBeFalse();
+});
+
+it('seeds the tenant database on success', function () {
+    $tenant = Tenant::factory()->create();
+
+    $job = new SeedTenantDatabase($tenant);
+    $job->handle();
+
+    $roleExists = $tenant->run(fn (): bool => Role::where('name', 'admin')->where('guard_name', 'tenant')->exists());
+
+    expect($roleExists)->toBeTrue();
+    expect(tenancy()->initialized)->toBeFalse();
 });
 
 it('marks the pending provision as failed when the job fails', function () {
@@ -96,10 +58,10 @@ it('marks the pending provision as failed when the job fails', function () {
     ]);
 
     $job = new SeedTenantDatabase($tenant);
-    $job->failed(new RuntimeException('tenants:seed failed for tenant '.$domain));
+    $job->failed(new RuntimeException('Seeding failed for tenant '.$domain));
 
     $pending = PendingTenantProvision::where('domain', $domain)->firstOrFail();
 
     expect($pending->status)->toBe(TenantProvisionStatus::Failed)
-        ->and($pending->error)->toContain('tenants:seed failed');
+        ->and($pending->error)->toContain('Seeding failed');
 });

@@ -24,13 +24,28 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
+    services:
+      # tests/TestCase.php hardcodes 127.0.0.1:3306, root/root, database
+      # `testing` — matches docker-compose.yml's local dev service so the
+      # same suite runs unmodified in both places. Tenant provisioning
+      # needs CREATE DATABASE, which sqlite cannot provide.
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     strategy:
       fail-fast: true
       # Matrix matches what composer.json actually claims to support.
       # Widen only with a green run behind it — Laravel 11/12 and Windows were
       # in the generator's matrix but nothing here has ever been tested on them.
-      # MySQL services land here with the tenancy harness (Phase 8): tenant
-      # provisioning needs CREATE DATABASE, which sqlite cannot provide.
       matrix:
         os: [ubuntu-latest]
         php: [8.5, 8.4]
@@ -50,7 +65,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_mysql, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
+          ini-values: memory_limit=1G
           coverage: none
 
       - name: Setup problem matchers

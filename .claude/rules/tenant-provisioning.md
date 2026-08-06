@@ -302,6 +302,57 @@ updated: 2026-07-27
   (`Reserved`/`Provisioning`/`Failed`), cast on model — not old `STATUS_*`
   string constants, which gone.
 
+- **`Stancl\Tenancy\Commands\Seed` ("tenants:seed") does not work — it never
+  did, in the installed `^v3.9`, and every tenant this package has ever
+  provisioned for real hit this.** `Nvade\Numerosis\Jobs\SeedTenantDatabase`
+  used to call `Artisan::call('tenants:seed', ['--tenants' => ...])`, which
+  always threw `CommandNotFoundException`. Cause is in the vendor class
+  itself: `Commands\Seed extends Illuminate\Database\Console\Seeds\SeedCommand`,
+  which already declares `protected $signature = 'db:seed ...'`.
+  `Illuminate\Console\Command::__construct()` takes the fluent-signature
+  branch whenever `$signature` is set (`if (isset($this->signature)) {
+  $this->configureUsingFluentDefinition(); }`), which calls `setName()` from
+  that *inherited* signature — so `Commands\Seed`'s own `protected $name =
+  'tenants:seed';` is silently overwritten back to `db:seed` before the
+  command ever registers. Sibling commands (`Migrate`, `Rollback`,
+  `MigrateFresh`) avoid this because they compose
+  `Stancl\Tenancy\Concerns\ExtendsLaravelCommand`, which overrides
+  `getName()`/`getDefaultName()` directly rather than relying on `$name`;
+  `Seed` does not use that trait. Calling `Artisan::call('db:seed', ...)`
+  instead (the name it actually registers under, since the console app
+  resolves the collision in this package's favour, not Laravel's own
+  `SeedCommand`) throws `InvalidOptionException: The "--tenants" option does
+  not exist` the moment `Commands\Seed::handle()` calls
+  `$this->option('tenants')` — `HasATenantsOption::__construct()` is what
+  adds that option (via `specifyParameters()`), but `Commands\Seed` declares
+  its *own* `__construct(ConnectionResolverInterface $resolver)`, which
+  shadows the trait's constructor, so `specifyParameters()` never runs
+  either. The command is broken two independent ways, not one.
+
+  **Why this shipped invisibly for months of "0 failed" runs**: `Tests\Support\CloneTenantSchema`
+  only rebuilds its `tenantphpunittemplate` database when that physical
+  database doesn't already exist (see `.claude/rules/testing.md`), and every
+  measurement of this suite ran against a MySQL volume where a much earlier
+  session had already built it — so `SeedTenantDatabase::handle()` (the one
+  path that would have hit this) never actually ran. It surfaced only once
+  numerosis got its own fresh compose MySQL
+  (`.claude/plans/package-extraction.md`, step 5) with no leftover volume.
+  **Any "0 failed" number measured against a reused MySQL volume is
+  unverified for whatever code path only runs on a database that doesn't
+  exist yet** — template-build, first-migration, first-seed. Prefer a
+  dropped-and-recreated `testing` plus a fresh compose volume before
+  trusting a suspicious green run, not just for schema drift
+  (`testing.md`'s existing warning) but for this class of bug too.
+
+  Fixed by not going through Artisan at all:
+  `SeedTenantDatabase::handle()` now does `tenancy()->initialize($this->tenant)`,
+  resolves `TenantDatabaseSeeder` from the container with
+  `setContainer(app())` (what `SeedCommand::getSeeder()` does internally),
+  wraps the call in `Model::unguarded()` (same), and reverts tenancy in a
+  `finally` — matching `.claude/rules/module-marketplace.md`'s guidance that
+  `$tenant->run()` gives no such guarantee and async/queued code must manage
+  its own try/finally.
+
 ## Local environment
 
 - Container runs as uid 1000 only cuz `WWWUSER`/`WWWGROUP` set in `.env`.
