@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * See .claude/plans/module-marketplace.md — permissions are seeded, not
@@ -19,6 +20,14 @@ class SeedTenantModuleTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Needs a real app-modules/alerts package on the node: the command
+     * resolves the module *before* it looks at --tenants, so with no
+     * `alerts` module installed this exits 1 on the module guard and never
+     * reaches the "unknown tenant" path it means to cover. Structurally a
+     * thin-app concern — numerosis ships the module system, not the modules.
+     */
+    #[Group('thin-app')]
     public function test_it_runs_nothing_for_an_unknown_tenant(): void
     {
         Tenant::unsetEventDispatcher();
@@ -44,6 +53,7 @@ class SeedTenantModuleTest extends TestCase
         $command->assertExitCode(1)->execute();
     }
 
+    #[Group('thin-app')]
     public function test_it_seeds_a_modules_permissions_into_the_tenant(): void
     {
         $tenant = Tenant::factory()->create();

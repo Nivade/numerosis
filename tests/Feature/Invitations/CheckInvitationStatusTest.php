@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Invitations;
 use App\Models\Central\Tenant;
 use App\Models\Tenant\Invitation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Testing\TestResponse;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -20,12 +21,22 @@ class CheckInvitationStatusTest extends TestCase
     {
         parent::setUp();
 
+        // Every request below is made against a tenant host, and the
+        // middleware under test redirects with url('/'). Tests\TestCase
+        // forces a central root URL process-wide (see its docblock — that is
+        // what makes relative-URL requests resolve at all), and a forced root
+        // beats the current request's, so url('/') would answer
+        // http://central.numerosistest.test no matter which host asked.
+        // Clearing it here restores the production behaviour this file is
+        // actually asserting.
+        URL::useOrigin(null);
+
         // forceCreate: `id` is not fillable, so create() lets UUIDGenerator
         // assign a uuid and the subdomain below would address nothing.
         $this->tenant = Tenant::forceCreate(['id' => 'test-'.uniqid()]);
         $this->tenant->domains()->create([
             'id' => $this->tenant->id,
-            'domain' => $this->tenant->id.'.localhost',
+            'domain' => $this->tenantDomain($this->tenant->id),
         ]);
     }
 
@@ -82,7 +93,7 @@ class CheckInvitationStatusTest extends TestCase
      */
     protected function assertRedirectsHomeWithNotice(TestResponse $response, string $message): void
     {
-        $response->assertRedirect("http://{$this->tenant->id}.localhost");
+        $response->assertRedirect('http://'.$this->tenantDomain($this->tenant->id));
 
         /** @var list<array<string, mixed>> $sessionNotifications */
         $sessionNotifications = session('filament.notifications', []);
@@ -117,6 +128,6 @@ class CheckInvitationStatusTest extends TestCase
 
     protected function getTenantRoute(string $token)
     {
-        return $this->get("http://{$this->tenant->id}.localhost/invitation/{$token}");
+        return $this->get('http://'.$this->tenantDomain($this->tenant->id)."/invitation/{$token}");
     }
 }

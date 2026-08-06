@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Regression coverage for the command's second rewrite: `module:migrate`,
@@ -23,6 +24,14 @@ class MigrateTenantModuleTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Needs a real app-modules/alerts package on the node: the command
+     * resolves the module *before* it looks at --tenants, so with no
+     * `alerts` module installed this exits 1 on the module guard and never
+     * reaches the "unknown tenant" path it means to cover. Structurally a
+     * thin-app concern — numerosis ships the module system, not the modules.
+     */
+    #[Group('thin-app')]
     public function test_it_runs_nothing_for_an_unknown_tenant(): void
     {
         Tenant::unsetEventDispatcher();
@@ -55,6 +64,7 @@ class MigrateTenantModuleTest extends TestCase
      * inverse holds too — the tenant migration actually reaches the tenant
      * database and never touches central.
      */
+    #[Group('thin-app')]
     public function test_it_migrates_a_module_against_the_tenant_database_only(): void
     {
         $tenant = Tenant::factory()->create();

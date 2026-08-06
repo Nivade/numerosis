@@ -56,8 +56,16 @@ class PlanCardTest extends TestCase
             'yearly_price' => 10000,
         ]);
 
+        // Asserted against formatAmount()'s own output, not a literal
+        // '10,00': the separator is decided by cashier.currency /
+        // cashier.currency_locale, which are host config (saas-m ran
+        // EUR/nl, this harness runs the Cashier defaults). The claim here
+        // is "a paid plan renders its price rather than 'Free'", and that
+        // is true in every locale.
+        $price = resolve(BillingService::class)->formatAmount($plan->getPrice(BillingCycle::Monthly));
+
         $this->render($plan, BillingCycle::Monthly, $type)
-            ->assertSee('10,00')
+            ->assertSee($price)
             ->assertDontSee('Free');
     }
 
