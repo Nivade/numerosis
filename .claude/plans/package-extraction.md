@@ -21,7 +21,7 @@ Overwrite this block; never append to it. Fifteen lines, hard limit.
 
 | | |
 |---|---|
-| Phase | 10 — end-to-end gate items 3-4 passed live against a real tenant. STOP: archive step (Phase 10's last item) needs explicit user go-ahead, not taken |
+| Phase | 10 — end-to-end gate items 3-4 passed live against a real tenant. STOP: archive step (Phase 10's last item) needs explicit user go-ahead, not taken. **Correction (2026-08-06):** Phase 8 was recorded here as done but had not been done *as designed* — no `Filament\Contracts\Plugin` class existed, panel definitions were hand-copied and had already drifted. Fixed properly in `.claude/plans/cleanup-package-extraction.md`'s item A; see that file, not this line, for Phase 8's real state |
 | numerosis | `84a9a7d`, clean (no package changes this session) |
 | thin-app | `395f08a`, clean. Panels boot (Phase 8), assets build (Phase 9), and a real `StartLocalCheckout` provision was run to completion — see below |
 | saas-m | frozen at `c66cc72`; untouched this session |
@@ -1464,6 +1464,11 @@ Playwright run fails with confusing permission errors
 
 ## Phase 8 — Filament as plugins
 
+**Marked done at the time, was not — see `.claude/plans/cleanup-package-extraction.md`
+item A.** No `Filament\Contracts\Plugin` class existed; 545 lines of panel
+definition were hand-copied across thin-app and the package's Workbench
+harness and had already drifted. Fixed 2026-08-06.
+
 - `NumerosisAdminPlugin` and `NumerosisTenantPlugin` implement
   `Filament\Contracts\Plugin`; thin-app's panel providers register them.
 - Resource discovery currently uses `app_path('Filament/…')` in both providers —
@@ -1515,6 +1520,13 @@ vendor/bin/sail up -d && vendor/bin/sail artisan numerosis:install && vendor/bin
 #    - confirm the provisioning chain ran on the `provisioning` queue
 #    - confirm tenants.provisioned_at is set (NOT just that a tenants row exists)
 #    - log into the tenant panel on the tenant subdomain
+#
+#    NOT REPRODUCIBLE AS WRITTEN: the run recorded in "Resume at" above used
+#    `StartLocalCheckout::run()` in tinker, not the browser wizard, and the
+#    fixture tenant/user/database were deleted afterward. R10 already asked
+#    for this to be a Pest browser test in thin-app — that test does not
+#    exist yet. Treat this gate item as manual and re-run it by hand before
+#    trusting it again; do not assume a prior "passed" carries forward.
 
 # 4. modules
 vendor/bin/sail artisan tenants:migrate-module branding   # then check modules.migrated_at is stamped

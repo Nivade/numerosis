@@ -99,6 +99,50 @@ updated: 2026-07-31
   pin `::on($central)` rather than ride the ambient connection**, same
   reasoning as the `assertDatabaseHas` bullet above.
 
+- **`Feature` and `PaymentPlanFeature` were the only `Models\Central\*` missing
+  stancl's `CentralConnection`, despite `features` existing solely in
+  `database/migrations/central`.** Same trap class as the seeder bullet
+  above — a context-switching-capable model with no `CentralConnection` trait
+  rides the ambient default connection, which is `tenant` inside any test that
+  entered tenant context first. Found during D8 (package extraction) while
+  auditing every `Models\Central\*` file for the trait, not from a failing
+  test — the two models happened not to be read from inside `$tenant->run()`
+  in any test that existed at the time, so nothing exercised the gap. **When
+  adding a new `Models\Central\*` model, or auditing after a rename, check
+  every sibling in that directory carries `CentralConnection` — a model that
+  doesn't will pass every test that never mixes it with tenant context, and
+  fail exactly the way `RoleAndPermissionSeeder` did above once one does.**
+
+- **`Stancl\Tenancy\Commands\Seed` ("tenants:seed") does not work, and this bit
+  a second caller beyond `SeedTenantDatabase`.** The full failure mode (two
+  independent breaks: name collision with `db:seed`, then a missing
+  `--tenants` option) is recorded in `.claude/rules/tenant-provisioning.md`'s
+  `Stancl\Tenancy\Commands\Seed` bullet — read it there, this is only the
+  second instance. `numerosis:install --seed` and Testbench's `$this->seed()`
+  helper both go through `Artisan::call('db:seed', ...)`, which — with
+  stancl/tenancy installed — does not reliably resolve to Laravel's own
+  `SeedCommand`; the collision resolves by **registration order**, which
+  differs between a real Laravel app and a Testbench harness. Fixed the same
+  way as the first instance: resolve the seeder from the container directly
+  (`Model::unguarded()` + `setContainer(app())` + `__invoke()`), never through
+  `Artisan::call('db:seed', ...)` or `'tenants:seed'`. **The trap did not
+  reproduce in thin-app** when first found in the package's own install
+  command — "it works in the host" proves nothing about Testbench, and vice
+  versa, because the resolution is order-dependent, not a stable fact about
+  the package.
+
+  ## Suggested better approach
+
+  Both instances exist because `db:seed` is being used as "run some
+  `Seeder::class`" when what's actually wanted is "instantiate and invoke a
+  known seeder class directly" — the same operation `SeedTenantDatabase`
+  ends up doing after working around the Artisan collision. If a third
+  caller needs this, extract the resolve-and-invoke sequence into one
+  shared helper (a static method, not another `Artisan::call`) rather than
+  hand-rolling `Model::unguarded()`/`setContainer()` a third time — that
+  removes the chance of a fourth caller reaching for `Artisan::call('db:seed'
+  , ...)` out of habit and rediscovering this the hard way.
+
 - **Each teardown step needs own `finally`, since step that throws is
   first one.** `beforeApplicationDestroyed()` closure runs
   `deleteCentralWrites()` → `deleteTenantDatabases()` →

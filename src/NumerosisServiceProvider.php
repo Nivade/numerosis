@@ -254,8 +254,12 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // own resources/js/app.js is never overwritten by this.
         $this->publishGroup(Numerosis::assetSourcePaths(), 'numerosis-assets');
 
-        // The 9 concrete model stubs (see .claude/rules — 4.4's "abstract
-        // base in the package, concrete in thin-app"). 'numerosis-models'
+        // The 9 concrete model stubs — every package model is concrete (D8
+        // in .claude/plans/package-extraction.md; the earlier "abstract base
+        // in the package, concrete in thin-app" design was dropped, it
+        // produced six distinct instantiation-by-proxy bugs). A stub here
+        // extends the package's concrete model, it does not implement an
+        // abstract one. 'numerosis-models'
         // and 'numerosis-stubs' both point at the same file set: there is
         // nothing else stub-shaped in this package to give the second tag
         // a distinct meaning, and a consumer publishing either tag needs
