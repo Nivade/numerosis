@@ -14,14 +14,17 @@ use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Exceptions\Billing\SetupIntentNotConfirmed;
 use Nvade\Numerosis\Services\Billing\Checkout\ResolvedSetupIntent;
+use Nvade\Numerosis\Tests\Concerns\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 class ResolveSetupIntentTest extends TestCase
 {
+    use FakesStripe;
     use RefreshDatabase;
 
     public function test_it_resolves_a_confirmed_setup_intent_owned_by_the_caller(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
@@ -77,6 +80,7 @@ class ResolveSetupIntentTest extends TestCase
 
     public function test_it_refuses_an_unconfirmed_setup_intent(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
@@ -107,6 +111,7 @@ class ResolveSetupIntentTest extends TestCase
      */
     public function test_it_refuses_a_setup_intent_already_turned_into_a_live_subscription(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
@@ -148,6 +153,7 @@ class ResolveSetupIntentTest extends TestCase
      */
     public function test_it_allows_resolving_again_when_the_recorded_subscription_was_cancelled(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 

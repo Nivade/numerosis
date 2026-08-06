@@ -36,6 +36,9 @@ class FakeStripeHttpClient implements ClientInterface
     /** @var array<string, array<string, mixed>> */
     private array $paymentMethods = [];
 
+    /** @var array<string, array<string, mixed>> */
+    private array $setupIntents = [];
+
     private int $sequence = 0;
 
     /**
@@ -53,13 +56,16 @@ class FakeStripeHttpClient implements ClientInterface
         try {
             $body = match (true) {
                 $segments === ['customers'] && $method === 'post' => $this->createCustomer($params),
-                \count($segments) === 2 && $segments[0] === 'customers' && $method === 'get' => $this->retrieveCustomer($segments[1]),
+                \count($segments) === 2 && $segments[0] === 'customers' && $method === 'get' => $this->retrieveCustomer($segments[1], $params),
                 \count($segments) === 2 && $segments[0] === 'customers' && $method === 'post' => $this->updateCustomer($segments[1], $params),
                 \count($segments) === 3 && $segments[0] === 'customers' && $segments[2] === 'tax_ids' && $method === 'post' => $this->createTaxId($segments[1], $params),
                 \count($segments) === 3 && $segments[0] === 'customers' && $segments[2] === 'tax_ids' && $method === 'get' => $this->listTaxIds($segments[1]),
                 $segments === ['payment_methods'] && $method === 'post' => $this->createPaymentMethod($params),
                 \count($segments) === 2 && $segments[0] === 'payment_methods' && $method === 'get' => $this->retrievePaymentMethod($segments[1]),
                 \count($segments) === 3 && $segments[0] === 'payment_methods' && $segments[2] === 'attach' && $method === 'post' => $this->attachPaymentMethod($segments[1], $params),
+                \count($segments) === 3 && $segments[0] === 'customers' && $segments[2] === 'payment_methods' && $method === 'get' => $this->listPaymentMethods($segments[1], $params),
+                $segments === ['setup_intents'] && $method === 'post' => $this->createSetupIntent($params),
+                \count($segments) === 2 && $segments[0] === 'setup_intents' && $method === 'get' => $this->retrieveSetupIntent($segments[1], $params),
                 default => throw new RuntimeException("FakeStripeHttpClient has no handler for {$method} {$path} — add one, this is not a real Stripe API call."),
             };
         } catch (FakeStripeApiError $e) {
@@ -121,7 +127,7 @@ class FakeStripeHttpClient implements ClientInterface
                 'email' => null,
                 'phone' => null,
             ], $this->arrayParam($params, 'billing_details'), ['address' => $address]),
-            'card' => $params['type'] === 'card' ? ['brand' => 'visa', 'last4' => '4242'] : null,
+            'card' => $params['type'] === 'card' ? ['brand' => 'visa', 'last4' => '4242', 'exp_month' => 12, 'exp_year' => 2030] : null,
         ];
 
         $this->paymentMethods[$id] = $paymentMethod;
@@ -129,10 +135,127 @@ class FakeStripeHttpClient implements ClientInterface
         return $paymentMethod;
     }
 
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function listPaymentMethods(string $customerId, array $params): array
+    {
+        $this->retrieveCustomer($customerId);
+
+        $type = $this->stringParam($params, 'type');
+
+        $data = array_values(array_filter(
+            $this->paymentMethods,
+            fn (array $pm): bool => ($pm['customer'] ?? null) === $customerId
+                && ($type === '' || $pm['type'] === $type),
+        ));
+
+        return [
+            'object' => 'list',
+            'data' => $data,
+            'has_more' => false,
+            'url' => "/v1/customers/{$customerId}/payment_methods",
+        ];
+    }
+
+    /**
+     * A confirmed SetupIntent (`confirm: true` plus a test token like
+     * `pm_card_visa`) implies a PaymentMethod that was never created via a
+     * separate call in the test — real Stripe test tokens work the same
+     * way. Creates it under the literal id given, rather than a generated
+     * one, if it doesn't already exist.
+     *
+     * @return array<string, mixed>
+     */
+    private function ensurePaymentMethod(string $id, string $type = 'card'): array
+    {
+        if (! isset($this->paymentMethods[$id])) {
+            $this->paymentMethods[$id] = [
+                'id' => $id,
+                'object' => 'payment_method',
+                'type' => $type,
+                'customer' => null,
+                'billing_details' => [
+                    'address' => ['line1' => null, 'line2' => null, 'city' => null, 'state' => null, 'postal_code' => null, 'country' => null],
+                    'name' => null,
+                    'email' => null,
+                    'phone' => null,
+                ],
+                'card' => $type === 'card' ? ['brand' => 'visa', 'last4' => '4242', 'exp_month' => 12, 'exp_year' => 2030] : null,
+            ];
+        }
+
+        return $this->paymentMethods[$id];
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function createSetupIntent(array $params): array
+    {
+        $id = $this->id('seti');
+        $customerId = $this->stringParam($params, 'customer');
+        $paymentMethodId = $this->stringParam($params, 'payment_method');
+        $confirm = (bool) ($params['confirm'] ?? false);
+
+        if ($paymentMethodId !== '') {
+            $this->ensurePaymentMethod($paymentMethodId);
+        }
+
+        $confirmed = $confirm && $paymentMethodId !== '';
+
+        if ($confirmed) {
+            $this->paymentMethods[$paymentMethodId]['customer'] = $customerId;
+        }
+
+        $setupIntent = [
+            'id' => $id,
+            'object' => 'setup_intent',
+            'customer' => $customerId !== '' ? $customerId : null,
+            'payment_method' => $paymentMethodId !== '' ? $paymentMethodId : null,
+            'payment_method_types' => $this->arrayParam($params, 'payment_method_types') ?: ['card'],
+            'status' => $confirmed ? 'succeeded' : 'requires_payment_method',
+        ];
+
+        $this->setupIntents[$id] = $setupIntent;
+
+        return $setupIntent;
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function retrieveSetupIntent(string $id, array $params = []): array
+    {
+        if (! isset($this->setupIntents[$id])) {
+            throw new FakeStripeApiError(404, [
+                'message' => "No such setup_intent: '{$id}'",
+                'type' => 'invalid_request_error',
+                'code' => 'resource_missing',
+            ]);
+        }
+
+        $setupIntent = $this->setupIntents[$id];
+        $expand = $params['expand'] ?? [];
+
+        if (is_array($expand) && in_array('payment_method', $expand, true) && is_string($setupIntent['payment_method'] ?? null)) {
+            $setupIntent['payment_method'] = $this->retrievePaymentMethod($setupIntent['payment_method']);
+        }
+
+        return $setupIntent;
+    }
+
     /** @return array<string, mixed> */
     private function retrievePaymentMethod(string $id): array
     {
-        return $this->paymentMethods[$id] ?? throw new RuntimeException("FakeStripeHttpClient: no payment method {$id} was created in this test.");
+        return $this->paymentMethods[$id] ?? throw new FakeStripeApiError(404, [
+            'message' => "No such payment_method: '{$id}'",
+            'type' => 'invalid_request_error',
+            'code' => 'resource_missing',
+        ]);
     }
 
     /**
@@ -172,6 +295,7 @@ class FakeStripeHttpClient implements ClientInterface
             'email' => null,
             'phone' => null,
             'metadata' => [],
+            'invoice_settings' => ['default_payment_method' => null],
         ], $params);
 
         $this->customers[$id] = $customer;
@@ -180,10 +304,21 @@ class FakeStripeHttpClient implements ClientInterface
         return $customer;
     }
 
-    /** @return array<string, mixed> */
-    private function retrieveCustomer(string $id): array
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function retrieveCustomer(string $id, array $params = []): array
     {
-        return $this->customers[$id] ?? throw new RuntimeException("FakeStripeHttpClient: no customer {$id} was created in this test.");
+        $customer = $this->customers[$id] ?? throw new RuntimeException("FakeStripeHttpClient: no customer {$id} was created in this test.");
+
+        $expand = $params['expand'] ?? [];
+
+        if (is_array($expand) && in_array('tax_ids', $expand, true)) {
+            $customer['tax_ids'] = $this->listTaxIds($id);
+        }
+
+        return $customer;
     }
 
     /**
