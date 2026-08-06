@@ -516,6 +516,13 @@ class InstallNumerosisCommand extends Command
      * means the upload writes to one directory and the tenant-panel page
      * validating it reads another. It surfaces as a mimetype rejection —
      * "must be a file of type: image/*" — not as a missing file.
+     *
+     * `NumerosisServiceProvider::packageBooted()` already sets this to
+     * 'livewire' when the host hasn't set anything itself, so a passing
+     * host normally never touched this config key at all. This is
+     * therefore asking "has the host broken what we set", not "did the
+     * host wire this up" — the failure that matters is a host explicitly
+     * repointing it at a disk that's tenant-suffixed.
      */
     private function verifyLivewireUploadDisk(): void
     {
@@ -531,15 +538,18 @@ class InstallNumerosisCommand extends Command
         $tenantDisks = Config::array('tenancy.filesystem.disks');
 
         if (in_array($disk, $tenantDisks, true)) {
-            $this->failures[] = "config('livewire.temporary_file_upload.disk') is '{$disk}', which config('tenancy.filesystem.disks') tenant-suffixes — uploads then land outside the root the validating request reads, surfacing as a mimetype rejection. Point it at a dedicated 'livewire' disk that is absent from that list.";
+            $this->failures[] = "config('livewire.temporary_file_upload.disk') is '{$disk}', which config('tenancy.filesystem.disks') tenant-suffixes — uploads then land outside the root the validating request reads, surfacing as a mimetype rejection. This package sets it to a dedicated 'livewire' disk by default (see NumerosisServiceProvider::packageBooted()); if you overrode it, point the override at a disk absent from that list instead.";
         }
     }
 
     /**
      * Livewire's own default points these at `resource_path()`, which is
      * correct for a single-repo app and wrong here: the views ship from this
-     * package. Unset, `<livewire:layouts::header />` and the `pages::` routes
-     * fail with "Unable to find component", which reads as a missing route.
+     * package. `NumerosisServiceProvider::packageBooted()` already points
+     * both at the package's own resources/views/{layouts,pages} whenever the
+     * host hasn't set something else — so a passing host normally never
+     * touched this key. This asks "has the host broken what we set", not
+     * "did the host wire this up".
      */
     private function verifyLivewireComponentNamespaces(): void
     {
@@ -550,7 +560,7 @@ class InstallNumerosisCommand extends Command
             $path = $namespaces[$namespace] ?? null;
 
             if (! is_string($path) || ! File::isDirectory($path)) {
-                $this->failures[] = "config('livewire.component_namespaces.{$namespace}') must point at an existing directory — this package's own resources/views/{$namespace}, e.g. base_path('vendor/nvade/numerosis/resources/views/{$namespace}'). Unset, components resolve against the host's resources/ and fail with 'Unable to find component'.";
+                $this->failures[] = "config('livewire.component_namespaces.{$namespace}') must point at an existing directory. This package sets it to its own resources/views/{$namespace} by default (see NumerosisServiceProvider::packageBooted()); if you overrode it, point the override at a real directory. Unset entirely, components resolve against the host's resources/ and fail with 'Unable to find component'.";
             }
         }
     }

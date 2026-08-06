@@ -106,6 +106,55 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->app->bind(InvitationRepository::class, EloquentInvitationRepository::class);
         $this->app->bind(SocialAccountRepository::class, EloquentSocialAccountRepository::class);
         $this->app->bind(NotifiesTenantOwner::class, NotifiesTenantOwnerDirectly::class);
+
+        // Livewire's own default points 'layouts'/'pages' at
+        // resource_path('views/{layouts,pages}') — correct for a
+        // single-repo app, wrong here: those views ship from this package.
+        // Unset, `<livewire:layouts::header />` and the `pages::` routes
+        // fail with "Unable to find component". Livewire's own config
+        // merges a non-null default for both keys even when the host has
+        // never published config/livewire.php, so "already set" is judged
+        // against that default rather than against null — a host that
+        // actually wants a different path here (e.g. publishing these
+        // views locally, per docs/host-requirements.md) sets one that
+        // differs from Livewire's stock resource_path().
+        //
+        // Must happen here, in packageRegistered() — not packageBooted() —
+        // because LivewireServiceProvider::boot() reads this config and
+        // registers the Blade view-finder hint from it eagerly. Every
+        // provider's register() runs before any provider's boot(), so this
+        // is the only phase guaranteed to land before Livewire consumes it
+        // regardless of provider discovery order; packageBooted() was too
+        // late and produced "No hint path defined for [layouts]." the
+        // moment anything rendered `<livewire:layouts::header />`.
+        foreach (['layouts', 'pages'] as $namespace) {
+            $current = Config::get("livewire.component_namespaces.{$namespace}");
+
+            if ($current === null || $current === resource_path("views/{$namespace}")) {
+                Config::set("livewire.component_namespaces.{$namespace}", __DIR__."/../resources/views/{$namespace}");
+            }
+        }
+
+        // Livewire's temporary-upload endpoint (livewire/upload-file) is
+        // registered by Livewire's own service provider with only the
+        // 'web' middleware group — it never passes through
+        // tenancy.identification, so it always runs central. If a tenant
+        // panel's save request then validates the upload against 'local'
+        // (correctly tenant-suffixed for genuinely tenant-owned files),
+        // the two disagree on where the file lives. This disk must stay
+        // out of tenancy.filesystem.disks — see tenant-filesystem.md.
+        if (Config::get('filesystems.disks.livewire') === null) {
+            Config::set('filesystems.disks.livewire', [
+                'driver' => 'local',
+                'root' => storage_path('app/private'),
+                'throw' => false,
+                'report' => false,
+            ]);
+        }
+
+        if (Config::get('livewire.temporary_file_upload.disk') === null) {
+            Config::set('livewire.temporary_file_upload.disk', 'livewire');
+        }
     }
 
     public function packageBooted(): void
