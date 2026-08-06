@@ -16,6 +16,8 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Invitation;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 
 /**
  * Publishes config + model stubs, appends the env keys host-requirements.md
@@ -55,10 +57,20 @@ class InstallNumerosisCommand extends Command
         $this->newLine();
         $this->components->info('Verifying host configuration');
 
+        $this->verifyTenancyModels();
+        $this->verifyCentralDomains();
+        $this->verifyTenancyBootstrappers();
         $this->verifyDatabaseConnections();
+        $this->verifyLockWaitTimeout();
         $this->verifySessionDomain();
         $this->verifyAuthGuards();
+        $this->verifyAuthPasswordBroker();
+        $this->verifySocialProviders();
         $this->verifyLivewireDiskExclusion();
+        $this->verifyLivewireUploadDisk();
+        $this->verifyLivewireComponentNamespaces();
+        $this->verifyAppDomain();
+        $this->verifyCentralDefaultDomain();
         $this->verifyTenantMigrationPath();
         $this->verifyStripeKeys();
         $this->verifyModelOverrides();
@@ -188,6 +200,97 @@ class InstallNumerosisCommand extends Command
         $this->components->info('Pointed '.count($missing).' model override(s) at the published stubs.');
     }
 
+    /**
+     * The four model keys stancl and this package's own resolvers read. An
+     * unresolvable `tenant_model` does not throw where it is read — the
+     * Filament panel answers 404 on every tenant URL instead, because
+     * `{tenant}` route-model binding silently resolves to nothing (see
+     * filament-tenancy.md).
+     */
+    private function verifyTenancyModels(): void
+    {
+        foreach (['tenant_model', 'domain_model', 'central_user_model', 'tenant_user_model'] as $key) {
+            $class = Config::get("tenancy.{$key}");
+
+            if (! is_string($class) || $class === '' || ! class_exists($class)) {
+                $this->failures[] = "config('tenancy.{$key}') must name a class that exists — a tenant panel answers 404 on every tenant URL when this is unresolvable, rather than reporting a config problem.";
+            }
+        }
+
+        $parameters = Config::get('tenancy.seeder_parameters');
+        $seeder = is_array($parameters) ? ($parameters['--class'] ?? null) : null;
+
+        // Mirror SeedCommand::getSeeder(): an unqualified name resolves under
+        // Database\Seeders, so 'DatabaseSeeder' is valid config, not a typo.
+        if (is_string($seeder) && ! str_contains($seeder, '\\')) {
+            $seeder = 'Database\\Seeders\\'.$seeder;
+        }
+
+        if (is_string($seeder) && ! class_exists($seeder)) {
+            $this->failures[] = "config('tenancy.seeder_parameters')['--class'] names '{$seeder}', which does not exist — tenant provisioning then fails inside the queued chain, so the tenant row appears and provisioned_at never gets set.";
+        }
+    }
+
+    private function verifyCentralDomains(): void
+    {
+        $domains = Config::get('tenancy.central_domains');
+
+        if (! is_array($domains) || $domains === []) {
+            $this->failures[] = "config('tenancy.central_domains') must list at least one hostname — Numerosis::routes() registers one route group per entry, so an empty list means every central URL 404s with no route registered at all.";
+        }
+    }
+
+    /**
+     * Both package bootstrappers must be present. `AuthGuardBootstrapper` is
+     * the entire enforcement mechanism for "central domain = central guard,
+     * inside tenant = tenant guard" — omit it and every ambient
+     * `auth()->user()` resolves a central user on tenant domains, silently.
+     */
+    private function verifyTenancyBootstrappers(): void
+    {
+        $bootstrappers = Config::get('tenancy.bootstrappers');
+        $bootstrappers = is_array($bootstrappers) ? $bootstrappers : [];
+
+        foreach ([SpatiePermissionsBootstrapper::class, AuthGuardBootstrapper::class] as $required) {
+            if (! in_array($required, $bootstrappers, true)) {
+                $this->failures[] = "config('tenancy.bootstrappers') is missing {$required} — see docs/host-requirements.md's config/tenancy.php row for what stops working without it.";
+            }
+        }
+    }
+
+    /**
+     * Bounding these is optional — production hosts commonly leave them at
+     * MySQL's defaults — but setting only `lock_wait_timeout` is a trap worth
+     * failing on: it bounds metadata/DDL locks only, while the ordinary
+     * row/FK waits an `INSERT`/`DELETE` blocks on keep waiting out
+     * `innodb_lock_wait_timeout`'s 50s default. A host that sets one believes
+     * it has bounded lock waits and has not.
+     *
+     * Read as a string rather than through PDO's constant, so this behaves the
+     * same on PHP 8.4 and 8.5, where the MySQL init-command constant moved to
+     * `Pdo\Mysql`.
+     */
+    private function verifyLockWaitTimeout(): void
+    {
+        /** @var array<string, mixed> $connections */
+        $connections = Config::array('database.connections');
+        $central = $connections['central'] ?? null;
+
+        if (! is_array($central) || ($central['driver'] ?? null) !== 'mysql') {
+            return; // Only MySQL has these session variables.
+        }
+
+        $options = $central['options'] ?? [];
+        $init = is_array($options) ? implode(' ', array_filter($options, 'is_string')) : '';
+
+        $metadata = str_contains($init, 'lock_wait_timeout');
+        $rows = str_contains($init, 'innodb_lock_wait_timeout');
+
+        if ($metadata && ! $rows) {
+            $this->failures[] = "config('database.connections.central.options') sets lock_wait_timeout but not innodb_lock_wait_timeout — the first bounds only metadata/DDL locks, so a blocked INSERT or DELETE still waits out MySQL's 50s default. Set both in one SET SESSION statement, or neither.";
+        }
+    }
+
     private function verifyDatabaseConnections(): void
     {
         /** @var array<string, mixed> $connections */
@@ -234,6 +337,53 @@ class InstallNumerosisCommand extends Command
         }
     }
 
+    /**
+     * `Password::sendResetLink()` resolves its user model through the broker
+     * config, not through `auth.providers`. With no broker entry Laravel falls
+     * back to its own generic `Illuminate\Foundation\Auth\User`, which has no
+     * `Notifiable` trait — so the failure is `Call to undefined method
+     * ...User::notify()`, reading as a broken model rather than missing config.
+     */
+    private function verifyAuthPasswordBroker(): void
+    {
+        $broker = Config::get('auth.defaults.passwords');
+
+        if (! is_string($broker) || $broker === '') {
+            $this->failures[] = "config('auth.defaults.passwords') is unset — password resets resolve Laravel's generic user model and fail with 'Call to undefined method ...User::notify()'.";
+
+            return;
+        }
+
+        $brokers = Config::get('auth.passwords');
+        $config = is_array($brokers) ? ($brokers[$broker] ?? null) : null;
+
+        if (! is_array($config)) {
+            $this->failures[] = "config('auth.passwords.{$broker}') is missing, though config('auth.defaults.passwords') names it.";
+
+            return;
+        }
+
+        $provider = $config['provider'] ?? null;
+        $providers = Config::get('auth.providers');
+
+        if (! is_string($provider) || ! is_array($providers) || ! array_key_exists($provider, $providers)) {
+            $this->failures[] = "config('auth.passwords.{$broker}.provider') does not name a provider in config('auth.providers').";
+        }
+    }
+
+    /**
+     * `ConfiguredProviders::all()` reads this with `Config::array()`, which
+     * throws on a *missing* key rather than returning `[]` — an absent key
+     * surfaces as a 500 from an unrelated view. An empty array is correct when
+     * SocialLoginFeature is off.
+     */
+    private function verifySocialProviders(): void
+    {
+        if (! is_array(Config::get('auth.social.providers'))) {
+            $this->failures[] = "config('auth.social.providers') must be an array (use [] when SocialLoginFeature is off) — a missing key throws InvalidArgumentException from whichever view renders the social-login buttons.";
+        }
+    }
+
     private function verifyLivewireDiskExclusion(): void
     {
         /** @var list<string> $disks */
@@ -241,6 +391,70 @@ class InstallNumerosisCommand extends Command
 
         if (in_array('livewire', $disks, true)) {
             $this->failures[] = "config('tenancy.filesystem.disks') must NOT contain 'livewire' — see docs/host-requirements.md's config/filesystems.php row.";
+        }
+    }
+
+    /**
+     * The real invariant is not the disk's *name* but that Livewire's
+     * temporary-upload disk is never tenant-suffixed: that route runs
+     * central-only (no `tenancy.identification`), so a tenant-suffixed root
+     * means the upload writes to one directory and the tenant-panel page
+     * validating it reads another. It surfaces as a mimetype rejection —
+     * "must be a file of type: image/*" — not as a missing file.
+     */
+    private function verifyLivewireUploadDisk(): void
+    {
+        $disk = Config::get('livewire.temporary_file_upload.disk') ?? 'local';
+
+        if (! is_string($disk)) {
+            $this->failures[] = "config('livewire.temporary_file_upload.disk') must be a disk name.";
+
+            return;
+        }
+
+        /** @var list<string> $tenantDisks */
+        $tenantDisks = Config::array('tenancy.filesystem.disks');
+
+        if (in_array($disk, $tenantDisks, true)) {
+            $this->failures[] = "config('livewire.temporary_file_upload.disk') is '{$disk}', which config('tenancy.filesystem.disks') tenant-suffixes — uploads then land outside the root the validating request reads, surfacing as a mimetype rejection. Point it at a dedicated 'livewire' disk that is absent from that list.";
+        }
+    }
+
+    /**
+     * Livewire's own default points these at `resource_path()`, which is
+     * correct for a single-repo app and wrong here: the views ship from this
+     * package. Unset, `<livewire:layouts::header />` and the `pages::` routes
+     * fail with "Unable to find component", which reads as a missing route.
+     */
+    private function verifyLivewireComponentNamespaces(): void
+    {
+        $namespaces = Config::get('livewire.component_namespaces');
+        $namespaces = is_array($namespaces) ? $namespaces : [];
+
+        foreach (['layouts', 'pages'] as $namespace) {
+            $path = $namespaces[$namespace] ?? null;
+
+            if (! is_string($path) || ! File::isDirectory($path)) {
+                $this->failures[] = "config('livewire.component_namespaces.{$namespace}') must point at an existing directory — this package's own resources/views/{$namespace}, e.g. base_path('vendor/nvade/numerosis/resources/views/{$namespace}'). Unset, components resolve against the host's resources/ and fail with 'Unable to find component'.";
+            }
+        }
+    }
+
+    private function verifyAppDomain(): void
+    {
+        $domain = Config::get('app.domain');
+
+        if (! is_string($domain) || $domain === '') {
+            $this->failures[] = "config('app.domain') is unset — DefaultTenantDomainPolicy and CreateTenantDomain read it with Config::string(), which throws rather than defaulting, so tenant creation and the panel's domain screens both break.";
+        }
+    }
+
+    private function verifyCentralDefaultDomain(): void
+    {
+        $domain = Config::get('app.central.default');
+
+        if (! is_string($domain) || $domain === '') {
+            $this->failures[] = "config('app.central.default') is unset — routes/auth.php calls ->domain(...) with it, and Route::domain(null) is a getter, so the failure surfaces one line later as 'Call to a member function name() on string'.";
         }
     }
 
