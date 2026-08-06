@@ -22,7 +22,7 @@ Overwrite this block; never append to it. Fifteen lines, hard limit.
 | | |
 |---|---|
 | Phase | 6 — **R2's exit gate is met** (see below); 7.1-7.4 already done per D10 |
-| numerosis | pending commit (step 5 + `SeedTenantDatabase` fix), on top of `34a7f13` |
+| numerosis | `84a9a7d`, clean |
 | thin-app | `11b29d1`, clean, boots to `ViteManifestNotFoundException` (Phase 9 boundary, expected) |
 | saas-m | frozen at `c66cc72`; only `.claude/` pointers change here |
 | Package suite | **0 failed / 373 passed / 7 skipped in ~65s** — measured 2026-08-06, MySQL volume dropped and recreated from nothing, twice, both landed identical |
