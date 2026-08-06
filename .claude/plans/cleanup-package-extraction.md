@@ -18,12 +18,12 @@ Overwrite this block; never append.
 
 | | |
 |---|---|
-| Session | 2026-08-06 (third session that day) |
-| numerosis | `67acfb1`. **Working tree not clean** — a concurrent session is mid-flight on an unrelated `#[UsePolicy]`/Filament refactor (new `src/Policies/*`, modified Filament resources/Models, `.claude/rules/auth-guards.md`); none of it is this plan's work, left untouched and unstaged. Suite **0 failed / 392 passed / 7 skipped** (~66s) as of this plan's own commits. PHPStan clean |
-| thin-app | `e40c485`, clean apart from untracked `public/{css,js,fonts}` build output. `numerosis:install --verify-only` clean; real `/login` request confirmed 200 with no config errors |
+| Session | 2026-08-07 (fourth session) |
+| numerosis | `081d04b`. **Working tree still not clean** — the same concurrent `#[UsePolicy]`/Filament refactor from the prior session is still mid-flight (new `src/Policies/*`, modified Filament resources/Models); none of it is this plan's work, left untouched and unstaged throughout. All commits this session touched only files this plan owns. PHPStan: only my own file (`src/Support/Numerosis.php`) checked clean in isolation — full-tree run still shows 8 errors, all from the concurrent session's dirty files (confirmed via `git stash`) |
+| thin-app | `b570a3e`, dirty apart from this plan's own commits — pre-existing unrelated `docker-compose.yml`/`resources/css/app.css`/`vite.config.js` edits and untracked `public/{css,js,fonts}` build output, none touched. Real `/login` request (with correct `Host:` header — plain `curl localhost` 500s on tenant-identification, that's not a bug) confirmed 200 after both G's bootstrap/app.php change and task-7's dead-file removal |
 | saas-m | frozen, untouched |
-| Done this session | **E** (tenant migrations point at vendor path, dead clients-module migrations removed), **F** (asset publish drift detection), **H** (Livewire config defaults — had to land in `packageRegistered()`, not `packageBooted()`, per real-request bug found and fixed this session) — see "Completed" below |
-| Next | **G/I** (task 6, half of I already landed), then doc corrections (task 7) |
+| Done this session | **G** (`Numerosis::exceptions()` seam, thin-app now calls it), **I** (documented `numerosis.modules.{catalogue,plugins}` in host-requirements.md — config itself was already done), and all of **task 7** (doc corrections: package-extraction.md Phase 8/10 annotated not rewritten, host-requirements.md rows 19-20 fixed, NumerosisServiceProvider stub comment fixed, two new testing.md learnings recorded, thin-app's three dead leftovers removed) |
+| Next | **Nothing left in this plan.** Every remaining-work item (G, I, doc corrections 1-4) is done. Only open thread: this plan's "STOP" item from `package-extraction.md` (archiving saas-m) still needs explicit user go-ahead, unrelated to this plan's own scope |
 
 Prerequisites for running anything: `cd ~/repos/private/numerosis && docker
 compose up -d`, then `vendor/bin/pest --ci`, `composer analyse`,
@@ -154,6 +154,9 @@ green suite can silently get wrong.
 ---
 
 ## Remaining work
+
+**All done as of `numerosis@081d04b` / `thin-app@b570a3e` (2026-08-07 session)
+— kept below for the reasoning, not as an open list.**
 
 ### G/I — exceptions seam, and the rest of the modules config
 
