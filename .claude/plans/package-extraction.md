@@ -22,12 +22,12 @@ Overwrite this block; never append to it. Fifteen lines, hard limit.
 | | |
 |---|---|
 | Phase | 6 (package harness) in progress; 7.1-7.4 done ahead of it per D10 |
-| numerosis | `888d07a` + this note, clean |
+| numerosis | `ef036e6` + this note, clean |
 | thin-app | `11b29d1`, clean, boots to `ViteManifestNotFoundException` (Phase 9 boundary, expected) |
 | saas-m | frozen at `c66cc72`; only `.claude/` pointers change here |
-| Package suite | **32 failed / 333 passed / 7 skipped / 1 risky in 52s** — measured 2026-08-06 at `888d07a`, bucketed per step 1's table |
-| PHPStan | clean against a 240-entry baseline (`--debug --memory-limit=1G` required) |
-| Resume at | Step 1 — the `Unknown database` diagnosis, mid-flight, see its text |
+| Package suite | **17 failed / 348 passed / 7 skipped / 1 risky in 57s** — measured 2026-08-06 at `ef036e6`, bucketed per step 1's table |
+| PHPStan | clean against a 240-entry baseline (`--memory-limit=1G` required) |
+| Resume at | Step 1's remaining buckets — the 15 `Unknown database` failures are fixed and gone |
 
 Suite prerequisites: `docker start saas-m-mysql-1` (numerosis's harness points
 at `127.0.0.1:3306`), and `php -d memory_limit=1G vendor/bin/pest`.
@@ -39,43 +39,41 @@ at `127.0.0.1:3306`), and `php -d memory_limit=1G vendor/bin/pest`.
 Done in order. Each is independently committable; commit at every
 green-or-better point (R6) — never end a session with an uncommitted tree.
 
-1. **Finish diagnosing the `Unknown database 'tenantX'` bucket — 15 of the
-   32 failures, and the one bucket that is definitely a real bug.** The
-   re-bucket itself is done (table below, measured at `888d07a`). What is
-   *not* done is the diagnosis of the largest bucket, which stopped one step
-   in:
+1. **Clear the remaining 17 failures.** The `Unknown database 'tenantX'`
+   bucket — 15 of the original 32, and the one that was definitely a real bug
+   — is **fixed in `ef036e6`**, cause below. Nothing in the rest of this step
+   depends on it.
 
-   **`RoleResourceUiTest` (4) and `CancelModuleTest` (2) both reproduce the
-   failure running alone, one file at a time.** That rules out the
-   cross-test contention this bucket has been filed under since the second
-   Phase 6 session — `testing.md`'s documented class only appears in a full
-   run. It is the harness or the package, and it is reproducible in ~4.5s,
-   which makes it cheap to chase.
+   **Cause, for the record (it is a class, not an instance).** Testbench's
+   `beforeApplicationDestroyed()` is `array_unshift`
+   (`Orchestra\Testbench\Concerns\ApplicationTestingHooks`), where
+   `Illuminate\Foundation\Testing\TestCase`'s is `[] =`. Callbacks therefore
+   run **last-registered-first** under Testbench. `Tests\TestCase::setUp()`
+   registered its cleanup after `parent::setUp()` — correct on plain Laravel,
+   which is where saas-m runs it and where its docblock's reasoning was
+   written — so under Testbench that cleanup ran *ahead* of `RefreshDatabase`'s
+   rollback: `deleteTenantDatabases()` dropped the tenant database, then
+   `RefreshDatabase` called `$connection->getPdo()` on the still-current
+   tenant connection (tenancy is still initialized at teardown, so the
+   *default* connection is the tenant one) and PDO reconnected to a schema
+   that no longer existed. Fix is one move: register before `parent::setUp()`.
+   **Anything ported from a saas-m `TestCase` that depends on callback
+   ordering has to be re-checked against this inversion.** Two tells: the
+   test body's assertions all pass and only teardown throws, and the frame is
+   a bare `PDOException` at `parent::tearDown()` with no test-side frame —
+   Testbench keeps only the *first* callback exception and swallows the rest.
 
-   Resume by getting the stack for a single failing test: earlier notes
-   report it firing inside `parent::tearDown()` (`RefreshDatabase`'s
-   rollback) *after* the body's assertions have already passed, which would
-   mean the tenant database is dropped, or never created, while the default
-   connection still points at it. Two candidates worth testing first,
-   both untested: the Workbench panel provider's `->tenant(Tenant::class,
-   'id')` binding triggering a second, differently-keyed tenancy bootstrap
-   that `CloneTenantSchema` does not know about, and `deleteTenantDatabases()`
-   running against a connection that is still inside tenant context.
-   `DB::listen` printing `$query->connectionName` is the tool that cracked
-   the last bug of this shape.
+   **Done when:** every row below is fixed or carries a decision.
 
-   **Done when:** the 15 are attributed to a named cause and either fixed or
-   given a decision in the table below.
-
-   Full breakdown, measured 2026-08-06 at `888d07a` (32 failed / 333 passed /
-   7 skipped / 1 risky, 52s):
+   Full breakdown, measured 2026-08-06 at `ef036e6` (17 failed / 348 passed /
+   7 skipped / 1 risky, 57s):
 
    | Count | Cause | Notes |
    |---|---|---|
-   | 15 | `SQLSTATE[HY000] [1049] Unknown database 'tenantX'` | above — **reproduces in isolation, so not contention** |
+   | ~~15~~ 0 | ~~`SQLSTATE[HY000] [1049] Unknown database 'tenantX'`~~ | **fixed, `ef036e6`** — teardown callback ordering, see above |
    | 5 | `Socialite\{Redirect,Login}Test` | 4 × `assertTrue(false)` plus one expecting `http://central.numerosistest.test/oauth/google`; smells like the harness's forced root URL vs the OAuth route's own `->domain()` |
    | 4 | `{Migrate,Seed}TenantModuleTest` | `Failed asserting that 1 matches expected 0` — the artisan command exits non-zero; both hardcode the real `alerts` module, which does not exist in this package (module tests are otherwise quarantined to the `thin-app` group) |
-   | 2 | `CheckInvitationStatusTest` | string inequality, distinct from the same file's 2 `Unknown database` failures |
+   | 2 | `CheckInvitationStatusTest` | string inequality; the same file's 2 `Unknown database` failures are gone |
    | 2 | `View\Components\PlanCardTest` | rendered HTML mismatch, `To contain: 10,00` — money formatting/locale, not tenancy |
    | 1 | `SeedTenantDatabaseTest` | `Mockery::mock()` on `Orchestra\Testbench\Console\Kernel`, which is `final` — needs a partial mock or a different seam |
    | 1 | `Livewire\Tenant\…` | `Invalid API Key provided: sk_test_*ummy` — one Stripe straggler D9 missed |

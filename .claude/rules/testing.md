@@ -26,6 +26,29 @@ updated: 2026-07-31
     dropping first makes rollback reconnect to database that no
     longer exists (`Unknown database`).
 
+  **"Registered from `setUp()` so run after rollback" only true on plain
+  Laravel — under Testbench (numerosis package repo) it's inverted, and
+  register order must flip.** `Illuminate\Foundation\Testing\TestCase::
+  beforeApplicationDestroyed()` appends (`[] =`), so last-registered runs
+  last; `Orchestra\Testbench\Concerns\ApplicationTestingHooks`'s does
+  `array_unshift`, so last-registered runs **first**. Same source line,
+  opposite meaning. Copying this class into a Testbench harness verbatim
+  therefore ran `deleteTenantDatabases()` *ahead* of `RefreshDatabase`'s
+  rollback and produced exactly the `Unknown database 'tenantX'` failure the
+  bullet above warns about — 15 of 32 failures in numerosis's suite, fixed
+  `numerosis@ef036e6` by calling `beforeApplicationDestroyed()` **before**
+  `parent::setUp()` (array only reset in `tearDownTheApplicationTestingHooks()`,
+  after callbacks run, and the method touches nothing but that property, so
+  registering pre-app is safe). Tells it's this and not contention: it
+  **reproduces one file at a time** (documented contention class needs a full
+  run), the body's assertions all pass and only teardown throws, and the
+  failure is a bare `PDOException` at `parent::tearDown()` with no test-side
+  frame — Testbench's `callBeforeApplicationDestroyedCallbacks()` keeps only
+  the *first* callback exception and swallows the rest, so the real thrower
+  is invisible until each step is wrapped by hand. Any other saas-m teardown
+  behaviour that depends on callback order needs re-checking the same way
+  when ported.
+
 - **`assertDatabaseHas()`/`assertDatabaseMissing()` default to the *default*
   connection, which under `RefreshDatabase` is a transaction — a central-connection
   write (autocommit, see above) is invisible to it under MySQL's REPEATABLE-READ
