@@ -82,6 +82,18 @@ class Numerosis
     }
 
     /**
+     * Absolute path to the package's own `routes/channels.php`, for
+     * `bootstrap/app.php`'s `withBroadcasting()`. Same reasoning as
+     * `tenantMigrationPath()`: `InstalledVersions::getInstallPath()` is wrong
+     * when this package is the root project, and a hardcoded
+     * `vendor/nvade/numerosis/...` string is wrong the moment the file moves.
+     */
+    public static function broadcastChannelsPath(): string
+    {
+        return dirname(__DIR__, 2).'/routes/channels.php';
+    }
+
+    /**
      * Middleware group used by `withBroadcasting()`. `auth:tenant` is
      * hardcoded rather than read off `auth.defaults.guards.context.tenant`
      * because broadcasting auth always happens inside tenant context — see

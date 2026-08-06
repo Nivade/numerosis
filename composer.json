@@ -132,10 +132,7 @@
         "laravel": {
             "providers": [
                 "Nvade\\Numerosis\\NumerosisServiceProvider"
-            ],
-            "aliases": {
-                "Numerosis": "Nvade\\Numerosis\\Facades\\Numerosis"
-            }
+            ]
         }
     },
     "prefer-stable": true
