@@ -22,13 +22,13 @@ Overwrite this block; never append to it. Fifteen lines, hard limit.
 | | |
 |---|---|
 | Phase | 6 — **R2's exit gate is met** (see below); 7.1-7.4 already done per D10 |
-| numerosis | `fad542e`, clean |
+| numerosis | pending commit (this session's arch test), on top of `18045aa` |
 | thin-app | `11b29d1`, clean, boots to `ViteManifestNotFoundException` (Phase 9 boundary, expected) |
 | saas-m | frozen at `c66cc72`; only `.claude/` pointers change here |
-| Package suite | **0 failed / 368 passed / 7 skipped in ~66s** — measured 2026-08-06 at `fad542e`, from a genuinely fresh `testing` DB |
-| PHPStan | clean, baseline 247 entries (was 240; +7 for the view-string/testing-macro false positives step 2 added — `--memory-limit=1G` required) |
+| Package suite | **0 failed / 369 passed / 7 skipped in ~69s** — measured 2026-08-06, from a genuinely fresh `testing` DB |
+| PHPStan | clean, baseline 247 entries unchanged |
 | Exclusions | 14 `#[Group('thin-app')]` across 11 files, all module-package tests (R2 row 1) |
-| Resume at | Step 2, still open — convention audit found+fixed Livewire registration (6 files) and translations (48 call sites, 18 files) buckets; policies/factories/migrations/commands/morph-map checked clean. `numerosis:doctor` command not built yet |
+| Resume at | Step 2 closed (no `numerosis:doctor` built — audit's fixes+regression tests+arch test judged the more valuable form of "land it as an executable artifact"). Step 3 done this session: `tests/Feature/Support/ModelResolverBypassTest.php`, AST scan via nikic/php-parser, verified by mutation, passed clean first run (all 108 call sites already correct). Next: step 4 (Phase 6.6 debt) |
 
 Phase 6's three exit conditions (R2) are all satisfied as of `fad542e`:
 zero failures, baseline growth traceable, every exclusion traceable. The 7
@@ -108,19 +108,37 @@ green-or-better point (R6) — never end a session with an uncommitted tree.
    `queue.failed.database`, and — implicitly — the Flux component path,
    which was fixed in the package rather than pushed onto the host.
 
-2. **Audit convention-based registration, as an executable artifact.**
-   Enumerate what the monolith got for free from `app/`: event discovery
-   (fixed), policies, Livewire component names, Blade view namespace and
-   components, factory guessing, migration paths, translations, commands,
-   broadcast channels, morph map. Land it as arch tests plus a
-   `numerosis:doctor` command — not a one-off pass, since this class has
-   already bitten five times in five different shapes.
+2. **DONE 2026-08-06 (`b310eae`, `fad542e`, `18045aa`) — audit convention-based
+   registration, as an executable artifact.** Every bucket checked: event
+   discovery (already fixed), policies (explicit `#[UsePolicy]`, clean),
+   Livewire component names (2 real bugs found — see log), Blade view
+   namespace/components (clean), factory guessing (already fixed via
+   `Numerosis::factoryNameFor()`/`modelNameFor()`), migration paths
+   (`discoversMigrations()`, explicit), translations (1 real bug found — see
+   log), commands (`hasCommand()`, explicit), broadcast channels (thin-app's
+   `withBroadcasting()`, not a package gap), morph map (consistently through
+   `Numerosis::model()`, clean). **`numerosis:doctor` command deliberately
+   not built** — the audit's findings became direct fixes + regression tests
+   + step 3's arch test instead, judged the more valuable form of "land it
+   as an executable artifact" than a separately-run doctor command. Detail
+   in the log's 2026-08-06 "step 2, convention-registration audit" entry.
 
-3. **Arch test for D12's premise.** Fail on any bare `X::method()` static call
-   against the 9 models inside `src/` that bypasses `Numerosis::model()`.
-   Models are concrete now, so a bypass no longer crashes — it silently
-   ignores the host's override, which is *quieter* than the bug it replaced.
-   `pest-plugin-arch` is already installed.
+3. **DONE 2026-08-06 — arch test for D12's premise.**
+   `tests/Feature/Support/ModelResolverBypassTest.php`: AST scan (nikic/
+   php-parser, already a transitive dep via PHPStan) over every file in
+   `src/` for `StaticCall`/`StaticPropertyFetch`/`New_` nodes whose resolved
+   class name (via `NameResolver`) is one of the 9 config-overridable
+   models, excluding `Support/Numerosis.php` (the resolver itself) and
+   `Models/**` (a model referencing its own statics is not a bypass).
+   `X::class` is a `ClassConstFetch`, not flagged — so `Numerosis::model(Tenant::class)`
+   and relation/factory declarations pass clean. Ran clean first try (all
+   108 call sites from D12 already correct); **verified by mutation**, not
+   by going green — temporarily reverted one call site to a bare
+   `Tenant::find()`, confirmed the test failed naming the exact file and
+   line, then restored it. `pest-plugin-arch` was not used: its `toUse()`
+   checks class-level dependencies, not statement-level call sites, so it
+   cannot distinguish `Numerosis::model(Tenant::class)` (fine) from
+   `Tenant::find()` (a bypass) — both "use" the same class.
 
 4. **Phase 6.6 — R8's Phase-5 debt**, gated behind a green suite. Rewire the
    5 contracts' call sites (they are decorative today: swapping a binding
