@@ -22,10 +22,10 @@ Overwrite this block; never append to it. Fifteen lines, hard limit.
 | | |
 |---|---|
 | Phase | 6 (package harness) in progress; 7.1-7.4 done ahead of it per D10 |
-| numerosis | `6718d5d`, clean |
+| numerosis | `21c4b69`, clean |
 | thin-app | `41bcd57`, clean, boots to `ViteManifestNotFoundException` (Phase 9 boundary, expected) |
 | saas-m | frozen at `c66cc72`; only `.claude/` pointers change here |
-| Package suite | 32 failed / 327 passed / 7 skipped / 1 risky — measured 2026-08-06 at `92d120f`, **not re-bucketed since D9 closed** |
+| Package suite | 32 failed / 327 passed / 7 skipped / 1 risky — measured 2026-08-06 at `92d120f`, **stale and not re-bucketed**; step 1 below is exactly this |
 | PHPStan | clean against a 240-entry baseline (`--debug --memory-limit=1G` required) |
 | Resume at | Step 1 below |
 
@@ -39,16 +39,7 @@ at `127.0.0.1:3306`), and `php -d memory_limit=1G vendor/bin/pest`.
 Done in order. Each is independently committable; commit at every
 green-or-better point (R6) — never end a session with an uncommitted tree.
 
-1. **`numerosis:install` must set `numerosis.models.*`.** It publishes the
-   model stubs and never points config at them, so a fresh consumer gets the
-   class-string mismatch that shows up as `SQLSTATE 1205`, i.e. reads as the
-   documented lock-wait bucket rather than as a config gap (found in
-   `92d120f`'s harness, same gap applies to any host). Decide the mechanism
-   against what the command already does for its 6 `.env` keys. **Done when:**
-   a fresh publish-then-install leaves `numerosis.models` pointing at the
-   published stubs, or fails loudly saying it doesn't.
-
-2. **Close R9 with a test, not discipline.** One test parses
+1. **Close R9 with a test, not discipline.** One test parses
    `docs/host-requirements.md`'s tables and asserts every key it names has a
    matching assertion in `InstallNumerosisCommand`. Then add the six
    assertions that are currently missing (`app.domain`, `app.central.default`,
@@ -56,7 +47,7 @@ green-or-better point (R6) — never end a session with an uncommitted tree.
    `livewire.component_namespaces`, `database.lock_wait_timeout`).
    **Done when:** the test fails if a row is added to the doc and nowhere else.
 
-3. **Re-bucket the remaining failures from scratch.** The old ~29 Stripe and
+2. **Re-bucket the remaining failures from scratch.** The old ~29 Stripe and
    ~17 `Unknown database` estimates are both stale — D9 closed Stripe, and
    `92d120f`'s model-config fix absorbed an unknown share of what was filed
    under contention. Get a fresh per-cause breakdown *before* deciding whether
@@ -64,7 +55,7 @@ green-or-better point (R6) — never end a session with an uncommitted tree.
    **Done when:** every remaining failure is attributed to a named cause with
    a decision attached, in this file's Live status.
 
-4. **Audit convention-based registration, as an executable artifact.**
+3. **Audit convention-based registration, as an executable artifact.**
    Enumerate what the monolith got for free from `app/`: event discovery
    (fixed), policies, Livewire component names, Blade view namespace and
    components, factory guessing, migration paths, translations, commands,
@@ -72,13 +63,13 @@ green-or-better point (R6) — never end a session with an uncommitted tree.
    `numerosis:doctor` command — not a one-off pass, since this class has
    already bitten five times in five different shapes.
 
-5. **Arch test for D12's premise.** Fail on any bare `X::method()` static call
+4. **Arch test for D12's premise.** Fail on any bare `X::method()` static call
    against the 9 models inside `src/` that bypasses `Numerosis::model()`.
    Models are concrete now, so a bypass no longer crashes — it silently
    ignores the host's override, which is *quieter* than the bug it replaced.
    `pest-plugin-arch` is already installed.
 
-6. **Phase 6.6 — R8's Phase-5 debt**, gated behind a green suite. Rewire the
+5. **Phase 6.6 — R8's Phase-5 debt**, gated behind a green suite. Rewire the
    5 contracts' call sites (they are decorative today: swapping a binding
    changes nothing); redo the 6 deleted traits with the suite to verify;
    export `Testing\InteractsWithTenantPanel` **and** the Stripe fake
@@ -86,7 +77,7 @@ green-or-better point (R6) — never end a session with an uncommitted tree.
    from `src/Testing/` — thin-app's Phase 7.5 tests need both, and a copy is
    how they drift.
 
-7. **Make the numbers reproducible off this machine.** Add a MySQL service to
+6. **Make the numbers reproducible off this machine.** Add a MySQL service to
    `.github/workflows/run-tests.yml` (6.1 required it; the workflow still
    says it lands "with the tenancy harness (Phase 8)"), give numerosis its own
    compose MySQL instead of borrowing `saas-m-mysql-1` from the repo being

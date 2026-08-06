@@ -1485,3 +1485,47 @@ quarantined and why) and delete the four superseded Phase 6 pause notes into
 the log file D11 sets up.
 
 ---
+
+---
+
+## 2026-08-06 — config merge finished, plan split, install fixed
+
+Session started with numerosis carrying a broken half-executed tree: the
+three-file config merge had deleted `numerosis-billing.php`/
+`numerosis-tenancy.php` and rewritten both providers, while call sites still
+read the dead keys. Finished it (`59f026f`), then worked down the review list.
+
+- **A — merge finished.** Remaining stale reads were in `database/`, which the
+  merge plan's enumerated call-site list never covered; its closing grep is
+  what caught them. Targeted run over the five affected directories: 98
+  passed, 6 skipped, 2 failed — both the known `CancelModuleTest` "Unknown
+  database" teardown bucket. PHPStan clean, baseline 241 → 240.
+- **B — thin-app repaired** (`thin-app@41bcd57`). Its three published config
+  files were byte-identical to package defaults, so nothing had to be
+  re-applied; deleted the two orphans and re-published. Still boots to the
+  Vite boundary.
+- **C — recorded as D13**, plus a correction: the reversal note told *saas-m*
+  to re-publish, which is the one repo where it does not matter. The wozniak
+  plan is committed (`6718d5d`) marked executed.
+- **D — D11 and R6 executed** (`b445e4e`). Plan split into a 1397-line plan
+  with an overwritten Live status, and a 1487-line log (this file). Verified
+  the split loses nothing: every source line not carried over is blank or a
+  `---`. R4-R7 closed. Rules stayed as byte-identical copies with a banner
+  rather than pointers — deviation recorded under D11.
+- **E — `numerosis:install` now sets `numerosis.models.*`** (`21c4b69`). The
+  gap was live for thin-app, which had all 9 stubs published and zero keys
+  set. Two things worth keeping:
+  1. **phpdotenv throws `InvalidFileException` for the whole file on a
+     double-quoted class-string** (`"App\Models\Central\Tenant"` — `\M` is an
+     unrecognised escape), so a naive write here would have stopped the host
+     booting entirely, with an error naming neither the key nor this package.
+     Single-quoted and bare both parse correctly. Found by testing phpdotenv
+     directly before writing the code, which is the only reason it did not
+     ship.
+  2. **`--verify-only` exists because the default run publishes files and
+     writes `.env`** — neither belongs in a test process. It is also genuinely
+     useful for re-checking an existing install.
+
+Verified E end to end on thin-app rather than in the harness alone: 9 keys
+written, app boots, `Numerosis::model()` resolves to `App\Models\Central\Tenant`,
+second run idempotent.
