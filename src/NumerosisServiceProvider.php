@@ -30,7 +30,10 @@ use Nvade\Numerosis\Contracts\Auth\CreatesRegisteredUser;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesPostLoginRedirectUrl;
 use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
+use Nvade\Numerosis\Contracts\Auth\SocialAccountRepository;
 use Nvade\Numerosis\Contracts\Invitations\CreatesInvitedUser;
+use Nvade\Numerosis\Contracts\Invitations\InvitationRepository;
+use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Events\Auth\SocialAccountConnected;
 use Nvade\Numerosis\Events\Auth\SocialAccountDisconnected;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
@@ -49,6 +52,9 @@ use Nvade\Numerosis\Livewire\Billing\Checkout;
 use Nvade\Numerosis\Livewire\Settings\DeleteUserForm;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
+use Nvade\Numerosis\Support\Defaults\EloquentInvitationRepository;
+use Nvade\Numerosis\Support\Defaults\EloquentSocialAccountRepository;
+use Nvade\Numerosis\Support\Defaults\NotifiesTenantOwnerDirectly;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
 use Spatie\LaravelPackageTools\Package;
@@ -95,6 +101,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->app->bind(CreatesRegisteredUser::class, CreateRegisteredUser::class);
         $this->app->bind(SendsEmailVerificationNotification::class, SendEmailVerificationNotification::class);
         $this->app->bind(CreatesInvitedUser::class, CreateInvitedUser::class);
+        $this->app->bind(InvitationRepository::class, EloquentInvitationRepository::class);
+        $this->app->bind(SocialAccountRepository::class, EloquentSocialAccountRepository::class);
+        $this->app->bind(NotifiesTenantOwner::class, NotifiesTenantOwnerDirectly::class);
     }
 
     public function packageBooted(): void

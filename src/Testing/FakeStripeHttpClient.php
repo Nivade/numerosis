@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Tests\Support;
+namespace Nvade\Numerosis\Testing;
 
 use RuntimeException;
 use Stripe\HttpClient\ClientInterface;

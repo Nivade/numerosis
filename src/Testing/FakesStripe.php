@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Tests\Concerns;
+namespace Nvade\Numerosis\Testing;
 
-use Nvade\Numerosis\Tests\Support\FakeStripeHttpClient;
 use Stripe\ApiRequestor;
 use Stripe\HttpClient\CurlClient;
 

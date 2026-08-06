@@ -9,7 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Actions\Billing\AddVatNumber;
 use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
-use Nvade\Numerosis\Tests\Concerns\FakesStripe;
+use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 class AddVatNumberTest extends TestCase

@@ -12,7 +12,7 @@ use Laravel\Cashier\Cashier;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
-use Nvade\Numerosis\Tests\Concerns\FakesStripe;
+use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 class CheckoutTest extends TestCase

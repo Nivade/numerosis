@@ -11,6 +11,7 @@ use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
+use Nvade\Numerosis\Contracts\Auth\SocialAccountRepository;
 use Nvade\Numerosis\Tests\TestCase;
 
 class LoginTest extends TestCase
@@ -79,5 +80,41 @@ class LoginTest extends TestCase
         );
 
         $this->assertTrue($tenantUserExists);
+    }
+
+    /**
+     * A consumer rebinds SocialAccountRepository to change how OAuth
+     * identities are stored/looked up (a different table shape, an
+     * external identity provider) without forking this controller. Proves
+     * the binding is real: an existing-user lookup satisfied entirely by
+     * the override must never fall through to `firstOrCreate` a new user.
+     */
+    public function test_a_consumer_can_override_how_social_accounts_are_looked_up(): void
+    {
+        $existingUser = CentralUser::factory()->create(['email' => 'existing@example.com']);
+
+        $spy = new class($existingUser) implements SocialAccountRepository
+        {
+            public function __construct(private readonly CentralUser $user) {}
+
+            public function findUserByProviderAndId(string $provider, string $providerId): ?CentralUser
+            {
+                return $provider === 'google' && $providerId === 'overridden-id' ? $this->user : null;
+            }
+        };
+
+        $this->app->instance(SocialAccountRepository::class, $spy);
+
+        $socialiteUser = (new SocialiteUser)->map([
+            'id' => 'overridden-id',
+            'email' => 'someone-else@example.com',
+            'name' => 'Someone Else',
+        ]);
+
+        Socialite::fake('google', $socialiteUser);
+
+        $this->get(route('oauth.callback', ['driver' => 'google']));
+
+        $this->assertSame(1, CentralUser::count(), 'A new user was created despite the override resolving an existing one.');
     }
 }

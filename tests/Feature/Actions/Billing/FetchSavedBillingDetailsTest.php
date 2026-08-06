@@ -8,7 +8,7 @@ use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Actions\Billing\FetchSavedBillingDetails;
-use Nvade\Numerosis\Tests\Concerns\FakesStripe;
+use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 class FetchSavedBillingDetailsTest extends TestCase

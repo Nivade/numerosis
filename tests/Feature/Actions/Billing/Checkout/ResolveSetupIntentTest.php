@@ -14,7 +14,7 @@ use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Exceptions\Billing\SetupIntentNotConfirmed;
 use Nvade\Numerosis\Services\Billing\Checkout\ResolvedSetupIntent;
-use Nvade\Numerosis\Tests\Concerns\FakesStripe;
+use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 class ResolveSetupIntentTest extends TestCase

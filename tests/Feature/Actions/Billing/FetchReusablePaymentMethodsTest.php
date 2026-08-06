@@ -9,7 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Actions\Billing\FetchReusablePaymentMethods;
 use Nvade\Numerosis\Data\Billing\SavedPaymentMethodOption;
-use Nvade\Numerosis\Tests\Concerns\FakesStripe;
+use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 use RuntimeException;
 

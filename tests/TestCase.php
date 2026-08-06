@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests;
 
-use Filament\Facades\Filament;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
@@ -17,6 +15,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Testing\InteractsWithTenantPanel;
 use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
 use Orchestra\Testbench\TestCase as Orchestra;
 use PDO;
@@ -25,6 +24,8 @@ use Workbench\App\Providers\Filament\TenantAdminPanelProvider;
 
 abstract class TestCase extends Orchestra
 {
+    use InteractsWithTenantPanel;
+
     /**
      * The two Filament panel providers are Workbench-only stand-ins for
      * what a real host (thin-app, Phase 7/8) will register — see their own
@@ -462,32 +463,6 @@ abstract class TestCase extends Orchestra
      * @var array<string, true>
      */
     private array $dirtyCentralTables = [];
-
-    /**
-     * Enter a tenant panel the way an HTTP request would.
-     *
-     * Filament runs its own tenancy alongside stancl's and the two share no
-     * state. `$tenant->run()` switches the database, cache, guard and
-     * permission registrar — everything stancl owns — but Filament keeps its
-     * current tenant in its own manager, and `TenantAdminPanelProvider`
-     * declares `->tenant(Tenant::class, 'id')`, so every route in that panel
-     * carries a `{tenant}` parameter filled from `Filament::getTenant()`.
-     *
-     * A real request sets that through Filament's own middleware. A
-     * `Livewire::test()` never issues a request, so it stays null and the
-     * first route() call in a rendered sidebar throws
-     * "Missing required parameter for [Route: filament.tenantAdmin...]" —
-     * which reads like a routing bug and is not one.
-     *
-     * Setting only two of these three is the trap this helper removes.
-     */
-    protected function actingAsTenantPanelUser(Tenant $tenant, Authenticatable $user, string $panel = 'tenantAdmin'): void
-    {
-        $this->actingAs($user, Config::string('auth.defaults.guards.context.tenant'));
-
-        Filament::setCurrentPanel(Filament::getPanel($panel));
-        Filament::setTenant($tenant);
-    }
 
     /**
      * Build a tenant subdomain the same way the app does — via

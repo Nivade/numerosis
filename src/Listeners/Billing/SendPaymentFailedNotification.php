@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Listeners\Billing;
 
+use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Notifications\Billing\PaymentFailed as PaymentFailedNotification;
@@ -23,7 +24,7 @@ class SendPaymentFailedNotification
         }
 
         if (! $event->tenant->isSuspended()) {
-            $event->tenant->owner()?->notify(new PaymentFailedNotification($event->tenant));
+            app(NotifiesTenantOwner::class)->notify($event->tenant, new PaymentFailedNotification($event->tenant));
         }
     }
 }

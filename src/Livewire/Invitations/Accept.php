@@ -11,6 +11,7 @@ use Livewire\Component;
 use Nvade\Numerosis\Actions\Auth\LoginUser;
 use Nvade\Numerosis\Actions\Invitations\AcceptInvitation;
 use Nvade\Numerosis\Contracts\Invitations\CreatesInvitedUser;
+use Nvade\Numerosis\Contracts\Invitations\InvitationRepository;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -35,12 +36,7 @@ class Accept extends Component
 
     public function mount(string $token): void
     {
-        $invitationClass = Numerosis::model(Invitation::class);
-
-        /** @var Invitation $invitation */
-        $invitation = $invitationClass::where('token', $token)->firstOrFail();
-
-        $this->invitation = $invitation;
+        $this->invitation = app(InvitationRepository::class)->findOrFailByToken($token);
 
         $centralUserClass = Numerosis::model(CentralUser::class);
 

@@ -16,12 +16,13 @@ use Laravel\Socialite\Two\User;
 use Nvade\Numerosis\Actions\Auth\ConnectSocialAccount;
 use Nvade\Numerosis\Actions\Auth\LoginUser;
 use Nvade\Numerosis\Actions\Invitations\AcceptInvitation;
+use Nvade\Numerosis\Contracts\Auth\SocialAccountRepository;
+use Nvade\Numerosis\Contracts\Invitations\InvitationRepository;
 use Nvade\Numerosis\Exceptions\ProviderNotFoundException;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Http\Controllers\Controller;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\SocialiteLogin;
 use Nvade\Numerosis\Models\Tenant\Invitation;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Routes\RouteNames;
@@ -39,8 +40,7 @@ class Login extends Controller
 
         $socialUser = $this->getSocialUser($provider);
 
-        $user = SocialiteLogin::where('provider', $provider)
-            ->firstWhere('provider_id', (string) $socialUser->getId())?->user;
+        $user = app(SocialAccountRepository::class)->findUserByProviderAndId($provider, (string) $socialUser->getId());
 
         if (! $user) {
             $centralUserClass = Numerosis::model(CentralUser::class);
@@ -165,10 +165,15 @@ class Login extends Controller
             tenancy()->initialize($tenant);
         }
 
-        $invitationClass = Numerosis::model(Invitation::class);
+        if (! is_numeric($context['invitation'])) {
+            return to_route(RouteNames::invitationShow(), ['token' => $context['token'] ?? ''])
+                ->with('error', __('Invitation not found.'));
+        }
+
+        $invitationId = (int) $context['invitation'];
 
         /** @var Invitation|null $invitation */
-        $invitation = $tenant->run(fn () => $invitationClass::find($context['invitation']));
+        $invitation = $tenant->run(fn () => app(InvitationRepository::class)->find($invitationId));
 
         if ($invitation === null) {
             return to_route(RouteNames::invitationShow(), ['token' => $context['token'] ?? ''])

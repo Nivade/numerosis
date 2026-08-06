@@ -11,7 +11,7 @@ use Livewire\Livewire;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Registration;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
 use Nvade\Numerosis\Support\State\RegistrationState;
-use Nvade\Numerosis\Tests\Concerns\FakesStripe;
+use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 class RegistrationCheckoutHandoffTest extends TestCase

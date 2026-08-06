@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Listeners\Billing;
 
+use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Events\Billing\TenantSuspended;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Notifications\Billing\TenantSuspended as TenantSuspendedNotification;
@@ -22,6 +23,6 @@ class SendTenantSuspendedNotification
             return;
         }
 
-        $event->tenant->owner()?->notify(new TenantSuspendedNotification($event->tenant));
+        app(NotifiesTenantOwner::class)->notify($event->tenant, new TenantSuspendedNotification($event->tenant));
     }
 }

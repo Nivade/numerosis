@@ -9,8 +9,7 @@ use Filament\Notifications\Notification;
 use Illuminate\Contracts\Routing\UrlGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Redirector;
-use Nvade\Numerosis\Models\Tenant\Invitation;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Contracts\Invitations\InvitationRepository;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckInvitationStatus
@@ -30,10 +29,7 @@ class CheckInvitationStatus
             return $next($request);
         }
 
-        $invitationClass = Numerosis::model(Invitation::class);
-
-        /** @var Invitation $invitation */
-        $invitation = $invitationClass::where('token', $token)->firstOrFail();
+        $invitation = app(InvitationRepository::class)->findOrFailByToken($token);
 
         if ($invitation->isAccepted()) {
             Notification::make()

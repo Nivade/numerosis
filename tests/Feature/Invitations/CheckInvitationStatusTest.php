@@ -9,6 +9,8 @@ use App\Models\Tenant\Invitation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Testing\TestResponse;
+use Nvade\Numerosis\Contracts\Invitations\InvitationRepository;
+use Nvade\Numerosis\Models\Tenant\Invitation as PackageInvitation;
 use Nvade\Numerosis\Tests\TestCase;
 
 class CheckInvitationStatusTest extends TestCase
@@ -81,6 +83,48 @@ class CheckInvitationStatusTest extends TestCase
         $response = $this->getTenantRoute('invalid-token');
 
         $response->assertStatus(404);
+    }
+
+    /**
+     * A consumer rebinds InvitationRepository to change how invitations are
+     * looked up (a different key shape, a cache in front of the query)
+     * without forking this middleware. Proves the binding is real: a token
+     * the real table has never seen still resolves — via the override
+     * alone, since a genuine lookup would 404 first.
+     */
+    public function test_a_consumer_can_override_how_invitations_are_looked_up(): void
+    {
+        /** @var PackageInvitation $acceptedInvitation */
+        $acceptedInvitation = $this->tenant->run(
+            fn (): PackageInvitation => Invitation::factory()->create([
+                'expires_at' => now()->addDays(1),
+                'accepted_at' => now(),
+            ])
+        );
+
+        $this->app->instance(InvitationRepository::class, new class($acceptedInvitation) implements InvitationRepository
+        {
+            public function __construct(private readonly PackageInvitation $invitation) {}
+
+            public function findByToken(string $token): ?PackageInvitation
+            {
+                return $this->invitation;
+            }
+
+            public function findOrFailByToken(string $token): PackageInvitation
+            {
+                return $this->invitation;
+            }
+
+            public function find(int $id): ?PackageInvitation
+            {
+                return $this->invitation;
+            }
+        });
+
+        $response = $this->getTenantRoute('this-token-was-never-persisted');
+
+        $this->assertRedirectsHomeWithNotice($response, __('This invitation has already been accepted.'));
     }
 
     /**

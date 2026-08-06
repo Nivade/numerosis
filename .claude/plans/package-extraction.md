@@ -22,13 +22,13 @@ Overwrite this block; never append to it. Fifteen lines, hard limit.
 | | |
 |---|---|
 | Phase | 6 — **R2's exit gate is met** (see below); 7.1-7.4 already done per D10 |
-| numerosis | `886d140`, clean |
+| numerosis | pending commit (this session's Phase 6.6 work), on top of `1f0f567` |
 | thin-app | `11b29d1`, clean, boots to `ViteManifestNotFoundException` (Phase 9 boundary, expected) |
 | saas-m | frozen at `c66cc72`; only `.claude/` pointers change here |
-| Package suite | **0 failed / 369 passed / 7 skipped in ~69s** — measured 2026-08-06, from a genuinely fresh `testing` DB |
-| PHPStan | clean, baseline 247 entries unchanged |
+| Package suite | **0 failed / 372 passed / 7 skipped in ~64s** — measured 2026-08-06, from a genuinely fresh `testing` DB |
+| PHPStan | clean, baseline grew 247 → 252 (5 traceable entries, see step 4) |
 | Exclusions | 14 `#[Group('thin-app')]` across 11 files, all module-package tests (R2 row 1) |
-| Resume at | Step 2 closed (no `numerosis:doctor` built — audit's fixes+regression tests+arch test judged the more valuable form of "land it as an executable artifact"). Step 3 done this session: `tests/Feature/Support/ModelResolverBypassTest.php`, AST scan via nikic/php-parser, verified by mutation, passed clean first run (all 108 call sites already correct). Next: step 4 (Phase 6.6 debt) |
+| Resume at | Steps 2-4 closed this run (audit, arch test, Phase 6.6 debt — contracts rewired+bound, `HasGlobalIdentity` redone, `Testing\InteractsWithTenantPanel`/Stripe fake exported to `src/Testing/`). Next: step 5 (CI MySQL service, numerosis's own compose, bake `memory_limit=1G` into `phpunit.xml.dist`/composer scripts) |
 
 Phase 6's three exit conditions (R2) are all satisfied as of `fad542e`:
 zero failures, baseline growth traceable, every exclusion traceable. The 7
@@ -140,13 +140,60 @@ green-or-better point (R6) — never end a session with an uncommitted tree.
    cannot distinguish `Numerosis::model(Tenant::class)` (fine) from
    `Tenant::find()` (a bypass) — both "use" the same class.
 
-4. **Phase 6.6 — R8's Phase-5 debt**, gated behind a green suite. Rewire the
-   5 contracts' call sites (they are decorative today: swapping a binding
-   changes nothing); redo the 6 deleted traits with the suite to verify;
-   export `Testing\InteractsWithTenantPanel` **and** the Stripe fake
-   (`FakeStripeHttpClient`/`FakesStripe`, currently under `tests/Support`)
-   from `src/Testing/` — thin-app's Phase 7.5 tests need both, and a copy is
-   how they drift.
+4. **DONE 2026-08-06 — Phase 6.6, R8's Phase-5 debt.**
+   - **5 contracts rewired and bound.** `InvitationRepository`,
+     `SocialAccountRepository`, `NotifiesTenantOwner` were never bound in
+     `NumerosisServiceProvider` — decorative, confirming R8's claim. Now
+     bound to their `Support\Defaults\*` implementations and consulted at
+     every call site their own docblocks name: `Livewire\Invitations\Accept`
+     and `Http\Middleware\CheckInvitationStatus` (invitation lookup only —
+     `CentralUser`/`TenantUser` lookups in `Accept` stay direct, per
+     `.claude/rules/auth-login.md`'s "two must not share contract" bullet,
+     which this file already covers this exact pair for), `Http\Controllers\Socialite\Login`
+     (social-account lookup and the invitation lookup inside
+     `handleInvitationIfPresent()`), and the 3 billing listeners that
+     notify a tenant's owner (`SendPaymentConfirmedNotification`,
+     `SendPaymentFailedNotification`, `SendTenantSuspendedNotification`  —
+     R8 said 4; `SendInvitationNotification` notifies the invitee by email
+     route, not the tenant owner, so only 3 qualify). `CreatesInvitedUser`
+     was already wired from an earlier session. Each rewired contract got a
+     "a consumer can override…" regression test (matching the existing
+     `AcceptTest` one for `CreatesInvitedUser`) that swaps the binding and
+     proves the override — not the default direct-model path — is what
+     actually ran; without one, `pest-plugin-arch`'s `toUse()` couldn't
+     have caught this class of bug either, since it checks class-level
+     dependencies, not which call site of several actually fires.
+   - **`HasGlobalIdentity` trait redone, the other 5 judged obsolete.**
+     `CentralUser`/`Tenant\User` both implemented stancl's `Syncable`
+     contract's `getGlobalIdentifierKeyName()`/`getGlobalIdentifierKey()`
+     with byte-identical bodies (`'global_id'` / `$this->global_id`) — real,
+     contract-backed duplication, not incidental. Extracted to
+     `src/Concerns/HasGlobalIdentity.php`. The other 5 traits R8 named
+     (`IsTenantModel`, `IsCentralUser`, `IsTenantUser`, `BelongsToTenant`,
+     a `HasTenants` trait distinct from the existing `Contracts\Tenancy\HasTenants`
+     interface) were not redone: they existed to support D8's abstract-model
+     design, which D8 itself reversed — nothing in the current concrete-model
+     shape has the gap they were built to paper over, and redoing them
+     without a live duplication to point at would be exactly the premature
+     abstraction this codebase's own conventions warn against.
+   - **`Testing\InteractsWithTenantPanel` and the Stripe fake exported to
+     `src/Testing/`.** `tests/` is `autoload-dev`-only
+     (composer.json) — never shipped to a consumer installing this as a
+     dependency, so thin-app's Phase 7.5 tests genuinely could not reach
+     `Nvade\Numerosis\Tests\Support\FakeStripeHttpClient` or
+     `actingAsTenantPanelUser()` before this. Moved
+     `FakeStripeHttpClient`/`FakesStripe` (namespace `Nvade\Numerosis\Testing`)
+     and extracted `actingAsTenantPanelUser()` into a new
+     `InteractsWithTenantPanel` trait at the same location;
+     `tests/TestCase.php` now composes it instead of duplicating it, and all
+     10 call sites of `FakesStripe` were repointed at the new namespace.
+   - Verified: full suite unchanged at 0 failed / 372 passed / 7 skipped
+     throughout; PHPStan clean (baseline grew by 5 traceable entries — the
+     same `method.nonObject` on nullable `$this->app` pattern already
+     baselined at every other `$this->app->singleton(...)`/`instance(...)`
+     call site in this suite, plus 2 `return.unusedType` from a spy
+     honouring a nullable interface signature it never actually returns
+     null from).
 
 5. **Make the numbers reproducible off this machine.** Add a MySQL service to
    `.github/workflows/run-tests.yml` (6.1 required it; the workflow still

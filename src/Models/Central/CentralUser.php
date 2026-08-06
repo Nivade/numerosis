@@ -19,6 +19,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Subscription;
 use Nvade\Numerosis\Concerns\Billing\Billable;
+use Nvade\Numerosis\Concerns\HasGlobalIdentity;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
@@ -79,6 +80,7 @@ class CentralUser extends User implements CentralUserModel, HasTenants, Subscrib
 {
     use Billable;
     use CentralConnection;
+    use HasGlobalIdentity;
     use ResourceSyncing;
     use SoftDeletes;
 
@@ -127,16 +129,6 @@ class CentralUser extends User implements CentralUserModel, HasTenants, Subscrib
     public function getTenantModelName(): string
     {
         return Numerosis::model(Workspace\User::class);
-    }
-
-    public function getGlobalIdentifierKeyName(): string
-    {
-        return 'global_id';
-    }
-
-    public function getGlobalIdentifierKey(): string
-    {
-        return $this->global_id;
     }
 
     public function getCentralModelName(): string

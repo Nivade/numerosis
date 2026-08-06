@@ -1294,6 +1294,12 @@ parameters:
 			path: tests/Feature/GetTenantsByGlobalIdTest.php
 
 		-
+			message: '#^Cannot call method instance\(\) on Illuminate\\Foundation\\Application\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: tests/Feature/Http/Controllers/Socialite/LoginTest.php
+
+		-
 			message: '#^Call to an undefined method App\\Models\\Central\\CentralUser\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Central\\CentralUser\>\:\:getAttributes\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -1306,6 +1312,24 @@ parameters:
 			path: tests/Feature/InterviewShowcaseTest.php
 
 		-
+			message: '#^Cannot call method instance\(\) on Illuminate\\Foundation\\Application\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: tests/Feature/Invitations/CheckInvitationStatusTest.php
+
+		-
+			message: '#^Method Nvade\\Numerosis\\Contracts\\Invitations\\InvitationRepository@anonymous/tests/Feature/Invitations/CheckInvitationStatusTest\.php\:105\:\:find\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: tests/Feature/Invitations/CheckInvitationStatusTest.php
+
+		-
+			message: '#^Method Nvade\\Numerosis\\Contracts\\Invitations\\InvitationRepository@anonymous/tests/Feature/Invitations/CheckInvitationStatusTest\.php\:105\:\:findByToken\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: tests/Feature/Invitations/CheckInvitationStatusTest.php
+
+		-
 			message: '#^Method Nvade\\Numerosis\\Tests\\Feature\\Invitations\\CheckInvitationStatusTest\:\:getTenantRoute\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -1316,6 +1340,12 @@ parameters:
 			identifier: method.notFound
 			count: 1
 			path: tests/Feature/Jobs/FinalizeTenantProvisioningTest.php
+
+		-
+			message: '#^Cannot call method instance\(\) on Illuminate\\Foundation\\Application\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: tests/Feature/Listeners/Billing/SendPaymentConfirmedNotificationTest.php
 
 		-
 			message: '#^Call to an undefined static method Illuminate\\Support\\Facades\\Log\:\:shouldHaveReceived\(\)\.$#'

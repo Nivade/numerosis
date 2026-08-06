@@ -11,7 +11,7 @@ use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResumeCheckout;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Services\Billing\Checkout\ResumedCheckout;
-use Nvade\Numerosis\Tests\Concerns\FakesStripe;
+use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 class ResumeCheckoutTest extends TestCase

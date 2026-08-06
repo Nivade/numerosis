@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Nvade\Numerosis\Concerns\HasGlobalIdentity;
 use Nvade\Numerosis\Contracts\Auth\TenantUserModel;
 use Nvade\Numerosis\Enums\Tenant\DisplayStatus;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -80,6 +81,7 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 ])]
 class User extends BaseUser implements TenantUserModel
 {
+    use HasGlobalIdentity;
     use LogsActivity;
     use ResourceSyncing;
 
@@ -103,16 +105,6 @@ class User extends BaseUser implements TenantUserModel
     public function guardName(): string|array
     {
         return ['tenant'];
-    }
-
-    public function getGlobalIdentifierKeyName(): string
-    {
-        return 'global_id';
-    }
-
-    public function getGlobalIdentifierKey(): string
-    {
-        return $this->global_id;
     }
 
     public function getCentralModelName(): string

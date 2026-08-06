@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Listeners\Billing;
 
+use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Notifications\Billing\PaymentConfirmed;
@@ -22,6 +23,6 @@ class SendPaymentConfirmedNotification
             return;
         }
 
-        $event->tenant->owner()?->notify(new PaymentConfirmed($event->tenant));
+        app(NotifiesTenantOwner::class)->notify($event->tenant, new PaymentConfirmed($event->tenant));
     }
 }
