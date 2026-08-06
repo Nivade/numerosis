@@ -811,6 +811,12 @@ parameters:
 			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
 			identifier: argument.type
 			count: 1
+			path: src/Livewire/Auth/ConfirmPassword.php
+
+		-
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
 			path: src/Livewire/Auth/ForgotPassword.php
 
 		-
@@ -832,6 +838,12 @@ parameters:
 			path: src/Livewire/Auth/ResetPassword.php
 
 		-
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Livewire/Auth/VerifyEmail.php
+
+		-
 			message: '#^Access to an undefined property Laravel\\Cashier\\Subscription\:\:\$stripe_status\.$#'
 			identifier: property.notFound
 			count: 1
@@ -848,6 +860,30 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: src/Livewire/Invitations/Accept.php
+
+		-
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Livewire/Settings/Appearance.php
+
+		-
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Livewire/Settings/DeleteUserForm.php
+
+		-
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Livewire/Settings/Password.php
+
+		-
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Livewire/Settings/Profile.php
 
 		-
 			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
@@ -1430,6 +1466,12 @@ parameters:
 			identifier: method.nonObject
 			count: 1
 			path: tests/Feature/Services/Billing/Plans/EloquentPaymentPlanRepositoryTest.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertSeeLivewire\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Feature/SettingsProfilePageTest.php
 
 		-
 			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertTrue\(\) with true will always evaluate to true\.$#'

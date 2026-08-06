@@ -46,6 +46,7 @@ use Nvade\Numerosis\Listeners\Billing\SendTenantSuspendedNotification;
 use Nvade\Numerosis\Listeners\Invitations\SendInvitationNotification;
 use Nvade\Numerosis\Listeners\Modules\QueueModuleMigration;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
+use Nvade\Numerosis\Livewire\Settings\DeleteUserForm;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Support\Features;
@@ -132,6 +133,17 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // package classes when explicitly registered — same reason
         // RegistrationWizardFeature registers its own four step components.
         Livewire::addComponent(name: 'billing.checkout', class: Checkout::class);
+
+        // `resources/views/livewire/settings/profile.blade.php` embeds this
+        // as `<livewire:settings.delete-user-form />`. Livewire's Finder
+        // falls back to `config('livewire.class_namespace')` (`App\Livewire`)
+        // for any unregistered dotted name, so this silently resolved to a
+        // host class that never existed — found by grepping every
+        // `<livewire:` tag in resources/views and checking each against the
+        // registrations below, per this file's convention-registration audit
+        // (`.claude/plans/package-extraction.md`, step 2). No test rendered
+        // the settings page, so nothing caught it.
+        Livewire::addComponent(name: 'settings.delete-user-form', class: DeleteUserForm::class);
 
         // `hasViews()` above registers resources/views under the `numerosis::`
         // namespace, which is not where Flux looks: `<flux:icon.x />` compiles

@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Settings;
 
-use Nvade\Numerosis\Actions\Auth\UpdateUserPassword;
-use Nvade\Numerosis\Concerns\RequiresAuthenticatedUser;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 use Livewire\Component;
+use Nvade\Numerosis\Actions\Auth\UpdateUserPassword;
+use Nvade\Numerosis\Concerns\RequiresAuthenticatedUser;
 
 class Password extends Component
 {
@@ -50,5 +51,16 @@ class Password extends Component
         $this->reset('current_password', 'password', 'password_confirmation');
 
         $this->dispatch('password-updated');
+    }
+
+    /**
+     * Livewire's default view guess rebuilds the view name from this
+     * class's own namespace segments, resolved against the host's
+     * `resources/views/livewire/*` — wrong once the class ships from the
+     * package. See `.claude/plans/package-extraction.md` step 2.
+     */
+    public function render(): View
+    {
+        return view('numerosis::livewire.settings.password');
     }
 }

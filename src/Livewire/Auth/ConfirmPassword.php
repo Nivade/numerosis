@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Livewire\Auth;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
@@ -50,5 +51,16 @@ class ConfirmPassword extends Component
         $default = Features::enabled(AccountPagesFeature::NAME) ? RouteNames::tenantsMine() : RouteNames::home();
 
         $this->redirectIntended(default: route($default, absolute: false), navigate: true);
+    }
+
+    /**
+     * Livewire's default view guess rebuilds the view name from this
+     * class's own namespace segments, resolved against the host's
+     * `resources/views/livewire/*` — wrong once the class ships from the
+     * package. See `.claude/plans/package-extraction.md` step 2.
+     */
+    public function render(): View
+    {
+        return view('numerosis::livewire.auth.confirm-password');
     }
 }

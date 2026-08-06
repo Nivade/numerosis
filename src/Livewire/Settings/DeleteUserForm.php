@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Settings;
 
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
+use Livewire\Component;
 use Nvade\Numerosis\Actions\Auth\DeleteUserAccount;
 use Nvade\Numerosis\Livewire\Actions\Logout;
-use Illuminate\Support\Facades\Auth;
-use Livewire\Component;
 
 class DeleteUserForm extends Component
 {
@@ -31,5 +32,16 @@ class DeleteUserForm extends Component
         } else {
             $this->addError('password', 'You cannot delete your account while you are the owner of one or more tenants. Please transfer ownership or delete the tenants first.');
         }
+    }
+
+    /**
+     * Livewire's default view guess rebuilds the view name from this
+     * class's own namespace segments, resolved against the host's
+     * `resources/views/livewire/*` — wrong once the class ships from the
+     * package. See `.claude/plans/package-extraction.md` step 2.
+     */
+    public function render(): View
+    {
+        return view('numerosis::livewire.settings.delete-user-form');
     }
 }

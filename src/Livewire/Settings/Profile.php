@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Settings;
 
+use Illuminate\Support\Facades\Session;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
+use Livewire\Component;
 use Nvade\Numerosis\Actions\Auth\ResendVerificationNotification;
 use Nvade\Numerosis\Actions\Auth\UpdateUserProfile;
 use Nvade\Numerosis\Concerns\RequiresAuthenticatedUser;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Validation\Rule;
-use Livewire\Component;
 
 class Profile extends Component
 {
@@ -72,5 +73,16 @@ class Profile extends Component
         ResendVerificationNotification::run($user);
 
         Session::flash('status', 'verification-link-sent');
+    }
+
+    /**
+     * Livewire's default view guess rebuilds the view name from this
+     * class's own namespace segments, resolved against the host's
+     * `resources/views/livewire/*` — wrong once the class ships from the
+     * package. See `.claude/plans/package-extraction.md` step 2.
+     */
+    public function render(): View
+    {
+        return view('numerosis::livewire.settings.profile');
     }
 }
