@@ -22,12 +22,12 @@ Overwrite this block; never append to it. Fifteen lines, hard limit.
 | | |
 |---|---|
 | Phase | 6 (package harness) in progress; 7.1-7.4 done ahead of it per D10 |
-| numerosis | `21c4b69`, clean |
-| thin-app | `41bcd57`, clean, boots to `ViteManifestNotFoundException` (Phase 9 boundary, expected) |
+| numerosis | `888d07a` + this note, clean |
+| thin-app | `11b29d1`, clean, boots to `ViteManifestNotFoundException` (Phase 9 boundary, expected) |
 | saas-m | frozen at `c66cc72`; only `.claude/` pointers change here |
-| Package suite | 32 failed / 327 passed / 7 skipped / 1 risky — measured 2026-08-06 at `92d120f`, **stale and not re-bucketed**; step 1 below is exactly this |
+| Package suite | **32 failed / 333 passed / 7 skipped / 1 risky in 52s** — measured 2026-08-06 at `888d07a`, bucketed per step 1's table |
 | PHPStan | clean against a 240-entry baseline (`--debug --memory-limit=1G` required) |
-| Resume at | Step 1 below |
+| Resume at | Step 1 — the `Unknown database` diagnosis, mid-flight, see its text |
 
 Suite prerequisites: `docker start saas-m-mysql-1` (numerosis's harness points
 at `127.0.0.1:3306`), and `php -d memory_limit=1G vendor/bin/pest`.
@@ -39,23 +39,50 @@ at `127.0.0.1:3306`), and `php -d memory_limit=1G vendor/bin/pest`.
 Done in order. Each is independently committable; commit at every
 green-or-better point (R6) — never end a session with an uncommitted tree.
 
-1. **Close R9 with a test, not discipline.** One test parses
-   `docs/host-requirements.md`'s tables and asserts every key it names has a
-   matching assertion in `InstallNumerosisCommand`. Then add the six
-   assertions that are currently missing (`app.domain`, `app.central.default`,
-   `auth.passwords.users`, `auth.social.providers`,
-   `livewire.component_namespaces`, `database.lock_wait_timeout`).
-   **Done when:** the test fails if a row is added to the doc and nowhere else.
+1. **Finish diagnosing the `Unknown database 'tenantX'` bucket — 15 of the
+   32 failures, and the one bucket that is definitely a real bug.** The
+   re-bucket itself is done (table below, measured at `888d07a`). What is
+   *not* done is the diagnosis of the largest bucket, which stopped one step
+   in:
 
-2. **Re-bucket the remaining failures from scratch.** The old ~29 Stripe and
-   ~17 `Unknown database` estimates are both stale — D9 closed Stripe, and
-   `92d120f`'s model-config fix absorbed an unknown share of what was filed
-   under contention. Get a fresh per-cause breakdown *before* deciding whether
-   the `DB::listen`-with-connection-name diagnosis is still needed.
-   **Done when:** every remaining failure is attributed to a named cause with
-   a decision attached, in this file's Live status.
+   **`RoleResourceUiTest` (4) and `CancelModuleTest` (2) both reproduce the
+   failure running alone, one file at a time.** That rules out the
+   cross-test contention this bucket has been filed under since the second
+   Phase 6 session — `testing.md`'s documented class only appears in a full
+   run. It is the harness or the package, and it is reproducible in ~4.5s,
+   which makes it cheap to chase.
 
-3. **Audit convention-based registration, as an executable artifact.**
+   Resume by getting the stack for a single failing test: earlier notes
+   report it firing inside `parent::tearDown()` (`RefreshDatabase`'s
+   rollback) *after* the body's assertions have already passed, which would
+   mean the tenant database is dropped, or never created, while the default
+   connection still points at it. Two candidates worth testing first,
+   both untested: the Workbench panel provider's `->tenant(Tenant::class,
+   'id')` binding triggering a second, differently-keyed tenancy bootstrap
+   that `CloneTenantSchema` does not know about, and `deleteTenantDatabases()`
+   running against a connection that is still inside tenant context.
+   `DB::listen` printing `$query->connectionName` is the tool that cracked
+   the last bug of this shape.
+
+   **Done when:** the 15 are attributed to a named cause and either fixed or
+   given a decision in the table below.
+
+   Full breakdown, measured 2026-08-06 at `888d07a` (32 failed / 333 passed /
+   7 skipped / 1 risky, 52s):
+
+   | Count | Cause | Notes |
+   |---|---|---|
+   | 15 | `SQLSTATE[HY000] [1049] Unknown database 'tenantX'` | above — **reproduces in isolation, so not contention** |
+   | 5 | `Socialite\{Redirect,Login}Test` | 4 × `assertTrue(false)` plus one expecting `http://central.numerosistest.test/oauth/google`; smells like the harness's forced root URL vs the OAuth route's own `->domain()` |
+   | 4 | `{Migrate,Seed}TenantModuleTest` | `Failed asserting that 1 matches expected 0` — the artisan command exits non-zero; both hardcode the real `alerts` module, which does not exist in this package (module tests are otherwise quarantined to the `thin-app` group) |
+   | 2 | `CheckInvitationStatusTest` | string inequality, distinct from the same file's 2 `Unknown database` failures |
+   | 2 | `View\Components\PlanCardTest` | rendered HTML mismatch, `To contain: 10,00` — money formatting/locale, not tenancy |
+   | 1 | `SeedTenantDatabaseTest` | `Mockery::mock()` on `Orchestra\Testbench\Console\Kernel`, which is `final` — needs a partial mock or a different seam |
+   | 1 | `Livewire\Tenant\…` | `Invalid API Key provided: sk_test_*ummy` — one Stripe straggler D9 missed |
+   | 1 | `SocialLoginButtonsTest` | assertion failure, probably the same cause as the socialite bucket |
+   | 1 | `Database\FailedJobsTableTest` | `QueryException` |
+
+2. **Audit convention-based registration, as an executable artifact.**
    Enumerate what the monolith got for free from `app/`: event discovery
    (fixed), policies, Livewire component names, Blade view namespace and
    components, factory guessing, migration paths, translations, commands,
@@ -63,13 +90,13 @@ green-or-better point (R6) — never end a session with an uncommitted tree.
    `numerosis:doctor` command — not a one-off pass, since this class has
    already bitten five times in five different shapes.
 
-4. **Arch test for D12's premise.** Fail on any bare `X::method()` static call
+3. **Arch test for D12's premise.** Fail on any bare `X::method()` static call
    against the 9 models inside `src/` that bypasses `Numerosis::model()`.
    Models are concrete now, so a bypass no longer crashes — it silently
    ignores the host's override, which is *quieter* than the bug it replaced.
    `pest-plugin-arch` is already installed.
 
-5. **Phase 6.6 — R8's Phase-5 debt**, gated behind a green suite. Rewire the
+4. **Phase 6.6 — R8's Phase-5 debt**, gated behind a green suite. Rewire the
    5 contracts' call sites (they are decorative today: swapping a binding
    changes nothing); redo the 6 deleted traits with the suite to verify;
    export `Testing\InteractsWithTenantPanel` **and** the Stripe fake
@@ -77,7 +104,7 @@ green-or-better point (R6) — never end a session with an uncommitted tree.
    from `src/Testing/` — thin-app's Phase 7.5 tests need both, and a copy is
    how they drift.
 
-6. **Make the numbers reproducible off this machine.** Add a MySQL service to
+5. **Make the numbers reproducible off this machine.** Add a MySQL service to
    `.github/workflows/run-tests.yml` (6.1 required it; the workflow still
    says it lands "with the tenancy harness (Phase 8)"), give numerosis its own
    compose MySQL instead of borrowing `saas-m-mysql-1` from the repo being

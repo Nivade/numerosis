@@ -1529,3 +1529,50 @@ read the dead keys. Finished it (`59f026f`), then worked down the review list.
 Verified E end to end on thin-app rather than in the harness alone: 9 keys
 written, app boots, `Numerosis::model()` resolves to `App\Models\Central\Tenant`,
 second run idempotent.
+
+## 2026-08-06 (second session) — R9 closed, failures re-bucketed
+
+Continued the letter list from the review; F shipped, G stopped part-way and
+is now step 1 of the plan's list.
+
+**F — `docs/host-requirements.md` and `numerosis:install` now verify each
+other** (`888d07a`). Every doc row carries a "Checked by" cell naming the
+method that asserts it, or an em-dash plus a reason;
+`tests/Feature/Docs/HostRequirementsTest.php` enforces both directions.
+Ten checks were added to close the gap the column exposed.
+
+Three things worth keeping from it:
+
+1. **The expanded checks immediately found a real bug in thin-app**, which
+   had passed every earlier install run: `config/tenancy.php` still listed
+   both bootstrappers under `App\Services\Tenancy\Bootstrappers\*`, classes
+   that only ever existed in the monolith. Tenancy would have fatalled on
+   first initialisation, taking `AuthGuardBootstrapper` with it. Nothing in
+   thin-app had initialised tenancy yet, so nothing had failed.
+   (`thin-app@11b29d1`.)
+2. **Two of the ten checks were stricter than the invariant, and the host is
+   what proved it.** `seeder_parameters['--class'] => 'DatabaseSeeder'` is
+   valid config — `SeedCommand::getSeeder()` resolves an unqualified name
+   under `Database\Seeders` — and the lock-wait pair is *optional*; what is
+   not optional is setting one without the other. Both check and doc row
+   were corrected rather than the host being bent to fit them. **A check
+   written from a doc row is a hypothesis until a real host runs it.**
+3. **The drift test was verified by mutation, not by going green**: renaming
+   a method in the doc, and adding an undocumented `verify*` method, each
+   fail it.
+
+Process note, for whoever hits it next: undoing that second mutation with
+`git checkout src/Commands/InstallNumerosisCommand.php` also discarded the
+ten uncommitted checks in the same file, which had to be rewritten. **Revert
+a mutation with a targeted edit, never with `git checkout` on a file that
+carries uncommitted work.**
+
+**G — failures re-bucketed, largest bucket half-diagnosed.** Full run at
+`888d07a`: 32 failed / 333 passed / 7 skipped / 1 risky in 52s. The
+per-cause table is in the plan's step 1 and is not repeated here. The one
+finding that changes what happens next: **`RoleResourceUiTest` and
+`CancelModuleTest` both reproduce `Unknown database 'tenantX'` running
+alone**, so the 15-failure bucket is not the cross-test contention it has
+been filed under for three sessions — `testing.md`'s class only appears in a
+full run. It is a real harness or package bug, reproducible in ~4.5s.
+Session stopped before pulling the stack for a single test.
