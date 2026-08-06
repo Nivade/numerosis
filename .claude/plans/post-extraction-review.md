@@ -22,14 +22,14 @@ Overwrite this block; never append.
 
 | | |
 |---|---|
-| Session | 2026-08-07 (review session — plan written, no code changes yet) |
-| numerosis | `59bb3ae`. **Tree dirty**: 26 modified + 11 untracked from a concurrent `#[UsePolicy]`/Filament/Widgets session that is not this plan's work. Task 1.1 is about that tree and needs a user decision before anything else is measurable |
-| thin-app | `b570a3e`, dirty with pre-existing unrelated `docker-compose.yml`/`app.css`/`vite.config.js` edits + untracked `public/{css,js,fonts}` build output |
-| saas-m | frozen, untouched. Archive still pending explicit user go-ahead (task 6.3) |
-| Package suite | **408 passed / 7 skipped / 1 failed in 64.5s**, measured 2026-08-07. The 1 failure is `ModelResolverBypassTest` — a **real** D12 bypass introduced by the concurrent session, see task 1.2 |
-| PHPStan | **8 errors**, all in the concurrent session's dirty files (confirmed by `git stash`). Baseline unchanged |
+| Session | 2026-08-07 (review session — plan written, **Phase 1 done**) |
+| numerosis | `6165257`, clean. The concurrent central-admin-panel session (19 findings, tracked in the "Numerosis Central Admin — Panel Audit" artifact) is finished and committed as one change |
+| thin-app | `9533af4`, dirty only with pre-existing unrelated `docker-compose.yml`/`app.css`/`vite.config.js` edits + untracked `public/{css,js,fonts}` build output |
+| saas-m | frozen, untouched. Archive still pending explicit user go-ahead (task 6.3). **Its `.claude/rules/` copies are now 3 files behind numerosis** — left alone deliberately, the repo is frozen and about to be archived |
+| Package suite | **409 passed / 7 skipped / 0 failed in 65.5s**, measured 2026-08-07 after Phase 1 |
+| PHPStan | **clean**, baseline unchanged |
 | thin-app suite | **does not exist.** `tests/{Feature,Unit}/ExampleTest.php` only; Pest not installed; no `.github/` |
-| Next | Task 1.1 — resolve the dirty tree with the user. Phase 2 (dead-code deletions) is independent of it and can go first if 1.1 stalls |
+| Next | **Phase 2** — dead-code deletions, all independent of each other |
 
 Prerequisites: `cd ~/repos/private/numerosis && docker compose up -d`, then
 `vendor/bin/pest --ci`, `composer analyse`, `vendor/bin/pint --dirty --format
@@ -70,11 +70,39 @@ Full comparison lives in the session transcript; the load-bearing conclusions:
 
 ---
 
-## Phase 1 — Get the tree honest
+## Phase 1 — Get the tree honest — **DONE 2026-08-07 (`numerosis@6165257`, `thin-app@9533af4`)**
 
-Nothing later is measurable until the baseline is one session's work.
+Kept for the causes, which outlive this instance. All three tasks are closed:
+the concurrent session's work was reviewed and committed as one change, the
+D12 bypass was a real bug in new code, and the 8 PHPStan errors were three
+real defects plus two test-idiom slips — none of them noise.
 
-### 1.1 Resolve the concurrent session's working tree
+**What the 8 errors actually were, since "dirty files" undersold it:**
+
+- `SubscriptionsTable`'s new tenant-name column read `$record->subscribable?->name`
+  through a `MorphTo`, which resolves as a bare `Model` — it happened to work
+  only because `Tenant` is the sole billable in that table today, and
+  `CentralUser` is already `Billable`. Narrowed with `instanceof`.
+- `SubscriptionForm`'s tenant Select mapped `pluck()`/`get()` output through
+  closures claiming types the query builder never promised.
+- `SubscriptionsByPlanChart` did the same over `pluck()`'s `mixed` values;
+  rewritten as an explicit loop that narrows once, visibly.
+- `FeaturesRelationManagerTest` chained `assertCanSeeTableRecords()` **after**
+  `assertSuccessful()`, which Livewire's `Testable` forwards to the underlying
+  `TestResponse` and returns *that* — so the table assertion was being called
+  on the wrong object. Same family as `testing.md`'s vacuous-assertion bullet:
+  an assertion that cannot run is worse than a missing one.
+- `UserResourceTest` read a connection name with bare `config()`; now
+  `Config::string()`, per `static-analysis.md`.
+
+**One process lesson worth keeping:** D11 requires re-copying a changed rule
+into thin-app, and *two* consecutive sessions skipped it — `diff -rq` found
+`auth-guards.md`, `tenant-provisioning.md` and `testing.md` all stale there.
+Run `diff -rq numerosis/.claude/rules thin-app/.claude/rules` at the end of
+any session that edits a rule; only `INDEX.md` is allowed to differ (it
+carries the not-canonical banner).
+
+### 1.1 Resolve the concurrent session's working tree — DONE
 
 - **Goal:** `git status --short` empty in numerosis.
 - **Files:** 26 modified + 11 untracked, all under `src/Filament/`,
@@ -92,7 +120,7 @@ Nothing later is measurable until the baseline is one session's work.
 - **Done when:** tree clean, and `vendor/bin/pest --ci` + `composer analyse`
   re-measured and written into the Live status block above.
 
-### 1.2 Fix the D12 bypass in `SubscriptionForm`
+### 1.2 Fix the D12 bypass in `SubscriptionForm` — DONE
 
 - **Goal:** `ModelResolverBypassTest` green without touching the test.
 - **Files:** `src/Filament/Admin/Resources/Central/Subscriptions/Schemas/SubscriptionForm.php`
@@ -105,7 +133,7 @@ Nothing later is measurable until the baseline is one session's work.
 - **Done when:** `vendor/bin/pest --filter=ModelResolverBypass` passes and the
   test file itself is unmodified.
 
-### 1.3 Clear the 8 PHPStan errors
+### 1.3 Clear the 8 PHPStan errors — DONE
 
 - **Goal:** `composer analyse` exits 0.
 - **Files:** same set as 1.1 — includes
