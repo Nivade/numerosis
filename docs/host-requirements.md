@@ -105,3 +105,17 @@ Ordinary framework file, entirely host-owned — except one non-obvious key
 `config/numerosis.php`'s example default for `NUMEROSIS_TENANT_DOMAIN` — see
 `.env.example`'s `DOMAIN`/`CENTRAL_SUBDOMAIN` keys, which is what those
 values normally derive from.
+
+## `config/numerosis.php` — `models`
+
+Only required if the host publishes the model stubs (`--tag numerosis-models`)
+or writes its own subclasses. A host running on the package's own models needs
+none of this: every key defaults to `null`, and `Numerosis::model()` then
+returns the package class. `numerosis:install` writes these keys when it
+publishes stubs, and verifies them either way.
+
+| Key | Required value / shape | Why |
+|---|---|---|
+| `models.<package FQCN>` | the host subclass for that model, set through its `NUMEROSIS_MODEL_*` env key | Publishing a stub does **nothing on its own.** All ~108 package call sites resolve through `Numerosis::model()`, which returns the package's own class unless this key names something else (D12). A host that creates rows through the stub while this stays unset gets package class-strings written into morph columns (`LinkSubscriptionToTenant`'s `subscribable_type` is the clearest), so a later polymorphic lookup finds nothing, Cashier's `updateOrCreate` falls through to an `insert`, and that insert collides on a unique key — **surfacing as `SQLSTATE 1205`/`1062` on an unrelated statement**, i.e. reading exactly like the lock-wait contention `testing.md` documents. |
+| the value's class | must exist and must extend the package model it overrides | `Numerosis::model()` returns the value verbatim; a typo'd or unrelated class reaches Eloquent, not this package's own error handling. |
+| the value's `.env` form | **single-quoted**: `NUMEROSIS_MODEL_TENANT='App\Models\Central\Tenant'` | phpdotenv reads `\M` inside a *double-quoted* value as an unrecognised escape sequence and throws `InvalidFileException` for the **entire .env file** — one double-quoted class-string here stops the app booting at all, with an error naming neither this key nor this package. Bare (unquoted) also works; double-quoted never does. |
