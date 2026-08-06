@@ -442,13 +442,31 @@ abstract class TestCase extends Orchestra
 
     protected function setUp(): void
     {
-        parent::setUp();
-
-        $this->recordCentralWrites();
-
-        // Registered here rather than called from tearDown() so both run *after*
-        // RefreshDatabase's rollback, which is registered the same way during
-        // parent::setUp().
+        // Registered *before* parent::setUp(), which is what makes this run
+        // *after* RefreshDatabase's rollback — the opposite of how it reads.
+        //
+        // Testbench's beforeApplicationDestroyed() is `array_unshift`
+        // (Orchestra\Testbench\Concerns\ApplicationTestingHooks), where
+        // Illuminate\Foundation\Testing\TestCase's is `[] =`. Under Testbench
+        // the callbacks therefore run last-registered-first, so registering
+        // after parent::setUp() — the way saas-m does, correctly, on plain
+        // Laravel — puts this cleanup *ahead* of the rollback that
+        // RefreshDatabase registers during parent::setUp().
+        //
+        // That inversion is what produced the `Unknown database 'tenantX'`
+        // bucket: deleteTenantDatabases() dropped the tenant database, then
+        // RefreshDatabase's own callback called $connection->getPdo() on the
+        // still-current tenant connection (tenancy is still initialized at
+        // teardown, so the default connection *is* the tenant one) and PDO
+        // reconnected to a schema that no longer existed. The test body had
+        // already passed; only teardown threw, and Testbench swallows all but
+        // the first callback exception, which is why it surfaced as a bare
+        // PDOException at `parent::tearDown()` with no test-side frame.
+        //
+        // The array is only reset in tearDownTheApplicationTestingHooks(),
+        // after the callbacks run, and beforeApplicationDestroyed() itself
+        // touches nothing but that property — so calling it before the
+        // application exists is safe.
         //
         // deleteCentralWrites: central and default point at the same database,
         // so deleting while that transaction still holds its row locks blocks
@@ -482,6 +500,10 @@ abstract class TestCase extends Orchestra
                 Features::forceForTesting(null);
             }
         });
+
+        parent::setUp();
+
+        $this->recordCentralWrites();
     }
 
     protected function tearDown(): void
