@@ -21,14 +21,14 @@ Overwrite this block; never append to it. Fifteen lines, hard limit.
 
 | | |
 |---|---|
-| Phase | 6 — **R2's exit gate is met** (see below); 7.1-7.4 already done per D10 |
-| numerosis | `84a9a7d`, clean |
-| thin-app | `11b29d1`, clean, boots to `ViteManifestNotFoundException` (Phase 9 boundary, expected) |
+| Phase | 8 — panel providers registered and verified booting; Phase 9 assets already wired (found done, not this session's work) |
+| numerosis | `84a9a7d`, clean (no package changes this session) |
+| thin-app | `8ac292e`, clean. Both panels register full route lists (31 admin, 24 tenantAdmin), `/login` and `/admin/login` render 200. A hand-created tenant with no provisioned database fails with `TenantDatabaseDoesNotExistException` — correct behaviour, not a wiring bug |
 | saas-m | frozen at `c66cc72`; only `.claude/` pointers change here |
-| Package suite | **0 failed / 373 passed / 7 skipped in ~65s** — measured 2026-08-06, MySQL volume dropped and recreated from nothing, twice, both landed identical |
-| PHPStan | clean, baseline 252 unchanged |
+| Package suite | **0 failed / 373 passed / 7 skipped in ~65s** — measured 2026-08-06 (unchanged this session) |
+| PHPStan | numerosis: clean, baseline 252 unchanged. thin-app: clean (1 pre-existing Laravel-generated `ExampleTest` finding, unrelated) |
 | Exclusions | 14 `#[Group('thin-app')]` across 11 files, all module-package tests (R2 row 1) |
-| Resume at | Steps 2-5 all closed this run. Step 5 found and fixed a real bug: `SeedTenantDatabase` never worked on a fresh MySQL volume (stancl's `tenants:seed` command is broken upstream) — see `.claude/rules/tenant-provisioning.md`. Next: Phase 7.5, then Phase 8 (panels → plugins) |
+| Resume at | Phase 8 done: both `AdminPanelProvider`/`TenantAdminPanelProvider` registered in `bootstrap/providers.php`, `discover*()` repointed at the package's `src/Filament/{Admin,TenantAdmin}/` via `Composer\InstalledVersions::getInstallPath()` (no `NumerosisAdminPlugin`/`NumerosisTenantPlugin` wrapper classes were built — direct panel-provider wiring was sufficient and is what was actually broken; revisit only if a real need for a swappable Filament `Plugin` surface shows up). Next: Phase 10's end-to-end gate — provision a real tenant through the wizard/`StartLocalCheckout` and confirm the panel works against a real provisioned database, not just routing |
 
 Phase 6's three exit conditions (R2) are all satisfied as of `fad542e`:
 zero failures, baseline growth traceable, every exclusion traceable. The 7
