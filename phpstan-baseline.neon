@@ -463,18 +463,6 @@ parameters:
 			path: database/seeders/Central/ModuleOfferingSeeder.php
 
 		-
-			message: '#^Cannot access offset ''monthly_id'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 3
-			path: database/seeders/PaymentPlanSeeder.php
-
-		-
-			message: '#^Cannot access offset ''yearly_id'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 3
-			path: database/seeders/PaymentPlanSeeder.php
-
-		-
 			message: '#^Parameter \#1 \$value of function collect expects Illuminate\\Contracts\\Support\\Arrayable\<\(int\|string\), mixed\>\|iterable\<\(int\|string\), mixed\>\|null, mixed given\.$#'
 			identifier: argument.type
 			count: 1

@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 use Nvade\Numerosis\Database\Factories\PaymentPlanFeatureFactory;
 use Nvade\Numerosis\Observers\PaymentPlanFeatureObserver;
 use Nvade\Numerosis\Support\Numerosis;
+use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
  * @property int $id
@@ -36,6 +37,9 @@ use Nvade\Numerosis\Support\Numerosis;
 #[ObservedBy(PaymentPlanFeatureObserver::class)]
 class PaymentPlanFeature extends Pivot
 {
+    /** @see Feature::$connection — same reasoning, pivot side. */
+    use CentralConnection;
+
     /** @use HasFactory<PaymentPlanFeatureFactory> */
     use HasFactory;
 

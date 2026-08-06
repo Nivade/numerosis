@@ -122,6 +122,24 @@ Ordinary framework file, entirely host-owned — except one non-obvious key
 `.env.example`'s `DOMAIN`/`CENTRAL_SUBDOMAIN` keys, which is what those
 values normally derive from.
 
+## `database/seeders/DatabaseSeeder.php` — the host's own file
+
+Not config, but the same shape of problem: a host file the package's data
+depends on and cannot reach.
+
+Laravel's skeleton ships `Database\Seeders\DatabaseSeeder`, and `db:seed`
+runs **that** one. The package's own seeders live under
+`Nvade\Numerosis\Database\Seeders` and are never reached unless the host
+calls them — either by `$this->call(\Nvade\Numerosis\Database\Seeders\DatabaseSeeder::class)`
+from its own seeder, or by running `php artisan numerosis:install --seed`,
+which calls them directly. Both are re-runnable; every package seeder keys on
+a natural key (`permissions.name`, `payment_plans.slug`, `modules.slug`).
+
+| Requirement | Required value / shape | Why | Checked by |
+|---|---|---|---|
+| central `permissions` rows | non-empty | Spatie's `hasPermissionTo()` **throws** `PermissionDoesNotExist` rather than returning false, so an unseeded table turns every policy check into a 500 reading `There is no permission named 'viewAny permissions' for guard 'web'` — which looks like a guard misconfiguration and sends you into `auth-guards.md` instead of into the seeder. | `verifyCentralDataSeeded()` |
+| central `payment_plans` rows | non-empty | The registration wizard's plan step renders whatever `PaymentPlanRepository::findBySlug()`'s source returns; empty means an empty step, which reads as a styling bug rather than missing data. | `verifyCentralDataSeeded()` |
+
 ## `config/numerosis.php` — `models`
 
 Only required if the host publishes the model stubs (`--tag numerosis-models`)

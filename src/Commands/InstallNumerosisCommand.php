@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
@@ -30,7 +32,9 @@ use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper
  */
 class InstallNumerosisCommand extends Command
 {
-    public $signature = 'numerosis:install {--verify-only : Run the host-configuration checks without publishing anything or touching .env}';
+    public $signature = 'numerosis:install
+                        {--verify-only : Run the host-configuration checks without publishing anything or touching .env}
+                        {--seed : Also run the package\'s central seeders (roles/permissions, example plans, module catalogue)}';
 
     public $description = 'Publish Numerosis config and model stubs, then verify the host is wired correctly';
 
@@ -55,6 +59,10 @@ class InstallNumerosisCommand extends Command
             $this->appendModelOverrides();
         }
 
+        if ($this->option('seed') && ! $this->option('verify-only')) {
+            $this->seedCentralData();
+        }
+
         $this->newLine();
         $this->components->info('Verifying host configuration');
 
@@ -77,6 +85,7 @@ class InstallNumerosisCommand extends Command
         $this->verifyTenantMigrationPath();
         $this->verifyStripeKeys();
         $this->verifyModelOverrides();
+        $this->verifyCentralDataSeeded();
 
         if ($this->failures !== []) {
             $this->newLine();
@@ -118,6 +127,51 @@ class InstallNumerosisCommand extends Command
         // printManualSteps() below for the vite.config.js entry this
         // can't add on its own.
         $this->call('vendor:publish', ['--tag' => 'numerosis-assets', '--force' => false]);
+    }
+
+    /**
+     * Runs the package's own central seeders.
+     *
+     * A host's `database/seeders/DatabaseSeeder` is its own file — Laravel's
+     * skeleton ships one, and `db:seed` runs *that*, so nothing the package
+     * seeds is reachable unless the host edits it. thin-app never did, and
+     * the result was a central database with zero permissions and zero
+     * payment plans while every other check here passed. Zero permissions is
+     * not a missing-data inconvenience: Spatie throws `PermissionDoesNotExist`
+     * rather than returning false, so the first admin-panel request 500s with
+     * "There is no permission named …", which reads as a guard bug
+     * (.claude/rules/auth-guards.md). Zero plans means the registration
+     * wizard has nothing to sell.
+     *
+     * Resolved from the container rather than run through `db:seed`, for the
+     * reason `.claude/rules/tenant-provisioning.md` records at length:
+     * `Stancl\Tenancy\Commands\Seed` registers itself under the name `db:seed`
+     * (it inherits `Illuminate\Database\Console\Seeds\SeedCommand`'s
+     * `$signature` and never overrides it), and the console app resolves that
+     * collision in stancl's favour. So `$this->call('db:seed', …)` reaches
+     * *stancl's* command, whose `handle()` immediately calls
+     * `$this->option('tenants')` — an option its own shadowed constructor
+     * never registered — and throws `InvalidArgumentException: The "tenants"
+     * option does not exist`. Confirmed here by writing it the obvious way
+     * first and watching it throw.
+     *
+     * `setContainer()` + `Model::unguarded()` replicate what
+     * `SeedCommand::handle()` does around a seeder resolved this way.
+     */
+    private function seedCentralData(): void
+    {
+        $this->newLine();
+        $this->components->info('Seeding central data');
+
+        // Every seeder underneath keys on a natural key, so this is safe on
+        // an already-seeded database — which is the point, since the whole
+        // command is meant to be re-runnable.
+        Model::unguarded(function (): void {
+            $this->laravel->make(DatabaseSeeder::class)
+                ->setContainer($this->laravel)
+                ->setCommand($this)
+                ->__invoke();
+        });
     }
 
     /**
@@ -586,6 +640,48 @@ class InstallNumerosisCommand extends Command
             if (! is_subclass_of($configured, $packageModel)) {
                 $this->failures[] = "config('numerosis.models.{$packageModel}') names '{$configured}', which does not extend {$packageModel} — an override must be a subclass, or package code hands Eloquent a class it knows nothing about.";
             }
+        }
+    }
+
+    /**
+     * The one check here about *data* rather than configuration, and it earns
+     * its place because both failures it catches surface as something else
+     * entirely.
+     *
+     * An unseeded `permissions` table is a 500, not a 403: Spatie's
+     * `hasPermissionTo()` throws `PermissionDoesNotExist` instead of returning
+     * false, so the first policy consulted reports "There is no permission
+     * named 'viewAny permissions' for guard 'web'" and the whole thing reads
+     * as a guard misconfiguration (.claude/rules/auth-guards.md says to check
+     * `SELECT COUNT(*) FROM permissions` before investigating guards — this is
+     * that check, run before anyone has to). An unseeded `payment_plans` is
+     * quieter and worse: the registration wizard renders an empty plan step,
+     * which looks like a styling bug.
+     *
+     * Skipped rather than failed when the tables are absent — that is a
+     * migration problem, and `php artisan migrate` reports it far better than
+     * this command could.
+     */
+    private function verifyCentralDataSeeded(): void
+    {
+        $connection = Config::string('database.connections.central.database', '') !== ''
+            ? 'central'
+            : Config::string('database.default');
+
+        foreach (['permissions', 'payment_plans'] as $table) {
+            if (! Schema::connection($connection)->hasTable($table)) {
+                return;
+            }
+        }
+
+        $schema = Schema::connection($connection);
+
+        if ($schema->getConnection()->table('permissions')->count() === 0) {
+            $this->failures[] = 'The central `permissions` table is empty — Spatie throws PermissionDoesNotExist rather than returning false, so every policy check 500s with "There is no permission named …", which reads as a guard bug. Run `php artisan numerosis:install --seed`.';
+        }
+
+        if ($schema->getConnection()->table('payment_plans')->count() === 0) {
+            $this->failures[] = 'The central `payment_plans` table is empty — the registration wizard has nothing to sell and renders an empty plan step. Run `php artisan numerosis:install --seed`.';
         }
     }
 

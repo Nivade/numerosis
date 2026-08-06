@@ -87,7 +87,7 @@ class HostRequirementsTest extends TestCase
         $rows = [];
 
         foreach (explode("\n", $doc) as $line) {
-            if (! str_starts_with($line, '| ') || str_starts_with($line, '| Key |') || str_starts_with($line, '|---')) {
+            if (! str_starts_with($line, '| ') || str_starts_with($line, '|---')) {
                 continue;
             }
 
@@ -95,6 +95,15 @@ class HostRequirementsTest extends TestCase
 
             // Key | Required value / shape | Why | Checked by
             $this->assertCount(4, $cells, "Row '{$cells[0]}' does not have a 'Checked by' cell.");
+
+            // Header row, identified by its last cell rather than its first:
+            // not every table's first column is called "Key" (the seeder
+            // section's is "Requirement"), and matching on the first cell made
+            // a differently-named header parse as a data row whose "Checked
+            // by" was the literal string "Checked by".
+            if ($cells[3] === 'Checked by') {
+                continue;
+            }
 
             $rows[] = ['key' => $cells[0], 'checked_by' => $cells[3]];
         }
