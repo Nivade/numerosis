@@ -18,12 +18,12 @@ Overwrite this block; never append.
 
 | | |
 |---|---|
-| Session | 2026-08-06 (second session that day) |
-| numerosis | `1d82f8f`, clean. Suite **0 failed / 387 passed / 7 skipped** (~62s). PHPStan clean, baseline **shrank by 2**, grew by 0 |
-| thin-app | `572a501`, clean. `numerosis:install --verify-only` clean; 48 `filament.*` routes register; `schedule:list` shows 3 entries; central DB seeded (perms=99, plans=3) |
+| Session | 2026-08-06 (third session that day) |
+| numerosis | `67acfb1`. **Working tree not clean** — a concurrent session is mid-flight on an unrelated `#[UsePolicy]`/Filament refactor (new `src/Policies/*`, modified Filament resources/Models, `.claude/rules/auth-guards.md`); none of it is this plan's work, left untouched and unstaged. Suite **0 failed / 392 passed / 7 skipped** (~66s) as of this plan's own commits. PHPStan clean |
+| thin-app | `e40c485`, clean apart from untracked `public/{css,js,fonts}` build output. `numerosis:install --verify-only` clean; real `/login` request confirmed 200 with no config errors |
 | saas-m | frozen, untouched |
-| Done this session | **B** (schedule), **D** (seeders), **C** (domain config), **A** (Filament plugins) — see "Completed" below |
-| Next | **E/F/H** (task 5), then **G/I** (task 6, half of I already landed), then doc corrections (task 7) |
+| Done this session | **E** (tenant migrations point at vendor path, dead clients-module migrations removed), **F** (asset publish drift detection), **H** (Livewire config defaults — had to land in `packageRegistered()`, not `packageBooted()`, per real-request bug found and fixed this session) — see "Completed" below |
+| Next | **G/I** (task 6, half of I already landed), then doc corrections (task 7) |
 
 Prerequisites for running anything: `cd ~/repos/private/numerosis && docker
 compose up -d`, then `vendor/bin/pest --ci`, `composer analyse`,
@@ -87,78 +87,73 @@ Also fixed en route: `Feature` and `PaymentPlanFeature` were the only
 `Models\Central\*` without stancl's `CentralConnection`, despite `features`
 existing solely in `database/migrations/central`.
 
+### E — tenant migrations pointed at a duplicated copy (`numerosis@49ef87a`, `thin-app@400a58f`)
+
+25 files were byte-identical in both repos. `Numerosis::tenantMigrationPath()`
+(`__DIR__`-relative, same reasoning as the Filament plugin discovery paths) is
+now the canonical `--path` a host wires into
+`config('tenancy.migration_parameters')`; thin-app's copy under
+`database/migrations/tenant/` is deleted (25 files). Publishing
+`numerosis-tenant-migrations` remains available as the opt-in customisation
+escape hatch — no longer auto-published by `numerosis:install`.
+`verifyTenantMigrationPath()` now checks the vendor path is present in
+`--path`, not merely that some directory exists.
+
+User decided (asked directly, no real deployed tenants at stake): the four
+dead clients-module migrations
+(`2025_05_26_101655_create_clients_table.php` + 3 follow-ups) are deleted
+outright, no drop migration. Verified by provisioning a real tenant in
+thin-app via tinker after the change (41 tables, no local migrations
+directory needed).
+
+### F — asset publish drift detection (`numerosis@fedeca4`, `thin-app@51f133a`)
+
+`resources/{css,js}` stays a deliberate publish (`central.js` imports the
+`stripe-*.js` files by relative path, `styles.blade.php` `@vite`s the host's
+own `resources/js` root — nesting under a package subdirectory breaks both),
+but nothing detected drift in the published copy. `Numerosis::assetSourcePaths()`
+is now the single source/target map both `publishGroup()` and the new
+`verifyPublishedAssetsMatchSource()` read, so a host's customisation and the
+package original can't silently drift apart from each other unnoticed — the
+check warns, does not fail the install. thin-app's `vite.config.js` no longer
+lists the dead `app/Filament/**` refresh glob (panels moved to the package's
+Filament plugins in phase A); points at
+`vendor/nvade/numerosis/src/Filament/**/*.php` instead.
+
+### H — Livewire config defaults (`numerosis@67acfb1`, `thin-app@e40c485`)
+
+`NumerosisServiceProvider::packageRegistered()` now sets
+`livewire.component_namespaces.{layouts,pages}`, the `livewire` filesystem
+disk, and `livewire.temporary_file_upload.disk` whenever a host hasn't
+already — thin-app's three hand-wired copies are deleted.
+`verifyLivewireComponentNamespaces()`/`verifyLivewireUploadDisk()` are
+reworded to "has the host broken what we set", not "did the host wire this
+up". `docs/host-requirements.md`'s three rows now say "package-supplied,
+override if needed"; a new `resources/css`, `resources/js` doc section covers
+F's check.
+
+**Load-bearing correction made mid-session, worth carrying forward:** the
+defaults were first written into `packageBooted()`, matching the sibling
+`numerosis.views.path` default already there — and passed the package's own
+suite, because `TestCase::getEnvironmentSetUp()` always pre-sets these three
+keys, so the fallback path was never exercised. Only a real request against
+thin-app (`GET /login`) surfaced the actual bug:
+`LivewireServiceProvider::boot()` reads `component_namespaces` eagerly to
+register a Blade view-finder hint, and every provider's `register()` phase
+completes before any provider's `boot()` runs — so `packageBooted()` is one
+phase too late regardless of provider discovery order. Fixed by moving the
+three `Config::set()` blocks into `packageRegistered()`.
+`NumerosisServiceProviderDefaultsTest` now resets each key and re-invokes
+`packageRegistered()` directly (not `packageBooted()`) so this class of gap
+is caught by the suite going forward — **but this is exactly the kind of bug
+"0 failed" cannot see; the real-request check is what actually caught it.**
+Same lesson `testing.md` already records for `db:seed`/Testbench provider
+ordering — provider *phase*, not just provider *presence*, is a thing a
+green suite can silently get wrong.
+
 ---
 
 ## Remaining work
-
-### E/F/H — the publish-duplication family
-
-Three instances of the same shape: the package publishes files into the host,
-nothing detects drift afterwards, and the default is the duplicating path.
-
-**E — tenant migrations.** 25 files, byte-identical in both repos (`diff -rq`
-clean). `NumerosisServiceProvider` publishes them under
-`numerosis-tenant-migrations`, and thin-app's
-`config/tenancy.php`'s `migration_parameters` points at
-`database_path('migrations/tenant')`. Extraction plan 5.1 and
-`docs/host-requirements.md` both say it should be the **absolute vendor path**,
-with publishing as the opt-in customisation escape hatch.
-
-- Add `Numerosis::tenantMigrationPath(): string` (`__DIR__`-relative, same
-  reasoning as the plugin discovery paths) so a host writes
-  `'--path' => [Numerosis::tenantMigrationPath()]` and cannot get it wrong.
-- Repoint thin-app's `config/tenancy.php` at it; delete
-  `thin-app/database/migrations/tenant/` (25 files).
-- Rework `verifyTenantMigrationPath()` accordingly — it currently checks the
-  published directory exists, which stops being the right question.
-- **Separate finding, decide before deleting:** those 25 include
-  `2025_05_26_101655_create_clients_table.php` plus three follow-ups for the
-  **removed clients module**. The package is shipping a dead module's schema to
-  every tenant. Do not silently drop them — a deployed tenant database already
-  has those tables, so removing the migrations makes the `migrations` table
-  disagree with reality. Ask the user; the options are leave-as-is, or add a
-  drop migration and remove the four.
-
-Done when: a fresh `numerosis:install` on a host with no
-`database/migrations/tenant/` still provisions a tenant successfully, and
-`diff -rq` finds no duplicated migration set.
-
-**F — `resources/{css,js}`.** Byte-identical in both repos. Publishing to
-`resource_path()` is deliberate and correctly reasoned (see
-`NumerosisServiceProvider`'s comment: `central.js` imports `stripe-*.js` by
-relative path, and `partials/styles.blade.php` `@vite`s the host's own
-`resources/js` root), so this one **stays a publish** — but nothing detects
-drift after it, and the three `stripe-*.js` files are load-bearing for payment.
-
-- Add a `numerosis:install` check comparing each published file against the
-  package original, warning (not failing) on divergence — a host is allowed to
-  customise, it just should be told.
-- thin-app's `vite.config.js` still lists `refresh: ['app/Filament/**']`, a
-  directory that no longer exists there. Point it at the package's
-  `src/Filament` or drop the entry.
-
-**H — `config/livewire.php` + the livewire disk.** `docs/host-requirements.md`
-line 88 is the longest row in the document and its fix is a path into
-`vendor/`. The package already sets `numerosis.views.path` to `__DIR__` at boot
-for exactly this reason.
-
-- Set `livewire.component_namespaces.{layouts,pages}` in
-  `NumerosisServiceProvider::packageBooted()`, host-overridable (only set what
-  is not already set).
-- Same for `filesystems.disks.livewire` and
-  `livewire.temporary_file_upload.disk` — the package knows the correct value
-  (`storage_path('app/private')`, absent from `tenancy.filesystem.disks`); the
-  host only needs the ability to override. See
-  `.claude/rules/tenant-filesystem.md` for why this disk must exist and must
-  **not** be tenant-suffixed.
-- Then `verifyLivewireComponentNamespaces()`, `verifyLivewireUploadDisk()` and
-  `verifyLivewireDiskExclusion()` change from "is the host wired correctly" to
-  "has the host broken what we set" — keep them, reword the failure text.
-
-Done when: the three rows in `docs/host-requirements.md` say "package-supplied,
-override if needed", and a host that deletes all three keys still boots.
-`HostRequirementsTest` enforces the doc/command pairing in both directions, so
-it will fail if a check is removed without its row.
 
 ### G/I — exceptions seam, and the rest of the modules config
 
