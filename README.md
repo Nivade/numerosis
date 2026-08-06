@@ -8,15 +8,15 @@ module system are opt-in through feature classes.
 
 ## Status
 
-Under extraction from the `saas-m` monolith. See
-`saas-m/.claude/plans/package-extraction.md` for the phase plan and the
-three-repo layout:
+Extracted from the `saas-m` monolith. See
+`.claude/plans/post-extraction-review.md` (this repo) for remaining work and
+the repo layout:
 
 | Repo | Role |
 |---|---|
 | `numerosis` | this package |
 | `thin-app` | the deployable app that requires it |
-| `saas-m` | archived read-only; source of the extraction |
+| `saas-m` | frozen, pending archive; source of the extraction |
 
 ## Requirements
 

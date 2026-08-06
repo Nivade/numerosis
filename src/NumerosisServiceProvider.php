@@ -18,7 +18,6 @@ use Nvade\Numerosis\Actions\Auth\ResolvePostLoginRedirectUrl;
 use Nvade\Numerosis\Actions\Auth\SendEmailVerificationNotification;
 use Nvade\Numerosis\Actions\Invitations\CreateInvitedUser;
 use Nvade\Numerosis\Commands\InstallNumerosisCommand;
-use Nvade\Numerosis\Commands\NumerosisCommand;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
 use Nvade\Numerosis\Console\Commands\DeleteTenants;
 use Nvade\Numerosis\Console\Commands\MigrateTenantModule;
@@ -75,7 +74,6 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->hasTranslations()
             ->discoversMigrations(true, '/database/migrations/central')
             ->runsMigrations()
-            ->hasCommand(NumerosisCommand::class)
             ->hasCommand(InstallNumerosisCommand::class)
             ->hasCommand(DeleteTenants::class)
             ->hasCommand(MigrateTenantModule::class)
@@ -88,12 +86,10 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
-        // TenancyServiceProvider and BillingServiceProvider merge their own
-        // config/numerosis-{tenancy,billing}.php via mergeConfigFrom() in
-        // their own register() — registering them here, rather than
-        // hardcoding them into composer.json's extra.laravel.providers list
-        // alongside this class, keeps them swappable the same way a
-        // consumer can already replace any other package binding.
+        // Registering these two here, rather than hardcoding them into
+        // composer.json's extra.laravel.providers list alongside this class,
+        // keeps them swappable the same way a consumer can already replace
+        // any other package binding.
         $this->app->register(TenancyServiceProvider::class);
         $this->app->register(BillingServiceProvider::class);
 
@@ -259,12 +255,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // in the package, concrete in thin-app" design was dropped, it
         // produced six distinct instantiation-by-proxy bugs). A stub here
         // extends the package's concrete model, it does not implement an
-        // abstract one. 'numerosis-models'
-        // and 'numerosis-stubs' both point at the same file set: there is
-        // nothing else stub-shaped in this package to give the second tag
-        // a distinct meaning, and a consumer publishing either tag needs
-        // to end up with the same 9 files regardless of which name they
-        // used.
+        // abstract one.
         $modelStubs = [
             __DIR__.'/../stubs/Models/Central/Tenant.stub' => app_path('Models/Central/Tenant.php'),
             __DIR__.'/../stubs/Models/Central/Domain.stub' => app_path('Models/Central/Domain.php'),
@@ -278,7 +269,6 @@ class NumerosisServiceProvider extends PackageServiceProvider
         ];
 
         $this->publishGroup($modelStubs, 'numerosis-models');
-        $this->publishGroup($modelStubs, 'numerosis-stubs');
     }
 
     /**
