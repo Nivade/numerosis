@@ -33,6 +33,9 @@ class FakeStripeHttpClient implements ClientInterface
     /** @var array<string, list<array<string, mixed>>> keyed by customer id */
     private array $taxIds = [];
 
+    /** @var array<string, array<string, mixed>> */
+    private array $paymentMethods = [];
+
     private int $sequence = 0;
 
     /**
@@ -47,14 +50,21 @@ class FakeStripeHttpClient implements ClientInterface
         // ['v1', 'customers', 'cus_1', 'tax_ids'] etc — drop the leading 'v1'.
         array_shift($segments);
 
-        $body = match (true) {
-            $segments === ['customers'] && $method === 'post' => $this->createCustomer($params),
-            \count($segments) === 2 && $segments[0] === 'customers' && $method === 'get' => $this->retrieveCustomer($segments[1]),
-            \count($segments) === 2 && $segments[0] === 'customers' && $method === 'post' => $this->updateCustomer($segments[1], $params),
-            \count($segments) === 3 && $segments[0] === 'customers' && $segments[2] === 'tax_ids' && $method === 'post' => $this->createTaxId($segments[1], $params),
-            \count($segments) === 3 && $segments[0] === 'customers' && $segments[2] === 'tax_ids' && $method === 'get' => $this->listTaxIds($segments[1]),
-            default => throw new RuntimeException("FakeStripeHttpClient has no handler for {$method} {$path} — add one, this is not a real Stripe API call."),
-        };
+        try {
+            $body = match (true) {
+                $segments === ['customers'] && $method === 'post' => $this->createCustomer($params),
+                \count($segments) === 2 && $segments[0] === 'customers' && $method === 'get' => $this->retrieveCustomer($segments[1]),
+                \count($segments) === 2 && $segments[0] === 'customers' && $method === 'post' => $this->updateCustomer($segments[1], $params),
+                \count($segments) === 3 && $segments[0] === 'customers' && $segments[2] === 'tax_ids' && $method === 'post' => $this->createTaxId($segments[1], $params),
+                \count($segments) === 3 && $segments[0] === 'customers' && $segments[2] === 'tax_ids' && $method === 'get' => $this->listTaxIds($segments[1]),
+                $segments === ['payment_methods'] && $method === 'post' => $this->createPaymentMethod($params),
+                \count($segments) === 2 && $segments[0] === 'payment_methods' && $method === 'get' => $this->retrievePaymentMethod($segments[1]),
+                \count($segments) === 3 && $segments[0] === 'payment_methods' && $segments[2] === 'attach' && $method === 'post' => $this->attachPaymentMethod($segments[1], $params),
+                default => throw new RuntimeException("FakeStripeHttpClient has no handler for {$method} {$path} — add one, this is not a real Stripe API call."),
+            };
+        } catch (FakeStripeApiError $e) {
+            return [json_encode(['error' => $e->errorBody], JSON_THROW_ON_ERROR), $e->status, []];
+        }
 
         return [json_encode($body, JSON_THROW_ON_ERROR), 200, []];
     }
@@ -62,6 +72,88 @@ class FakeStripeHttpClient implements ClientInterface
     private function id(string $prefix): string
     {
         return $prefix.'_fake'.(++$this->sequence);
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function arrayParam(array $params, string $key): array
+    {
+        $value = $params[$key] ?? [];
+
+        return is_array($value) ? $value : [];
+    }
+
+    /** @param  array<string, mixed>  $params */
+    private function stringParam(array $params, string $key): string
+    {
+        $value = $params[$key] ?? '';
+
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function createPaymentMethod(array $params): array
+    {
+        $id = $this->id('pm');
+
+        $address = array_merge([
+            'line1' => null,
+            'line2' => null,
+            'city' => null,
+            'state' => null,
+            'postal_code' => null,
+            'country' => null,
+        ], $this->arrayParam($this->arrayParam($params, 'billing_details'), 'address'));
+
+        $paymentMethod = [
+            'id' => $id,
+            'object' => 'payment_method',
+            'type' => $params['type'] ?? 'card',
+            'customer' => null,
+            'billing_details' => array_merge([
+                'address' => $address,
+                'name' => null,
+                'email' => null,
+                'phone' => null,
+            ], $this->arrayParam($params, 'billing_details'), ['address' => $address]),
+            'card' => $params['type'] === 'card' ? ['brand' => 'visa', 'last4' => '4242'] : null,
+        ];
+
+        $this->paymentMethods[$id] = $paymentMethod;
+
+        return $paymentMethod;
+    }
+
+    /** @return array<string, mixed> */
+    private function retrievePaymentMethod(string $id): array
+    {
+        return $this->paymentMethods[$id] ?? throw new RuntimeException("FakeStripeHttpClient: no payment method {$id} was created in this test.");
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function attachPaymentMethod(string $id, array $params): array
+    {
+        $this->retrievePaymentMethod($id);
+
+        $customerId = $this->stringParam($params, 'customer');
+
+        if ($customerId === '') {
+            throw new RuntimeException('FakeStripeHttpClient: attach requires a customer param.');
+        }
+
+        $this->retrieveCustomer($customerId);
+
+        $this->paymentMethods[$id]['customer'] = $customerId;
+
+        return $this->paymentMethods[$id];
     }
 
     /**
@@ -115,6 +207,17 @@ class FakeStripeHttpClient implements ClientInterface
     {
         $this->retrieveCustomer($customerId);
 
+        $value = $this->stringParam($params, 'value');
+
+        if (! preg_match('/^[A-Z]{2}[A-Z0-9]+$/i', $value)) {
+            throw new FakeStripeApiError(400, [
+                'message' => "Invalid tax ID {$value}",
+                'type' => 'invalid_request_error',
+                'param' => 'value',
+                'code' => 'tax_id_invalid',
+            ]);
+        }
+
         $taxId = [
             'id' => $this->id('txi'),
             'object' => 'tax_id',
@@ -139,5 +242,23 @@ class FakeStripeHttpClient implements ClientInterface
             'has_more' => false,
             'url' => "/v1/customers/{$customerId}/tax_ids",
         ];
+    }
+}
+
+/**
+ * Thrown by a handler to make {@see FakeStripeHttpClient::request()} return a
+ * Stripe-shaped error response (`{"error": {...}}`, non-2xx status) instead of
+ * a success body — the shape `Stripe\ApiRequestor::handleErrorResponse()`
+ * expects in order to raise the real `ApiErrorException` subclasses
+ * application code catches.
+ */
+class FakeStripeApiError extends RuntimeException
+{
+    /** @param  array<string, mixed>  $errorBody */
+    public function __construct(public readonly int $status, public readonly array $errorBody)
+    {
+        $message = $errorBody['message'] ?? 'Fake Stripe API error';
+
+        parent::__construct(is_scalar($message) ? (string) $message : 'Fake Stripe API error');
     }
 }

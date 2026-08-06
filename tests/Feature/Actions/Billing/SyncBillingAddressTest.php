@@ -9,21 +9,25 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
 use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
+use Nvade\Numerosis\Tests\Concerns\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
- * Hits real Stripe test mode: creates a PaymentMethod with a billing address
- * attached (standing in for what the Address Element produces client-side),
- * then asserts the address lands on the Stripe customer and an EU VAT number
- * becomes a tax id of the right type. See
- * .claude/plans/module-marketplace.md.
+ * Creates a PaymentMethod with a billing address attached (standing in for
+ * what the Address Element produces client-side), then asserts the address
+ * lands on the Stripe customer and an EU VAT number becomes a tax id of the
+ * right type. See .claude/plans/module-marketplace.md. Runs against
+ * FakesStripe's in-memory fake, not live Stripe test mode — see D9 in
+ * .claude/plans/package-extraction.md.
  */
 class SyncBillingAddressTest extends TestCase
 {
+    use FakesStripe;
     use RefreshDatabase;
 
     public function test_it_writes_the_payment_methods_address_onto_the_customer(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $customer = $user->createOrGetStripeCustomer();
         $paymentMethod = $this->paymentMethodWithAddress($customer->id, 'NL');
@@ -39,6 +43,7 @@ class SyncBillingAddressTest extends TestCase
 
     public function test_an_eu_vat_number_becomes_a_tax_id_of_the_right_type(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $customer = $user->createOrGetStripeCustomer();
         $paymentMethod = $this->paymentMethodWithAddress($customer->id, 'NL');
@@ -53,6 +58,7 @@ class SyncBillingAddressTest extends TestCase
 
     public function test_a_vat_number_for_an_unsupported_country_is_refused(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $customer = $user->createOrGetStripeCustomer();
         $paymentMethod = $this->paymentMethodWithAddress($customer->id, 'US');
@@ -64,6 +70,7 @@ class SyncBillingAddressTest extends TestCase
 
     public function test_an_invalid_vat_number_surfaces_as_a_domain_exception(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $customer = $user->createOrGetStripeCustomer();
         $paymentMethod = $this->paymentMethodWithAddress($customer->id, 'NL');
