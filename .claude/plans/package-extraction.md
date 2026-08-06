@@ -21,14 +21,14 @@ Overwrite this block; never append to it. Fifteen lines, hard limit.
 
 | | |
 |---|---|
-| Phase | 8 — panel providers registered and verified booting; Phase 9 assets already wired (found done, not this session's work) |
+| Phase | 10 — end-to-end gate items 3-4 passed live against a real tenant. STOP: archive step (Phase 10's last item) needs explicit user go-ahead, not taken |
 | numerosis | `84a9a7d`, clean (no package changes this session) |
-| thin-app | `8ac292e`, clean. Both panels register full route lists (31 admin, 24 tenantAdmin), `/login` and `/admin/login` render 200. A hand-created tenant with no provisioned database fails with `TenantDatabaseDoesNotExistException` — correct behaviour, not a wiring bug |
-| saas-m | frozen at `c66cc72`; only `.claude/` pointers change here |
+| thin-app | `395f08a`, clean. Panels boot (Phase 8), assets build (Phase 9), and a real `StartLocalCheckout` provision was run to completion — see below |
+| saas-m | frozen at `c66cc72`; untouched this session |
 | Package suite | **0 failed / 373 passed / 7 skipped in ~65s** — measured 2026-08-06 (unchanged this session) |
 | PHPStan | numerosis: clean, baseline 252 unchanged. thin-app: clean (1 pre-existing Laravel-generated `ExampleTest` finding, unrelated) |
 | Exclusions | 14 `#[Group('thin-app')]` across 11 files, all module-package tests (R2 row 1) |
-| Resume at | Phase 8 done: both `AdminPanelProvider`/`TenantAdminPanelProvider` registered in `bootstrap/providers.php`, `discover*()` repointed at the package's `src/Filament/{Admin,TenantAdmin}/` via `Composer\InstalledVersions::getInstallPath()` (no `NumerosisAdminPlugin`/`NumerosisTenantPlugin` wrapper classes were built — direct panel-provider wiring was sufficient and is what was actually broken; revisit only if a real need for a swappable Filament `Plugin` surface shows up). Next: Phase 10's end-to-end gate — provision a real tenant through the wizard/`StartLocalCheckout` and confirm the panel works against a real provisioned database, not just routing |
+| Resume at | Phase 10 gate: item 1 (package suite) and item 2 (app boots) already green. Item 3 (register → provision → log into tenant panel) run via `StartLocalCheckout::run()` directly in tinker rather than the browser wizard — found and fixed two real bugs (see below) — landed `tenants.provisioned_at` set, owner's `Tenant\User` row created, tenant subdomain `/login` renders 200. Item 4 (`tenants:migrate-module branding`) landed its migration against the real tenant database; `modules.migrated_at` itself is stamped by the `MigrateModules` job during a module *purchase*, not by this raw command — confirmed against `.claude/rules/module-marketplace.md`, not a gap. Test tenant/user/database were deleted after verification, nothing left behind. **Next: ask the user before archiving saas-m** — the only remaining Phase 10 item, and this document requires an explicit stop there |
 
 Phase 6's three exit conditions (R2) are all satisfied as of `fad542e`:
 zero failures, baseline growth traceable, every exclusion traceable. The 7
