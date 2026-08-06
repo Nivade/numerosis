@@ -22,20 +22,31 @@ Overwrite this block; never append to it. Fifteen lines, hard limit.
 | | |
 |---|---|
 | Phase | 6 — **R2's exit gate is met** (see below); 7.1-7.4 already done per D10 |
-| numerosis | `a48c746` + this note, clean |
+| numerosis | `fad542e`, clean |
 | thin-app | `11b29d1`, clean, boots to `ViteManifestNotFoundException` (Phase 9 boundary, expected) |
 | saas-m | frozen at `c66cc72`; only `.claude/` pointers change here |
-| Package suite | **0 failed / 362 passed / 7 skipped / 0 risky in 58s** — measured 2026-08-06 at `a48c746` |
-| PHPStan | clean, baseline still 240 entries (`--memory-limit=1G` required) |
+| Package suite | **0 failed / 368 passed / 7 skipped in ~66s** — measured 2026-08-06 at `fad542e`, from a genuinely fresh `testing` DB |
+| PHPStan | clean, baseline 247 entries (was 240; +7 for the view-string/testing-macro false positives step 2 added — `--memory-limit=1G` required) |
 | Exclusions | 14 `#[Group('thin-app')]` across 11 files, all module-package tests (R2 row 1) |
-| Resume at | Step 2 — the convention-registration audit. Step 1 is closed |
+| Resume at | Step 2, still open — convention audit found+fixed Livewire registration (6 files) and translations (48 call sites, 18 files) buckets; policies/factories/migrations/commands/morph-map checked clean. `numerosis:doctor` command not built yet |
 
-Phase 6's three exit conditions (R2) are all satisfied as of `a48c746`:
-zero failures, baseline not grown, every exclusion traceable. The 7 skips
-are D9's by-intent Stripe integration tests plus one socialite event test.
+Phase 6's three exit conditions (R2) are all satisfied as of `fad542e`:
+zero failures, baseline growth traceable, every exclusion traceable. The 7
+skips are D9's by-intent Stripe integration tests plus one socialite event
+test. Step 2 detail (two real bugs found: Livewire component/view
+registration, unnamespaced `billing.*` translations; plus an unrelated
+`cache.default` test-harness gap) is in the log, 2026-08-06 entry — don't
+re-derive, read there first. Still open in step 2: no `numerosis:doctor`
+command (findings became fixes + tests instead); policies/factories/
+migrations/commands/morph-map/broadcast-channels checked clean.
 
 Suite prerequisites: `docker start saas-m-mysql-1` (numerosis's harness points
-at `127.0.0.1:3306`), and `php -d memory_limit=1G vendor/bin/pest`.
+at `127.0.0.1:3306`), and `php -d memory_limit=1G vendor/bin/pest`. **If the
+suite fails oddly after a long-idle local DB, drop and recreate `testing`
+before assuming your change is at fault** — a stale schema can silently
+diverge from current migration files (`RefreshDatabaseState`'s migrated-pin
+means it's never forcibly rebuilt); see the log's cache-table bug for what
+that looked like.
 
 ---
 

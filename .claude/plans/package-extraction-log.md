@@ -1576,3 +1576,99 @@ alone**, so the 15-failure bucket is not the cross-test contention it has
 been filed under for three sessions — `testing.md`'s class only appears in a
 full run. It is a real harness or package bug, reproducible in ~4.5s.
 Session stopped before pulling the stack for a single test.
+
+## 2026-08-06 — step 2, convention-registration audit
+
+Worked the audit list from step 2 (event discovery/policies/Livewire
+component names/Blade view namespace/factory guessing/migration paths/
+translations/commands/broadcast channels/morph map) against the actual
+codebase instead of by inspection alone. Two real, previously-invisible
+bugs found and fixed, both committed with regression tests
+(`b310eae`, `fad542e`):
+
+**Livewire component/view registration.** Livewire's default discovery
+only scans the *host's* `App\Livewire` namespace — never a package's `src/`
+— so every dotted component name or class-based full-page component this
+package ships needs either an explicit `Livewire::addComponent()` call or a
+`render()` override naming its `numerosis::` view. Six classes had neither:
+`settings.delete-user-form` was referenced by tag but never registered
+(resolved to a host class, `App\Livewire\Settings\DeleteUserForm`, that
+never existed); `Profile`, `Password`, `Appearance`, `ConfirmPassword`,
+`VerifyEmail` had no `render()` override at all, so Livewire's default view
+guess rebuilt a path from the class's own namespace segments and looked for
+it under the host's `resources/views/livewire`. Found by grepping every
+`<livewire:…>` tag in `resources/views` and cross-checking each name
+against `NumerosisServiceProvider`'s registrations, then checking every
+`src/Livewire/**/*.php` file for a `render()` method and diffing against
+the same list. Nothing had ever rendered these pages — `AccountPagesFeatureTest`
+only asserted `Route::has(...)`, never visited the route. Fixed by adding
+the missing `Livewire::addComponent()` call and a `render()` override to
+each of the five, matching the pattern already used by `Checkout`/`Register`/
+etc. Added `SettingsProfilePageTest`, `SettingsAndAuthComponentViewsTest`,
+and `RegisteredComponentTagsTest` (re-derives every `<livewire:…>` tag from
+disk and asserts `Livewire::exists()` on each — the general guard so a
+future tag can't repeat this silently).
+
+**Unnamespaced `billing.*` translations.** `hasTranslations()` (spatie
+package-tools) only ever calls `loadTranslationsFrom($path, 'numerosis')` —
+registers under the `numerosis::` namespace, never the default one. 48 call
+sites across 18 files used `__('billing.xxx')` with no namespace prefix,
+which resolved against the *host's* (nonexistent) default-namespace lang
+files and — because Laravel's `__()` returns the key verbatim on a miss
+rather than throwing — silently rendered the literal string
+`billing.checkout.subscribe` instead of "Subscribe", with no error anywhere.
+Verified with `__('billing.checkout.subscribe')` returning itself inside the
+real test harness. Worse: `CheckoutTest`'s five `paymentError` assertions
+computed their *expected* value the same broken way
+(`__('billing.checkout.foreign_session')`), so actual and expected matched
+by both being wrong — the identical vacuous-assertion shape step 1's Flux
+finding already named. Fixed by sed-replacing `__('billing.` →
+`__('numerosis::billing.` across all 18 source/view files and the 6 call
+sites in `CheckoutTest.php`; reran that test file to confirm it now asserts
+against real translated text (`"This payment method is no longer
+available…"`), not a raw key. `auth.*`/`validation.*`/`passwords.*`/
+`pagination.*` call sites were deliberately left unnamespaced — those are
+Laravel's own standard groups, framework-shipped fallback text exists for
+them regardless of what the package publishes, verified with
+`__('auth.failed')` resolving correctly with no package translations loaded
+at all.
+
+**Unrelated third bug, found while re-running the suite to verify the
+above:** `tests/TestCase.php` never pinned `config('cache.default')`, so it
+rode Testbench's skeleton `.env`'s `CACHE_STORE=database` — while
+`database/migrations/central/2026_01_07_195854_remove_redundant_tables.php`
+deliberately drops the `cache`/`cache_locks` tables that store needs
+(package assumes Redis in production; see `exception-handling.md`'s
+`failed_jobs` bullet for the sibling case). This had been invisible for a
+long time because the local `testing` schema had drifted: `RefreshDatabaseState`'s
+migrated-pin (`testing.md`) means the suite never forces a real
+`migrate:fresh` once a schema exists, so a `cache` table created before that
+migration existed just kept surviving, unaffected by the migration's own
+`down()`/`up()` history. A genuine `DROP DATABASE testing` + fresh run
+reproduces the gap every time — traced via a `DB::listen()` closure with a
+backtrace dump (the direct, isolated `Schema::create` call worked fine,
+which is what pointed at *ordering* rather than the migration file itself:
+`create table cache` really was followed by `drop table if exists cache`
+from the later migration, in the same `migrate:fresh` run). Fixed by
+setting `cache.default` to `'array'` right next to the existing
+`session.driver` line, which had already gotten this treatment for the same
+reason. **Process note for next time a local suite run behaves strangely
+after being idle a while: drop and recreate `testing` and re-run before
+trusting any diagnosis built on the existing schema** — the schema can
+silently disagree with the migration files that supposedly built it.
+
+Still open from step 2's original ask: no `numerosis:doctor` command was
+built — the audit's findings turned into direct fixes + regression tests +
+one general-purpose arch-style test instead, which is arguably the more
+valuable form of "land it as an executable artifact" than a
+separately-run doctor command would have been, but the doctor command
+itself, if still wanted, is unbuilt. Checked and found clean, no fix
+needed: policies (explicit `#[UsePolicy]` on every model, not
+convention-based), event discovery (already fixed, `registerEventListeners()`),
+factory/model-name guessing (already fixed, `Numerosis::factoryNameFor()`/
+`modelNameFor()`), migration path discovery (`discoversMigrations()`,
+explicit), commands (`hasCommand()`, explicit), morph map (`subscribable_type`
+consistently written through `Numerosis::model()`, no bare class-string
+elsewhere), broadcast channels (`routes/channels.php` wired correctly by
+thin-app's `bootstrap/app.php` via `withBroadcasting($path, ...)`, not a
+package registration gap).
