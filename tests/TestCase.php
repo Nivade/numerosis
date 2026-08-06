@@ -227,7 +227,32 @@ abstract class TestCase extends Orchestra
             'driver' => 'eloquent',
             'model' => \App\Models\Tenant\User::class,
         ]);
-        $app['config']->set('auth.social.providers', []);
+        // Two host-owned files, deliberately disagreeing: config/auth.php's
+        // `social.providers` is button metadata for five providers, while
+        // config/services.php carries credentials for only two of them.
+        // `Support\Social\ConfiguredProviders` is the intersection, and
+        // SocialLoginButtonsTest asserts exactly that — a `github` button
+        // must not render off metadata alone. Setting `providers` to `[]`
+        // (what this was) made every socialite test either see no button or
+        // reach Socialite with no credentials, which surfaces as
+        // `Missing required configuration keys [client_id, client_secret,
+        // redirect] for [Laravel\Socialite\Two\GoogleProvider]` from the
+        // redirect route rather than as missing config.
+        $app['config']->set('auth.social.providers', [
+            'google' => ['label' => 'Google', 'hover' => '', 'icon' => 'heroicon-o-globe-alt'],
+            'github' => ['label' => 'GitHub', 'hover' => '', 'icon' => 'heroicon-o-code-bracket'],
+            'discord' => ['label' => 'Discord', 'hover' => '', 'icon' => 'heroicon-o-chat-bubble-left-right'],
+            'facebook' => ['label' => 'Facebook', 'hover' => '', 'icon' => 'heroicon-o-globe-alt'],
+            'gitlab' => ['label' => 'GitLab', 'hover' => '', 'icon' => 'heroicon-o-code-bracket'],
+        ]);
+
+        foreach (['google', 'discord'] as $driver) {
+            $app['config']->set("services.{$driver}", [
+                'client_id' => "{$driver}-test-client-id",
+                'client_secret' => "{$driver}-test-client-secret",
+                'redirect' => "http://central.numerosistest.test/oauth/{$driver}/callback",
+            ]);
+        }
 
         // Password::sendResetLink() resolves its user model through the
         // 'passwords' broker config, not through 'providers' directly —
