@@ -12,19 +12,21 @@ use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Services\Billing\Checkout\InlineCheckoutGateway;
+use Nvade\Numerosis\Tests\Concerns\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
- * Hits real Stripe test mode (customer + SetupIntent creation) — no mocking
- * seam exists for this in the codebase yet, matching
- * StartSubscriptionCheckoutTest's existing convention.
+ * Runs against FakesStripe's in-memory fake, not live Stripe test mode —
+ * see D9 in .claude/plans/package-extraction.md.
  */
 class InlineCheckoutGatewayTest extends TestCase
 {
+    use FakesStripe;
     use RefreshDatabase;
 
     public function test_it_creates_a_setup_intent_and_returns_an_inline_checkout(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 

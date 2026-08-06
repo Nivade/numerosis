@@ -12,14 +12,17 @@ use Laravel\Cashier\Cashier;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
+use Nvade\Numerosis\Tests\Concerns\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 class CheckoutTest extends TestCase
 {
+    use FakesStripe;
     use RefreshDatabase;
 
     public function test_it_renders_the_element_for_a_resumable_checkout(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
@@ -43,6 +46,7 @@ class CheckoutTest extends TestCase
 
     public function test_it_surfaces_an_error_for_another_users_domain(): void
     {
+        $this->fakeStripe();
         $victim = CentralUser::factory()->create();
         $attacker = CentralUser::factory()->create();
         $this->actingAs($attacker);
@@ -69,6 +73,7 @@ class CheckoutTest extends TestCase
      */
     public function test_confirming_does_not_settle_an_unrelated_active_subscription(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
@@ -107,6 +112,7 @@ class CheckoutTest extends TestCase
 
     public function test_the_pending_domain_cannot_be_set_by_the_client(): void
     {
+        $this->fakeStripe();
         $this->actingAs(CentralUser::factory()->create());
 
         $this->expectException(CannotUpdateLockedPropertyException::class);
@@ -125,6 +131,7 @@ class CheckoutTest extends TestCase
      */
     public function test_it_refuses_a_setup_intent_belonging_to_a_different_reservation(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
@@ -168,6 +175,7 @@ class CheckoutTest extends TestCase
 
     public function test_it_refuses_to_confirm_without_a_resumable_pending_row(): void
     {
+        $this->fakeStripe();
         $this->actingAs(CentralUser::factory()->create());
 
         Livewire::test(Checkout::class, ['domain' => 'no-such-pending-row'])
@@ -178,6 +186,7 @@ class CheckoutTest extends TestCase
 
     public function test_it_prefills_the_saved_billing_address_for_a_returning_customer(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
@@ -222,6 +231,7 @@ class CheckoutTest extends TestCase
 
     public function test_it_leaves_the_saved_billing_address_null_for_a_brand_new_customer(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
@@ -245,6 +255,7 @@ class CheckoutTest extends TestCase
 
     public function test_it_shows_a_banner_when_fetching_saved_billing_details_fails(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create(['stripe_id' => 'cus_invalid']);
         $this->actingAs($user);
 
@@ -260,6 +271,7 @@ class CheckoutTest extends TestCase
 
     public function test_it_lists_reusable_payment_methods_for_a_returning_customer(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
@@ -290,6 +302,7 @@ class CheckoutTest extends TestCase
 
     public function test_it_shows_a_banner_when_fetching_saved_payment_methods_fails(): void
     {
+        $this->fakeStripe();
         $user = CentralUser::factory()->create(['stripe_id' => 'cus_invalid']);
         $this->actingAs($user);
 
@@ -305,6 +318,7 @@ class CheckoutTest extends TestCase
 
     public function test_it_refuses_a_saved_payment_method_belonging_to_a_different_customer(): void
     {
+        $this->fakeStripe();
         $victim = CentralUser::factory()->create();
         $attacker = CentralUser::factory()->create();
         $this->actingAs($attacker);
@@ -337,6 +351,7 @@ class CheckoutTest extends TestCase
 
     public function test_saved_payment_methods_and_saved_billing_address_cannot_be_set_by_the_client(): void
     {
+        $this->fakeStripe();
         $this->actingAs(CentralUser::factory()->create());
 
         $this->expectException(CannotUpdateLockedPropertyException::class);

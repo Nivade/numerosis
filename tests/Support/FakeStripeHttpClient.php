@@ -66,6 +66,7 @@ class FakeStripeHttpClient implements ClientInterface
                 \count($segments) === 3 && $segments[0] === 'customers' && $segments[2] === 'payment_methods' && $method === 'get' => $this->listPaymentMethods($segments[1], $params),
                 $segments === ['setup_intents'] && $method === 'post' => $this->createSetupIntent($params),
                 \count($segments) === 2 && $segments[0] === 'setup_intents' && $method === 'get' => $this->retrieveSetupIntent($segments[1], $params),
+                \count($segments) === 3 && $segments[0] === 'setup_intents' && $segments[2] === 'confirm' && $method === 'post' => $this->confirmSetupIntent($segments[1], $params),
                 default => throw new RuntimeException("FakeStripeHttpClient has no handler for {$method} {$path} — add one, this is not a real Stripe API call."),
             };
         } catch (FakeStripeApiError $e) {
@@ -213,6 +214,7 @@ class FakeStripeHttpClient implements ClientInterface
         $setupIntent = [
             'id' => $id,
             'object' => 'setup_intent',
+            'client_secret' => "{$id}_secret_fake",
             'customer' => $customerId !== '' ? $customerId : null,
             'payment_method' => $paymentMethodId !== '' ? $paymentMethodId : null,
             'payment_method_types' => $this->arrayParam($params, 'payment_method_types') ?: ['card'],
@@ -222,6 +224,39 @@ class FakeStripeHttpClient implements ClientInterface
         $this->setupIntents[$id] = $setupIntent;
 
         return $setupIntent;
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function confirmSetupIntent(string $id, array $params): array
+    {
+        if (! isset($this->setupIntents[$id])) {
+            throw new FakeStripeApiError(404, [
+                'message' => "No such setup_intent: '{$id}'",
+                'type' => 'invalid_request_error',
+                'code' => 'resource_missing',
+            ]);
+        }
+
+        $paymentMethodId = $this->stringParam($params, 'payment_method');
+
+        if ($paymentMethodId !== '') {
+            $this->ensurePaymentMethod($paymentMethodId);
+
+            $customerId = $this->setupIntents[$id]['customer'];
+
+            if (is_string($customerId)) {
+                $this->paymentMethods[$paymentMethodId]['customer'] = $customerId;
+            }
+
+            $this->setupIntents[$id]['payment_method'] = $paymentMethodId;
+        }
+
+        $this->setupIntents[$id]['status'] = 'succeeded';
+
+        return $this->setupIntents[$id];
     }
 
     /**
@@ -310,7 +345,11 @@ class FakeStripeHttpClient implements ClientInterface
      */
     private function retrieveCustomer(string $id, array $params = []): array
     {
-        $customer = $this->customers[$id] ?? throw new RuntimeException("FakeStripeHttpClient: no customer {$id} was created in this test.");
+        $customer = $this->customers[$id] ?? throw new FakeStripeApiError(404, [
+            'message' => "No such customer: '{$id}'",
+            'type' => 'invalid_request_error',
+            'code' => 'resource_missing',
+        ]);
 
         $expand = $params['expand'] ?? [];
 
@@ -328,6 +367,17 @@ class FakeStripeHttpClient implements ClientInterface
     private function updateCustomer(string $id, array $params): array
     {
         $this->retrieveCustomer($id);
+
+        if (isset($params['address'])) {
+            $params['address'] = array_merge([
+                'line1' => null,
+                'line2' => null,
+                'city' => null,
+                'state' => null,
+                'postal_code' => null,
+                'country' => null,
+            ], $this->arrayParam($params, 'address'));
+        }
 
         $this->customers[$id] = array_merge($this->customers[$id], $params);
 
