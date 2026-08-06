@@ -6,6 +6,7 @@ namespace Nvade\Numerosis;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -134,6 +135,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
             $this->app->make($feature)->bootstrap();
         }
 
+        $this->registerRequestMacros();
+
         $this->registerEventListeners();
 
         $this->registerSchedule();
@@ -226,6 +229,34 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         $this->publishGroup($modelStubs, 'numerosis-models');
         $this->publishGroup($modelStubs, 'numerosis-stubs');
+    }
+
+    /**
+     * `request()->isCentralDomain()`.
+     *
+     * Was a host macro: thin-app declared it in its own `AppServiceProvider`,
+     * while the *package's* tenant panel gate needed it — so this package's
+     * own Workbench harness had to inline a second copy of the same
+     * expression, with a comment explaining that the macro belonged to
+     * someone else. Two copies of "is this the central host" is the config
+     * equivalent of the drift this codebase keeps finding; the answer is
+     * derived entirely from package-owned config, so the package should own
+     * the question too.
+     *
+     * Guarded rather than unconditional: a host is free to define its own
+     * (it is a public API on `Request`), and silently replacing it would be
+     * worse than not registering one.
+     */
+    protected function registerRequestMacros(): void
+    {
+        if (Request::hasMacro('isCentralDomain')) {
+            return;
+        }
+
+        Request::macro('isCentralDomain', function (): bool {
+            /** @var Request $this */
+            return Numerosis::isCentralDomain($this);
+        });
     }
 
     /**

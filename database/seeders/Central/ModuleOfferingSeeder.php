@@ -10,12 +10,12 @@ use Nvade\Numerosis\Models\Central\ModuleOffering;
 class ModuleOfferingSeeder extends Seeder
 {
     /**
-     * Seeds from config('modules.catalogue'), the way PaymentPlanSeeder
+     * Seeds from config('numerosis.modules.catalogue'), the way PaymentPlanSeeder
      * seeds from config('numerosis.billing.plans').
      */
     public function run(): void
     {
-        foreach (config('modules.catalogue', []) as $module) {
+        foreach (config('numerosis.modules.catalogue', []) as $module) {
             ModuleOffering::updateOrCreate(
                 ['slug' => $module['slug']],
                 $module,

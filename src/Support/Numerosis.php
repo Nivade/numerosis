@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Support;
 
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
@@ -31,6 +32,24 @@ class Numerosis
     public static function tenantColumns(): array
     {
         return self::$tenantColumns;
+    }
+
+    /**
+     * Whether a request is addressed to one of the central hostnames rather
+     * than to a tenant subdomain.
+     *
+     * This is the implementation behind `request()->isCentralDomain()`, which
+     * `NumerosisServiceProvider` registers as a macro for host code. Package
+     * code calls the method instead: a macro is invisible to static analysis
+     * (`Call to an undefined method Illuminate\Http\Request::isCentralDomain()`
+     * at level 9), and a package should not need its own facade sugar to
+     * type-check.
+     */
+    public static function isCentralDomain(?Request $request = null): bool
+    {
+        $request ??= app(Request::class);
+
+        return in_array($request->getHost(), Config::array('tenancy.central_domains'), true);
     }
 
     /**
