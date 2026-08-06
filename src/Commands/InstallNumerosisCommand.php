@@ -83,6 +83,7 @@ class InstallNumerosisCommand extends Command
         $this->verifyLivewireComponentNamespaces();
         $this->verifyDomainConfig();
         $this->verifyTenantMigrationPath();
+        $this->verifyPublishedAssetsMatchSource();
         $this->verifyStripeKeys();
         $this->verifyModelOverrides();
         $this->verifyCentralDataSeeded();
@@ -642,6 +643,48 @@ class InstallNumerosisCommand extends Command
 
         if (! $foundVendorPath) {
             $this->failures[] = "config('tenancy.migration_parameters')['--path'] does not include Numerosis::tenantMigrationPath() ('{$vendorPath}') — point it there instead of a published copy under database/migrations/tenant.";
+        }
+    }
+
+    /**
+     * `numerosis-assets` is a deliberate publish, not a mistake (see
+     * NumerosisServiceProvider's comment on why resources/{css,js} have to
+     * land at resource_path() directly), so a host is allowed to customise
+     * the published copy. But three of the shipped JS files
+     * (stripe-checkout.js, stripe-confirm.js, and whatever central.js
+     * imports them by relative path) are load-bearing for payment, so
+     * silent drift between the vendor original and a host's copy is worth
+     * surfacing — this warns, it does not fail the install.
+     */
+    private function verifyPublishedAssetsMatchSource(): void
+    {
+        $diverged = [];
+
+        foreach (Numerosis::assetSourcePaths() as $source => $target) {
+            if (! File::isDirectory($target)) {
+                continue;
+            }
+
+            foreach (File::allFiles($source) as $file) {
+                $relative = $file->getRelativePathname();
+                $targetFile = $target.DIRECTORY_SEPARATOR.$relative;
+
+                if (! File::exists($targetFile)) {
+                    continue;
+                }
+
+                if (File::hash($file->getPathname()) !== File::hash($targetFile)) {
+                    $diverged[] = $targetFile;
+                }
+            }
+        }
+
+        if ($diverged !== []) {
+            $this->components->warn('Published assets differ from the package originals — this is allowed, but check the diff is intentional:');
+
+            foreach ($diverged as $file) {
+                $this->line("  - {$file}");
+            }
         }
     }
 

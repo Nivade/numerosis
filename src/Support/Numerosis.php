@@ -223,6 +223,25 @@ class Numerosis
     }
 
     /**
+     * The `numerosis-assets` publish group: package source directory =>
+     * host target directory. `NumerosisServiceProvider::packageBooted()`
+     * feeds this straight to `publishGroup()`, and `InstallNumerosisCommand`
+     * uses the same map to diff a host's published copy against the
+     * original — one map, so the two can't drift apart from each other.
+     *
+     * @return array<string, string>
+     */
+    public static function assetSourcePaths(): array
+    {
+        $base = dirname(__DIR__, 2);
+
+        return [
+            $base.'/resources/css' => resource_path('css'),
+            $base.'/resources/js' => resource_path('js'),
+        ];
+    }
+
+    /**
      * Resolve the class one of the package's own call sites should use for a
      * given model. The 9 models this covers (`Tenant`, `Domain`,
      * `CentralUser`, `Subscription`, `PaymentPlan`, `PendingTenantProvision`,

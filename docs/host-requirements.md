@@ -22,7 +22,7 @@ documents the keys it needs present:
 | `tenant_user_model` | host's concrete tenant `User` model | `App\Contracts\Auth\TenantUserModel`; same resolver | `verifyTenancyModels()` |
 | `central_domains` | list of every hostname serving the central app | consumed by `Numerosis::routes()` — one `Route::middleware('web')->domain($domain)` group per entry | `verifyCentralDomains()` |
 | `bootstrappers` | must include, in addition to stancl's own: `App\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper`, `App\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper` | `AuthGuardBootstrapper` is the *entire* enforcement mechanism for "central domain default guard = central guard, inside tenant = tenant guard" — omit it and every ambient `auth()->user()` resolves `CentralUser` on tenant domains. See `auth-guards.md` | `verifyTenancyBootstrappers()` |
-| `migration_parameters` | must point at an **absolute path** (`--realpath`) to the package's tenant migrations, since after installation those files live under `vendor/nvade/numerosis/database/migrations/tenant` | a relative path resolves against the host's `database/migrations`, which doesn't have them | `verifyTenantMigrationPath()` |
+| `migration_parameters` | `'--path'` must include `Nvade\Numerosis\Support\Numerosis::tenantMigrationPath()` (an absolute vendor path, `--realpath` true) | the default is the vendor directory itself, not a published copy — publishing `numerosis-tenant-migrations` remains available as an opt-in customisation escape hatch, but two identical copies can only ever drift | `verifyTenantMigrationPath()` |
 | `seeder_parameters` | host's tenant seeder class, typically one that calls the package's own tenant seeders | package seeders live under `Nvade\Numerosis\Database\Seeders` | `verifyTenancyModels()` |
 | `filesystem.disks` | must **not** contain `livewire` | see `config/filesystems.php` row below — this is the one entry that must be *absent*, not present | `verifyLivewireDiskExclusion()` |
 
@@ -87,6 +87,12 @@ note is here so a host extending that group doesn't reorder it.
 | `livewire.temporary_file_upload.disk` | `'livewire'`, not `'local'` | points Livewire's own config at the fixed-root disk above | `verifyLivewireUploadDisk()` |
 | `livewire.component_namespaces` | `['layouts' => <path to the package's `resources/views/layouts`>, 'pages' => <path to the package's `resources/views/pages`>]` | Livewire's own default config points `'layouts'`/`'pages'` at `resource_path('views/{layouts,pages}')` — correct for a plain single-repo app, wrong here: those files ship from the package, not the host. Without this override, `Route::livewire('/tenants/mine', 'numerosis::pages.tenant.mine')` and `<livewire:layouts::header />` (used by `resources/views/layouts/app/header.blade.php`) fail with `Unable to find component: [...]`, which reads like a missing route/view rather than a namespace pointed at the wrong directory. A host that vendors the package can point this at `base_path('vendor/nvade/numerosis/resources/views/{layouts,pages}')`, or publish those two directories locally and point at the published copy — either works, since Livewire's Finder just needs a real filesystem path. | `verifyLivewireComponentNamespaces()` |
 | `livewire.component_layout` | `'layouts::app'` | Livewire's own default; unaffected by the row above as long as `'layouts'` resolves per that row — listed here only so the two are read together. | — Livewire's own default; nothing to assert unless a host changes it |
+
+## `resources/css`, `resources/js`
+
+| Key | Required value / shape | Why | Checked by |
+|---|---|---|---|
+| `resources/{css,js}` | published (`numerosis-assets` tag) into `resource_path()` directly, kept in sync with the package originals | `resources/views/partials/styles.blade.php` `@vite`s the host's own `resources/js` root, and `central.js` imports `stripe-checkout.js`/`stripe-confirm.js` by relative path — both only resolve if the whole directory lands together at `resources/js`, not nested under a package-specific path. A host is allowed to customise the published copy; three of the JS files are load-bearing for payment, so silent drift is worth surfacing even though it isn't a hard failure. | `verifyPublishedAssetsMatchSource()` |
 
 ## `config/cashier.php`, `config/permission.php`, `config/broadcasting.php`
 

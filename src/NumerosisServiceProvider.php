@@ -203,10 +203,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // together at resources/js, not nested under a package-specific
         // path. --force=false (see publishAssets() below) means a host's
         // own resources/js/app.js is never overwritten by this.
-        $this->publishGroup([
-            __DIR__.'/../resources/css' => resource_path('css'),
-            __DIR__.'/../resources/js' => resource_path('js'),
-        ], 'numerosis-assets');
+        $this->publishGroup(Numerosis::assetSourcePaths(), 'numerosis-assets');
 
         // The 9 concrete model stubs (see .claude/rules — 4.4's "abstract
         // base in the package, concrete in thin-app"). 'numerosis-models'
