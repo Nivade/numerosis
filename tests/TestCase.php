@@ -280,6 +280,20 @@ abstract class TestCase extends Orchestra
         $app['config']->set('session.domain', '.numerosistest.test');
         $app['config']->set('session.driver', 'array');
 
+        // Testbench's skeleton .env (vendor/orchestra/testbench-core/laravel/.env)
+        // sets CACHE_STORE=database, matching modern Laravel's own skeleton
+        // default — but `database/migrations/central/2026_01_07_195854_remove_
+        // redundant_tables.php` deliberately drops the `cache`/`cache_locks`
+        // tables that store needs, on the assumption a real host runs Redis in
+        // production (see .claude/rules/exception-handling.md's `failed_jobs`
+        // bullet for the sibling case). Left unset, every write through the
+        // default cache store — including CentralUserObserver's
+        // ForgetsCacheKey — throws `Base table or view not found: 1146 …
+        // 'cache' doesn't exist`, which reads like a broken migration rather
+        // than a harness pinned to the wrong store. `session.driver` above
+        // gets the same treatment for the same reason.
+        $app['config']->set('cache.default', 'array');
+
         $app['config']->set('filesystems.disks.local', [
             'driver' => 'local',
             'root' => storage_path('app/private'),

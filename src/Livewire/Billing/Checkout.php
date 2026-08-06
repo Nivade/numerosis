@@ -157,7 +157,7 @@ class Checkout extends Component
         // from it, leaving domain-a still resumable off the same
         // subscription: two tenants, one payment.
         if ($resolved->pending->domain !== $this->pendingDomain) {
-            $this->paymentError = __('billing.checkout.session_expired');
+            $this->paymentError = __('numerosis::billing.checkout.session_expired');
 
             return;
         }
@@ -184,7 +184,7 @@ class Checkout extends Component
         $billable = GetAuthenticatedUser::run();
 
         if (! $billable instanceof CentralUser || ! $billable->hasStripeId()) {
-            $this->paymentError = __('billing.checkout.session_expired');
+            $this->paymentError = __('numerosis::billing.checkout.session_expired');
 
             return;
         }
@@ -195,7 +195,7 @@ class Checkout extends Component
         $pending = $pendingClass::find($this->pendingDomain);
 
         if (! $pending || $pending->global_id !== $billable->global_id) {
-            $this->paymentError = __('billing.checkout.session_expired');
+            $this->paymentError = __('numerosis::billing.checkout.session_expired');
 
             return;
         }
@@ -270,7 +270,7 @@ class Checkout extends Component
             : null;
 
         if (! $subscription || ! $this->hasSettled($subscription)) {
-            $this->paymentError = __('billing.checkout.confirmation_failed');
+            $this->paymentError = __('numerosis::billing.checkout.confirmation_failed');
 
             return;
         }
@@ -291,7 +291,7 @@ class Checkout extends Component
         // ownership rule is a domain one, and both entry points into settle()
         // must hold it. See .claude/rules/billing-checkout.md.
         if (! $pending || ! $billable instanceof CentralUser || $pending->global_id !== $billable->global_id) {
-            $this->paymentError = __('billing.checkout.session_expired');
+            $this->paymentError = __('numerosis::billing.checkout.session_expired');
 
             return;
         }

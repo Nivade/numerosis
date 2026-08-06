@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing;
 
-use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
 use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
 use Stripe\Exception\ApiErrorException;
 
 /**
@@ -26,7 +26,7 @@ class AttachVatNumber
                 'value' => $vatNumber,
             ]);
         } catch (ApiErrorException $e) {
-            throw new InvalidVatNumber(__('billing.checkout.invalid_vat_number'), $e->getCode(), previous: $e);
+            throw new InvalidVatNumber(__('numerosis::billing.checkout.invalid_vat_number'), $e->getCode(), previous: $e);
         }
     }
 }

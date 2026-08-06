@@ -141,7 +141,7 @@ class ModuleResource extends BaseResource
                         $actor = GetAuthenticatedTenantUser::run();
 
                         if (! $tenant instanceof Tenant || $actor === null) {
-                            self::notifyError(__('billing.modules.cancel_unavailable'));
+                            self::notifyError(__('numerosis::billing.modules.cancel_unavailable'));
 
                             return;
                         }

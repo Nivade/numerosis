@@ -33,13 +33,13 @@ class ResolveSetupIntent
         $pending = Numerosis::model(PendingTenantProvision::class)::where('stripe_setup_intent_id', $setupIntentId)->first();
 
         if (! $pending) {
-            throw new CheckoutSessionExpired(__('billing.checkout.session_expired'));
+            throw new CheckoutSessionExpired(__('numerosis::billing.checkout.session_expired'));
         }
 
         $billable = $this->billables->resolve();
 
         if (! $billable instanceof CentralUser || $billable->global_id !== $pending->global_id) {
-            throw new CheckoutSessionExpired(__('billing.checkout.foreign_session'));
+            throw new CheckoutSessionExpired(__('numerosis::billing.checkout.foreign_session'));
         }
 
         AssertPendingReservationIsFresh::run($pending, $billable);
@@ -49,19 +49,19 @@ class ResolveSetupIntent
                 'expand' => ['payment_method'],
             ]);
         } catch (ApiErrorException) {
-            throw new CheckoutSessionExpired(__('billing.checkout.session_expired'));
+            throw new CheckoutSessionExpired(__('numerosis::billing.checkout.session_expired'));
         }
 
         $customerId = is_string($setupIntent->customer) ? $setupIntent->customer : $setupIntent->customer?->id;
 
         if (! $billable->hasStripeId() || $customerId !== $billable->stripe_id) {
-            throw new CheckoutSessionExpired(__('billing.checkout.foreign_session'));
+            throw new CheckoutSessionExpired(__('numerosis::billing.checkout.foreign_session'));
         }
 
         $rawPaymentMethod = $setupIntent->payment_method instanceof PaymentMethod ? $setupIntent->payment_method : null;
 
         if ($setupIntent->status !== 'succeeded' || ! $rawPaymentMethod instanceof PaymentMethod) {
-            throw new SetupIntentNotConfirmed(__('billing.checkout.confirmation_failed'));
+            throw new SetupIntentNotConfirmed(__('numerosis::billing.checkout.confirmation_failed'));
         }
 
         $paymentMethod = ResolveAttachedPaymentMethod::run($setupIntent) ?? $rawPaymentMethod;

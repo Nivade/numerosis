@@ -59,7 +59,7 @@ class CheckoutTest extends TestCase
 
         Livewire::test(Checkout::class, ['domain' => 'not-yours-render'])
             ->assertSet('checkoutClientSecret', null)
-            ->assertSet('paymentError', __('billing.checkout.foreign_session'));
+            ->assertSet('paymentError', __('numerosis::billing.checkout.foreign_session'));
     }
 
     /**
@@ -102,7 +102,7 @@ class CheckoutTest extends TestCase
 
         Livewire::test(Checkout::class, ['domain' => 'confirm-unrelated-test'])
             ->call('confirmed')
-            ->assertSet('paymentError', __('billing.checkout.confirmation_failed'))
+            ->assertSet('paymentError', __('numerosis::billing.checkout.confirmation_failed'))
             ->assertNoRedirect();
 
         $pending = PendingTenantProvision::find('confirm-unrelated-test');
@@ -166,7 +166,7 @@ class CheckoutTest extends TestCase
 
         Livewire::test(Checkout::class, ['domain' => 'cross-row-b'])
             ->call('subscribe', $intentForA->id)
-            ->assertSet('paymentError', __('billing.checkout.session_expired'))
+            ->assertSet('paymentError', __('numerosis::billing.checkout.session_expired'))
             ->assertNoRedirect();
 
         $this->assertNull(PendingTenantProvision::find('cross-row-a')?->stripe_subscription_id);
@@ -180,7 +180,7 @@ class CheckoutTest extends TestCase
 
         Livewire::test(Checkout::class, ['domain' => 'no-such-pending-row'])
             ->call('confirmed')
-            ->assertSet('paymentError', __('billing.checkout.confirmation_failed'))
+            ->assertSet('paymentError', __('numerosis::billing.checkout.confirmation_failed'))
             ->assertNoRedirect();
     }
 
@@ -341,7 +341,7 @@ class CheckoutTest extends TestCase
 
         Livewire::test(Checkout::class, ['domain' => 'cross-customer-test'])
             ->call('subscribeWithSavedPaymentMethod', $pm->id)
-            ->assertSet('paymentError', __('billing.checkout.saved_payment_method_unavailable'))
+            ->assertSet('paymentError', __('numerosis::billing.checkout.saved_payment_method_unavailable'))
             ->assertNoRedirect();
 
         $pending = PendingTenantProvision::find('cross-customer-test');

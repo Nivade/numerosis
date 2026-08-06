@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing;
 
+use Laravel\Cashier\Cashier;
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Support\Billing\TaxIdType;
-use Laravel\Cashier\Cashier;
-use Lorisleiva\Actions\Concerns\AsAction;
 use Stripe\PaymentMethod;
 
 /**
@@ -43,7 +43,7 @@ class SyncBillingAddress
         $taxIdType = TaxIdType::forCountry($country);
 
         if ($taxIdType === null) {
-            throw new InvalidVatNumber(__('billing.checkout.vat_country_unsupported'));
+            throw new InvalidVatNumber(__('numerosis::billing.checkout.vat_country_unsupported'));
         }
 
         AttachVatNumber::run($billable->stripeIdOrFail(), $taxIdType, $vatNumber);

@@ -10,24 +10,24 @@
 
     @if($checkoutClientSecret && $checkoutPublishableKey)
         <div
-            x-data="stripeCheckout(@js($checkoutClientSecret), @js($checkoutPublishableKey), @js(route('checkout.subscription.return')), @js(__('billing.decline_codes')), @js($customerEmail), @js($savedBillingAddress), @js($savedPaymentMethods))"
+            x-data="stripeCheckout(@js($checkoutClientSecret), @js($checkoutPublishableKey), @js(route('checkout.subscription.return')), @js(__('numerosis::billing.decline_codes')), @js($customerEmail), @js($savedBillingAddress), @js($savedPaymentMethods))"
             x-init="init()"
             class="space-y-8"
         >
             @if($savedBillingFetchFailed)
                 <flux:callout variant="warning" icon="exclamation-triangle">
-                    {{ __('billing.checkout.saved_billing_fetch_failed') }}
+                    {{ __('numerosis::billing.checkout.saved_billing_fetch_failed') }}
                 </flux:callout>
             @endif
 
             @if($savedPaymentMethodsFetchFailed)
                 <flux:callout variant="warning" icon="exclamation-triangle">
-                    {{ __('billing.checkout.saved_payment_methods_fetch_failed') }}
+                    {{ __('numerosis::billing.checkout.saved_payment_methods_fetch_failed') }}
                 </flux:callout>
             @elseif(! empty($savedPaymentMethods))
                 <div class="space-y-3">
                     <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">
-                        {{ __('billing.checkout.saved_payment_methods_heading') }}
+                        {{ __('numerosis::billing.checkout.saved_payment_methods_heading') }}
                     </flux:heading>
 
                     <div class="space-y-2">
@@ -38,7 +38,7 @@
                         <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-gray-300 dark:border-zinc-700 p-4 text-zinc-500 dark:text-zinc-400 transition-colors hover:border-gray-400 dark:hover:border-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-200 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 has-[:focus-visible]:ring-offset-2">
                             <input type="radio" name="pm-choice" @change="mode = 'new'" class="sr-only" />
                             <flux:icon.plus variant="micro" class="size-4 shrink-0" />
-                            <span class="text-sm font-medium">{{ __('billing.checkout.use_different_payment_method') }}</span>
+                            <span class="text-sm font-medium">{{ __('numerosis::billing.checkout.use_different_payment_method') }}</span>
                         </label>
                     </div>
 
@@ -49,8 +49,8 @@
                             x-bind:disabled="isSubmitting"
                             variant="primary"
                         >
-                            <span x-show="!isSubmitting">{{ __('billing.checkout.subscribe') }}</span>
-                            <span x-show="isSubmitting" x-cloak>{{ __('billing.checkout.processing') }}</span>
+                            <span x-show="!isSubmitting">{{ __('numerosis::billing.checkout.subscribe') }}</span>
+                            <span x-show="isSubmitting" x-cloak>{{ __('numerosis::billing.checkout.processing') }}</span>
                         </flux:button>
                     </div>
                 </div>
@@ -67,8 +67,8 @@
                         x-bind:disabled="isSubmitting || !elementReady || !addressElementReady"
                         variant="primary"
                     >
-                        <span x-show="!isSubmitting">{{ __('billing.checkout.subscribe') }}</span>
-                        <span x-show="isSubmitting" x-cloak>{{ __('billing.checkout.processing') }}</span>
+                        <span x-show="!isSubmitting">{{ __('numerosis::billing.checkout.subscribe') }}</span>
+                        <span x-show="isSubmitting" x-cloak>{{ __('numerosis::billing.checkout.processing') }}</span>
                     </flux:button>
                 </div>
             </div>

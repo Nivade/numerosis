@@ -31,23 +31,23 @@ class ResumeCheckout
         $pending = Numerosis::model(PendingTenantProvision::class)::find($domain);
 
         if (! $pending) {
-            throw new CheckoutSessionExpired(__('billing.checkout.session_expired'));
+            throw new CheckoutSessionExpired(__('numerosis::billing.checkout.session_expired'));
         }
 
         $billable = $this->billables->resolve();
 
         if (! $billable instanceof CentralUser || $billable->global_id !== $pending->global_id) {
-            throw new CheckoutSessionExpired(__('billing.checkout.foreign_session'));
+            throw new CheckoutSessionExpired(__('numerosis::billing.checkout.foreign_session'));
         }
 
         if (! $pending->stripe_setup_intent_id) {
-            throw new CheckoutSessionExpired(__('billing.checkout.session_expired'));
+            throw new CheckoutSessionExpired(__('numerosis::billing.checkout.session_expired'));
         }
 
         try {
             $setupIntent = Cashier::stripe()->setupIntents->retrieve($pending->stripe_setup_intent_id);
         } catch (ApiErrorException) {
-            throw new CheckoutSessionExpired(__('billing.checkout.session_expired'));
+            throw new CheckoutSessionExpired(__('numerosis::billing.checkout.session_expired'));
         }
 
         return new ResumedCheckout($pending, (string) $setupIntent->client_secret, $setupIntent->status === 'succeeded');

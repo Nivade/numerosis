@@ -1,6 +1,6 @@
 <x-filament::page>
     <div
-        x-data="stripeConfirm(@js(config('cashier.key')), @js(__('billing.decline_codes')))"
+        x-data="stripeConfirm(@js(config('cashier.key')), @js(__('numerosis::billing.decline_codes')))"
         x-init="init()"
         class="space-y-6"
     >

@@ -1,6 +1,6 @@
 <x-filament::page>
     <div
-        x-data="stripeConfirm(@js(config('cashier.key')), @js(__('billing.decline_codes')))"
+        x-data="stripeConfirm(@js(config('cashier.key')), @js(__('numerosis::billing.decline_codes')))"
         x-init="init()"
         class="space-y-6"
     >
@@ -107,7 +107,7 @@
                         </x-filament::button>
                     @else
                         <p class="mt-6 text-sm text-gray-500 dark:text-gray-400">
-                            {{ __('billing.modules.purchase_not_authorized') }}
+                            {{ __('numerosis::billing.modules.purchase_not_authorized') }}
                         </p>
                     @endif
                 @endif

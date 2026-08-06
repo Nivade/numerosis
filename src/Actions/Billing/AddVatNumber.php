@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing;
 
+use Laravel\Cashier\Cashier;
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Exceptions\Billing\BillingAddressRequired;
 use Nvade\Numerosis\Exceptions\Billing\BillingAddressUnavailable;
 use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Billing\TaxIdType;
-use Laravel\Cashier\Cashier;
-use Lorisleiva\Actions\Concerns\AsAction;
 use Stripe\Exception\ApiErrorException;
 
 /**
@@ -25,7 +25,7 @@ class AddVatNumber
     public function handle(Tenant $tenant, string $vatNumber): void
     {
         if (! $tenant->hasStripeId()) {
-            throw new BillingAddressRequired(__('billing.checkout.vat_country_unsupported'));
+            throw new BillingAddressRequired(__('numerosis::billing.checkout.vat_country_unsupported'));
         }
 
         try {
@@ -39,7 +39,7 @@ class AddVatNumber
         $taxIdType = TaxIdType::forCountry($customer->address->country ?? null);
 
         if ($taxIdType === null) {
-            throw new InvalidVatNumber(__('billing.checkout.vat_country_unsupported'));
+            throw new InvalidVatNumber(__('numerosis::billing.checkout.vat_country_unsupported'));
         }
 
         AttachVatNumber::run($tenant->stripeIdOrFail(), $taxIdType, $vatNumber);

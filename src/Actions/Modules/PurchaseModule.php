@@ -60,7 +60,7 @@ class PurchaseModule
         $this->assertRunningInsideTenant($tenant);
 
         if (! Gate::forUser($actor)->allows('purchase', Module::class)) {
-            throw new ModuleBillingNotAuthorized(__('billing.modules.purchase_not_authorized'));
+            throw new ModuleBillingNotAuthorized(__('numerosis::billing.modules.purchase_not_authorized'));
         }
 
         throw_unless(Modules::module($slug), ModuleNotInstalled::class, "Module not installed: {$slug}");

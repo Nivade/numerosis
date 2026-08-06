@@ -42,7 +42,7 @@ class CancelModule
         throw_unless($module, ModuleNotFound::class, "Module not purchased: {$slug}");
 
         if (! Gate::forUser($actor)->allows('cancel', $module)) {
-            throw new ModuleBillingNotAuthorized(__('billing.modules.cancel_not_authorized'));
+            throw new ModuleBillingNotAuthorized(__('numerosis::billing.modules.cancel_not_authorized'));
         }
 
         $offer = $this->catalog->findAnyBySlug($slug);

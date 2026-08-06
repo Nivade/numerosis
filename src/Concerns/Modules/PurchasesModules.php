@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Concerns\Modules;
 
+use Filament\Actions\Action;
+use Illuminate\Support\Facades\Gate;
+use Laravel\Cashier\Exceptions\IncompletePayment;
+use Livewire\Attributes\Computed;
 use Nvade\Numerosis\Actions\Modules\PurchaseModule;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedTenantUser;
 use Nvade\Numerosis\Contracts\Billing\ModuleCatalog;
@@ -15,10 +19,6 @@ use Nvade\Numerosis\Facades\Billing as BillingFacade;
 use Nvade\Numerosis\Filament\Concerns\NotifiesUser;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Module;
-use Filament\Actions\Action;
-use Illuminate\Support\Facades\Gate;
-use Laravel\Cashier\Exceptions\IncompletePayment;
-use Livewire\Attributes\Computed;
 
 /**
  * Shared by Marketplace (the catalog grid) and ModuleDetail (a single
@@ -106,7 +106,7 @@ trait PurchasesModules
         $actor = GetAuthenticatedTenantUser::run();
 
         if ($actor === null) {
-            $this->notifyError(__('billing.modules.purchase_unavailable'));
+            $this->notifyError(__('numerosis::billing.modules.purchase_unavailable'));
 
             return;
         }

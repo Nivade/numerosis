@@ -41,11 +41,11 @@
                 {{ ucfirst($pm['brand']) }} &middot;&middot;&middot;&middot; {{ $pm['last4'] }}
             </span>
             @if($pm['isDefault'])
-                <flux:badge size="sm">{{ __('billing.checkout.default_payment_method') }}</flux:badge>
+                <flux:badge size="sm">{{ __('numerosis::billing.checkout.default_payment_method') }}</flux:badge>
             @endif
         </span>
         <span class="block text-sm text-zinc-500 dark:text-zinc-400">
-            {{ __('billing.checkout.expires', ['month' => sprintf('%02d', $pm['expMonth']), 'year' => $pm['expYear']]) }}
+            {{ __('numerosis::billing.checkout.expires', ['month' => sprintf('%02d', $pm['expMonth']), 'year' => $pm['expYear']]) }}
         </span>
     </span>
 
