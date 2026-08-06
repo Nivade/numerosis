@@ -22,14 +22,14 @@ Overwrite this block; never append.
 
 | | |
 |---|---|
-| Session | 2026-08-07 (review session — plan written, **Phase 1 done**) |
-| numerosis | `6165257`, clean. The concurrent central-admin-panel session (19 findings, tracked in the "Numerosis Central Admin — Panel Audit" artifact) is finished and committed as one change |
+| Session | 2026-08-07 (review session — **Phase 1 and Phase 2 done**) |
+| numerosis | `8ce9a16`, clean. Phase 2: deleted `src/Numerosis.php` and `NumerosisCommand`, fixed stale D13 comment, collapsed `numerosis-stubs`→`numerosis-models`, rewrote README status block |
 | thin-app | `9533af4`, dirty only with pre-existing unrelated `docker-compose.yml`/`app.css`/`vite.config.js` edits + untracked `public/{css,js,fonts}` build output |
 | saas-m | frozen, untouched. Archive still pending explicit user go-ahead (task 6.3). **Its `.claude/rules/` copies are now 3 files behind numerosis** — left alone deliberately, the repo is frozen and about to be archived |
-| Package suite | **409 passed / 7 skipped / 0 failed in 65.5s**, measured 2026-08-07 after Phase 1 |
+| Package suite | **408 passed / 7 skipped / 1 failed in 57.5s**, measured 2026-08-07 after Phase 2. The 1 failure (`RegisterTenantTest` missing `livewire.js` in response) is **pre-existing** — reproduced identically against `git stash` before Phase 2's changes, unrelated to this session |
 | PHPStan | **clean**, baseline unchanged |
 | thin-app suite | **does not exist.** `tests/{Feature,Unit}/ExampleTest.php` only; Pest not installed; no `.github/` |
-| Next | **Phase 2** — dead-code deletions, all independent of each other |
+| Next | **Phase 3** — close the last host seam (`broadcastChannelsPath()`, facade decision, seam tests) |
 
 Prerequisites: `cd ~/repos/private/numerosis && docker compose up -d`, then
 `vendor/bin/pest --ci`, `composer analyse`, `vendor/bin/pint --dirty --format
