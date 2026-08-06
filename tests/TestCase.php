@@ -71,7 +71,7 @@ abstract class TestCase extends Orchestra
      *
      * `DOMAIN`/`CENTRAL_SUBDOMAIN` are set via `putenv()`, not
      * `$app['config']->set()`, because `config/numerosis.php`'s
-     * `domains.tenant_pattern` and `numerosis-tenancy`'s siblings compute
+     * `domains.tenant_pattern` and its `billing`/`tenancy` siblings compute
      * their defaults with `env()` *inside the config file*, at
      * `mergeConfigFrom()` time — after this method returns but before any
      * test runs. Setting the process env here, before that merge happens,

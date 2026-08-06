@@ -21,10 +21,8 @@ class BillingServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../../config/numerosis-billing.php', 'numerosis-billing');
-
         /** @var array<class-string, class-string> $implementations */
-        $implementations = config('numerosis-billing.implementations', []);
+        $implementations = config('numerosis.billing.implementations', []);
 
         foreach ($implementations as $contract => $concrete) {
             $this->app->bind($contract, $concrete);
@@ -33,31 +31,24 @@ class BillingServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->publishes([
-            __DIR__.'/../../config/numerosis-billing.php' => config_path('numerosis-billing.php'),
-        ], 'billing-config');
-
         Cashier::useCustomerModel($this->billableModel('tenant'));
         Cashier::useSubscriptionModel($this->billableModel('subscription'));
         Cashier::useSubscriptionItemModel($this->billableModel('subscription_item'));
         Cashier::calculateTaxes();
 
-        if (config('numerosis-billing.sync.stripe_customer', true)) {
+        if (config('numerosis.billing.sync.stripe_customer', true)) {
             $this->configureStripeSync();
         }
 
         AboutCommand::add('Billing', fn (): array => [
-            'Checkout gateway' => config('numerosis-billing.implementations.'.CheckoutGateway::class),
-            'Plan source' => config('numerosis-billing.implementations.'.PaymentPlanRepository::class),
-            'Billable model' => config('numerosis-billing.implementations.'.BillableResolver::class),
+            'Checkout gateway' => config('numerosis.billing.implementations.'.CheckoutGateway::class),
+            'Plan source' => config('numerosis.billing.implementations.'.PaymentPlanRepository::class),
+            'Billable model' => config('numerosis.billing.implementations.'.BillableResolver::class),
         ]);
     }
 
     /**
-     * Configure Stripe customer data synchronization.
-     */
-    /**
-     * `numerosis-billing.models.*` default to this package's own *abstract*
+     * `numerosis.billing.models.*` default to this package's own *abstract*
      * model classes, so they must be resolved to the host's concrete stubs
      * before Cashier is told about them: Cashier's `findBillable()` and
      * `newSubscription()` do `new $model`, so an abstract class here throws
@@ -70,7 +61,7 @@ class BillingServiceProvider extends ServiceProvider
     protected function billableModel(string $key): string
     {
         /** @var class-string<Model> $configured */
-        $configured = Config::string("numerosis-billing.models.{$key}");
+        $configured = Config::string("numerosis.billing.models.{$key}");
 
         return Numerosis::model($configured);
     }

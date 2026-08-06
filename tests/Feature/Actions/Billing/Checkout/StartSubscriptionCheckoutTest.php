@@ -109,7 +109,7 @@ class StartSubscriptionCheckoutTest extends TestCase
     public function test_it_refuses_a_new_checkout_at_the_unpaid_tenant_cap(): void
     {
         Tenant::unsetEventDispatcher();
-        config(['numerosis-billing.unpaid_tenant_cap' => 1]);
+        config(['numerosis.billing.unpaid_tenant_cap' => 1]);
 
         $user = CentralUser::factory()->create();
         $tenant = Tenant::factory()->create();

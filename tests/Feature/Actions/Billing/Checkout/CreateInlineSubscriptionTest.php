@@ -28,7 +28,7 @@ class CreateInlineSubscriptionTest extends TestCase
 
     public function test_it_creates_a_subscription_from_a_confirmed_setup_intent(): void
     {
-        $priceId = Config::string('numerosis-billing.plans.0.monthly_id');
+        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
 
         if ($priceId === '') {
             $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');

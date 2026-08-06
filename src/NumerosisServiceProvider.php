@@ -48,7 +48,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
     {
         $package
             ->name('numerosis')
-            ->hasConfigFile(['numerosis', 'numerosis-tenancy', 'numerosis-billing'])
+            ->hasConfigFile('numerosis')
             ->hasViews()
             ->hasTranslations()
             ->discoversMigrations(true, '/database/migrations/central')

@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Tenancy;
 
-use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
-use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
+use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Throwable;
 
 // See .claude/rules/tenant-provisioning.md.
@@ -42,7 +42,7 @@ class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
     public function handle(TenantProvisionData $data): void
     {
         /** @var non-empty-list<class-string> $steps */
-        $steps = config('numerosis-tenancy.provisioning.steps', [CreateTenant::class]);
+        $steps = config('numerosis.tenancy.provisioning.steps', [CreateTenant::class]);
 
         /** @var class-string $firstStep */
         $firstStep = $steps[0];

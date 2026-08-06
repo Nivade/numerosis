@@ -92,7 +92,7 @@ class WebhookControllerLifecycleTest extends TestCase
             'subscribable_type' => Tenant::class,
         ]);
 
-        $this->postJson(Config::string('numerosis-billing.webhook_path', 'billing/webhook'), $this->subscriptionUpdatedPayload('sub_'.$status, $customerId, $status))
+        $this->postJson(Config::string('numerosis.billing.webhook_path', 'billing/webhook'), $this->subscriptionUpdatedPayload('sub_'.$status, $customerId, $status))
             ->assertOk();
 
         $this->assertTrue($tenant->refresh()->isSuspended());
@@ -137,7 +137,7 @@ class WebhookControllerLifecycleTest extends TestCase
             ],
         ];
 
-        $this->postJson(Config::string('numerosis-billing.webhook_path', 'billing/webhook'), $payload)->assertOk();
+        $this->postJson(Config::string('numerosis.billing.webhook_path', 'billing/webhook'), $payload)->assertOk();
 
         $this->assertTrue($tenant->refresh()->isSuspended());
         Notification::assertSentTo($owner, TenantSuspended::class);
@@ -156,7 +156,7 @@ class WebhookControllerLifecycleTest extends TestCase
             'subscribable_type' => Tenant::class,
         ]);
 
-        $this->postJson(Config::string('numerosis-billing.webhook_path', 'billing/webhook'), $this->subscriptionUpdatedPayload('sub_recovered', $customerId, 'active'))
+        $this->postJson(Config::string('numerosis.billing.webhook_path', 'billing/webhook'), $this->subscriptionUpdatedPayload('sub_recovered', $customerId, 'active'))
             ->assertOk();
 
         $this->assertFalse($tenant->refresh()->isSuspended());
@@ -216,7 +216,7 @@ class WebhookControllerLifecycleTest extends TestCase
             ],
         ];
 
-        $this->postJson(Config::string('numerosis-billing.webhook_path', 'billing/webhook'), $payload)
+        $this->postJson(Config::string('numerosis.billing.webhook_path', 'billing/webhook'), $payload)
             ->assertOk();
 
         $this->assertSame(1, Subscription::where('stripe_id', 'sub_racing')->count());
@@ -241,7 +241,7 @@ class WebhookControllerLifecycleTest extends TestCase
             ],
         ];
 
-        $this->postJson(Config::string('numerosis-billing.webhook_path', 'billing/webhook'), $payload)->assertOk();
+        $this->postJson(Config::string('numerosis.billing.webhook_path', 'billing/webhook'), $payload)->assertOk();
 
         $this->assertFalse($tenant->refresh()->isSuspended());
         Notification::assertSentTo($owner, PaymentFailed::class);

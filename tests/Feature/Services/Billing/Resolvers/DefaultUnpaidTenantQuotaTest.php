@@ -19,7 +19,7 @@ class DefaultUnpaidTenantQuotaTest extends TestCase
     public function test_a_user_at_the_cap_cannot_start_another_unsettled_checkout(): void
     {
         Tenant::unsetEventDispatcher();
-        config(['numerosis-billing.unpaid_tenant_cap' => 2]);
+        config(['numerosis.billing.unpaid_tenant_cap' => 2]);
 
         $user = CentralUser::factory()->create();
 
@@ -39,7 +39,7 @@ class DefaultUnpaidTenantQuotaTest extends TestCase
     public function test_a_settled_tenant_does_not_count_against_the_quota(): void
     {
         Tenant::unsetEventDispatcher();
-        config(['numerosis-billing.unpaid_tenant_cap' => 1]);
+        config(['numerosis.billing.unpaid_tenant_cap' => 1]);
 
         $user = CentralUser::factory()->create();
 
@@ -61,7 +61,7 @@ class DefaultUnpaidTenantQuotaTest extends TestCase
     public function test_it_allows_checkout_below_the_cap(): void
     {
         Tenant::unsetEventDispatcher();
-        config(['numerosis-billing.unpaid_tenant_cap' => 2]);
+        config(['numerosis.billing.unpaid_tenant_cap' => 2]);
 
         $user = CentralUser::factory()->create();
         $tenant = Tenant::factory()->create();

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Database\Seeders\Central;
 
-use Nvade\Numerosis\Models\Central\ModuleOffering;
 use Illuminate\Database\Seeder;
+use Nvade\Numerosis\Models\Central\ModuleOffering;
 
 class ModuleOfferingSeeder extends Seeder
 {
     /**
      * Seeds from config('modules.catalogue'), the way PaymentPlanSeeder
-     * seeds from config('numerosis-billing.plans').
+     * seeds from config('numerosis.billing.plans').
      */
     public function run(): void
     {

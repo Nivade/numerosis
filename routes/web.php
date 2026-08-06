@@ -40,7 +40,7 @@ if (Features::enabled(MarketingPagesFeature::NAME)) {
 
 // Stripe Webhooks - No auth/CSRF protection needed
 Route::post(
-    uri: config(key: 'numerosis-billing.webhook_path', default: 'billing/webhook'),
+    uri: config(key: 'numerosis.billing.webhook_path', default: 'billing/webhook'),
     action: [WebhookController::class, 'handleWebhook']
 )->name('billing.webhook');
 

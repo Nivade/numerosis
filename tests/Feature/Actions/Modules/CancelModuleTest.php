@@ -135,7 +135,7 @@ class CancelModuleTest extends TestCase
      */
     public function test_cancelling_a_recurring_module_removes_the_subscription_item(): void
     {
-        $priceId = Config::string('numerosis-billing.plans.0.monthly_id');
+        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
 
         if ($priceId === '') {
             $this->markTestSkipped('No Stripe test-mode price configured.');

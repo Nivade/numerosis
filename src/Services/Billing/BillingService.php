@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Billing;
 
+use Closure;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Config;
+use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Billing\MoneyFormatter;
@@ -17,17 +22,12 @@ use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Testing\FakeCheckoutGateway;
-use Closure;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Config;
-use Laravel\Cashier\Cashier;
 
 /**
  * Thin manager delegating to the billing contracts — the one class a
  * consumer of this package types when they want something from it. Every
  * method here is a one-liner over a swappable contract; the swapping itself
- * happens in config('numerosis-billing.implementations') or via the closure hooks
+ * happens in config('numerosis.billing.implementations') or via the closure hooks
  * below, checked before the container binding, mirroring Cashier's own
  * Cashier::useCustomerModel()-style API.
  */

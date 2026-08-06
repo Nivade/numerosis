@@ -29,7 +29,7 @@ class CompleteRedirectCheckoutTest extends TestCase
     {
         $fake = Billing::fake();
 
-        $priceId = Config::string('numerosis-billing.plans.0.monthly_id');
+        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
 
         if ($priceId === '') {
             $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');
@@ -107,7 +107,7 @@ class CompleteRedirectCheckoutTest extends TestCase
     {
         $fake = Billing::fake();
 
-        $priceId = Config::string('numerosis-billing.plans.0.monthly_id');
+        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
 
         if ($priceId === '') {
             $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');

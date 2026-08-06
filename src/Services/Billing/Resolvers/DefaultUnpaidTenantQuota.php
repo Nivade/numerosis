@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Billing\Resolvers;
 
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Contracts\Billing\UnpaidTenantQuota;
 use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
 use Nvade\Numerosis\Exceptions\Billing\TooManyUnpaidTenants;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Config;
 
 class DefaultUnpaidTenantQuota implements UnpaidTenantQuota
 {
     public function assertAvailable(HasTenants $user): void
     {
-        $max = Config::integer('numerosis-billing.unpaid_tenant_cap', 2);
+        $max = Config::integer('numerosis.billing.unpaid_tenant_cap', 2);
 
         // "Unpaid" is anything short of a confirmed active subscription —
         // trialing included, since a trial collects zero money upfront, the

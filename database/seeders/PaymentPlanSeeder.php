@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Database\Seeders;
 
+use Illuminate\Database\Seeder;
 use Nvade\Numerosis\Models\Central\Feature;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Illuminate\Database\Seeder;
 
 class PaymentPlanSeeder extends Seeder
 {
@@ -30,7 +30,7 @@ class PaymentPlanSeeder extends Seeder
 
         $features = collect($featuresList)->map(fn ($feature) => Feature::create($feature));
 
-        $plans = collect(config('numerosis-billing.plans', []))->keyBy('slug');
+        $plans = collect(config('numerosis.billing.plans', []))->keyBy('slug');
 
         // Starter: First 3 features available
         PaymentPlan::factory()->create([

@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Providers;
 
-use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
-use Nvade\Numerosis\Jobs\SeedTenantDatabase;
-use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
-use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
 use Illuminate\Cache\CacheManager;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
@@ -15,6 +11,10 @@ use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 use Livewire;
+use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
+use Nvade\Numerosis\Jobs\SeedTenantDatabase;
+use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
+use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
 use Stancl\JobPipeline\JobPipeline;
 use Stancl\Tenancy\Events\BootstrappingTenancy;
 use Stancl\Tenancy\Events\CreatingDomain;
@@ -154,10 +154,8 @@ class TenancyServiceProvider extends ServiceProvider
     {
         UpdateSyncedResource::$shouldQueue = true;
 
-        $this->mergeConfigFrom(__DIR__.'/../../config/numerosis-tenancy.php', 'numerosis-tenancy');
-
         /** @var array<class-string, class-string> $implementations */
-        $implementations = config('numerosis-tenancy.implementations', []);
+        $implementations = config('numerosis.tenancy.implementations', []);
 
         foreach ($implementations as $contract => $concrete) {
             $this->app->bind($contract, $concrete);
@@ -202,10 +200,6 @@ class TenancyServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->publishes([
-            __DIR__.'/../../config/numerosis-tenancy.php' => config_path('numerosis-tenancy.php'),
-        ], 'tenancy-config');
-
         $this->bootEvents();
         //        $this->mapRoutes();
 

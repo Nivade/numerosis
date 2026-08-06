@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Billing\Plans;
 
-use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
-use Nvade\Numerosis\Contracts\Billing\Plan;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Support\Collection;
+use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
+use Nvade\Numerosis\Contracts\Billing\Plan;
 
 /**
  * Zero-migration plan source: reads billing.plans instead of the
@@ -75,7 +75,7 @@ class ConfigPaymentPlanRepository implements PaymentPlanRepository
     private function plans(): Collection
     {
         /** @var array<int, PlanMetadata> $plans */
-        $plans = $this->config->get('numerosis-billing.plans', []);
+        $plans = $this->config->get('numerosis.billing.plans', []);
 
         return new Collection($plans);
     }

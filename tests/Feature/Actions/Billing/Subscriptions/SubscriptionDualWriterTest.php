@@ -59,7 +59,7 @@ class SubscriptionDualWriterTest extends TestCase
         // Webhook arrives afterwards. Tenant now carries the matching
         // stripe_id, so Cashier's own write resolves the billable and would
         // hit the same subscriptions row.
-        $this->postJson(Config::string('numerosis-billing.webhook_path', 'billing/webhook'), $this->webhookPayload(
+        $this->postJson(Config::string('numerosis.billing.webhook_path', 'billing/webhook'), $this->webhookPayload(
             'sub_dup1',
             'cus_dup1',
             'price_dup1',
@@ -83,7 +83,7 @@ class SubscriptionDualWriterTest extends TestCase
         $tenant = Tenant::factory()->create(['stripe_id' => 'cus_dup2']);
         $plan = PaymentPlan::factory()->create(['slug' => 'pro', 'monthly_id' => 'price_dup2']);
 
-        $this->postJson(Config::string('numerosis-billing.webhook_path', 'billing/webhook'), $this->webhookPayload(
+        $this->postJson(Config::string('numerosis.billing.webhook_path', 'billing/webhook'), $this->webhookPayload(
             'sub_dup2',
             'cus_dup2',
             'price_dup2',

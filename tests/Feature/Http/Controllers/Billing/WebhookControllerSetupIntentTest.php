@@ -106,7 +106,7 @@ class WebhookControllerSetupIntentTest extends TestCase
         // Bancontact conversion. The handler must return before making any
         // Stripe or database call for this, so made-up ids are fine.
         $response = $this->postJson(
-            Config::string('numerosis-billing.webhook_path', 'billing/webhook'),
+            Config::string('numerosis.billing.webhook_path', 'billing/webhook'),
             $this->paymentMethodAttachedPayload('pm_not_ours', 'cus_not_ours', null),
         );
 
@@ -118,7 +118,7 @@ class WebhookControllerSetupIntentTest extends TestCase
         // Has the generated-from shape but the customer matches no
         // CentralUser — must not error, just acknowledge.
         $response = $this->postJson(
-            Config::string('numerosis-billing.webhook_path', 'billing/webhook'),
+            Config::string('numerosis.billing.webhook_path', 'billing/webhook'),
             $this->paymentMethodAttachedPayload('pm_orphan', 'cus_no_such_customer', 'setatt_fake'),
         );
 
@@ -129,7 +129,7 @@ class WebhookControllerSetupIntentTest extends TestCase
     {
         $fake = Billing::fake();
 
-        $priceId = Config::string('numerosis-billing.plans.0.monthly_id');
+        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
 
         if ($priceId === '') {
             $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');
@@ -164,7 +164,7 @@ class WebhookControllerSetupIntentTest extends TestCase
         ]);
 
         $this->postJson(
-            Config::string('numerosis-billing.webhook_path', 'billing/webhook'),
+            Config::string('numerosis.billing.webhook_path', 'billing/webhook'),
             $this->paymentMethodAttachedPayload($paymentMethodId, $customerId, 'setatt_stand_in'),
         )->assertOk();
 
@@ -181,7 +181,7 @@ class WebhookControllerSetupIntentTest extends TestCase
      */
     public function test_payment_method_attached_is_a_noop_once_already_completed(): void
     {
-        $priceId = Config::string('numerosis-billing.plans.0.monthly_id');
+        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
 
         if ($priceId === '') {
             $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');
@@ -217,7 +217,7 @@ class WebhookControllerSetupIntentTest extends TestCase
         ]);
 
         $this->postJson(
-            Config::string('numerosis-billing.webhook_path', 'billing/webhook'),
+            Config::string('numerosis.billing.webhook_path', 'billing/webhook'),
             $this->paymentMethodAttachedPayload($paymentMethodId, $customerId, 'setatt_stand_in'),
         )->assertOk();
 

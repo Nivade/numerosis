@@ -348,7 +348,7 @@ class PurchaseModuleTest extends TestCase
      */
     public function test_it_purchases_a_recurring_module_onto_an_active_subscription(): void
     {
-        $priceId = Config::string('numerosis-billing.plans.0.monthly_id');
+        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
 
         if ($priceId === '') {
             $this->markTestSkipped('No Stripe test-mode price configured.');
