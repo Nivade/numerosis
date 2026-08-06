@@ -33,6 +33,10 @@ class FeaturesTable
             ->filters([
                 //
             ])
+            ->defaultSort('slug')
+            ->emptyStateHeading('No features yet')
+            ->emptyStateDescription('Features are what payment plans include or exclude — add one, then toggle it per plan from the plan\'s edit screen.')
+            ->emptyStateIcon('heroicon-o-check-badge')
             ->recordActions([
                 EditAction::make(),
             ])

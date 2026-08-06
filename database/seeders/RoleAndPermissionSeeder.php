@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Database\Seeders;
 
-use Nvade\Numerosis\Models\Permission;
-use Nvade\Numerosis\Models\Role;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Models\Permission;
+use Nvade\Numerosis\Models\Role;
 
 class RoleAndPermissionSeeder extends Seeder
 {
@@ -36,6 +36,7 @@ class RoleAndPermissionSeeder extends Seeder
             'domains',
             'features',
             'memberships',
+            'modules',
             'permissions',
             'roles',
             'tenants',

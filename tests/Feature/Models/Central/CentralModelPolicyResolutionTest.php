@@ -7,10 +7,20 @@ namespace Nvade\Numerosis\Tests\Feature\Models\Central;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\Central\Feature;
+use Nvade\Numerosis\Models\Central\ModuleOffering;
+use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Permission;
 use Nvade\Numerosis\Models\Central\Role;
+use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Policies\FeaturePolicy;
+use Nvade\Numerosis\Policies\ModuleOfferingPolicy;
+use Nvade\Numerosis\Policies\PaymentPlanPolicy;
 use Nvade\Numerosis\Policies\PermissionPolicy;
 use Nvade\Numerosis\Policies\RolePolicy;
+use Nvade\Numerosis\Policies\SubscriptionPolicy;
+use Nvade\Numerosis\Policies\TenantPolicy;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -49,6 +59,39 @@ class CentralModelPolicyResolutionTest extends TestCase
         $this->assertInstanceOf(PermissionPolicy::class, Gate::getPolicyFor(Permission::class));
     }
 
+    /**
+     * Tenant/PaymentPlan/Subscription/Feature/ModuleOffering carried no
+     * #[UsePolicy] at all until this test was written, so any authenticated
+     * central user could reach every write action on every one of them
+     * through the admin panel — Filament's non-strict authorization defaults
+     * to allow when no policy resolves, same mechanism the docblock above
+     * describes for Role/Permission before their fix.
+     */
+    public function test_central_tenant_resolves_the_tenant_policy(): void
+    {
+        $this->assertInstanceOf(TenantPolicy::class, Gate::getPolicyFor(Tenant::class));
+    }
+
+    public function test_central_payment_plan_resolves_the_payment_plan_policy(): void
+    {
+        $this->assertInstanceOf(PaymentPlanPolicy::class, Gate::getPolicyFor(PaymentPlan::class));
+    }
+
+    public function test_central_subscription_resolves_the_subscription_policy(): void
+    {
+        $this->assertInstanceOf(SubscriptionPolicy::class, Gate::getPolicyFor(Subscription::class));
+    }
+
+    public function test_central_feature_resolves_the_feature_policy(): void
+    {
+        $this->assertInstanceOf(FeaturePolicy::class, Gate::getPolicyFor(Feature::class));
+    }
+
+    public function test_central_module_offering_resolves_the_module_offering_policy(): void
+    {
+        $this->assertInstanceOf(ModuleOfferingPolicy::class, Gate::getPolicyFor(ModuleOffering::class));
+    }
+
     public function test_a_central_user_without_permissions_cannot_manage_users_roles_or_permissions(): void
     {
         // Not $this->seed(): stancl's `Commands\Seed` extends Laravel's
@@ -76,5 +119,28 @@ class CentralModelPolicyResolutionTest extends TestCase
         $this->assertFalse($user->can('viewAny', CentralUser::class));
         $this->assertFalse($user->can('viewAny', Role::class));
         $this->assertFalse($user->can('viewAny', Permission::class));
+        $this->assertFalse($user->can('viewAny', Tenant::class));
+        $this->assertFalse($user->can('viewAny', PaymentPlan::class));
+        $this->assertFalse($user->can('viewAny', Subscription::class));
+        $this->assertFalse($user->can('viewAny', Feature::class));
+        $this->assertFalse($user->can('viewAny', ModuleOffering::class));
+    }
+
+    public function test_a_seeded_admin_can_manage_tenants_plans_subscriptions_features_and_modules(): void
+    {
+        (new \Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder)->run();
+
+        // Decoy first, same reasoning as above: the second user is the one
+        // this test actually means to exercise, given the 'admin' role.
+        CentralUser::factory()->create();
+
+        $user = CentralUser::factory()->create();
+        $user->assignRole('admin');
+
+        $this->assertTrue($user->can('viewAny', Tenant::class));
+        $this->assertTrue($user->can('viewAny', PaymentPlan::class));
+        $this->assertTrue($user->can('viewAny', Subscription::class));
+        $this->assertTrue($user->can('viewAny', Feature::class));
+        $this->assertTrue($user->can('viewAny', ModuleOffering::class));
     }
 }

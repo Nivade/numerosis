@@ -52,6 +52,14 @@ class SubscriptionResource extends Resource
         ];
     }
 
+    /**
+     * @return array<int, string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['subscribable_id', 'stripe_id'];
+    }
+
     public static function getPages(): array
     {
         return [

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Appends;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,6 +20,7 @@ use Nvade\Numerosis\Database\Factories\Central\PaymentPlanFactory;
 use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Observers\PaymentPlanObserver;
+use Nvade\Numerosis\Policies\PaymentPlanPolicy;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
 use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
@@ -54,6 +56,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
     'metadata',
 ])]
 #[ObservedBy(PaymentPlanObserver::class)]
+#[UsePolicy(PaymentPlanPolicy::class)]
 class PaymentPlan extends Model implements Plan
 {
     use CentralConnection;

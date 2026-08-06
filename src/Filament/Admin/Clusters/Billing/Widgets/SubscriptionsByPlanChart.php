@@ -23,22 +23,40 @@ class SubscriptionsByPlanChart extends ChartWidget
         $subscriptionClass = Numerosis::model(Subscription::class);
         $paymentPlanClass = Numerosis::model(PaymentPlan::class);
 
-        $data = $subscriptionClass::query()
+        $counts = $subscriptionClass::query()
             ->where('stripe_status', 'active')
             ->selectRaw('payment_plan_id, count(*) as total')
             ->groupBy('payment_plan_id')
-            ->get()
-            ->mapWithKeys(function (Subscription $item) use ($paymentPlanClass): array {
-                $planName = $paymentPlanClass::find($item->payment_plan_id)->name ?? 'Unknown';
+            ->pluck('total', 'payment_plan_id');
 
-                return [$planName => $item->getAttribute('total')];
-            });
+        // Was $paymentPlanClass::find() inside the mapWithKeys() below — one
+        // query per distinct plan on every dashboard load instead of one.
+        $planNames = $paymentPlanClass::query()
+            ->whereIn('id', $counts->keys())
+            ->pluck('name', 'id');
+
+        // Built by hand rather than with mapWithKeys(): pluck() yields
+        // `mixed` values off the driver, so both the label and the count have
+        // to be narrowed here anyway — doing it in a loop keeps that visible
+        // instead of hiding it behind a closure signature that claims types
+        // the query builder never promised.
+        $data = [];
+
+        foreach ($counts as $planId => $total) {
+            if (! is_numeric($total)) {
+                continue;
+            }
+
+            $name = $planNames->get($planId);
+
+            $data[is_string($name) ? $name : 'Unknown'] = (int) $total;
+        }
 
         return [
             'datasets' => [
                 [
                     'label' => 'Subscriptions',
-                    'data' => $data->values()->toArray(),
+                    'data' => array_values($data),
                     'backgroundColor' => [
                         '#fbbf24', // amber-400
                         '#38bdf8', // sky-400
@@ -48,7 +66,7 @@ class SubscriptionsByPlanChart extends ChartWidget
                     ],
                 ],
             ],
-            'labels' => $data->keys()->all(),
+            'labels' => array_keys($data),
         ];
     }
 

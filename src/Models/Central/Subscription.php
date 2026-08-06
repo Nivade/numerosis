@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Models\Central;
 
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Laravel\Cashier\SubscriptionItem;
 use Nvade\Numerosis\Database\Factories\Central\SubscriptionFactory;
+use Nvade\Numerosis\Policies\SubscriptionPolicy;
 use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
@@ -36,6 +38,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property-read int|null $items_count
  */
 #[UseFactory(SubscriptionFactory::class)]
+#[UsePolicy(SubscriptionPolicy::class)]
 class Subscription extends \Laravel\Cashier\Subscription
 {
     use CentralConnection;

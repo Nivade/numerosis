@@ -14,6 +14,7 @@ use Nvade\Numerosis\Filament\Admin\Clusters\Billing\BillingCluster;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\CreatePaymentPlan;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\EditPaymentPlan;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\ListPaymentPlans;
+use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\RelationManagers\FeaturesRelationManager;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Schemas\PaymentPlanForm;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Tables\PaymentPlansTable;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
@@ -45,11 +46,31 @@ class PaymentPlanResource extends Resource
         return PaymentPlansTable::configure($table);
     }
 
+    /**
+     * Was commented out with no explanation. It's real and tested-shaped —
+     * PaymentPlan::features() already carries the 'available' pivot this
+     * manager edits, matching PaymentPlanFeature's own cast. The main form's
+     * CheckboxList (PaymentPlanForm) covers "which features does this plan
+     * include" at a glance; this manager is the only place to flip a single
+     * feature to unavailable without detaching it, or to see per-feature
+     * availability in a real table. Different job, same relation — not
+     * redundant with the checkbox list.
+     *
+     * @return array<int, class-string>
+     */
     public static function getRelations(): array
     {
         return [
-            //            \Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\RelationManagers\FeaturesRelationManager::class,
+            FeaturesRelationManager::class,
         ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'slug'];
     }
 
     public static function getPages(): array

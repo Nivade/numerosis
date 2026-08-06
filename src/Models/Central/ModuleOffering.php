@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Nvade\Numerosis\Contracts\Billing\ModuleOffer;
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Enums\ModuleBillingMode;
-use Nvade\Numerosis\Observers\ModuleOfferingObserver;
-use Nvade\Numerosis\Database\Factories\Central\ModuleOfferingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\Table;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Nvade\Numerosis\Contracts\Billing\ModuleOffer;
+use Nvade\Numerosis\Database\Factories\Central\ModuleOfferingFactory;
+use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\ModuleBillingMode;
+use Nvade\Numerosis\Observers\ModuleOfferingObserver;
+use Nvade\Numerosis\Policies\ModuleOfferingPolicy;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -48,6 +50,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
 ])]
 #[Table(name: 'modules')]
 #[ObservedBy(ModuleOfferingObserver::class)]
+#[UsePolicy(ModuleOfferingPolicy::class)]
 class ModuleOffering extends Model implements ModuleOffer
 {
     use CentralConnection;

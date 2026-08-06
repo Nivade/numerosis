@@ -16,22 +16,25 @@ use Filament\Tables\Table;
 
 class PaymentPlansTable
 {
-    public function backup(Table $table): void {}
-
     public static function configure(Table $table): Table
     {
         return $table
             ->columns([
                 Stack::make([
                     Split::make([
+                        // text-9xl (128px) used to sit here alongside
+                        // TextSize::Large — the two disagree, and 9xl wins,
+                        // so every card's title overflowed its own card in
+                        // the contentGrid below. Almost certainly a
+                        // copy-paste leftover; TextSize::Large is the actual
+                        // intended size.
                         TextColumn::make('name')
                             ->weight(FontWeight::Bold)
                             ->size(TextSize::Large)
                             ->searchable()
                             ->sortable()
                             ->icon('heroicon-m-sparkles')
-                            ->iconColor('warning')
-                            ->extraAttributes(['class' => 'text-9xl']),
+                            ->iconColor('warning'),
 
                         TextColumn::make('available')
                             ->badge()
@@ -95,6 +98,10 @@ class PaymentPlansTable
             ->filters([
                 //
             ])
+            ->defaultSort('monthly_price')
+            ->emptyStateHeading('No payment plans yet')
+            ->emptyStateDescription('Plans are what tenants subscribe to — create one to unlock checkout.')
+            ->emptyStateIcon('heroicon-o-rectangle-stack')
             ->recordActions([
                 EditAction::make(),
             ])

@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Models\Central;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,6 +20,7 @@ use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Database\Factories\Central\TenantFactory;
 use Nvade\Numerosis\Models\Tenant\User;
 use Nvade\Numerosis\Observers\TenantObserver;
+use Nvade\Numerosis\Policies\TenantPolicy;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
 use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
@@ -64,6 +66,7 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
     'name',
 ])]
 #[ObservedBy(TenantObserver::class)]
+#[UsePolicy(TenantPolicy::class)]
 class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
 {
     use Billable;

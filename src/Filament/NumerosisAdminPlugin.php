@@ -20,8 +20,6 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Config;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Nvade\Numerosis\Features\Ui\AdminPanelFeature;
-use Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets\BillingStatsWidget;
-use Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets\RevenueChartWidget;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
 use Nvade\Numerosis\Support\Features;
 
@@ -91,10 +89,14 @@ class NumerosisAdminPlugin implements Plugin
                 Dashboard::class,
             ])
             ->discoverWidgets(in: $this->path('Widgets'), for: 'Nvade\\Numerosis\\Filament\\Admin\\Widgets')
+            // BillingStatsWidget/RevenueChartWidget deliberately not
+            // registered here: they already appear on the Billing cluster's
+            // own Overview page (BillingDashboard), which also carries
+            // SubscriptionsByPlanChart and RecentSubscriptionsTable that
+            // never showed up here. Registering both here duplicated two of
+            // the four widgets on the default Dashboard for no reason.
             ->widgets([
                 AccountWidget::class,
-                BillingStatsWidget::class,
-                RevenueChartWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

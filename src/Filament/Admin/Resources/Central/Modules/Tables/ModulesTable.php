@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Resources\Central\Modules\Tables;
 
-use Nvade\Numerosis\Enums\ModuleBillingMode;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -12,6 +11,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Nvade\Numerosis\Enums\ModuleBillingMode;
 
 class ModulesTable
 {
@@ -48,6 +48,10 @@ class ModulesTable
                     ->options(ModuleBillingMode::class),
                 TernaryFilter::make('available'),
             ])
+            ->defaultSort('name')
+            ->emptyStateHeading('No modules yet')
+            ->emptyStateDescription('Modules are optional add-ons tenants can purchase — this is the catalog of what exists to sell, not which tenants have bought what.')
+            ->emptyStateIcon('heroicon-o-puzzle-piece')
             ->recordActions([
                 EditAction::make(),
             ])

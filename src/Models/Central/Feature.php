@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Models\Central;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Nvade\Numerosis\Database\Factories\Central\FeatureFactory;
+use Nvade\Numerosis\Policies\FeaturePolicy;
 use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
@@ -32,6 +34,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
     'slug',
     'description',
 ])]
+#[UsePolicy(FeaturePolicy::class)]
 class Feature extends Model
 {
     /**
