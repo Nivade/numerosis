@@ -330,6 +330,18 @@ abstract class TestCase extends Orchestra
         $app['config']->set('cashier.currency', 'usd');
 
         $app['config']->set('queue.default', 'sync');
+
+        // Gated by QUEUE_FAILED_DRIVER, not by queue.default — see
+        // .claude/rules/exception-handling.md. The package ships the central
+        // `failed_jobs` migration, so the host has to point this at a
+        // connection that carries it; Testbench's skeleton points at sqlite,
+        // and the failure is `Database file at path […]/database.sqlite does
+        // not exist`, which names neither this key nor failed_jobs.
+        $app['config']->set('queue.failed', [
+            'driver' => 'database-uuids',
+            'database' => 'mysql',
+            'table' => 'failed_jobs',
+        ]);
         $app['config']->set('mail.default', 'array');
 
         // spatie/laravel-activitylog: not a "suggest" in composer.json terms

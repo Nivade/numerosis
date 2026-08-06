@@ -11,10 +11,12 @@ use Livewire\Livewire;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Registration;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
 use Nvade\Numerosis\Support\State\RegistrationState;
+use Nvade\Numerosis\Tests\Concerns\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 class RegistrationCheckoutHandoffTest extends TestCase
 {
+    use FakesStripe;
     use RefreshDatabase;
 
     public function test_the_wizard_starts_on_the_first_step(): void
@@ -51,12 +53,15 @@ class RegistrationCheckoutHandoffTest extends TestCase
      * Plan now starts the checkout itself (rather than redirecting to the
      * checkout.subscription route) and hands the resulting InlineCheckout
      * intent to the Payment step via RegistrationState — see
-     * custom-checkout.md's target flow, step 1. Hits real Stripe test mode
-     * (customer + SetupIntent creation), matching this suite's existing
-     * convention for checkout tests.
+     * custom-checkout.md's target flow, step 1. The customer and SetupIntent
+     * creation this drives go through FakeStripeHttpClient (D9), not the live
+     * API: with a dummy key the real one answers `Invalid API Key provided`
+     * from inside the SDK.
      */
     public function test_it_starts_an_inline_checkout_with_the_full_wizard_state(): void
     {
+        $this->fakeStripe();
+
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 

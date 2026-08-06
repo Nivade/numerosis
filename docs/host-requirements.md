@@ -101,6 +101,12 @@ API call:
 | `cashier.key` | Stripe publishable key (`STRIPE_KEY`) | read by the checkout Livewire components when they mount Stripe Elements; an empty value renders a card field that never initialises, with the failure visible only in the browser console. | `verifyStripeKeys()` |
 | `cashier.secret` | Stripe secret key (`STRIPE_SECRET`) | every server-side Stripe call. Unset, the first one throws `Invalid API Key provided` from deep inside the SDK, naming neither this package nor the config key. | `verifyStripeKeys()` |
 
+## `config/queue.php`
+
+| Key | Required value / shape | Why | Checked by |
+|---|---|---|---|
+| `queue.failed.database` | a connection whose database carries `failed_jobs` — the central one, since that is where this package's `recreate_failed_jobs_table` migration runs | Gated by `QUEUE_FAILED_DRIVER`, **not** by `queue.default`: a host on Redis queues still writes exhausted jobs here, and `queue:work`'s own `JobFailed` listener is what does the insert — so a wrong connection does not lose a log line, it throws inside the worker. Laravel's skeleton default is `sqlite`, and the failure reads `Database file at path […]/database.sqlite does not exist`, naming neither this key nor `failed_jobs`. Do **not** point it at a connection that moves under tenancy. | `verifyFailedJobsConnection()` |
+
 ## `config/app.php`
 
 Ordinary framework file, entirely host-owned — except one non-obvious key

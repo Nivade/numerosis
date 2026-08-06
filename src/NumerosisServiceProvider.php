@@ -167,9 +167,18 @@ class NumerosisServiceProvider extends PackageServiceProvider
             __DIR__.'/../database/migrations/tenant' => database_path('migrations/tenant'),
         ], 'numerosis-tenant-migrations');
 
+        // Targets resource_path() directly, not a vendor/numerosis
+        // subdirectory: resources/views/partials/styles.blade.php (this
+        // package) calls @vite('resources/js/central.js') /
+        // @vite('resources/js/tenant.js') against the *host's* resources/js
+        // root, and central.js imports stripe-checkout.js/stripe-confirm.js
+        // by relative path — both only resolve if the whole directory lands
+        // together at resources/js, not nested under a package-specific
+        // path. --force=false (see publishAssets() below) means a host's
+        // own resources/js/app.js is never overwritten by this.
         $this->publishGroup([
-            __DIR__.'/../resources/css' => resource_path('vendor/numerosis/css'),
-            __DIR__.'/../resources/js' => resource_path('vendor/numerosis/js'),
+            __DIR__.'/../resources/css' => resource_path('css'),
+            __DIR__.'/../resources/js' => resource_path('js'),
         ], 'numerosis-assets');
 
         // The 9 concrete model stubs (see .claude/rules — 4.4's "abstract

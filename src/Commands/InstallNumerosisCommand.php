@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
@@ -67,6 +68,7 @@ class InstallNumerosisCommand extends Command
         $this->verifyAuthPasswordBroker();
         $this->verifySocialProviders();
         $this->verifySocialRoutes();
+        $this->verifyFailedJobsConnection();
         $this->verifyLivewireDiskExclusion();
         $this->verifyLivewireUploadDisk();
         $this->verifyLivewireComponentNamespaces();
@@ -106,6 +108,16 @@ class InstallNumerosisCommand extends Command
         // creates it unless this tag is published too. Without this, a
         // fresh install always fails the check it added itself.
         $this->call('vendor:publish', ['--tag' => 'numerosis-tenant-migrations', '--force' => false]);
+
+        // resources/views/partials/styles.blade.php calls
+        // @vite('resources/js/central.js') / 'resources/js/tenant.js'
+        // unconditionally — without this, that view throws "Unable to
+        // locate file in Vite manifest" the moment it's first rendered,
+        // since those files never otherwise land in the host's
+        // resources/js. Publishing them is still not the whole fix — see
+        // printManualSteps() below for the vite.config.js entry this
+        // can't add on its own.
+        $this->call('vendor:publish', ['--tag' => 'numerosis-assets', '--force' => false]);
     }
 
     /**
@@ -405,6 +417,27 @@ class InstallNumerosisCommand extends Command
         }
     }
 
+    /**
+     * The insert is done by `queue:work`'s own JobFailed listener, so a
+     * connection with no `failed_jobs` table does not lose a log line — it
+     * throws inside the worker, from framework code, naming neither this key
+     * nor the table.
+     */
+    private function verifyFailedJobsConnection(): void
+    {
+        $connection = Config::get('queue.failed.database');
+
+        if (! is_string($connection) || $connection === '') {
+            $this->failures[] = "config('queue.failed.database') must name a database connection — see docs/host-requirements.md's config/queue.php row.";
+
+            return;
+        }
+
+        if (! Schema::connection($connection)->hasTable('failed_jobs')) {
+            $this->failures[] = "config('queue.failed.database') is '{$connection}', which has no `failed_jobs` table. Run the package's central migrations against it, or point the key at the central connection.";
+        }
+    }
+
     private function verifyLivewireDiskExclusion(): void
     {
         /** @var list<string> $disks */
@@ -601,5 +634,6 @@ class InstallNumerosisCommand extends Command
         $this->line('  1. Wildcard DNS: point *.'.Config::string('numerosis.domains.tenant_pattern', '{tenant}.your-domain').' at this app.');
         $this->line('  2. Register the package\'s Filament panel plugin(s) in your own AdminPanelProvider / TenantAdminPanelProvider.');
         $this->line('  3. Run a queue worker on the dedicated "provisioning" queue (see docker/8.5/supervisord.conf\'s [program:queue-provisioning] in saas-m for the reference config) — tenant provisioning is queued there, not on the default worker.');
+        $this->line('  4. Add resources/js/central.js and resources/js/tenant.js to your vite.config.js input array (just published to resources/js/ by this command) — Vite compiles per-app, so this list can\'t be published, only the files it points at. Skipping this fails at first render with "Unable to locate file in Vite manifest".');
     }
 }

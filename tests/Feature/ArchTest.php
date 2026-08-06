@@ -42,10 +42,21 @@ arch('core does not depend on app-modules')
 test('nothing reads the old cashier appendix keys', function (): void {
     $needles = ['cashier.billables', 'cashier.stripe_price_ids', 'cashier.redirect', 'cashier.features', 'cashier.brand'];
 
+    // Not base_path(): under Testbench that is the skeleton app, whose
+    // app/ and database/ hold zero PHP files — the loop below never ran an
+    // assertion and PHPUnit reported the test risky rather than failing it,
+    // so this has proved nothing since the code moved into src/.
+    $roots = array_map(
+        fn (string $directory): string => dirname(__DIR__, 2)."/{$directory}",
+        ['src', 'config', 'database'],
+    );
+
     $files = (new Symfony\Component\Finder\Finder)
         ->files()
-        ->in([base_path('app'), base_path('database')])
+        ->in($roots)
         ->name('*.php');
+
+    expect(iterator_count($files))->toBeGreaterThan(0, 'Scanned no files — the paths above are wrong.');
 
     foreach ($files as $file) {
         $contents = $file->getContents();
