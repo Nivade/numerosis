@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Tenancy;
 
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Lorisleiva\Actions\Concerns\AsAction;
+use Lorisleiva\Actions\Decorators\JobDecorator;
 use Nvade\Numerosis\Concerns\TagsSentryScopeWithTenant;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant as CentralTenant;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Lorisleiva\Actions\Concerns\AsAction;
-use Lorisleiva\Actions\Decorators\JobDecorator;
 use Stancl\Tenancy\Contracts\Tenant;
 use Throwable;
 

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing;
 
-use Nvade\Numerosis\Models\Central\Tenant;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Lorisleiva\Actions\Decorators\JobDecorator;
+use Nvade\Numerosis\Models\Central\Tenant;
 
 class SyncTenantToStripe implements ShouldQueue
 {

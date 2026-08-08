@@ -21,7 +21,7 @@ it('throws when the seeder fails', function () {
     // docblock for why it no longer goes through Artisan::call() at all.
     app()->bind(TenantDatabaseSeeder::class, fn () => new class extends Seeder
     {
-        public function run(): void
+        public function run(): never
         {
             throw new RuntimeException('seeder blew up');
         }

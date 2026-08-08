@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Queries;
 
+use Illuminate\Support\Collection;
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
-use Illuminate\Support\Collection;
-use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * @method static Collection<int, Tenant> run(string $globalId)

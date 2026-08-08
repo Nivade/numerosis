@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Observers;
 
+use Illuminate\Support\Collection;
 use Nvade\Numerosis\Actions\Cache\ForgetUserTenants;
 use Nvade\Numerosis\Models\Central\Tenant;
 
@@ -18,7 +19,7 @@ class TenantObserver
 {
     public function deleting(Tenant $tenant): void
     {
-        /** @var \Illuminate\Support\Collection<int, string> $globalIds */
+        /** @var Collection<int, string> $globalIds */
         $globalIds = $tenant->users()->pluck('global_id');
 
         $globalIds->each(fn (string $globalId) => ForgetUserTenants::run($globalId));

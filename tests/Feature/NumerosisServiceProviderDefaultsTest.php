@@ -31,7 +31,7 @@ class NumerosisServiceProviderDefaultsTest extends TestCase
 {
     public function test_it_defaults_the_livewire_upload_disk_when_unset(): void
     {
-        Config::set('livewire.temporary_file_upload.disk', null);
+        Config::set('livewire.temporary_file_upload.disk');
 
         $this->rebootPackage();
 
@@ -49,7 +49,7 @@ class NumerosisServiceProviderDefaultsTest extends TestCase
 
     public function test_it_defaults_the_livewire_disk_when_unset(): void
     {
-        Config::set('filesystems.disks.livewire', null);
+        Config::set('filesystems.disks.livewire');
 
         $this->rebootPackage();
 
@@ -58,7 +58,7 @@ class NumerosisServiceProviderDefaultsTest extends TestCase
 
     public function test_it_defaults_component_namespaces_when_unset_or_still_livewires_stock_default(): void
     {
-        Config::set('livewire.component_namespaces.layouts', null);
+        Config::set('livewire.component_namespaces.layouts');
         Config::set('livewire.component_namespaces.pages', resource_path('views/pages'));
 
         $this->rebootPackage();

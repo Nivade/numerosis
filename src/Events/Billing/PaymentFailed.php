@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Events\Billing;
 
-use Nvade\Numerosis\Models\Central\Tenant;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Nvade\Numerosis\Models\Central\Tenant;
 
 class PaymentFailed
 {

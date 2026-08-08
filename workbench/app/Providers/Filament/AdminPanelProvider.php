@@ -7,7 +7,6 @@ namespace Workbench\App\Providers\Filament;
 use Filament\Facades\Filament;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
 use Nvade\Numerosis\Filament\NumerosisAdminPlugin;
 
 /**
@@ -21,6 +20,12 @@ use Nvade\Numerosis\Filament\NumerosisAdminPlugin;
  * `->domains()` and the navigation groups). Everything package-owned lives in
  * {@see NumerosisAdminPlugin} now, so the harness exercises exactly the
  * definition a consumer gets rather than an approximation of it.
+ *
+ * No `->colors()` call (design-system-unification Phase 4): the plugin's
+ * `->viteTheme()` remaps Filament's colour vars from
+ * resources/css/tokens.css, and a `->colors()` call here would fight
+ * `FilamentColor::register()`'s per-container memoisation rather than
+ * override anything (Phase 1 audit §1.7).
  */
 class AdminPanelProvider extends PanelProvider
 {
@@ -39,11 +44,6 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ->default()
-            ->plugin(NumerosisAdminPlugin::make())
-            // Branding stays with the host: applied after the plugin, so it
-            // wins over anything the plugin might set.
-            ->colors([
-                'primary' => Color::Amber,
-            ]);
+            ->plugin(NumerosisAdminPlugin::make());
     }
 }

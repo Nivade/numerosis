@@ -4,13 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Http\Middleware;
 
-use Nvade\Numerosis\Actions\Auth\LoginUser;
-use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
-use Nvade\Numerosis\Actions\Queries\IsUserAuthenticated;
-use Nvade\Numerosis\Enums\Tenancy\Context;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\User;
 use Closure;
 use Filament\Exceptions\NoDefaultPanelSetException;
 use Filament\Facades\Filament;
@@ -19,6 +12,14 @@ use Illuminate\Auth\AuthManager;
 use Illuminate\Auth\Middleware\Authenticate as Middleware;
 use Illuminate\Contracts\Auth\Factory;
 use Illuminate\Contracts\Config\Repository;
+use Nvade\Numerosis\Actions\Auth\LoginUser;
+use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Actions\Queries\IsUserAuthenticated;
+use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Tenant\User;
+use Override;
 
 class Authenticate extends Middleware
 {
@@ -41,6 +42,7 @@ class Authenticate extends Middleware
      *
      * @throws AuthenticationException|NoDefaultPanelSetException
      */
+    #[Override]
     public function handle($request, Closure $next, ...$guards): mixed
     {
         $this->authenticate($request, array_values($guards));
@@ -54,6 +56,7 @@ class Authenticate extends Middleware
      * @throws NoDefaultPanelSetException
      * @throws AuthenticationException
      */
+    #[Override]
     public function authenticate($request, array $guards): void
     {
         // Are we on a tenant and is the current user authenticated on central?
@@ -94,6 +97,7 @@ class Authenticate extends Middleware
         );
     }
 
+    #[Override]
     protected function redirectTo($request): ?string
     {
         return Filament::getLoginUrl();

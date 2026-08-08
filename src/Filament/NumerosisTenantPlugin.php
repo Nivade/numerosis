@@ -21,7 +21,6 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Config;
-use Illuminate\View\Compilers\BladeCompiler;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Concerns\InteractsWithTenantModules;
@@ -29,6 +28,7 @@ use Nvade\Numerosis\Contracts\Tenancy\ModulePlugin;
 use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Features\Observability\ActivityLogFeature;
 use Nvade\Numerosis\Features\Ui\TenantPanelFeature;
+use Nvade\Numerosis\Filament\Concerns\AppliesNumerosisPanelTheme;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\General;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\TeamCluster;
 use Nvade\Numerosis\Filament\TenantAdmin\Pages\Billing;
@@ -58,17 +58,25 @@ use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
  * moves mid-request (`.claude/rules/auth-guards.md`). A host reordering that
  * list while copying it produces a cross-tenant identity leak, not an error.
  *
- * What deliberately stays with the host: `->colors()` (branding — and a
- * tenant may override it again through the branding module), and the decision
- * to register the panel at all. {@see self::shouldRegisterPanel()}.
+ * `->colors()` used to stay with the host for branding; it does not anymore
+ * (design-system-unification Phase 4) — `->viteTheme()` plus
+ * {@see AppliesNumerosisPanelTheme} remap
+ * Filament's colour vars from resources/css/tokens.css instead, sidestepping
+ * `FilamentColor::register()`'s per-container memoisation (Phase 1 audit
+ * §1.7) rather than fighting it. The optional `nvade/branding` app-module's
+ * own per-tenant override is a separate mechanism (its `ApplyBranding`
+ * middleware, thin-app-owned) and is untouched by this. What stays with the
+ * host: the decision to register the panel at all.
+ * {@see self::shouldRegisterPanel()}.
  */
 class NumerosisTenantPlugin implements Plugin
 {
+    use AppliesNumerosisPanelTheme;
     use InteractsWithTenantModules;
 
     public static function make(): static
     {
-        return app(static::class);
+        return resolve(static::class);
     }
 
     public function getId(): string
@@ -100,14 +108,20 @@ class NumerosisTenantPlugin implements Plugin
         if (! Features::enabled(TenantPanelFeature::NAME)) {
             return false;
         }
+        if (! Numerosis::isCentralDomain()) {
+            return true;
+        }
 
-        return ! Numerosis::isCentralDomain() || app()->runningInConsole();
+        return app()->runningInConsole();
     }
 
     public function register(Panel $panel): void
     {
+        $panel = $this->applyNumerosisPanelTheme($panel);
+
         $panel
             ->id('tenantAdmin')
+            ->viteTheme('resources/css/filament-theme.css')
             ->tenantDomain(Config::string('numerosis.domains.tenant_pattern'))
             ->tenant(Numerosis::model(Tenant::class), 'id')
             ->path('/')
@@ -151,14 +165,6 @@ class NumerosisTenantPlugin implements Plugin
                 EnsureTenantSubscriptionActive::class,
             ])
             ->plugins($this->plugins())
-            ->renderHook(
-                PanelsRenderHook::SCRIPTS_AFTER,
-                fn (): string => app(BladeCompiler::class)->render('@fluxScripts'),
-            )
-            ->renderHook(
-                PanelsRenderHook::STYLES_AFTER,
-                fn (): string => app(BladeCompiler::class)->render('@include(\'numerosis::partials.styles\')'),
-            )
             ->renderHook(
                 PanelsRenderHook::CONTENT_START,
                 fn (): string => $this->paymentStatusBanner(),

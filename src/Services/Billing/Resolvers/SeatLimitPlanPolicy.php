@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Billing\Resolvers;
 
+use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Illuminate\Validation\ValidationException;
 
 /**
  * The seat check formerly BillingService::checkPlanEligibility() — carried

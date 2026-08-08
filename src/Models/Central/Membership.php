@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Nvade\Numerosis\Observers\MembershipObserver;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 use Stancl\Tenancy\Database\Models\TenantPivot;
 
@@ -50,6 +51,7 @@ class Membership extends TenantPivot
     /** @use HasFactory<Factory<static>> */
     use HasFactory;
 
+    #[Override]
     protected function casts(): array
     {
         return [

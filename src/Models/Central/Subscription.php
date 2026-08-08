@@ -16,6 +16,7 @@ use Laravel\Cashier\SubscriptionItem;
 use Nvade\Numerosis\Database\Factories\Central\SubscriptionFactory;
 use Nvade\Numerosis\Policies\SubscriptionPolicy;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -43,6 +44,7 @@ class Subscription extends \Laravel\Cashier\Subscription
 {
     use CentralConnection;
 
+    #[Override]
     protected function casts(): array
     {
         return [
@@ -65,6 +67,7 @@ class Subscription extends \Laravel\Cashier\Subscription
     /**
      * @return SubscriptionFactory
      */
+    #[Override]
     protected static function newFactory(): SubscriptionFactory|Factory
     {
         return SubscriptionFactory::new();
@@ -85,6 +88,7 @@ class Subscription extends \Laravel\Cashier\Subscription
      *
      * @return MorphTo<Model, $this>
      */
+    #[Override]
     public function user(): MorphTo
     {
         return $this->subscribable();
@@ -93,6 +97,7 @@ class Subscription extends \Laravel\Cashier\Subscription
     /**
      * @return BelongsTo<Model, $this>
      */
+    #[Override]
     public function owner(): BelongsTo
     {
         /** @var class-string<Model> $ownerType */

@@ -9,6 +9,7 @@ use App\Models\Central\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Nvade\Numerosis\Tests\TestCase;
 
 class TenantAdminAuthTest extends TestCase
@@ -50,8 +51,8 @@ class TenantAdminAuthTest extends TestCase
         // membership up by global_id, and answers 404 when it finds none.
         $tenant->run(function () use ($centralUser) {
             // Create modules table if it doesn't exist
-            \Illuminate\Support\Facades\Schema::dropIfExists('modules');
-            \Illuminate\Support\Facades\Schema::create('modules', function ($table) {
+            Schema::dropIfExists('modules');
+            Schema::create('modules', function ($table) {
                 $table->id();
                 $table->string('name');
                 $table->string('description')->nullable();
@@ -74,7 +75,7 @@ class TenantAdminAuthTest extends TestCase
             ->get('http://'.$domain.'/');
 
         // 7. Assertions
-        $response->assertStatus(200);
+        $response->assertOk();
 
         // Verify that the user is now also logged in via the 'tenant' guard as a Tenant\User
         $tenant->run(function () use ($centralUser) {
@@ -86,7 +87,7 @@ class TenantAdminAuthTest extends TestCase
         // 8. Second request should NOT re-trigger login (we can check this by spying on Auth guard if needed, but for now we just check it still works)
         $response2 = $this->actingAs($centralUser, 'web')
             ->get('http://'.$domain.'/');
-        $response2->assertStatus(200);
+        $response2->assertOk();
     }
 
     public function test_central_user_without_access_to_tenant_cannot_access_panel(): void

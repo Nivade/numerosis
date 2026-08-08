@@ -29,6 +29,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 
 class ModuleResource extends BaseResource
 {
@@ -38,31 +39,37 @@ class ModuleResource extends BaseResource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    #[Override]
     public static function getModel(): string
     {
         return Numerosis::model(Module::class);
     }
 
+    #[Override]
     public static function canAccess(): bool
     {
         return Features::enabled(ModuleSystemFeature::NAME) && parent::canAccess();
     }
 
+    #[Override]
     public static function shouldRegisterNavigation(): bool
     {
         return Features::enabled(ModuleSystemFeature::NAME) && parent::shouldRegisterNavigation();
     }
 
+    #[Override]
     public static function getNavigationGroup(): ?string
     {
         return 'Modules';
     }
 
+    #[Override]
     public static function getNavigationLabel(): string
     {
         return 'Settings';
     }
 
+    #[Override]
     public static function form(Schema $schema): Schema
     {
         return $schema
@@ -86,6 +93,7 @@ class ModuleResource extends BaseResource
             ]);
     }
 
+    #[Override]
     public static function table(Table $table): Table
     {
         return $table
@@ -165,6 +173,7 @@ class ModuleResource extends BaseResource
             ]);
     }
 
+    #[Override]
     public static function getPages(): array
     {
         return [
@@ -172,6 +181,7 @@ class ModuleResource extends BaseResource
         ];
     }
 
+    #[Override]
     public static function getGloballySearchableAttributes(): array
     {
         return ['name'];

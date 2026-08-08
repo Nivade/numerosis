@@ -29,3 +29,4 @@ _ide_helper_models.php
 phpunit.xml
 phpstan.neon
 /coverage
+storage

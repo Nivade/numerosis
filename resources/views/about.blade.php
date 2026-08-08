@@ -1,6 +1,6 @@
 <x-layouts::app :title="__('About Us')">
     <section class="relative overflow-hidden">
-        <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(50%_50%_at_50%_0%,rgba(59,130,246,0.15)_0%,transparent_60%)] dark:bg-[radial-gradient(50%_50%_at_50%_0%,rgba(59,130,246,0.2)_0%,transparent_60%)]"></div>
+        <x-numerosis::ui.hero-gradient />
 
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-12 sm:pt-24 sm:pb-16">
             <div class="grid gap-12 lg:grid-cols-2 lg:items-center">
@@ -17,18 +17,14 @@
 
                     <div class="space-y-4">
                         <div class="flex gap-4">
-                            <div class="flex-none size-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                                <flux:icon name="user-group" class="text-blue-500" />
-                            </div>
+                            <x-numerosis::ui.icon-tile icon="user-group" color="blue" size="sm" />
                             <div>
                                 <h3 class="font-semibold">Team First</h3>
                                 <p class="text-zinc-500 dark:text-zinc-400">Designed to help teams of all sizes stay aligned and productive.</p>
                             </div>
                         </div>
                         <div class="flex gap-4">
-                            <div class="flex-none size-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                                <flux:icon name="shield-check" class="text-emerald-500" />
-                            </div>
+                            <x-numerosis::ui.icon-tile icon="shield-check" color="emerald" size="sm" />
                             <div>
                                 <h3 class="font-semibold">Privacy Conscious</h3>
                                 <p class="text-zinc-500 dark:text-zinc-400">Your data is yours. We ensure complete isolation for every workspace.</p>

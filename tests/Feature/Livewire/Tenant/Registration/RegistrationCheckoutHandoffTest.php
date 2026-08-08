@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Livewire\Tenant\Registration;
 use App\Models\Central\CentralUser;
 use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Registration;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
@@ -84,7 +85,7 @@ class RegistrationCheckoutHandoffTest extends TestCase
             ->set('terms', true)
             ->call('register')
             ->assertSet('checkoutClientSecret', fn (?string $value) => is_string($value) && str_starts_with($value, 'seti_'))
-            ->assertSet('checkoutPublishableKey', fn (?string $value) => ! empty($value))
+            ->assertSet('checkoutPublishableKey', fn (?string $value) => ! in_array($value, [null, '', '0'], true))
             ->assertDispatchedTo(Registration::class, 'nextStep');
     }
 
@@ -115,7 +116,7 @@ class RegistrationCheckoutHandoffTest extends TestCase
     /**
      * @param  array<string, array<string, mixed>>  $stepsState
      */
-    private function planStep(array $stepsState): \Livewire\Features\SupportTesting\Testable
+    private function planStep(array $stepsState): Testable
     {
         return Livewire::test(Plan::class, [
             'wizardClassName' => Registration::class,

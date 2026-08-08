@@ -10,8 +10,8 @@ use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Date;
 use Nvade\Numerosis\Http\Middleware\UpdateUserLastSeenMiddleware;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -41,14 +41,14 @@ class UpdateUserLastSeenMiddlewareTest extends TestCase
             $middleware = new UpdateUserLastSeenMiddleware;
             $next = fn ($request) => new Response('ok');
 
-            $t0 = Carbon::parse('2026-01-01 00:00:00');
-            Carbon::setTestNow($t0);
+            $t0 = Date::parse('2026-01-01 00:00:00');
+            Date::setTestNow($t0);
             $middleware->handle(Request::create('/'), $next);
             $afterFirstRequest = $this->lastSeenAt($user->id);
             $this->assertSame($t0->toDateTimeString(), $afterFirstRequest);
 
             // Still inside the 60s throttle window: no write should happen.
-            Carbon::setTestNow($t0->copy()->addSeconds(30));
+            Date::setTestNow($t0->copy()->addSeconds(30));
             $middleware->handle(Request::create('/'), $next);
             $this->assertSame(
                 $afterFirstRequest,
@@ -58,7 +58,7 @@ class UpdateUserLastSeenMiddlewareTest extends TestCase
 
             // Past the window: the next request should write again.
             $t1 = $t0->copy()->addSeconds(61);
-            Carbon::setTestNow($t1);
+            Date::setTestNow($t1);
             $middleware->handle(Request::create('/'), $next);
             $this->assertSame(
                 $t1->toDateTimeString(),
@@ -67,7 +67,7 @@ class UpdateUserLastSeenMiddlewareTest extends TestCase
             );
         });
 
-        Carbon::setTestNow();
+        Date::setTestNow();
     }
 
     /**

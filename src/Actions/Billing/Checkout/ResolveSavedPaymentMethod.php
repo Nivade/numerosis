@@ -18,7 +18,7 @@ class ResolveSavedPaymentMethod
 {
     use AsAction;
 
-    private const REUSABLE_TYPES = ['card'];
+    private const array REUSABLE_TYPES = ['card'];
 
     public function handle(CentralUser $billable, string $paymentMethodId): PaymentMethod
     {
@@ -27,7 +27,7 @@ class ResolveSavedPaymentMethod
         } catch (ApiErrorException $e) {
             report($e);
 
-            throw new SavedPaymentMethodUnavailable(__('numerosis::billing.checkout.saved_payment_method_unavailable'), previous: $e);
+            throw new SavedPaymentMethodUnavailable(__('numerosis::billing.checkout.saved_payment_method_unavailable'), $e->getCode(), previous: $e);
         }
 
         $customerId = is_string($paymentMethod->customer) ? $paymentMethod->customer : $paymentMethod->customer?->id;

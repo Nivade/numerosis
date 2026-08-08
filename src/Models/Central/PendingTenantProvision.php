@@ -12,6 +12,7 @@ use Illuminate\Support\Carbon;
 use Nvade\Numerosis\Database\Factories\Central\PendingTenantProvisionFactory;
 use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -58,6 +59,7 @@ class PendingTenantProvision extends Model
         return $this->status === TenantProvisionStatus::Failed;
     }
 
+    #[Override]
     protected function casts(): array
     {
         return [

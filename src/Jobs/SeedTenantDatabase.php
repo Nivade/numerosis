@@ -54,12 +54,12 @@ class SeedTenantDatabase implements ShouldQueue
 
         try {
             Model::unguarded(function (): void {
-                app(TenantDatabaseSeeder::class)
+                resolve(TenantDatabaseSeeder::class)
                     ->setContainer(app())
                     ->__invoke();
             });
         } catch (Throwable $e) {
-            throw new RuntimeException("Seeding failed for tenant {$this->tenant->getTenantKey()}: {$e->getMessage()}", previous: $e);
+            throw new RuntimeException("Seeding failed for tenant {$this->tenant->getTenantKey()}: {$e->getMessage()}", $e->getCode(), previous: $e);
         } finally {
             tenancy()->end();
         }

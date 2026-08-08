@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Http\Controllers\Socialite;
 
-use Nvade\Numerosis\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
+use Nvade\Numerosis\Http\Controllers\Controller;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class Redirect extends Controller

@@ -232,13 +232,11 @@ class FakeStripeHttpClient implements ClientInterface
      */
     private function confirmSetupIntent(string $id, array $params): array
     {
-        if (! isset($this->setupIntents[$id])) {
-            throw new FakeStripeApiError(404, [
-                'message' => "No such setup_intent: '{$id}'",
-                'type' => 'invalid_request_error',
-                'code' => 'resource_missing',
-            ]);
-        }
+        throw_unless(isset($this->setupIntents[$id]), FakeStripeApiError::class, 404, [
+            'message' => "No such setup_intent: '{$id}'",
+            'type' => 'invalid_request_error',
+            'code' => 'resource_missing',
+        ]);
 
         $paymentMethodId = $this->stringParam($params, 'payment_method');
 
@@ -265,13 +263,11 @@ class FakeStripeHttpClient implements ClientInterface
      */
     private function retrieveSetupIntent(string $id, array $params = []): array
     {
-        if (! isset($this->setupIntents[$id])) {
-            throw new FakeStripeApiError(404, [
-                'message' => "No such setup_intent: '{$id}'",
-                'type' => 'invalid_request_error',
-                'code' => 'resource_missing',
-            ]);
-        }
+        throw_unless(isset($this->setupIntents[$id]), FakeStripeApiError::class, 404, [
+            'message' => "No such setup_intent: '{$id}'",
+            'type' => 'invalid_request_error',
+            'code' => 'resource_missing',
+        ]);
 
         $setupIntent = $this->setupIntents[$id];
         $expand = $params['expand'] ?? [];
@@ -303,9 +299,7 @@ class FakeStripeHttpClient implements ClientInterface
 
         $customerId = $this->stringParam($params, 'customer');
 
-        if ($customerId === '') {
-            throw new RuntimeException('FakeStripeHttpClient: attach requires a customer param.');
-        }
+        throw_if($customerId === '', RuntimeException::class, 'FakeStripeHttpClient: attach requires a customer param.');
 
         $this->retrieveCustomer($customerId);
 
@@ -394,14 +388,12 @@ class FakeStripeHttpClient implements ClientInterface
 
         $value = $this->stringParam($params, 'value');
 
-        if (! preg_match('/^[A-Z]{2}[A-Z0-9]+$/i', $value)) {
-            throw new FakeStripeApiError(400, [
-                'message' => "Invalid tax ID {$value}",
-                'type' => 'invalid_request_error',
-                'param' => 'value',
-                'code' => 'tax_id_invalid',
-            ]);
-        }
+        throw_unless(preg_match('/^[A-Z]{2}[A-Z0-9]+$/i', $value), FakeStripeApiError::class, 400, [
+            'message' => "Invalid tax ID {$value}",
+            'type' => 'invalid_request_error',
+            'param' => 'value',
+            'code' => 'tax_id_invalid',
+        ]);
 
         $taxId = [
             'id' => $this->id('txi'),

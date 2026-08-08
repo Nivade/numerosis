@@ -8,11 +8,13 @@ use Closure;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Override;
 
 class InitializeTenancyByDomainOrSubdomain extends \Stancl\Tenancy\Middleware\InitializeTenancyByDomainOrSubdomain
 {
     public function __construct(private readonly Repository $repository) {}
 
+    #[Override]
     public function handle($request, Closure $next): mixed
     {
         if ($this->shouldSkip($request)) {
@@ -27,6 +29,6 @@ class InitializeTenancyByDomainOrSubdomain extends \Stancl\Tenancy\Middleware\In
         /** @var array<int, string> $centralDomains */
         $centralDomains = $this->repository->get('tenancy.central_domains', []);
 
-        return (new Collection($centralDomains))->contains($request->getHost());
+        return new Collection($centralDomains)->contains($request->getHost());
     }
 }

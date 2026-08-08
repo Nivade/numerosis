@@ -4,7 +4,7 @@
     'description' => null,
 ])
 
-<div {{ $attributes->merge(['class' => 'border-b border-gray-200 dark:border-zinc-700 pb-6']) }}>
+<div {{ $attributes->merge(['class' => 'border-b border-zinc-200 dark:border-zinc-700 pb-6']) }}>
     <div class="flex items-start space-x-4">
         @if($icon)
             <div class="shrink-0">
@@ -14,11 +14,11 @@
             </div>
         @endif
         <div class="flex-1 min-w-0">
-            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">
+            <h3 class="text-2xl font-bold text-zinc-900 dark:text-white">
                 {{ $title }}
             </h3>
             @if($description)
-                <p class="text-base text-gray-600 dark:text-gray-400 mt-2 leading-relaxed">
+                <p class="text-base text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
                     {{ $description }}
                 </p>
             @endif

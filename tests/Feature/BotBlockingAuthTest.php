@@ -82,7 +82,7 @@ class BotBlockingAuthTest extends TestCase
         // 6. Access the tenant admin panel
         // If the bug exists, the Authenticate middleware will see that someone (the bot)
         // is already logged into the 'tenant' guard and will NOT log in the real user.
-        $response = $this->actingAs($centralUser, 'web')
+        $this->actingAs($centralUser, 'web')
             ->get('http://'.$domain.'/');
 
         // 7. Assertions

@@ -40,7 +40,7 @@ class CreateTenantTest extends TestCase
             'global_id' => $user->global_id,
         ]);
 
-        $tenant = CreateTenant::run($registration);
+        CreateTenant::run($registration);
 
         // Tenant/Domain live on the `central` connection (Tenant model's
         // CentralConnection trait), a separate PDO session from the default
@@ -98,8 +98,6 @@ class CreateTenantTest extends TestCase
             subscribable_type: Tenant::class,
             stripe_price: 'price_test',
             quantity: 1,
-            trial_ends_at: null,
-            ends_at: null,
         ));
 
         // Assert

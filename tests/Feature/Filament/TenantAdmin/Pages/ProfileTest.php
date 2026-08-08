@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Filament\TenantAdmin\Pages;
 use App\Models\Central\CentralUser;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\General;
@@ -188,7 +189,7 @@ class ProfileTest extends TestCase
         ]);
 
         // Authenticate with both guards (required for multi-tenancy)
-        \Illuminate\Support\Facades\Auth::guard('web')->login($user);
+        Auth::guard('web')->login($user);
 
         $tenant->run(function () use ($tenant, $user) {
             $this->actingAsTenantPanelUser($tenant, $user);

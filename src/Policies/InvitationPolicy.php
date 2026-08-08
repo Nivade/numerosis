@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Policies;
 
+use Illuminate\Auth\Access\HandlesAuthorization;
 use Nvade\Numerosis\Models\Tenant\Invitation;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Policies\Concerns\ChecksContextPermissions;
-use Illuminate\Auth\Access\HandlesAuthorization;
 
 class InvitationPolicy
 {

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Contracts\Billing;
 
-use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Laravel\Cashier\Subscription;
+use Nvade\Numerosis\Data\Billing\SubscriptionData;
 
 interface SubscriptionRepository
 {

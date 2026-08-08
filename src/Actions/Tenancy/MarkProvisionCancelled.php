@@ -23,7 +23,7 @@ class MarkProvisionCancelled
             /** @var PendingTenantProvision $pending */
             $pending = $pendingClass::where('domain', $domain)
                 ->firstOrFail();
-        } catch (Exception $e) {
+        } catch (Exception) {
             throw new DomainException("Could not find a pending tenant reservation for domain: {$domain}");
         }
 

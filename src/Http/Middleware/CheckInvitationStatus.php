@@ -29,7 +29,7 @@ class CheckInvitationStatus
             return $next($request);
         }
 
-        $invitation = app(InvitationRepository::class)->findOrFailByToken($token);
+        $invitation = resolve(InvitationRepository::class)->findOrFailByToken($token);
 
         if ($invitation->isAccepted()) {
             Notification::make()

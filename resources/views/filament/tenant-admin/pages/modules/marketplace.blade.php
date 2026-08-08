@@ -9,10 +9,10 @@
         @php($modules = $this->getModules())
 
         @if($modules->isEmpty())
-            <div class="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-gray-300 dark:border-zinc-700 py-16 text-center">
-                <x-filament::icon icon="heroicon-o-shopping-bag" class="size-10 text-gray-400 dark:text-gray-600" />
-                <div class="text-base font-semibold text-gray-900 dark:text-white">No modules available yet</div>
-                <p class="max-w-sm text-sm text-gray-500 dark:text-gray-400">
+            <div class="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 py-16 text-center">
+                <x-filament::icon icon="heroicon-o-shopping-bag" class="size-10 text-zinc-400 dark:text-zinc-600" />
+                <div class="text-base font-semibold text-zinc-900 dark:text-white">No modules available yet</div>
+                <p class="max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
                     Check back soon — new modules will show up here as they're released.
                 </p>
             </div>
@@ -20,9 +20,9 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach($modules as $module)
                     <div @class([
-                        'relative flex flex-col h-full p-6 bg-white dark:bg-zinc-900 border rounded-2xl transition-all duration-300',
+                        'relative flex flex-col h-full p-6 bg-white dark:bg-zinc-900 border rounded-xl transition-all duration-300',
                         'border-green-200 dark:border-green-900/50' => $module['purchased'],
-                        'border-gray-200 dark:border-zinc-800 shadow-sm hover:shadow-md hover:-translate-y-0.5' => ! $module['purchased'],
+                        'border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-md hover:-translate-y-0.5' => ! $module['purchased'],
                     ])>
                         <a
                             href="{{ \Nvade\Numerosis\Filament\TenantAdmin\Pages\Modules\ModuleDetail::getUrl(['slug' => $module['slug']]) }}"
@@ -33,14 +33,14 @@
                                 <div @class([
                                     'flex items-center justify-center size-10 rounded-xl shrink-0',
                                     'bg-green-50 dark:bg-green-900/20' => $module['purchased'],
-                                    'bg-gray-50 dark:bg-zinc-800' => ! $module['purchased'],
+                                    'bg-zinc-50 dark:bg-zinc-800' => ! $module['purchased'],
                                 ])>
                                     <x-filament::icon
                                         icon="heroicon-o-puzzle-piece"
                                         @class([
                                             'size-5',
                                             'text-green-600 dark:text-green-400' => $module['purchased'],
-                                            'text-gray-500 dark:text-gray-400' => ! $module['purchased'],
+                                            'text-zinc-500 dark:text-zinc-400' => ! $module['purchased'],
                                         ])
                                     />
                                 </div>
@@ -57,10 +57,10 @@
                             </div>
 
                             <div class="mt-4">
-                                <div class="font-semibold text-base text-gray-900 dark:text-white hover:underline">
+                                <div class="font-semibold text-base text-zinc-900 dark:text-white hover:underline">
                                     {{ $module['name'] }}
                                 </div>
-                                <p class="mt-1.5 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                <p class="mt-1.5 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
                                     {{ $module['description'] }}
                                 </p>
                             </div>
@@ -68,7 +68,7 @@
 
                         <div class="mt-5 flex items-center justify-between gap-3">
                             @if($module['price_label'])
-                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                <span class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
                                     {{ $module['price_label'] }}
                                 </span>
                             @else

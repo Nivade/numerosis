@@ -29,7 +29,7 @@
     </div>
 
     <!-- Terms and Conditions -->
-    <div class="border-t border-gray-200 dark:border-zinc-700 pt-6">
+    <div class="border-t border-zinc-200 dark:border-zinc-700 pt-6">
         <flux:checkbox
             wire:model.live="terms"
             label="I agree to the Terms and Conditions *"
@@ -75,7 +75,7 @@
 
     <!-- Helper Text -->
     <div class="text-center">
-        <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
             Your workspace will be ready in minutes. We'll send you a confirmation email once it's set up.
         </p>
     </div>

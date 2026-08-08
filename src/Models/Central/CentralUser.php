@@ -28,6 +28,7 @@ use Nvade\Numerosis\Models\Tenant as Workspace;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Observers\CentralUserObserver;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 
@@ -160,11 +161,13 @@ class CentralUser extends User implements CentralUserModel, HasTenants, Subscrib
     /**
      * @return array<int, Tenant>|Collection<int, Tenant>
      */
+    #[Override]
     public function getTenants(Panel $panel): array|Collection
     {
         return $this->tenants;
     }
 
+    #[Override]
     public function getForeignKey(): string
     {
         return 'user_id';

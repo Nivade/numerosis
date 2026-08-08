@@ -8,6 +8,7 @@ use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 
 /**
  * The default Dashboard's previous content was AccountWidget alone — no
@@ -19,6 +20,7 @@ use Nvade\Numerosis\Support\Numerosis;
  */
 class TenantOverviewWidget extends StatsOverviewWidget
 {
+    #[Override]
     protected function getStats(): array
     {
         $tenantClass = Numerosis::model(Tenant::class);

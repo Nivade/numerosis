@@ -17,7 +17,7 @@
                 <x-filament::section>
                     <x-slot name="heading">
                         <div class="flex items-center gap-2">
-                            <x-filament::icon icon="heroicon-o-credit-card" class="size-5 text-gray-400"/>
+                            <x-filament::icon icon="heroicon-o-credit-card" class="size-5 text-zinc-400"/>
                             <span>Subscription Overview</span>
                         </div>
                     </x-slot>
@@ -25,11 +25,11 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 py-2">
                         {{-- Current Plan --}}
                         <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                            <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
                                 Current Plan
                             </p>
                             <div class="flex items-center gap-3">
-                                <span class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                                <span class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
                                     {{ $this->currentPlan?->name ?? 'No active plan' }}
                                 </span>
                                 @if($this->currentPlan && $subscription)
@@ -42,7 +42,7 @@
 
                         {{-- Subscription Status --}}
                         <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                            <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
                                 Status
                             </p>
                             <div class="flex items-center">
@@ -51,21 +51,21 @@
                                         <x-filament::badge color="warning" icon="heroicon-m-clock">
                                             Trialing
                                         </x-filament::badge>
-                                        <span class="text-sm text-gray-500 dark:text-gray-400 ml-3 font-medium">
+                                        <span class="text-sm text-zinc-500 dark:text-zinc-400 ml-3 font-medium">
                                             Ends {{ $subscription->trial_ends_at?->toFormattedDateString() }}
                                         </span>
                                     @elseif ($subscription->active())
                                         <x-filament::badge color="success" icon="heroicon-m-check-circle">
                                             Active
                                         </x-filament::badge>
-                                        <span class="text-sm text-gray-500 dark:text-gray-400 ml-3 font-medium">
+                                        <span class="text-sm text-zinc-500 dark:text-zinc-400 ml-3 font-medium">
                                             Renews {{ $this->getRenewsAt() }}
                                         </span>
                                     @elseif ($subscription->canceled())
                                         <x-filament::badge color="danger" icon="heroicon-m-x-circle">
                                             Canceled
                                         </x-filament::badge>
-                                        <span class="text-sm text-gray-500 dark:text-gray-400 ml-3 font-medium">
+                                        <span class="text-sm text-zinc-500 dark:text-zinc-400 ml-3 font-medium">
                                             Ends {{ $subscription->ends_at?->toFormattedDateString() }}
                                         </span>
                                     @else
@@ -89,7 +89,7 @@
                 <x-filament::section>
                     <x-slot name="heading">
                         <div class="flex items-center gap-2">
-                            <x-filament::icon icon="heroicon-o-arrow-path" class="size-5 text-gray-400"/>
+                            <x-filament::icon icon="heroicon-o-arrow-path" class="size-5 text-zinc-400"/>
                             <span>Quick Actions</span>
                         </div>
                     </x-slot>
@@ -105,7 +105,7 @@
                             Billing Portal
                         </x-filament::button>
 
-                        <p class="text-xs text-gray-500 dark:text-gray-400 px-1 leading-relaxed">
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400 px-1 leading-relaxed">
                             Manage payment methods, download invoices, or update your billing information in our secure Stripe portal.
                         </p>
                     </div>
@@ -117,10 +117,10 @@
         <div class="space-y-8">
             {{-- Section Header --}}
             <div class="text-center space-y-4 p-4">
-                <h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+                <h2 class="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
                     Available Plans
                 </h2>
-                <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                <p class="text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
                     Choose the perfect plan for your team. All plans include a 14-day free trial.
                 </p>
 
@@ -173,17 +173,17 @@
                                 </div>
 
                                 {{-- Plan Change Details --}}
-                                <div class="space-y-4 p-4 bg-gray-50 dark:bg-zinc-800/50 rounded-lg border border-gray-200 dark:border-zinc-700">
+                                <div class="space-y-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
                                     @if($this->currentPlan)
                                         <div class="flex items-center justify-between">
                                             <div>
-                                                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                                     Current Plan
                                                 </p>
-                                                <p class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
+                                                <p class="mt-1 text-sm font-semibold text-zinc-900 dark:text-white">
                                                     {{ $this->currentPlan->name }}
                                                     @if($this->subscription)
-                                                        <span class="text-xs font-normal text-gray-500 dark:text-gray-400">
+                                                        <span class="text-xs font-normal text-zinc-500 dark:text-zinc-400">
                                                             ({{ $this->subscription->stripe_price === $this->currentPlan->getPriceId(BillingCycle::Monthly) ? 'Monthly' : 'Yearly' }})
                                                         </span>
                                                     @endif
@@ -191,24 +191,24 @@
                                             </div>
                                             <x-filament::icon
                                                 icon="heroicon-m-arrow-right"
-                                                class="size-5 text-gray-400 dark:text-gray-500"
+                                                class="size-5 text-zinc-400 dark:text-zinc-500"
                                             />
                                         </div>
                                     @endif
 
                                     <div>
-                                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                             New Plan
                                         </p>
-                                        <p class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
+                                        <p class="mt-1 text-sm font-semibold text-zinc-900 dark:text-white">
                                             {{ $plan->name }}
-                                            <span class="text-xs font-normal text-gray-500 dark:text-gray-400">
+                                            <span class="text-xs font-normal text-zinc-500 dark:text-zinc-400">
                                                 ({{ $billingCycle === \Nvade\Numerosis\Enums\BillingCycle::Monthly ? 'Monthly' : 'Yearly' }})
                                             </span>
                                         </p>
                                         <p class="mt-1 text-lg font-bold text-blue-600 dark:text-blue-400">
                                             {{ $this->formatAmount($price) }}
-                                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                            <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400">
                                                 {{ $billingCycle->label() }}
                                             </span>
                                         </p>
@@ -225,7 +225,7 @@
                                             What happens next?
                                         </x-slot>
 
-                                        <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                                        <div class="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
                                             <p>• Your plan will be updated immediately</p>
                                             <p>• You'll be charged the prorated amount</p>
                                             <p>• Your next billing date will remain the same</p>

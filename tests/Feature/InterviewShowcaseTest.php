@@ -16,7 +16,9 @@ use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\Tests\TestCase;
+use Spatie\Permission\PermissionRegistrar;
 
 class InterviewShowcaseTest extends TestCase
 {
@@ -74,10 +76,10 @@ class InterviewShowcaseTest extends TestCase
         RecordSubscription::run(new SubscriptionData(
             user_id: (string) $user->id,
             payment_plan_id: (string) $paymentPlan->id,
-            subscribable_type: Tenant::class,
-            subscribable_id: $tenant->id,
             stripe_id: 'sub_live_showcase',
             stripe_status: 'active',
+            subscribable_id: $tenant->id,
+            subscribable_type: Tenant::class,
             stripe_price: 'price_pro_monthly',
             quantity: 1,
         ));
@@ -99,12 +101,12 @@ class InterviewShowcaseTest extends TestCase
             $this->assertEquals($user->email, $tenantUser->email);
 
             // Clear permission cache to ensure fresh state
-            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+            app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
 
             // Verify Job Execution: FinalizeTenantProvisioning should have assigned the admin role
             // (Note: In tests, jobs usually run synchronously if QUEUE_CONNECTION=sync)
             $this->assertDatabaseHas('model_has_roles', [
-                'role_id' => \Nvade\Numerosis\Models\Role::where('name', 'admin')->where('guard_name', 'tenant')->first()->id,
+                'role_id' => Role::where('name', 'admin')->where('guard_name', 'tenant')->first()->id,
                 'model_id' => $tenantUser->id,
                 'model_type' => $tenantUser->getMorphClass(),
             ]);

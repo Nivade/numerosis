@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Resources\Roles\Pages;
 
-use Nvade\Numerosis\Filament\Admin\Resources\Roles\RoleResource;
 use Filament\Resources\Pages\CreateRecord;
+use Nvade\Numerosis\Filament\Admin\Resources\Roles\RoleResource;
 
 class CreateRole extends CreateRecord
 {

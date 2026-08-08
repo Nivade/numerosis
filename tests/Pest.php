@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Stancl\Tenancy\Jobs\CreateDatabase;
+use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
 use Nvade\Numerosis\Tests\TestCase;
+use Stancl\Tenancy\Jobs\CreateDatabase;
 
 /**
  * Migrating and seeding a tenant database costs ~1.9s, and QUEUE_CONNECTION=sync

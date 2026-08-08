@@ -93,9 +93,9 @@ class LoginTest extends TestCase
     {
         $existingUser = CentralUser::factory()->create(['email' => 'existing@example.com']);
 
-        $spy = new class($existingUser) implements SocialAccountRepository
+        $spy = new readonly class($existingUser) implements SocialAccountRepository
         {
-            public function __construct(private readonly CentralUser $user) {}
+            public function __construct(private CentralUser $user) {}
 
             public function findUserByProviderAndId(string $provider, string $providerId): ?CentralUser
             {

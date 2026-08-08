@@ -17,6 +17,7 @@ use Nvade\Numerosis\Database\Factories\Tenant\InvitationFactory;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Policies\InvitationPolicy;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -56,6 +57,7 @@ class Invitation extends Model
 
     use LogsActivity;
 
+    #[Override]
     protected function casts(): array
     {
         return [
@@ -64,6 +66,7 @@ class Invitation extends Model
         ];
     }
 
+    #[Override]
     protected static function boot(): void
     {
         parent::boot();

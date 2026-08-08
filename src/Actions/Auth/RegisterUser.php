@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
-use Nvade\Numerosis\Contracts\Auth\CreatesRegisteredUser;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Event;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Auth\CreatesRegisteredUser;
+use Nvade\Numerosis\Models\Central\CentralUser;
 
 class RegisterUser
 {
@@ -19,7 +19,7 @@ class RegisterUser
      */
     public function handle(array $data): CentralUser
     {
-        $user = app(CreatesRegisteredUser::class)->create($data);
+        $user = resolve(CreatesRegisteredUser::class)->create($data);
 
         Event::dispatch(new Registered($user));
 

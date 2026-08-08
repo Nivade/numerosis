@@ -1,6 +1,6 @@
 <x-layouts::app :title="__('Features')">
     <section class="relative overflow-hidden">
-        <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(50%_50%_at_50%_0%,rgba(59,130,246,0.15)_0%,transparent_60%)] dark:bg-[radial-gradient(50%_50%_at_50%_0%,rgba(59,130,246,0.2)_0%,transparent_60%)]"></div>
+        <x-numerosis::ui.hero-gradient />
 
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-12 sm:pt-24 sm:pb-16 text-center">
             <flux:badge>Powerful Features</flux:badge>
@@ -18,9 +18,7 @@
             <!-- Feature 1 -->
             <div class="grid gap-12 lg:grid-cols-2 lg:items-center">
                 <div class="space-y-6">
-                    <div class="size-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                        <flux:icon name="hashtag" class="text-blue-500" />
-                    </div>
+                    <x-numerosis::ui.icon-tile icon="hashtag" color="blue" />
                     <flux:heading level="2" class="text-3xl font-bold">Channels for every topic</flux:heading>
                     <p class="text-lg text-zinc-600 dark:text-zinc-300">
                         Stay organized with dedicated channels for projects, teams, or even lunch plans. Keep everyone on the same page with real-time messaging and threaded conversations.
@@ -52,9 +50,7 @@
             <!-- Feature 2 -->
             <div class="grid gap-12 lg:grid-cols-2 lg:items-center lg:direction-rtl">
                 <div class="lg:order-last space-y-6">
-                    <div class="size-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                        <flux:icon name="paper-clip" class="text-emerald-500" />
-                    </div>
+                    <x-numerosis::ui.icon-tile icon="paper-clip" color="emerald" />
                     <flux:heading level="2" class="text-3xl font-bold">Seamless file sharing</flux:heading>
                     <p class="text-lg text-zinc-600 dark:text-zinc-300">
                         Drop a file into any channel and let your team preview it instantly. Our centralized file storage makes it easy to find what you need, when you need it.
@@ -86,9 +82,7 @@
             <!-- Feature 3 -->
             <div class="grid gap-12 lg:grid-cols-2 lg:items-center">
                 <div class="space-y-6">
-                    <div class="size-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                        <flux:icon name="bolt" class="text-purple-500" />
-                    </div>
+                    <x-numerosis::ui.icon-tile icon="bolt" color="purple" />
                     <flux:heading level="2" class="text-3xl font-bold">Automated Workflows</flux:heading>
                     <p class="text-lg text-zinc-600 dark:text-zinc-300">
                         Automate repetitive tasks with our built-in workflow builder. Connect your favorite tools and let {{ config('app.name') }} handle the busy work.

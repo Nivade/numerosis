@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Http\Controllers\Auth;
 
-use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
-use Nvade\Numerosis\Http\Controllers\Controller;
-use Nvade\Numerosis\Http\Requests\EmailVerificationRequest;
-use Nvade\Numerosis\Support\Features;
-use Nvade\Numerosis\Support\Routes\RouteNames;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Redirector;
 use Illuminate\Routing\UrlGenerator;
+use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
+use Nvade\Numerosis\Http\Controllers\Controller;
+use Nvade\Numerosis\Http\Requests\EmailVerificationRequest;
+use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\Routes\RouteNames;
 
 class VerifyEmailController extends Controller
 {

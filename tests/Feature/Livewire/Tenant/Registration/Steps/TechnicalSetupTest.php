@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Livewire\Tenant\Registration\Steps;
 use App\Models\Central\CentralUser;
 use App\Models\Central\PendingTenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Registration;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
@@ -107,16 +108,16 @@ class TechnicalSetupTest extends TestCase
 
     /**
      * @param  array<string, array<string, mixed>>  $stepsState
-     * @return \Livewire\Features\SupportTesting\Testable<TechnicalSetup>
+     * @return Testable<TechnicalSetup>
      */
-    private function technicalSetupStep(array $stepsState): \Livewire\Features\SupportTesting\Testable
+    private function technicalSetupStep(array $stepsState): Testable
     {
         return Livewire::test(TechnicalSetup::class, [
             'wizardClassName' => Registration::class,
             'stateClassName' => RegistrationState::class,
             'allStepNames' => [
-                app('livewire.finder')->normalizeName(CompanyInfo::class),
-                app('livewire.finder')->normalizeName(TechnicalSetup::class),
+                resolve('livewire.finder')->normalizeName(CompanyInfo::class),
+                resolve('livewire.finder')->normalizeName(TechnicalSetup::class),
             ],
             'allStepsState' => $stepsState,
         ]);

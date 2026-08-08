@@ -38,6 +38,6 @@ Route::middleware(['universal', 'auth:tenant'])->group(function () {
     // Deliberately outside the tenant Filament panel: EnsureTenantSubscriptionActive
     // is scoped to the panel's own middleware stack, so redirecting here can
     // never loop back through the same gate.
-    Route::livewire('account-suspended', 'numerosis::pages.tenant.suspended')
+    Route::livewire('account-suspended', 'pages::tenant.suspended')
         ->name('tenant.suspended');
 });

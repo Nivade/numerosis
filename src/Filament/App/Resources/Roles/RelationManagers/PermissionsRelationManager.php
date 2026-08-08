@@ -21,6 +21,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
 use Nvade\Numerosis\Filament\App\Resources\Permissions\PermissionResource;
+use Override;
 
 class PermissionsRelationManager extends RelationManager
 {
@@ -28,6 +29,7 @@ class PermissionsRelationManager extends RelationManager
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    #[Override]
     public function form(Schema $schema): Schema
     {
         return $schema->components([
@@ -44,7 +46,7 @@ class PermissionsRelationManager extends RelationManager
                         ]),
 
                     Select::make('guard_name')
-                        ->options((new Collection(Config::array('auth.guards')))->keys())
+                        ->options(new Collection(Config::array('auth.guards'))->keys())
                         ->default('tenant')
                         ->required()
                         ->label('Guard')

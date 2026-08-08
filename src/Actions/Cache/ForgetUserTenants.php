@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Cache;
 
-use Nvade\Numerosis\Support\Cache\CacheKeys;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Support\Cache\CacheKeys;
 
 class ForgetUserTenants
 {

@@ -9,6 +9,7 @@ use Nvade\Numerosis\Filament\Admin\Clusters\Billing\BillingCluster;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 
 class SubscriptionsByPlanChart extends ChartWidget
 {
@@ -18,6 +19,7 @@ class SubscriptionsByPlanChart extends ChartWidget
 
     protected ?string $maxHeight = '250px';
 
+    #[Override]
     protected function getData(): array
     {
         $subscriptionClass = Numerosis::model(Subscription::class);

@@ -10,6 +10,7 @@ use Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets\BillingStatsWidget;
 use Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets\RecentSubscriptionsTable;
 use Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets\RevenueChartWidget;
 use Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets\SubscriptionsByPlanChart;
+use Override;
 
 class BillingDashboard extends Page
 {
@@ -21,6 +22,7 @@ class BillingDashboard extends Page
 
     protected static ?int $navigationSort = -1;
 
+    #[Override]
     protected function getHeaderWidgets(): array
     {
         return [

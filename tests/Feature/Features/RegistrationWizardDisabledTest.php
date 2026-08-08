@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Features;
 
+use Illuminate\Support\Facades\Route;
+use Livewire\Livewire;
 use Nvade\Numerosis\Features\Auth\EmailVerificationFeature;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
@@ -18,8 +20,6 @@ use Nvade\Numerosis\Features\Ui\AdminPanelFeature;
 use Nvade\Numerosis\Features\Ui\MarketingPagesFeature;
 use Nvade\Numerosis\Features\Ui\TenantPanelFeature;
 use Nvade\Numerosis\Support\Features;
-use Illuminate\Support\Facades\Route;
-use Livewire\Livewire;
 use Nvade\Numerosis\Tests\TestCase;
 
 class RegistrationWizardDisabledTest extends TestCase

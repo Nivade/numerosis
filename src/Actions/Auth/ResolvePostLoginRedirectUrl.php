@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
+use Illuminate\Support\Facades\Session;
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Auth\ResolvesPostLoginRedirectUrl;
 use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Routes\RouteNames;
-use Illuminate\Support\Facades\Session;
-use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * @method static string run()

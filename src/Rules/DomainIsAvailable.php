@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Rules;
 
-use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\ValidationException;
+use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 
 /**
  * Adapts TenantDomainPolicy (format, reserved words, already a live tenant)
@@ -21,7 +21,7 @@ class DomainIsAvailable implements ValidationRule
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         try {
-            app(TenantDomainPolicy::class)->assertAvailable((string) $value);
+            resolve(TenantDomainPolicy::class)->assertAvailable((string) $value);
         } catch (ValidationException $e) {
             foreach ($e->errors() as $messages) {
                 foreach ($messages as $message) {

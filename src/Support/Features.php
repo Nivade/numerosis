@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Support;
 
-use Nvade\Numerosis\Contracts\Feature;
-use Nvade\Numerosis\Contracts\NamedFeature;
 use Illuminate\Support\Facades\Config;
 use LogicException;
+use Nvade\Numerosis\Contracts\Feature;
+use Nvade\Numerosis\Contracts\NamedFeature;
 
 /**
  * Reads config('numerosis.features') — the one place a feature is switched on

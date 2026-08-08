@@ -36,7 +36,7 @@ class RestoreTenantTest extends TestCase
         $this->assertFalse($tenant->isSuspended());
         $this->assertNull($tenant->suspended_at);
 
-        Event::assertDispatched(PaymentSettled::class, fn (PaymentSettled $e) => $e->tenant->id === $tenant->id && $e->ownerId === $owner->id);
+        Event::assertDispatched(fn (PaymentSettled $e) => $e->tenant->id === $tenant->id && $e->ownerId === $owner->id);
     }
 
     /**

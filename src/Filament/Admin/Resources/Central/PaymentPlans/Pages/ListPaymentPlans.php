@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages;
 
-use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\PaymentPlanResource;
-use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Widgets\PlanStatsWidget;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
+use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\PaymentPlanResource;
+use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Widgets\PlanStatsWidget;
+use Override;
 
 class ListPaymentPlans extends ListRecords
 {
     protected static string $resource = PaymentPlanResource::class;
 
+    #[Override]
     protected function getHeaderActions(): array
     {
         return [
@@ -24,6 +26,7 @@ class ListPaymentPlans extends ListRecords
         ];
     }
 
+    #[Override]
     protected function getHeaderWidgets(): array
     {
         return [
@@ -31,6 +34,7 @@ class ListPaymentPlans extends ListRecords
         ];
     }
 
+    #[Override]
     public function getTabs(): array
     {
         return [
@@ -45,6 +49,7 @@ class ListPaymentPlans extends ListRecords
         ];
     }
 
+    #[Override]
     public function getDefaultActiveTab(): string|int|null
     {
         return 'available';

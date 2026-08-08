@@ -2,7 +2,7 @@
 <div class="text-sm">
     @if (! \Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser::run()->hasVerifiedEmail())
         <div class="flex items-center gap-x-3">
-            <p class="text-gray-600 dark:text-gray-400">
+            <p class="text-zinc-600 dark:text-zinc-400">
                 Your email address is unverified.
             </p>
 

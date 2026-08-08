@@ -16,6 +16,7 @@ use Nvade\Numerosis\Filament\Admin\Resources\Users\Pages\EditUser;
 use Nvade\Numerosis\Filament\Admin\Resources\Users\Pages\ListUsers;
 use Nvade\Numerosis\Models\Central\CentralUser as User;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 
 /**
  * Every registered person — every tenant owner and member, not internal
@@ -32,21 +33,25 @@ class UserResource extends Resource
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
+    #[Override]
     public static function getModel(): string
     {
         return Numerosis::model(User::class);
     }
 
+    #[Override]
     public static function getNavigationGroup(): ?string
     {
         return 'Access Control';
     }
 
+    #[Override]
     public static function getNavigationLabel(): string
     {
         return 'Users';
     }
 
+    #[Override]
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
@@ -66,6 +71,7 @@ class UserResource extends Resource
         ]);
     }
 
+    #[Override]
     public static function table(Table $table): Table
     {
         return $table
@@ -94,11 +100,13 @@ class UserResource extends Resource
      *
      * @return array<int, string>
      */
+    #[Override]
     public static function getGloballySearchableAttributes(): array
     {
         return ['name', 'email'];
     }
 
+    #[Override]
     public static function getPages(): array
     {
         return [

@@ -23,6 +23,7 @@ use Nvade\Numerosis\Observers\TenantObserver;
 use Nvade\Numerosis\Policies\TenantPolicy;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
@@ -132,6 +133,7 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
         ];
     }
 
+    #[Override]
     protected function casts(): array
     {
         return [

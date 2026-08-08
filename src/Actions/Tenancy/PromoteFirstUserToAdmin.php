@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Exceptions\Tenancy\NoPromotableUser;
+use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User;
 use Nvade\Numerosis\Support\Numerosis;
 
@@ -13,7 +14,7 @@ class PromoteFirstUserToAdmin
 {
     use AsAction;
 
-    public function handle(\Nvade\Numerosis\Models\Central\Tenant $tenant): void
+    public function handle(Tenant $tenant): void
     {
         $userClass = Numerosis::model(User::class);
 

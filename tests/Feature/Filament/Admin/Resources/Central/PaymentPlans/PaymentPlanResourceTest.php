@@ -9,6 +9,7 @@ use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
+use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\ListPaymentPlans;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\PaymentPlanResource;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -29,8 +30,7 @@ class PaymentPlanResourceTest extends TestCase
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
-        $this->get(PaymentPlanResource::getUrl('index'))
-            ->assertStatus(200);
+        $this->get(PaymentPlanResource::getUrl('index'))->assertOk();
     }
 
     public function test_can_list_payment_plans(): void
@@ -40,7 +40,7 @@ class PaymentPlanResourceTest extends TestCase
 
         $plans = PaymentPlan::factory()->count(5)->create();
 
-        Livewire::test(\Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\ListPaymentPlans::class)
+        Livewire::test(ListPaymentPlans::class)
             ->assertCanSeeTableRecords($plans);
     }
 }

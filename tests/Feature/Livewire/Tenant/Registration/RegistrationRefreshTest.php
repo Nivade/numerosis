@@ -74,10 +74,10 @@ class RegistrationRefreshTest extends TestCase
      */
     private function wizardParams(): array
     {
-        $companyInfoAlias = app('livewire.finder')->normalizeName(CompanyInfo::class);
-        $technicalSetupAlias = app('livewire.finder')->normalizeName(TechnicalSetup::class);
-        $planAlias = app('livewire.finder')->normalizeName(Plan::class);
-        $paymentAlias = app('livewire.finder')->normalizeName(Payment::class);
+        $companyInfoAlias = resolve('livewire.finder')->normalizeName(CompanyInfo::class);
+        $technicalSetupAlias = resolve('livewire.finder')->normalizeName(TechnicalSetup::class);
+        $planAlias = resolve('livewire.finder')->normalizeName(Plan::class);
+        $paymentAlias = resolve('livewire.finder')->normalizeName(Payment::class);
 
         return [
             'wizardClassName' => Registration::class,

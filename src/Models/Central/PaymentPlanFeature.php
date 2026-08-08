@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 use Nvade\Numerosis\Database\Factories\PaymentPlanFeatureFactory;
 use Nvade\Numerosis\Observers\PaymentPlanFeatureObserver;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -43,6 +44,7 @@ class PaymentPlanFeature extends Pivot
     /** @use HasFactory<PaymentPlanFeatureFactory> */
     use HasFactory;
 
+    #[Override]
     protected function casts(): array
     {
         return [

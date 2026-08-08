@@ -49,7 +49,7 @@ class InlineCheckoutGatewayTest extends TestCase
             'global_id' => $user->global_id,
         ]);
 
-        $intent = app(InlineCheckoutGateway::class)->begin(new TenantRegistrationData(
+        $intent = resolve(InlineCheckoutGateway::class)->begin(new TenantRegistrationData(
             company_name: 'Inline Test Co',
             domain: 'inline-test',
             global_id: $user->global_id,

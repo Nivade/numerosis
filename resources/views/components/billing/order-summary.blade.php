@@ -20,7 +20,7 @@
     gradient total are the one deliberate flourish on this step; everything
     else stays quiet around it.
 --}}
-<div {{ $attributes->merge(['class' => 'overflow-hidden rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm']) }}>
+<div {{ $attributes->merge(['class' => 'overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm']) }}>
     <div class="h-1.5 bg-linear-to-r from-blue-600 to-purple-600"></div>
 
     <div class="p-6 space-y-4">
@@ -37,12 +37,12 @@
             </x-numerosis::ui.text>
         </div>
 
-        <div class="border-t border-dashed border-gray-300 dark:border-zinc-700"></div>
+        <div class="border-t border-dashed border-zinc-300 dark:border-zinc-700"></div>
 
         @if($onTrial)
             <x-numerosis::billing.trial-notice :plan="$plan" :billing-cycle="$billingCycle" :price="$price" />
 
-            <div class="border-t border-dashed border-gray-300 dark:border-zinc-700"></div>
+            <div class="border-t border-dashed border-zinc-300 dark:border-zinc-700"></div>
         @endif
 
         <div class="flex items-end justify-between gap-3">

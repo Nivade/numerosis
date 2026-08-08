@@ -7,7 +7,6 @@ namespace Workbench\App\Providers\Filament;
 use Filament\Facades\Filament;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
 use Nvade\Numerosis\Filament\NumerosisTenantPlugin;
 
 /**
@@ -19,6 +18,9 @@ use Nvade\Numerosis\Filament\NumerosisTenantPlugin;
  * copying produces a cross-tenant identity leak rather than an error, which
  * is the strongest argument for it living in one place;
  * {@see NumerosisTenantPlugin} is that place.
+ *
+ * No `->colors()` call — see {@see AdminPanelProvider}'s docblock, same
+ * reasoning.
  */
 class TenantAdminPanelProvider extends PanelProvider
 {
@@ -36,9 +38,6 @@ class TenantAdminPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         return $panel
-            ->plugin(NumerosisTenantPlugin::make())
-            ->colors([
-                'primary' => Color::Rose,
-            ]);
+            ->plugin(NumerosisTenantPlugin::make());
     }
 }

@@ -16,6 +16,7 @@ use Nvade\Numerosis\Filament\Admin\Resources\Roles\Pages\EditRole;
 use Nvade\Numerosis\Filament\Admin\Resources\Roles\Pages\ListRoles;
 use Nvade\Numerosis\Filament\Admin\Resources\Roles\RelationManagers\PermissionsRelationManager;
 use Nvade\Numerosis\Models\Central\Role;
+use Override;
 
 class RoleResource extends Resource
 {
@@ -23,16 +24,19 @@ class RoleResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedKey;
 
+    #[Override]
     public static function getNavigationGroup(): ?string
     {
         return 'Access Control';
     }
 
+    #[Override]
     public static function getNavigationLabel(): string
     {
         return 'Roles';
     }
 
+    #[Override]
     public static function form(Schema $schema): Schema
     {
         return $schema
@@ -42,6 +46,7 @@ class RoleResource extends Resource
             ]);
     }
 
+    #[Override]
     public static function table(Table $table): Table
     {
         return $table
@@ -62,6 +67,7 @@ class RoleResource extends Resource
             ->emptyStateIcon('heroicon-o-key');
     }
 
+    #[Override]
     public static function getRelations(): array
     {
         return [
@@ -69,6 +75,7 @@ class RoleResource extends Resource
         ];
     }
 
+    #[Override]
     public static function getPages(): array
     {
         return [

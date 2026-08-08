@@ -12,13 +12,13 @@
 
     @if ($providers !== [])
         @foreach ($providers as $id => $meta)
-            <div class="flex items-center justify-between py-3 border-b last:border-0 border-gray-100 dark:border-gray-800">
+            <div class="flex items-center justify-between py-3 border-b last:border-0 border-zinc-100 dark:border-zinc-800">
                 <div class="flex items-center gap-x-3">
                     <x-filament::icon
                         :icon="$meta['icon']"
-                        class="h-5 w-5 text-gray-400"
+                        class="h-5 w-5 text-zinc-400"
                     />
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    <span class="text-sm font-medium text-zinc-700 dark:text-zinc-200">
                         {{ $meta['label'] }}
                     </span>
                 </div>
@@ -50,13 +50,13 @@
 
     @foreach ($connectedProviders as $id)
         @if (! isset($providers[$id]))
-            <div class="flex items-center justify-between py-3 border-b last:border-0 border-gray-100 dark:border-gray-800">
+            <div class="flex items-center justify-between py-3 border-b last:border-0 border-zinc-100 dark:border-zinc-800">
                 <div class="flex items-center gap-x-3">
                     <x-filament::icon
                         icon="heroicon-o-link"
-                        class="h-5 w-5 text-gray-400"
+                        class="h-5 w-5 text-zinc-400"
                     />
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    <span class="text-sm font-medium text-zinc-700 dark:text-zinc-200">
                         {{ ucfirst($id) }}
                     </span>
                 </div>

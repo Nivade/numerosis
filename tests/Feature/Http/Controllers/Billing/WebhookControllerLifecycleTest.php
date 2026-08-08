@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Notification;
 use Nvade\Numerosis\Notifications\Billing\PaymentFailed;
 use Nvade\Numerosis\Notifications\Billing\TenantSuspended;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Covers custom-checkout.md's SuspendedTenantTest spec: each of
@@ -77,7 +78,7 @@ class WebhookControllerLifecycleTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('suspendingStatuses')]
+    #[DataProvider('suspendingStatuses')]
     public function test_subscription_updated_suspends_the_tenant(string $status): void
     {
         Notification::fake();

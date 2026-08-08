@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Nvade\Numerosis\Database\Factories\Central\SubscriptionItemFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Nvade\Numerosis\Database\Factories\Central\SubscriptionItemFactory;
+use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -28,6 +29,7 @@ class SubscriptionItem extends \Laravel\Cashier\SubscriptionItem
 {
     use CentralConnection;
 
+    #[Override]
     protected static function newFactory(): SubscriptionItemFactory
     {
         return SubscriptionItemFactory::new();

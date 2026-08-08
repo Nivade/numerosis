@@ -4,21 +4,44 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests;
 
+use App\Models\Central\CentralUser;
+use App\Models\Central\Domain;
+use App\Models\Tenant\User;
+use Illuminate\Contracts\Config\Repository;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
+use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
+use Nvade\Numerosis\Models\Central\PaymentPlan;
+use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Permission;
+use Nvade\Numerosis\Models\Role;
+use Nvade\Numerosis\Models\Tenant\Invitation;
+use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\NumerosisServiceProvider;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Testing\InteractsWithTenantPanel;
 use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
 use Orchestra\Testbench\TestCase as Orchestra;
 use PDO;
+use Pdo\Mysql;
+use Spatie\Activitylog\Models\Activity;
+use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
+use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
+use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;
+use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;
+use Stancl\Tenancy\UUIDGenerator;
 use Workbench\App\Providers\Filament\AdminPanelProvider;
 use Workbench\App\Providers\Filament\TenantAdminPanelProvider;
 
@@ -87,7 +110,7 @@ abstract class TestCase extends Orchestra
         $_ENV['CENTRAL_SUBDOMAIN'] = 'central';
         $_ENV['SESSION_DOMAIN'] = '.numerosistest.test';
 
-        $app['config']->set('app.key', 'base64:'.base64_encode(str_repeat('a', 32)));
+        $app->make(Repository::class)->set('app.key', 'base64:'.base64_encode(str_repeat('a', 32)));
 
         // These three used to be hand-set as `app.domain`, `app.host` and
         // `app.central.*` — keys this package invented inside Laravel's own
@@ -97,9 +120,9 @@ abstract class TestCase extends Orchestra
         // carry real defaults derived from APP_URL, so this block only
         // overrides them to the harness's own hostname rather than rescuing
         // the package from a NULL.
-        $app['config']->set('numerosis.domains.apex', 'numerosistest.test');
-        $app['config']->set('numerosis.domains.central', 'central.numerosistest.test');
-        $app['config']->set('numerosis.domains.tenant_pattern', '{tenant}.numerosistest.test');
+        $app->make(Repository::class)->set('numerosis.domains.apex', 'numerosistest.test');
+        $app->make(Repository::class)->set('numerosis.domains.central', 'central.numerosistest.test');
+        $app->make(Repository::class)->set('numerosis.domains.tenant_pattern', '{tenant}.numerosistest.test');
 
         // Numerosis::routes() only binds routes/web.php to the Host header
         // matching a configured central domain (Route::domain($domain), one
@@ -118,17 +141,17 @@ abstract class TestCase extends Orchestra
         // regardless of the config value. URL::forceRootUrl() is the
         // documented override for exactly this: it wins over the bound
         // request unconditionally.
-        $app['config']->set('app.url', 'http://central.numerosistest.test');
-        \Illuminate\Support\Facades\URL::forceRootUrl('http://central.numerosistest.test');
+        $app->make(Repository::class)->set('app.url', 'http://central.numerosistest.test');
+        URL::forceRootUrl('http://central.numerosistest.test');
 
         // Config key itself, not just the PDO init string — LockWaitTimeoutTest
         // asserts the two agree via Config::integer('database.lock_wait_timeout'),
         // same key saas-m's own config/database.php exposes at the top level.
         $lockWaitTimeout = 10;
-        $app['config']->set('database.lock_wait_timeout', $lockWaitTimeout);
+        $app->make(Repository::class)->set('database.lock_wait_timeout', $lockWaitTimeout);
 
         $mysqlOptions = extension_loaded('pdo_mysql') ? [
-            (PHP_VERSION_ID >= 80500 ? \Pdo\Mysql::ATTR_INIT_COMMAND : PDO::MYSQL_ATTR_INIT_COMMAND) => "SET SESSION lock_wait_timeout = {$lockWaitTimeout}, innodb_lock_wait_timeout = {$lockWaitTimeout}",
+            (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_INIT_COMMAND : PDO::MYSQL_ATTR_INIT_COMMAND) => "SET SESSION lock_wait_timeout = {$lockWaitTimeout}, innodb_lock_wait_timeout = {$lockWaitTimeout}",
         ] : [];
 
         $mysql = [
@@ -148,43 +171,43 @@ abstract class TestCase extends Orchestra
             'options' => $mysqlOptions,
         ];
 
-        $app['config']->set('database.default', 'mysql');
-        $app['config']->set('database.connections.mysql', $mysql);
-        $app['config']->set('database.connections.central', $mysql);
-        $app['config']->set('database.connections.tenant', $mysql);
+        $app->make(Repository::class)->set('database.default', 'mysql');
+        $app->make(Repository::class)->set('database.connections.mysql', $mysql);
+        $app->make(Repository::class)->set('database.connections.central', $mysql);
+        $app->make(Repository::class)->set('database.connections.tenant', $mysql);
 
-        $app['config']->set('tenancy.tenant_model', \App\Models\Central\Tenant::class);
-        $app['config']->set('tenancy.id_generator', \Stancl\Tenancy\UUIDGenerator::class);
-        $app['config']->set('tenancy.domain_model', \App\Models\Central\Domain::class);
-        $app['config']->set('tenancy.central_user_model', \App\Models\Central\CentralUser::class);
-        $app['config']->set('tenancy.tenant_user_model', \App\Models\Tenant\User::class);
-        $app['config']->set('tenancy.central_domains', ['central.numerosistest.test']);
-        $app['config']->set('tenancy.bootstrappers', [
-            \Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper::class,
-            \Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper::class,
-            \Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper::class,
-            \Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper::class,
-            \Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper::class,
-            \Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper::class,
+        $app->make(Repository::class)->set('tenancy.tenant_model', \App\Models\Central\Tenant::class);
+        $app->make(Repository::class)->set('tenancy.id_generator', UUIDGenerator::class);
+        $app->make(Repository::class)->set('tenancy.domain_model', Domain::class);
+        $app->make(Repository::class)->set('tenancy.central_user_model', CentralUser::class);
+        $app->make(Repository::class)->set('tenancy.tenant_user_model', User::class);
+        $app->make(Repository::class)->set('tenancy.central_domains', ['central.numerosistest.test']);
+        $app->make(Repository::class)->set('tenancy.bootstrappers', [
+            DatabaseTenancyBootstrapper::class,
+            CacheTenancyBootstrapper::class,
+            FilesystemTenancyBootstrapper::class,
+            QueueTenancyBootstrapper::class,
+            SpatiePermissionsBootstrapper::class,
+            AuthGuardBootstrapper::class,
         ]);
-        $app['config']->set('tenancy.database.central_connection', 'central');
-        $app['config']->set('tenancy.database.prefix', 'tenant');
-        $app['config']->set('tenancy.database.suffix', '');
-        $app['config']->set('tenancy.filesystem.suffix_base', 'tenant');
-        $app['config']->set('tenancy.filesystem.disks', ['local', 'public']);
-        $app['config']->set('tenancy.filesystem.root_override', [
+        $app->make(Repository::class)->set('tenancy.database.central_connection', 'central');
+        $app->make(Repository::class)->set('tenancy.database.prefix', 'tenant');
+        $app->make(Repository::class)->set('tenancy.database.suffix', '');
+        $app->make(Repository::class)->set('tenancy.filesystem.suffix_base', 'tenant');
+        $app->make(Repository::class)->set('tenancy.filesystem.disks', ['local', 'public']);
+        $app->make(Repository::class)->set('tenancy.filesystem.root_override', [
             'local' => '%storage_path%/app/private/',
             'public' => '%storage_path%/app/public/',
         ]);
-        $app['config']->set('tenancy.filesystem.suffix_storage_path', true);
-        $app['config']->set('tenancy.cache.tag_base', 'tenant');
-        $app['config']->set('tenancy.migration_parameters', [
+        $app->make(Repository::class)->set('tenancy.filesystem.suffix_storage_path', true);
+        $app->make(Repository::class)->set('tenancy.cache.tag_base', 'tenant');
+        $app->make(Repository::class)->set('tenancy.migration_parameters', [
             '--force' => true,
             '--path' => [Numerosis::tenantMigrationPath()],
             '--realpath' => true,
         ]);
-        $app['config']->set('tenancy.seeder_parameters', [
-            '--class' => \Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder::class,
+        $app->make(Repository::class)->set('tenancy.seeder_parameters', [
+            '--class' => TenantDatabaseSeeder::class,
         ]);
 
         // Every test in this suite creates models via the Workbench stubs
@@ -195,29 +218,29 @@ abstract class TestCase extends Orchestra
         // LinkSubscriptionToTenant's subscribable_type) disagrees with the
         // class actually used to create the row, and a polymorphic lookup
         // that filters on that column silently finds nothing.
-        $app['config']->set('numerosis.models', [
+        $app->make(Repository::class)->set('numerosis.models', [
             Tenant::class => \App\Models\Central\Tenant::class,
-            \Nvade\Numerosis\Models\Central\Domain::class => \App\Models\Central\Domain::class,
-            \Nvade\Numerosis\Models\Central\CentralUser::class => \App\Models\Central\CentralUser::class,
-            \Nvade\Numerosis\Models\Central\Subscription::class => \App\Models\Central\Subscription::class,
-            \Nvade\Numerosis\Models\Central\PaymentPlan::class => \App\Models\Central\PaymentPlan::class,
-            \Nvade\Numerosis\Models\Central\PendingTenantProvision::class => \App\Models\Central\PendingTenantProvision::class,
-            \Nvade\Numerosis\Models\Tenant\Invitation::class => \App\Models\Tenant\Invitation::class,
-            \Nvade\Numerosis\Models\Tenant\Module::class => \App\Models\Tenant\Module::class,
-            \Nvade\Numerosis\Models\Tenant\User::class => \App\Models\Tenant\User::class,
+            \Nvade\Numerosis\Models\Central\Domain::class => Domain::class,
+            \Nvade\Numerosis\Models\Central\CentralUser::class => CentralUser::class,
+            Subscription::class => \App\Models\Central\Subscription::class,
+            PaymentPlan::class => \App\Models\Central\PaymentPlan::class,
+            PendingTenantProvision::class => \App\Models\Central\PendingTenantProvision::class,
+            Invitation::class => \App\Models\Tenant\Invitation::class,
+            Module::class => \App\Models\Tenant\Module::class,
+            \Nvade\Numerosis\Models\Tenant\User::class => User::class,
         ]);
 
-        $app['config']->set('auth.defaults.guards.context.central', 'web');
-        $app['config']->set('auth.defaults.guards.context.tenant', 'tenant');
-        $app['config']->set('auth.guards.web', ['driver' => 'session', 'provider' => 'central_users']);
-        $app['config']->set('auth.guards.tenant', ['driver' => 'session', 'provider' => 'tenant_users']);
-        $app['config']->set('auth.providers.central_users', [
+        $app->make(Repository::class)->set('auth.defaults.guards.context.central', 'web');
+        $app->make(Repository::class)->set('auth.defaults.guards.context.tenant', 'tenant');
+        $app->make(Repository::class)->set('auth.guards.web', ['driver' => 'session', 'provider' => 'central_users']);
+        $app->make(Repository::class)->set('auth.guards.tenant', ['driver' => 'session', 'provider' => 'tenant_users']);
+        $app->make(Repository::class)->set('auth.providers.central_users', [
             'driver' => 'eloquent',
-            'model' => \App\Models\Central\CentralUser::class,
+            'model' => CentralUser::class,
         ]);
-        $app['config']->set('auth.providers.tenant_users', [
+        $app->make(Repository::class)->set('auth.providers.tenant_users', [
             'driver' => 'eloquent',
-            'model' => \App\Models\Tenant\User::class,
+            'model' => User::class,
         ]);
         // Two host-owned files, deliberately disagreeing: config/auth.php's
         // `social.providers` is button metadata for five providers, while
@@ -230,7 +253,7 @@ abstract class TestCase extends Orchestra
         // `Missing required configuration keys [client_id, client_secret,
         // redirect] for [Laravel\Socialite\Two\GoogleProvider]` from the
         // redirect route rather than as missing config.
-        $app['config']->set('auth.social.providers', [
+        $app->make(Repository::class)->set('auth.social.providers', [
             'google' => ['label' => 'Google', 'hover' => '', 'icon' => 'heroicon-o-globe-alt'],
             'github' => ['label' => 'GitHub', 'hover' => '', 'icon' => 'heroicon-o-code-bracket'],
             'discord' => ['label' => 'Discord', 'hover' => '', 'icon' => 'heroicon-o-chat-bubble-left-right'],
@@ -242,13 +265,13 @@ abstract class TestCase extends Orchestra
         // route(config('auth.social.routes.redirect.name')) — with the key
         // unset that is route(null), i.e. `Route [] not defined` from a view,
         // which names neither the config key nor the route.
-        $app['config']->set('auth.social.routes', [
+        $app->make(Repository::class)->set('auth.social.routes', [
             'login' => ['name' => 'oauth.callback'],
             'redirect' => ['name' => 'oauth'],
         ]);
 
         foreach (['google', 'discord'] as $driver) {
-            $app['config']->set("services.{$driver}", [
+            $app->make(Repository::class)->set("services.{$driver}", [
                 'client_id' => "{$driver}-test-client-id",
                 'client_secret' => "{$driver}-test-client-secret",
                 'redirect' => "http://central.numerosistest.test/oauth/{$driver}/callback",
@@ -261,16 +284,16 @@ abstract class TestCase extends Orchestra
         // own generic Illuminate\Foundation\Auth\User (no Notifiable trait),
         // which surfaces as "Call to undefined method ...User::notify()"
         // rather than a config-missing error.
-        $app['config']->set('auth.defaults.passwords', 'users');
-        $app['config']->set('auth.passwords.users', [
+        $app->make(Repository::class)->set('auth.defaults.passwords', 'users');
+        $app->make(Repository::class)->set('auth.passwords.users', [
             'provider' => 'central_users',
             'table' => 'password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
         ]);
 
-        $app['config']->set('session.domain', '.numerosistest.test');
-        $app['config']->set('session.driver', 'array');
+        $app->make(Repository::class)->set('session.domain', '.numerosistest.test');
+        $app->make(Repository::class)->set('session.driver', 'array');
 
         // Testbench's skeleton .env (vendor/orchestra/testbench-core/laravel/.env)
         // sets CACHE_STORE=database, matching modern Laravel's own skeleton
@@ -284,27 +307,27 @@ abstract class TestCase extends Orchestra
         // 'cache' doesn't exist`, which reads like a broken migration rather
         // than a harness pinned to the wrong store. `session.driver` above
         // gets the same treatment for the same reason.
-        $app['config']->set('cache.default', 'array');
+        $app->make(Repository::class)->set('cache.default', 'array');
 
-        $app['config']->set('filesystems.disks.local', [
+        $app->make(Repository::class)->set('filesystems.disks.local', [
             'driver' => 'local',
             'root' => storage_path('app/private'),
             'serve' => true,
             'throw' => false,
         ]);
-        $app['config']->set('filesystems.disks.public', [
+        $app->make(Repository::class)->set('filesystems.disks.public', [
             'driver' => 'local',
             'root' => storage_path('app/public'),
             'url' => '/storage',
             'visibility' => 'public',
             'throw' => false,
         ]);
-        $app['config']->set('filesystems.disks.livewire', [
+        $app->make(Repository::class)->set('filesystems.disks.livewire', [
             'driver' => 'local',
             'root' => storage_path('app/private'),
             'throw' => false,
         ]);
-        $app['config']->set('livewire.temporary_file_upload.disk', 'livewire');
+        $app->make(Repository::class)->set('livewire.temporary_file_upload.disk', 'livewire');
 
         // Livewire's own default config already points 'pages'/'layouts' at
         // resource_path('views/{pages,layouts}') — correct for a plain
@@ -313,29 +336,29 @@ abstract class TestCase extends Orchestra
         // and resources/views/layouts/app/header.blade.php's
         // `<livewire:layouts::header />`). See docs/host-requirements.md's
         // `config/livewire.php` row.
-        $app['config']->set('livewire.component_namespaces', [
+        $app->make(Repository::class)->set('livewire.component_namespaces', [
             'layouts' => dirname(__DIR__).'/resources/views/layouts',
             'pages' => dirname(__DIR__).'/resources/views/pages',
         ]);
 
-        $app['config']->set('permission.models.permission', \Nvade\Numerosis\Models\Permission::class);
-        $app['config']->set('permission.models.role', \Nvade\Numerosis\Models\Role::class);
-        $app['config']->set('permission.column_names.model_morph_key', 'model_id');
-        $app['config']->set('permission.table_names', [
+        $app->make(Repository::class)->set('permission.models.permission', Permission::class);
+        $app->make(Repository::class)->set('permission.models.role', Role::class);
+        $app->make(Repository::class)->set('permission.column_names.model_morph_key', 'model_id');
+        $app->make(Repository::class)->set('permission.table_names', [
             'roles' => 'roles',
             'permissions' => 'permissions',
             'model_has_permissions' => 'model_has_permissions',
             'model_has_roles' => 'model_has_roles',
             'role_has_permissions' => 'role_has_permissions',
         ]);
-        $app['config']->set('permission.cache.store', 'array');
+        $app->make(Repository::class)->set('permission.cache.store', 'array');
 
-        $app['config']->set('cashier.model', \App\Models\Central\Tenant::class);
-        $app['config']->set('cashier.key', 'pk_test_dummy');
-        $app['config']->set('cashier.secret', 'sk_test_dummy');
-        $app['config']->set('cashier.currency', 'usd');
+        $app->make(Repository::class)->set('cashier.model', \App\Models\Central\Tenant::class);
+        $app->make(Repository::class)->set('cashier.key', 'pk_test_dummy');
+        $app->make(Repository::class)->set('cashier.secret', 'sk_test_dummy');
+        $app->make(Repository::class)->set('cashier.currency', 'usd');
 
-        $app['config']->set('queue.default', 'sync');
+        $app->make(Repository::class)->set('queue.default', 'sync');
 
         // Gated by QUEUE_FAILED_DRIVER, not by queue.default — see
         // .claude/rules/exception-handling.md. The package ships the central
@@ -343,25 +366,25 @@ abstract class TestCase extends Orchestra
         // connection that carries it; Testbench's skeleton points at sqlite,
         // and the failure is `Database file at path […]/database.sqlite does
         // not exist`, which names neither this key nor failed_jobs.
-        $app['config']->set('queue.failed', [
+        $app->make(Repository::class)->set('queue.failed', [
             'driver' => 'database-uuids',
             'database' => 'mysql',
             'table' => 'failed_jobs',
         ]);
-        $app['config']->set('mail.default', 'array');
+        $app->make(Repository::class)->set('mail.default', 'array');
 
         // spatie/laravel-activitylog: not a "suggest" in composer.json terms
         // despite the config name — Tenant\User and Tenant\Invitation compose
         // LogsActivity unconditionally (see composer.json's "require" list),
         // so its config/migration must exist regardless of ActivityLogFeature
         // (which only gates the Filament UI on top of it).
-        $app['config']->set('activitylog.database_connection', null);
-        $app['config']->set('activitylog.table_name', 'activity_log');
-        $app['config']->set('activitylog.activity_model', \Spatie\Activitylog\Models\Activity::class);
-        $app['config']->set('activitylog.default_log_name', 'default');
-        $app['config']->set('activitylog.default_auth_driver', null);
-        $app['config']->set('activitylog.subject_returns_soft_deleted_models', false);
-        $app['config']->set('activitylog.enabled', true);
+        $app->make(Repository::class)->set('activitylog.database_connection', null);
+        $app->make(Repository::class)->set('activitylog.table_name', 'activity_log');
+        $app->make(Repository::class)->set('activitylog.activity_model', Activity::class);
+        $app->make(Repository::class)->set('activitylog.default_log_name', 'default');
+        $app->make(Repository::class)->set('activitylog.default_auth_driver', null);
+        $app->make(Repository::class)->set('activitylog.subject_returns_soft_deleted_models', false);
+        $app->make(Repository::class)->set('activitylog.enabled', true);
 
         $this->stubViteManifest($app);
     }
@@ -377,7 +400,7 @@ abstract class TestCase extends Orchestra
      * manifest entry only needs to resolve to *some* file path, never a real
      * built one.
      */
-    private function stubViteManifest(\Illuminate\Foundation\Application $app): void
+    private function stubViteManifest(Application $app): void
     {
         $buildDir = $app->publicPath('build');
 
@@ -385,7 +408,13 @@ abstract class TestCase extends Orchestra
             mkdir($buildDir, 0755, true);
         }
 
-        $entries = ['resources/css/app.css', 'resources/js/app.js', 'resources/js/central.js', 'resources/js/tenant.js'];
+        $entries = [
+            'resources/css/app.css',
+            'resources/css/filament-theme.css',
+            'resources/js/app.js',
+            'resources/js/central.js',
+            'resources/js/tenant.js',
+        ];
         $manifest = [];
 
         foreach ($entries as $entry) {
@@ -410,34 +439,16 @@ abstract class TestCase extends Orchestra
      * than a harness gap.
      *
      * `Numerosis::routes()` registers a `Route::middleware('tenant')` group
-     * (see `routes/tenant.php`'s consumer), but the aliases/groups that name
-     * resolves to are registered by `Numerosis::middleware()` — a separate
-     * method taking `Illuminate\Foundation\Configuration\Middleware`, the
-     * config object `bootstrap/app.php`'s `withMiddleware()` hands a real
-     * host. Testbench never constructs one, so this replicates that method's
-     * body directly against the router instead — same "the package never
-     * owns a panel" reasoning `getPackageProviders()`'s docblock gives for
-     * the Workbench panel providers. Skipping this doesn't fail at route
-     * *registration* time (`Route::middleware('tenant')` just stores the
-     * group name), it fails the moment a *request* hits a tenant route and
-     * the router tries to resolve `'tenant'` as a middleware class:
-     * `BindingResolutionException: Target class [tenant] does not exist.`
+     * (see `routes/tenant.php`'s consumer). The aliases that name resolves
+     * to no longer need replicating here: `NumerosisServiceProvider::
+     * registerMiddleware()` registers them against the router directly
+     * during package boot, which happens for Testbench the same as for a
+     * real host — see that method's docblock for why it can do this at
+     * runtime while `Numerosis::middleware()` (the `bootstrap/app.php`
+     * builder-object version) cannot be reused for it.
      */
     protected function defineRoutes($router): void
     {
-        $router->aliasMiddleware('invitation.status', \Nvade\Numerosis\Http\Middleware\CheckInvitationStatus::class);
-        $router->aliasMiddleware('tenancy.identification', \Nvade\Numerosis\Providers\TenancyServiceProvider::TENANCY_IDENTIFICATION);
-        $router->aliasMiddleware('tenancy.route', \Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains::class);
-        $router->aliasMiddleware('tenancy.session', \Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant::class);
-
-        $router->middlewareGroup('tenant', [
-            'web',
-            'tenancy.identification',
-            'tenancy.route',
-            'tenancy.session',
-        ]);
-        $router->middlewareGroup('universal', []);
-
         Numerosis::routes();
     }
 
@@ -446,7 +457,7 @@ abstract class TestCase extends Orchestra
      *
      * @see deleteTenantDatabases()
      */
-    private const MAINTENANCE_CONNECTION = 'tenant_teardown';
+    private const string MAINTENANCE_CONNECTION = 'tenant_teardown';
 
     /**
      * Central tables this test has written to, so teardown clears exactly those.

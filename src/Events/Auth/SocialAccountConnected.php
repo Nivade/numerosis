@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Events\Auth;
 
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\SocialiteLogin;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\SocialiteLogin;
 
 class SocialAccountConnected
 {

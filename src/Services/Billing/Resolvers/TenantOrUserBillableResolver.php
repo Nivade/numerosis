@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Billing\Resolvers;
 
+use Illuminate\Database\Eloquent\Model;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
-use Illuminate\Database\Eloquent\Model;
 
 class TenantOrUserBillableResolver implements BillableResolver
 {

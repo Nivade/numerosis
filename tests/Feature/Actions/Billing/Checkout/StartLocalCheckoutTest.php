@@ -47,10 +47,7 @@ class StartLocalCheckoutTest extends TestCase
 
         // The dev shortcut must go through the same queued action as the paid
         // flow, otherwise it exercises a path production never takes.
-        Bus::assertDispatched(
-            UniqueJobDecorator::class,
-            fn (UniqueJobDecorator $job) => $job->decorates(ProvisionTenant::class),
-        );
+        Bus::assertDispatched(fn (UniqueJobDecorator $job) => $job->decorates(ProvisionTenant::class));
     }
 
     /**

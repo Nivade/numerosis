@@ -19,7 +19,7 @@ class HeaderTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const COMPONENT = 'layouts::header';
+    private const string COMPONENT = 'layouts::header';
 
     public function test_it_renders_successfully(): void
     {

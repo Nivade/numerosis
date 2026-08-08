@@ -29,7 +29,7 @@ class DomainTenantResolverCachingTest extends TestCase
             'domain' => $this->tenantDomain($tenant->id),
         ]);
 
-        $resolver = app(DomainTenantResolver::class);
+        $resolver = resolve(DomainTenantResolver::class);
         $resolver->resolve($domain->domain);
 
         DB::flushQueryLog();
@@ -59,7 +59,7 @@ class DomainTenantResolverCachingTest extends TestCase
             'domain' => $this->tenantDomain($tenant->id),
         ]);
 
-        $resolver = app(DomainTenantResolver::class);
+        $resolver = resolve(DomainTenantResolver::class);
         $resolved = $resolver->resolve($domain->domain);
         $this->assertSame($tenant->id, $resolved->getTenantKey());
 

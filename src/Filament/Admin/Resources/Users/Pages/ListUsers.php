@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Resources\Users\Pages;
 
-use Nvade\Numerosis\Filament\Admin\Resources\Users\UserResource;
 use Filament\Resources\Pages\ListRecords;
+use Nvade\Numerosis\Filament\Admin\Resources\Users\UserResource;
 
 class ListUsers extends ListRecords
 {

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Facades;
 
+use Closure;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Facade;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
 use Nvade\Numerosis\Contracts\Subscribable;
@@ -12,10 +16,6 @@ use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Services\Billing\BillingService;
 use Nvade\Numerosis\Testing\FakeCheckoutGateway;
-use Closure;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static Collection<int, Plan> plans()

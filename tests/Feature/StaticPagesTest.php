@@ -18,10 +18,8 @@ class StaticPagesTest extends TestCase
         foreach ($pages as $page) {
             $response = $this->get(route($page));
             if ($response->status() !== 200) {
-                dump("Failed page: {$page}");
-                dump($response->getContent());
             }
-            $response->assertStatus(200);
+            $response->assertOk();
         }
     }
 }

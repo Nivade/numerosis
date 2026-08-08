@@ -27,11 +27,13 @@ use Illuminate\Support\Str;
 use Nvade\Numerosis\Filament\TenantAdmin\Resources\BaseResource;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
+use Override;
 
 class RoleResource extends BaseResource
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedKey;
 
+    #[Override]
     public static function getNavigationGroup(): ?string
     {
         $group = config('permission.filament.roles.navigation.group', config('permission.filament.navigation.group'));
@@ -39,6 +41,7 @@ class RoleResource extends BaseResource
         return is_string($group) ? $group : null;
     }
 
+    #[Override]
     public static function getNavigationLabel(): string
     {
         $label = config('permission.filament.roles.navigation.label');
@@ -46,6 +49,7 @@ class RoleResource extends BaseResource
         return is_string($label) ? $label : 'Roles';
     }
 
+    #[Override]
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
@@ -190,6 +194,7 @@ class RoleResource extends BaseResource
         };
     }
 
+    #[Override]
     public static function table(Table $table): Table
     {
         return $table

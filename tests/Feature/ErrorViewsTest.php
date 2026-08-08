@@ -20,8 +20,7 @@ class ErrorViewsTest extends TestCase
     {
         Route::get('/__test-error/404', fn () => abort(404));
 
-        $this->get('/__test-error/404')
-            ->assertStatus(404)
+        $this->get('/__test-error/404')->assertNotFound()
             ->assertSee('404')
             ->assertSee('Not Found');
     }
@@ -30,8 +29,7 @@ class ErrorViewsTest extends TestCase
     {
         Route::get('/__test-error/403', fn () => abort(403, 'You cannot do that'));
 
-        $this->get('/__test-error/403')
-            ->assertStatus(403)
+        $this->get('/__test-error/403')->assertForbidden()
             ->assertSee('403')
             ->assertSee('You cannot do that');
     }
@@ -50,8 +48,7 @@ class ErrorViewsTest extends TestCase
     {
         Route::get('/__test-error/500', fn () => abort(500));
 
-        $this->get('/__test-error/500')
-            ->assertStatus(500)
+        $this->get('/__test-error/500')->assertInternalServerError()
             ->assertSee('500')
             ->assertSee('Server Error');
     }

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing;
 
-use Nvade\Numerosis\Models\Central\Tenant;
 use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
  * See .claude/rules/billing-checkout.md.

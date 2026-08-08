@@ -33,16 +33,12 @@ class PlanTest extends TestCase
 
         $component = Livewire::test(Plan::class);
 
-        $component->assertViewHas('paymentPlans', function ($plans) {
-            return $plans->count() === 3;
-        });
+        $component->assertViewHas('paymentPlans', fn ($plans) => $plans->count() === 3);
 
         // Set billing cycle to yearly
         $component->set('billingCycle', BillingCycle::Yearly);
 
-        $component->assertViewHas('paymentPlans', function ($plans) {
-            return $plans->count() === 3;
-        });
+        $component->assertViewHas('paymentPlans', fn ($plans) => $plans->count() === 3);
 
         $component->assertSee('Plan 1')
             ->assertSee('Plan 2')

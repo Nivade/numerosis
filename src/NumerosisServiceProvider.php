@@ -4,12 +4,21 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis;
 
+use Closure;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Exceptions\Handler;
+use Illuminate\Http\Middleware\TrustHosts;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Nvade\Numerosis\Actions\Auth\AuthenticateLoginCandidate;
 use Nvade\Numerosis\Actions\Auth\CreateRegisteredUser;
@@ -42,6 +51,8 @@ use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\TenantSuspended;
 use Nvade\Numerosis\Events\Invitations\InvitationIssued;
 use Nvade\Numerosis\Events\Modules\ModulePurchased;
+use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
+use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Listeners\Auth\LogSocialAccountConnected;
 use Nvade\Numerosis\Listeners\Auth\LogSocialAccountDisconnected;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentConfirmedNotification;
@@ -60,6 +71,7 @@ use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 class NumerosisServiceProvider extends PackageServiceProvider
 {
@@ -185,6 +197,12 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->registerEventListeners();
 
         $this->registerSchedule();
+
+        $this->registerMiddleware();
+
+        $this->registerBroadcasting();
+
+        $this->registerExceptionHandling();
 
         // Always-on, not behind RegistrationWizardFeature: the standalone
         // /checkout/{domain} route and the wizard's embedded
@@ -377,6 +395,116 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         foreach ($listeners as $event => $listener) {
             Event::listen($event, $listener);
+        }
+    }
+
+    /**
+     * Runtime equivalent of `Numerosis::middleware()`, which a host used to
+     * have to call from `bootstrap/app.php`'s `withMiddleware()`. That
+     * method takes `Illuminate\Foundation\Configuration\Middleware` — a
+     * bootstrap-time builder whose `alias()`/`group()` calls only feed the
+     * one-time construction of the HTTP kernel's middleware arrays. A fresh
+     * instance built here, after boot, would be read by nobody. `Router`
+     * exposes the same operations directly (`aliasMiddleware()`,
+     * `middlewareGroup()`), which is what `tests/TestCase.php::defineRoutes()`
+     * already replicates for the same reason Testbench has no
+     * `bootstrap/app.php` to call. `TrustProxies::at()`/`TrustHosts::at()`
+     * are plain static setters, callable here directly; `TrustHosts` itself
+     * is only ever added to the global stack via `Middleware::trustHosts()`
+     * at kernel-build time, so it is pushed onto the already-built kernel
+     * instead — `prependMiddleware()` is idempotent, safe if a host's own
+     * (now optional) `withMiddleware()` closure still calls
+     * `Numerosis::middleware()` too.
+     *
+     * If a host set `Numerosis::$registerMiddlewareCallback` via
+     * `Numerosis::registerMiddlewareUsing()`, it runs *instead of* the block
+     * below — the package's own aliases/groups/trusted-proxy setup is
+     * skipped entirely, not appended to.
+     */
+    protected function registerMiddleware(): void
+    {
+        if (Numerosis::$registerMiddlewareCallback instanceof Closure) {
+            (Numerosis::$registerMiddlewareCallback)($this->app);
+
+            return;
+        }
+
+        Route::aliasMiddleware('invitation.status', CheckInvitationStatus::class);
+        Route::aliasMiddleware('tenancy.identification', TenancyServiceProvider::TENANCY_IDENTIFICATION);
+        Route::aliasMiddleware('tenancy.route', PreventAccessFromCentralDomains::class);
+        Route::aliasMiddleware('tenancy.session', EnsureSessionMatchesTenant::class);
+
+        Route::middlewareGroup('tenant', [
+            'web',
+            'tenancy.identification',
+            'tenancy.route',
+            'tenancy.session',
+        ]);
+        Route::middlewareGroup('universal', []);
+
+        TrustProxies::at('*');
+
+        $this->app->make(Kernel::class)->prependMiddleware(TrustHosts::class);
+
+    }
+
+    /**
+     * Runtime equivalent of the host's `withBroadcasting()` call.
+     * `BroadcastManager::routes()` registers the `/broadcasting/auth` route
+     * unnamed, so a host whose `bootstrap/app.php` still calls
+     * `withBroadcasting(Numerosis::broadcastChannelsPath(), ...)` — that
+     * builder runs before any provider boots — would get it twice; guarded
+     * by URI rather than route name for that reason.
+     *
+     * If a host set `Numerosis::$registerBroadcastingCallback` via
+     * `Numerosis::registerBroadcastingUsing()`, it runs *instead of* the
+     * block below — the package's own broadcasting route + channels
+     * registration is skipped entirely, not appended to.
+     */
+    protected function registerBroadcasting(): void
+    {
+        if (Numerosis::$registerBroadcastingCallback instanceof Closure) {
+            (Numerosis::$registerBroadcastingCallback)($this->app);
+
+            return;
+        }
+        $alreadyRegistered = collect(Route::getRoutes()->getRoutes())
+            ->contains(fn ($route): bool => $route->uri() === 'broadcasting/auth');
+
+        if (! $alreadyRegistered) {
+            Broadcast::routes(['middleware' => Numerosis::broadcasting()]);
+        }
+
+        // Not require_once: that dedupes per PHP process, not per
+        // Application instance. Each Testbench test rebuilds a fresh app
+        // (and therefore a fresh Broadcaster singleton with an empty
+        // channel list), but require_once would skip re-executing this file
+        // the second time the same absolute path is loaded in that process
+        // — silently leaving every test after the first with zero
+        // registered channels.
+        require Numerosis::broadcastChannelsPath();
+    }
+
+    /**
+     * Runtime equivalent of `Numerosis::exceptions($exceptions)`. Unlike
+     * `Middleware`, `Illuminate\Foundation\Configuration\Exceptions` is a
+     * thin wrapper around the app's actual `Handler` singleton — its
+     * `context()`/`throttle()`/`dontReportDuplicates()` calls just forward
+     * to methods `Handler` already exposes publicly. So building one here
+     * around the *real*, already-bound handler and handing it to the
+     * existing method works unchanged; no separate runtime copy of that
+     * logic is needed the way `registerMiddleware()` needed one.
+     *
+     * No-ops if the host has swapped in a custom exception handler that
+     * doesn't extend the framework's `Handler` — same as it would if a host
+     * did this from `bootstrap/app.php` directly.
+     */
+    protected function registerExceptionHandling(): void
+    {
+        $handler = $this->app->make(ExceptionHandler::class);
+
+        if ($handler instanceof Handler) {
+            Numerosis::exceptions(new Exceptions($handler));
         }
     }
 }

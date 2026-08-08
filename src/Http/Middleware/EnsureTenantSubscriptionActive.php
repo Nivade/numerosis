@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Http\Middleware;
 
-use Nvade\Numerosis\Models\Central\Tenant;
 use Closure;
 use Illuminate\Http\Request;
+use Nvade\Numerosis\Models\Central\Tenant;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

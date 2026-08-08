@@ -6,7 +6,7 @@
     (payment.blade.php) so the shared footer's Subscribe button can reach
     submit() too — this component only owns the mount point itself.
 --}}
-<div class="rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm p-6 h-full">
+<div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm p-6 h-full">
     <div class="flex items-center gap-2 mb-4">
         <flux:icon.credit-card class="size-4 text-zinc-400" />
         <x-numerosis::ui.text variant="subtle" size="xs" class="uppercase tracking-wider font-semibold">
@@ -16,12 +16,12 @@
 
     {{-- Placeholder while Stripe.js loads and the Element mounts, so the panel never flashes empty. --}}
     <div x-show="!elementReady" x-cloak class="space-y-3" aria-hidden="true">
-        <div class="h-11 rounded-lg bg-gray-100 dark:bg-zinc-800 animate-pulse"></div>
+        <div class="h-11 rounded-lg bg-zinc-100 dark:bg-zinc-800 animate-pulse"></div>
         <div class="grid grid-cols-2 gap-3">
-            <div class="h-11 rounded-lg bg-gray-100 dark:bg-zinc-800 animate-pulse"></div>
-            <div class="h-11 rounded-lg bg-gray-100 dark:bg-zinc-800 animate-pulse"></div>
+            <div class="h-11 rounded-lg bg-zinc-100 dark:bg-zinc-800 animate-pulse"></div>
+            <div class="h-11 rounded-lg bg-zinc-100 dark:bg-zinc-800 animate-pulse"></div>
         </div>
-        <div class="h-11 rounded-lg bg-gray-100 dark:bg-zinc-800 animate-pulse"></div>
+        <div class="h-11 rounded-lg bg-zinc-100 dark:bg-zinc-800 animate-pulse"></div>
     </div>
 
     <div wire:ignore x-ref="paymentElement" x-show="elementReady" x-cloak></div>

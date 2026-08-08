@@ -1,0 +1,362 @@
+/**
+ * Package-owned design tokens — never edited by a host.
+ *
+ * `resources/css/app.css` is a published file (see Numerosis::assetSourcePaths());
+ * a host that has run `vendor:publish` holds its own frozen copy forever.
+ * This file is *also* copied by that same publish (the whole `resources/css`
+ * directory publishes), but the published copy is dead weight: `app.css`
+ * imports design tokens from `vendor/nvade/numerosis/resources/css/tokens.css`
+ * directly, the same way it already imports Flux's dist CSS from vendor/, so
+ * every `composer update` picks up token changes even though the host's own
+ * `resources/css/tokens.css` copy never moves. Don't "fix" app.css to import
+ * `./tokens.css` instead — that would pin every host to whatever tokens
+ * shipped the day they last ran `vendor:publish`.
+ *
+ * Layering rule, non-negotiable: every token gets its light value on bare
+ * `:root`. The `.dark` block only *redefines* tokens that change — it must
+ * never be the only place a token is declared, or that token breaks the
+ * moment `prefers-color-scheme`/`.dark` is toggled off. Same rule applies to
+ * `filament-theme.css`, which follows this file's shape exactly.
+ *
+ * Three tiers:
+ *   1. Primitives  — raw color ramps. No component may reference these.
+ *   2. Consumer inputs — a host overrides these in its own published CSS,
+ *      after this file's `@import` (Phase 5); the values below are the
+ *      package defaults.
+ *   3. Semantic tokens — the only names a component or a Filament remap may
+ *      use. Exposed to Tailwind utilities via `@theme inline` at the bottom
+ *      so `bg-surface`, `rounded-md`, `text-text-muted` etc. compile from the
+ *      same variables the runtime overrides.
+ *
+ * Canonical resolutions (resources/views/* is the design authority — see
+ * .claude/plans/design-system-unification.md Phase 0/2):
+ *   - Grey ramp is zinc, exclusively. gray/neutral/stone do not appear here
+ *     and Phase 3's arch test forbids them in resources/views.
+ *   - Card surface (ui/card `default`): --radius-xl, --color-surface,
+ *     --color-border, --space-card.
+ *   - Badge (ui/badge): --radius-full, text-xs, --weight-medium.
+ *   - Semantic tint: ui/alert and ui/badge disagreed on tint depth (100 vs
+ *     50). Alert's softer step wins as `-bg` — Phase 3 moves badge onto it,
+ *     not the other way around.
+ */
+
+:root {
+    /* ---- Tier 1: primitives -------------------------------------------
+     * Reference Tailwind's own generated color variables rather than
+     * duplicating hex values — `@import 'tailwindcss'` in app.css already
+     * defines --color-zinc-50..950 etc. before this file is imported.
+     */
+    --zinc-50: var(--color-zinc-50);
+    --zinc-100: var(--color-zinc-100);
+    --zinc-200: var(--color-zinc-200);
+    --zinc-300: var(--color-zinc-300);
+    --zinc-400: var(--color-zinc-400);
+    --zinc-500: var(--color-zinc-500);
+    --zinc-600: var(--color-zinc-600);
+    --zinc-700: var(--color-zinc-700);
+    --zinc-800: var(--color-zinc-800);
+    --zinc-900: var(--color-zinc-900);
+    --zinc-950: var(--color-zinc-950);
+
+    --accent-50: var(--color-blue-50);
+    --accent-100: var(--color-blue-100);
+    --accent-200: var(--color-blue-200);
+    --accent-300: var(--color-blue-300);
+    --accent-400: var(--color-blue-400);
+    --accent-500: var(--color-blue-500);
+    --accent-600: var(--color-blue-600);
+    --accent-700: var(--color-blue-700);
+    --accent-800: var(--color-blue-800);
+    --accent-900: var(--color-blue-900);
+    --accent-950: var(--color-blue-950);
+
+    --success-50: var(--color-emerald-50);
+    --success-200: var(--color-emerald-200);
+    --success-400: var(--color-emerald-400);
+    --success-600: var(--color-emerald-600);
+    --success-800: var(--color-emerald-800);
+    --success-950: var(--color-emerald-950);
+
+    --warning-50: var(--color-amber-50);
+    --warning-200: var(--color-amber-200);
+    --warning-400: var(--color-amber-400);
+    --warning-600: var(--color-amber-600);
+    --warning-800: var(--color-amber-800);
+    --warning-950: var(--color-amber-950);
+
+    --danger-50: var(--color-red-50);
+    --danger-200: var(--color-red-200);
+    --danger-400: var(--color-red-400);
+    --danger-600: var(--color-red-600);
+    --danger-800: var(--color-red-800);
+    --danger-950: var(--color-red-950);
+
+    --info-50: var(--color-blue-50);
+    --info-200: var(--color-blue-200);
+    --info-400: var(--color-blue-400);
+    --info-600: var(--color-blue-600);
+    --info-800: var(--color-blue-800);
+    --info-950: var(--color-blue-950);
+
+    /* ---- Tier 2: consumer inputs -----------------------------------------
+     * Package defaults. A host overrides these in its own CSS, after this
+     * file's `@import` (Phase 5) — nothing else may set them.
+     */
+    --pref-accent-hue: 217; /* hue of --color-blue-500 */
+    --pref-density: 1;
+    --pref-radius: 1;
+    --pref-border: 1;
+    --pref-shadow: 1;
+    --pref-font-scale: 1;
+
+    /* ---- Tier 3: semantic tokens ---------------------------------------- */
+
+    /* Surface — page bg-white dark:bg-zinc-800; card recessed to zinc-900 */
+    --color-background: #fff;
+    --color-surface: #fff;
+    --color-surface-raised: var(--zinc-50);
+    --color-surface-sunken: var(--zinc-50);
+
+    /* Text */
+    --color-text: var(--zinc-900);
+    --color-text-muted: var(--zinc-600);
+    --color-text-subtle: var(--zinc-500);
+    --color-text-inverted: #fff;
+
+    /* Line */
+    --color-border: var(--zinc-200);
+    --color-border-strong: var(--zinc-300);
+    --color-ring: var(--color-primary);
+
+    /* Accent */
+    --color-primary: var(--accent-500);
+    --color-primary-hover: var(--accent-600);
+    --color-primary-contrast: #fff;
+    --color-primary-subtle: color-mix(in oklab, var(--color-primary) 10%, transparent);
+
+    /* Semantic — bg/border/text/icon, alert's tint depth throughout */
+    --color-success-bg: var(--success-50);
+    --color-success-border: var(--success-200);
+    --color-success-text: var(--success-800);
+    --color-success-icon: var(--success-600);
+
+    --color-warning-bg: var(--warning-50);
+    --color-warning-border: var(--warning-200);
+    --color-warning-text: var(--warning-800);
+    --color-warning-icon: var(--warning-600);
+
+    --color-danger-bg: var(--danger-50);
+    --color-danger-border: var(--danger-200);
+    --color-danger-text: var(--danger-800);
+    --color-danger-icon: var(--danger-600);
+
+    --color-info-bg: var(--info-50);
+    --color-info-border: var(--info-200);
+    --color-info-text: var(--info-800);
+    --color-info-icon: var(--info-600);
+
+    /* Radius — derived from --pref-radius, five-value scale (Phase 3
+     * collapses the eight literal values found in resources/views onto
+     * this) */
+    --radius-sm: calc(0.25rem * var(--pref-radius));
+    --radius-md: calc(0.375rem * var(--pref-radius));
+    --radius-lg: calc(0.5rem * var(--pref-radius));
+    --radius-xl: calc(0.75rem * var(--pref-radius));
+    --radius-full: 9999px;
+
+    /* Spacing — derived from --pref-density */
+    --space-1: calc(0.25rem * var(--pref-density));
+    --space-2: calc(0.5rem * var(--pref-density));
+    --space-3: calc(0.75rem * var(--pref-density));
+    --space-4: calc(1rem * var(--pref-density));
+    --space-5: calc(1.25rem * var(--pref-density));
+    --space-6: calc(1.5rem * var(--pref-density));
+    --space-8: calc(2rem * var(--pref-density));
+    --space-10: calc(2.5rem * var(--pref-density));
+    --space-12: calc(3rem * var(--pref-density));
+    --space-card: var(--space-6); /* ui/card's p-6 */
+    --space-section: calc(3rem * var(--pref-density)); /* py-12 floor of py-12 sm:py-20 */
+    --space-field: var(--space-4);
+
+    /* Type */
+    --font-sans:
+        'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: var(--font-sans); /* no display face today — see audit 1.2 */
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
+    --text-xs: calc(0.75rem * var(--pref-font-scale));
+    --text-sm: calc(0.875rem * var(--pref-font-scale));
+    --text-base: calc(1rem * var(--pref-font-scale));
+    --text-lg: calc(1.125rem * var(--pref-font-scale));
+    --text-xl: calc(1.25rem * var(--pref-font-scale));
+    --text-2xl: calc(1.5rem * var(--pref-font-scale));
+    --text-3xl: calc(1.875rem * var(--pref-font-scale));
+
+    --leading-tight: 1.25;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.75;
+
+    --weight-normal: 400;
+    --weight-medium: 500;
+    --weight-semibold: 600;
+
+    /* Elevation — scaled by --pref-shadow, 0 flattens every shadow */
+    --shadow-xs: 0 1px 2px rgb(0 0 0 / calc(0.05 * var(--pref-shadow)));
+    --shadow-sm: 0 1px 3px rgb(0 0 0 / calc(0.1 * var(--pref-shadow))), 0 1px 2px rgb(0 0 0 / calc(0.06 * var(--pref-shadow)));
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / calc(0.1 * var(--pref-shadow))), 0 2px 4px -2px rgb(0 0 0 / calc(0.06 * var(--pref-shadow)));
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / calc(0.1 * var(--pref-shadow))), 0 4px 6px -4px rgb(0 0 0 / calc(0.05 * var(--pref-shadow)));
+
+    /* Border width */
+    --border-width: calc(1px * var(--pref-border));
+    --border-width-strong: calc(2px * var(--pref-border));
+
+    /* Motion — forced to 1ms under prefers-reduced-motion below */
+    --duration-fast: 100ms;
+    --duration-base: 200ms;
+    --duration-slow: 300ms;
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Z-index */
+    --z-dropdown: 20;
+    --z-sticky: 30;
+    --z-overlay: 40;
+    --z-modal: 50;
+    --z-toast: 60;
+    --z-tooltip: 70;
+}
+
+/*
+ * Dark redefinitions only — every token above already has a light value.
+ * `.dark` matches the class Flux's `@fluxAppearance` toggles on <html>;
+ * custom properties inherit, so this does not need Tailwind's `dark:`
+ * variant machinery to reach descendants.
+ */
+.dark {
+    --color-background: var(--zinc-800); /* every layout's bg-white dark:bg-zinc-800 */
+    --color-surface: var(--zinc-900); /* recessed below the page — see ui/card */
+    --color-surface-raised: var(--zinc-800);
+    --color-surface-sunken: var(--zinc-950);
+
+    --color-text: var(--zinc-100);
+    --color-text-muted: var(--zinc-300);
+    --color-text-subtle: var(--zinc-400);
+    --color-text-inverted: var(--zinc-900);
+
+    --color-border: color-mix(in oklab, white 10%, transparent); /* dark:border-white/10 */
+    --color-border-strong: color-mix(in oklab, white 20%, transparent);
+
+    --color-success-bg: color-mix(in oklab, var(--success-950) 40%, transparent);
+    --color-success-text: var(--success-200);
+    --color-success-border: var(--success-950);
+    --color-success-icon: var(--success-400);
+
+    --color-warning-bg: color-mix(in oklab, var(--warning-950) 40%, transparent);
+    --color-warning-text: var(--warning-200);
+    --color-warning-border: var(--warning-950);
+    --color-warning-icon: var(--warning-400);
+
+    --color-danger-bg: color-mix(in oklab, var(--danger-950) 40%, transparent);
+    --color-danger-text: var(--danger-200);
+    --color-danger-border: var(--danger-950);
+    --color-danger-icon: var(--danger-400);
+
+    --color-info-bg: color-mix(in oklab, var(--info-950) 40%, transparent);
+    --color-info-text: var(--info-200);
+    --color-info-border: var(--info-950);
+    --color-info-icon: var(--info-400);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --duration-fast: 1ms;
+        --duration-base: 1ms;
+        --duration-slow: 1ms;
+    }
+}
+
+/*
+ * The one focus-visible ring, replacing the per-component
+ * `focus-visible:ring-2 focus-visible:ring-{whatever-that-file-picked}`
+ * strings that had drifted to zinc-400 in one file and blue-500 in another
+ * (Phase 1 audit §1.8). `outline` rather than Tailwind's ring/box-shadow
+ * utilities — no `--tw-ring-*` plumbing to keep in sync with the token.
+ */
+@utility focus-ring {
+    outline: none;
+
+    &:focus-visible {
+        outline: 2px solid var(--color-ring);
+        outline-offset: 2px;
+    }
+}
+
+/*
+ * Exposes tier-3 tokens as Tailwind utilities. `inline` tells Tailwind not
+ * to bake the current value at build time — each generated class keeps
+ * referencing the runtime custom property, so a host's Phase 5 override
+ * still takes effect against classes compiled ahead of time.
+ */
+@theme inline {
+    --color-background: var(--color-background);
+    --color-surface: var(--color-surface);
+    --color-surface-raised: var(--color-surface-raised);
+    --color-surface-sunken: var(--color-surface-sunken);
+
+    --color-text: var(--color-text);
+    --color-text-muted: var(--color-text-muted);
+    --color-text-subtle: var(--color-text-subtle);
+    --color-text-inverted: var(--color-text-inverted);
+
+    --color-border: var(--color-border);
+    --color-border-strong: var(--color-border-strong);
+    --color-ring: var(--color-ring);
+
+    --color-primary: var(--color-primary);
+    --color-primary-hover: var(--color-primary-hover);
+    --color-primary-contrast: var(--color-primary-contrast);
+    --color-primary-subtle: var(--color-primary-subtle);
+
+    --color-success-bg: var(--color-success-bg);
+    --color-success-border: var(--color-success-border);
+    --color-success-text: var(--color-success-text);
+    --color-success-icon: var(--color-success-icon);
+
+    --color-warning-bg: var(--color-warning-bg);
+    --color-warning-border: var(--color-warning-border);
+    --color-warning-text: var(--color-warning-text);
+    --color-warning-icon: var(--color-warning-icon);
+
+    --color-danger-bg: var(--color-danger-bg);
+    --color-danger-border: var(--color-danger-border);
+    --color-danger-text: var(--color-danger-text);
+    --color-danger-icon: var(--color-danger-icon);
+
+    --color-info-bg: var(--color-info-bg);
+    --color-info-border: var(--color-info-border);
+    --color-info-text: var(--color-info-text);
+    --color-info-icon: var(--color-info-icon);
+
+    --radius-sm: var(--radius-sm);
+    --radius-md: var(--radius-md);
+    --radius-lg: var(--radius-lg);
+    --radius-xl: var(--radius-xl);
+    --radius-full: var(--radius-full);
+
+    --font-sans: var(--font-sans);
+    --font-display: var(--font-display);
+    --font-mono: var(--font-mono);
+
+    --text-xs: var(--text-xs);
+    --text-sm: var(--text-sm);
+    --text-base: var(--text-base);
+    --text-lg: var(--text-lg);
+    --text-xl: var(--text-xl);
+    --text-2xl: var(--text-2xl);
+    --text-3xl: var(--text-3xl);
+
+    --shadow-xs: var(--shadow-xs);
+    --shadow-sm: var(--shadow-sm);
+    --shadow-md: var(--shadow-md);
+    --shadow-lg: var(--shadow-lg);
+}

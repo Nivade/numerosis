@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Http\Requests;
 
 use Illuminate\Foundation\Auth\EmailVerificationRequest as BaseEmailVerificationRequest;
+use Override;
 
 class EmailVerificationRequest extends BaseEmailVerificationRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
+    #[Override]
     public function authorize(): bool
     {
         $user = $this->user();

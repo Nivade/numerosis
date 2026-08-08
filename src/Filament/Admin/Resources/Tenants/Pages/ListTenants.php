@@ -8,6 +8,7 @@ use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
 use Nvade\Numerosis\Filament\Admin\Pages\RegisterTenant;
 use Nvade\Numerosis\Filament\Admin\Resources\Tenants\TenantResource;
+use Override;
 
 class ListTenants extends ListRecords
 {
@@ -23,6 +24,7 @@ class ListTenants extends ListRecords
      * tenants go through one provisioning path instead of two that drift.
      * See .claude/rules/tenant-provisioning.md.
      */
+    #[Override]
     protected function getHeaderActions(): array
     {
         return [

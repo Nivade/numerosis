@@ -14,11 +14,13 @@ use Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\InvitationResourc
 use Nvade\Numerosis\Models\Tenant\Invitation;
 use Nvade\Numerosis\Models\Tenant\User;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 
 class CreateInvitation extends CreateRecord
 {
     protected static string $resource = InvitationResource::class;
 
+    #[Override]
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $authenticated = Auth::user();
@@ -36,6 +38,7 @@ class CreateInvitation extends CreateRecord
         return $data;
     }
 
+    #[Override]
     protected function handleRecordCreation(array $data): Model
     {
         /** @var Invitation $invitation */
@@ -46,6 +49,7 @@ class CreateInvitation extends CreateRecord
         return $invitation;
     }
 
+    #[Override]
     protected function getCreatedNotification(): ?Notification
     {
         return Notification::make()
@@ -54,6 +58,7 @@ class CreateInvitation extends CreateRecord
             ->body('The invitation has been sent to '.($this->record instanceof Invitation ? $this->record->email : 'the invitee'));
     }
 
+    #[Override]
     protected function getRedirectUrl(): string
     {
         return self::getResource()::getUrl('index');

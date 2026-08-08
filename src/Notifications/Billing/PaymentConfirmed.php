@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Notifications\Billing;
 
-use Nvade\Numerosis\Models\Central\Tenant;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
  * Sent on recovery — either an async payment (SEPA-via-iDEAL/Bancontact)

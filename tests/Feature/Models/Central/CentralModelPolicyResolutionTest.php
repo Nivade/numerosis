@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Tests\Feature\Models\Central;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
+use Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Feature;
 use Nvade\Numerosis\Models\Central\ModuleOffering;
@@ -103,7 +104,7 @@ class CentralModelPolicyResolutionTest extends TestCase
         // `SeedServiceProvider` guards on `runningInConsole()`), `db:seed`
         // resolves to stancl's command instead, which requires `--tenants`.
         // Calling the seeder directly sidesteps the console layer.
-        (new \Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder)->run();
+        (new RoleAndPermissionSeeder)->run();
 
         // A decoy user first: Nvade\Numerosis\Observers\CentralUserObserver::created()
         // runs PromoteFirstCentralUserToAdmin on every new CentralUser, which
@@ -128,7 +129,7 @@ class CentralModelPolicyResolutionTest extends TestCase
 
     public function test_a_seeded_admin_can_manage_tenants_plans_subscriptions_features_and_modules(): void
     {
-        (new \Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder)->run();
+        (new RoleAndPermissionSeeder)->run();
 
         // Decoy first, same reasoning as above: the second user is the one
         // this test actually means to exercise, given the 'admin' role.

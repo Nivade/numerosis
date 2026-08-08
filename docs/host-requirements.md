@@ -93,6 +93,7 @@ note is here so a host extending that group doesn't reorder it.
 | Key | Required value / shape | Why | Checked by |
 |---|---|---|---|
 | `resources/{css,js}` | published (`numerosis-assets` tag) into `resource_path()` directly, kept in sync with the package originals | `resources/views/partials/styles.blade.php` `@vite`s the host's own `resources/js` root, and `central.js` imports `stripe-checkout.js`/`stripe-confirm.js` by relative path — both only resolve if the whole directory lands together at `resources/js`, not nested under a package-specific path. A host is allowed to customise the published copy; three of the JS files are load-bearing for payment, so silent drift is worth surfacing even though it isn't a hard failure. | `verifyPublishedAssetsMatchSource()` |
+| `vite.config.js` `input` | includes `resources/css/filament-theme.css` | `NumerosisAdminPlugin`/`NumerosisTenantPlugin` both call `->viteTheme('resources/css/filament-theme.css')` — Filament resolves that path through the same manifest `@vite()` uses. A host that never adds it to `vite.config.js` and builds gets no error: `getTheme()` falls through with no theme stylesheet, so both Filament panels render with zero CSS, which reads as a broken deploy rather than a missing config line. | `verifyFilamentThemeAsset()` |
 
 ## `config/cashier.php`, `config/permission.php`, `config/broadcasting.php`
 

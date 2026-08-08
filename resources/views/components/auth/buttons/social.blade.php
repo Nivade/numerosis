@@ -25,7 +25,7 @@
              hover:scale-[1.02] hover:shadow-md
              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15 dark:focus-visible:ring-white/20 focus-visible:ring-offset-2
              active:scale-[0.99]
-             text-gray-900 dark:text-gray-100'
+             text-zinc-900 dark:text-zinc-100'
         )
     }}
 >

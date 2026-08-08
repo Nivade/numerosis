@@ -40,7 +40,7 @@ class Login extends Controller
 
         $socialUser = $this->getSocialUser($provider);
 
-        $user = app(SocialAccountRepository::class)->findUserByProviderAndId($provider, (string) $socialUser->getId());
+        $user = resolve(SocialAccountRepository::class)->findUserByProviderAndId($provider, (string) $socialUser->getId());
 
         if (! $user) {
             $centralUserClass = Numerosis::model(CentralUser::class);
@@ -173,7 +173,7 @@ class Login extends Controller
         $invitationId = (int) $context['invitation'];
 
         /** @var Invitation|null $invitation */
-        $invitation = $tenant->run(fn () => app(InvitationRepository::class)->find($invitationId));
+        $invitation = $tenant->run(fn () => resolve(InvitationRepository::class)->find($invitationId));
 
         if ($invitation === null) {
             return to_route(RouteNames::invitationShow(), ['token' => $context['token'] ?? ''])

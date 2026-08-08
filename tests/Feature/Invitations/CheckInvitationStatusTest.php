@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Invitations;
 use App\Models\Central\Tenant;
 use App\Models\Tenant\Invitation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Testing\TestResponse;
 use Nvade\Numerosis\Contracts\Invitations\InvitationRepository;
@@ -102,11 +103,11 @@ class CheckInvitationStatusTest extends TestCase
             ])
         );
 
-        $this->app->instance(InvitationRepository::class, new class($acceptedInvitation) implements InvitationRepository
+        $this->app->instance(InvitationRepository::class, new readonly class($acceptedInvitation) implements InvitationRepository
         {
-            public function __construct(private readonly PackageInvitation $invitation) {}
+            public function __construct(private PackageInvitation $invitation) {}
 
-            public function findByToken(string $token): ?PackageInvitation
+            public function findByToken(string $token): PackageInvitation
             {
                 return $this->invitation;
             }
@@ -116,7 +117,7 @@ class CheckInvitationStatusTest extends TestCase
                 return $this->invitation;
             }
 
-            public function find(int $id): ?PackageInvitation
+            public function find(int $id): PackageInvitation
             {
                 return $this->invitation;
             }
@@ -133,7 +134,7 @@ class CheckInvitationStatusTest extends TestCase
      * key or a named route — both of which the assertions here used to expect.
      */
     /**
-     * @param  TestResponse<\Illuminate\Http\Response>  $response
+     * @param  TestResponse<Response>  $response
      */
     protected function assertRedirectsHomeWithNotice(TestResponse $response, string $message): void
     {

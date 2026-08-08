@@ -10,6 +10,7 @@ use App\Models\Central\Subscription;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Filament\TenantAdmin\Pages\Billing;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -39,7 +40,7 @@ class BillingPlanVisibilityTest extends TestCase
         $tenant->users()->attach($user, ['role' => 'owner']);
 
         // Create a subscription for the tenant
-        $subscription = Subscription::create([
+        Subscription::create([
             'user_id' => $user->id,
             'subscribable_id' => $tenant->id,
             'subscribable_type' => Tenant::class,
@@ -77,7 +78,7 @@ class BillingPlanVisibilityTest extends TestCase
         $tenant->users()->attach($user, ['role' => 'owner']);
 
         // Create a YEARLY subscription for the tenant
-        $subscription = Subscription::create([
+        Subscription::create([
             'user_id' => $user->id,
             'subscribable_id' => $tenant->id,
             'subscribable_type' => Tenant::class,
@@ -93,7 +94,7 @@ class BillingPlanVisibilityTest extends TestCase
 
             Livewire::test(Billing::class)
                 ->assertStatus(200)
-                ->assertSet('billingCycle', \Nvade\Numerosis\Enums\BillingCycle::Yearly)
+                ->assertSet('billingCycle', BillingCycle::Yearly)
                 ->assertSee($plan->name)
                 ->assertSee('Your Active Plan');
         });

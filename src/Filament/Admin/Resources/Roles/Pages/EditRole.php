@@ -7,11 +7,13 @@ namespace Nvade\Numerosis\Filament\Admin\Resources\Roles\Pages;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Nvade\Numerosis\Filament\Admin\Resources\Roles\RoleResource;
+use Override;
 
 class EditRole extends EditRecord
 {
     protected static string $resource = RoleResource::class;
 
+    #[Override]
     protected function getHeaderActions(): array
     {
         return [

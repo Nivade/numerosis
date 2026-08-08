@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
-use Nvade\Numerosis\Models\User;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Models\User;
 
 class UpdateUserProfile
 {

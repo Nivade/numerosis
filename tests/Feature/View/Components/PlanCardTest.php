@@ -10,6 +10,7 @@ use Illuminate\Testing\TestView;
 use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Services\Billing\BillingService;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Replaces PlanComponentTest, which covered the class-based
@@ -48,7 +49,7 @@ class PlanCardTest extends TestCase
         return [['display'], ['selectable']];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('cardTypes')]
+    #[DataProvider('cardTypes')]
     public function test_it_displays_the_price_for_a_paid_plan(string $type): void
     {
         $plan = PaymentPlan::factory()->create([
@@ -69,7 +70,7 @@ class PlanCardTest extends TestCase
             ->assertDontSee('Free');
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('cardTypes')]
+    #[DataProvider('cardTypes')]
     public function test_it_displays_free_for_a_zero_price_plan(string $type): void
     {
         $plan = PaymentPlan::factory()->create([

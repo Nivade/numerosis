@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Features\Tenancy;
 
-use Nvade\Numerosis\Contracts\NamedFeature;
-use Nvade\Numerosis\Livewire\Tenant as Tenants;
 use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
+use Nvade\Numerosis\Contracts\NamedFeature;
+use Nvade\Numerosis\Livewire\Tenant as Tenants;
 
 /**
  * The self-serve tenant registration wizard: the tenants.create route and

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Notifications;
 
-use Nvade\Numerosis\Models\Tenant\Invitation;
-use Nvade\Numerosis\Support\Routes\RouteNames;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Nvade\Numerosis\Models\Tenant\Invitation;
+use Nvade\Numerosis\Support\Routes\RouteNames;
 
 class InvitationSent extends Notification
 {

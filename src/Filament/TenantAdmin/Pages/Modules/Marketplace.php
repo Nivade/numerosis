@@ -24,6 +24,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 
 /**
  * No writes on render: the old SynchronizeModules::make()->handle() call on
@@ -50,26 +51,31 @@ class Marketplace extends Page implements HasActions
      * Nvade\Numerosis\Filament\TenantAdmin\Resources\Modules\ModuleResource::canAccess()
      * for the same trap on the resource side.
      */
+    #[Override]
     public static function canAccess(): bool
     {
         return Features::enabled(ModuleSystemFeature::NAME) && parent::canAccess();
     }
 
+    #[Override]
     public static function shouldRegisterNavigation(): bool
     {
         return Features::enabled(ModuleSystemFeature::NAME) && parent::shouldRegisterNavigation();
     }
 
+    #[Override]
     public static function getNavigationGroup(): ?string
     {
         return 'Modules';
     }
 
+    #[Override]
     public static function getNavigationLabel(): string
     {
         return 'Marketplace';
     }
 
+    #[Override]
     public function getTitle(): string
     {
         return 'Modules Marketplace';

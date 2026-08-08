@@ -1,6 +1,6 @@
 <x-layouts::app :title="__('Welcome')">
     <section class="relative overflow-hidden">
-        <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(50%_50%_at_50%_0%,var(--color-blue-500)/15_0%,transparent_60%)] dark:bg-[radial-gradient(50%_50%_at_50%_0%,var(--color-blue-500)/20_0%,transparent_60%)]"></div>
+        <x-numerosis::ui.hero-gradient />
 
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-12 sm:pt-24 sm:pb-16">
             <div class="grid gap-10 lg:grid-cols-2 lg:items-center">
@@ -101,53 +101,53 @@
     <section class="py-12 sm:py-20">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="grid gap-8 sm:gap-10 md:grid-cols-2 lg:grid-cols-3">
-                <div class="rounded-xl border border-zinc-200 dark:border-white/10 p-6 bg-white dark:bg-zinc-900">
+                <x-numerosis::ui.card>
                     <div class="flex items-center gap-2 mb-3">
                         <flux:icon name="hashtag" />
                         <span class="font-semibold">Channels</span>
                     </div>
                     <p class="text-zinc-600 dark:text-zinc-300">Organize conversations by topic, project, or team with real-time updates.</p>
-                </div>
+                </x-numerosis::ui.card>
 
-                <div class="rounded-xl border border-zinc-200 dark:border-white/10 p-6 bg-white dark:bg-zinc-900">
+                <x-numerosis::ui.card>
                     <div class="flex items-center gap-2 mb-3">
                         <flux:icon name="paper-clip" />
                         <span class="font-semibold">Files</span>
                     </div>
                     <p class="text-zinc-600 dark:text-zinc-300">Share and find files fast with previews and searchable history.</p>
-                </div>
+                </x-numerosis::ui.card>
 
-                <div class="rounded-xl border border-zinc-200 dark:border-white/10 p-6 bg-white dark:bg-zinc-900">
+                <x-numerosis::ui.card>
                     <div class="flex items-center gap-2 mb-3">
                         <flux:icon name="bolt" />
                         <span class="font-semibold">Workflows</span>
                     </div>
                     <p class="text-zinc-600 dark:text-zinc-300">Automate routine tasks so your team can focus on important work.</p>
-                </div>
+                </x-numerosis::ui.card>
 
-                <div class="rounded-xl border border-zinc-200 dark:border-white/10 p-6 bg-white dark:bg-zinc-900">
+                <x-numerosis::ui.card>
                     <div class="flex items-center gap-2 mb-3">
                         <flux:icon name="shield-check" />
                         <span class="font-semibold">Security</span>
                     </div>
                     <p class="text-zinc-600 dark:text-zinc-300">Enterprise-grade security with per-tenant data isolation.</p>
-                </div>
+                </x-numerosis::ui.card>
 
-                <div class="rounded-xl border border-zinc-200 dark:border-white/10 p-6 bg-white dark:bg-zinc-900">
+                <x-numerosis::ui.card>
                     <div class="flex items-center gap-2 mb-3">
                         <flux:icon name="magnifying-glass" />
                         <span class="font-semibold">Search</span>
                     </div>
                     <p class="text-zinc-600 dark:text-zinc-300">Everything is searchable — conversations, files, links, and more.</p>
-                </div>
+                </x-numerosis::ui.card>
 
-                <div class="rounded-xl border border-zinc-200 dark:border-white/10 p-6 bg-white dark:bg-zinc-900">
+                <x-numerosis::ui.card>
                     <div class="flex items-center gap-2 mb-3">
                         <flux:icon name="sparkles" />
                         <span class="font-semibold">Delightful</span>
                     </div>
                     <p class="text-zinc-600 dark:text-zinc-300">Crafted with Flux UI and Tailwind to feel fast and familiar.</p>
-                </div>
+                </x-numerosis::ui.card>
             </div>
 
             @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))

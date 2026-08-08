@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Support;
 
+use Closure;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
@@ -17,11 +20,30 @@ use Nvade\Numerosis\Models\User as NumerosisUser;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Stancl\Tenancy\Contracts\Tenant;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
+use Throwable;
 
 class Numerosis
 {
     /** @var list<string> */
     private static array $tenantColumns = [];
+
+    /**
+     * Extension hooks a host can set via `registerRoutesUsing()` /
+     * `registerBroadcastingUsing()` / `registerMiddlewareUsing()` to run
+     * its own logic right after the package's own route groups /
+     * broadcasting routes+channels / middleware aliases-and-groups are
+     * registered — without having to override
+     * `NumerosisServiceProvider::packageBooted()` wholesale to add one
+     * extra route or middleware alias. Each closure receives the
+     * `Application` instance, matching how the package's own registration
+     * code reaches it (`$this->app` in the provider, `app()` in `routes()`
+     * — both static contexts here).
+     */
+    public static ?Closure $registerRoutesCallback = null;
+
+    public static ?Closure $registerBroadcastingCallback = null;
+
+    public static ?Closure $registerMiddlewareCallback = null;
 
     /**
      * @param  list<string>  $columns
@@ -52,7 +74,7 @@ class Numerosis
      */
     public static function isCentralDomain(?Request $request = null): bool
     {
-        $request ??= app(Request::class);
+        $request ??= resolve(Request::class);
 
         return in_array($request->getHost(), Config::array('tenancy.central_domains'), true);
     }
@@ -63,9 +85,25 @@ class Numerosis
      * — the app can sit behind more than one central hostname (e.g. bare apex
      * + `www`) and each needs `routes/web.php` bound to it directly, since
      * stancl's tenant identification never runs for those domains.
+     *
+     * If a host set `Numerosis::registerRoutesUsing()`, that callback runs
+     * *instead of* the block above — full replacement, not an append hook —
+     * matching `NumerosisServiceProvider::registerMiddleware()`/
+     * `registerBroadcasting()`, which apply the same all-or-nothing rule for
+     * their own callbacks. A host that wants the package's defaults plus
+     * something extra calls `Route::middleware('web')->domain($domain)->
+     * group(...)` / `Route::middleware('tenant')->group(...)` itself inside
+     * its own callback — this method has no separate "run defaults" entry
+     * point to call back into.
      */
     public static function routes(): void
     {
+        if (self::$registerRoutesCallback instanceof Closure) {
+            (self::$registerRoutesCallback)(app());
+
+            return;
+        }
+
         $routes = dirname(__DIR__, 2).'/routes';
 
         foreach (Config::array('tenancy.central_domains') as $domain) {
@@ -170,8 +208,8 @@ class Numerosis
      * two hand-written copies (see .claude/rules/testing.md's cache-key
      * bullet for the general shape of this trap).
      *
-     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $modelName
-     * @return class-string<\Illuminate\Database\Eloquent\Factories\Factory<\Illuminate\Database\Eloquent\Model>>
+     * @param  class-string<Model>  $modelName
+     * @return class-string<Factory<Model>>
      */
     public static function factoryNameFor(string $modelName): string
     {
@@ -179,7 +217,7 @@ class Numerosis
             ? substr($modelName, strpos($modelName, '\\Models\\') + strlen('\\Models\\'))
             : class_basename($modelName);
 
-        /** @var class-string<\Illuminate\Database\Eloquent\Factories\Factory<\Illuminate\Database\Eloquent\Model>> $factoryName */
+        /** @var class-string<Factory<Model>> $factoryName */
         $factoryName = 'Nvade\\Numerosis\\Database\\Factories\\'.$suffix.'Factory';
 
         return $factoryName;
@@ -199,8 +237,8 @@ class Numerosis
      * "prefer the stub if the package model is abstract" — the package model
      * is never abstract, so the latter would never fall through to the stub.
      *
-     * @param  class-string<\Illuminate\Database\Eloquent\Factories\Factory<\Illuminate\Database\Eloquent\Model>>  $factoryName
-     * @return class-string<\Illuminate\Database\Eloquent\Model>
+     * @param  class-string<Factory<Model>>  $factoryName
+     * @return class-string<Model>
      */
     public static function modelNameFor(string $factoryName): string
     {
@@ -213,11 +251,11 @@ class Numerosis
         $hostModel = rtrim((string) app()->getNamespace(), '\\').'\\Models\\'.$suffix;
 
         if (class_exists($hostModel)) {
-            /** @var class-string<\Illuminate\Database\Eloquent\Model> $hostModel */
+            /** @var class-string<Model> $hostModel */
             return $hostModel;
         }
 
-        /** @var class-string<\Illuminate\Database\Eloquent\Model> $packageModel */
+        /** @var class-string<Model> $packageModel */
         $packageModel = 'Nvade\\Numerosis\\Models\\'.$suffix;
 
         return $packageModel;
@@ -271,17 +309,30 @@ class Numerosis
     public static function exceptions(Exceptions $exceptions): void
     {
         $exceptions->context(function (): array {
-            $tenantId = tenancy()->initialized && tenancy()->tenant instanceof Tenant
-                ? (string) tenancy()->tenant->getTenantKey()
-                : null;
+            // Reporting must never itself throw: this closure can run before
+            // Facade::setFacadeApplication() has been called at all — when
+            // the exception being reported was thrown *during* application
+            // bootstrap, ahead of the RegisterFacades bootstrapper — in
+            // which case every facade call below throws "A facade root has
+            // not been set", turning a reportable boot failure into an
+            // uncaught fatal that masks the real error and crash-loops the
+            // process. TrustHostsBootstrapper-style — best-effort context,
+            // never a hard dependency.
+            try {
+                $tenantId = tenancy()->initialized && tenancy()->tenant instanceof Tenant
+                    ? (string) tenancy()->tenant->getTenantKey()
+                    : null;
 
-            $user = Auth::user();
+                $user = Auth::user();
 
-            return [
-                'tenant_id' => $tenantId,
-                'guard' => Auth::getDefaultDriver(),
-                'user_global_id' => $user instanceof NumerosisUser ? $user->global_id : null,
-            ];
+                return [
+                    'tenant_id' => $tenantId,
+                    'guard' => Auth::getDefaultDriver(),
+                    'user_global_id' => $user instanceof NumerosisUser ? $user->global_id : null,
+                ];
+            } catch (Throwable) {
+                return [];
+            }
         });
 
         $exceptions->dontReportDuplicates();
@@ -316,7 +367,39 @@ class Numerosis
     {
         $override = Config::get("numerosis.models.{$model}");
 
-        /** @var class-string<TModel> */
         return is_string($override) ? $override : $model;
+    }
+
+    /**
+     * Replace `routes()`'s default central-domain and `tenant` route-group
+     * registration with `$callback` entirely — the package's own groups are
+     * not registered when this is set. `$callback` receives the
+     * `Application` instance.
+     */
+    public static function registerRoutesUsing(Closure $callback): void
+    {
+        self::$registerRoutesCallback = $callback;
+    }
+
+    /**
+     * Replace `NumerosisServiceProvider::registerBroadcasting()`'s default
+     * `/broadcasting/auth` route + `routes/channels.php` registration with
+     * `$callback` entirely — the package's own registration is skipped when
+     * this is set. `$callback` receives the `Application` instance.
+     */
+    public static function registerBroadcastingUsing(Closure $callback): void
+    {
+        self::$registerBroadcastingCallback = $callback;
+    }
+
+    /**
+     * Replace `NumerosisServiceProvider::registerMiddleware()`'s default
+     * middleware aliases/groups/trusted-proxy registration with `$callback`
+     * entirely — the package's own registration is skipped when this is
+     * set. `$callback` receives the `Application` instance.
+     */
+    public static function registerMiddlewareUsing(Closure $callback): void
+    {
+        self::$registerMiddlewareCallback = $callback;
     }
 }

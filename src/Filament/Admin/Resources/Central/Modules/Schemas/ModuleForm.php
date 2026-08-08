@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Resources\Central\Modules\Schemas;
 
-use Nvade\Numerosis\Enums\ModuleBillingMode;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -14,6 +13,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Enums\ModuleBillingMode;
 
 class ModuleForm
 {

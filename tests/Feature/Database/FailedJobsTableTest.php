@@ -7,8 +7,9 @@ namespace Nvade\Numerosis\Tests\Feature\Database;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Queue\Failed\FailedJobProviderInterface;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
+use Illuminate\Support\Str;
 use Nvade\Numerosis\Tests\TestCase;
+use RuntimeException;
 
 /**
  * Guards against a regression of the bug fixed alongside this test: the
@@ -30,12 +31,12 @@ class FailedJobsTableTest extends TestCase
     public function test_the_failed_job_provider_can_log_a_failure(): void
     {
         /** @var FailedJobProviderInterface $failer */
-        $failer = app('queue.failer');
+        $failer = resolve('queue.failer');
 
         $uuid = $failer->log(
             'redis',
             'default',
-            json_encode(['uuid' => (string) \Illuminate\Support\Str::uuid(), 'job' => 'Nvade\Numerosis\\Jobs\\SomeJob'], JSON_THROW_ON_ERROR),
+            json_encode(['uuid' => (string) Str::uuid(), 'job' => 'Nvade\Numerosis\\Jobs\\SomeJob'], JSON_THROW_ON_ERROR),
             new RuntimeException('boom')
         );
 

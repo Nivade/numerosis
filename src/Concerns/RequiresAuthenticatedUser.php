@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Concerns;
 
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Support\Facades\Auth;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Contracts\Auth\TenantUserModel;
 use Nvade\Numerosis\Models\User;
-use Illuminate\Auth\AuthenticationException;
-use Illuminate\Support\Facades\Auth;
 
 trait RequiresAuthenticatedUser
 {

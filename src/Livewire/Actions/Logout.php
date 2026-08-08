@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Actions;
 
-use Nvade\Numerosis\Actions\Auth\LogoutUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Redirect;
+use Nvade\Numerosis\Actions\Auth\LogoutUser;
 
 class Logout
 {

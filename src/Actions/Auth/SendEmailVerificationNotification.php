@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Notifications\Auth\VerifyEmail;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Lorisleiva\Actions\Concerns\AsAction;
 use RuntimeException;
 
 /**

@@ -18,6 +18,7 @@ use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Enums\ModuleBillingMode;
 use Nvade\Numerosis\Observers\ModuleOfferingObserver;
 use Nvade\Numerosis\Policies\ModuleOfferingPolicy;
+use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -58,6 +59,7 @@ class ModuleOffering extends Model implements ModuleOffer
     /** @use HasFactory<ModuleOfferingFactory> */
     use HasFactory;
 
+    #[Override]
     protected function casts(): array
     {
         return [

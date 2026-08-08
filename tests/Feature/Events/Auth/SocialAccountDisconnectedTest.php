@@ -35,10 +35,8 @@ class SocialAccountDisconnectedTest extends TestCase
 
         DisconnectSocialAccount::run($user, 'github');
 
-        Event::assertDispatched(SocialAccountDisconnected::class, function ($event) use ($user) {
-            return $event->user->id === $user->id
-                && $event->provider === 'github';
-        });
+        Event::assertDispatched(fn (SocialAccountDisconnected $event) => $event->user->id === $user->id
+            && $event->provider === 'github');
 
         $this->assertDatabaseMissing('socialite_logins', [
             'user_id' => $user->id,

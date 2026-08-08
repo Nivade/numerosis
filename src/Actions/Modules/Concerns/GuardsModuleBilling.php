@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Modules\Concerns;
 
+use LogicException;
 use Nvade\Numerosis\Exceptions\Modules\ModulesDisabled;
 use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Features;
-use LogicException;
 
 /**
  * See .claude/rules/module-marketplace.md — CancelModule was once missing
@@ -27,9 +27,7 @@ trait GuardsModuleBilling
     {
         $currentTenant = tenant();
 
-        if (! $currentTenant instanceof Tenant || $currentTenant->getTenantKey() !== $tenant->getTenantKey()) {
-            throw new LogicException('PurchaseModule must run inside the tenant it is purchasing for.');
-        }
+        throw_if(! $currentTenant instanceof Tenant || $currentTenant->getTenantKey() !== $tenant->getTenantKey(), LogicException::class, 'PurchaseModule must run inside the tenant it is purchasing for.');
     }
 
     /**
@@ -41,8 +39,6 @@ trait GuardsModuleBilling
      */
     protected function assertModulesAvailable(): void
     {
-        if (! Features::enabled(ModuleSystemFeature::NAME)) {
-            throw new ModulesDisabled('The module marketplace is not available on this workspace.');
-        }
+        throw_unless(Features::enabled(ModuleSystemFeature::NAME), ModulesDisabled::class, 'The module marketplace is not available on this workspace.');
     }
 }

@@ -24,7 +24,7 @@ class SendPaymentFailedNotification
         }
 
         if (! $event->tenant->isSuspended()) {
-            app(NotifiesTenantOwner::class)->notify($event->tenant, new PaymentFailedNotification($event->tenant));
+            resolve(NotifiesTenantOwner::class)->notify($event->tenant, new PaymentFailedNotification($event->tenant));
         }
     }
 }

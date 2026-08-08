@@ -9,6 +9,7 @@ use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Roles\Pages\Edi
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Roles\Pages\ListRoles;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\TeamCluster;
 use Nvade\Numerosis\Models\Role;
+use Override;
 
 class RoleResource extends \Nvade\Numerosis\Filament\App\Resources\Roles\RoleResource
 {
@@ -18,6 +19,7 @@ class RoleResource extends \Nvade\Numerosis\Filament\App\Resources\Roles\RoleRes
 
     protected static ?int $navigationSort = 100;
 
+    #[Override]
     public static function getPages(): array
     {
         return [

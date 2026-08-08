@@ -48,7 +48,7 @@ class Register extends Component
 
         RegisterUser::run($validated);
 
-        $this->redirect(app(ResolvesPostLoginRedirectUrl::class)->url(), navigate: true);
+        $this->redirect(resolve(ResolvesPostLoginRedirectUrl::class)->url(), navigate: true);
     }
 
     public function render(): View

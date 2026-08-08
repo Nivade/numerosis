@@ -2,7 +2,7 @@
     <div class="px-4 sm:px-6 lg:px-8 py-10">
         <div class="grid gap-8 md:grid-cols-3">
             <div class="space-y-3">
-                <a href="{{ url('/') }}" aria-label="{{ config('app.name') }} home" class="flex items-center gap-2 rounded-md p-1 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500">
+                <a href="{{ url('/') }}" aria-label="{{ config('app.name') }} home" class="flex items-center gap-2 rounded-md p-1 hover:opacity-90 focus-ring">
                     <x-numerosis::app-logo />
                     <span class="font-semibold">{{ config('app.name') }}</span>
                 </a>
@@ -17,27 +17,27 @@
                     <ul class="space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
                         @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\MarketingPagesFeature::NAME))
                             <li>
-                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500" href="{{ route('features') }}" wire:navigate aria-label="Features">
+                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('features') }}" wire:navigate aria-label="Features">
                                     Features
                                 </a>
                             </li>
                         @endif
                         @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
                             <li>
-                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500" href="{{ route('tenants.create') }}" wire:navigate aria-label="Create workspace">
+                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('tenants.create') }}" wire:navigate aria-label="Create workspace">
                                     Create workspace
                                 </a>
                             </li>
                         @endif
                         <li>
-                            <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500" href="{{ route('login') }}" wire:navigate aria-label="Sign in">
+                            <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('login') }}" wire:navigate aria-label="Sign in">
                                 Sign in
                             </a>
                         </li>
                         @auth
                             @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\AccountPagesFeature::NAME))
                                 <li>
-                                    <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500" href="{{ route('tenants.mine') }}" wire:navigate aria-label="My Tenants">
+                                    <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('tenants.mine') }}" wire:navigate aria-label="My Tenants">
                                         {{ __('My Tenants') }}
                                     </a>
                                 </li>
@@ -50,12 +50,12 @@
                     <h3 class="text-sm font-semibold mb-3">Resources</h3>
                     <ul class="space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
                         <li>
-                            <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500" href="https://laravel.com/docs/starter-kits#livewire" target="_blank" rel="noreferrer" aria-label="Documentation (opens in a new tab)" title="Opens in a new tab">
+                            <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="https://laravel.com/docs/starter-kits#livewire" target="_blank" rel="noreferrer" aria-label="Documentation (opens in a new tab)" title="Opens in a new tab">
                                 Documentation
                             </a>
                         </li>
                         <li>
-                            <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500" href="https://github.com/laravel/livewire-starter-kit" target="_blank" rel="noreferrer" aria-label="Repository (opens in a new tab)" title="Opens in a new tab">
+                            <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="https://github.com/laravel/livewire-starter-kit" target="_blank" rel="noreferrer" aria-label="Repository (opens in a new tab)" title="Opens in a new tab">
                                 Repository
                             </a>
                         </li>
@@ -67,13 +67,13 @@
                         <h3 class="text-sm font-semibold mb-3">Company</h3>
                         <ul class="space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
                             <li>
-                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500" href="{{ route('about') }}" wire:navigate aria-label="About us">About</a>
+                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('about') }}" wire:navigate aria-label="About us">About</a>
                             </li>
                             <li>
-                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500" href="{{ route('privacy') }}" wire:navigate aria-label="Privacy policy">Privacy</a>
+                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('privacy') }}" wire:navigate aria-label="Privacy policy">Privacy</a>
                             </li>
                             <li>
-                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500" href="{{ route('terms') }}" wire:navigate aria-label="Terms of service">Terms</a>
+                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('terms') }}" wire:navigate aria-label="Terms of service">Terms</a>
                             </li>
                         </ul>
                     </div>

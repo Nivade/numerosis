@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Notifications\Auth;
 
-use Nvade\Numerosis\Models\Central\Tenant;
 use Illuminate\Auth\Notifications\VerifyEmail as BaseVerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Model;
@@ -14,12 +13,15 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\URL;
 use InvalidArgumentException;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Override;
 
 class VerifyEmail extends BaseVerifyEmail
 {
     /**
      * Get the verification URL for the given notifiable.
      */
+    #[Override]
     protected function verificationUrl(mixed $notifiable): string
     {
         if (static::$createUrlCallback) {

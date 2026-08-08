@@ -100,7 +100,7 @@ class InstallNumerosisCommandTest extends TestCase
     private function seedCentralData(): void
     {
         Model::unguarded(function (): void {
-            app(DatabaseSeeder::class)->setContainer(app())->__invoke();
+            resolve(DatabaseSeeder::class)->setContainer(app())->__invoke();
         });
     }
 

@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Pages;
 
-use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\SubscriptionResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\SubscriptionResource;
+use Override;
 
 class ListSubscriptions extends ListRecords
 {
     protected static string $resource = SubscriptionResource::class;
 
+    #[Override]
     protected function getHeaderActions(): array
     {
         return [

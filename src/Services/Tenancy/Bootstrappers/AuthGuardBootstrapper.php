@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Tenancy\Bootstrappers;
 
-use Nvade\Numerosis\Enums\Tenancy\Context;
 use Illuminate\Auth\AuthManager;
 use Illuminate\Contracts\Config\Repository;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 use Stancl\Tenancy\Contracts\TenancyBootstrapper;
 use Stancl\Tenancy\Contracts\Tenant;
 

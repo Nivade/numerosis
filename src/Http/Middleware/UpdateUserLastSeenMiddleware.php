@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Http\Middleware;
 
-use Nvade\Numerosis\Actions\Queries\GetAuthenticatedTenantUser;
-use Nvade\Numerosis\Enums\Tenancy\Context;
-use Nvade\Numerosis\Support\Cache\CacheKeys;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Nvade\Numerosis\Actions\Queries\GetAuthenticatedTenantUser;
+use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Support\Cache\CacheKeys;
 use Stancl\Tenancy\Exceptions\TenancyNotInitializedException;
 
 class UpdateUserLastSeenMiddleware
@@ -19,7 +19,7 @@ class UpdateUserLastSeenMiddleware
      * precision on `last_seen_at` buys nothing. Cache::add() is atomic, so
      * concurrent requests for the same user collapse to a single write.
      */
-    private const THROTTLE_SECONDS = 60;
+    private const int THROTTLE_SECONDS = 60;
 
     /**
      * @throws TenancyNotInitializedException

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Contracts;
 
-use Nvade\Numerosis\Models\Central\Subscription;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Nvade\Numerosis\Models\Central\Subscription;
 
 interface Subscribable
 {

@@ -12,6 +12,10 @@ use Nvade\Numerosis\Models\Tenant\Invitation;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use PhpParser\Node;
+use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Expr\StaticPropertyFetch;
+use PhpParser\Node\Name;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\NodeVisitorAbstract;
@@ -74,8 +78,13 @@ test('every package call site resolves the 9 config-overridable models through N
 
     foreach ($files as $file) {
         $path = $file->getRealPath();
-
-        if ($path === false || in_array($path, $exemptFiles, true) || str_starts_with($path, $exemptDirectory)) {
+        if ($path === false) {
+            continue;
+        }
+        if (in_array($path, $exemptFiles, true)) {
+            continue;
+        }
+        if (str_starts_with($path, $exemptDirectory)) {
             continue;
         }
 
@@ -98,15 +107,15 @@ test('every package call site resolves the 9 config-overridable models through N
 
             public function enterNode(Node $node): null
             {
-                if (! $node instanceof Node\Expr\StaticCall
-                    && ! $node instanceof Node\Expr\StaticPropertyFetch
-                    && ! $node instanceof Node\Expr\New_) {
+                if (! $node instanceof StaticCall
+                    && ! $node instanceof StaticPropertyFetch
+                    && ! $node instanceof New_) {
                     return null;
                 }
 
                 $class = $node->class;
 
-                if (! $class instanceof Node\Name) {
+                if (! $class instanceof Name) {
                     return null;
                 }
 

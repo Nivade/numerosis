@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Contracts\Tenancy;
 
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Nvade\Numerosis\Models\Central\Membership;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 interface HasTenants
 {

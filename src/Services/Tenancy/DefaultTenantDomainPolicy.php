@@ -20,7 +20,7 @@ use Nvade\Numerosis\Support\Numerosis;
 class DefaultTenantDomainPolicy implements TenantDomainPolicy
 {
     /** @var list<string> */
-    private const RESERVED = [
+    private const array RESERVED = [
         'www', 'admin', 'api', 'app', 'mail', 'ftp', 'localhost',
         'staging', 'dev', 'test', 'support', 'help', 'billing', 'status',
     ];

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Support\Cache;
 
+use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Illuminate\Support\Facades\Config;
 
 /**
  * Single source of truth for every cache key used by the app. Every reader and

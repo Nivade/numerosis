@@ -13,6 +13,7 @@ use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
+use Laravel\Cashier\SubscriptionItem;
 use LogicException;
 use Nvade\Numerosis\Actions\Modules\CancelModule;
 use Nvade\Numerosis\Enums\ModuleBillingMode;
@@ -183,7 +184,7 @@ class CancelModuleTest extends TestCase
         $stripeSubscription = $tenant->newSubscription('default', $priceId)->create($paymentMethod->id);
         Subscription::where('id', $stripeSubscription->id)->update(['payment_plan_id' => $plan->id]);
 
-        /** @var \Laravel\Cashier\SubscriptionItem $subscriptionItem */
+        /** @var SubscriptionItem $subscriptionItem */
         $subscriptionItem = $stripeSubscription->addPrice($secondPriceId)->items()->where('stripe_price', $secondPriceId)->firstOrFail();
 
         $owner = $this->ownerOf($tenant);

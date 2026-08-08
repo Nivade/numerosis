@@ -35,7 +35,7 @@
                             <x-numerosis::billing.saved-payment-method-option :pm="$pm" :checked="$loop->first" />
                         @endforeach
 
-                        <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-gray-300 dark:border-zinc-700 p-4 text-zinc-500 dark:text-zinc-400 transition-colors hover:border-gray-400 dark:hover:border-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-200 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 has-[:focus-visible]:ring-offset-2">
+                        <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 p-4 text-zinc-500 dark:text-zinc-400 transition-colors hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-200 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 has-[:focus-visible]:ring-offset-2">
                             <input type="radio" name="pm-choice" @change="mode = 'new'" class="sr-only" />
                             <flux:icon.plus variant="micro" class="size-4 shrink-0" />
                             <span class="text-sm font-medium">{{ __('numerosis::billing.checkout.use_different_payment_method') }}</span>
@@ -60,7 +60,7 @@
                 <x-numerosis::billing.payment-element />
                 <x-numerosis::billing.address-element />
 
-                <div class="flex justify-end pt-4 border-t border-gray-200 dark:border-zinc-700">
+                <div class="flex justify-end pt-4 border-t border-zinc-200 dark:border-zinc-700">
                     <flux:button
                         type="button"
                         x-on:click="submit()"

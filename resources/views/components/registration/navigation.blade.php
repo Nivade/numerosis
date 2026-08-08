@@ -9,7 +9,7 @@
     'loading' => null,
 ])
 
-<div {{ $attributes->merge(['class' => 'flex justify-between items-center pt-8 border-t border-gray-200 dark:border-zinc-700']) }}>
+<div {{ $attributes->merge(['class' => 'flex justify-between items-center pt-8 border-t border-zinc-200 dark:border-zinc-700']) }}>
     @if($showBack)
         <flux:button
             wire:click="{{ $backAction }}"

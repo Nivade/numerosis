@@ -26,6 +26,7 @@ use Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\Pages\ListInvitat
 use Nvade\Numerosis\Models\Tenant\Invitation;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 
 class InvitationResource extends BaseResource
 {
@@ -37,21 +38,25 @@ class InvitationResource extends BaseResource
 
     protected static ?string $modelLabel = 'Invitation';
 
+    #[Override]
     public static function getModel(): string
     {
         return Numerosis::model(Invitation::class);
     }
 
+    #[Override]
     public static function canAccess(): bool
     {
         return Features::enabled(InvitationsFeature::NAME) && parent::canAccess();
     }
 
+    #[Override]
     public static function shouldRegisterNavigation(): bool
     {
         return Features::enabled(InvitationsFeature::NAME) && parent::shouldRegisterNavigation();
     }
 
+    #[Override]
     public static function form(Schema $schema): Schema
     {
         return $schema
@@ -75,6 +80,7 @@ class InvitationResource extends BaseResource
             ]);
     }
 
+    #[Override]
     public static function table(Table $table): Table
     {
         return $table
@@ -181,6 +187,7 @@ class InvitationResource extends BaseResource
             ]);
     }
 
+    #[Override]
     public static function getPages(): array
     {
         return [

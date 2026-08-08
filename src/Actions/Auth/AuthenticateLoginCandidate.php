@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
-use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
-use Nvade\Numerosis\Models\User;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
+use Nvade\Numerosis\Models\User;
 use RuntimeException;
 
 /**

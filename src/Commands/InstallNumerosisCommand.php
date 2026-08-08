@@ -84,6 +84,7 @@ class InstallNumerosisCommand extends Command
         $this->verifyDomainConfig();
         $this->verifyTenantMigrationPath();
         $this->verifyPublishedAssetsMatchSource();
+        $this->verifyFilamentThemeAsset();
         $this->verifyStripeKeys();
         $this->verifyModelOverrides();
         $this->verifyCentralDataSeeded();
@@ -355,7 +356,7 @@ class InstallNumerosisCommand extends Command
         }
 
         $options = $central['options'] ?? [];
-        $init = is_array($options) ? implode(' ', array_filter($options, 'is_string')) : '';
+        $init = is_array($options) ? implode(' ', array_filter($options, is_string(...))) : '';
 
         $metadata = str_contains($init, 'lock_wait_timeout');
         $rows = str_contains($init, 'innodb_lock_wait_timeout');
@@ -698,6 +699,38 @@ class InstallNumerosisCommand extends Command
         }
     }
 
+    /**
+     * `NumerosisAdminPlugin`/`NumerosisTenantPlugin` both call
+     * `->viteTheme('resources/css/filament-theme.css')` (design-system-
+     * unification Phase 4) — Filament resolves that path through the same
+     * `Vite` helper `@vite()` uses, against the host's own
+     * `public/build/manifest.json`. A host that has not added the entry to
+     * its `vite.config.js` gets no failure at all: `getTheme()` still
+     * returns *something* (Filament's manifest lookup only throws for a
+     * missing manifest, not a missing entry — falls through with no theme
+     * stylesheet), so both panels render with zero CSS. That reads as a
+     * broken deploy, not a missing config line, so this fails loudly
+     * instead of leaving it to be discovered as an unstyled admin panel.
+     *
+     * No manifest at all is not a failure here — a host that has not run
+     * its first `npm run build` yet fails identically at every other
+     * `@vite()` call in the app, which is not this check's job to catch.
+     */
+    private function verifyFilamentThemeAsset(): void
+    {
+        $manifestPath = public_path('build/manifest.json');
+
+        if (! File::exists($manifestPath)) {
+            return;
+        }
+
+        $manifest = json_decode(File::get($manifestPath), true);
+
+        if (! is_array($manifest) || ! array_key_exists('resources/css/filament-theme.css', $manifest)) {
+            $this->failures[] = "public/build/manifest.json exists but has no 'resources/css/filament-theme.css' entry — add it to your vite.config.js input array and rebuild (npm run build), or both Filament panels render with none of Numerosis's theming.";
+        }
+    }
+
     private function verifyStripeKeys(): void
     {
         foreach (['key', 'secret'] as $setting) {
@@ -832,5 +865,7 @@ class InstallNumerosisCommand extends Command
         $this->line('  2. Register the package\'s Filament panel plugin(s) in your own AdminPanelProvider / TenantAdminPanelProvider.');
         $this->line('  3. Run a queue worker on the dedicated "provisioning" queue (see docker/8.5/supervisord.conf\'s [program:queue-provisioning] in saas-m for the reference config) — tenant provisioning is queued there, not on the default worker.');
         $this->line('  4. Add resources/js/central.js and resources/js/tenant.js to your vite.config.js input array (just published to resources/js/ by this command) — Vite compiles per-app, so this list can\'t be published, only the files it points at. Skipping this fails at first render with "Unable to locate file in Vite manifest".');
+        $this->line('  5. Add resources/css/filament-theme.css to that same vite.config.js input array and run npm run build — both Filament panels\' theming (colours, radius, Instrument Sans) comes from this file via ->viteTheme(). Skipping this renders both panels with no theme CSS at all, not an error.');
+        $this->line('  6. To rebrand (accent colour, radius, fonts, density), add a `:root { --pref-...: ...; }` block to your published resources/css/app.css AFTER its `@import \'.../vendor/nvade/numerosis/resources/css/tokens.css\';` line — CSS cascade applies it everywhere: the main app and, via filament-theme.css, both panels. See tokens.css for the full list of overridable custom properties. This is a one-time, host-level choice — Numerosis has no per-user or per-tenant theme picker.');
     }
 }

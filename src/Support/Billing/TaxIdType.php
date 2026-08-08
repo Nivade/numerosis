@@ -18,7 +18,7 @@ final class TaxIdType
      * Not exhaustive by design: an unsupported country submitting a VAT
      * number is a UI mistake to surface, not silently ignore.
      */
-    private const BY_COUNTRY = [
+    private const array BY_COUNTRY = [
         'GB' => 'gb_vat',
         'AT' => 'eu_vat', 'BE' => 'eu_vat', 'BG' => 'eu_vat', 'HR' => 'eu_vat',
         'CY' => 'eu_vat', 'CZ' => 'eu_vat', 'DK' => 'eu_vat', 'EE' => 'eu_vat',

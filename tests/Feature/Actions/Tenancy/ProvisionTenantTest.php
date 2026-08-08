@@ -76,11 +76,8 @@ class ProvisionTenantTest extends TestCase
         $this->assertSame('queue exploded', $pending->error);
         $this->assertNotNull($pending->failed_at);
 
-        Event::assertDispatched(
-            TenantProvisioningFailed::class,
-            fn (TenantProvisioningFailed $event) => $event->domain === 'doomed'
-                && $event->globalId === $user->global_id,
-        );
+        Event::assertDispatched(fn (TenantProvisioningFailed $event) => $event->domain === 'doomed'
+            && $event->globalId === $user->global_id);
     }
 
     /**
@@ -109,7 +106,7 @@ class ProvisionTenantTest extends TestCase
 
         ProvisionTenant::run($this->provisionData($user, 'chained'));
 
-        Bus::assertDispatched(CreateDatabase::class, function (CreateDatabase $job) {
+        Bus::assertDispatched(function (CreateDatabase $job) {
             if ($job->chainQueue !== 'provisioning' || $job->chained === []) {
                 return false;
             }

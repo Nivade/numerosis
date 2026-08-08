@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Policies;
 
+use Illuminate\Auth\Access\HandlesAuthorization;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Models\User;
-use Illuminate\Auth\Access\HandlesAuthorization;
 use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 
 class ModulePolicy

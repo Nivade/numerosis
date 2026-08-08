@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Events\Invitations;
 
-use Nvade\Numerosis\Models\Tenant\Invitation;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Nvade\Numerosis\Models\Tenant\Invitation;
 
 class InvitationIssued
 {

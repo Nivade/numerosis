@@ -15,6 +15,7 @@ use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\TechnicalSetup;
 use Nvade\Numerosis\Support\State\RegistrationState;
+use Override;
 use Spatie\LivewireWizard\Components\WizardComponent;
 
 class Registration extends WizardComponent
@@ -31,6 +32,7 @@ class Registration extends WizardComponent
     public ?string $currentStepName = null;
 
     #[Layout('layouts::app.none')]
+    #[Override]
     public function render(): View
     {
         return view('numerosis::livewire.tenant.registration.wizard.index', [
@@ -54,6 +56,7 @@ class Registration extends WizardComponent
         ];
     }
 
+    #[Override]
     public function stateClass(): string
     {
         return RegistrationState::class;
@@ -96,6 +99,7 @@ class Registration extends WizardComponent
      * @param  array<string, mixed>  $currentStepState
      */
     #[On('showStep')]
+    #[Override]
     public function showStep($toStepName, array $currentStepState = []): void
     {
         parent::showStep($toStepName, $currentStepState);

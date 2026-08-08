@@ -13,6 +13,7 @@ use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesPostLoginRedirectUrl;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
+use Override;
 use Spatie\OneTimePasswords\Livewire\OneTimePasswordComponent;
 use Spatie\OneTimePasswords\Rules\OneTimePasswordRule;
 
@@ -25,6 +26,7 @@ class PasswordlessLogin extends OneTimePasswordComponent
 
     public ?string $turnstileResponse = null;
 
+    #[Override]
     public function submitEmail(): void
     {
         $this->validate([
@@ -46,6 +48,7 @@ class PasswordlessLogin extends OneTimePasswordComponent
      * six-digit number an attacker may guess as fast as they can issue
      * requests; the parent's own limiter only throttles code *sending*.
      */
+    #[Override]
     public function submitOneTimePassword(): void
     {
         $this->ensureIsNotRateLimited();
@@ -74,17 +77,19 @@ class PasswordlessLogin extends OneTimePasswordComponent
 
         $this->authenticate($user);
 
-        $this->redirect(app(ResolvesPostLoginRedirectUrl::class)->url());
+        $this->redirect(resolve(ResolvesPostLoginRedirectUrl::class)->url());
     }
 
+    #[Override]
     protected function findUser(): ?Authenticatable
     {
-        return app(ResolvesLoginCandidate::class)->find((string) $this->email);
+        return resolve(ResolvesLoginCandidate::class)->find((string) $this->email);
     }
 
+    #[Override]
     public function authenticate(Authenticatable $user): void
     {
-        app(AuthenticatesLoginCandidate::class)->authenticate($user, $this->remember);
+        resolve(AuthenticatesLoginCandidate::class)->authenticate($user, $this->remember);
     }
 
     protected function throttleIdentifier(): string
@@ -92,6 +97,7 @@ class PasswordlessLogin extends OneTimePasswordComponent
         return (string) $this->email;
     }
 
+    #[Override]
     public function render(): View
     {
         /** @var view-string $view */

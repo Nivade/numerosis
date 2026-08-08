@@ -20,6 +20,7 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Config;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Nvade\Numerosis\Features\Ui\AdminPanelFeature;
+use Nvade\Numerosis\Filament\Concerns\AppliesNumerosisPanelTheme;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
 use Nvade\Numerosis\Support\Features;
 
@@ -39,16 +40,24 @@ use Nvade\Numerosis\Support\Features;
  * components, and the fix is the same shape: one definition, referenced
  * twice, rather than two definitions kept in agreement by hand.
  *
- * What deliberately stays with the host: `->colors()` (branding), and the
- * decision to register the panel at all — a `Plugin` configures a panel, it
- * cannot decide whether one exists. {@see self::shouldRegisterPanel()} is
+ * `->colors()` used to stay with the host for branding; it does not
+ * anymore (design-system-unification Phase 4) — `->viteTheme()` plus
+ * {@see AppliesNumerosisPanelTheme}
+ * remap Filament's colour vars from resources/css/tokens.css instead, so a
+ * host `->colors()` call after the plugin would fight
+ * `FilamentColor::register()`'s per-container memoisation for nothing (Phase
+ * 1 audit §1.7). What still stays with the host: the decision to register
+ * the panel at all — a `Plugin` configures a panel, it cannot decide whether
+ * one exists. {@see self::shouldRegisterPanel()} is
  * the gate a host's provider calls for that.
  */
 class NumerosisAdminPlugin implements Plugin
 {
+    use AppliesNumerosisPanelTheme;
+
     public static function make(): static
     {
-        return app(static::class);
+        return resolve(static::class);
     }
 
     public function getId(): string
@@ -70,8 +79,11 @@ class NumerosisAdminPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
+        $panel = $this->applyNumerosisPanelTheme($panel);
+
         $panel
             ->id('admin')
+            ->viteTheme('resources/css/filament-theme.css')
             ->path('admin')
             // Read from config rather than the literal 'web': the guard name
             // is host-configurable, and `.claude/rules/auth-guards.md` is
@@ -109,9 +121,10 @@ class NumerosisAdminPlugin implements Plugin
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-            // The 'universal' group is registered by Numerosis::middleware();
-            // persisting it is what lets a route resolve on either a central
-            // or a tenant host.
+            // The 'universal' group is registered by
+            // NumerosisServiceProvider::registerMiddleware(); persisting it
+            // is what lets a route resolve on either a central or a tenant
+            // host.
             ->persistentMiddleware(['universal'])
             ->domains($this->centralDomains())
             ->authMiddleware([

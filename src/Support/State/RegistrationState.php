@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Support\State;
 
+use Illuminate\Support\Fluent;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\TechnicalSetup;
-use Illuminate\Support\Fluent;
+use Override;
 use Spatie\LivewireWizard\Support\State;
 
 class RegistrationState extends State
@@ -65,6 +66,7 @@ class RegistrationState extends State
         ];
     }
 
+    #[Override]
     public function get(string $key): mixed
     {
         $arr = Fluent::make(

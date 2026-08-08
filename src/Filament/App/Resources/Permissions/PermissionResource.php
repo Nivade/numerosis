@@ -26,11 +26,13 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
 use Nvade\Numerosis\Filament\TenantAdmin\Resources\BaseResource;
 use Nvade\Numerosis\Models\Permission;
+use Override;
 
 class PermissionResource extends BaseResource
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldCheck;
 
+    #[Override]
     public static function getNavigationGroup(): ?string
     {
         $group = config('permission.filament.permissions.navigation.group', config('permission.filament.navigation.group'));
@@ -38,6 +40,7 @@ class PermissionResource extends BaseResource
         return is_string($group) ? $group : null;
     }
 
+    #[Override]
     public static function getNavigationLabel(): string
     {
         $label = config('permission.filament.permissions.navigation.label');
@@ -45,6 +48,7 @@ class PermissionResource extends BaseResource
         return is_string($label) ? $label : 'Permissions';
     }
 
+    #[Override]
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
@@ -67,7 +71,7 @@ class PermissionResource extends BaseResource
                                 ]),
 
                             Select::make('guard_name')
-                                ->options((new Collection(Config::array('auth.guards')))->keys())
+                                ->options(new Collection(Config::array('auth.guards'))->keys())
                                 ->default('tenant')
                                 ->required()
                                 ->label('Authentication Guard')
@@ -83,6 +87,7 @@ class PermissionResource extends BaseResource
         ]);
     }
 
+    #[Override]
     public static function table(Table $table): Table
     {
         return $table
@@ -137,7 +142,7 @@ class PermissionResource extends BaseResource
             ->filters([
                 SelectFilter::make('guard_name')
                     ->label('Guard')
-                    ->options((new Collection(Config::array('auth.guards')))->keys()),
+                    ->options(new Collection(Config::array('auth.guards'))->keys()),
                 SelectFilter::make('context')
                     ->label('Resource')
                     ->options(fn (): array => self::contextFilterOptions()),

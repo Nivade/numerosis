@@ -15,6 +15,7 @@ use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Jobs\SeedTenantDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
+use Override;
 use Stancl\JobPipeline\JobPipeline;
 use Stancl\Tenancy\Events\BootstrappingTenancy;
 use Stancl\Tenancy\Events\CreatingDomain;
@@ -150,6 +151,7 @@ class TenancyServiceProvider extends ServiceProvider
         ];
     }
 
+    #[Override]
     public function register()
     {
         UpdateSyncedResource::$shouldQueue = true;

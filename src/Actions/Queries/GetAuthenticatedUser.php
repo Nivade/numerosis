@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Queries;
 
-use Nvade\Numerosis\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Models\User;
 
 /**
  * @method static ?User run(?string $guard = null)

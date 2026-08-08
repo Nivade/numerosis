@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Data\Tenancy;
 
-use Nvade\Numerosis\Enums\BillingCycle;
 use Livewire\Wireable;
+use Nvade\Numerosis\Enums\BillingCycle;
 use Spatie\LaravelData\Concerns\WireableData;
 use Spatie\LaravelData\Data;
 

@@ -23,6 +23,7 @@ use Nvade\Numerosis\Observers\PaymentPlanObserver;
 use Nvade\Numerosis\Policies\PaymentPlanPolicy;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -66,6 +67,7 @@ class PaymentPlan extends Model implements Plan
 
     use SoftDeletes;
 
+    #[Override]
     protected function casts(): array
     {
         return [

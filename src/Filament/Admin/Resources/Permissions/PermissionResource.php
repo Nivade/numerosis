@@ -15,6 +15,7 @@ use Nvade\Numerosis\Filament\Admin\Resources\Permissions\Pages\CreatePermission;
 use Nvade\Numerosis\Filament\Admin\Resources\Permissions\Pages\EditPermission;
 use Nvade\Numerosis\Filament\Admin\Resources\Permissions\Pages\ListPermissions;
 use Nvade\Numerosis\Models\Central\Permission;
+use Override;
 
 class PermissionResource extends Resource
 {
@@ -24,16 +25,19 @@ class PermissionResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldCheck;
 
+    #[Override]
     public static function getNavigationGroup(): ?string
     {
         return 'Access Control';
     }
 
+    #[Override]
     public static function getNavigationLabel(): string
     {
         return 'Permissions';
     }
 
+    #[Override]
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
@@ -42,6 +46,7 @@ class PermissionResource extends Resource
         ]);
     }
 
+    #[Override]
     public static function table(Table $table): Table
     {
         return $table
@@ -56,6 +61,7 @@ class PermissionResource extends Resource
             ->emptyStateIcon('heroicon-o-shield-check');
     }
 
+    #[Override]
     public static function getPages(): array
     {
         return [

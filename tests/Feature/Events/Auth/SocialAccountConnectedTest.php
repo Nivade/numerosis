@@ -23,11 +23,9 @@ class SocialAccountConnectedTest extends TestCase
 
         ConnectSocialAccount::run($user, 'github', 'github-123');
 
-        Event::assertDispatched(SocialAccountConnected::class, function ($event) use ($user) {
-            return $event->user->id === $user->id
-                && $event->socialLogin->provider === 'github'
-                && $event->socialLogin->provider_id === 'github-123';
-        });
+        Event::assertDispatched(fn (SocialAccountConnected $event) => $event->user->id === $user->id
+            && $event->socialLogin->provider === 'github'
+            && $event->socialLogin->provider_id === 'github-123');
     }
 
     public function test_event_is_not_dispatched_when_reconnecting_existing_account(): void

@@ -56,7 +56,7 @@ Route::middleware(['auth:web'])->group(function () {
 
         Route::livewire('settings/appearance', Appearance::class)->name('settings.appearance');
 
-        Route::livewire('/tenants/mine', 'numerosis::pages.tenant.mine')->name(RouteNames::tenantsMine());
+        Route::livewire('/tenants/mine', 'pages::tenant.mine')->name(RouteNames::tenantsMine());
     }
 
     if (Features::enabled(RegistrationWizardFeature::NAME)) {

@@ -14,13 +14,13 @@
             </div>
         </div>
 
-        <div class="flex justify-start pt-8 border-t border-gray-200 dark:border-zinc-700">
+        <div class="flex justify-start pt-8 border-t border-zinc-200 dark:border-zinc-700">
             <flux:button wire:click="back" variant="outline" icon="chevron-left">
                 Back
             </flux:button>
         </div>
     @else
-        <div class="flex justify-start pt-4 border-t border-gray-200 dark:border-zinc-700">
+        <div class="flex justify-start pt-4 border-t border-zinc-200 dark:border-zinc-700">
             <flux:button wire:click="back" variant="outline" icon="chevron-left">
                 Back
             </flux:button>

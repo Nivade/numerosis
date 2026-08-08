@@ -9,9 +9,11 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 
 class PlanStatsWidget extends BaseWidget
 {
+    #[Override]
     protected function getStats(): array
     {
         $paymentPlanClass = Numerosis::model(PaymentPlan::class);

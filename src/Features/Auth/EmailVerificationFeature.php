@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Features\Auth;
 
-use Nvade\Numerosis\Contracts\NamedFeature;
-use Nvade\Numerosis\Models\User;
-use Nvade\Numerosis\Notifications\Auth\VerifyEmail;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\URL;
+use Nvade\Numerosis\Contracts\NamedFeature;
+use Nvade\Numerosis\Models\User;
+use Nvade\Numerosis\Notifications\Auth\VerifyEmail;
 
 /**
  * Moved here verbatim from AppServiceProvider::boot() — registered

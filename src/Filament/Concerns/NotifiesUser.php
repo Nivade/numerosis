@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Concerns;
 
-use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Filament\Notifications\Notification;
+use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 
 /**
  * The three Filament notifications this app actually sends.

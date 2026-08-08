@@ -57,7 +57,7 @@ class CloneTenantSchema implements ShouldQueue
      *
      * @see connectionTo()
      */
-    private const CONNECTION = 'tenant_schema_clone';
+    private const string CONNECTION = 'tenant_schema_clone';
 
     /**
      * Cached DDL and copyable column list per template table, so cloning costs

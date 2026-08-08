@@ -64,9 +64,7 @@ class FetchReusablePaymentMethodsTest extends TestCase
         $this->assertFalse($result->fetchFailed);
         $this->assertCount(1, $result->options);
 
-        if (! $option instanceof SavedPaymentMethodOption) {
-            throw new RuntimeException('Expected a saved payment method option.');
-        }
+        throw_unless($option instanceof SavedPaymentMethodOption, RuntimeException::class, 'Expected a saved payment method option.');
 
         $this->assertSame($pm->id, $option->id);
         $this->assertSame('visa', $option->brand);

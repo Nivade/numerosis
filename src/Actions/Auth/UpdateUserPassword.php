@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
-use Nvade\Numerosis\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Models\User;
 
 class UpdateUserPassword
 {

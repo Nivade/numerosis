@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models;
 
-use Nvade\Numerosis\Actions\Queries\GetTenantsByGlobalId;
-use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
-use Nvade\Numerosis\Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
@@ -19,6 +16,10 @@ use Illuminate\Notifications\DatabaseNotificationCollection;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Nvade\Numerosis\Actions\Queries\GetTenantsByGlobalId;
+use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
+use Nvade\Numerosis\Database\Factories\UserFactory;
+use Override;
 use Spatie\OneTimePasswords\Models\Concerns\HasOneTimePasswords;
 use Spatie\Permission\Traits\HasRoles;
 use Stancl\Tenancy\Contracts\Syncable;
@@ -67,6 +68,7 @@ abstract class User extends Authenticatable implements FilamentUser, HasTenants,
      *
      * @return array<string, string>
      */
+    #[Override]
     protected function casts(): array
     {
         return [
@@ -102,8 +104,9 @@ abstract class User extends Authenticatable implements FilamentUser, HasTenants,
     /**
      * Send the email verification notification.
      */
+    #[Override]
     public function sendEmailVerificationNotification(): void
     {
-        app(SendsEmailVerificationNotification::class)->send($this);
+        resolve(SendsEmailVerificationNotification::class)->send($this);
     }
 }

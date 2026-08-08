@@ -9,6 +9,7 @@ use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Nvade\Numerosis\Filament\TenantAdmin\Pages\Billing;
+use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Tests\TestCase;
 
 class BillingTest extends TestCase
@@ -23,7 +24,7 @@ class BillingTest extends TestCase
 
     public function test_can_render_billing_page(): void
     {
-        \Nvade\Numerosis\Models\Central\PaymentPlan::factory()->create([
+        PaymentPlan::factory()->create([
             'name' => 'Basic Plan',
             'slug' => 'basic',
             'monthly_price' => 1000,
@@ -47,7 +48,7 @@ class BillingTest extends TestCase
 
     public function test_non_owner_cannot_access_billing_page(): void
     {
-        \Nvade\Numerosis\Models\Central\PaymentPlan::factory()->create([
+        PaymentPlan::factory()->create([
             'name' => 'Basic Plan',
             'slug' => 'basic',
             'monthly_price' => 1000,

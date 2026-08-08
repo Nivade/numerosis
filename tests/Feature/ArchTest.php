@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
+use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
+use Symfony\Component\Finder\Finder;
+
 /**
  * Keeps the boundary between the billing/tenancy contracts introduced by the
  * billing-provisioning-clarity refactor and this app's Eloquent models
@@ -22,7 +26,7 @@ arch('billing contracts do not depend on app models')
     ->not->toUse('Nvade\Numerosis\Models');
 
 arch('new tenancy contracts do not depend on app models')
-    ->expect(['Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant', 'Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy'])
+    ->expect([ProvisionsTenant::class, TenantDomainPolicy::class])
     ->not->toUse('Nvade\Numerosis\Models');
 
 /**
@@ -51,7 +55,7 @@ test('nothing reads the old cashier appendix keys', function (): void {
         ['src', 'config', 'database'],
     );
 
-    $files = (new Symfony\Component\Finder\Finder)
+    $files = (new Finder)
         ->files()
         ->in($roots)
         ->name('*.php');

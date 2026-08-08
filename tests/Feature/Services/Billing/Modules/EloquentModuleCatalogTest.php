@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Services\Billing\Modules;
 
-use Nvade\Numerosis\Models\Central\ModuleOffering;
-use Nvade\Numerosis\Services\Billing\Modules\EloquentModuleCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Nvade\Numerosis\Models\Central\ModuleOffering;
+use Nvade\Numerosis\Services\Billing\Modules\EloquentModuleCatalog;
 use Nvade\Numerosis\Tests\Concerns\PinsGlobalCache;
 use Nvade\Numerosis\Tests\TestCase;
 

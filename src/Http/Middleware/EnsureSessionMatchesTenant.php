@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Http\Middleware;
 
-use Nvade\Numerosis\Models\Central\Tenant;
 use Closure;
 use Illuminate\Auth\AuthManager;
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
+use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
  * Drops the tenant guard's session state when the session was established for a

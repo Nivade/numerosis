@@ -15,10 +15,12 @@ use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Listeners\Billing\SyncTenantToStripeOnSave;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 use Stancl\Tenancy\Events\TenantSaved;
 
 class BillingServiceProvider extends ServiceProvider
 {
+    #[Override]
     public function register(): void
     {
         /** @var array<class-string, class-string> $implementations */

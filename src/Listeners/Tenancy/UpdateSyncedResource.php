@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Listeners\Tenancy;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Override;
 use Stancl\Tenancy\Events\SyncedResourceSaved;
 use Stancl\Tenancy\Listeners\UpdateSyncedResource as BaseListener;
 
@@ -20,6 +21,7 @@ class UpdateSyncedResource extends BaseListener
 
     public int $backoff = 20;
 
+    #[Override]
     public function handle(SyncedResourceSaved $event): void
     {
         // Runs as a queued job with retries/backoff above, so a failure here

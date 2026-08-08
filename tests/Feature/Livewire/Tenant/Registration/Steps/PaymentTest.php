@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Livewire\Tenant\Registration\Steps;
 use App\Models\Central\CentralUser;
 use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Registration;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
@@ -36,11 +37,11 @@ class PaymentTest extends TestCase
     }
 
     /**
-     * @return \Livewire\Features\SupportTesting\Testable<Payment>
+     * @return Testable<Payment>
      */
     private function paymentStep(?string $domain, ?string $paymentPlan = null)
     {
-        $paymentAlias = app('livewire.finder')->normalizeName(Payment::class);
+        $paymentAlias = resolve('livewire.finder')->normalizeName(Payment::class);
 
         return Livewire::test(Payment::class, [
             'wizardClassName' => Registration::class,

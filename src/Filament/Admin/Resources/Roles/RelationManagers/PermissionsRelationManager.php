@@ -11,9 +11,11 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Override;
 
 class PermissionsRelationManager extends RelationManager
 {
+    #[Override]
     public static function getRecordTitleAttribute(): ?string
     {
         return 'name';
@@ -21,6 +23,7 @@ class PermissionsRelationManager extends RelationManager
 
     protected static string $relationship = 'permissions';
 
+    #[Override]
     public function form(Schema $schema): Schema
     {
         return $schema->components([

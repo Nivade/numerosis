@@ -10,6 +10,7 @@ use Filament\Widgets\TableWidget;
 use Nvade\Numerosis\Filament\Admin\Clusters\Billing\BillingCluster;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 
 class RecentSubscriptionsTable extends TableWidget
 {
@@ -19,6 +20,7 @@ class RecentSubscriptionsTable extends TableWidget
 
     protected int|string|array $columnSpan = 'full';
 
+    #[Override]
     public function table(Table $table): Table
     {
         $subscriptionClass = Numerosis::model(Subscription::class);

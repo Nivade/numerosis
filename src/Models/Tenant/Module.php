@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Policies\ModulePolicy;
+use Override;
 
 /**
  * @property int $id
@@ -44,6 +45,7 @@ class Module extends Model
     /** @use HasFactory<Factory<static>> */
     use HasFactory;
 
+    #[Override]
     protected function casts(): array
     {
         return [

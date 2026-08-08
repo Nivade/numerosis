@@ -21,6 +21,7 @@ use Nvade\Numerosis\Facades\Billing as BillingFacade;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 
 /**
  * Product page for a single module, reached by clicking a card on
@@ -53,6 +54,7 @@ class ModuleDetail extends Page implements HasActions
         $this->moduleSlug = $slug;
     }
 
+    #[Override]
     public function getTitle(): string
     {
         return $this->offer()->name();

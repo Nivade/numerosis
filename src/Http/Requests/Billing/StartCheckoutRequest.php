@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Http\Requests\Billing;
 
-use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
+use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Enums\BillingCycle;
 
 class StartCheckoutRequest extends FormRequest
 {

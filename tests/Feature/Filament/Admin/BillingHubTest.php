@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Filament\Admin;
 use App\Models\Central\CentralUser as User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Gate;
 use Nvade\Numerosis\Filament\Admin\Clusters\Billing\Pages\BillingDashboard;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\Features\FeatureResource;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\PaymentPlanResource;
@@ -30,7 +31,7 @@ class BillingHubTest extends TestCase
 
         // Bypass authorization for testing
         $this->withoutExceptionHandling();
-        \Illuminate\Support\Facades\Gate::before(fn () => true);
+        Gate::before(fn () => true);
 
         $this->get(BillingDashboard::getUrl())
             ->assertSuccessful();
@@ -40,7 +41,7 @@ class BillingHubTest extends TestCase
     {
         $user = User::factory()->create();
         $this->actingAs($user);
-        \Illuminate\Support\Facades\Gate::before(fn () => true);
+        Gate::before(fn () => true);
 
         $this->get(PaymentPlanResource::getUrl('index'))
             ->assertSuccessful();
@@ -50,7 +51,7 @@ class BillingHubTest extends TestCase
     {
         $user = User::factory()->create();
         $this->actingAs($user);
-        \Illuminate\Support\Facades\Gate::before(fn () => true);
+        Gate::before(fn () => true);
 
         $this->get(FeatureResource::getUrl('index'))
             ->assertSuccessful();
@@ -60,7 +61,7 @@ class BillingHubTest extends TestCase
     {
         $user = User::factory()->create();
         $this->actingAs($user);
-        \Illuminate\Support\Facades\Gate::before(fn () => true);
+        Gate::before(fn () => true);
 
         $this->get(SubscriptionResource::getUrl('index'))
             ->assertSuccessful();

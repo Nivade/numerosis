@@ -67,9 +67,7 @@ trait Billable
     {
         $stripeId = $this->stripe_id;
 
-        if (! is_string($stripeId) || $stripeId === '') {
-            throw new LogicException(static::class.' has no Stripe customer id. Call createAsStripeCustomer() first.');
-        }
+        throw_if(! is_string($stripeId) || $stripeId === '', LogicException::class, static::class.' has no Stripe customer id. Call createAsStripeCustomer() first.');
 
         return $stripeId;
     }

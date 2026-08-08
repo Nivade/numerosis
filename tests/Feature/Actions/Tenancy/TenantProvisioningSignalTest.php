@@ -55,11 +55,8 @@ class TenantProvisioningSignalTest extends TestCase
 
         ProvisionTenant::run($this->provisionData($user, 'broadcasttenant'));
 
-        Event::assertDispatched(
-            TenantProvisioned::class,
-            fn (TenantProvisioned $event) => $event->tenant->id === 'broadcasttenant'
-                && (int) $event->ownerId === $user->id,
-        );
+        Event::assertDispatched(fn (TenantProvisioned $event) => $event->tenant->id === 'broadcasttenant'
+            && (int) $event->ownerId === $user->id);
     }
 
     public function test_it_broadcasts_on_the_owners_private_channel(): void
@@ -67,14 +64,14 @@ class TenantProvisioningSignalTest extends TestCase
         $user = CentralUser::factory()->create();
         $tenant = Tenant::factory()->create();
 
-        $channels = (new TenantProvisioned($tenant, $user->id))->broadcastOn();
+        $channels = new TenantProvisioned($tenant, $user->id)->broadcastOn();
 
         $this->assertSame("private-user.{$user->id}", $channels[0]->name);
     }
 
     public function test_a_tenant_is_not_ready_until_provisioned_at_is_set(): void
     {
-        $user = CentralUser::factory()->create();
+        CentralUser::factory()->create();
         $tenant = Tenant::factory()->create(['provisioned_at' => null]);
 
         // Mirrors how tenants.mine splits ready from still-provisioning: the

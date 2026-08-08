@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Queries;
 
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Services\Tenancy\UserModelResolver;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
-use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * @method static ?User run(string $globalId, ?Context $context = null)

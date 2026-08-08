@@ -30,6 +30,7 @@ use Nvade\Numerosis\Filament\TenantAdmin\Resources\BaseResource;
 use Nvade\Numerosis\Models\Tenant\User;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 use UnitEnum;
 
 class UserResource extends BaseResource
@@ -38,6 +39,7 @@ class UserResource extends BaseResource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
+    #[Override]
     public static function getModel(): string
     {
         return Numerosis::model(User::class);
@@ -47,6 +49,7 @@ class UserResource extends BaseResource
 
     protected static ?int $navigationSort = 0;
 
+    #[Override]
     public static function getNavigationLabel(): string
     {
         return 'Members';
@@ -59,16 +62,19 @@ class UserResource extends BaseResource
      * documented on Nvade\Numerosis\Filament\TenantAdmin\Pages\Modules\Marketplace and
      * Nvade\Numerosis\Filament\TenantAdmin\Resources\Modules\ModuleResource.
      */
+    #[Override]
     public static function canAccess(): bool
     {
         return Features::enabled(MembershipsFeature::NAME) && parent::canAccess();
     }
 
+    #[Override]
     public static function shouldRegisterNavigation(): bool
     {
         return Features::enabled(MembershipsFeature::NAME) && parent::shouldRegisterNavigation();
     }
 
+    #[Override]
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
@@ -133,6 +139,7 @@ class UserResource extends BaseResource
         ]);
     }
 
+    #[Override]
     public static function table(Table $table): Table
     {
         return $table
@@ -248,6 +255,7 @@ class UserResource extends BaseResource
             ->emptyStateDescription('Get started by adding your first team member.');
     }
 
+    #[Override]
     public static function getPages(): array
     {
         return [

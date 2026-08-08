@@ -324,7 +324,7 @@ class CheckoutTest extends TestCase
         $this->actingAs($attacker);
 
         $victimCustomer = $victim->createOrGetStripeCustomer();
-        $attackerCustomer = $attacker->createOrGetStripeCustomer();
+        $attacker->createOrGetStripeCustomer();
         $stripe = Cashier::stripe();
 
         $pm = $stripe->paymentMethods->create([

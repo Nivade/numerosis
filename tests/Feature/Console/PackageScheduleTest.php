@@ -77,7 +77,7 @@ class PackageScheduleTest extends TestCase
 
     private function schedule(): Schedule
     {
-        return app(Schedule::class);
+        return resolve(Schedule::class);
     }
 
     /**
@@ -86,7 +86,7 @@ class PackageScheduleTest extends TestCase
     private function scheduledCommands(): array
     {
         return array_values(array_map(
-            fn (Event $event): string => $this->commandNameOf($event),
+            $this->commandNameOf(...),
             $this->schedule()->events(),
         ));
     }

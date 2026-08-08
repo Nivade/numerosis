@@ -12,6 +12,6 @@ $sizeClasses = [
 $sizeClass = $sizeClasses[$size] ?? $sizeClasses['sm'];
 @endphp
 
-<p {{ $attributes->merge(['class' => "{$sizeClass} text-gray-600 dark:text-gray-400"]) }}>
+<p {{ $attributes->merge(['class' => "{$sizeClass} text-zinc-500 dark:text-zinc-400"]) }}>
     {{ $slot }}
 </p>

@@ -23,6 +23,6 @@ class SendTenantSuspendedNotification
             return;
         }
 
-        app(NotifiesTenantOwner::class)->notify($event->tenant, new TenantSuspendedNotification($event->tenant));
+        resolve(NotifiesTenantOwner::class)->notify($event->tenant, new TenantSuspendedNotification($event->tenant));
     }
 }

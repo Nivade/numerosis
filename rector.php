@@ -12,12 +12,11 @@ return RectorConfig::configure()
     ->withSetProviders(LaravelSetProvider::class)
     ->withComposerBased(laravel: true)
     ->withPaths([
-        __DIR__.'/app',
+        __DIR__.'/src',
         __DIR__.'/tests',
     ])
     ->withSkip([
         __DIR__.'/database/migrations',
-        __DIR__.'/app-modules/*/database/migrations',
         // Strips @return PlanMetadata-style aliases that carry real generic
         // info beyond the native `array` return type — see
         // .claude/rules/static-analysis.md.

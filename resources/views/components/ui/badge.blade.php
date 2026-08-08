@@ -4,12 +4,20 @@
 ])
 
 @php
+// Same semantic tokens as ui/alert (resources/css/tokens.css) — one map,
+// two consumers. Badge used to tint at the 100 step, alert at the softer
+// 50 step; the token layer settled on alert's depth as `-bg`, so this is
+// visually lighter than the old badge and matches alert exactly now.
+//
+// `danger` mirrors ui/info-box's name for the red variant so the two
+// components take the same vocabulary.
 $variants = [
-    'success' => 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300',
-    'warning' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300',
-    'error' => 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
-    'info' => 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300',
-    'default' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+    'success' => 'bg-success-bg text-success-text',
+    'warning' => 'bg-warning-bg text-warning-text',
+    'error' => 'bg-danger-bg text-danger-text',
+    'danger' => 'bg-danger-bg text-danger-text',
+    'info' => 'bg-info-bg text-info-text',
+    'default' => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300',
 ];
 @endphp
 

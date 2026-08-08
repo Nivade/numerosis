@@ -29,6 +29,7 @@ use Nvade\Numerosis\Filament\Admin\Resources\Tenants\Pages\ListTenants;
 use Nvade\Numerosis\Filament\Admin\Resources\Tenants\RelationManagers\DomainsRelationManager;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 use UnitEnum;
 
 class TenantResource extends Resource
@@ -37,11 +38,13 @@ class TenantResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Customers';
 
+    #[Override]
     public static function getModel(): string
     {
         return Numerosis::model(Tenant::class);
     }
 
+    #[Override]
     public static function form(Schema $schema): Schema
     {
         return $schema
@@ -75,6 +78,7 @@ class TenantResource extends Resource
             ]);
     }
 
+    #[Override]
     public static function table(Table $table): Table
     {
         return $table
@@ -192,6 +196,7 @@ class TenantResource extends Resource
             ]);
     }
 
+    #[Override]
     public static function getRelations(): array
     {
         return [
@@ -206,11 +211,13 @@ class TenantResource extends Resource
      *
      * @return array<int, string>
      */
+    #[Override]
     public static function getGloballySearchableAttributes(): array
     {
         return ['id', 'name', 'domains.domain'];
     }
 
+    #[Override]
     public static function getGlobalSearchEloquentQuery(): Builder
     {
         return parent::getGlobalSearchEloquentQuery()->with('domains');
@@ -220,6 +227,7 @@ class TenantResource extends Resource
      * No 'create' route: see {@see ListTenants}
      * for why tenant creation is not a Filament CreateRecord page here.
      */
+    #[Override]
     public static function getPages(): array
     {
         return [

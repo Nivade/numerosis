@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Queries;
 
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
-use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * See .claude/rules/auth-guards.md.

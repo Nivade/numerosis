@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team;
 use BackedEnum;
 use Filament\Clusters\Cluster;
 use Filament\Support\Icons\Heroicon;
+use Override;
 
 class TeamCluster extends Cluster
 {
@@ -21,6 +22,7 @@ class TeamCluster extends Cluster
         return null;
     }
 
+    #[Override]
     public static function getNavigationBadgeTooltip(): ?string
     {
         return 'Manage your team members, roles, and permissions';

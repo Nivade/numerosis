@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Features;
 
-use Nvade\Numerosis\Support\Features;
 use Filament\Facades\Filament;
+use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Tests\TestCase;
 
 class AdminPanelDisabledTest extends TestCase

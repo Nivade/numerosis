@@ -87,10 +87,12 @@ class HostRequirementsTest extends TestCase
         $rows = [];
 
         foreach (explode("\n", $doc) as $line) {
-            if (! str_starts_with($line, '| ') || str_starts_with($line, '|---')) {
+            if (! str_starts_with($line, '| ')) {
                 continue;
             }
-
+            if (str_starts_with($line, '|---')) {
+                continue;
+            }
             $cells = array_map(trim(...), explode('|', trim($line, "| \t")));
 
             // Key | Required value / shape | Why | Checked by
@@ -120,7 +122,7 @@ class HostRequirementsTest extends TestCase
     {
         return array_map(
             fn (ReflectionMethod $method): string => $method->getName(),
-            (new ReflectionClass(InstallNumerosisCommand::class))->getMethods(),
+            new ReflectionClass(InstallNumerosisCommand::class)->getMethods(),
         );
     }
 }

@@ -36,7 +36,7 @@ class Accept extends Component
 
     public function mount(string $token): void
     {
-        $this->invitation = app(InvitationRepository::class)->findOrFailByToken($token);
+        $this->invitation = resolve(InvitationRepository::class)->findOrFailByToken($token);
 
         $centralUserClass = Numerosis::model(CentralUser::class);
 
@@ -60,7 +60,7 @@ class Accept extends Component
                 'password' => ['required', 'string', 'min:8', 'confirmed'],
             ]);
 
-            $centralUser = app(CreatesInvitedUser::class)->create($this->invitation, $this->name, $this->password);
+            $centralUser = resolve(CreatesInvitedUser::class)->create($this->invitation, $this->name, $this->password);
         }
 
         try {

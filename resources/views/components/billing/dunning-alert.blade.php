@@ -8,7 +8,7 @@
     Stripe's own dunning emails already carry the exact retry date.
 --}}
 @if($subscription?->pastDue())
-    <div {{ $attributes->merge(['class' => 'rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3']) }}>
+    <div {{ $attributes->merge(['class' => 'rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3']) }}>
         <x-numerosis::ui.text size="sm" class="font-medium">
             What happens next
         </x-numerosis::ui.text>

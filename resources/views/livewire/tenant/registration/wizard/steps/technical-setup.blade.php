@@ -8,7 +8,7 @@
     <!-- Enhanced Form Field with Better Visual Feedback -->
     <div class="space-y-6">
         <flux:field>
-            <flux:label class="text-base font-semibold text-gray-900 dark:text-white flex items-center">
+            <flux:label class="text-base font-semibold text-zinc-900 dark:text-white flex items-center">
                 Workspace Domain
                 <span class="ml-1 text-red-500" aria-label="Required field">*</span>
             </flux:label>

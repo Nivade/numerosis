@@ -198,9 +198,9 @@ class PasswordlessLoginTest extends TestCase
         $user = CentralUser::factory()->create();
         $decoy = CentralUser::factory()->create();
 
-        $this->app->singleton(ResolvesLoginCandidate::class, fn () => new class($decoy) implements ResolvesLoginCandidate
+        $this->app->singleton(ResolvesLoginCandidate::class, fn () => new readonly class($decoy) implements ResolvesLoginCandidate
         {
-            public function __construct(private readonly Authenticatable $decoy) {}
+            public function __construct(private Authenticatable $decoy) {}
 
             public function find(string $email): Authenticatable
             {

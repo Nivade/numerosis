@@ -6,6 +6,8 @@ use Nvade\Numerosis\Concerns\TagsSentryScopeWithTenant;
 use Sentry\Event;
 use Sentry\State\Scope;
 
+use function Sentry\configureScope;
+
 it('tags the current Sentry scope with the tenant key', function () {
     $job = new class
     {
@@ -20,7 +22,7 @@ it('tags the current Sentry scope with the tenant key', function () {
     $job->fail('acme');
 
     $event = null;
-    \Sentry\configureScope(function (Scope $scope) use (&$event): void {
+    configureScope(function (Scope $scope) use (&$event): void {
         $event = $scope->applyToEvent(Event::createEvent());
     });
 

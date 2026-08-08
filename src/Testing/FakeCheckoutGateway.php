@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Testing;
 
+use Illuminate\Support\Collection;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Illuminate\Support\Collection;
+use Nvade\Numerosis\Support\Routes\RouteNames;
 use PHPUnit\Framework\Assert as PHPUnit;
 
 /**
@@ -21,10 +22,10 @@ use PHPUnit\Framework\Assert as PHPUnit;
 class FakeCheckoutGateway implements CheckoutGateway, ProvisionsTenant
 {
     /** @var Collection<int, TenantRegistrationData> */
-    private Collection $checkoutsStarted;
+    private readonly Collection $checkoutsStarted;
 
     /** @var Collection<int, TenantProvisionData> */
-    private Collection $provisioned;
+    private readonly Collection $provisioned;
 
     public function __construct()
     {
@@ -36,7 +37,7 @@ class FakeCheckoutGateway implements CheckoutGateway, ProvisionsTenant
     {
         $this->checkoutsStarted->push($registration);
 
-        return new RedirectCheckout(route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine()));
+        return new RedirectCheckout(route(RouteNames::tenantsMine()));
     }
 
     public function queue(TenantProvisionData $data): void

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Database\Factories\Central;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Nvade\Numerosis\Enums\ModuleBillingMode;
 use Nvade\Numerosis\Models\Central\ModuleOffering;
-use Illuminate\Database\Eloquent\Factories\Factory;
 
 /** @extends \Illuminate\Database\Eloquent\Factories\Factory<\Nvade\Numerosis\Models\Central\ModuleOffering> */
 class ModuleOfferingFactory extends Factory

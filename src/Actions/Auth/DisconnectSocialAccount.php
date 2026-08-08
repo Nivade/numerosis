@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
-use Nvade\Numerosis\Events\Auth\SocialAccountDisconnected;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Illuminate\Support\Facades\Event;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Events\Auth\SocialAccountDisconnected;
+use Nvade\Numerosis\Models\Central\CentralUser;
 
 class DisconnectSocialAccount
 {

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Features\Social;
 
-use Nvade\Numerosis\Contracts\NamedFeature;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
+use Nvade\Numerosis\Contracts\NamedFeature;
 use SocialiteProviders\Discord\Provider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 

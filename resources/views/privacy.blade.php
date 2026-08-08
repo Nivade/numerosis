@@ -1,6 +1,6 @@
 <x-layouts::app :title="__('Privacy Policy')">
     <section class="relative overflow-hidden">
-        <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(50%_50%_at_50%_0%,rgba(59,130,246,0.1)_0%,transparent_60%)] dark:bg-[radial-gradient(50%_50%_at_50%_0%,rgba(59,130,246,0.15)_0%,transparent_60%)]"></div>
+        <x-numerosis::ui.hero-gradient intensity="soft" />
 
         <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 pt-16 pb-12 sm:pt-24 sm:pb-16 relative">
             <div class="space-y-8">

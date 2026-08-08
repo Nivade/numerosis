@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Billing\Checkout;
 
+use Illuminate\Contracts\Support\Responsable;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
-use Illuminate\Contracts\Support\Responsable;
 use RuntimeException;
 
 /**

@@ -10,9 +10,11 @@ use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 
 class BillingStatsWidget extends StatsOverviewWidget
 {
+    #[Override]
     protected function getStats(): array
     {
         $subscriptionClass = Numerosis::model(Subscription::class);

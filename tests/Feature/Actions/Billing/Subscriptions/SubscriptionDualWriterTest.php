@@ -43,7 +43,7 @@ class SubscriptionDualWriterTest extends TestCase
 
         $user = CentralUser::factory()->create();
         $tenant = Tenant::factory()->create(['stripe_id' => null]);
-        $plan = PaymentPlan::factory()->create(['slug' => 'pro', 'monthly_id' => 'price_dup1']);
+        PaymentPlan::factory()->create(['slug' => 'pro', 'monthly_id' => 'price_dup1']);
 
         // Redirect wins the race: LinkSubscriptionToTenant creates the row
         // manually because the webhook has not landed yet.
@@ -81,7 +81,7 @@ class SubscriptionDualWriterTest extends TestCase
         // Tenant's stripe_id is already synced (e.g. a prior customer.created
         // webhook), so Cashier's write resolves the billable on its first pass.
         $tenant = Tenant::factory()->create(['stripe_id' => 'cus_dup2']);
-        $plan = PaymentPlan::factory()->create(['slug' => 'pro', 'monthly_id' => 'price_dup2']);
+        PaymentPlan::factory()->create(['slug' => 'pro', 'monthly_id' => 'price_dup2']);
 
         $this->postJson(Config::string('numerosis.billing.webhook_path', 'billing/webhook'), $this->webhookPayload(
             'sub_dup2',

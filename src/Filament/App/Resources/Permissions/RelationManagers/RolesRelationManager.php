@@ -15,6 +15,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Override;
 
 class RolesRelationManager extends RelationManager
 {
@@ -22,6 +23,7 @@ class RolesRelationManager extends RelationManager
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    #[Override]
     public function form(Schema $schema): Schema
     {
         return $schema->components([

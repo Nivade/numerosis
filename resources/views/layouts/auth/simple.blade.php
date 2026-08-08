@@ -3,7 +3,7 @@
     <head>
         @include('numerosis::partials.head')
     </head>
-    <body class="min-h-screen bg-white antialiased dark:bg-linear-to-b dark:from-neutral-950 dark:to-neutral-900">
+    <body class="min-h-screen bg-white antialiased dark:bg-linear-to-b dark:from-zinc-950 dark:to-zinc-900">
         <div class="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
             <div class="flex w-full max-w-sm flex-col gap-2">
                 <a href="{{ route(\Nvade\Numerosis\Support\Routes\RouteNames::home()) }}" class="flex flex-col items-center gap-2 font-medium" wire:navigate>

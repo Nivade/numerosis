@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Billing\Modules;
 
+use Illuminate\Support\Collection;
 use Nvade\Numerosis\Contracts\Billing\ModuleCatalog;
 use Nvade\Numerosis\Contracts\Billing\ModuleOffer;
 use Nvade\Numerosis\Models\Central\ModuleOffering;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
-use Illuminate\Support\Collection;
 
 class EloquentModuleCatalog implements ModuleCatalog
 {

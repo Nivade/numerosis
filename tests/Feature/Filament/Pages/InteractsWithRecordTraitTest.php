@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Filament\Pages;
 
 use App\Models\Central\CentralUser;
+use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Filament\Concerns\InteractsWithRecord;
@@ -171,6 +172,6 @@ class InteractsWithRecordTraitTest extends TestCase
         };
 
         $this->assertFalse($page->hasRecord());
-        $this->assertNull($page->getDefaultActionRecord(action: new \Filament\Actions\Action('test')));
+        $this->assertNull($page->getDefaultActionRecord(action: new Action('test')));
     }
 }

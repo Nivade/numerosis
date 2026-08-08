@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Listeners\Invitations;
 
+use Illuminate\Support\Facades\Notification;
 use Nvade\Numerosis\Events\Invitations\InvitationIssued;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Notifications\InvitationSent;
 use Nvade\Numerosis\Support\Features;
-use Illuminate\Support\Facades\Notification;
 
 /**
  * Auto-discovered by Laravel's event discovery, so InvitationsFeature cannot

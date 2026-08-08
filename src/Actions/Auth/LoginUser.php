@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
-use Nvade\Numerosis\Actions\Queries\FindUserByGlobalId;
-use Nvade\Numerosis\Enums\Tenancy\Context;
-use Nvade\Numerosis\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Session;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Actions\Queries\FindUserByGlobalId;
+use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Models\User;
 use RuntimeException;
 
 /**

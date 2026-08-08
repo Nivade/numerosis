@@ -23,6 +23,6 @@ class SendPaymentConfirmedNotification
             return;
         }
 
-        app(NotifiesTenantOwner::class)->notify($event->tenant, new PaymentConfirmed($event->tenant));
+        resolve(NotifiesTenantOwner::class)->notify($event->tenant, new PaymentConfirmed($event->tenant));
     }
 }

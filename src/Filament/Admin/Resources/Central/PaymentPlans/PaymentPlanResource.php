@@ -19,6 +19,7 @@ use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Schemas\Paymen
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Tables\PaymentPlansTable;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 
 class PaymentPlanResource extends Resource
 {
@@ -26,6 +27,7 @@ class PaymentPlanResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    #[Override]
     public static function getModel(): string
     {
         return Numerosis::model(PaymentPlan::class);
@@ -36,11 +38,13 @@ class PaymentPlanResource extends Resource
         return Width::Full;
     }
 
+    #[Override]
     public static function form(Schema $schema): Schema
     {
         return PaymentPlanForm::configure($schema);
     }
 
+    #[Override]
     public static function table(Table $table): Table
     {
         return PaymentPlansTable::configure($table);
@@ -58,6 +62,7 @@ class PaymentPlanResource extends Resource
      *
      * @return array<int, class-string>
      */
+    #[Override]
     public static function getRelations(): array
     {
         return [
@@ -68,11 +73,13 @@ class PaymentPlanResource extends Resource
     /**
      * @return array<int, string>
      */
+    #[Override]
     public static function getGloballySearchableAttributes(): array
     {
         return ['name', 'slug'];
     }
 
+    #[Override]
     public static function getPages(): array
     {
         return [

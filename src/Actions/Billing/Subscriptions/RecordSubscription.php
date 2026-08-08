@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing\Subscriptions;
 
-use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
-use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Laravel\Cashier\Subscription;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
+use Nvade\Numerosis\Data\Billing\SubscriptionData;
 
 /**
  * @method static Subscription run(SubscriptionData $data)

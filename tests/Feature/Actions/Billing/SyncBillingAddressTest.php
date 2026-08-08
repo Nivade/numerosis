@@ -11,6 +11,7 @@ use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
 use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
 use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
+use Stripe\PaymentMethod;
 
 /**
  * Creates a PaymentMethod with a billing address attached (standing in for
@@ -80,7 +81,7 @@ class SyncBillingAddressTest extends TestCase
         SyncBillingAddress::run($user, $paymentMethod, 'not-a-real-vat-number');
     }
 
-    private function paymentMethodWithAddress(string $customerId, string $country): \Stripe\PaymentMethod
+    private function paymentMethodWithAddress(string $customerId, string $country): PaymentMethod
     {
         $paymentMethod = Cashier::stripe()->paymentMethods->create([
             'type' => 'card',

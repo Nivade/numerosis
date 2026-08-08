@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Policies;
 
+use Illuminate\Auth\Access\HandlesAuthorization;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Policies\Concerns\ChecksContextPermissions;
-use Illuminate\Auth\Access\HandlesAuthorization;
 
 class UserPolicy
 {
@@ -36,8 +36,11 @@ class UserPolicy
         if ($user->hasPermissionTo('viewAny users')) {
             return true;
         }
+        if ($user->is($model)) {
+            return true;
+        }
 
-        return $user->is($model) || $user->hasPermissionTo('view users');
+        return $user->hasPermissionTo('view users');
     }
 
     /**
@@ -48,7 +51,10 @@ class UserPolicy
         if ($user->hasPermissionTo('updateAny users')) {
             return true;
         }
+        if ($user->is($model)) {
+            return true;
+        }
 
-        return $user->is($model) || $user->hasPermissionTo('update users');
+        return $user->hasPermissionTo('update users');
     }
 }

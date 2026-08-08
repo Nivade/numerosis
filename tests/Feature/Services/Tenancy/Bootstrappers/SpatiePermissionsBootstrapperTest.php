@@ -35,7 +35,7 @@ class SpatiePermissionsBootstrapperTest extends TestCase
         // Loads tenant A's permissions into the registrar's in-memory collection.
         $first->run(function () {
             $this->assertTrue(
-                app(PermissionRegistrar::class)->getPermissions()->contains('name', 'first-tenant-only-permission')
+                resolve(PermissionRegistrar::class)->getPermissions()->contains('name', 'first-tenant-only-permission')
             );
         });
 
@@ -43,7 +43,7 @@ class SpatiePermissionsBootstrapperTest extends TestCase
         // survives the switch, it still reports the permission as present.
         $second->run(function () {
             $this->assertFalse(
-                app(PermissionRegistrar::class)->getPermissions()->contains('name', 'first-tenant-only-permission'),
+                resolve(PermissionRegistrar::class)->getPermissions()->contains('name', 'first-tenant-only-permission'),
                 'Tenant B was served tenant A\'s cached permission collection.'
             );
         });

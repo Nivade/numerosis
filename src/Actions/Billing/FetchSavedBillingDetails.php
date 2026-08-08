@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing;
 
-use Nvade\Numerosis\Data\Billing\SavedBillingDetails;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Data\Billing\SavedBillingDetails;
+use Nvade\Numerosis\Models\Central\CentralUser;
 use Stripe\Exception\ApiErrorException;
 
 /**

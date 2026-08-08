@@ -21,6 +21,7 @@ use Nvade\Numerosis\Models\User as BaseUser;
 use Nvade\Numerosis\Observers\TenantUserObserver;
 use Nvade\Numerosis\Policies\UserPolicy;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -85,6 +86,7 @@ class User extends BaseUser implements TenantUserModel
     use LogsActivity;
     use ResourceSyncing;
 
+    #[Override]
     protected function casts(): array
     {
         return [

@@ -11,6 +11,7 @@ use Illuminate\Notifications\Notification as NotificationBase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
+use Nvade\Numerosis\Notifications\Auth\VerifyEmail;
 use Nvade\Numerosis\Tests\TestCase;
 use RuntimeException;
 
@@ -32,7 +33,7 @@ class EmailVerificationTest extends TestCase
         $user->sendEmailVerificationNotification();
 
         // Assert
-        Notification::assertSentTo($user, \Nvade\Numerosis\Notifications\Auth\VerifyEmail::class);
+        Notification::assertSentTo($user, VerifyEmail::class);
     }
 
     /**
@@ -55,9 +56,9 @@ class EmailVerificationTest extends TestCase
             }
         };
 
-        $this->app->singleton(SendsEmailVerificationNotification::class, fn () => new class($customNotification) implements SendsEmailVerificationNotification
+        $this->app->singleton(SendsEmailVerificationNotification::class, fn () => new readonly class($customNotification) implements SendsEmailVerificationNotification
         {
-            public function __construct(private readonly NotificationBase $notification) {}
+            public function __construct(private NotificationBase $notification) {}
 
             public function send(MustVerifyEmail $notifiable): void
             {
@@ -75,7 +76,7 @@ class EmailVerificationTest extends TestCase
         $user->sendEmailVerificationNotification();
 
         Notification::assertSentTo($user, $customNotification::class);
-        Notification::assertNotSentTo($user, \Nvade\Numerosis\Notifications\Auth\VerifyEmail::class);
+        Notification::assertNotSentTo($user, VerifyEmail::class);
     }
 
     public function test_user_can_verify_email_with_valid_signature(): void
@@ -122,7 +123,7 @@ class EmailVerificationTest extends TestCase
         $response = $this->actingAs($user)->get($invalidUrl);
 
         // Assert
-        $response->assertStatus(403); // Forbidden due to invalid signature
+        $response->assertForbidden(); // Forbidden due to invalid signature
         $this->assertFalse($user->fresh()->hasVerifiedEmail());
     }
 
@@ -148,7 +149,7 @@ class EmailVerificationTest extends TestCase
         $response = $this->actingAs($user)->get($verificationUrl);
 
         // Assert
-        $response->assertStatus(403); // Forbidden due to hash mismatch
+        $response->assertForbidden(); // Forbidden due to hash mismatch
         $this->assertFalse($user->fresh()->hasVerifiedEmail());
     }
 

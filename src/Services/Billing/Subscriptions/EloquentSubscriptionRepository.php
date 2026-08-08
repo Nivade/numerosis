@@ -48,7 +48,7 @@ class EloquentSubscriptionRepository implements SubscriptionRepository
             $subscription = $this->findByStripeId($data->stripe_id);
 
             if (! $subscription instanceof Subscription) {
-                throw new RuntimeException("Subscription {$data->stripe_id} raced on insert but is not findable afterwards", previous: $e);
+                throw new RuntimeException("Subscription {$data->stripe_id} raced on insert but is not findable afterwards", $e->getCode(), previous: $e);
             }
 
             $subscription->update($data->except('items', 'stripe_id')->toArray());

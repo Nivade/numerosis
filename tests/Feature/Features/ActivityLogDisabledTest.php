@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Features;
 
 use AlizHarb\ActivityLog\ActivityLogPlugin;
+use Filament\Facades\Filament;
 use Nvade\Numerosis\Features\Ui\TenantPanelFeature;
 use Nvade\Numerosis\Filament\TenantAdmin\Resources\Activities\ActivityResource;
 use Nvade\Numerosis\Support\Features;
-use Filament\Facades\Filament;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

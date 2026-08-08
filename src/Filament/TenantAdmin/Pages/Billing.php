@@ -28,6 +28,7 @@ use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 use Stripe\Exception\ApiErrorException;
 
 /**
@@ -51,6 +52,7 @@ class Billing extends Page implements HasForms
 
     protected static bool $shouldRegisterNavigation = false;
 
+    #[Override]
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -68,16 +70,19 @@ class Billing extends Page implements HasForms
         }
     }
 
+    #[Override]
     public function getTitle(): string
     {
         return 'Billing & Subscription';
     }
 
+    #[Override]
     public function getSubheading(): ?string
     {
         return 'Manage your organization\'s subscription and billing details.';
     }
 
+    #[Override]
     protected function getHeaderActions(): array
     {
         return [
@@ -271,6 +276,7 @@ class Billing extends Page implements HasForms
         }
     }
 
+    #[Override]
     public static function getUrl(
         array $parameters = [],
         bool $isAbsolute = true,

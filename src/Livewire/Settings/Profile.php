@@ -12,6 +12,7 @@ use Nvade\Numerosis\Actions\Auth\ResendVerificationNotification;
 use Nvade\Numerosis\Actions\Auth\UpdateUserProfile;
 use Nvade\Numerosis\Concerns\RequiresAuthenticatedUser;
 use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Support\Routes\RouteNames;
 
 class Profile extends Component
 {
@@ -65,7 +66,7 @@ class Profile extends Component
         $user = $this->authenticatedUser();
 
         if ($user->hasVerifiedEmail()) {
-            $this->redirectIntended(default: route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine(), absolute: false));
+            $this->redirectIntended(default: route(RouteNames::tenantsMine(), absolute: false));
 
             return;
         }

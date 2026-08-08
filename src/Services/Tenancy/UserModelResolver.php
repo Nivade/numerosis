@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Tenancy;
 
+use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Contracts\Auth\TenantUserModel;
 use Nvade\Numerosis\Models\User;
-use Illuminate\Support\Facades\Config;
 
 class UserModelResolver
 {

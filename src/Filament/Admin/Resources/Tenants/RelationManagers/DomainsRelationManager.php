@@ -16,11 +16,13 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
+use Override;
 
 class DomainsRelationManager extends RelationManager
 {
     protected static string $relationship = 'domains';
 
+    #[Override]
     public function form(Schema $schema): Schema
     {
         return $schema

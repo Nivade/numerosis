@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
+use Illuminate\Support\Facades\Event;
+use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Events\Auth\SocialAccountConnected;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\SocialiteLogin;
-use Illuminate\Support\Facades\Event;
-use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * @method static SocialiteLogin run(CentralUser $user, string $provider, string $providerId)

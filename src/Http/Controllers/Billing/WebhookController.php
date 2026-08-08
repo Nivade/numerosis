@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Http\Controllers\Billing;
 
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Laravel\Cashier\Cashier;
@@ -25,8 +26,8 @@ use Nvade\Numerosis\Enums\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
+use Override;
 use Stripe\Exception\ApiErrorException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -42,6 +43,7 @@ class WebhookController extends CashierWebhookController
      *
      * @param  array{data: array{object: array{id?: string, customer?: string, metadata?: array<string, mixed>}}}  $payload
      */
+    #[Override]
     protected function handleCustomerSubscriptionCreated(array $payload): Response
     {
         $stripeSubscription = $payload['data']['object'];
@@ -171,7 +173,7 @@ class WebhookController extends CashierWebhookController
 
         $pendingClass = Numerosis::model(PendingTenantProvision::class);
 
-        /** @var \Illuminate\Support\Collection<int, PendingTenantProvision> $candidates */
+        /** @var Collection<int, PendingTenantProvision> $candidates */
         $candidates = $pendingClass::where('global_id', $billable->global_id)
             ->whereNull('stripe_subscription_id')
             ->get();
@@ -236,6 +238,7 @@ class WebhookController extends CashierWebhookController
      *
      * @param  array{data: array{object: array{id?: string, customer?: string}}}  $payload
      */
+    #[Override]
     protected function handleCustomerSubscriptionDeleted(array $payload): Response
     {
         $response = parent::handleCustomerSubscriptionDeleted($payload);
@@ -259,6 +262,7 @@ class WebhookController extends CashierWebhookController
      *
      * @param  array{data: array{object: array{id?: string, customer?: string, status?: string, items?: array{data?: list<array{id?: string}>}}}}  $payload
      */
+    #[Override]
     protected function handleCustomerSubscriptionUpdated(array $payload): Response
     {
         $response = parent::handleCustomerSubscriptionUpdated($payload) ?? $this->successMethod();
@@ -348,6 +352,7 @@ class WebhookController extends CashierWebhookController
      *
      * @param  array{data: array{object: array{id?: string, subscription?: string, parent?: array{subscription_details?: array{subscription?: string}}}}}  $payload
      */
+    #[Override]
     protected function handleInvoicePaymentSucceeded(array $payload): Response
     {
         $response = parent::handleInvoicePaymentSucceeded($payload);
@@ -380,6 +385,7 @@ class WebhookController extends CashierWebhookController
      *
      * @param  array{data: array{object: array{id?: string}}}  $payload
      */
+    #[Override]
     protected function handleInvoicePaymentActionRequired(array $payload): Response
     {
         $response = parent::handleInvoicePaymentActionRequired($payload);

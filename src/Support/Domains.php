@@ -37,7 +37,7 @@ final class Domains
      * of `127.0.0.1` by dropping its first label yields `0.0.1`, which is
      * worse than useless because it looks like a domain.
      */
-    private const NOT_SUBDIVIDABLE = ['localhost'];
+    private const array NOT_SUBDIVIDABLE = ['localhost'];
 
     private function __construct() {}
 

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Console\Commands;
 
-use Nvade\Numerosis\Models\Central\Tenant;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use InterNACHI\Modular\Support\Facades\Modules;
+use Nvade\Numerosis\Models\Central\Tenant;
 use Stancl\Tenancy\Concerns\HasATenantsOption;
 use Stancl\Tenancy\Events\DatabaseMigrated;
 use Stancl\Tenancy\Events\MigratingDatabase;

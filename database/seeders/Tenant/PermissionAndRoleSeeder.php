@@ -10,9 +10,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Database\Seeders\Tenant;
 
-use Nvade\Numerosis\Models\Permission;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Log;
+use Nvade\Numerosis\Models\Permission;
 
 class PermissionAndRoleSeeder extends Seeder
 {

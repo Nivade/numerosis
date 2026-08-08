@@ -11,6 +11,7 @@ use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Permissions\Pag
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Permissions\RelationManagers\RolesRelationManager;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\TeamCluster;
 use Nvade\Numerosis\Models\Permission;
+use Override;
 
 class PermissionResource extends BasePermissionResource
 {
@@ -20,6 +21,7 @@ class PermissionResource extends BasePermissionResource
 
     protected static ?int $navigationSort = 200;
 
+    #[Override]
     public static function getRelations(): array
     {
         return [
@@ -27,6 +29,7 @@ class PermissionResource extends BasePermissionResource
         ];
     }
 
+    #[Override]
     public static function getPages(): array
     {
         return [

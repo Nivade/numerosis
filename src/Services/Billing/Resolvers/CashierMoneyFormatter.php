@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Billing\Resolvers;
 
-use Nvade\Numerosis\Contracts\Billing\MoneyFormatter;
 use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
+use Nvade\Numerosis\Contracts\Billing\MoneyFormatter;
 
 class CashierMoneyFormatter implements MoneyFormatter
 {
