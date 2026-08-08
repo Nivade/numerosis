@@ -104,4 +104,24 @@ class DesignLanguageGuardTest extends TestCase
             );
         }
     }
+
+    /**
+     * Phase 6: `->emptyStateIcon()` took a mix of raw `'heroicon-o-*'`
+     * strings and the `Heroicon` enum across the Filament resources — one
+     * vocabulary, the CLAUDE.md-documented convention
+     * (`Filament\Support\Icons\Heroicon` enum), not two spellings of the
+     * same icon.
+     */
+    public function test_no_filament_resource_uses_a_raw_heroicon_string_for_empty_state_icon(): void
+    {
+        $finder = (new Finder)->files()->in(dirname(__DIR__, 3).'/src')->name('*.php');
+
+        foreach ($finder as $file) {
+            $this->assertDoesNotMatchRegularExpression(
+                "/emptyStateIcon\\(\\s*['\"]heroicon-/",
+                $file->getContents(),
+                "{$file->getRelativePathname()} passes a raw 'heroicon-o-*' string to emptyStateIcon() — use the Heroicon enum instead.",
+            );
+        }
+    }
 }

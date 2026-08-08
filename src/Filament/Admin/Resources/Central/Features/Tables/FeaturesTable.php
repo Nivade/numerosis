@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Filament\Admin\Resources\Central\Features\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -36,7 +37,7 @@ class FeaturesTable
             ->defaultSort('slug')
             ->emptyStateHeading('No features yet')
             ->emptyStateDescription('Features are what payment plans include or exclude — add one, then toggle it per plan from the plan\'s edit screen.')
-            ->emptyStateIcon('heroicon-o-check-badge')
+            ->emptyStateIcon(Heroicon::OutlinedCheckBadge)
             ->recordActions([
                 EditAction::make(),
             ])

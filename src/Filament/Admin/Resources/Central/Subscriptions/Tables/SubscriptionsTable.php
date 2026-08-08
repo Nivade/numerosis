@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -87,7 +88,7 @@ class SubscriptionsTable
             ])
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading('No subscriptions yet')
-            ->emptyStateIcon('heroicon-o-credit-card')
+            ->emptyStateIcon(Heroicon::OutlinedCreditCard)
             ->recordActions([
                 EditAction::make(),
             ])

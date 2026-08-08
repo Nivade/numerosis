@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Filament\Admin\Resources\Central\Modules\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -51,7 +52,7 @@ class ModulesTable
             ->defaultSort('name')
             ->emptyStateHeading('No modules yet')
             ->emptyStateDescription('Modules are optional add-ons tenants can purchase — this is the catalog of what exists to sell, not which tenants have bought what.')
-            ->emptyStateIcon('heroicon-o-puzzle-piece')
+            ->emptyStateIcon(Heroicon::OutlinedPuzzlePiece)
             ->recordActions([
                 EditAction::make(),
             ])

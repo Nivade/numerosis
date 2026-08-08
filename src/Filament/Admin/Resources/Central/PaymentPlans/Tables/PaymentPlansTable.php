@@ -9,6 +9,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
@@ -101,7 +102,7 @@ class PaymentPlansTable
             ->defaultSort('monthly_price')
             ->emptyStateHeading('No payment plans yet')
             ->emptyStateDescription('Plans are what tenants subscribe to — create one to unlock checkout.')
-            ->emptyStateIcon('heroicon-o-rectangle-stack')
+            ->emptyStateIcon(Heroicon::OutlinedRectangleStack)
             ->recordActions([
                 EditAction::make(),
             ])

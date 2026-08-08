@@ -90,7 +90,7 @@ class UserResource extends Resource
             ])
             ->defaultSort('name')
             ->emptyStateHeading('No users yet')
-            ->emptyStateIcon('heroicon-o-users');
+            ->emptyStateIcon(Heroicon::OutlinedUsers);
     }
 
     /**

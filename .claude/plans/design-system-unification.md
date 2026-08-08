@@ -389,7 +389,18 @@ deliverable is:
   same palette, radius, and shadow scale; "one channel" is satisfied
   visually without a behavioural merge. No new code needed for this half —
   it was already true once Phase 4 landed, just unverified until now.
-- **One empty-state vocabulary** — shared icon set and copy tone; Filament tables' `emptyStateHeading` drawn from the same source as `ui/empty-state`.
+- **One empty-state vocabulary — done, smaller than scoped.** Surveying
+  every `->emptyStateHeading()`/`->emptyStateIcon()`/`->emptyStateDescription()`
+  call across both panels found the copy tone already consistent ("No X
+  yet/defined/assigned" + a description explaining why and what to do
+  next) — nothing to rewrite there. The one real inconsistency was icon
+  references split between raw `'heroicon-o-*'` strings and the
+  `Filament\Support\Icons\Heroicon` enum (CLAUDE.md's documented
+  convention) across 8 resources/tables; normalized all 8 to the enum.
+  Guard added: `DesignLanguageGuardTest::test_no_filament_resource_uses_a_raw_heroicon_string_for_empty_state_icon`.
+  `ui/empty-state` (main app) untouched — its icon vocabulary (Lucide-style
+  names via `<flux:icon>`) is a different icon set from Filament's
+  Heroicons already, by Flux's own design, not a drift to fix.
 - **One loading indicator** shared by `wire:loading` and Filament.
 - **One confirmation pattern** and one action vocabulary — a button that says "Publish" produces a toast that says "Published", in all three surfaces.
 - **One form-validation presentation** — error color, position, and icon from the semantic tokens.

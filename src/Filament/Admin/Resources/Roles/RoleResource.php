@@ -64,7 +64,7 @@ class RoleResource extends Resource
             ->defaultSort('name')
             ->emptyStateHeading('No roles yet')
             ->emptyStateDescription('Roles bundle permissions together so you can assign several at once instead of one at a time.')
-            ->emptyStateIcon('heroicon-o-key');
+            ->emptyStateIcon(Heroicon::OutlinedKey);
     }
 
     #[Override]

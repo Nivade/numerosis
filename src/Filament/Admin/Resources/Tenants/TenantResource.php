@@ -16,6 +16,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
@@ -137,7 +138,7 @@ class TenantResource extends Resource
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading('No tenants yet')
             ->emptyStateDescription('Tenants are created through the registration wizard, not this table — see "New Tenant" above.')
-            ->emptyStateIcon('heroicon-o-rectangle-stack')
+            ->emptyStateIcon(Heroicon::OutlinedRectangleStack)
             ->filters([
                 TernaryFilter::make('suspended_at')
                     ->label('Suspended')

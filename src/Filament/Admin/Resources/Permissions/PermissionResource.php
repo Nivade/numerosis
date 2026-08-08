@@ -58,7 +58,7 @@ class PermissionResource extends Resource
             ->defaultSort('name')
             ->emptyStateHeading('No permissions yet')
             ->emptyStateDescription('Permissions are usually seeded by RoleAndPermissionSeeder — check that it has run before adding one by hand.')
-            ->emptyStateIcon('heroicon-o-shield-check');
+            ->emptyStateIcon(Heroicon::OutlinedShieldCheck);
     }
 
     #[Override]
