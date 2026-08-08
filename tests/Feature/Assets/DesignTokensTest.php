@@ -152,23 +152,32 @@ class DesignTokensTest extends TestCase
 
     public function test_filament_theme_loads_instrument_sans(): void
     {
-        $this->assertStringContainsString("--font-family: 'Instrument Sans';", $this->filamentThemeCss());
+        $this->assertStringContainsString("--font-family: 'Instrument Sans' !important;", $this->filamentThemeCss());
     }
 
     public function test_filament_theme_gray_ramp_is_zinc_and_primary_ramp_is_hue_parameterized(): void
     {
         $css = $this->filamentThemeCss();
 
-        $this->assertStringContainsString('--gray-500: var(--zinc-500);', $css);
+        $this->assertStringContainsString('--gray-500: var(--zinc-500) !important;', $css);
 
         // Every shade parameterized by --pref-accent-hue (Phase 7), not a
         // fixed reference to a static blue ramp — otherwise a host's hue
         // override reaches the main app but never either Filament panel.
+        //
+        // `!important` (Phase 9): Filament's own `ColorManager::DEFAULT_COLORS`
+        // seeds `primary => Amber` unconditionally, regardless of whether a
+        // panel calls `->colors()`, and re-emits it as a `<style>:root{...}</style>`
+        // block on every request (`AssetManager::renderStyles()`). Whichever
+        // `:root` block lands later in the DOM wins at equal specificity —
+        // this file must not depend on winning that race by injection-order
+        // luck, since Filament's checked-checkbox fill and `.fi-color` filled
+        // buttons both key off this same --primary-* var.
         foreach (['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'] as $shade) {
             $this->assertMatchesRegularExpression(
-                "/--primary-{$shade}: oklch\\([^)]*var\\(--pref-accent-hue\\)\\);/",
+                "/--primary-{$shade}: oklch\\([^)]*var\\(--pref-accent-hue\\)\\) !important;/",
                 $css,
-                "--primary-{$shade} does not derive from --pref-accent-hue.",
+                "--primary-{$shade} does not derive from --pref-accent-hue, or is missing !important.",
             );
         }
     }
@@ -234,5 +243,43 @@ class DesignTokensTest extends TestCase
 
         $this->assertStringContainsString('min-height: 44px;', $touchTargetBlock);
         $this->assertStringContainsString('min-width: 44px;', $touchTargetBlock);
+    }
+
+    /**
+     * Phase 9: `Filament\Support\Colors\ColorManager::DEFAULT_COLORS`
+     * (primary => Amber, gray => Zinc, danger => Red, info => Blue,
+     * success => Green, warning => Amber) is unshifted unconditionally in
+     * the manager's constructor — no panel has to call `->colors()` for it
+     * to apply. `AssetManager::renderStyles()` re-emits it as a
+     * `<style>:root{--primary-*:...}</style>` block on every request
+     * regardless. Observed live against app.thinapp.dev/admin/login: that
+     * block loads *before* this file's own `:root`, so cascade order alone
+     * happened to make ours win — but nothing pins that order across every
+     * panel page or render hook, and Filament's checked-checkbox fill
+     * (`checked:bg-primary-600`) and `.fi-color` filled-button background
+     * both key off this same var. A flip reads as an invisible/low-contrast
+     * checkbox or button, not a visibly-wrong color, which is what made it
+     * hard to spot. Every color-ramp declaration in this file's `:root`
+     * must carry `!important` so it wins unconditionally instead of by
+     * injection-order luck.
+     */
+    public function test_filament_theme_color_ramp_wins_regardless_of_default_color_injection_order(): void
+    {
+        $css = $this->filamentThemeCss();
+
+        [, $rootBlock] = explode(":root {\n", $css, 2);
+        [$rootBlock] = explode("\n}\n", $rootBlock, 2);
+
+        preg_match_all('/^\s*(--[a-z]+-\d+):\s*[^;]+;/m', $rootBlock, $declarations);
+
+        $this->assertNotEmpty($declarations[1], 'Expected to find color-ramp declarations in filament-theme.css\'s :root block.');
+
+        foreach ($declarations[0] as $declaration) {
+            $this->assertStringContainsString(
+                '!important;',
+                $declaration,
+                "{$declaration} must carry !important — see this test's docblock.",
+            );
+        }
     }
 }

@@ -41,24 +41,40 @@
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
+/*
+ * `!important` on every var below, not decorative. `ColorManager::DEFAULT_COLORS`
+ * (primary => Amber, gray => Zinc, danger => Red, ...) is unshifted
+ * unconditionally in ColorManager's constructor — dropping `->colors()`
+ * (Phase 4) does not disable it. `AssetManager::renderStyles()` therefore
+ * always emits its own `<style>:root{--primary-*:...}</style>` block
+ * (filament/support/resources/views/assets.blade.php) on every request,
+ * independent of this stylesheet. Whichever `:root` block is later in the
+ * DOM wins at equal specificity — observed correct (ours last) on
+ * `/admin/login`, but nothing pins that order across every panel page/hook,
+ * and Filament's checked-checkbox fill and `.fi-color` filled-button
+ * background both key off this same --primary-* var, so a flip silently
+ * reverts primary to Amber-on-dark, reading as an invisible/low-contrast
+ * checkbox or button rather than a visibly-wrong color. `!important` makes
+ * this file win unconditionally instead of by injection-order luck.
+ */
 :root {
     /* No display face today (Phase 1 audit §1.2) — Filament's own
      * fallback stack (ui-sans-serif, system-ui, ...) follows automatically,
      * same as tokens.css's --font-sans. */
-    --font-family: 'Instrument Sans';
+    --font-family: 'Instrument Sans' !important;
 
     /* gray is the canonical zinc ramp — see tokens.css's Tier 1 primitives */
-    --gray-50: var(--zinc-50);
-    --gray-100: var(--zinc-100);
-    --gray-200: var(--zinc-200);
-    --gray-300: var(--zinc-300);
-    --gray-400: var(--zinc-400);
-    --gray-500: var(--zinc-500);
-    --gray-600: var(--zinc-600);
-    --gray-700: var(--zinc-700);
-    --gray-800: var(--zinc-800);
-    --gray-900: var(--zinc-900);
-    --gray-950: var(--zinc-950);
+    --gray-50: var(--zinc-50) !important;
+    --gray-100: var(--zinc-100) !important;
+    --gray-200: var(--zinc-200) !important;
+    --gray-300: var(--zinc-300) !important;
+    --gray-400: var(--zinc-400) !important;
+    --gray-500: var(--zinc-500) !important;
+    --gray-600: var(--zinc-600) !important;
+    --gray-700: var(--zinc-700) !important;
+    --gray-800: var(--zinc-800) !important;
+    --gray-900: var(--zinc-900) !important;
+    --gray-950: var(--zinc-950) !important;
 
     /* primary is the accent ramp — blue-500 at --primary-500, matching
      * --color-primary above. Each shade's L and C are Tailwind's own blue
@@ -73,67 +89,67 @@
      * Tailwind's exact per-shade hue at the default accent — imperceptible
      * given how low chroma already is at the extreme shades, and the same
      * tradeoff tokens.css's single --color-primary already accepts. */
-    --primary-50: oklch(97% 0.014 var(--pref-accent-hue));
-    --primary-100: oklch(93.2% 0.032 var(--pref-accent-hue));
-    --primary-200: oklch(88.2% 0.059 var(--pref-accent-hue));
-    --primary-300: oklch(80.9% 0.105 var(--pref-accent-hue));
-    --primary-400: oklch(70.7% 0.165 var(--pref-accent-hue));
-    --primary-500: oklch(62.3% 0.214 var(--pref-accent-hue));
-    --primary-600: oklch(54.6% 0.245 var(--pref-accent-hue));
-    --primary-700: oklch(48.8% 0.243 var(--pref-accent-hue));
-    --primary-800: oklch(42.4% 0.199 var(--pref-accent-hue));
-    --primary-900: oklch(37.9% 0.146 var(--pref-accent-hue));
-    --primary-950: oklch(28.2% 0.091 var(--pref-accent-hue));
+    --primary-50: oklch(97% 0.014 var(--pref-accent-hue)) !important;
+    --primary-100: oklch(93.2% 0.032 var(--pref-accent-hue)) !important;
+    --primary-200: oklch(88.2% 0.059 var(--pref-accent-hue)) !important;
+    --primary-300: oklch(80.9% 0.105 var(--pref-accent-hue)) !important;
+    --primary-400: oklch(70.7% 0.165 var(--pref-accent-hue)) !important;
+    --primary-500: oklch(62.3% 0.214 var(--pref-accent-hue)) !important;
+    --primary-600: oklch(54.6% 0.245 var(--pref-accent-hue)) !important;
+    --primary-700: oklch(48.8% 0.243 var(--pref-accent-hue)) !important;
+    --primary-800: oklch(42.4% 0.199 var(--pref-accent-hue)) !important;
+    --primary-900: oklch(37.9% 0.146 var(--pref-accent-hue)) !important;
+    --primary-950: oklch(28.2% 0.091 var(--pref-accent-hue)) !important;
 
     /* danger/warning/success/info reuse the same semantic ramps ui/alert
      * and ui/badge draw from, not a fourth palette Filament invents alone */
-    --danger-50: var(--color-red-50);
-    --danger-100: var(--color-red-100);
-    --danger-200: var(--color-red-200);
-    --danger-300: var(--color-red-300);
-    --danger-400: var(--color-red-400);
-    --danger-500: var(--color-red-500);
-    --danger-600: var(--color-red-600);
-    --danger-700: var(--color-red-700);
-    --danger-800: var(--color-red-800);
-    --danger-900: var(--color-red-900);
-    --danger-950: var(--color-red-950);
+    --danger-50: var(--color-red-50) !important;
+    --danger-100: var(--color-red-100) !important;
+    --danger-200: var(--color-red-200) !important;
+    --danger-300: var(--color-red-300) !important;
+    --danger-400: var(--color-red-400) !important;
+    --danger-500: var(--color-red-500) !important;
+    --danger-600: var(--color-red-600) !important;
+    --danger-700: var(--color-red-700) !important;
+    --danger-800: var(--color-red-800) !important;
+    --danger-900: var(--color-red-900) !important;
+    --danger-950: var(--color-red-950) !important;
 
-    --warning-50: var(--color-amber-50);
-    --warning-100: var(--color-amber-100);
-    --warning-200: var(--color-amber-200);
-    --warning-300: var(--color-amber-300);
-    --warning-400: var(--color-amber-400);
-    --warning-500: var(--color-amber-500);
-    --warning-600: var(--color-amber-600);
-    --warning-700: var(--color-amber-700);
-    --warning-800: var(--color-amber-800);
-    --warning-900: var(--color-amber-900);
-    --warning-950: var(--color-amber-950);
+    --warning-50: var(--color-amber-50) !important;
+    --warning-100: var(--color-amber-100) !important;
+    --warning-200: var(--color-amber-200) !important;
+    --warning-300: var(--color-amber-300) !important;
+    --warning-400: var(--color-amber-400) !important;
+    --warning-500: var(--color-amber-500) !important;
+    --warning-600: var(--color-amber-600) !important;
+    --warning-700: var(--color-amber-700) !important;
+    --warning-800: var(--color-amber-800) !important;
+    --warning-900: var(--color-amber-900) !important;
+    --warning-950: var(--color-amber-950) !important;
 
-    --success-50: var(--color-emerald-50);
-    --success-100: var(--color-emerald-100);
-    --success-200: var(--color-emerald-200);
-    --success-300: var(--color-emerald-300);
-    --success-400: var(--color-emerald-400);
-    --success-500: var(--color-emerald-500);
-    --success-600: var(--color-emerald-600);
-    --success-700: var(--color-emerald-700);
-    --success-800: var(--color-emerald-800);
-    --success-900: var(--color-emerald-900);
-    --success-950: var(--color-emerald-950);
+    --success-50: var(--color-emerald-50) !important;
+    --success-100: var(--color-emerald-100) !important;
+    --success-200: var(--color-emerald-200) !important;
+    --success-300: var(--color-emerald-300) !important;
+    --success-400: var(--color-emerald-400) !important;
+    --success-500: var(--color-emerald-500) !important;
+    --success-600: var(--color-emerald-600) !important;
+    --success-700: var(--color-emerald-700) !important;
+    --success-800: var(--color-emerald-800) !important;
+    --success-900: var(--color-emerald-900) !important;
+    --success-950: var(--color-emerald-950) !important;
 
-    --info-50: var(--color-blue-50);
-    --info-100: var(--color-blue-100);
-    --info-200: var(--color-blue-200);
-    --info-300: var(--color-blue-300);
-    --info-400: var(--color-blue-400);
-    --info-500: var(--color-blue-500);
-    --info-600: var(--color-blue-600);
-    --info-700: var(--color-blue-700);
-    --info-800: var(--color-blue-800);
-    --info-900: var(--color-blue-900);
-    --info-950: var(--color-blue-950);
+    --info-50: var(--color-blue-50) !important;
+    --info-100: var(--color-blue-100) !important;
+    --info-200: var(--color-blue-200) !important;
+    --info-300: var(--color-blue-300) !important;
+    --info-400: var(--color-blue-400) !important;
+    --info-500: var(--color-blue-500) !important;
+    --info-600: var(--color-blue-600) !important;
+    --info-700: var(--color-blue-700) !important;
+    --info-800: var(--color-blue-800) !important;
+    --info-900: var(--color-blue-900) !important;
+    --info-950: var(--color-blue-950) !important;
 }
 
 /*

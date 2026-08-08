@@ -284,7 +284,7 @@
 
     /*
      * The token collapse above only protects whatever actually reads
-     * --duration-*/--ease-standard — audited resources/views and found
+     * --duration-* / --ease-standard — audited resources/views and found
      * zero consumers (Phase 7): every real transition in the app goes
      * through Tailwind's own literal `duration-*` utilities
      * (`duration-300` compiles to a fixed `transition-duration: 300ms`,
