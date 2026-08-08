@@ -281,6 +281,55 @@
         --duration-base: 1ms;
         --duration-slow: 1ms;
     }
+
+    /*
+     * The token collapse above only protects whatever actually reads
+     * --duration-*/--ease-standard — audited resources/views and found
+     * zero consumers (Phase 7): every real transition in the app goes
+     * through Tailwind's own literal `duration-*` utilities
+     * (`duration-300` compiles to a fixed `transition-duration: 300ms`,
+     * not a custom property — Tailwind v4 has no themeable duration
+     * namespace), so on its own the block above was protecting nothing.
+     * This universal reset is what actually honours the preference,
+     * regardless of which mechanism produced the motion — Tailwind
+     * utilities, Alpine's `x-transition`, or a future `--duration-*`
+     * consumer alike. Standard pattern, not novel to this file.
+     */
+    *,
+    *::before,
+    *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/*
+ * 44px touch-target floor (Phase 7), coarse-pointer only — Flux's `xs`
+ * (`h-6`, 24px) and `sm` (`h-8`, 32px) buttons, and Filament's equivalents,
+ * are hardcoded sizes with no relationship to `--pref-density` (density
+ * scales spacing tokens, not component height classes), so they sit below
+ * the floor at every density, not just compact. `min-width`/`min-height`
+ * are no-ops on plain inline elements per the CSS spec — this reaches real
+ * button-styled controls without turning inline body-copy links into
+ * boxes. Desktop (fine pointer) is untouched, so this doesn't fight the
+ * compact density's actual purpose.
+ */
+@media (pointer: coarse) {
+    button,
+    a[href],
+    input[type='button'],
+    input[type='submit'],
+    input[type='reset'],
+    input[type='checkbox'],
+    input[type='radio'],
+    select,
+    [role='button'],
+    [tabindex]:not([tabindex='-1']) {
+        min-height: 44px;
+        min-width: 44px;
+    }
 }
 
 /*

@@ -196,4 +196,43 @@ class DesignTokensTest extends TestCase
             $css,
         );
     }
+
+    /**
+     * Phase 7: the `--duration-*` token collapse under
+     * `prefers-reduced-motion` has zero consumers in resources/views —
+     * every real transition goes through Tailwind's own literal
+     * `duration-*` utilities, which the token collapse alone never
+     * touches. This universal `*` reset is what actually honours the
+     * preference; guards it stays present so a future edit collapsing the
+     * media query back to "just the token block" doesn't silently drop
+     * the part that does the real work.
+     */
+    public function test_reduced_motion_resets_every_transition_not_just_the_dead_tokens(): void
+    {
+        $css = $this->tokensCss();
+
+        [, $reducedMotionBlock] = explode('@media (prefers-reduced-motion: reduce)', $css, 2);
+
+        $this->assertStringContainsString('transition-duration: 1ms !important;', $reducedMotionBlock);
+        $this->assertStringContainsString('animation-duration: 1ms !important;', $reducedMotionBlock);
+        $this->assertStringContainsString('*,', $reducedMotionBlock);
+    }
+
+    /**
+     * Phase 7: Flux's `xs`/`sm` button sizes (24px/32px) sit below the 44px
+     * touch-target floor at every density, since density scales spacing
+     * tokens, not the hardcoded height classes those button sizes use.
+     * Coarse-pointer-only so desktop's compact density is untouched.
+     */
+    public function test_tokens_css_enforces_a_44px_touch_target_floor_on_coarse_pointers(): void
+    {
+        $css = $this->tokensCss();
+
+        $this->assertStringContainsString('@media (pointer: coarse)', $css);
+
+        [, $touchTargetBlock] = explode('@media (pointer: coarse)', $css, 2);
+
+        $this->assertStringContainsString('min-height: 44px;', $touchTargetBlock);
+        $this->assertStringContainsString('min-width: 44px;', $touchTargetBlock);
+    }
 }

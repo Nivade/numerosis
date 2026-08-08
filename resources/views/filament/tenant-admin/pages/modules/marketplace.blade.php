@@ -27,7 +27,7 @@
                         <a
                             href="{{ \Nvade\Numerosis\Filament\TenantAdmin\Pages\Modules\ModuleDetail::getUrl(['slug' => $module['slug']]) }}"
                             wire:navigate
-                            class="flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg"
+                            class="flex-1 focus-ring rounded-lg"
                         >
                             <div class="flex items-start justify-between gap-3">
                                 <div @class([

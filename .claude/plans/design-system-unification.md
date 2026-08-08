@@ -486,11 +486,49 @@ deliverable is:
   contrast-verified — check it yourself before shipping it. Verified via
   `DesignTokensTest::test_color_primary_is_parameterized_by_pref_accent_hue`
   and `test_filament_theme_gray_ramp_is_zinc_and_primary_ramp_is_hue_parameterized`.
-- Visible `:focus-visible` ring on every interactive element, token-driven, in all three surfaces.
-- Keyboard nav through Filament sidebar, tables, modals; tab order and focus trapping.
-- Target sizes ≥ 44px at every density — **compact density must not shrink hit targets below the floor.**
-- `prefers-reduced-motion` drives `--duration-*` to `1ms` globally (currently declared only in the dead theme.css).
-- Filament panels verified at mobile widths independently — the tenant panel is `->spa()` at `path('/')` and is a primary mobile surface, not a shrunk desktop layout.
+- **Focus-visible ring — done.** Found two hand-rolled exceptions to the
+  shared `focus-ring` utility Phase 0 already established: the OAuth
+  buttons (`focus-visible:ring-black/15` — a subtle neutral ring,
+  presumably to avoid clashing with third-party logos, but never actually
+  decided as an intentional exception) and a Filament tenant-admin view
+  (`focus-visible:ring-primary-500`, a raw Tailwind ring instead of the
+  utility). Both normalized to `focus-ring`. Guard added:
+  `DesignLanguageGuardTest::test_no_view_hand_rolls_its_own_focus_visible_ring`.
+- **Keyboard nav through Filament (sidebar, tables, modals; tab order,
+  focus trapping) — not done.** Needs a real browser to verify tab order
+  and focus trapping; this repo has no browser tests (`.claude/rules`'s
+  Risks table already flags this as a known gap). Left for manual/Playwright
+  verification, not guessed at from source reading.
+- **Target sizes ≥ 44px — done, coarse-pointer only, and smaller in
+  practice than "at every density" implied.** Audited whether
+  `--pref-density` actually affects real component height and found it
+  doesn't — Flux's `xs`/`sm` button sizes (`h-6`/`h-8`, 24px/32px) and
+  Filament's equivalents are hardcoded height classes with no relationship
+  to the density token (density scales spacing, not component size), so
+  they sit below the 44px floor at every density equally, not specifically
+  at compact. Added a `@media (pointer: coarse)` rule in tokens.css
+  enforcing `min-height`/`min-width: 44px` on real interactive controls
+  (`button`, `a[href]`, form controls, `[role=button]`, focusable
+  `[tabindex]`) — `min-width`/`min-height` are no-ops on plain inline
+  elements per the CSS spec, so this reaches button-styled controls
+  without turning inline body-copy links into boxes, and it's
+  coarse-pointer-scoped so desktop's compact density is untouched. Guard:
+  `DesignTokensTest::test_tokens_css_enforces_a_44px_touch_target_floor_on_coarse_pointers`.
+- **`prefers-reduced-motion` — done, and turned out to need more than the
+  existing token collapse.** The `--duration-*` collapse to `1ms` already
+  existed (Phase 2) but had zero consumers — audited resources/views and
+  found every real transition uses Tailwind's own literal `duration-*`
+  utilities (`duration-300` compiles to a fixed `300ms`; Tailwind v4 has no
+  themeable duration namespace), so the token collapse alone protected
+  nothing. Added a universal `*, *::before, *::after` reset forcing
+  `animation-duration`/`transition-duration: 1ms !important` and
+  `scroll-behavior: auto` under the same media query — the standard
+  pattern, and what actually honours the preference regardless of which
+  mechanism produced the motion. Guard:
+  `DesignTokensTest::test_reduced_motion_resets_every_transition_not_just_the_dead_tokens`.
+- **Filament panels at mobile widths — not done.** Same as keyboard nav:
+  needs a real browser/viewport, not source reading. Left for
+  manual/Playwright verification.
 
 ---
 

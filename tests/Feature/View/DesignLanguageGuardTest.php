@@ -126,6 +126,29 @@ class DesignLanguageGuardTest extends TestCase
     }
 
     /**
+     * Phase 7: `focus-ring` (tokens.css's `@utility focus-ring`) is the one
+     * focus-visible treatment resources/views uses — two files had their
+     * own hand-rolled `focus-visible:ring-*` before this (a subtle
+     * black/white ring on the OAuth buttons, a raw `--primary-500` ring on
+     * a Filament-panel view), same drift class Phase 0 already fixed once
+     * for `ui/alert`'s own focus ring.
+     */
+    public function test_no_view_hand_rolls_its_own_focus_visible_ring(): void
+    {
+        $files = $this->viewFiles();
+
+        foreach ($files as $file) {
+            $code = $this->stripComments($file->getContents());
+
+            $this->assertDoesNotMatchRegularExpression(
+                '/focus-visible:ring-|focus:ring-[a-z]/',
+                $code,
+                "{$file->getRelativePathname()} hand-rolls a focus ring instead of using the shared `focus-ring` utility.",
+            );
+        }
+    }
+
+    /**
      * Phase 6: `<x-filament::button>` already derives `wire:target` from its
      * own `wire:click` and renders `wire:loading.attr="disabled"` plus a
      * real spinner (`Filament\Support\generate_loading_indicator_html()`) —
