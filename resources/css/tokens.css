@@ -58,18 +58,6 @@
     --zinc-900: var(--color-zinc-900);
     --zinc-950: var(--color-zinc-950);
 
-    --accent-50: var(--color-blue-50);
-    --accent-100: var(--color-blue-100);
-    --accent-200: var(--color-blue-200);
-    --accent-300: var(--color-blue-300);
-    --accent-400: var(--color-blue-400);
-    --accent-500: var(--color-blue-500);
-    --accent-600: var(--color-blue-600);
-    --accent-700: var(--color-blue-700);
-    --accent-800: var(--color-blue-800);
-    --accent-900: var(--color-blue-900);
-    --accent-950: var(--color-blue-950);
-
     --success-50: var(--color-emerald-50);
     --success-200: var(--color-emerald-200);
     --success-400: var(--color-emerald-400);
@@ -102,7 +90,13 @@
      * Package defaults. A host overrides these in its own CSS, after this
      * file's `@import` (Phase 5) — nothing else may set them.
      */
-    --pref-accent-hue: 217; /* hue of --color-blue-500 */
+    /* OKLCH hue in degrees, not HSL — Tailwind v4's own palette is defined
+     * in OKLCH (see node_modules/tailwindcss/theme.css), and 259.815 is
+     * blue-500's actual hue there. Getting this wrong (an HSL-space value
+     * was here before) doesn't error, it just silently produces the wrong
+     * default color the moment --color-primary starts reading it — verify
+     * against Tailwind's source, not a color picker's HSL readout. */
+    --pref-accent-hue: 259.815;
     --pref-density: 1;
     --pref-radius: 1;
     --pref-border: 1;
@@ -128,9 +122,23 @@
     --color-border-strong: var(--zinc-300);
     --color-ring: var(--color-primary);
 
-    /* Accent */
-    --color-primary: var(--accent-500);
-    --color-primary-hover: var(--accent-600);
+    /* Accent — L and C fixed at blue-500/600's own OKLCH values
+     * (verified against Tailwind v4's theme.css: blue-500 is
+     * oklch(0.623 0.214 259.815), blue-600 is oklch(0.546 0.245 262.881)),
+     * only H parameterized by --pref-accent-hue. At the default hue this
+     * reproduces blue-500/600 exactly — zero visual change from the
+     * canonical accent Phase 0 fixed. A host-overridden hue is NOT
+     * contrast-guaranteed: verified by simulating WCAG contrast of
+     * white-on-primary across all 360 hues at this L/C, and blue's own hue
+     * only clears 3.76:1 (passes the 3:1 large-text/non-text threshold,
+     * not full 4.5:1 text AA) — the worst hues (roughly 130-260, the
+     * green/cyan/blue band) drop as low as ~2.9:1. A host picking a custom
+     * `--pref-accent-hue` should verify contrast for that hue itself
+     * (browser devtools' contrast checker is enough) rather than assume
+     * this formula guarantees it — it doesn't, and can't while also
+     * reproducing blue-500 exactly at the default. */
+    --color-primary: oklch(62.3% 0.214 var(--pref-accent-hue));
+    --color-primary-hover: oklch(54.6% 0.245 var(--pref-accent-hue));
     --color-primary-contrast: #fff;
     --color-primary-subtle: color-mix(in oklab, var(--color-primary) 10%, transparent);
 

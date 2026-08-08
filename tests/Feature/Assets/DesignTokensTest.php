@@ -155,11 +155,45 @@ class DesignTokensTest extends TestCase
         $this->assertStringContainsString("--font-family: 'Instrument Sans';", $this->filamentThemeCss());
     }
 
-    public function test_filament_theme_gray_ramp_is_zinc_and_primary_ramp_is_the_accent_tokens(): void
+    public function test_filament_theme_gray_ramp_is_zinc_and_primary_ramp_is_hue_parameterized(): void
     {
         $css = $this->filamentThemeCss();
 
         $this->assertStringContainsString('--gray-500: var(--zinc-500);', $css);
-        $this->assertStringContainsString('--primary-500: var(--accent-500);', $css);
+
+        // Every shade parameterized by --pref-accent-hue (Phase 7), not a
+        // fixed reference to a static blue ramp — otherwise a host's hue
+        // override reaches the main app but never either Filament panel.
+        foreach (['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'] as $shade) {
+            $this->assertMatchesRegularExpression(
+                "/--primary-{$shade}: oklch\\([^)]*var\\(--pref-accent-hue\\)\\);/",
+                $css,
+                "--primary-{$shade} does not derive from --pref-accent-hue.",
+            );
+        }
+    }
+
+    /**
+     * Phase 7: `--pref-accent-hue` used to be declared and never consumed
+     * — `--color-primary` referenced a fixed `var(--accent-500)` instead,
+     * so overriding the hue (as InstallNumerosisCommand's manual steps
+     * tell a host to do) silently did nothing. Also guards the value
+     * itself: Tailwind v4's palette is OKLCH-native, and an HSL-space hue
+     * (217, what used to be here) produces the wrong color the moment
+     * something actually reads it.
+     */
+    public function test_color_primary_is_parameterized_by_pref_accent_hue(): void
+    {
+        $css = $this->tokensCss();
+
+        $this->assertStringContainsString('--pref-accent-hue: 259.815;', $css);
+        $this->assertMatchesRegularExpression(
+            '/--color-primary: oklch\([^)]*var\(--pref-accent-hue\)\);/',
+            $css,
+        );
+        $this->assertMatchesRegularExpression(
+            '/--color-primary-hover: oklch\([^)]*var\(--pref-accent-hue\)\);/',
+            $css,
+        );
     }
 }

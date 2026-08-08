@@ -456,7 +456,36 @@ deliverable is:
 
 ## Phase 7 — Responsive + accessibility
 
-- Contrast checked at every accent × theme combination a host might set. Accent ramps generated so `--color-primary-contrast` always clears WCAG AA against `--color-primary`; document the constraint so a host picking a custom `--pref-accent-hue` knows the bound.
+- **Accent contrast — done, with an honest bound rather than the guarantee
+  originally scoped here.** Found `--pref-accent-hue` was declared in
+  tokens.css but never consumed anywhere — `--color-primary` referenced a
+  static `var(--accent-500)`, so overriding the hue (as
+  `InstallNumerosisCommand`'s manual steps tell a host to do) silently did
+  nothing. Fixed: `--color-primary`/`-hover` in tokens.css, and the full
+  `--primary-50..950` ramp in filament-theme.css, now derive from
+  `oklch(L C var(--pref-accent-hue))` using Tailwind's own blue L/C values
+  per shade (verified against `node_modules/tailwindcss/theme.css`) — at
+  the default hue (259.815, corrected from an HSL-space 217 that was
+  simply wrong once anything started reading it) this reproduces
+  blue-500/600 exactly, zero visual change to Phase 0's canonical accent.
+
+  **"Always clears WCAG AA" turned out not to be achievable without
+  darkening the default away from blue-500** — simulated actual WCAG
+  contrast (OKLCH → linear sRGB → relative luminance) across all 360 hues
+  at blue-500's own L/C and found the *default* hue itself only clears
+  3.76:1 white-on-primary (passes the 3:1 large-text/non-text threshold,
+  not full 4.5:1 text AA), and the worst hues in that band (roughly
+  130–260°, the green/cyan/blue range) drop to ~2.9:1. Guaranteeing 4.5:1
+  at every hue needs L≈0.51, which would render the default accent as
+  `#135ed0` instead of `#2b7fff` — a real, visible change to the
+  canonical color this same plan fixed in Phase 0. Decided (explicit
+  choice, not a default): keep blue-500 exact, document the bound instead
+  of enforcing it. `--color-primary-contrast` stays `#fff`, and both
+  `tokens.css`'s own comment and `InstallNumerosisCommand`'s manual step 6
+  now say plainly that a custom `--pref-accent-hue` is not
+  contrast-verified — check it yourself before shipping it. Verified via
+  `DesignTokensTest::test_color_primary_is_parameterized_by_pref_accent_hue`
+  and `test_filament_theme_gray_ramp_is_zinc_and_primary_ramp_is_hue_parameterized`.
 - Visible `:focus-visible` ring on every interactive element, token-driven, in all three surfaces.
 - Keyboard nav through Filament sidebar, tables, modals; tab order and focus trapping.
 - Target sizes ≥ 44px at every density — **compact density must not shrink hit targets below the floor.**
