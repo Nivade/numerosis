@@ -81,8 +81,6 @@
                                 <x-filament::button
                                     size="sm"
                                     wire:click="mountAction('purchase', { slug: '{{ $module['slug'] }}' })"
-                                    wire:loading.attr="disabled"
-                                    wire:target="mountAction('purchase', { slug: '{{ $module['slug'] }}' })"
                                 >
                                     Purchase
                                 </x-filament::button>

@@ -401,7 +401,24 @@ deliverable is:
   `ui/empty-state` (main app) untouched — its icon vocabulary (Lucide-style
   names via `<flux:icon>`) is a different icon set from Filament's
   Heroicons already, by Flux's own design, not a drift to fix.
-- **One loading indicator** shared by `wire:loading` and Filament.
+- **One loading indicator — done, and smaller than scoped.** `<flux:button>`
+  already auto-derives `wire:loading.attr` from its own `wire:click` (Flux's
+  `button/index.blade.php`), and `<x-filament::button>` does the same *plus*
+  renders `Filament\Support\generate_loading_indicator_html()` — a real
+  spinner, not just a disabled state (`vendor/filament/support/.../button/index.blade.php`).
+  So "shared spinner" was already the case everywhere a page used the
+  right button component; the actual gap was two pages
+  (marketplace, module-detail) manually adding a redundant
+  `wire:loading.attr="disabled"` + `wire:target` on top of
+  `<x-filament::button>` — which is strictly worse than what the component
+  already does (disables with no spinner, vs. disables with the real one).
+  Removed both. Guard added:
+  `DesignLanguageGuardTest::test_no_filament_button_manually_duplicates_its_own_loading_indicator`.
+  `components/billing/plan-card.blade.php`'s `wire:loading.attr="disabled"`
+  on a `<flux:modal.trigger>` button left alone — that button has no
+  `wire:click` of its own (it opens a modal; the actual plan-change action
+  fires later), so this isn't the same redundancy and touching it risks an
+  application-behaviour change, not a design-system one.
 - **One confirmation pattern** and one action vocabulary — a button that says "Publish" produces a toast that says "Published", in all three surfaces.
 - **One form-validation presentation** — error color, position, and icon from the semantic tokens.
 

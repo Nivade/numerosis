@@ -124,4 +124,36 @@ class DesignLanguageGuardTest extends TestCase
             );
         }
     }
+
+    /**
+     * Phase 6: `<x-filament::button>` already derives `wire:target` from its
+     * own `wire:click` and renders `wire:loading.attr="disabled"` plus a
+     * real spinner (`Filament\Support\generate_loading_indicator_html()`) —
+     * `vendor/filament/support/resources/views/components/button/index.blade.php`.
+     * A manual `wire:loading.attr="disabled"` on the same tag is not just
+     * redundant, it's *worse*: it disables the button with no spinner,
+     * which is exactly the "no shared spinner" divergence this phase
+     * closes. Two Numerosis-owned pages had this before the fix
+     * (marketplace, module-detail); this stops a third.
+     */
+    public function test_no_filament_button_manually_duplicates_its_own_loading_indicator(): void
+    {
+        $files = $this->viewFiles();
+
+        foreach ($files as $file) {
+            $code = $this->stripComments($file->getContents());
+
+            if (! preg_match_all('/<x-filament::button\b.*?>/s', $code, $matches)) {
+                continue;
+            }
+
+            foreach ($matches[0] as $tag) {
+                $this->assertStringNotContainsString(
+                    'wire:loading',
+                    $tag,
+                    "{$file->getRelativePathname()} sets wire:loading manually on an <x-filament::button> — the component already handles it (and renders a spinner the manual version doesn't). Remove the manual attribute.",
+                );
+            }
+        }
+    }
 }

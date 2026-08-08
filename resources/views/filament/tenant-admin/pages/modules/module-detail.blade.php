@@ -100,8 +100,6 @@
                             size="lg"
                             class="w-full mt-6"
                             wire:click="mountAction('purchase', { slug: '{{ $offer->slug() }}' })"
-                            wire:loading.attr="disabled"
-                            wire:target="mountAction('purchase', { slug: '{{ $offer->slug() }}' })"
                         >
                             Purchase
                         </x-filament::button>
