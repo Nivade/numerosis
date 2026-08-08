@@ -1,6 +1,6 @@
 # Design System Unification — main app + 2 Filament panels
 
-**Status:** Phases 0–4 built (uncommitted); old per-user Phase 5 scaffolding removed and replaced with consumer-level override docs; Phases 6–8 not started
+**Status:** Phases 0–6 done and committed; old per-user Phase 5 scaffolding removed and replaced with consumer-level override docs; Phases 7–8 not started
 **Date:** 2026-08-07
 **Repo:** `nvade/numerosis` (package repo, Testbench harness — *not* thin-app)
 
@@ -419,8 +419,38 @@ deliverable is:
   `wire:click` of its own (it opens a modal; the actual plan-change action
   fires later), so this isn't the same redundancy and touching it risks an
   application-behaviour change, not a design-system one.
-- **One confirmation pattern** and one action vocabulary — a button that says "Publish" produces a toast that says "Published", in all three surfaces.
-- **One form-validation presentation** — error color, position, and icon from the semantic tokens.
+- **One confirmation pattern — surveyed, nothing to fix.** All 8
+  `->requiresConfirmation()` sites across both panels already use Filament's
+  own vocabulary uniformly (`modalHeading`/`modalDescription`/
+  `modalSubmitActionLabel`), and the submit label is consistently the
+  action itself ("Purchase", "Delete Account", "Disconnect", "Resend
+  Invitation") — not a generic "Confirm". Of the main app's 4 ad-hoc
+  `flux:modal` usages, 3 are not confirmations at all (password re-entry
+  before account deletion, a plan-comparison detail modal, a plan's
+  feature-list modal) and the 1 genuine simple confirm (the tenant-list
+  page's cancel-reservation dialog) already follows the same
+  action-named-button convention ("Keep reservation" / "Cancel
+  reservation"). Building a shared confirm-modal component for one
+  already-consistent call site would be exactly the premature abstraction
+  CLAUDE.md warns against — three similar lines beat an abstraction with
+  one real caller.
+- **One form-validation presentation — surveyed; a real, minor gap remains,
+  accepted rather than patched.** Filament's field-wrapper already renders
+  errors through its own themable `--danger-*` custom property
+  (`fi-fo-field-wrp-error-message { @apply text-danger-600 dark:text-danger-400 }`,
+  `vendor/filament/forms/resources/css/components/field.css`) — already
+  remapped onto our red danger ramp by Phase 4's `filament-theme.css`, no
+  further work needed. Flux's `<flux:error>` (used by every main-app form
+  field) hardcodes literal `text-red-500 dark:text-red-400` instead of
+  going through any themable indirection — same red family as our danger
+  token, but one Tailwind shade lighter than Filament's in light mode
+  (`red-500` vs `danger-600`), and it prepends an `exclamation-triangle`
+  icon Filament's own error text doesn't. Both are genuinely vendor-owned
+  Blade views; closing this gap would mean forking Flux's `error.blade.php`
+  (and the field components that embed it) via Flux's publish mechanism —
+  a real "does this package fork vendor views" decision this plan never
+  scoped, not something to improvise here. Documented as an accepted,
+  minor, known gap rather than worked around with something fragile.
 
 ---
 
@@ -465,4 +495,17 @@ Each phase ends with: tests green (baseline is 9 known lock-wait failures — `.
 
 **Phase 5 was found already built the wrong way** (per-user: `users.ui_preferences` migration, `Data\Ui\UiPreferences`, nine `Enums\Ui\*`, `ResolveUiPreferences`, a `numerosis::partials.theme` runtime `<style>` injector, and a rebuilt `settings/appearance` page) and has been torn out — see decision at top of this doc. Replaced with the consumer-only version: §5.1–5.4 above, plus a step 6 in `InstallNumerosisCommand::printManualSteps()` pointing hosts at overriding `--pref-*` tokens in their own published `app.css`. Full suite re-verified after the removal: 458 passed, 7 skipped, 1 pre-existing failure (`RegisterTenantTest`); `pint` clean; `phpstan` unchanged (8 pre-existing errors, none in touched files).
 
-**Next: Phase 6 (UX normalization)** — nothing built yet. Nothing in this repo is committed; confirm with the user before committing.
+**Phase 6 (UX normalization) is done.** All 5 items resolved:
+notification channel (built — `partials/toasts.blade.php` + `ui/toast.blade.php`),
+empty-state vocabulary (icon references normalized to the `Heroicon` enum),
+loading indicator (two redundant manual `wire:loading` sites removed —
+`<x-filament::button>` already handles it, with a real spinner), and two
+honest surveys that found nothing broken enough to justify new abstractions
+(confirmation pattern; form-validation presentation — the one real gap
+found there, Flux's hardcoded error color/icon, is vendor-owned and
+documented as an accepted gap rather than patched). Each item verified
+against the full suite (baseline: 466 passed, 7 skipped, 1 pre-existing
+failure — `RegisterTenantTest`), `pint`, and `phpstan` (unchanged, 8
+pre-existing errors) before commit.
+
+**Next: Phase 7 (responsive + accessibility).** Nothing built yet.
