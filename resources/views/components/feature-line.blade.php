@@ -6,11 +6,11 @@
 <li class="flex items-start group/feature">
     <div @class([
         'mr-3 mt-1 rounded-full p-0.5 transition-colors',
-        'bg-emerald-100 dark:bg-emerald-950/30 group-hover/feature:bg-emerald-200 dark:group-hover/feature:bg-emerald-800/50' => $available,
+        'bg-success-bg group-hover/feature:bg-success-border' => $available,
         'bg-zinc-100 dark:bg-zinc-800' => ! $available,
     ])>
         @if($available)
-            <flux:icon.check class="size-3.5 text-emerald-600 dark:text-emerald-400" variant="micro" />
+            <flux:icon.check class="size-3.5 text-success-icon" variant="micro" />
         @else
             <flux:icon.minus class="size-3.5 text-zinc-400 dark:text-zinc-500" variant="micro" />
         @endif

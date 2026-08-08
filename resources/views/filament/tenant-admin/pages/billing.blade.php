@@ -206,7 +206,7 @@
                                                 ({{ $billingCycle === \Nvade\Numerosis\Enums\BillingCycle::Monthly ? 'Monthly' : 'Yearly' }})
                                             </span>
                                         </p>
-                                        <p class="mt-1 text-lg font-bold text-blue-600 dark:text-blue-400">
+                                        <p class="mt-1 text-lg font-bold text-primary">
                                             {{ $this->formatAmount($price) }}
                                             <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400">
                                                 {{ $billingCycle->label() }}

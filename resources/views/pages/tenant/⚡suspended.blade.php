@@ -34,8 +34,8 @@ class extends Component
 };
 ?>
 <div class="space-y-6 text-center">
-    <div class="mx-auto flex size-14 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/50">
-        <flux:icon.exclamation-triangle class="size-7 text-amber-600 dark:text-amber-400" />
+    <div class="mx-auto flex size-14 items-center justify-center rounded-full bg-warning-bg">
+        <flux:icon.exclamation-triangle class="size-7 text-warning-icon" />
     </div>
 
     <div class="space-y-2">

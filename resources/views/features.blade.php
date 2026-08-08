@@ -25,15 +25,15 @@
                     </p>
                     <ul class="space-y-3">
                         <li class="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                            <flux:icon name="check-circle" variant="mini" class="text-emerald-500" />
+                            <flux:icon name="check-circle" variant="mini" class="text-success-icon" />
                             Public and private channels
                         </li>
                         <li class="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                            <flux:icon name="check-circle" variant="mini" class="text-emerald-500" />
+                            <flux:icon name="check-circle" variant="mini" class="text-success-icon" />
                             Rich text formatting
                         </li>
                         <li class="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                            <flux:icon name="check-circle" variant="mini" class="text-emerald-500" />
+                            <flux:icon name="check-circle" variant="mini" class="text-success-icon" />
                             Mention team members
                         </li>
                     </ul>
@@ -57,15 +57,15 @@
                     </p>
                     <ul class="space-y-3">
                         <li class="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                            <flux:icon name="check-circle" variant="mini" class="text-emerald-500" />
+                            <flux:icon name="check-circle" variant="mini" class="text-success-icon" />
                             Support for all major file types
                         </li>
                         <li class="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                            <flux:icon name="check-circle" variant="mini" class="text-emerald-500" />
+                            <flux:icon name="check-circle" variant="mini" class="text-success-icon" />
                             Secure storage per workspace
                         </li>
                         <li class="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                            <flux:icon name="check-circle" variant="mini" class="text-emerald-500" />
+                            <flux:icon name="check-circle" variant="mini" class="text-success-icon" />
                             File search across all channels
                         </li>
                     </ul>
@@ -89,15 +89,15 @@
                     </p>
                     <ul class="space-y-3">
                         <li class="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                            <flux:icon name="check-circle" variant="mini" class="text-emerald-500" />
+                            <flux:icon name="check-circle" variant="mini" class="text-success-icon" />
                             Custom triggers and actions
                         </li>
                         <li class="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                            <flux:icon name="check-circle" variant="mini" class="text-emerald-500" />
+                            <flux:icon name="check-circle" variant="mini" class="text-success-icon" />
                             Integration with third-party apps
                         </li>
                         <li class="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                            <flux:icon name="check-circle" variant="mini" class="text-emerald-500" />
+                            <flux:icon name="check-circle" variant="mini" class="text-success-icon" />
                             No-code automation builder
                         </li>
                     </ul>

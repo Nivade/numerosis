@@ -23,7 +23,7 @@
 
 @if($type === 'selectable')
     {{-- Selectable Plan Card (for registration wizard) --}}
-    <label class="relative group cursor-pointer w-full focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 rounded-xl">
+    <label class="relative group cursor-pointer w-full focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 rounded-xl">
         <input
             type="radio"
             wire:model="payment_plan"
@@ -33,12 +33,12 @@
 
         <div @class([
             'flex flex-col h-full p-6 border-2 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl relative overflow-hidden rounded-xl',
-            'border-zinc-200 dark:border-zinc-700 peer-checked:border-blue-500 peer-checked:bg-blue-50/50 dark:peer-checked:bg-blue-900/10 hover:border-blue-300 dark:hover:border-blue-700',
+            'border-zinc-200 dark:border-zinc-700 peer-checked:border-primary peer-checked:bg-primary-subtle hover:border-primary',
         ])>
             {{-- Popular Badge --}}
             @if($isPopular)
                 <div class="absolute top-0 right-0">
-                    <div class="bg-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
+                    <div class="bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
                         Most Popular
                     </div>
                 </div>
@@ -78,7 +78,7 @@
 
                         {{-- Savings Message --}}
                         @if($billingCycle === \Nvade\Numerosis\Enums\BillingCycle::Yearly && $plan->getSavingsPercentage() > 0)
-                            <p class="text-[11px] font-semibold text-green-600 dark:text-green-400 mt-1 uppercase tracking-wider">
+                            <p class="text-[11px] font-semibold text-success-icon mt-1 uppercase tracking-wider">
                                 Save {{ $plan->getSavingsPercentage() }}% with annual billing
                             </p>
                         @endif
@@ -86,7 +86,7 @@
 
                     {{-- Selected Checkmark --}}
                     <div class="peer-checked:block hidden shrink-0">
-                        <div class="bg-blue-500 rounded-full p-1 shadow-sm">
+                        <div class="bg-primary rounded-full p-1 shadow-sm">
                             <flux:icon.check variant="micro" class="size-4 text-white"/>
                         </div>
                     </div>
@@ -149,18 +149,18 @@
     {{-- Display Plan Card (for billing page) --}}
     <div @class([
         'relative flex flex-col h-full p-8 bg-white dark:bg-zinc-900 border transition-all duration-300 rounded-xl',
-        'ring-2 ring-blue-500 border-transparent shadow-xl lg:scale-105 z-20' => $isPopular && !$isCurrentCycle,
-        'ring-2 ring-green-500 border-transparent shadow-xl lg:scale-105 z-20' => $isCurrentCycle,
+        'ring-2 ring-primary border-transparent shadow-xl lg:scale-105 z-20' => $isPopular && !$isCurrentCycle,
+        'ring-2 ring-success-icon border-transparent shadow-xl lg:scale-105 z-20' => $isCurrentCycle,
         'border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-md' => !$isPopular && !$isCurrentCycle,
     ])>
         {{-- Active/Popular Badge --}}
         @if($isCurrentCycle)
-            <div class="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-green-500 text-white text-xs font-bold rounded-full tracking-wider uppercase shadow-md flex items-center gap-1.5">
+            <div class="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-success-icon text-white text-xs font-bold rounded-full tracking-wider uppercase shadow-md flex items-center gap-1.5">
                 <x-filament::icon icon="heroicon-m-check-badge" class="size-3.5"/>
                 Your Active Plan
             </div>
         @elseif($isPopular)
-            <div class="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-blue-500 text-white text-xs font-bold rounded-full tracking-wider uppercase shadow-md">
+            <div class="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-white text-xs font-bold rounded-full tracking-wider uppercase shadow-md">
                 Most Popular
             </div>
         @endif
@@ -189,7 +189,7 @@
             </div>
 
             @if($incentive)
-                <p class="mt-2 text-xs font-medium text-green-600 dark:text-green-400">
+                <p class="mt-2 text-xs font-medium text-success-icon">
                     {{ $incentive }}
                 </p>
             @endif
@@ -218,7 +218,7 @@
                     wire:loading.attr="disabled"
                     @class([
                         'w-full rounded-xl py-3 shadow-sm transition-all duration-300',
-                        'ring-2 ring-blue-500 ring-offset-2' => $isPopular,
+                        'ring-2 ring-primary ring-offset-2' => $isPopular,
                     ])
                     color="{{ $isPopular ? 'primary' : 'gray' }}"
                     variant="{{ $isPopular ? 'filled' : 'outline' }}"

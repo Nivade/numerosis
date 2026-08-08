@@ -1,5 +1,5 @@
 <div class="flex flex-col items-center text-center gap-4">
-    <flux:icon name="alert-octagon" class="h-12 w-12 text-red-500" />
+    <flux:icon name="alert-octagon" class="h-12 w-12 text-danger-icon" />
 
     <x-numerosis::auth-header
         :title="__('Invitation expired')"

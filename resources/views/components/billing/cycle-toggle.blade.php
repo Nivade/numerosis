@@ -10,7 +10,7 @@
             wire:click="$set('billingCycle', '{{ \Nvade\Numerosis\Enums\BillingCycle::Monthly->value }}')"
             @class([
                 'relative py-2.5 px-8 text-sm font-bold transition-all duration-300 rounded-lg z-10',
-                'bg-white dark:bg-zinc-700 shadow-md text-blue-600 dark:text-blue-400' => ($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle->value : $billingCycle) === \Nvade\Numerosis\Enums\BillingCycle::Monthly->value,
+                'bg-white dark:bg-zinc-700 shadow-md text-primary' => ($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle->value : $billingCycle) === \Nvade\Numerosis\Enums\BillingCycle::Monthly->value,
                 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200' => ($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle->value : $billingCycle) !== \Nvade\Numerosis\Enums\BillingCycle::Monthly->value,
             ])
         >
@@ -21,16 +21,16 @@
             wire:click="$set('billingCycle', '{{ \Nvade\Numerosis\Enums\BillingCycle::Yearly->value }}')"
             @class([
                 'relative py-2.5 px-8 text-sm font-bold transition-all duration-300 rounded-lg z-10',
-                'bg-white dark:bg-zinc-700 shadow-md text-blue-600 dark:text-blue-400' => ($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle->value : $billingCycle) === \Nvade\Numerosis\Enums\BillingCycle::Yearly->value,
+                'bg-white dark:bg-zinc-700 shadow-md text-primary' => ($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle->value : $billingCycle) === \Nvade\Numerosis\Enums\BillingCycle::Yearly->value,
                 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200' => ($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle->value : $billingCycle) !== \Nvade\Numerosis\Enums\BillingCycle::Yearly->value,
             ])
         >
             Yearly
             @if($maxSavings > 0)
                 <span @class([
-                    'absolute -top-2.5 -right-4 px-2 py-0.5 text-[10px] font-black rounded-full shadow-sm border border-green-600/20',
-                    'bg-green-500 text-white' => ($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle->value : $billingCycle) === \Nvade\Numerosis\Enums\BillingCycle::Yearly->value,
-                    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' => ($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle->value : $billingCycle) !== \Nvade\Numerosis\Enums\BillingCycle::Yearly->value,
+                    'absolute -top-2.5 -right-4 px-2 py-0.5 text-[10px] font-black rounded-full shadow-sm border border-success-border',
+                    'bg-success-icon text-white' => ($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle->value : $billingCycle) === \Nvade\Numerosis\Enums\BillingCycle::Yearly->value,
+                    'bg-success-bg text-success-text' => ($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle->value : $billingCycle) !== \Nvade\Numerosis\Enums\BillingCycle::Yearly->value,
                 ])>
                     Save {{ $maxSavings }}%
                 </span>

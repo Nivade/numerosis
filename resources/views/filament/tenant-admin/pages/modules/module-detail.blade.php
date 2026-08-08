@@ -26,14 +26,14 @@
                 <div class="flex items-start gap-4">
                     <div @class([
                         'flex items-center justify-center size-14 rounded-xl shrink-0',
-                        'bg-green-50 dark:bg-green-900/20' => $purchased,
+                        'bg-success-bg' => $purchased,
                         'bg-zinc-50 dark:bg-zinc-800' => ! $purchased,
                     ])>
                         <x-filament::icon
                             icon="heroicon-o-puzzle-piece"
                             @class([
                                 'size-7',
-                                'text-green-600 dark:text-green-400' => $purchased,
+                                'text-success-icon' => $purchased,
                                 'text-zinc-500 dark:text-zinc-400' => ! $purchased,
                             ])
                         />
@@ -66,7 +66,7 @@
             <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-8">
                 @if($purchased)
                     <div class="flex flex-col items-center text-center gap-3 py-2">
-                        <x-filament::icon icon="heroicon-o-check-circle" class="size-10 text-green-500" />
+                        <x-filament::icon icon="heroicon-o-check-circle" class="size-10 text-success-icon" />
                         <div class="font-semibold text-zinc-900 dark:text-white">Already installed</div>
                         <p class="text-sm text-zinc-500 dark:text-zinc-400">
                             This module is live on your workspace.

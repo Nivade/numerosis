@@ -26,9 +26,9 @@
 
     <div wire:ignore x-ref="paymentElement" x-show="elementReady" x-cloak></div>
 
-    <div x-show="errorMessage" x-cloak class="mt-4 flex items-start gap-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 px-4 py-3">
-        <flux:icon.exclamation-triangle class="size-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-        <x-numerosis::ui.text size="sm" class="text-red-700 dark:text-red-300" x-text="errorMessage"></x-numerosis::ui.text>
+    <div x-show="errorMessage" x-cloak class="mt-4 flex items-start gap-2 rounded-lg bg-danger-bg border border-danger-border px-4 py-3">
+        <flux:icon.exclamation-triangle class="size-4 text-danger-icon shrink-0 mt-0.5" />
+        <x-numerosis::ui.text size="sm" class="text-danger-text" x-text="errorMessage"></x-numerosis::ui.text>
     </div>
 
     <x-numerosis::billing.secure-badge class="pt-5" />

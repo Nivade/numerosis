@@ -7,8 +7,8 @@
         @isset($trend)
             <div @class([
                 'text-xs',
-                'text-green-600' => $trend > 0,
-                'text-red-600' => $trend <= 0,
+                'text-success-icon' => $trend > 0,
+                'text-danger-icon' => $trend <= 0,
             ])>
                 {{ $trend > 0 ? '+' : '' }}{{ $trend }}%
             </div>

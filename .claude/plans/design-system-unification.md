@@ -1,6 +1,6 @@
 # Design System Unification — main app + 2 Filament panels
 
-**Status:** Phases 0–6 done and committed; old per-user Phase 5 scaffolding removed and replaced with consumer-level override docs; Phases 7–8 not started
+**Status:** Phases 0–8 done, browser-independent parts only (Phase 7's keyboard-nav and mobile-width items need a real browser and are explicitly deferred, not done); old per-user Phase 5 scaffolding removed and replaced with consumer-level override docs
 **Date:** 2026-08-07
 **Repo:** `nvade/numerosis` (package repo, Testbench harness — *not* thin-app)
 
@@ -534,9 +534,44 @@ deliverable is:
 
 ## Phase 8 — Cleanup + final audit
 
-Delete: dead `theme.css`, superseded per-component color maps, duplicate radius/spacing literals, `->colors()` calls.
+Dead `theme.css`, superseded color maps, and `->colors()` calls were already
+gone by Phase 4/6; this phase's real find was the one item still
+unaddressed: **components ignoring tokens (hardcoded instead)**.
 
-Final sweep for: hardcoded theme values, duplicate tokens, **Filament defaults leaking through**, components ignoring tokens (hardcoded instead), and any token that only works in one of the three surfaces.
+**Raw semantic-color sweep — done.** Audited resources/views for
+`bg-red-500`/`text-emerald-600`/etc. bypassing
+`--color-{success,warning,danger,info}-*`/`--color-primary` and found 31
+files, 100+ occurrences — a different, much larger drift than the
+gray/neutral/stone sweep Phase 3 actually covered, despite Phase 0
+predicting exactly this set of files ("billing/\* and the registration
+wizard steps... that is the Phase 3 volume sweep" — it wasn't; Phase 3's
+own scope was only the grey ramp and radius). Converted every genuinely
+semantic occurrence to the matching token — warning banners, error text,
+success/positive indicators, selection/accent states (→ `--color-primary`,
+now meaningfully live since Phase 7 wired up `--pref-accent-hue`), one
+`focus-within:ring-` focus-ring case Phase 7's own guard hadn't caught
+(different pseudo-class than the `focus-visible:`/`focus:` pattern it
+scanned for). Left three genuinely deliberate exceptions raw, each
+justified in-file or in Phase 0 already: `ui/icon-tile`'s closed color
+allowlist, card-network brand chips (Visa/Mastercard/etc.), and decorative
+gradients/illustrations (hero icon badges, CTA buttons, a macOS-style
+window-chrome mockup) that were never state indicators to begin with.
+Guard: `DesignLanguageGuardTest::test_no_view_uses_a_raw_semantic_color_utility_instead_of_the_token`,
+with an explicit, reasoned allowlist (`RAW_SEMANTIC_COLOR_ALLOWED_IN`)
+matching the existing `ROUNDED_2XL_ALLOWED_IN` pattern.
+
+Running that guard also surfaced a **9th raw-heroicon-string
+`emptyStateIcon()`** the Phase 6 sweep had missed
+(`AtRiskSubscriptionsTable.php`) — fixed the same way as the other 8.
+
+**Duplicate tokens, Filament defaults leaking through, tokens that only
+work on one surface** — not separately re-audited beyond what Phases 2–7
+already verified per-item (each phase's own guard tests cover its slice);
+no new findings surfaced doing the color sweep.
+
+Full suite re-verified after this sweep: 471 passed, 7 skipped, 1
+pre-existing failure (`RegisterTenantTest`); `pint` clean; `phpstan`
+unchanged (8 pre-existing errors, none in touched files).
 
 ---
 

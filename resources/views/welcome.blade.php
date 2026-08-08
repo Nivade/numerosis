@@ -36,11 +36,11 @@
 
                     <div class="flex items-center gap-4 pt-2 text-sm text-zinc-500 dark:text-zinc-400">
                         <div class="flex items-center gap-1">
-                            <flux:icon name="shield-check" class="text-emerald-500" variant="micro" />
+                            <flux:icon name="shield-check" class="text-success-icon" variant="micro" />
                             SSO-ready
                         </div>
                         <div class="flex items-center gap-1">
-                            <flux:icon name="lock-closed" class="text-emerald-500" variant="micro" />
+                            <flux:icon name="lock-closed" class="text-success-icon" variant="micro" />
                             Your data, isolated per workspace
                         </div>
                     </div>

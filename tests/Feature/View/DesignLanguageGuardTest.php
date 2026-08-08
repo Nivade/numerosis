@@ -35,6 +35,39 @@ class DesignLanguageGuardTest extends TestCase
         'welcome.blade.php',
     ];
 
+    /**
+     * Phase 8: raw Tailwind semantic-color utilities (`text-red-600`,
+     * `bg-emerald-500`, ...) bypassing `--color-{success,warning,danger,info}-*`
+     * / `--color-primary` — a different, much larger drift than the
+     * gray/neutral/stone sweep above (31 files, 100+ occurrences at audit
+     * time), never actually covered by Phase 3's own scope despite Phase 0
+     * predicting it. Fixed everywhere it was genuinely semantic state; these
+     * files keep raw color deliberately:
+     *   - `ui/icon-tile.blade.php` — Phase 0's own documented closed
+     *     allowlist (Tailwind can't build a class assembled from an
+     *     interpolated prop, so the literal names have to stay).
+     *   - `billing/saved-payment-method-option.blade.php` — card-network
+     *     brand colors (Visa blue, Mastercard orange, ...), documented
+     *     in-file, same idiom as the OAuth-provider brand icons.
+     *   - `registration/header.blade.php`, `registration/navigation.blade.php`,
+     *     `billing/order-summary.blade.php`,
+     *     `tenant/registration/wizard/index.blade.php`, `⚡suspended.blade.php`
+     *     — decorative gradients (hero icon badges, CTA buttons, an accent
+     *     bar), not state indicators.
+     *   - `welcome.blade.php` — a macOS-style window-chrome illustration
+     *     (red/amber/green traffic-light dots), not a status indicator.
+     */
+    private const RAW_SEMANTIC_COLOR_ALLOWED_IN = [
+        'components/ui/icon-tile.blade.php',
+        'components/billing/saved-payment-method-option.blade.php',
+        'components/billing/order-summary.blade.php',
+        'components/registration/header.blade.php',
+        'components/registration/navigation.blade.php',
+        'livewire/tenant/registration/wizard/index.blade.php',
+        'pages/tenant/⚡suspended.blade.php',
+        'welcome.blade.php',
+    ];
+
     /** @return list<\Symfony\Component\Finder\SplFileInfo> */
     private function viewFiles(): array
     {
@@ -101,6 +134,26 @@ class DesignLanguageGuardTest extends TestCase
                 'rounded-3xl',
                 $code,
                 "{$file->getRelativePathname()} uses rounded-3xl — the 5-token radius scale tops out at --radius-xl; collapse it.",
+            );
+        }
+    }
+
+    public function test_no_view_uses_a_raw_semantic_color_utility_instead_of_the_token(): void
+    {
+        $files = $this->viewFiles();
+        $pattern = '/\b(bg|text|border|ring|from|to|via|fill|stroke)-(red|blue|green|yellow|amber|emerald|indigo|purple|pink|orange|teal|cyan|sky|violet|fuchsia|rose|lime)-[0-9]+\b/';
+
+        foreach ($files as $file) {
+            if (in_array($file->getRelativePathname(), self::RAW_SEMANTIC_COLOR_ALLOWED_IN, true)) {
+                continue;
+            }
+
+            $code = $this->stripComments($file->getContents());
+
+            $this->assertDoesNotMatchRegularExpression(
+                $pattern,
+                $code,
+                "{$file->getRelativePathname()} uses a raw Tailwind color utility instead of a semantic token (--color-{success,warning,danger,info}-*/--color-primary). If this is genuinely decorative or a third-party brand color, add it to DesignLanguageGuardTest::RAW_SEMANTIC_COLOR_ALLOWED_IN with a reason.",
             );
         }
     }

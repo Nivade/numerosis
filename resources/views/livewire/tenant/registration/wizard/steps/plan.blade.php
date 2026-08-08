@@ -37,9 +37,9 @@
         >
             <x-slot name="description">
                 By registering, you agree to our
-                <a href="#" class="text-blue-600 hover:text-blue-800 font-medium underline">Terms of Service</a>
+                <a href="#" class="text-primary hover:text-primary-hover font-medium underline">Terms of Service</a>
                 and
-                <a href="#" class="text-blue-600 hover:text-blue-800 font-medium underline">Privacy Policy</a>
+                <a href="#" class="text-primary hover:text-primary-hover font-medium underline">Privacy Policy</a>
             </x-slot>
         </flux:checkbox>
         <flux:error name="terms"/>

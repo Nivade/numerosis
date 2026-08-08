@@ -12,7 +12,7 @@ $variants = [
     'default' => 'text-zinc-900 dark:text-white',
     'muted' => 'text-zinc-600 dark:text-zinc-300',
     'subtle' => 'text-zinc-500 dark:text-zinc-400',
-    'primary' => 'text-blue-600 dark:text-blue-400',
+    'primary' => 'text-primary',
 ];
 
 $sizes = [

@@ -7,13 +7,13 @@
     "AwaitingPayment is a badge on a working tenant, not a waiting room."
 --}}
 @if($subscription?->pastDue())
-    <div {{ $attributes->merge(['class' => 'flex items-start gap-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 px-4 py-3']) }}>
-        <flux:icon.exclamation-triangle class="size-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+    <div {{ $attributes->merge(['class' => 'flex items-start gap-3 rounded-lg bg-warning-bg border border-warning-border px-4 py-3']) }}>
+        <flux:icon.exclamation-triangle class="size-5 text-warning-icon shrink-0 mt-0.5" />
         <div class="min-w-0">
-            <x-numerosis::ui.text size="sm" class="text-amber-800 dark:text-amber-300 font-medium">
+            <x-numerosis::ui.text size="sm" class="text-warning-text font-medium">
                 Your last payment failed
             </x-numerosis::ui.text>
-            <x-numerosis::ui.text size="xs" class="text-amber-700 dark:text-amber-400 mt-0.5">
+            <x-numerosis::ui.text size="xs" class="text-warning-text mt-0.5">
                 Update your payment method to avoid your workspace being paused.
             </x-numerosis::ui.text>
         </div>

@@ -16,7 +16,7 @@
     };
 @endphp
 
-<label class="group relative flex cursor-pointer items-center gap-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 transition-all hover:border-zinc-300 dark:hover:border-zinc-600 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/60 dark:has-[:checked]:bg-blue-900/10 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 has-[:focus-visible]:ring-offset-2">
+<label class="group relative flex cursor-pointer items-center gap-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 transition-all hover:border-zinc-300 dark:hover:border-zinc-600 has-[:checked]:border-primary has-[:checked]:bg-primary-subtle has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary has-[:focus-visible]:ring-offset-2">
     <input
         type="radio"
         name="pm-choice"
@@ -49,7 +49,7 @@
         </span>
     </span>
 
-    <span class="hidden size-5 shrink-0 items-center justify-center rounded-full bg-blue-500 group-has-[:checked]:flex">
+    <span class="hidden size-5 shrink-0 items-center justify-center rounded-full bg-primary group-has-[:checked]:flex">
         <flux:icon.check variant="micro" class="size-3.5 text-white" />
     </span>
 </label>

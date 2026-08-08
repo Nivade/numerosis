@@ -21,7 +21,7 @@
                 @foreach($modules as $module)
                     <div @class([
                         'relative flex flex-col h-full p-6 bg-white dark:bg-zinc-900 border rounded-xl transition-all duration-300',
-                        'border-green-200 dark:border-green-900/50' => $module['purchased'],
+                        'border-success-border' => $module['purchased'],
                         'border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-md hover:-translate-y-0.5' => ! $module['purchased'],
                     ])>
                         <a
@@ -32,14 +32,14 @@
                             <div class="flex items-start justify-between gap-3">
                                 <div @class([
                                     'flex items-center justify-center size-10 rounded-xl shrink-0',
-                                    'bg-green-50 dark:bg-green-900/20' => $module['purchased'],
+                                    'bg-success-bg' => $module['purchased'],
                                     'bg-zinc-50 dark:bg-zinc-800' => ! $module['purchased'],
                                 ])>
                                     <x-filament::icon
                                         icon="heroicon-o-puzzle-piece"
                                         @class([
                                             'size-5',
-                                            'text-green-600 dark:text-green-400' => $module['purchased'],
+                                            'text-success-icon' => $module['purchased'],
                                             'text-zinc-500 dark:text-zinc-400' => ! $module['purchased'],
                                         ])
                                     />
@@ -76,7 +76,7 @@
                             @endif
 
                             @if($module['purchased'])
-                                <x-filament::icon icon="heroicon-o-check-circle" class="size-6 text-green-500" />
+                                <x-filament::icon icon="heroicon-o-check-circle" class="size-6 text-success-icon" />
                             @elseif($this->canPurchaseModules())
                                 <x-filament::button
                                     size="sm"

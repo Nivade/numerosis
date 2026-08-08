@@ -10,7 +10,7 @@
         <flux:field>
             <flux:label class="text-base font-semibold text-zinc-900 dark:text-white flex items-center">
                 Workspace Domain
-                <span class="ml-1 text-red-500" aria-label="Required field">*</span>
+                <span class="ml-1 text-danger-text" aria-label="Required field">*</span>
             </flux:label>
 
             <div class="mt-3 relative group">
@@ -30,15 +30,15 @@
             <x-numerosis::ui.info-box type="warning" title="Important: Choose carefully - this cannot be changed later" class="mt-4">
                 <ul class="mt-2 space-y-1">
                     <li class="flex items-center space-x-2">
-                        <span class="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                        <span class="w-1.5 h-1.5 bg-warning-icon rounded-full"></span>
                         <span>Use only letters, numbers, and hyphens</span>
                     </li>
                     <li class="flex items-center space-x-2">
-                        <span class="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                        <span class="w-1.5 h-1.5 bg-warning-icon rounded-full"></span>
                         <span>Must be between 3-30 characters</span>
                     </li>
                     <li class="flex items-center space-x-2">
-                        <span class="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                        <span class="w-1.5 h-1.5 bg-warning-icon rounded-full"></span>
                         <span>Cannot start or end with a hyphen</span>
                     </li>
                 </ul>

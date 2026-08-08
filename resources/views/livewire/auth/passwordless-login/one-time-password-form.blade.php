@@ -13,7 +13,7 @@
         />
 
         @error('oneTimePassword')
-        <p class="-mt-4 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+        <p class="-mt-4 text-sm text-danger-text">{{ $message }}</p>
         @enderror
 
         <div class="flex flex-col gap-3">
