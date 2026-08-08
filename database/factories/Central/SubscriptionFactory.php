@@ -39,9 +39,15 @@ class SubscriptionFactory extends \Laravel\Cashier\Database\Factories\Subscripti
         return [
             'user_id' => \Nvade\Numerosis\Models\Central\CentralUser::factory(),
             'type' => 'default',
-            'stripe_id' => $this->faker->unique()->lexify('sub_************************'),
+            // lexify() only randomizes `?` placeholders — a `*`-based pattern
+            // here previously returned the exact same literal string on
+            // every call, so a second Subscription factory call in one test
+            // process reliably overflowed the faker->unique() retry budget
+            // trying to avoid a "duplicate" that was actually the pattern
+            // never having been randomized in the first place.
+            'stripe_id' => $this->faker->unique()->lexify('sub_????????????????????????????'),
             'stripe_status' => 'active',
-            'stripe_price' => $this->faker->lexify('price_************************'),
+            'stripe_price' => $this->faker->lexify('price_????????????????????????????'),
             'quantity' => 1,
             'trial_ends_at' => null,
             'ends_at' => null,

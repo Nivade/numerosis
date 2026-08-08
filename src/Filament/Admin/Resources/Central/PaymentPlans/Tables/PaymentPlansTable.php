@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
@@ -14,6 +13,9 @@ use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
+use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\PaymentPlanResource;
+use Nvade\Numerosis\Models\Central\PaymentPlan;
 
 class PaymentPlansTable
 {
@@ -21,21 +23,28 @@ class PaymentPlansTable
     {
         return $table
             ->columns([
+                // The most-subscribed plan is the one number on this page
+                // that says "this is the tier actually carrying the
+                // business" — a real pricing-page convention (emphasize the
+                // popular tier) applied to data this table already computed
+                // but never showed: every card rendered identically
+                // regardless of which one was popular. The ribbon + ring are
+                // the one accent this grid spends; everything else stays
+                // quiet on purpose.
                 Stack::make([
+                    TextColumn::make('is_popular_ribbon')
+                        ->getStateUsing(fn (PaymentPlan $record): ?string => $record->popular() ? 'Most subscribed' : null)
+                        ->visible(fn (?PaymentPlan $record): bool => $record?->popular() ?? false)
+                        ->badge()
+                        ->color('warning')
+                        ->extraAttributes(['class' => 'absolute -top-3 left-4 z-10']),
+
                     Split::make([
-                        // text-9xl (128px) used to sit here alongside
-                        // TextSize::Large — the two disagree, and 9xl wins,
-                        // so every card's title overflowed its own card in
-                        // the contentGrid below. Almost certainly a
-                        // copy-paste leftover; TextSize::Large is the actual
-                        // intended size.
                         TextColumn::make('name')
                             ->weight(FontWeight::Bold)
                             ->size(TextSize::Large)
                             ->searchable()
-                            ->sortable()
-                            ->icon('heroicon-m-sparkles')
-                            ->iconColor('warning'),
+                            ->sortable(),
 
                         TextColumn::make('available')
                             ->badge()
@@ -52,45 +61,58 @@ class PaymentPlansTable
                             ->size(TextSize::Small)
                             ->extraAttributes(['class' => 'mb-4']),
 
-                        Split::make([
-                            Stack::make([
-                                TextColumn::make('features_count')
-                                    ->counts('features')
-                                    ->formatStateUsing(fn ($state) => $state.' Features')
-                                    ->icon('heroicon-m-check-badge')
-                                    ->color('primary')
-                                    ->size(TextSize::Small),
-                                TextColumn::make('trial_days')
-                                    ->formatStateUsing(fn ($state) => $state > 0 ? $state.' day trial' : 'No trial period')
-                                    ->icon('heroicon-m-clock')
-                                    ->color('gray')
-                                    ->size(TextSize::Small),
-                            ]),
-                            TextColumn::make('is_popular_badge')
-                                ->getStateUsing(fn ($record) => $record->popular() ? 'MOST POPULAR' : null)
-                                ->badge()
-                                ->color('warning')
-                                ->visible(fn ($record) => $record?->popular())
-                                ->alignEnd(),
-                        ]),
+                        TextColumn::make('features_count')
+                            ->counts('features')
+                            ->formatStateUsing(fn ($state) => $state.' Features')
+                            ->icon('heroicon-m-check-badge')
+                            ->color('primary')
+                            ->size(TextSize::Small),
+                        TextColumn::make('trial_days')
+                            ->formatStateUsing(fn ($state) => $state > 0 ? $state.' day trial' : 'No trial period')
+                            ->icon('heroicon-m-clock')
+                            ->color('gray')
+                            ->size(TextSize::Small),
+                        // Card grid gave no way to see who's actually on a
+                        // plan without opening Subscriptions and filtering
+                        // by hand — this is that count, computed once per
+                        // row, not per feature.
+                        TextColumn::make('active_subscriptions_count')
+                            ->counts(['subscriptions as active_subscriptions_count' => fn ($query) => $query->where('stripe_status', 'active')])
+                            ->formatStateUsing(fn ($state) => $state.' active '.Str::plural('subscriber', (int) $state))
+                            ->icon('heroicon-m-user-group')
+                            ->color('gray')
+                            ->size(TextSize::Small),
                     ]),
 
+                    // The price is the single most important number on a
+                    // pricing card; it previously matched the description
+                    // and feature-count text in visual weight once you
+                    // accounted for the (wrongly-sized) title above it. Bumped
+                    // to genuinely dominate the card, the way a price does on
+                    // every real pricing page this pattern is borrowed from.
                     Stack::make([
                         TextColumn::make('monthly_price')
                             ->money(divideBy: 100)
-                            ->size('xl')
+                            ->size('2xl')
                             ->weight(FontWeight::Black)
                             ->color('primary')
                             ->sortable()
-                            ->alignEnd(),
+                            ->alignEnd()
+                            ->suffix(' /mo'),
                         TextColumn::make('yearly_price')
                             ->money(divideBy: 100)
                             ->size(TextSize::Small)
                             ->color('gray')
                             ->alignEnd()
-                            ->suffix(fn ($record) => ' / yr (Save '.$record->getSavingsPercentage().'%)'),
+                            ->suffix(fn ($record) => ' / yr (save '.$record->getSavingsPercentage().'%)'),
                     ])->alignEnd()->extraAttributes(['class' => 'mt-4 pt-3 border-t border-gray-100 dark:border-gray-800']),
-                ])->space(3),
+                ])
+                    ->space(3)
+                    ->extraAttributes(fn (PaymentPlan $record): array => [
+                        'class' => 'relative rounded-xl p-2 transition-shadow '.($record->popular()
+                            ? 'ring-2 ring-warning-400 dark:ring-warning-500 shadow-lg shadow-warning-500/10'
+                            : ''),
+                    ]),
             ])
             ->contentGrid([
                 'md' => 2,
@@ -99,17 +121,22 @@ class PaymentPlansTable
             ->filters([
                 //
             ])
+            ->recordUrl(fn (PaymentPlan $record): string => PaymentPlanResource::getUrl('view', ['record' => $record]))
             ->defaultSort('monthly_price')
             ->emptyStateHeading('No payment plans yet')
             ->emptyStateDescription('Plans are what tenants subscribe to — create one to unlock checkout.')
             ->emptyStateIcon(Heroicon::OutlinedRectangleStack)
+            // No row-selection checkbox: Filament renders it as a bare
+            // unstyled box floating at the vertical center of whatever the
+            // first column is, which on a card grid meant an orphaned
+            // checkbox sitting mid-card next to the description — not
+            // "selection UI", just visual noise. A handful of plans doesn't
+            // need bulk delete; single delete (guarded against plans with
+            // active subscribers) lives on each plan's own Edit page.
+            ->selectable(false)
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
             ]);
     }
 }

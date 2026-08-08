@@ -74,6 +74,7 @@ class PaymentPlanForm
 
                                         Section::make('Plan Features')
                                             ->icon('heroicon-m-check-badge')
+                                            ->description('Which features this plan includes. Once the plan is saved, the Features table further down the edit page gives finer control — flipping a single feature off without removing it.')
                                             ->schema([
                                                 CheckboxList::make('features')
                                                     ->relationship('features', 'slug')

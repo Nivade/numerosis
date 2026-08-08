@@ -14,6 +14,7 @@ use Nvade\Numerosis\Filament\Admin\Clusters\Billing\BillingCluster;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\CreatePaymentPlan;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\EditPaymentPlan;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\ListPaymentPlans;
+use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\ViewPaymentPlan;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\RelationManagers\FeaturesRelationManager;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Schemas\PaymentPlanForm;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Tables\PaymentPlansTable;
@@ -85,6 +86,7 @@ class PaymentPlanResource extends Resource
         return [
             'index' => ListPaymentPlans::route('/'),
             'create' => CreatePaymentPlan::route('/create'),
+            'view' => ViewPaymentPlan::route('/{record}'),
             'edit' => EditPaymentPlan::route('/{record}/edit'),
         ];
     }

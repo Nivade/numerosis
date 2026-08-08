@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Filament\Admin\Clusters\Billing\Pages;
 
 use Filament\Pages\Page;
 use Nvade\Numerosis\Filament\Admin\Clusters\Billing\BillingCluster;
+use Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets\AtRiskSubscriptionsTable;
 use Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets\BillingStatsWidget;
 use Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets\RecentSubscriptionsTable;
 use Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets\RevenueChartWidget;
@@ -27,6 +28,7 @@ class BillingDashboard extends Page
     {
         return [
             BillingStatsWidget::class,
+            AtRiskSubscriptionsTable::class,
             RevenueChartWidget::class,
             SubscriptionsByPlanChart::class,
             RecentSubscriptionsTable::class,

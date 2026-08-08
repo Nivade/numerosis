@@ -14,6 +14,7 @@ use Nvade\Numerosis\Filament\Admin\Clusters\Billing\BillingCluster;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Pages\CreateSubscription;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Pages\EditSubscription;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Pages\ListSubscriptions;
+use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Pages\ViewSubscription;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Schemas\SubscriptionForm;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Tables\SubscriptionsTable;
 use Nvade\Numerosis\Models\Central\Subscription;
@@ -24,7 +25,7 @@ class SubscriptionResource extends Resource
 {
     protected static ?string $cluster = BillingCluster::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;
 
     #[Override]
     public static function getModel(): string
@@ -72,6 +73,7 @@ class SubscriptionResource extends Resource
         return [
             'index' => ListSubscriptions::route('/'),
             'create' => CreateSubscription::route('/create'),
+            'view' => ViewSubscription::route('/{record}'),
             'edit' => EditSubscription::route('/{record}/edit'),
         ];
     }

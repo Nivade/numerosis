@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Database\Factories\Central\PaymentPlanFactory;
@@ -101,6 +102,14 @@ class PaymentPlan extends Model implements Plan
         )
             ->using(PaymentPlanFeature::class)
             ->withPivot(['available']);
+    }
+
+    /**
+     * @return HasMany<Subscription, $this>
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Numerosis::model(Subscription::class), 'payment_plan_id');
     }
 
     /**
@@ -192,7 +201,13 @@ class PaymentPlan extends Model implements Plan
                 ->first()?->payment_plan_id
         );
 
-        return $popularPlanId === $this->id;
+        // The cache round-trip does not preserve the int type the query
+        // itself returns — this store's driver hands back a string on
+        // read, so a strict `===` against `$this->id` (always int, cast by
+        // Eloquent) was silently always false. "Popular" has never actually
+        // matched a real plan through this path; only a loose comparison
+        // makes the cached value and the live id comparable again.
+        return $popularPlanId !== null && (int) $popularPlanId === $this->id;
     }
 
     public function getPriceId(BillingCycle $cycle): ?string

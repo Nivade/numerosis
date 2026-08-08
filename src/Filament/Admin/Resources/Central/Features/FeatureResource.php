@@ -25,7 +25,7 @@ class FeatureResource extends Resource
 
     protected static ?string $cluster = BillingCluster::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCheckBadge;
 
     public static function getMaxContentWidth(): Width
     {

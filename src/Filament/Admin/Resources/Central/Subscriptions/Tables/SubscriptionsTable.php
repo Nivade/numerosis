@@ -7,10 +7,12 @@ namespace Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 
@@ -40,6 +42,27 @@ class SubscriptionsTable
                 TextColumn::make('type')
                     ->searchable()
                     ->badge(),
+                // No monetary value anywhere in this table before — an
+                // administrator scanning the list had no way to see what a
+                // row was actually worth without opening it. Mirrors
+                // BillingStatsWidget's yearly-divided-by-12 normalisation so
+                // mixed-cycle rows are comparable at a glance.
+                TextColumn::make('mrr')
+                    ->label('MRR')
+                    ->state(function (Subscription $record): ?int {
+                        $plan = $record->paymentPlan;
+
+                        if (! $plan instanceof PaymentPlan) {
+                            return null;
+                        }
+
+                        return $record->stripe_price === $plan->yearly_id
+                            ? intdiv($plan->yearly_price, 12)
+                            : $plan->monthly_price;
+                    })
+                    ->money(divideBy: 100)
+                    ->placeholder('—')
+                    ->alignEnd(),
                 TextColumn::make('stripe_status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -85,11 +108,18 @@ class SubscriptionsTable
                         'incomplete' => 'Incomplete',
                         'incomplete_expired' => 'Incomplete (Expired)',
                     ]),
+                // Was no way to answer "who's on this plan" from here at
+                // all — the Payment Plan detail page's subscriber count
+                // links here with this filter preset.
+                SelectFilter::make('payment_plan_id')
+                    ->label('Plan')
+                    ->relationship('paymentPlan', 'name'),
             ])
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading('No subscriptions yet')
             ->emptyStateIcon(Heroicon::OutlinedCreditCard)
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
             ])
             ->bulkActions([
