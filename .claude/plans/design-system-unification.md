@@ -343,7 +343,52 @@ deliverable is:
 
 ## Phase 6 — UX normalization
 
-- **One notification channel.** Route main-app flash messages through Filament's notification system, or route both through one shared component. Two unrelated feedback UIs is the largest non-CSS divergence.
+- **One notification channel — done.** Built a shared
+  component (not routed onto Filament's own system — that would drag
+  Filament's Livewire/Alpine plumbing into marketing/auth pages that never
+  load a panel): `resources/views/partials/toasts.blade.php` (an Alpine
+  store, fixed top-right, `aria-live="polite"`) plus
+  `resources/views/components/ui/toast.blade.php` (one floating card per
+  type, same semantic-token palette as `ui/alert`). Every Livewire action
+  or redirect dispatches into it via a `notify` browser event
+  (`$this->dispatch('notify', type: ..., message: ...)`); every existing
+  `redirect()->with('success', ...)`-style flash keeps working with zero
+  call-site changes — the four conventional keys (`success`/`error`/
+  `warning`/`info`, plus `message` as an `info` alias) are bridged
+  server-side into the same Alpine store at first paint. Wired into all
+  three main-app layout shells (`layouts/app/{header,sidebar,none}.blade.php`).
+  Replaced the registration wizard's ad-hoc `<x-numerosis::ui.alert closable
+  />` (the only place a page rendered session flash inline) — that was the
+  concrete instance of "two unrelated feedback UIs" this closes.
+  `ui/alert` itself is untouched: it remains the callout component for
+  explicit inline content (`ui/info-box`, validation-style messaging), a
+  different job from a floating toast. Tests: `tests/Feature/View/Components/ToastTest.php`,
+  6 tests. Auth layouts (`layouts/auth/*`) deliberately not wired — they
+  already have a purpose-built, tested pattern for their one status key
+  (`ui/auth-session-status.blade.php`, inline beneath the form, not a
+  toast) and mixing the two would leave two mechanisms for one auth flow.
+
+  **Filament-panel half — reskin, not replace (decided after reading
+  Filament's actual source).** `Filament\Notifications\Notification::send()`
+  has a feature surface `ui/toast` doesn't and shouldn't try to match:
+  per-notification icons, colors, durations, action buttons, database
+  notifications, and Echo broadcast delivery, all wired through
+  `Filament\Notifications\Livewire\Notifications` via Livewire events and
+  session (`vendor/filament/notifications/src/Notification.php`,
+  `.../src/Livewire/Notifications.php`). Replacing that behaviourally would
+  mean either reimplementing all of it or stripping features from every
+  existing `->send()` call across both panels — a real regression, not a
+  reskin. Instead: left Filament's delivery entirely alone, and confirmed
+  the *visual* unification already happened as a side effect of Phase 4.
+  Filament's notification card (`vendor/filament/notifications/resources/css/notification.css`)
+  resolves its colors through `text-gray-*`, `bg-white`/`dark:bg-gray-900`,
+  and `text-color-{name}-400` (from `->color()`), its radius through
+  `rounded-xl`, and its shadow through `shadow-lg` — every one of those
+  custom properties is already remapped by `filament-theme.css` +
+  `tokens.css`. So a Filament toast and a `ui/toast` already render on the
+  same palette, radius, and shadow scale; "one channel" is satisfied
+  visually without a behavioural merge. No new code needed for this half —
+  it was already true once Phase 4 landed, just unverified until now.
 - **One empty-state vocabulary** — shared icon set and copy tone; Filament tables' `emptyStateHeading` drawn from the same source as `ui/empty-state`.
 - **One loading indicator** shared by `wire:loading` and Filament.
 - **One confirmation pattern** and one action vocabulary — a button that says "Publish" produces a toast that says "Published", in all three surfaces.
