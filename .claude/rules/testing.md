@@ -66,6 +66,18 @@ updated: 2026-07-31
   failing. Treat "risky" and "one odd failure in a green file" as the same
   signal — an assertion that never ran.
 
+  **2026-08-10: `livewire/flux` went further, from `require-dev` to `require`,
+  and stopped being `suggest` at all** — along with `internachi/modular`,
+  `laravel/socialite` (+ both provider packages),
+  `ryangjchandler/laravel-cloudflare-turnstile`,
+  `spatie/laravel-livewire-wizard` and `alizharb/filament-activity-log`. The
+  bullet's rule is unchanged and `require` satisfies it (dev installs get the
+  package either way); what changed is that hosts no longer list those eight in
+  their own `composer.json`. Reason, and the install-time-vs-feature-time rule
+  for the next dependency, in `DEPENDENCIES.md` — short version: a `suggest`
+  entry promises the package degrades cleanly without it, and a Blade tag
+  rendering as literal text is not clean degradation, it is a silent pass.
+
 - **`assertDatabaseHas()`/`assertDatabaseMissing()` default to the *default*
   connection, which under `RefreshDatabase` is a transaction — a central-connection
   write (autocommit, see above) is invisible to it under MySQL's REPEATABLE-READ
