@@ -21,7 +21,7 @@ Overwrite this block; never append to it. Fifteen lines, hard limit.
 
 | | |
 |---|---|
-| Phase | 10 — end-to-end gate items 3-4 passed live against a real tenant. STOP: archive step (Phase 10's last item) needs explicit user go-ahead, not taken. **Correction (2026-08-06):** Phase 8 was recorded here as done but had not been done *as designed* — no `Filament\Contracts\Plugin` class existed, panel definitions were hand-copied and had already drifted. Fixed properly in `.claude/plans/cleanup-package-extraction.md`'s item A; see that file, not this line, for Phase 8's real state |
+| Phase | 10 — end-to-end gate items 3-4 passed live against a real tenant. **Status: ✅ Done — archive step dropped, saas-m stays (decision 2026-08-10).** **Correction (2026-08-06):** Phase 8 was recorded here as done but had not been done *as designed* — no `Filament\Contracts\Plugin` class existed, panel definitions were hand-copied and had already drifted. Fixed properly in `.claude/plans/cleanup-package-extraction.md`'s item A; see that file, not this line, for Phase 8's real state |
 | numerosis | `84a9a7d`, clean (no package changes this session) |
 | thin-app | `395f08a`, clean. Panels boot (Phase 8), assets build (Phase 9), and a real `StartLocalCheckout` provision was run to completion — see below |
 | saas-m | frozen at `c66cc72`; untouched this session |
@@ -1501,10 +1501,10 @@ Package ships **sources**, thin-app owns the build.
 
 ---
 
-## Phase 10 — Verification gate, then archive
+## Phase 10 — Verification gate
 
-Every item must pass. STOP and ask the user before the archive step — retiring a
-repo is confirmed in the moment, never pre-authorised by this document.
+**Decision (2026-08-10): saas-m stays, not archived.** Archive step below is
+dead — user decided against retiring saas-m. Gate items 1-4 still apply.
 
 ```bash
 # 1. package
@@ -1532,9 +1532,10 @@ vendor/bin/sail up -d && vendor/bin/sail artisan numerosis:install && vendor/bin
 vendor/bin/sail artisan tenants:migrate-module branding   # then check modules.migrated_at is stamped
 ```
 
-Then, and only then: archive `git@gitlab.com:nvade_/saas-m.git` read-only on
+~~Then, and only then: archive `git@gitlab.com:nvade_/saas-m.git` read-only on
 GitLab, and add to `.claude/rules/INDEX.md` in **both** new repos a line stating
-that bare commit hashes in the rules refer to that archived repo.
+that bare commit hashes in the rules refer to that archived repo.~~ **Not
+doing this — decision 2026-08-10, saas-m stays as-is, not archived.**
 
 ---
 

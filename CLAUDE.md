@@ -1,3 +1,7 @@
+# Repo Role
+
+This repo (`numerosis`) is **the package**. `thin-app` is only host app used to test numerosis — thin shell, not real product. Changes belong here unless truly host-specific wiring.
+
 <laravel-boost-guidelines>
 === .ai/tall-stack rules ===
 

@@ -1,8 +1,13 @@
 # Opt-In Feature Surface — executable plan
 
-**Status: ❌ Not executed** beyond Turnstile. The `Feature`-class pattern
-exists (`app/Contracts/Feature.php`, boot loop in `AppServiceProvider::boot()`
-reading `config('numerosis.features')`), applied to `TurnstileFeature` alone.
+**Status: ✅ Executed** (correction 2026-08-10 — previous status line was
+stale, written when only Turnstile existed). `Nvade\Numerosis\Contracts\NamedFeature`
+is the contract; 13 Feature classes implement it across `src/Features/{Turnstile,
+Social,Modules,Invitations,Tenancy,Billing,Observability,Ui,Auth}/`, each with
+its own `isEnabled()`/`bootstrap()` and a docblock explaining its toggle
+semantics (see `TurnstileFeature` for the canonical shape). `config/numerosis.php`'s
+`'features' => [...]` class-string array is the single toggle, exactly as
+decided below — comment a line out, feature is gone.
 
 **Decided (2026-08-04, by the user): the class-string array in
 `config('numerosis.features')` is the toggle.** No boolean feature map, no
