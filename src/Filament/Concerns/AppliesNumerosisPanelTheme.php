@@ -16,10 +16,12 @@ use Illuminate\View\Compilers\BladeCompiler;
  * admin and tenant cannot drift the way the two passwordless-login
  * components did (.claude/rules/auth-login.md).
  *
- * `->viteTheme('resources/css/filament-theme.css')` (registered by each
- * plugin directly, not here — {@see Panel::viteTheme()} is a single value,
- * not a stack, so there is nothing to "extract" about the call itself)
- * handles Filament's own fi-* component colours and radius. What is
+ * `->theme(NumerosisServiceProvider::THEME_ID)` (registered by each plugin
+ * directly, not here — {@see Panel::theme()} is a single value, not a
+ * stack, so there is nothing to "extract" about the call itself) handles
+ * Filament's own fi-* component colours and radius, via a prebuilt CSS
+ * asset registered by `NumerosisServiceProvider::registerFilamentTheme()`
+ * — no `->viteTheme()`, no host build step. What is
  * extracted here is everything Filament's theme replacement does **not**
  * cover: Flux's CSS (panel pages compose `<x-numerosis::ui.*>` and
  * `flux:icon`, neither of which `filament-theme.css` builds), the

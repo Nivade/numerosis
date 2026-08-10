@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis;
 
 use Closure;
+use Filament\Support\Assets\Theme;
+use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Http\Kernel;
@@ -76,6 +78,13 @@ use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 class NumerosisServiceProvider extends PackageServiceProvider
 {
     use PublishesPackageAssets;
+
+    /**
+     * Filament `Theme` asset id — {@see self::registerFilamentTheme()}
+     * registers it, `NumerosisAdminPlugin`/`NumerosisTenantPlugin`'s
+     * `->theme(self::THEME_ID)` calls consume it.
+     */
+    public const string THEME_ID = 'numerosis-filament-theme';
 
     public function configurePackage(Package $package): void
     {
@@ -199,6 +208,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->registerSchedule();
 
         $this->registerMiddleware();
+
+        $this->registerFilamentTheme();
 
         $this->registerBroadcasting();
 
@@ -446,6 +457,34 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         $this->app->make(Kernel::class)->prependMiddleware(TrustHosts::class);
 
+    }
+
+    /**
+     * Registers `dist/filament-theme.css` — a prebuilt, checked-in Tailwind
+     * build, not a source file — as a Filament `Theme` asset, exactly the
+     * way `filament/filament`'s own `FilamentServiceProvider` registers its
+     * default theme (`Theme::make('app', __DIR__.'/../dist/theme.css')`,
+     * compiled to `vendor/filament/filament/dist/theme.css`). Both panels'
+     * `->theme(self::THEME_ID)` (see `NumerosisAdminPlugin`/
+     * `NumerosisTenantPlugin`) picks this up through
+     * `HasTheme::getTheme()`'s `FilamentAsset::getTheme($this->theme)`
+     * lookup.
+     *
+     * `php artisan filament:assets` copies it to
+     * `public/css/nvade/numerosis/{self::THEME_ID}.css` — the same command
+     * a host must already run for Filament's own core CSS to exist at all,
+     * so this asks nothing extra of a host: no `vendor:publish`, no
+     * `vite.config.js` entry, no `->viteTheme()`. The source this was
+     * compiled from lives at `resources/theme-src/filament-theme.css` (not
+     * published — see that file's own docblock for what was traded away to
+     * get a zero-config host and the `npm run build:filament-theme` command
+     * that regenerates `dist/filament-theme.css`).
+     */
+    protected function registerFilamentTheme(): void
+    {
+        FilamentAsset::register([
+            Theme::make(self::THEME_ID, __DIR__.'/../dist/filament-theme.css'),
+        ], package: 'nvade/numerosis');
     }
 
     /**

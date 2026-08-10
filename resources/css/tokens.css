@@ -16,7 +16,10 @@
  * `:root`. The `.dark` block only *redefines* tokens that change — it must
  * never be the only place a token is declared, or that token breaks the
  * moment `prefers-color-scheme`/`.dark` is toggled off. Same rule applies to
- * `filament-theme.css`, which follows this file's shape exactly.
+ * `resources/theme-src/filament-theme.css` (compiled to
+ * `dist/filament-theme.css`, registered as a Filament theme asset — not
+ * published, a host never sees this file), which follows this file's shape
+ * exactly.
  *
  * Three tiers:
  *   1. Primitives  — raw color ramps. No component may reference these.

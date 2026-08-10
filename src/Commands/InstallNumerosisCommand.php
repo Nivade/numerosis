@@ -19,6 +19,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Invitation;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Nvade\Numerosis\Support\Numerosis;
@@ -701,33 +702,30 @@ class InstallNumerosisCommand extends Command
 
     /**
      * `NumerosisAdminPlugin`/`NumerosisTenantPlugin` both call
-     * `->viteTheme('resources/css/filament-theme.css')` (design-system-
-     * unification Phase 4) — Filament resolves that path through the same
-     * `Vite` helper `@vite()` uses, against the host's own
-     * `public/build/manifest.json`. A host that has not added the entry to
-     * its `vite.config.js` gets no failure at all: `getTheme()` still
-     * returns *something* (Filament's manifest lookup only throws for a
-     * missing manifest, not a missing entry — falls through with no theme
-     * stylesheet), so both panels render with zero CSS. That reads as a
-     * broken deploy, not a missing config line, so this fails loudly
-     * instead of leaving it to be discovered as an unstyled admin panel.
-     *
-     * No manifest at all is not a failure here — a host that has not run
-     * its first `npm run build` yet fails identically at every other
-     * `@vite()` call in the app, which is not this check's job to catch.
+     * `->theme(NumerosisServiceProvider::THEME_ID)` — a Filament `Theme`
+     * asset registered against a prebuilt, checked-in CSS file
+     * (`dist/filament-theme.css`), not `->viteTheme()`. A host does not
+     * touch `vite.config.js` for this at all: `php artisan filament:assets`
+     * (already required for Filament's own core CSS to exist) copies it to
+     * `public/css/nvade/numerosis/`. This check only fires once that
+     * directory tree exists at all — i.e. the host has run
+     * `filament:assets` at least once — and confirms our file specifically
+     * landed, the same way a missing Filament core CSS file would mean the
+     * command was never run. Silent-zero-CSS here reads as a broken deploy,
+     * not a missing config line, so this fails loudly.
      */
     private function verifyFilamentThemeAsset(): void
     {
-        $manifestPath = public_path('build/manifest.json');
+        $filamentAssetsDir = public_path('css/filament');
 
-        if (! File::exists($manifestPath)) {
+        if (! File::isDirectory($filamentAssetsDir)) {
             return;
         }
 
-        $manifest = json_decode(File::get($manifestPath), true);
+        $themePath = public_path('css/nvade/numerosis/'.NumerosisServiceProvider::THEME_ID.'.css');
 
-        if (! is_array($manifest) || ! array_key_exists('resources/css/filament-theme.css', $manifest)) {
-            $this->failures[] = "public/build/manifest.json exists but has no 'resources/css/filament-theme.css' entry — add it to your vite.config.js input array and rebuild (npm run build), or both Filament panels render with none of Numerosis's theming.";
+        if (! File::exists($themePath)) {
+            $this->failures[] = "public/css/filament exists but public/css/nvade/numerosis/".NumerosisServiceProvider::THEME_ID.'.css does not — run `php artisan filament:assets` again, or both Filament panels render with none of Numerosis\'s theming.';
         }
     }
 
@@ -865,7 +863,7 @@ class InstallNumerosisCommand extends Command
         $this->line('  2. Register the package\'s Filament panel plugin(s) in your own AdminPanelProvider / TenantAdminPanelProvider.');
         $this->line('  3. Run a queue worker on the dedicated "provisioning" queue (see docker/8.5/supervisord.conf\'s [program:queue-provisioning] in saas-m for the reference config) — tenant provisioning is queued there, not on the default worker.');
         $this->line('  4. Add resources/js/central.js and resources/js/tenant.js to your vite.config.js input array (just published to resources/js/ by this command) — Vite compiles per-app, so this list can\'t be published, only the files it points at. Skipping this fails at first render with "Unable to locate file in Vite manifest".');
-        $this->line('  5. Add resources/css/filament-theme.css to that same vite.config.js input array and run npm run build — both Filament panels\' theming (colours, radius, Instrument Sans) comes from this file via ->viteTheme(). Skipping this renders both panels with no theme CSS at all, not an error.');
-        $this->line('  6. To rebrand (accent colour, radius, fonts, density), add a `:root { --pref-...: ...; }` block to your published resources/css/app.css AFTER its `@import \'.../vendor/nvade/numerosis/resources/css/tokens.css\';` line — CSS cascade applies it everywhere: the main app and, via filament-theme.css, both panels. See tokens.css for the full list of overridable custom properties. This is a one-time, host-level choice — Numerosis has no per-user or per-tenant theme picker. A custom `--pref-accent-hue` is not contrast-verified for you — white text on `--color-primary` is only checked against the default hue; check your own hue\'s contrast (browser devtools\' contrast checker is enough) before shipping it.');
+        $this->line('  5. Run `php artisan filament:assets` (you likely already run this for Filament itself) — it copies both Filament panels\' theming (colours, radius, Instrument Sans) from this package\'s prebuilt CSS to public/css/nvade/numerosis/. No vite.config.js entry needed for it: it never goes through your build.');
+        $this->line('  6. To rebrand (accent colour, radius, fonts, density) for the *main app*, add a `:root { --pref-...: ...; }` block to your published resources/css/app.css AFTER its `@import \'.../vendor/nvade/numerosis/resources/css/tokens.css\';` line. See tokens.css for the full list of overridable custom properties. This does not reach either Filament panel — the panel theme from step 5 is a prebuilt file compiled once against the default `--pref-accent-hue` and does not read your app.css (a panel page loads only its own theme stylesheet, nothing else). Rebranding a panel\'s accent means building your own theme CSS (copy resources/theme-src/filament-theme.css from the package as a starting point, edit `--pref-accent-hue`, register it as your own Filament `Theme` asset or `->viteTheme()`) and pointing `->theme()`/`->viteTheme()` at it in your own panel providers instead of Numerosis\'s. This is a one-time, host-level choice either way — Numerosis has no per-user or per-tenant theme picker. A custom `--pref-accent-hue` is not contrast-verified for you — white text on `--color-primary` is only checked against the default hue; check your own hue\'s contrast (browser devtools\' contrast checker is enough) before shipping it.');
     }
 }

@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Filament;
 
 use Filament\Facades\Filament;
+use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
  * Phase 4 of .claude/plans/design-system-unification.md: both panels share
  * one theme instead of admin's amber and tenant's rose. Guards the two
  * failure shapes that are otherwise invisible until someone loads the panel
- * in a browser — a missing `->viteTheme()` renders stock Filament silently,
- * and a `->colors()` call surviving on either workbench provider would fight
+ * in a browser — a missing `->theme()` renders stock Filament silently, and
+ * a `->colors()` call surviving on either workbench provider would fight
  * `FilamentColor::register()`'s per-container memoisation for nothing
  * (Phase 1 audit §1.7) rather than actually override the token remap.
  */
@@ -24,9 +25,9 @@ class PanelThemeTest extends TestCase
             $panel = Filament::getPanel($panelId);
 
             $this->assertSame(
-                'resources/css/filament-theme.css',
-                $panel->getViteTheme(),
-                "Panel [{$panelId}] does not register ->viteTheme('resources/css/filament-theme.css').",
+                NumerosisServiceProvider::THEME_ID,
+                $panel->getTheme()->getId(),
+                "Panel [{$panelId}] does not register ->theme(NumerosisServiceProvider::THEME_ID).",
             );
         }
     }
@@ -64,7 +65,7 @@ class PanelThemeTest extends TestCase
             $this->assertStringNotContainsString(
                 '->colors(',
                 $source,
-                basename($path).' still calls ->colors() — that fights FilamentColor::register()\'s memoisation instead of overriding anything now that ->viteTheme() remaps the same vars from tokens.css.',
+                basename($path).' still calls ->colors() — that fights FilamentColor::register()\'s memoisation instead of overriding anything now that ->theme() remaps the same vars from tokens.css.',
             );
         }
     }

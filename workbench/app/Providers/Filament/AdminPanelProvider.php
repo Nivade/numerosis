@@ -22,7 +22,7 @@ use Nvade\Numerosis\Filament\NumerosisAdminPlugin;
  * definition a consumer gets rather than an approximation of it.
  *
  * No `->colors()` call (design-system-unification Phase 4): the plugin's
- * `->viteTheme()` remaps Filament's colour vars from
+ * `->theme()` remaps Filament's colour vars from
  * resources/css/tokens.css, and a `->colors()` call here would fight
  * `FilamentColor::register()`'s per-container memoisation rather than
  * override anything (Phase 1 audit §1.7).

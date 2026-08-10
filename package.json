@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "description": "Maintainer-only build for dist/filament-theme.css (the prebuilt Filament panel theme registered by NumerosisServiceProvider). Not required by consumers — composer packages never run npm.",
+  "scripts": {
+    "build:filament-theme": "tailwindcss -i ./resources/theme-src/filament-theme.css -o ./dist/filament-theme.css --minify"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.17",
+    "tailwindcss": "^4.1.17"
+  }
+}

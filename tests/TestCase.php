@@ -410,7 +410,6 @@ abstract class TestCase extends Orchestra
 
         $entries = [
             'resources/css/app.css',
-            'resources/css/filament-theme.css',
             'resources/js/app.js',
             'resources/js/central.js',
             'resources/js/tenant.js',

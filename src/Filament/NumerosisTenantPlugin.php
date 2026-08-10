@@ -39,6 +39,7 @@ use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
 use Nvade\Numerosis\Http\Middleware\UpdateUserLastSeenMiddleware;
 use Nvade\Numerosis\Livewire\Auth\PasswordlessLogin;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
@@ -59,7 +60,7 @@ use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
  * list while copying it produces a cross-tenant identity leak, not an error.
  *
  * `->colors()` used to stay with the host for branding; it does not anymore
- * (design-system-unification Phase 4) — `->viteTheme()` plus
+ * (design-system-unification Phase 4) — `->theme()` plus
  * {@see AppliesNumerosisPanelTheme} remap
  * Filament's colour vars from resources/css/tokens.css instead, sidestepping
  * `FilamentColor::register()`'s per-container memoisation (Phase 1 audit
@@ -121,7 +122,7 @@ class NumerosisTenantPlugin implements Plugin
 
         $panel
             ->id('tenantAdmin')
-            ->viteTheme('resources/css/filament-theme.css')
+            ->theme(NumerosisServiceProvider::THEME_ID)
             ->tenantDomain(Config::string('numerosis.domains.tenant_pattern'))
             ->tenant(Numerosis::model(Tenant::class), 'id')
             ->path('/')

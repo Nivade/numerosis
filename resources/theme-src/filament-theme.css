@@ -1,28 +1,39 @@
 /**
- * Filament v5's theme entry — registered on both panels via
- * `->viteTheme('resources/css/filament-theme.css')` (Phase 4). Filament's
- * `viteTheme()` replaces the panel's *entire* CSS bundle, so unlike
- * tokens.css this file has to stand alone: Tailwind itself, the whole
- * filament/filament package CSS (every fi-* component, not just
- * filament/support's), then the token bridge.
+ * Build source for `dist/filament-theme.css` — NOT shipped to hosts, NOT
+ * published. Compile with `npm run build:filament-theme` (see package.json)
+ * whenever this file or the `:root` var block below changes; the compiled
+ * output is committed at `dist/filament-theme.css` and registered as a
+ * Filament `Theme` asset in `NumerosisServiceProvider::packageBooted()` —
+ * same mechanism `filament/filament` itself uses for its own default theme
+ * (`FilamentServiceProvider.php`: `Theme::make('app', __DIR__.'/../dist/theme.css')`,
+ * compiled to `vendor/filament/filament/dist/theme.css`). A host does
+ * nothing: no `->viteTheme()`, no vite.config.js entry, no `vendor:publish`
+ * for this file — `php artisan filament:assets` (already required for
+ * Filament itself) copies `dist/filament-theme.css` to
+ * `public/css/nvade/numerosis/numerosis-filament-theme.css` the same way it
+ * copies Filament's own `dist/theme.css`.
  *
- * A thin, published, host-owned entry that imports the real content out of
- * `vendor/nvade/numerosis` — same shape as `app.css`, same reason: the whole
- * `resources/css` directory publishes verbatim into the host
- * (Numerosis::assetSourcePaths()), so a relative `./tokens.css` import would
- * pin a host to whatever tokens shipped on its last `vendor:publish` run
- * instead of following `composer update`.
+ * Traded away to get there: `@source` below scans only this package's own
+ * views (plus Laravel's pagination views, which filament/filament's own
+ * component CSS also assumes), not a host's `resources/**`. A host Blade
+ * view rendered *inside* a panel (a custom Resource page, a custom table
+ * column view, …) that reaches for a Tailwind utility class not already
+ * emitted by Filament's own component CSS or by this package's own views
+ * will render unstyled for that class — Filament's `getTheme()` swaps the
+ * panel's *entire* stylesheet, so nothing else loads alongside this file.
+ * A host that hits this should build a genuinely custom `viteTheme()` of
+ * their own (copy this file as a starting point, add `@source` for their
+ * own resources/**) rather than fight the prebuilt one.
  *
  * `Filament\Support\Facades\FilamentColor`'s `ColorManager::getColors()`
  * memoises for the life of the container and ignores every later
- * `register()` call (Phase 1 audit §1.7) — a per-user, per-request color
- * cannot go through it reliably. This file sidesteps FilamentColor entirely:
- * filament/filament's own CSS already consumes plain custom properties
- * (`--primary-50..950`, `--gray-50..950`, `--danger-*`, `--info-*`,
- * `--success-*`, `--warning-*`, plus the standard Tailwind `--radius-*` /
- * `--font-family` vars — see this same file's `@theme inline` block below),
- * so remapping those directly is enough. No `->colors()` call, no PHP
- * `ColorManager`, on either panel after Phase 4.
+ * `register()` call — a per-user, per-request color cannot go through it
+ * reliably. This file sidesteps FilamentColor entirely: filament/filament's
+ * own CSS already consumes plain custom properties (`--primary-50..950`,
+ * `--gray-50..950`, `--danger-*`, `--info-*`, `--success-*`, `--warning-*`,
+ * plus the standard Tailwind `--radius-*` / `--font-family` vars), so
+ * remapping those directly is enough. No `->colors()` call, no PHP
+ * `ColorManager`, on either panel.
  *
  * Same layering rule as tokens.css: every var below gets a light value on
  * bare `:root`; `.dark` only redefines. `--radius-*` needs no remap here —
@@ -32,35 +43,26 @@
 
 @import 'tailwindcss';
 @import '../../vendor/filament/filament/resources/css/index.css';
-@import '../../vendor/nvade/numerosis/resources/css/tokens.css';
+@import '../css/tokens.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../../vendor/nvade/numerosis/resources/views/filament/**/*.blade.php';
-@source '../../vendor/nvade/numerosis/src/Filament/**/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
+@source '../views/filament/**/*.blade.php';
+@source '../../src/Filament/**/*.php';
 
 /*
  * `!important` on every var below, not decorative. `ColorManager::DEFAULT_COLORS`
  * (primary => Amber, gray => Zinc, danger => Red, ...) is unshifted
  * unconditionally in ColorManager's constructor — dropping `->colors()`
- * (Phase 4) does not disable it. `AssetManager::renderStyles()` therefore
- * always emits its own `<style>:root{--primary-*:...}</style>` block
- * (filament/support/resources/views/assets.blade.php) on every request,
- * independent of this stylesheet. Whichever `:root` block is later in the
- * DOM wins at equal specificity — observed correct (ours last) on
- * `/admin/login`, but nothing pins that order across every panel page/hook,
- * and Filament's checked-checkbox fill and `.fi-color` filled-button
- * background both key off this same --primary-* var, so a flip silently
- * reverts primary to Amber-on-dark, reading as an invisible/low-contrast
- * checkbox or button rather than a visibly-wrong color. `!important` makes
- * this file win unconditionally instead of by injection-order luck.
+ * does not disable it. `AssetManager::renderStyles()` therefore always
+ * emits its own `<style>:root{--primary-*:...}</style>` block
+ * (filament/support/resources/views/assets.blade.php) whenever colors are
+ * registered, independent of this stylesheet. `!important` makes this file
+ * win unconditionally instead of by injection-order luck.
  */
 :root {
-    /* No display face today (Phase 1 audit §1.2) — Filament's own
-     * fallback stack (ui-sans-serif, system-ui, ...) follows automatically,
-     * same as tokens.css's --font-sans. */
+    /* No display face today — Filament's own fallback stack (ui-sans-serif,
+     * system-ui, ...) follows automatically, same as tokens.css's
+     * --font-sans. */
     --font-family: 'Instrument Sans' !important;
 
     /* gray is the canonical zinc ramp — see tokens.css's Tier 1 primitives */
@@ -77,18 +79,10 @@
     --gray-950: var(--zinc-950) !important;
 
     /* primary is the accent ramp — blue-500 at --primary-500, matching
-     * --color-primary above. Each shade's L and C are Tailwind's own blue
-     * values (verified against node_modules/tailwindcss/theme.css), only H
-     * parameterized by tokens.css's --pref-accent-hue — same technique as
-     * --color-primary, so a host's hue override reaches both Filament
-     * panels, not just the main app (the promise Phase 5's install-command
-     * text makes: "CSS cascade applies it everywhere ... both panels").
-     * Tailwind's own blue ramp doesn't hold one hue across every shade
-     * either (it drifts 254.6→267.9deg from --50 to --950); parameterizing
-     * all eleven on one H means a non-500 shade is very slightly off
-     * Tailwind's exact per-shade hue at the default accent — imperceptible
-     * given how low chroma already is at the extreme shades, and the same
-     * tradeoff tokens.css's single --color-primary already accepts. */
+     * --color-primary. Each shade's L and C are Tailwind's own blue values,
+     * only H parameterized by tokens.css's --pref-accent-hue — same
+     * technique as --color-primary, so a host's hue override reaches both
+     * Filament panels, not just the main app. */
     --primary-50: oklch(97% 0.014 var(--pref-accent-hue)) !important;
     --primary-100: oklch(93.2% 0.032 var(--pref-accent-hue)) !important;
     --primary-200: oklch(88.2% 0.059 var(--pref-accent-hue)) !important;
@@ -155,8 +149,7 @@
 /*
  * Nothing to redefine under .dark: every ramp above is a fixed set of
  * shades, not a light/dark pair — Filament picks the shade it wants per
- * component (its own dark-mode CSS already indexes into e.g. --gray-800
- * instead of --gray-200), the same way Tailwind's own `dark:bg-zinc-900`
- * utilities do. Only tokens.css's Tier 3 semantic tokens carry a light and
- * a dark value; this file only ever remaps ramps.
+ * component the same way Tailwind's own `dark:bg-zinc-900` utilities do.
+ * Only tokens.css's Tier 3 semantic tokens carry a light and a dark value;
+ * this file only ever remaps ramps.
  */

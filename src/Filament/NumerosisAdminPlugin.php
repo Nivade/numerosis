@@ -22,6 +22,7 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Nvade\Numerosis\Features\Ui\AdminPanelFeature;
 use Nvade\Numerosis\Filament\Concerns\AppliesNumerosisPanelTheme;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
+use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Support\Features;
 
 /**
@@ -41,7 +42,7 @@ use Nvade\Numerosis\Support\Features;
  * twice, rather than two definitions kept in agreement by hand.
  *
  * `->colors()` used to stay with the host for branding; it does not
- * anymore (design-system-unification Phase 4) — `->viteTheme()` plus
+ * anymore (design-system-unification Phase 4) — `->theme()` plus
  * {@see AppliesNumerosisPanelTheme}
  * remap Filament's colour vars from resources/css/tokens.css instead, so a
  * host `->colors()` call after the plugin would fight
@@ -83,7 +84,7 @@ class NumerosisAdminPlugin implements Plugin
 
         $panel
             ->id('admin')
-            ->viteTheme('resources/css/filament-theme.css')
+            ->theme(NumerosisServiceProvider::THEME_ID)
             ->path('admin')
             // Read from config rather than the literal 'web': the guard name
             // is host-configurable, and `.claude/rules/auth-guards.md` is

@@ -9,9 +9,12 @@ use Nvade\Numerosis\Tests\TestCase;
 /**
  * Guards Phase 2 of .claude/plans/design-system-unification.md: the token
  * layer. These are raw-file assertions, not rendered-view ones — tokens.css
- * and filament-theme.css are never fetched through Blade/Vite in the
- * Workbench harness (see TestCase::stubViteManifest()'s docblock), so the
- * only honest thing to assert against is the CSS source itself.
+ * is never fetched through Blade/Vite in the Workbench harness (see
+ * TestCase::stubViteManifest()'s docblock), and filament-theme.css is a
+ * package-maintainer build source that is never published or fetched by a
+ * host at all (see resources/theme-src/filament-theme.css's own docblock),
+ * so the only honest thing to assert against for either is the CSS source
+ * itself.
  */
 class DesignTokensTest extends TestCase
 {
@@ -22,7 +25,7 @@ class DesignTokensTest extends TestCase
 
     private function filamentThemeCss(): string
     {
-        return (string) file_get_contents(dirname(__DIR__, 3).'/resources/css/filament-theme.css');
+        return (string) file_get_contents(dirname(__DIR__, 3).'/resources/theme-src/filament-theme.css');
     }
 
     private function appCss(): string
@@ -121,11 +124,11 @@ class DesignTokensTest extends TestCase
         $this->assertStringContainsString('--radius-lg: var(--radius-lg);', $themeBlock);
     }
 
-    public function test_filament_theme_css_is_a_standalone_bundle_that_imports_tokens_from_vendor(): void
+    public function test_filament_theme_css_is_a_standalone_bundle_that_imports_tokens_from_the_package(): void
     {
         $css = $this->filamentThemeCss();
 
-        // viteTheme() replaces the panel's *entire* CSS bundle — unlike
+        // ->theme() replaces the panel's *entire* CSS bundle — unlike
         // tokens.css, this file has to stand alone.
         $this->assertStringContainsString("@import 'tailwindcss';", $css);
         $this->assertStringContainsString(
@@ -133,11 +136,12 @@ class DesignTokensTest extends TestCase
             $css,
         );
 
-        // Same drift rule as app.css: the vendor path, not a relative
-        // './tokens.css' that would resolve to the host's own frozen,
-        // published copy once vendor:publish has run.
+        // Unlike app.css (published into a host, so it must import the
+        // vendor copy to follow composer update), this file is compiled
+        // *inside* the package's own repo — a relative import of the
+        // package's own tokens.css is correct here, not a drift risk.
         $this->assertStringContainsString(
-            "@import '../../vendor/nvade/numerosis/resources/css/tokens.css';",
+            "@import '../css/tokens.css';",
             $css,
         );
 
