@@ -145,6 +145,33 @@
     --color-primary-contrast: #fff;
     --color-primary-subtle: color-mix(in oklab, var(--color-primary) 10%, transparent);
 
+    /* The accent *as text on a surface*, which is a different contrast
+     * problem from the accent as a fill: --color-primary is blue-500, and
+     * blue-500 body copy on white clears only ~3.76:1 (see above), so link
+     * text steps down to blue-600's L/C here and up to blue-400's in the
+     * `.dark` block below. Fills keep --color-primary in both modes — white
+     * on blue-500 reads the same over either page background. */
+    --color-primary-text: oklch(54.6% 0.245 var(--pref-accent-hue));
+
+    /* Flux's own accent trio, remapped onto the tokens above.
+     *
+     * Flux ships these as zinc-800 in light and *white* in dark
+     * (vendor/livewire/flux/dist/flux.css), and nothing here used to
+     * override them — so every `flux:button variant="primary"`, `flux:link`
+     * and checked control on a non-Filament page rendered zinc/white while
+     * Filament's own primary, remapped from this same --pref-accent-hue in
+     * theme-src/filament-theme.css, rendered blue. In dark mode that reads
+     * as a white ("light mode") button sitting on a dark page, which is the
+     * report this mapping fixes; the light/dark split was only the most
+     * visible half of a palette that disagreed with itself in both modes.
+     *
+     * No `!important` needed: Flux declares its defaults inside
+     * `@layer theme` while this file is unlayered, and unlayered
+     * declarations outrank every cascade layer regardless of load order. */
+    --color-accent: var(--color-primary);
+    --color-accent-content: var(--color-primary-text);
+    --color-accent-foreground: var(--color-primary-contrast);
+
     /* Semantic — bg/border/text/icon, alert's tint depth throughout */
     --color-success-bg: var(--success-50);
     --color-success-border: var(--success-200);
@@ -253,6 +280,15 @@
     --color-text-muted: var(--zinc-300);
     --color-text-subtle: var(--zinc-400);
     --color-text-inverted: var(--zinc-900);
+
+    /* Only the text variant moves: blue-600 on --color-surface (zinc-900) is
+     * unreadable, blue-400 is not. --color-primary itself deliberately does
+     * NOT flip — Flux's default flips its accent to white in dark mode, and
+     * that flip is exactly what made primary buttons look light-mode on a
+     * dark page. Everything mapped onto --color-primary above inherits this
+     * decision, so there is one accent colour across both modes and both
+     * Filament panels. */
+    --color-primary-text: oklch(70.7% 0.165 var(--pref-accent-hue));
 
     --color-border: color-mix(in oklab, white 10%, transparent); /* dark:border-white/10 */
     --color-border-strong: color-mix(in oklab, white 20%, transparent);
