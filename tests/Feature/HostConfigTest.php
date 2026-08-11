@@ -10,7 +10,6 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
-use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Nvade\Numerosis\Support\HostConfig;
@@ -23,13 +22,13 @@ use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
 use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
 
 /**
- * `HostConfig::apply()` runs first thing in
- * `NumerosisServiceProvider::packageRegistered()` — see its own docblock.
- * `TestCase::getEnvironmentSetUp()` already sets every key it normalizes
- * explicitly (it stands in for a real host, same reasoning as
+ * `HostConfig::apply()` runs from a `booting()` callback registered first
+ * thing in `NumerosisServiceProvider::packageRegistered()` — see its own
+ * docblock. `TestCase::getEnvironmentSetUp()` already sets every key it
+ * normalizes explicitly (it stands in for a real host, same reasoning as
  * `NumerosisServiceProviderDefaultsTest`), so none of this fires in the rest
  * of the suite. Each test below resets one key to "unset" or "stale
- * upstream default" and re-runs `packageRegistered()` directly to prove the
+ * upstream default" and calls `HostConfig::apply()` directly to prove the
  * normalization actually fires, plus a paired test proving a host's own
  * value survives untouched.
  */
@@ -79,6 +78,21 @@ class HostConfigTest extends TestCase
         $this->rebootPackage();
 
         $this->assertSame(['custom.test'], Config::get('tenancy.central_domains'));
+    }
+
+    /**
+     * Stancl's own stock default is `['127.0.0.1', 'localhost']`, not `[]` —
+     * found by `tests/Feature/FreshHostTest.php`, which is the first test in
+     * this suite that never overrides `tenancy.central_domains` itself and
+     * so is the first to actually reach this branch of `apply()`.
+     */
+    public function test_it_defaults_central_domains_when_still_stancls_stock_value(): void
+    {
+        Config::set('tenancy.central_domains', ['127.0.0.1', 'localhost']);
+
+        $this->rebootPackage();
+
+        $this->assertSame([Config::string('numerosis.domains.central')], Config::get('tenancy.central_domains'));
     }
 
     public function test_it_appends_missing_tenancy_bootstrappers(): void
@@ -400,12 +414,45 @@ class HostConfigTest extends TestCase
         $this->assertSame([], HostConfig::applied());
     }
 
+    /**
+     * spatie/laravel-activitylog's own stock config (the version this
+     * package requires) defines no `table_name` key at all — found by
+     * `tests/Feature/FreshHostTest.php`, the first test in this suite that
+     * doesn't hand-set `activitylog.table_name` (`Tests\TestCase` does, and
+     * so does thin-app's stale published `config/activitylog.php`). Left
+     * unset, `database/migrations/central/*_create_activity_log_table.php`
+     * dies with `Incorrect table name ''` — a null config value
+     * interpolates to an empty string in the generated SQL.
+     */
+    public function test_it_defaults_the_activity_log_table_name_when_unset(): void
+    {
+        Config::set('activitylog.table_name');
+
+        $this->rebootPackage();
+
+        $this->assertSame('activity_log', Config::get('activitylog.table_name'));
+    }
+
+    public function test_it_does_not_override_a_hosts_activity_log_table_name(): void
+    {
+        Config::set('activitylog.table_name', 'custom_activity_log');
+
+        $this->rebootPackage();
+
+        $this->assertSame('custom_activity_log', Config::get('activitylog.table_name'));
+    }
+
+    /**
+     * `HostConfig::apply()` no longer runs inline from `packageRegistered()`
+     * — it's deferred to a `booting()` callback (see that method's own
+     * docblock for why: `Stancl\Tenancy\TenancyServiceProvider::register()`
+     * frequently hasn't run yet at `packageRegistered()` time, which used to
+     * corrupt `tenancy.database`/`tenancy.filesystem`). Calling it directly
+     * here is what actually re-runs the normalization this file tests;
+     * calling `packageRegistered()` itself would no longer touch it at all.
+     */
     private function rebootPackage(): void
     {
-        $provider = $this->app?->getProvider(NumerosisServiceProvider::class);
-
-        $this->assertInstanceOf(NumerosisServiceProvider::class, $provider);
-
-        $provider->packageRegistered();
+        HostConfig::apply();
     }
 }

@@ -25,15 +25,30 @@ use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
  * stancl's merged `tenancy.php`) always resolve to *something*, so a host
  * that changed nothing still reads as "set."
  *
- * Called first thing from `NumerosisServiceProvider::packageRegistered()` —
- * same phase as the Livewire/filesystem defaults that method already sets,
- * for the same reason: some of what those entries touch (Livewire's own
- * config) is read eagerly during `boot()`, so anything later than
- * `register()` is too late for every provider regardless of discovery
- * order. `config('numerosis.*')` is already merged with any host override
- * by the time this runs — `PackageServiceProvider::register()` calls
- * `registerPackageConfigs()` before `packageRegistered()` — so entries here
- * may read it directly.
+ * Called from a `booting()` callback registered first thing in
+ * `NumerosisServiceProvider::packageRegistered()` — **not** inline during
+ * `register()` the way the three Livewire/filesystem defaults in that same
+ * method are (those touch Livewire's own config, which
+ * `LivewireServiceProvider::boot()` reads eagerly, so they must land before
+ * *any* provider's `boot()` runs, `register()` is the only phase early
+ * enough for that regardless of discovery order). This class does not have
+ * that constraint, and running during `register()` used to be actively
+ * wrong for it: `Stancl\Tenancy\TenancyServiceProvider::register()`'s own
+ * `mergeConfigFrom('tenancy')` frequently hadn't run yet (provider
+ * registration order across auto-discovered packages isn't this package's
+ * to control), so a dotted `Config::set('tenancy.database.central_connection',
+ * …)` landing on a `tenancy.database` that wasn't an array yet made
+ * `Arr::set()` replace it wholesale — discarding `prefix`/`suffix`/
+ * `managers` the moment stancl's later merge saw an *existing* `database`
+ * key and kept it instead of its own richer stock array. `booting()`
+ * callbacks run once every provider has finished `register()` (stancl's
+ * included) and before any provider's `boot()` starts, which is early
+ * enough for everything below and immune to that race. `config('numerosis.*')`
+ * is already merged with any host override by the time this runs either
+ * way — `PackageServiceProvider::register()` calls `registerPackageConfigs()`
+ * before `packageRegistered()`, and `packageRegistered()` itself completes,
+ * booting callbacks included, before `packageBooted()` — so entries here may
+ * read it directly regardless.
  *
  * Every private method below follows one rule: set the key only when
  * changing it would actually change something, and record every key it
@@ -67,6 +82,7 @@ final class HostConfig
         self::tenantAuthProvider();
         self::centralAuthProviderModel();
         self::authPasswordBroker();
+        self::activityLogTable();
         self::numerosisConfig();
     }
 
@@ -121,12 +137,25 @@ final class HostConfig
      * at all. `numerosis.domains.central` is already this same value
      * (derived from `APP_URL`, overridable via `NUMEROSIS_CENTRAL_DOMAIN`),
      * so this reuses it rather than re-deriving it a second way.
+     *
+     * Stancl's own stock default is **not** an empty array — it's
+     * `['127.0.0.1', 'localhost']` — so a bare `$domains !== []` guard treats
+     * an untouched host as "already configured" and never applies this at
+     * all. `tests/Feature/FreshHostTest.php` caught this: `/login` matched a
+     * route domain-scoped to `127.0.0.1`/`localhost` instead of the real
+     * `APP_URL`-derived host, on every fresh host, silently, since every
+     * other test in this suite (and thin-app's published `config/
+     * tenancy.php`) always overrides this key explicitly and never exercised
+     * the stock default. Checked the same way `tenancyModels()` above checks
+     * its own stancl stock values.
      */
     private static function centralDomains(): void
     {
+        /** @var list<string> $stock */
+        $stock = ['127.0.0.1', 'localhost'];
         $domains = Config::array('tenancy.central_domains', []);
 
-        if ($domains !== []) {
+        if ($domains !== [] && $domains !== $stock) {
             return;
         }
 
@@ -455,6 +484,37 @@ final class HostConfig
             'expire' => 60,
             'throttle' => 60,
         ]);
+    }
+
+    /**
+     * `database/migrations/{central,tenant}/*_activity_log_table.php` (four
+     * files, both directories — this package's own copies of spatie/
+     * laravel-activitylog's migrations, kept in-package rather than
+     * discovered from the vendor package so the tenant copy can exist at
+     * all) all read `config('activitylog.table_name')` directly, with no
+     * fallback. That was safe only against an older spatie/laravel-
+     * activitylog whose own stock config defined it; the version this
+     * package requires does not — its `config/activitylog.php` has no
+     * `table_name` key at all, so an otherwise-untouched host resolves
+     * `null` and the migration dies with `Incorrect table name ''` (a null
+     * table name interpolates to an empty string in the generated SQL,
+     * which reads like a corrupt migration rather than a missing config
+     * key). Discovered by `tests/Feature/FreshHostTest.php`, which is the
+     * first test in this suite that does not hand-set `activitylog.*`
+     * config the way `Tests\TestCase` and thin-app's stale published
+     * `config/activitylog.php` both happen to.
+     *
+     * `activitylog.database_connection` needs no equivalent default:
+     * `Schema::connection(null)` already resolves to the default
+     * connection, which is the same behaviour a set-but-empty value would
+     * produce, so leaving it `null` is not a bug the way an empty table
+     * name is.
+     */
+    private static function activityLogTable(): void
+    {
+        if (Config::get('activitylog.table_name') === null) {
+            self::set('activitylog.table_name', 'activity_log');
+        }
     }
 
     /**

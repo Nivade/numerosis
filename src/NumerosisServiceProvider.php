@@ -130,10 +130,41 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // boot's config.
         Numerosis::resetModelCache();
 
-        // Must run before anything below reads the config it normalizes —
-        // see HostConfig's own docblock for why this phase and not
-        // packageBooted().
-        HostConfig::apply();
+        // Deferred to a booting() callback — registered here, first, so it
+        // runs before registerFilamentPanels()'s own booting() callback
+        // below (Laravel fires them in registration order). NOT called
+        // inline here in packageRegistered(), despite HostConfig's own
+        // docblock still describing that as the plan: this package's own
+        // register() frequently runs *before* Stancl\Tenancy\
+        // TenancyServiceProvider::register() (auto-discovered providers
+        // load in an order this package doesn't control — empirically,
+        // "Nvade\Numerosis" sorts before "Stancl\Tenancy" and that's enough
+        // to decide it), which means stancl's own mergeConfigFrom('tenancy')
+        // hasn't populated tenancy.database/tenancy.filesystem yet. A
+        // dotted Config::set('tenancy.database.central_connection', …)
+        // reaching a 'tenancy.database' that isn't an array yet makes
+        // Arr::set() replace it wholesale with ['central_connection' =>
+        // …] — and once stancl's later mergeConfigFrom() top-level
+        // array_merge() sees an *existing* 'database' key, it keeps that
+        // truncated value instead of its own rich stock array, discarding
+        // 'prefix'/'suffix'/'managers' permanently. Surfaced as
+        // `Configuration value for key [tenancy.database.prefix] must be a
+        // string, NULL given` from InteractsWithTenantModules, on thin-app,
+        // on every tenant-subdomain request that resolves Filament panel
+        // plugins before tenancy bootstraps — found by hand-testing a
+        // tenant subdomain (better-dx.md's Verification step 5), not by
+        // this suite, because `Tests\TestCase` always hand-sets every
+        // `tenancy.database.*` key itself and never exercises the merge
+        // race. `booting()` callbacks run once every provider's register()
+        // has completed (stancl's included) and before any provider's
+        // boot() runs, which is early enough for everything HostConfig
+        // normalizes — nothing between here and the end of this method, and
+        // nothing in TenancyServiceProvider::register()/
+        // BillingServiceProvider::register() below, reads config HostConfig
+        // is responsible for.
+        $this->app->booting(function (): void {
+            HostConfig::apply();
+        });
 
         // Registering these two here, rather than hardcoding them into
         // composer.json's extra.laravel.providers list alongside this class,

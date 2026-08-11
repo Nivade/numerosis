@@ -15,7 +15,7 @@ One line per file, under ~150 chars. Update index when rules file add/rename/rem
 - [exception-handling.md](exception-handling.md) — DomainException/ShowsMessageToUser split; TagsSentryScopeWithTenant fix tenant-less job-failure reports; failed_jobs trap.
 - [filament-tenancy.md](filament-tenancy.md) — Filament tenancy + stancl's share no state; `{tenant}` route param null in tests, not routing bug.
 - [module-marketplace.md](module-marketplace.md) — stale module registry on long-running queue workers; `$tenant->run()` no try/finally, manage tenancy manually for webhook-triggered code.
-- [package-host-bootstrap.md](package-host-bootstrap.md) — `Domains.php` can't call facades; host `bootstrap/app.php`/`providers.php` staleness after package-extraction moves.
+- [package-host-bootstrap.md](package-host-bootstrap.md) — `Domains.php` can't call facades; host `bootstrap/app.php`/`providers.php` staleness; `HostConfig::apply()` register-vs-booting race truncating `tenancy.database`.
 - [static-analysis.md](static-analysis.md) — PHPStan level 9 over app/ + tests/; run red on master, baseline own errors before trust them.
 - [tenant-caching.md](tenant-caching.md) — `global_cache()` un-prefixed; cross-tenant leaks of cached tenant models + shared session guard keys.
 - [tenant-provisioning.md](tenant-provisioning.md) — races between sync checkout redirect + async Stripe webhook; idempotency requirements; JobPipeline vs AsAction calling-convention conflict.

@@ -114,3 +114,69 @@ staleness" failure mode and worth the same caution.
   `Numerosis::configure()` is the easy way to satisfy it — it makes omitting
   either call a silent no-op instead of a 404/500 crash-loop, which is the
   actual failure this whole bullet exists to prevent recurring.
+
+- **`HostConfig::apply()` ran during `packageRegistered()` (this package's
+  own `register()` phase) until 2026-08-11, and that was silently wrong for
+  any key it writes into a namespace another package's `mergeConfigFrom()`
+  also populates.** Provider `register()` order across auto-discovered
+  packages isn't this package's to control — empirically,
+  `Nvade\Numerosis\NumerosisServiceProvider::register()` runs *before*
+  `Stancl\Tenancy\TenancyServiceProvider::register()` (alphabetical-ish
+  discovery order: "Nvade" sorts before "Stancl"). `HostConfig::
+  tenancyCentralConnection()`'s `Config::set('tenancy.database.
+  central_connection', 'central')` therefore ran while `tenancy.database`
+  wasn't an array yet (stancl's own `mergeConfigFrom('tenancy')` hadn't run)
+  — Laravel's `Arr::set()` responds to a non-array intermediate segment by
+  replacing it wholesale, so `tenancy.database` became just
+  `{central_connection: 'central'}`. When stancl's provider registered
+  *later* and ran its own `mergeConfigFrom`, that call's `array_merge(stock,
+  existing)` saw an *existing* `database` key (however truncated) and kept
+  it outright — `array_merge()` is one level deep, so a partial existing
+  value beats a complete stock one, permanently discarding `prefix`/
+  `suffix`/`managers`. Same trap hit `tenancy.filesystem.disks`/
+  `tenancy.filesystem.root_override.local` — every `HostConfig` entry
+  writing more than one segment below a key another package's
+  `mergeConfigFrom()` still needs to touch. Surfaced as `Configuration value
+  for key [tenancy.database.prefix] must be a string, NULL given` from
+  `InteractsWithTenantModules::getEnabledModuleNames()`, and **only ever on
+  a tenant-subdomain request** — the tenant Filament panel's plugin closure
+  is what reads that key, and it's only evaluated when that specific panel
+  resolves, never for a central request. Every central smoke check (`/`,
+  `/login`, `/admin`) stayed green throughout; only hitting a real tenant
+  subdomain by hand (`.claude/plans/better-dx.md`'s Verification step 5)
+  caught it, and `tests/Feature/FreshHostTest.php` (step 1, same session)
+  couldn't have either — that harness never provisions a real tenant
+  through the actual pipeline against a config a *second* package still
+  needs to merge into, since Testbench's own provider discovery order
+  happens to differ from a real Composer install's. **Fixed by moving
+  `HostConfig::apply()` into a `booting()` callback**, registered first
+  thing in `packageRegistered()` (before `registerFilamentPanels()`'s own
+  `booting()` callback, so it still runs first) — `booting()` callbacks fire
+  once every provider's `register()` has completed, including stancl's, and
+  before any provider's `boot()` starts, which turns out to be early enough
+  for everything `HostConfig` normalizes. `HostConfigTest`'s `rebootPackage()`
+  now calls `HostConfig::apply()` directly rather than `packageRegistered()`
+  (which no longer touches it at all) — a reminder that **this exact
+  register-vs-booting distinction is why `NumerosisServiceProviderDefaultsTest`
+  and `HostConfigTest` can no longer share one `rebootPackage()` implementation**,
+  since the former still tests things that *do* run inline in `packageRegistered()`
+  (the three Livewire/filesystem defaults, the seeder binding).
+
+  ## Suggested better approach
+
+  Any *future* `HostConfig` entry that writes a key three or more segments
+  deep, under a top-level namespace this package doesn't itself own
+  (`tenancy.*`, `auth.*` — as opposed to `numerosis.*`, which this package's
+  own `mergeConfigFrom` populates before `packageRegistered()` ever runs),
+  should be treated as suspect by default and checked against this bullet —
+  not assumed safe because `HostConfig::apply()` now runs from `booting()`.
+  `booting()` is early enough for stancl specifically because stancl is a
+  normal auto-discovered package with nothing unusual about its own
+  registration; a *third* package with an even later or conditional
+  `register()` (deferred providers, in particular) could reopen the same
+  race one phase later. The structurally sound fix — read-modify-write the
+  whole parent array via `Config::array($parent, [])` plus one write of the
+  merged result, rather than a multi-segment dotted `Config::set()` — avoids
+  the `Arr::set()` auto-vivification hazard entirely regardless of phase,
+  and is worth doing the next time this file is touched, rather than relying
+  on phase ordering to keep saving it.

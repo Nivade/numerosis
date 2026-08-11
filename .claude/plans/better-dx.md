@@ -805,3 +805,78 @@ free.
    URLs from step 5 turns every future re-introduced requirement into a red
    build instead of a discovery. Worth pulling forward into this work rather
    than leaving it in that plan.
+
+### Steps 1, 5, 7 executed — 2026-08-11, second session
+
+Not a dry run: this pass found and fixed **three real, previously-unnoticed
+`HostConfig` bugs**, none of them hypothetical — every one of the 543
+baseline tests was green throughout because every existing test hand-sets
+the exact config key each bug corrupts (`Tests\TestCase` or thin-app's
+published files). Fixed in numerosis; verified live against thin-app
+(working tree, not committed — same "review the diff, decide what to
+commit" state the Status line above already flags).
+
+1. **`tests/Feature/FreshHostTest.php` — done, 5 tests, all green.** Extends
+   `Orchestra\Testbench\TestCase` directly, not `Tests\TestCase` — the whole
+   point is a harness that supplies *only* the six documented obligations
+   (`APP_URL`/`DB_*`/`STRIPE_*` via real `putenv()` before `parent::setUp()`,
+   not `Config::set()` in `getEnvironmentSetUp()` — see `testing.md`'s
+   register-before-`getEnvironmentSetUp()` section for why that distinction
+   is load-bearing here) and lets `HostConfig` do everything else. Own
+   dedicated MySQL database (`testing_fresh_host`), not the suite's shared
+   `testing`. Found, immediately:
+   - `HostConfig::centralDomains()` treated `[]` as the only "unset" state —
+     stancl's own stock default is `['127.0.0.1', 'localhost']`, non-empty,
+     so an untouched host's `/login` route bound to the wrong domain and a
+     request to the real host silently fell through to the tenant panel's
+     domain-unscoped login route, which then threw
+     `TenantCouldNotBeIdentifiedOnDomainException`. Fixed: check against
+     that stock value too, same pattern `tenancyModels()` already used.
+   - `activitylog.table_name`/`database_connection` have no default in the
+     spatie/laravel-activitylog version this package requires (the stock
+     config file dropped them) — every `*_activity_log_table.php` migration,
+     central and tenant, reads them with no fallback, so a completely
+     untouched host's `migrate` died with `Incorrect table name ''`. Fixed:
+     `HostConfig::activityLogTable()` defaults `table_name` to
+     `'activity_log'`.
+   Both are new `HostConfig`/`HostConfigTest` entries and a `docs/
+   host-requirements.md` row; see the git diff for exact hunks. Full suite
+   after both fixes: 550 passed (543 baseline + 7 new: 5 FreshHostTest + 2
+   HostConfigTest), same 1 known failure, same 7 skipped; PHPStan 10 errors,
+   0 new; Pint clean.
+2. **thin-app, by hand — done, found a third bug, more severe than the
+   first two.** `numerosis:install --verify-only` reported clean (as
+   expected — thin-app's published config overrides both keys the two bugs
+   above touch, so it was never going to catch them). `/`, `/login`,
+   `/admin` all matched the Phase 2/6 baseline. Provisioning a **real**
+   tenant through `StartLocalCheckout` (the actual production code path,
+   real queue workers, not `CloneTenantSchema`) and requesting its
+   subdomain surfaced `Configuration value for key [tenancy.database.prefix]
+   must be a string, NULL given` — a 500 on literally every tenant-subdomain
+   request, central pages entirely unaffected. Root cause and fix: see
+   `.claude/rules/package-host-bootstrap.md`'s new `HostConfig::apply()`
+   register-vs-booting bullet — moved the call from inline in
+   `packageRegistered()` to a `booting()` callback, which fixes it
+   structurally rather than papering over the one symptom. Re-verified after
+   the fix: real tenant provisioned end to end, subdomain `/` → 302, `/login`
+   → 200, Livewire's upload disk confirmed *not* tenant-suffixed inside that
+   tenant's context, prebuilt `numerosis.js`/`numerosis.css` (Stripe checkout
+   JS included) both 200. Test tenants deleted afterward; thin-app's DB back
+   to 0 tenants, matching the state before this session started.
+3. **`thin-app/.github/workflows/smoke-test.yml` — done, new file.** No
+   Pest/PHPUnit migration (that's `post-extraction-review.md` Phase 5,
+   larger scope, not attempted here) — a real-boot job instead: MySQL +
+   Redis services, `numerosis:install` (configures + seeds + verifies),
+   `php artisan serve`, then exactly the checks from step 5 above, including
+   provisioning a real tenant (`StartLocalCheckout` via a heredoc'd tinker
+   script — `QUEUE_CONNECTION=sync` so no separate worker is needed in CI)
+   and hitting its subdomain via `curl -H 'Host: cismoke.127.0.0.1'`
+   (`APP_URL=http://127.0.0.1:8000` in CI, so no real DNS is needed either).
+   Every script block extracted from the YAML and run for real against the
+   live thin-app Sail container before being trusted (`bash -n` on all 15
+   `run:` blocks too) — this is what caught and fixed a heredoc-indentation
+   concern before it could rot in CI silently. **Not yet exercised by an
+   actual GitHub Actions run**: thin-app has no `git remote` configured in
+   this environment, so the workflow is unpushed and unrun; every step's
+   logic is verified by hand instead, against the identical commands the
+   YAML issues.
