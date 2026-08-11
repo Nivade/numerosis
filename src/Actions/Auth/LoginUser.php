@@ -57,15 +57,12 @@ class LoginUser
     }
 
     /**
-     * The guard being logged into decides which model to resolve — never the
-     * ambient `tenancy()->initialized` state. The second `loginToGuard()` call
-     * in `handle()` runs while tenant context is still active, so defaulting
-     * to ambient context here re-resolved a second `Tenant\User` and logged it
-     * into the *central* guard: `EloquentUserProvider::updateRememberToken()` then
-     * saved that tenant model through the central guard's machinery, and the
-     * queued `SyncedResourceSaved` listener threw `ModelNotSyncMasterException`
-     * (a `Tenant\User` is never a `SyncMaster`) — see
-     * .claude/rules/auth-guards.md.
+     * Resolves the user model for a guard.
+     *
+     * The guard decides which model, never the ambient tenancy state: logging
+     * into the central guard happens while tenant context is still active,
+     * and resolving by context there would hand a tenant model to the central
+     * guard.
      */
     protected function userResolver(string $global_id, Context $context): User
     {

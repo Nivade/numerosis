@@ -14,9 +14,10 @@ use RuntimeException;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 
 /**
- * Repointed at `tenants:rollback-module` — `module:migrate-rollback` does not
- * exist in internachi/modular v3, the same class of bug MigrateModules had.
- * See .claude/plans/module-marketplace.md.
+ * Rolls back a module's tenant migrations, dropping its tables.
+ *
+ * Destructive, and deliberately not called by module cancellation — removing
+ * a tenant's data is a separate decision.
  */
 class RollbackModules implements ShouldQueue
 {

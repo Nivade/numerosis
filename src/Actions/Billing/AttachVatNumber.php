@@ -10,7 +10,7 @@ use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
 use Stripe\Exception\ApiErrorException;
 
 /**
- * See .claude/rules/billing-checkout.md.
+ * Attaches a tax id to a Stripe customer, replacing any it already carries.
  *
  * @method static void run(string $stripeId, string $taxIdType, string $vatNumber)
  */

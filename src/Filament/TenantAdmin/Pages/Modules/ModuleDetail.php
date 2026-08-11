@@ -24,12 +24,11 @@ use Nvade\Numerosis\Support\Numerosis;
 use Override;
 
 /**
- * Product page for a single module, reached by clicking a card on
- * Marketplace. Not a navigation item — see .claude/rules/module-marketplace.md
- * for why the catalog is intersected with installed-on-this-node modules;
- * the same intersection gates this page (404, not a blank purchase screen)
- * so a slug that exists in ModuleCatalog but isn't installed here can't be
- * linked to.
+ * Product page for a single module, reached from the marketplace rather than
+ * from navigation.
+ *
+ * A module in the catalogue but not installed on this node 404s here, rather
+ * than offering a purchase that could not be fulfilled.
  */
 class ModuleDetail extends Page implements HasActions
 {

@@ -8,11 +8,11 @@ use Stripe\ApiRequestor;
 use Stripe\HttpClient\CurlClient;
 
 /**
- * Per D9 (.claude/plans/package-extraction.md): deterministic, offline
- * Stripe for tests, instead of a real key hitting the live API. Stripe's
- * SDK does its own HTTP under `\Stripe\ApiRequestor`, not through
- * `Illuminate\Http\Client` — `Http::fake()` never sees these calls, which
- * is why this swaps the SDK's client directly instead.
+ * Makes Stripe deterministic and offline in tests.
+ *
+ * `Http::fake()` cannot do this: Stripe's SDK does its own HTTP and never
+ * passes through Laravel's HTTP client, so this replaces the SDK's client
+ * instead, and restores it afterwards.
  */
 trait FakesStripe
 {

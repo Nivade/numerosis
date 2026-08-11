@@ -12,20 +12,12 @@ use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Notifications\Auth\VerifyEmail;
 
 /**
- * Moved here verbatim from AppServiceProvider::boot() — registered
- * unconditionally in config('numerosis.features'), gating no routes.
+ * Builds the tenant-aware email-verification URL.
  *
- * This is deliberately NOT a real on/off switch. Nvade\Numerosis\Models\User (the shared
- * abstract base for both CentralUser and Tenant\User) implements
- * MustVerifyEmail unconditionally, so the interface demands a working
- * verification route regardless of this class's presence — removing it here
- * would leave VerifyEmail::createUrlUsing() unset while Laravel still tries
- * to build a signed verification URL, throwing rather than degrading.
- * Gating verification.verify/verification.notice properly means deciding
- * what a verification-free deployment *is* (drop MustVerifyEmail per-model,
- * or gate only the notification send, or leave it out of the feature system
- * entirely) — a product decision, not a mechanical toggle. See Phase 5.1 in
- * .claude/plans/opt-in-feature-classes.md.
+ * Not a toggle, despite its place in `numerosis.features`: the package's
+ * user models implement `MustVerifyEmail` unconditionally, so removing this
+ * leaves Laravel building a verification URL with nothing to build it from.
+ * Suppress the verification email itself if you do not want one.
  */
 class EmailVerificationFeature implements NamedFeature
 {

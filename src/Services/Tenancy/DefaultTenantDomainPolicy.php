@@ -11,11 +11,12 @@ use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Support\Numerosis;
 
 /**
- * Checks format, reserved words, and whether the domain already belongs to a
- * live tenant. Deliberately does not check pending_tenant_provisions: that
- * table's "already claimed by someone else" rule has same-user-retry
- * idempotency semantics (see ReserveTenantDomain and
- * .claude/rules/tenant-provisioning.md) that must not be duplicated here.
+ * Checks a requested domain's format, reserved words, and whether a live
+ * tenant already holds it.
+ *
+ * Does not consider domains merely reserved during checkout — that rule has
+ * to let the same user retry their own reservation, and lives with the
+ * reservation itself.
  */
 class DefaultTenantDomainPolicy implements TenantDomainPolicy
 {

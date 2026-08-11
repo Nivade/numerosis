@@ -30,15 +30,11 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Command-center detail page for one Subscription. The list/edit pair this
- * resource shipped with could show or blindly overwrite `stripe_status`, but
- * never the thing an administrator actually needs when they open one record:
- * what is this tenant paying, is Stripe's own ledger in sync with the local
- * row, and can I act on it (cancel/resume/swap) without hand-typing a status
- * string. Stripe calls here are best-effort — a Stripe outage must not 500
- * this page, only degrade the "live" panels — matching the
- * try/catch-and-report pattern .claude/rules/exception-handling.md documents
- * for the same `Cashier::stripe()` surface elsewhere in this codebase.
+ * Detail page for one subscription: what the tenant pays, whether Stripe and
+ * the local row agree, and the actions to cancel, resume or swap it.
+ *
+ * Stripe calls here are best-effort — an outage degrades the live panels
+ * rather than failing the page.
  */
 class ViewSubscription extends ViewRecord
 {
@@ -299,13 +295,10 @@ class ViewSubscription extends ViewRecord
     }
 
     /**
-     * Drift correction: re-reads the subscription straight from Stripe and
-     * overwrites the local `stripe_status`/`stripe_price`/`ends_at` — the
-     * same fields the resource's own Edit form lets an operator hand-type,
-     * except this reads the actual source of truth instead of asking someone
-     * to already know it. Webhooks keep this in sync automatically in the
-     * common case; this exists for the drift that inspired the Edit form's
-     * own warning copy in the first place.
+     * Overwrites the local status, price and end date with Stripe's own.
+     *
+     * Webhooks keep these in sync in the ordinary case; this is the manual
+     * repair for when they have drifted.
      */
     private function syncFromStripe(Subscription $record): void
     {

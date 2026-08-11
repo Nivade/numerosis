@@ -32,11 +32,9 @@ class Plan extends StepComponent
     public bool $wizardCompleted = false;
 
     /**
-     * Expected, user-facing checkout refusals (quota reached, domain taken,
-     * plan retired). Kept separate from flux:error for the same reason
-     * Nvade\Numerosis\Livewire\Billing\Checkout keeps $paymentError separate — a rejection
-     * is not the form complaining about a field, and pointing it at one would
-     * be a lie.
+     * Expected checkout refusals shown to the user: quota reached, domain
+     * taken, plan retired. Held apart from field validation, because a
+     * refusal is not the form complaining about an input.
      */
     public ?string $checkoutError = null;
 
@@ -85,12 +83,8 @@ class Plan extends StepComponent
         $companyName = $this->state()->get('company_name');
         $domain = $this->state()->get('domain');
 
-        /**
-         * TenantRegistrationData requires both of these. Redirecting without them makes
-         * the checkout route throw a ValidationException, which sends the user
-         * back to the wizard with no visible error — an apparently dead button.
-         * Send them to the step that is actually missing instead.
-         */
+        // Both are required to start a checkout. Send the user to whichever
+        // step is missing, rather than to a validation error they cannot see.
         if (blank($companyName)) {
             $this->showStep('company-info');
 
@@ -111,12 +105,9 @@ class Plan extends StepComponent
             ? $this->billingCycle
             : BillingCycle::from($this->billingCycle);
 
-        // TooManyUnpaidTenants, DomainAlreadyClaimed, PaymentPlanNotFound and
-        // StripePriceNotConfigured are all DomainExceptions — expected
-        // refusals whose messages are written as customer copy. Uncaught,
-        // Livewire renders them as a 500 and the user sees a dead button
-        // instead of the reason. Typed to ShowsMessageToUser, never Throwable,
-        // per .claude/rules/exception-handling.md.
+        // Checkout refusals carry customer-facing copy; uncaught, Livewire
+        // renders a dead button instead of the reason. Typed to
+        // ShowsMessageToUser, never Throwable, so nothing unexpected leaks.
         try {
             $intent = StartSubscriptionCheckout::run(new TenantRegistrationData(
                 company_name: (string) $companyName,
@@ -150,9 +141,6 @@ class Plan extends StepComponent
     public function check(): void {}
 
     /**
-     * Get all active payment plans from database.
-     */
-    /**
      * @return Collection<int, PaymentPlan>
      */
     public function getPaymentPlans(): Collection
@@ -163,8 +151,6 @@ class Plan extends StepComponent
     }
 
     /**
-     * Render the Livewire plan view with active payment plans.
-     *
      * @return View
      */
     public function render()

@@ -23,14 +23,7 @@ class PaymentPlansTable
     {
         return $table
             ->columns([
-                // The most-subscribed plan is the one number on this page
-                // that says "this is the tier actually carrying the
-                // business" — a real pricing-page convention (emphasize the
-                // popular tier) applied to data this table already computed
-                // but never showed: every card rendered identically
-                // regardless of which one was popular. The ribbon + ring are
-                // the one accent this grid spends; everything else stays
-                // quiet on purpose.
+                // The most-subscribed plan is the only card given an accent.
                 Stack::make([
                     TextColumn::make('is_popular_ribbon')
                         ->getStateUsing(fn (PaymentPlan $record): ?string => $record->popular() ? 'Most subscribed' : null)
@@ -72,10 +65,7 @@ class PaymentPlansTable
                             ->icon('heroicon-m-clock')
                             ->color('gray')
                             ->size(TextSize::Small),
-                        // Card grid gave no way to see who's actually on a
-                        // plan without opening Subscriptions and filtering
-                        // by hand — this is that count, computed once per
-                        // row, not per feature.
+                        // Counted once per row rather than per feature.
                         TextColumn::make('active_subscriptions_count')
                             ->counts(['subscriptions as active_subscriptions_count' => fn ($query) => $query->where('stripe_status', 'active')])
                             ->formatStateUsing(fn ($state) => $state.' active '.Str::plural('subscriber', (int) $state))
@@ -84,12 +74,6 @@ class PaymentPlansTable
                             ->size(TextSize::Small),
                     ]),
 
-                    // The price is the single most important number on a
-                    // pricing card; it previously matched the description
-                    // and feature-count text in visual weight once you
-                    // accounted for the (wrongly-sized) title above it. Bumped
-                    // to genuinely dominate the card, the way a price does on
-                    // every real pricing page this pattern is borrowed from.
                     Stack::make([
                         TextColumn::make('monthly_price')
                             ->money(divideBy: 100)
@@ -126,13 +110,8 @@ class PaymentPlansTable
             ->emptyStateHeading('No payment plans yet')
             ->emptyStateDescription('Plans are what tenants subscribe to — create one to unlock checkout.')
             ->emptyStateIcon(Heroicon::OutlinedRectangleStack)
-            // No row-selection checkbox: Filament renders it as a bare
-            // unstyled box floating at the vertical center of whatever the
-            // first column is, which on a card grid meant an orphaned
-            // checkbox sitting mid-card next to the description — not
-            // "selection UI", just visual noise. A handful of plans doesn't
-            // need bulk delete; single delete (guarded against plans with
-            // active subscribers) lives on each plan's own Edit page.
+            // No bulk actions on a card grid. Deleting a plan is guarded
+            // against active subscribers and lives on its own edit page.
             ->selectable(false)
             ->recordActions([
                 ViewAction::make(),

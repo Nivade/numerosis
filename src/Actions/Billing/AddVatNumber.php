@@ -14,7 +14,11 @@ use Nvade\Numerosis\Support\Billing\TaxIdType;
 use Stripe\Exception\ApiErrorException;
 
 /**
- * See .claude/rules/billing-checkout.md.
+ * Attaches a VAT number to a tenant's Stripe customer after signup, deriving
+ * the tax-id type from the billing country already on record.
+ *
+ * The Stripe customer is the source of truth for billing address; nothing is
+ * cached locally.
  *
  * @method static void run(Tenant $tenant, string $vatNumber)
  */

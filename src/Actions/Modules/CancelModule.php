@@ -19,7 +19,10 @@ use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Support\Numerosis;
 
 /**
- * See .claude/rules/module-marketplace.md.
+ * Stops billing for a module and disables it, leaving its tenant data in
+ * place. Dropping that data is a separate, explicit operation.
+ *
+ * Must run inside the tenant it is cancelling for.
  *
  * @method static void run(Tenant $tenant, CentralUser|TenantUser $actor, string $slug)
  */

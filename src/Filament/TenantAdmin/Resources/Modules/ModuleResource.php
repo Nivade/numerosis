@@ -128,17 +128,10 @@ class ModuleResource extends BaseResource
                     ->requiresConfirmation()
                     ->modalDescription('This stops billing for the module and disables it. Any data it stored is kept.')
                     ->visible(fn (Module $record): bool => $record->enabled)
-                    // Stopping billing is held to the same rule as starting it
-                    // (ModulePolicy::cancel/purchase): the tenant owner always,
-                    // anyone else only with `cancel modules`. Before this, any
-                    // user who could see this table could cancel a module only
-                    // the owner could have bought.
-                    // Gate::forUser with the tenant user resolved by name, not
-                    // Gate::allows: the ambient default guard is only
-                    // "probably right" once anything in the request has called
-                    // Auth::shouldUse() (see .claude/rules/auth-guards.md), and
-                    // a CentralUser resolved here would be refused by
-                    // ModulePolicy for holding no tenant roles.
+                    // Authorized against the tenant guard by name rather than
+                    // the ambient default, which anything in the request may
+                    // have moved — a central user resolved here holds no
+                    // tenant roles and would be refused.
                     ->authorize(function (Module $record): bool {
                         $actor = GetAuthenticatedTenantUser::run();
 

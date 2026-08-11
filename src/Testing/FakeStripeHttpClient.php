@@ -8,22 +8,15 @@ use RuntimeException;
 use Stripe\HttpClient\ClientInterface;
 
 /**
- * A minimal, stateful in-memory Stripe API, not a static fixture player.
- * `AddVatNumberTest`'s own flow (create a customer, update its address,
- * retrieve it back, attach a tax id, list tax ids) proved that recorded
- * static responses are not enough here — the test reads back what an
- * earlier call in the *same* test wrote, so the fake has to actually hold
- * that state across requests the way real Stripe does. See D9 in
- * .claude/plans/package-extraction.md: "recorded fixtures" undersold the
- * shape this needed to take.
+ * A small, stateful, in-memory Stripe API for tests.
  *
- * Deliberately narrow: only the resources/operations a numerosis test
- * currently exercises are implemented. An unhandled (method, path) throws
- * immediately with both, so a test hitting a new endpoint fails loudly
- * with "add a handler here" rather than silently returning nothing —
- * the same reason `Http::preventStrayRequests()` exists for the facade
- * this class stands in for (Stripe's SDK does not go through
- * `Illuminate\Http\Client`, so that facade never sees these calls at all).
+ * Stateful rather than a fixture player because these flows read back what an
+ * earlier call in the same test wrote — create a customer, update its
+ * address, attach a tax id, list them.
+ *
+ * Only the operations the package's own tests exercise are implemented. An
+ * unhandled request throws, naming the method and path, so reaching a new
+ * endpoint fails loudly instead of returning nothing.
  */
 class FakeStripeHttpClient implements ClientInterface
 {

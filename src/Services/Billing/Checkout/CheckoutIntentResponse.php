@@ -11,11 +11,9 @@ use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use RuntimeException;
 
 /**
- * Maps a CheckoutIntent onto a Responsable for the HTTP routes that still
- * expect one — StartSubscriptionCheckout::asController and
- * StartLocalCheckout::asController. Temporary: once the inline wizard step
- * consumes CheckoutIntent directly (custom-checkout.md, Phase 2) these routes
- * and this mapper go away with them.
+ * Turns a {@see CheckoutIntent} into an HTTP response, for the checkout
+ * routes. Components embed the checkout component instead and need none of
+ * this.
  */
 class CheckoutIntentResponse
 {

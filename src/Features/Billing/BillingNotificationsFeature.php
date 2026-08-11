@@ -7,20 +7,11 @@ namespace Nvade\Numerosis\Features\Billing;
 use Nvade\Numerosis\Contracts\NamedFeature;
 
 /**
- * One switch for three independent listeners: SendPaymentConfirmedNotification,
- * SendPaymentFailedNotification, SendTenantSuspendedNotification. Remove this
- * class from config('numerosis.features') and a deployment sends none of the
- * three — billing events themselves (PaymentSettled, PaymentFailed,
- * TenantSuspended) still fire and drive local state (suspension, etc.),
- * only the outbound notification is suppressed.
+ * The payment-confirmed, payment-failed and tenant-suspended notifications.
  *
- * All three listeners are auto-discovered by Laravel's event discovery, so
- * this feature cannot un-discover them — each gates itself with an early
- * return inside handle(). Named exception to "a disabled feature must load
- * nothing" (Ground rules, .claude/plans/opt-in-feature-classes.md), same
- * shape as InvitationsFeature's SendInvitationNotification.
- *
- * bootstrap() is empty — nothing to register at boot.
+ * Remove it from `numerosis.features` to send none of them. The billing
+ * events still fire and still drive state such as suspension; only the
+ * outbound notification is suppressed.
  */
 class BillingNotificationsFeature implements NamedFeature
 {
@@ -33,6 +24,6 @@ class BillingNotificationsFeature implements NamedFeature
 
     public function bootstrap(): void
     {
-        // Nothing to register — see the class docblock.
+        // Nothing to register: this feature is read at call time.
     }
 }

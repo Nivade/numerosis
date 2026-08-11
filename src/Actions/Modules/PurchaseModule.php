@@ -32,7 +32,10 @@ use Stripe\Exception\ApiErrorException;
 use Throwable;
 
 /**
- * See .claude/rules/module-marketplace.md.
+ * Buys a module for a tenant: charges Stripe, records the purchase, and
+ * queues the module's tenant migrations.
+ *
+ * Must run inside the tenant it is buying for.
  *
  * @method static void run(Tenant $tenant, CentralUser|TenantUser $actor, string $slug)
  */
@@ -103,7 +106,9 @@ class PurchaseModule
         try {
             RecordModulePurchase::run($offer, $subscriptionItemId, $billingCycle);
         } catch (Throwable $e) {
-            // See .claude/rules/module-marketplace.md — known gap, not fixed.
+            // Stripe has already been charged by this point, so a failure here
+            // leaves a paid module with no local record. Reported, then
+            // rethrown; recovery is a re-run, which is safe.
             report($e);
 
             throw $e;

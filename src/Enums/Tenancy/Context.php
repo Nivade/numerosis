@@ -12,12 +12,10 @@ enum Context: string
     case Tenant = 'tenant';
 
     /**
-     * Whether tenancy is currently initialized decides the context.
+     * The current context, decided by whether tenancy is initialized.
      *
-     * The ambient default guard is *not* a reliable answer to the same
-     * question — anything that has called `Auth::shouldUse()` since tenancy
-     * bootstrapped moves it, with nothing to move it back. See
-     * .claude/rules/auth-guards.md.
+     * Ask here rather than inspecting the default guard: anything calling
+     * `Auth::shouldUse()` moves that for the rest of the request.
      */
     public static function current(): self
     {
@@ -25,12 +23,8 @@ enum Context: string
     }
 
     /**
-     * The name of the guard that authenticates users in this context.
-     *
-     * Read through here rather than interpolating `numerosis.auth.guards.*`
-     * at each call site: a dozen sites wrote that key by hand, and the two
-     * that did not — hardcoding `'tenant'` and `'web'` instead — are exactly
-     * where it had already drifted.
+     * The guard that authenticates users in this context. Read guard names
+     * through here rather than naming `numerosis.auth.guards.*` yourself.
      */
     public function guard(): string
     {
@@ -38,9 +32,8 @@ enum Context: string
     }
 
     /**
-     * The context a given guard name authenticates in — the inverse of
-     * {@see guard()}. Anything but the central guard is treated as tenant,
-     * matching {@see current()}'s two-value split.
+     * The inverse of {@see guard()}. Anything but the central guard counts
+     * as tenant.
      */
     public static function fromGuard(string $guardName): self
     {

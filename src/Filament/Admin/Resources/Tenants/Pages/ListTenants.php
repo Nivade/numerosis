@@ -15,14 +15,10 @@ class ListTenants extends ListRecords
     protected static string $resource = TenantResource::class;
 
     /**
-     * No CreateAction: this resource's own create route used to insert a
-     * bare `tenants` row and hand-roll a domain, which never runs
-     * `ProvisionTenant`'s chain — the resulting tenant has no physical
-     * database, no owner, and `provisioned_at` stays null forever. Every
-     * real tenant must be created through {@see RegisterTenant}, the same
-     * wizard self-serve signup uses, so staff-created and customer-created
-     * tenants go through one provisioning path instead of two that drift.
-     * See .claude/rules/tenant-provisioning.md.
+     * Offers {@see RegisterTenant} rather than a plain create action, so
+     * staff-created tenants go through the same provisioning as self-serve
+     * signups. Inserting a tenant row directly leaves it with no database
+     * and no owner.
      */
     #[Override]
     protected function getHeaderActions(): array

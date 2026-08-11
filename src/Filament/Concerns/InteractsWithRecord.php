@@ -42,17 +42,11 @@ trait InteractsWithRecord
 
     protected ?Closure $resolveRecordUsing = null;
 
-    /**
-     * Mount hook to verify access authorization.
-     */
     public function mountCanAuthorizeAccess(): void
     {
         abort_unless(static::canAccess(), 403);
     }
 
-    /**
-     * Resolve a record from its key.
-     */
     protected function resolveRecord(int|string|null $key): Model
     {
         if ($this->resolveRecordUsing) {
@@ -72,9 +66,6 @@ trait InteractsWithRecord
         return $model::query()->findOrFail($key);
     }
 
-    /**
-     * Set a custom record resolver.
-     */
     public function resolveRecordUsing(?Closure $callback): static
     {
         $this->resolveRecordUsing = $callback;
@@ -82,9 +73,6 @@ trait InteractsWithRecord
         return $this;
     }
 
-    /**
-     * Get the current record instance.
-     */
     public function getRecord(): Model
     {
         abort_unless($this->record instanceof Model, 404);
@@ -92,9 +80,6 @@ trait InteractsWithRecord
         return $this->record;
     }
 
-    /**
-     * Check if a record is set.
-     */
     public function hasRecord(): bool
     {
         return filled($this->record) && $this->record instanceof Model;
@@ -132,9 +117,6 @@ trait InteractsWithRecord
         return null;
     }
 
-    /**
-     * Set a custom model label.
-     */
     public function modelLabel(string|Closure|null $label): static
     {
         $this->modelLabel = $label;
@@ -142,9 +124,6 @@ trait InteractsWithRecord
         return $this;
     }
 
-    /**
-     * Get the model label.
-     */
     public function getModelLabel(): ?string
     {
         $label = $this->evaluate($this->modelLabel);
@@ -162,9 +141,6 @@ trait InteractsWithRecord
         return get_model_label($model);
     }
 
-    /**
-     * Get the title case model label.
-     */
     public function getTitleCaseModelLabel(): ?string
     {
         $modelLabel = $this->getModelLabel();
@@ -176,9 +152,6 @@ trait InteractsWithRecord
         return Str::ucwords($modelLabel);
     }
 
-    /**
-     * Set a custom plural model label.
-     */
     public function pluralModelLabel(string|Closure|null $label): static
     {
         $this->pluralModelLabel = $label;
@@ -186,9 +159,6 @@ trait InteractsWithRecord
         return $this;
     }
 
-    /**
-     * Get the plural model label.
-     */
     public function getPluralModelLabel(): ?string
     {
         $label = $this->evaluate($this->pluralModelLabel);
@@ -210,9 +180,6 @@ trait InteractsWithRecord
         return $singularLabel;
     }
 
-    /**
-     * Get the title case plural model label.
-     */
     public function getTitleCasePluralModelLabel(): ?string
     {
         $pluralModelLabel = $this->getPluralModelLabel();
@@ -224,9 +191,6 @@ trait InteractsWithRecord
         return Str::ucwords($pluralModelLabel);
     }
 
-    /**
-     * Set a custom record title.
-     */
     public function recordTitle(string|Closure|null $title): static
     {
         $this->recordTitle = $title;
@@ -234,9 +198,6 @@ trait InteractsWithRecord
         return $this;
     }
 
-    /**
-     * Set the record title attribute.
-     */
     public function recordTitleAttribute(string|Closure|null $attribute): static
     {
         $this->recordTitleAttribute = $attribute;
@@ -244,9 +205,6 @@ trait InteractsWithRecord
         return $this;
     }
 
-    /**
-     * Get the record title.
-     */
     public function getRecordTitle(?Model $record = null): string|Htmlable
     {
         $record ??= $this->hasRecord() ? $this->getRecord() : null;
@@ -262,9 +220,6 @@ trait InteractsWithRecord
         return $this->getTitleCaseModelLabel() ?? '';
     }
 
-    /**
-     * Get the custom record title.
-     */
     public function getCustomRecordTitle(?Model $record = null): ?string
     {
         $record ??= $this->hasRecord() ? $this->getRecord() : null;
@@ -299,49 +254,31 @@ trait InteractsWithRecord
         return is_scalar($value) ? (string) $value : null;
     }
 
-    /**
-     * Get the record title attribute.
-     */
     protected function getRecordTitleAttribute(): ?string
     {
         return $this->getCustomRecordTitleAttribute();
     }
 
-    /**
-     * Get the custom record title attribute.
-     */
     protected function getCustomRecordTitleAttribute(): ?string
     {
         return $this->evaluate($this->recordTitleAttribute);
     }
 
-    /**
-     * Check if a custom record title is set.
-     */
     public function hasCustomRecordTitle(): bool
     {
         return filled($this->recordTitle);
     }
 
-    /**
-     * Check if a custom record title attribute is set.
-     */
     public function hasCustomRecordTitleAttribute(): bool
     {
         return $this->recordTitleAttribute !== null;
     }
 
-    /**
-     * Get the default action record.
-     */
     public function getDefaultActionRecord(Action $action): ?Model
     {
         return $this->hasRecord() ? $this->getRecord() : null;
     }
 
-    /**
-     * Get the default action record title.
-     */
     public function getDefaultActionRecordTitle(Action $action): ?string
     {
         if (! $this->hasRecord()) {
@@ -363,9 +300,6 @@ trait InteractsWithRecord
         return $this->getModel();
     }
 
-    /**
-     * Get the default action model label.
-     */
     public function getDefaultActionModelLabel(Action $action): ?string
     {
         return $this->getModelLabel();

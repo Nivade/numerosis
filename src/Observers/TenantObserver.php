@@ -9,11 +9,10 @@ use Nvade\Numerosis\Actions\Cache\ForgetUserTenants;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * Runs on `deleting`, not `deleted` — the tenant's membership pivot rows
- * (and the users list they resolve here) are still readable at that point,
- * but gone by the time `deleted` would fire. See
- * {@see \Nvade\Numerosis\Models\User::canAccessTenant()}, which needs the user's tenant
- * list to no longer include a tenant right after it's deleted.
+ * Clears each member's cached tenant list when a tenant is deleted.
+ *
+ * Runs on `deleting`, not `deleted`: the membership rows naming those users
+ * are still readable then, and gone afterwards.
  */
 class TenantObserver
 {

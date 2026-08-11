@@ -19,13 +19,9 @@ class EditPaymentPlan extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            // subscriptions.payment_plan_id has no ON DELETE clause, so MySQL
-            // defaults to RESTRICT: deleting a plan with any subscription
-            // still pointing at it — active or not — previously surfaced as
-            // a raw SQLSTATE 23000 integrity-constraint error, not a message
-            // an admin could act on. Disabling the action up front and
-            // saying why is the same shape as TenantResource's
-            // suspend/restore guards.
+            // A plan with subscriptions pointing at it cannot be deleted, so
+            // the action is disabled with a reason rather than left to fail
+            // as a raw integrity-constraint error.
             DeleteAction::make()
                 ->disabled(fn (PaymentPlan $record): bool => $record->subscriptions()->exists())
                 ->tooltip(fn (PaymentPlan $record): ?string => $record->subscriptions()->exists()
@@ -36,18 +32,10 @@ class EditPaymentPlan extends EditRecord
     }
 
     /**
-     * A plan's `monthly_price`/`yearly_price` are local display columns;
-     * what a subscriber is actually charged is driven entirely by the
-     * Stripe Price behind `monthly_id`/`yearly_id`. Stripe Prices are
-     * immutable by design — editing the number here changes what this admin
-     * panel *shows*, not what Stripe *charges*, and that gap is exactly the
-     * kind of thing that looks like a bug three weeks later when someone
-     * notices a subscriber's invoice doesn't match the plan page. Surface it
-     * at the moment it can happen, not after.
-     *
-     * Not annotated #[Override]: `EditRecord::save()` calls this dynamically
-     * via `callHook('afterSave')`, not through a declared parent method —
-     * PHPStan correctly reports nothing here to override.
+     * Warns when a price was edited. The local price columns are display
+     * only — subscribers are charged whatever the linked Stripe Price says,
+     * and Stripe Prices are immutable. Changing the number here changes what
+     * this panel shows, not what anyone pays.
      */
     protected function afterSave(): void
     {

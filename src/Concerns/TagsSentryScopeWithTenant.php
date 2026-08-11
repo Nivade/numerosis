@@ -9,12 +9,13 @@ use Sentry\State\Scope;
 use function Sentry\configureScope;
 
 /**
- * Used by a queued job's failed() handler to put the tenant on Sentry's
- * scope before Illuminate\Queue\Worker::runJob()'s automatic report() fires.
- * See .claude/rules/exception-handling.md — tenancy is already reverted by
- * the time that automatic report runs, so $exceptions->context() alone
- * cannot recover the tenant. Job::fail() calls the job's own failed()
- * before that automatic report, which is the ordering this relies on.
+ * Records the tenant on Sentry's scope from a queued job's `failed()`
+ * handler.
+ *
+ * Compose this into any tenant-aware job whose failures are worth debugging.
+ * Exception context alone cannot recover the tenant: by the time the queue
+ * worker reports the failure, tenancy has already reverted — but the job's
+ * own `failed()` runs first, which is what this relies on.
  */
 trait TagsSentryScopeWithTenant
 {

@@ -22,15 +22,9 @@ class SubscriptionsTable
     {
         return $table
             ->columns([
-                // Was a bare opaque id — staff had to already know which
-                // tenant that id belonged to. Search/sort still target the
-                // raw column (the tenant's own 'name' is virtual, stored in
-                // `data`, and not practically sortable at this join depth);
-                // the visible label is what changed.
-                // `subscribable` is a MorphTo, so it resolves as a bare Model
-                // — narrowing with instanceof rather than reaching straight
-                // for ->name is what keeps this correct if a second billable
-                // type is ever added (CentralUser is already Billable).
+                // Shows the tenant's name but searches and sorts on the id
+                // column, since the name is not a real column. Narrowed by
+                // type, because central users are billable here too.
                 TextColumn::make('subscribable_id')
                     ->label('Tenant')
                     ->formatStateUsing(fn (string $state, Subscription $record): string => $record->subscribable instanceof Tenant
@@ -42,11 +36,8 @@ class SubscriptionsTable
                 TextColumn::make('type')
                     ->searchable()
                     ->badge(),
-                // No monetary value anywhere in this table before — an
-                // administrator scanning the list had no way to see what a
-                // row was actually worth without opening it. Mirrors
-                // BillingStatsWidget's yearly-divided-by-12 normalisation so
-                // mixed-cycle rows are comparable at a glance.
+                // Normalized to a monthly figure, so mixed-cycle rows compare
+                // directly. Matches how the billing widgets report revenue.
                 TextColumn::make('mrr')
                     ->label('MRR')
                     ->state(function (Subscription $record): ?int {
@@ -94,10 +85,6 @@ class SubscriptionsTable
                     ->sortable(),
             ])
             ->filters([
-                // "Show me everyone past-due" was previously impossible
-                // without paging through the full unfiltered list — the one
-                // dimension every other billing-adjacent table in the panel
-                // (Modules) already filters on.
                 SelectFilter::make('stripe_status')
                     ->options([
                         'active' => 'Active',
@@ -108,9 +95,6 @@ class SubscriptionsTable
                         'incomplete' => 'Incomplete',
                         'incomplete_expired' => 'Incomplete (Expired)',
                     ]),
-                // Was no way to answer "who's on this plan" from here at
-                // all — the Payment Plan detail page's subscriber count
-                // links here with this filter preset.
                 SelectFilter::make('payment_plan_id')
                     ->label('Plan')
                     ->relationship('paymentPlan', 'name'),

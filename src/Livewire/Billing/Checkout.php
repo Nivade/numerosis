@@ -31,12 +31,11 @@ use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 
 /**
- * The single implementation of the inline-checkout protocol, reached two ways:
- * standalone at /checkout/{domain} (resuming a checkout a refresh or a direct
- * visit would otherwise lose), and embedded by the registration wizard's
- * Payment step, which no longer carries a subscribe()/confirmed() of its own
- * and only resolves the reserved domain to hand over. See ConfirmsPayments
- * for the 3DS half of the protocol.
+ * The inline checkout, used two ways: standalone at `/checkout/{domain}`,
+ * which resumes a checkout a refresh would otherwise lose, and embedded in
+ * the registration wizard.
+ *
+ * {@see ConfirmsPayments} carries the 3DS half of the flow.
  */
 class Checkout extends Component
 {
@@ -251,11 +250,9 @@ class Checkout extends Component
     }
 
     /**
-     * Resolves the subscription to settle by the id CreateInlineSubscription
-     * stamped onto this pending row — never `latestSubscription()`, which
-     * has no link to $pendingDomain and would settle whatever subscription
-     * (possibly an unrelated, already-active one) happens to be newest for
-     * this billable. See .claude/rules/billing-checkout.md.
+     * Settles the subscription this checkout created, found by the id stored
+     * on its own pending row — never the billable's newest subscription,
+     * which may belong to an entirely different workspace.
      */
     private function settleFromPendingSubscription(): void
     {
@@ -286,10 +283,9 @@ class Checkout extends Component
         $pending = $pendingClass::find($this->pendingDomain);
         $billable = GetAuthenticatedUser::run();
 
-        // Re-derived rather than assumed, behind #[Locked] rather than
-        // instead of it: the lock is a Livewire-level guarantee, the
-        // ownership rule is a domain one, and both entry points into settle()
-        // must hold it. See .claude/rules/billing-checkout.md.
+        // Ownership is re-checked here as well as being #[Locked]: the lock
+        // stops the client changing the value, but only this check proves the
+        // reservation belongs to whoever is paying.
         if (! $pending || ! $billable instanceof CentralUser || $pending->global_id !== $billable->global_id) {
             $this->paymentError = __('numerosis::billing.checkout.session_expired');
 

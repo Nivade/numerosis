@@ -50,11 +50,9 @@ class TechnicalSetup extends StepComponent
     }
 
     /**
-     * Reserves the domain immediately rather than waiting for the Plan step,
-     * so a domain someone else claims mid-wizard is caught here instead of
-     * after the user has already picked a plan and started paying. Plan's
-     * own checkout still calls ReserveTenantDomain — idempotent for the same
-     * user's own reservation, see .claude/rules/tenant-provisioning.md.
+     * Reserves the domain here rather than at checkout, so a domain someone
+     * else claims mid-wizard is caught before the user picks a plan and
+     * starts paying. Checkout reserves it again, harmlessly.
      */
     public function continue(): void
     {

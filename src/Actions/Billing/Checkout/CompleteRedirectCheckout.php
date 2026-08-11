@@ -18,7 +18,13 @@ use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 use Stripe\Exception\ApiErrorException;
 
-// See .claude/rules/billing-checkout.md.
+/**
+ * Where a redirect payment method lands when the customer's bank sends them
+ * back. Cards never reach here — they confirm inline.
+ *
+ * The payment method may still be attaching at this point, in which case the
+ * checkout is finished later by the Stripe webhook instead.
+ */
 class CompleteRedirectCheckout
 {
     use AsAction;
@@ -82,12 +88,8 @@ class CompleteRedirectCheckout
     }
 
     /**
-     * This checkout route is reachable independent of the registration
-     * wizard (a bookmarked/resumed /checkout/{domain} link, or a bank
-     * bouncing a customer back mid-payment), so a wizard-off deployment can
-     * still land here. tenants.create only exists while
-     * RegistrationWizardFeature is enabled — redirect home instead so this
-     * doesn't throw RouteNotFoundException on top of the original error.
+     * Sends the customer back to the wizard with the error, or home when the
+     * registration wizard is disabled — this route is reachable without it.
      */
     private function registrationErrorRedirect(string $message): RedirectResponse
     {

@@ -10,21 +10,11 @@ use Nvade\Numerosis\Contracts\NamedFeature;
 use Nvade\Numerosis\Livewire\Tenant as Tenants;
 
 /**
- * The self-serve tenant registration wizard: the tenants.create route and
- * its four Livewire step components. Remove this class from
- * config('numerosis.features') and a deployment has no self-serve signup at
- * all — nothing here provisions tenants directly.
+ * The self-serve tenant registration wizard and its route.
  *
- * Tenant provisioning itself is unaffected by this toggle: everything funnels
- * through Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant::queue()
- * (.claude/rules/tenant-provisioning.md), which the wizard only calls. A
- * consumer creating tenants from an admin screen or a job keeps working with
- * this feature off.
- *
- * Livewire registration uses config('numerosis.views.path') rather than
- * hardcoded resource_path(), so the path is swappable during package
- * extraction (Phase 1.5). Post-split, the package's NumerosisServiceProvider
- * updates this config value.
+ * Remove it from `numerosis.features` and there is no self-serve signup.
+ * Provisioning itself is unaffected — the wizard is only one caller of it,
+ * so creating tenants from an admin screen or a job keeps working.
  */
 class RegistrationWizardFeature implements NamedFeature
 {

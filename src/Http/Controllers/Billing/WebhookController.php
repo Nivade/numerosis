@@ -39,8 +39,6 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * Handle a subscription being created.
-     *
      * @param  array{data: array{object: array{id?: string, customer?: string, metadata?: array<string, mixed>}}}  $payload
      */
     #[Override]
@@ -50,15 +48,10 @@ class WebhookController extends CashierWebhookController
         $metadata = $stripeSubscription['metadata'] ?? [];
         $stripeSubscriptionId = $stripeSubscription['id'] ?? null;
 
-        // Same lock key LinkSubscriptionToTenant blocks on, so Cashier's own
-        // write here and our manual write there can never race each other
-        // for the same subscription. Does NOT protect against
-        // CreateInlineSubscription's own synchronous, unlocked local-row
-        // write on the checkout request — Stripe's webhook can arrive before
-        // that request's transaction commits, so Cashier's updateOrCreate
-        // here can still lose a insert-vs-insert race against it. Treat the
-        // resulting duplicate as "already synced by the checkout request",
-        // not a failure.
+        // Locked against the provisioning path, which writes the same
+        // subscription. The checkout request itself is not covered — a
+        // webhook can arrive before it commits — so a duplicate here means
+        // already synced, not failed.
         $handle = function () use ($payload): Response {
             try {
                 return parent::handleCustomerSubscriptionCreated($payload);
@@ -72,12 +65,10 @@ class WebhookController extends CashierWebhookController
             ? Cache::lock("reconcile-subscription:{$stripeSubscriptionId}", 10)->block(5, $handle)
             : $handle();
 
-        // The inline checkout only ever puts the domain in Stripe metadata
-        // (see CreateInlineSubscription) — the rest of the registration
-        // payload lives on the pending row. A subscription created directly
-        // in the Stripe Dashboard carries no such metadata at all. If
-        // CompleteRedirectCheckout already ran, the pending row is gone and
-        // this is a no-op fallback.
+        // The inline checkout only puts the domain in Stripe metadata — the
+        // rest of the registration lives on the pending row. A subscription
+        // created directly in the Stripe Dashboard carries none. No-op if
+        // CompleteRedirectCheckout already consumed the pending row.
         $domain = $metadata['domain'] ?? null;
         $pendingClass = Numerosis::model(PendingTenantProvision::class);
 
@@ -98,11 +89,10 @@ class WebhookController extends CashierWebhookController
             /** @var int|null $userId */
             $userId = $centralUserClass::where('global_id', $registration->global_id)->value('id');
 
-            // Queued rather than provisioned inline: Stripe times out webhook
-            // responses and retries, and creating/migrating/seeding a tenant
-            // database comfortably exceeds that budget. ProvisionTenant is
-            // unique-per-domain, so this is a no-op when the redirect already
-            // dispatched it.
+            // Queued, not provisioned inline: Stripe retries a webhook
+            // that doesn't respond fast, and creating/migrating/seeding a
+            // tenant database exceeds that budget. Unique per domain, so
+            // a no-op when the redirect path already dispatched it.
             $this->provisioning->queue(new TenantProvisionData(
                 registration: $registration,
                 stripeCustomerId: $stripeSubscription['customer'] ?? null,
@@ -119,32 +109,16 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * Completes a redirect-flavoured checkout (iDEAL, Bancontact, ...) once
-     * Stripe attaches the reusable PaymentMethod it generated for future
-     * off-session use — the thing CompleteRedirectCheckout cannot wait for
-     * synchronously. See FinalizeCheckoutSubscription's and
-     * ResolveAttachedPaymentMethod's doc comments for the surrounding
-     * mechanics.
+     * Finishes a redirect checkout (iDEAL, Bancontact and similar) once
+     * Stripe attaches the reusable payment method it generated — which the
+     * customer's return from their bank cannot wait for.
      *
-     * NOT `setup_intent.succeeded`: confirmed directly against the Stripe
-     * API during the 2026-07-30 incident that this handler exists for that
-     * `setup_intent.succeeded` fires before this conversion/attach
-     * completes for iDEAL/Bancontact, and that `$setupIntent->payment_method`
-     * never comes to reference the generated PaymentMethod at all — the
-     * only link is this event, on the generated PaymentMethod itself, back
-     * to the SetupAttempt that produced it.
+     * Deliberately not `setup_intent.succeeded`, which fires before that
+     * attach and never comes to reference the generated payment method.
      *
-     * Does not resolve that SetupAttempt directly:
-     * `Stripe\Service\SetupAttemptService` has no `retrieve()` — Stripe's API
-     * only supports listing SetupAttempts *by* `setup_intent`, not looking
-     * one up by its own id, so there is no way to go from a SetupAttempt id
-     * back to its SetupIntent. Matches by customer instead (an event this
-     * app didn't cause has `customer` on the PaymentMethod object directly),
-     * finds every one of that customer's pending checkouts still missing a
-     * subscription, and asks ResolveAttachedPaymentMethod — the same
-     * resolution CompleteRedirectCheckout's synchronous path already trusts
-     * — which one (if any) this newly-attached PaymentMethod actually
-     * belongs to.
+     * Matched by customer, because Stripe offers no way to look a setup
+     * attempt up directly: this finds that customer's still-open checkouts
+     * and asks which one the payment method belongs to.
      *
      * @param  array{data: array{object: array{id?: string, customer?: string, sepa_debit?: array{generated_from?: array{setup_attempt?: string}}}}}  $payload
      */
@@ -155,9 +129,8 @@ class WebhookController extends CashierWebhookController
         $customerId = $object['customer'] ?? null;
         $setupAttemptId = $object['sepa_debit']['generated_from']['setup_attempt'] ?? null;
 
-        // Not a PaymentMethod generated from one of our SetupIntents (e.g. a
-        // plain card attach, or a sepa_debit set up directly rather than
-        // via iDEAL/Bancontact conversion) — nothing for this handler to do.
+        // Not a PaymentMethod generated from one of our SetupIntents (e.g.
+        // a plain card attach) — nothing for this handler to do.
         if (! is_string($paymentMethodId) || ! is_string($customerId) || ! is_string($setupAttemptId)) {
             return $this->successMethod();
         }
@@ -206,12 +179,9 @@ class WebhookController extends CashierWebhookController
                 try {
                     FinalizeCheckoutSubscription::run($pending, $paymentMethod, $billable);
                 } catch (IncompletePayment $e) {
-                    // The first invoice needs a 3DS challenge with no browser
-                    // listening for it here — same known gap
-                    // CompleteRedirectCheckout already documents for the
-                    // redirect path. Log and acknowledge; the customer sees
-                    // requires_verification copy on their next visit to
-                    // tenants.mine via the subscription's own stripe_status.
+                    // The first invoice needs a 3DS challenge and there is no
+                    // browser to show it in. Acknowledge; the customer is
+                    // prompted on their next visit.
                     report($e);
                 } catch (ApiErrorException $e) {
                     report($e);
@@ -220,10 +190,9 @@ class WebhookController extends CashierWebhookController
                 return $this->successMethod();
             }
 
-            // None of this customer's still-open checkouts resolve to this
-            // PaymentMethod — either it belongs to a checkout that already
-            // completed elsewhere, or Stripe hasn't finished linking it yet
-            // and a later duplicate delivery will find it.
+            // None of this customer's open checkouts resolve to this
+            // PaymentMethod — either it belongs to one that already
+            // completed, or Stripe hasn't finished linking it yet.
             return $this->successMethod();
         };
 
@@ -234,8 +203,6 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * Handle a subscription being cancelled.
-     *
      * @param  array{data: array{object: array{id?: string, customer?: string}}}  $payload
      */
     #[Override]
@@ -253,12 +220,9 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * Handle a subscription being updated — status transitions drive
-     * suspension and recovery. `past_due`/`unpaid` are the grace-period
-     * states Stripe's retry schedule visits before giving up;
-     * `incomplete_expired` is the initial-payment-never-completed case,
-     * where Cashier's own handler already deletes the local subscription
-     * row and returns null before this override sees it.
+     * Suspends and restores tenants as their subscription status moves.
+     * `past_due` and `unpaid` are Stripe's grace-period states before it
+     * gives up; `incomplete_expired` means the first payment never completed.
      *
      * @param  array{data: array{object: array{id?: string, customer?: string, status?: string, items?: array{data?: list<array{id?: string}>}}}}  $payload
      */
@@ -291,10 +255,9 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * Handle an invoice payment failing — the dunning notice, sent while
-     * the tenant is still in Stripe's retry/grace period. Suspension itself
-     * is driven by handleCustomerSubscriptionUpdated once Stripe gives up
-     * and moves the subscription to past_due/unpaid, not by this event.
+     * The dunning notice, sent while still in Stripe's retry/grace period.
+     * Suspension itself happens in handleCustomerSubscriptionUpdated once
+     * Stripe gives up, not here.
      *
      * @param  array{data: array{object: array{id?: string, customer?: string}}}  $payload
      */
@@ -310,14 +273,11 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * Only suspends once the customer has no surviving subscription that
-     * still grants access. Cashier has already deleted the cancelled
-     * subscription's local row by the time this runs (its own
-     * handleCustomerSubscriptionDeleted), so what remains here is the honest
-     * answer to "is anything still active?" — previously this suspended on
-     * *any* subscription being deleted, which locked a tenant out of a
-     * workspace they were still paying for whenever one of several
-     * subscriptions ended.
+     * Suspends only once no subscription still grants access.
+     *
+     * The question is whether anything valid remains, not whether something
+     * just ended — a tenant holding several subscriptions must not be locked
+     * out of a workspace they are still paying for.
      */
     private function suspendBillableFor(?string $customerId): void
     {
@@ -348,8 +308,6 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * Handle an invoice payment succeeded event.
-     *
      * @param  array{data: array{object: array{id?: string, subscription?: string, parent?: array{subscription_details?: array{subscription?: string}}}}}  $payload
      */
     #[Override]
@@ -362,9 +320,8 @@ class WebhookController extends CashierWebhookController
             ?? $invoice['parent']['subscription_details']['subscription']
             ?? null;
 
-        // Clears the AwaitingPayment badge SettleCheckout set for a still-
-        // settling async payment method. A no-op for cards, which never
-        // leave the pending row in AwaitingPayment — see SettleCheckout.
+        // Clears the "awaiting payment" state an asynchronous payment method
+        // leaves behind. Cards never enter it.
         if ($subscriptionId !== null) {
             $pendingClass = Numerosis::model(PendingTenantProvision::class);
 
@@ -381,8 +338,6 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * Handle an invoice payment action required event.
-     *
      * @param  array{data: array{object: array{id?: string}}}  $payload
      */
     #[Override]
@@ -390,7 +345,6 @@ class WebhookController extends CashierWebhookController
     {
         $response = parent::handleInvoicePaymentActionRequired($payload);
 
-        // Optionally notify customer about payment action required
         Log::warning('Invoice payment action required', [
             'invoice_id' => $payload['data']['object']['id'] ?? null,
         ]);

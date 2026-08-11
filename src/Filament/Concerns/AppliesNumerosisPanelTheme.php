@@ -9,29 +9,12 @@ use Filament\View\PanelsRenderHook;
 use Illuminate\View\Compilers\BladeCompiler;
 
 /**
- * The render hooks both panels need so their chrome shares the main app's
- * styling. Previously lived only on {@see \Nvade\Numerosis\Filament\NumerosisTenantPlugin}
- * — the admin panel had none of it (Phase 1 audit §1.4: "no `->viteTheme()`,
- * no render hooks, nothing from the main app reaches it"). Extracted so
- * admin and tenant cannot drift the way the two passwordless-login
- * components did (.claude/rules/auth-login.md).
+ * Adds what Filament's own theme does not cover, so both panels look like
+ * the rest of the app: Flux's CSS and scripts, and the font files.
  *
- * `->theme(NumerosisServiceProvider::THEME_ID)` (registered by each plugin
- * directly, not here — {@see Panel::theme()} is a single value, not a
- * stack, so there is nothing to "extract" about the call itself) handles
- * Filament's own fi-* component colours and radius, via a prebuilt CSS
- * asset registered by `NumerosisServiceProvider::registerFilamentTheme()`
- * — no `->viteTheme()`, no host build step. What is
- * extracted here is everything Filament's theme replacement does **not**
- * cover: Flux's CSS (panel pages compose `<x-numerosis::ui.*>` and
- * `flux:icon`, neither of which `filament-theme.css` builds), the
- * Instrument Sans font files themselves (`--font-family` in
- * filament-theme.css only names the family; the browser still needs the
- * `<link>`), and Flux's own script bundle for any Flux component that needs
- * Alpine wiring. `--pref-*` overrides are a host-level concern
- * (design-system-unification Phase 5) — a consumer sets them once, in its
- * own published CSS after the `tokens.css` import, not per-request from
- * here.
+ * Filament's component colours and radius come from the theme asset each
+ * plugin applies, with no build step of your own. Override the palette
+ * through the `--pref-*` custom properties in your published CSS.
  */
 trait AppliesNumerosisPanelTheme
 {

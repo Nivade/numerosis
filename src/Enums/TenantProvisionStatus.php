@@ -11,10 +11,9 @@ enum TenantProvisionStatus: string
     case Failed = 'failed';
 
     /**
-     * Payment is still settling (async methods; unreachable for cards, which
-     * resolve synchronously through Stripe's confirmSetup). Provisioning
-     * proceeds regardless — see custom-checkout.md, "Provisioning and
-     * settlement". Not a gate, just a banner.
+     * Payment is still settling — only reachable for asynchronous payment
+     * methods; cards resolve immediately. Provisioning proceeds regardless,
+     * so this drives a banner rather than gating access.
      */
     case AwaitingPayment = 'awaiting_payment';
 }

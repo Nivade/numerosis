@@ -89,15 +89,10 @@ class TenantResource extends Resource
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('name'),
-                // Support needs to see a stuck signup or a paused workspace
-                // without a database console — see custom-checkout.md,
-                // Phase 3's Filament admin surfacing. 'Stuck' distinguishes a
-                // signup mid-chain (normal, seconds) from one the
-                // provisioning chain silently dropped (abnormal — see
-                // .claude/rules/tenant-provisioning.md's residual-gap note on
-                // a permanently-failed migrate/seed step) — otherwise both
-                // read identically as 'Provisioning' with no signal that one
-                // of them needs a human.
+                // 'Stuck' separates a signup still provisioning (normal, and
+                // over in seconds) from one whose provisioning was dropped.
+                // Both otherwise read as 'Provisioning', with no signal that
+                // one of them needs a human.
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
@@ -158,12 +153,9 @@ class TenantResource extends Resource
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
-                // SuspendTenant/RestoreTenant used to fire only from the
-                // Stripe webhook (past_due/unpaid/canceled), so support had
-                // no way to pause a tenant for abuse or reactivate one
-                // without waiting on Stripe. Both actions are idempotent
-                // (no-op if already in the target state), matching
-                // .claude/rules/billing-checkout.md.
+                // Manual counterparts to the suspension the Stripe webhook
+                // performs, for pausing a tenant for abuse or reactivating
+                // one without waiting on Stripe. Both are idempotent.
                 Action::make('suspend')
                     ->label('Suspend')
                     ->icon('heroicon-o-pause-circle')
@@ -182,14 +174,9 @@ class TenantResource extends Resource
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    // Default DeleteBulkAction copy doesn't say what deleting
-                    // a tenant row actually does — the physical tenant
-                    // database and every table in it are untouched by this
-                    // (no cascading DeleteDatabase job runs from here), so an
-                    // operator reading only the default modal could
-                    // reasonably assume it's a full teardown. It isn't;
-                    // orphaned databases are swept separately by
-                    // tenancy:prune-orphaned-databases per .claude/rules/testing.md.
+                    // Custom copy, because the default modal would let an
+                    // operator assume this is a full teardown. It deletes the
+                    // tenant record only; the database is left orphaned.
                     DeleteBulkAction::make()
                         ->modalHeading('Delete selected tenants?')
                         ->modalDescription('This removes the tenant record and its domains only. The physical tenant database is not dropped — it becomes orphaned and is swept later by tenancy:prune-orphaned-databases, not immediately.'),

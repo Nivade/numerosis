@@ -15,7 +15,13 @@ use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
 
-// See .claude/rules/tenant-provisioning.md.
+/**
+ * Points a Stripe subscription at the tenant it paid for, recording it
+ * locally if the webhook has not already done so.
+ *
+ * Locked per subscription, since the checkout redirect and the Stripe webhook
+ * both reach this and may arrive at once.
+ */
 class LinkSubscriptionToTenant
 {
     use AsAction;

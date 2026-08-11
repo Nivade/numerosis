@@ -12,7 +12,11 @@ use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Stripe\PaymentMethod;
 
 /**
- * See .claude/rules/billing-checkout.md.
+ * Creates the subscription and settles the checkout, in that order.
+ *
+ * Shared by the redirect return route and the Stripe webhook, so both finish
+ * a checkout identically. Callers decide for themselves what an
+ * `IncompletePayment` means in their context.
  *
  * @method static Subscription run(PendingTenantProvision $pending, PaymentMethod $paymentMethod, ?CentralUser $billable)
  */

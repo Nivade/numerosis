@@ -37,10 +37,9 @@ class InlineCheckoutGateway implements CheckoutGateway
             throw new PaymentPlanNotFound("Payment plan not found: {$registration->payment_plan}");
         }
 
-        // Not used yet — the price is chosen again in CreateInlineSubscription,
-        // once the pending row (not the client) is the source of truth for
-        // plan/cycle. Checked here anyway so a misconfigured plan fails at the
-        // start of checkout, not after the customer has entered a card.
+        // Resolved but unused: the subscription is priced later, from the
+        // pending row rather than from the client. Checked here so a
+        // misconfigured plan fails before the customer enters a card.
         if (! $plan->priceId($registration->billing_cycle)) {
             throw new StripePriceNotConfigured("Stripe Price ID not found for plan: {$registration->payment_plan}");
         }
@@ -51,21 +50,17 @@ class InlineCheckoutGateway implements CheckoutGateway
 
         $billable->createOrGetStripeCustomer();
 
-        // Never pin payment_method_types — that single line would turn every
-        // future payment method into a code change. See custom-checkout.md,
-        // "Designing for more payment methods".
+        // Never pin payment_method_types: automatic methods mean enabling a
+        // new one in the Stripe dashboard needs no code change here.
         $setupIntent = $billable->createSetupIntent([
             'automatic_payment_methods' => ['enabled' => true],
             'metadata' => ['domain' => $registration->domain],
         ]);
 
-        // Scoped to the reservation's owner as well as its domain. The only
-        // caller (StartSubscriptionCheckout) runs ReserveTenantDomain first,
-        // which already refuses a domain claimed by someone else — but this
-        // action does not enforce that itself, and an unscoped update here
-        // would overwrite a stranger's stored SetupIntent, leaving the
-        // rightful owner resuming a checkout against a Stripe customer that
-        // is not theirs (ResolveSetupIntent then locks them out entirely).
+        // Scoped to the owner as well as the domain. Callers are expected to
+        // have reserved the domain first, but an unscoped write here would
+        // overwrite a stranger's SetupIntent and lock them out of their own
+        // reservation.
         Numerosis::model(PendingTenantProvision::class)::where('domain', $registration->domain)
             ->where('global_id', $registration->global_id)
             ->update([

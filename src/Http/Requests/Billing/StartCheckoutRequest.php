@@ -15,9 +15,8 @@ use Nvade\Numerosis\Enums\BillingCycle;
 class StartCheckoutRequest extends FormRequest
 {
     /**
-     * The start-checkout route previously accepted any global_id in the
-     * query string, so one user could reserve a domain in another user's
-     * name. The success handler already checked this; this closes the gap.
+     * Refuses a checkout started in someone else's name — the request names
+     * the user it is for, so it has to match whoever is signed in.
      */
     public function authorize(): bool
     {
@@ -36,8 +35,6 @@ class StartCheckoutRequest extends FormRequest
                 'string',
                 'max:255',
                 function (string $attribute, mixed $value, Closure $fail): void {
-                    // The 'string' rule above already reports a non-string, so
-                    // there is nothing useful to add here.
                     if (! is_string($value)) {
                         return;
                     }

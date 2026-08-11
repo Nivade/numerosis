@@ -7,30 +7,20 @@ namespace Nvade\Numerosis\Policies\Concerns;
 use Nvade\Numerosis\Models\User;
 
 /**
- * The standard CRUD policy over Spatie permissions named `"<action> <context>"`.
+ * Standard CRUD policy over permissions named `"<action> <context>"`, drawn
+ * from the same vocabulary {@see \Nvade\Numerosis\Models\Permission::actionsFor()}
+ * seeds. Compose it and declare {@see self::permissionContext()}.
  *
- * `RolePolicy` and `PermissionPolicy` were byte-identical bar the noun, and
- * `UserPolicy`/`InvitationPolicy` were the same seven methods with one or two
- * genuine deviations each. The permission names come from the same vocabulary
- * {@see \Nvade\Numerosis\Models\Permission::actionsFor()} seeds, so writing them out per
- * policy was three copies of one list that had to agree by hand.
+ * Two behaviours are built in rather than left to each policy:
  *
- * Two behaviours are deliberately baked in rather than left to each policy:
+ * - `updateAny`/`deleteAny` short-circuit ahead of the per-record check, so
+ *   an admin granted the blanket permission is never refused a single record.
+ * - Permissions are resolved against the *model's* guard, never the ambient
+ *   one. The two agree on every ordinary path and diverge exactly where it
+ *   matters — a central user evaluated inside tenant context would otherwise
+ *   be checked against tenant roles they could never hold.
  *
- * - **`updateAny`/`deleteAny` short-circuit before the per-record check.** That
- *   is the pattern every existing policy already implemented; a policy that
- *   forgets it silently withholds a permission an admin was granted.
- * - **`hasPermissionTo()` is called with no guard argument**, so Spatie resolves
- *   the guard from the *model* (`Guard::getNames()`) rather than the ambient
- *   default. Passing the request's guard agrees with the model on every normal
- *   path and diverges exactly where it matters — a `CentralUser` evaluated
- *   inside tenant context, as `Authenticate::authenticate()` does, checked
- *   against tenant roles it can never hold. See .claude/rules/auth-guards.md.
- *   Keeping the call in one place is the point: it cannot drift back in seven
- *   files at once.
- *
- * Policies with real domain logic (`ChannelPolicy`, `MessagePolicy`,
- * `ModulePolicy`) are not built on this and should not be.
+ * Policies with real domain logic of their own should not build on this.
  */
 trait ChecksContextPermissions
 {

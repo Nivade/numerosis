@@ -12,15 +12,14 @@ class PromoteFirstCentralUserToAdmin
 {
     use AsAction;
 
-    // Mirrors Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin; no-ops if unseeded.
+    /**
+     * Grants the admin role to the first central user, so a fresh install has
+     * someone who can reach the admin panel. Does nothing once a second user
+     * exists, or before roles are seeded.
+     */
     public function handle(CentralUser $user): void
     {
-        // Not CentralUser::query(): CentralUser is abstract (see
-        // .claude/plans/package-extraction.md Phase 4.4), and late static
-        // binding on a call written as `CentralUser::` resolves `new static`
-        // to the abstract class itself. $user::query() resolves against the
-        // host's concrete stub instead, since $user is always an instance of
-        // it.
+        // Queried through the instance, so a subclass of your own is honoured.
         if ($user::query()->whereKeyNot($user->getKey())->exists()) {
             return;
         }

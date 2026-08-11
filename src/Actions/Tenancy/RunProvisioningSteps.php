@@ -9,7 +9,14 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\Tenant;
 
-// See .claude/rules/tenant-provisioning.md.
+/**
+ * Runs the provisioning steps from `numerosis.tenancy.provisioning.steps`, in
+ * order, after the tenant database exists.
+ *
+ * The first step creates the tenant and runs earlier; every step after it
+ * receives the tenant and the registration data, and must be idempotent
+ * because the whole chain re-runs on retry.
+ */
 class RunProvisioningSteps implements ShouldQueue
 {
     use AsAction;

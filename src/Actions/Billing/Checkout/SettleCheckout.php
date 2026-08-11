@@ -12,7 +12,14 @@ use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\TenantProvisionStatus;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 
-// See .claude/rules/billing-checkout.md.
+/**
+ * Records the subscription against the pending checkout and queues
+ * provisioning.
+ *
+ * Provisioning is queued whether or not payment settled — only the recorded
+ * status differs — because a trial collects nothing upfront and gating on
+ * settlement would be stricter than the trial itself.
+ */
 class SettleCheckout
 {
     use AsAction;

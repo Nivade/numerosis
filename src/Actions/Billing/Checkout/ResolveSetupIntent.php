@@ -17,7 +17,12 @@ use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentMethod;
 
 /**
- * See .claude/rules/billing-checkout.md.
+ * Resolves a SetupIntent id to the checkout it belongs to, refusing anything
+ * that is not the authenticated user's own and not still open.
+ *
+ * The single ownership check every checkout path shares. Fails closed: a
+ * checkout carrying a subscription id with no matching local row counts as
+ * already completed, not as safe to charge again.
  *
  * @method static ResolvedSetupIntent run(string $setupIntentId)
  */

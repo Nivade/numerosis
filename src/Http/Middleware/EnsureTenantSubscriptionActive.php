@@ -10,10 +10,8 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * The access gate that did not exist before this — a tenant whose trial
- * ended and whose card failed used to keep working forever, on every plan,
- * not just async payment methods. See custom-checkout.md, "The access gate
- * that does not exist".
+ * Refuses panel access to a suspended tenant — the gate that stops a tenant
+ * whose trial ended and whose card failed from working indefinitely.
  *
  * Registered on the tenant Filament panel, after tenancy identification and
  * auth so `tenant()` and the guard are both resolved. A suspended tenant is

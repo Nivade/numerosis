@@ -20,14 +20,10 @@ trait InteractsWithTenantModules
     protected ?Collection $enabledModuleNames = null;
 
     /**
-     * The enabled module names for the current tenant, fetched once and
-     * memoised for the request. Filament registers plugins for every
-     * configured module slug at once, so a per-module query here (as this
-     * used to be) means N plugins cost N temporary database connections at
-     * panel-register time. Not cached in global_cache() — that helper is
-     * un-prefixed and this value is tenant-derived, exactly the mistake
-     * .claude/rules/tenant-caching.md warns about. A per-request memo is
-     * correct and sufficient.
+     * The enabled module names for the current tenant, read once per request.
+     *
+     * Memoized per request rather than cached: the value is tenant-derived,
+     * and the global cache is not tenant-scoped.
      *
      * @return Collection<int, string>
      */
@@ -53,8 +49,8 @@ trait InteractsWithTenantModules
             return $this->enabledModuleNames = new Collection;
         }
 
-        // Filament registers plugins very early, before tenancy bootstrappers are initialized.
-        // We manually configure the tenant connection to fetch the module state.
+        // Filament registers plugins before tenancy bootstraps, so the tenant
+        // connection has to be built by hand here to read module state.
         $dbName = Config::string('tenancy.database.prefix').$tenant->id.Config::string('tenancy.database.suffix');
         $centralConn = Config::string('database.default');
         $tenantConnName = 'tenant_init_'.uniqid();
@@ -77,17 +73,10 @@ trait InteractsWithTenantModules
 
             return $this->enabledModuleNames = new Collection;
         } finally {
-            // Both halves are required. purge() closes the PDO handle and drops
-            // it from the DatabaseManager's resolved-connection list; without
-            // it the connection stays open for the rest of the request even
-            // once its config is gone.
-            //
-            // The config entry has to be rewritten wholesale to actually
-            // disappear: `Config::set($key)` with no value — and
-            // `Config::offsetUnset($key)`, which is literally `set($key, null)`
-            // — both *write null into the key* rather than removing it, so the
-            // original one-argument call left a null connection definition
-            // behind on every invocation.
+            // Both halves are required to actually remove the connection.
+            // purge() closes the PDO handle; rewriting the parent array is
+            // the only way to delete a config key, since Config::set() with
+            // no value writes null into it rather than removing it.
             DB::purge($tenantConnName);
 
             $connections = Config::array('database.connections');

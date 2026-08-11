@@ -20,12 +20,9 @@ class RevenueChartWidget extends ChartWidget
     protected ?string $description = 'Estimated MRR from subscriptions active at the end of each month.';
 
     /**
-     * Real MRR trend, not a fabricated count-times-flat-rate figure — the
-     * previous implementation multiplied active-subscription count by a
-     * hardcoded 29 regardless of what any plan actually cost. Same
-     * yearly-divided-by-12 normalisation as BillingStatsWidget::monthlyRevenue()
-     * so a mixed-cycle book of business sums to a genuine MRR, not two
-     * incompatible units added together.
+     * The MRR trend, priced from each subscription's own plan. Yearly plans
+     * are divided by twelve, so a mixed-cycle book sums to a real monthly
+     * figure rather than two incompatible units added together.
      */
     #[Override]
     protected function getData(): array

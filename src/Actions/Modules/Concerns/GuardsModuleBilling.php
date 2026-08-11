@@ -11,17 +11,20 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Features;
 
 /**
- * See .claude/rules/module-marketplace.md — CancelModule was once missing
- * assertRunningInsideTenant(), which this trait exists to stop happening
- * again for any future module-billing action.
+ * The guards every module-billing action shares. Compose this into any new
+ * one.
+ *
+ * These actions take a tenant *and* read the ambient one; asserting they
+ * agree is what stops a charge landing on a different tenant than the one
+ * that was authorised.
  */
 trait GuardsModuleBilling
 {
     /**
-     * Programmer error, not a domain refusal — this must stay a
-     * LogicException so it escapes to the handler with full context rather
-     * than being caught by a UI `catch (ShowsMessageToUser $e)` block
-     * (.claude/rules/exception-handling.md).
+     * Asserts the action is running inside the tenant it was given.
+     *
+     * A `LogicException` on purpose: this is a programmer error, and must
+     * reach the exception handler rather than be caught and shown to a user.
      */
     protected function assertRunningInsideTenant(Tenant $tenant): void
     {
@@ -31,11 +34,9 @@ trait GuardsModuleBilling
     }
 
     /**
-     * A domain refusal with customer-facing copy — PurchaseModule only.
-     * CancelModule deliberately does not call this: it never gated on the
-     * modules feature at all, only on tenant identity, so disabling the
-     * module system does not block someone from cancelling a row they can
-     * still see through means other than the (now-hidden) UI.
+     * Asserts the module system is enabled. Guards purchasing only —
+     * cancelling stays available so a disabled module system cannot trap
+     * anyone in a subscription.
      */
     protected function assertModulesAvailable(): void
     {

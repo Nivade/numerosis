@@ -12,7 +12,13 @@ use Nvade\Numerosis\Models\Central\Tenant as CentralTenant;
 use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Contracts\Tenant;
 
-// See .claude/rules/tenant-provisioning.md.
+/**
+ * Marks a tenant ready: stamps `provisioned_at`, clears its pending row, and
+ * broadcasts {@see TenantProvisioned}.
+ *
+ * `provisioned_at` — not the existence of the tenant row — is what makes a
+ * tenant safe to link to, since the row exists well before its database does.
+ */
 class MarkTenantProvisioned
 {
     use AsAction;
@@ -23,8 +29,8 @@ class MarkTenantProvisioned
 
         Numerosis::model(PendingTenantProvision::class)::where('domain', $tenant->getTenantKey())->delete();
 
-        // "Provisioning finished" and "no chain in flight for this domain"
-        // are the same fact — see Fix 3 in .claude/rules/tenant-provisioning.md.
+        // "Provisioning finished" and "no provisioning chain in flight for
+        // this domain" are the same fact.
         Cache::lock("tenant-chain:{$tenant->getTenantKey()}")->forceRelease();
 
         if (! $tenant instanceof CentralTenant) {

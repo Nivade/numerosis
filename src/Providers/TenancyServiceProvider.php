@@ -69,11 +69,11 @@ class TenancyServiceProvider extends ServiceProvider
     public const TENANCY_IDENTIFICATION = \Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain::class;
 
     /**
-     * Jobs run, in order, when a tenant is created.
+     * The jobs that build a tenant's database, in order.
      *
-     * Overridable so the test bootstrap can swap the migrate + seed pair for a
-     * copy of a pre-built template database, which is the difference between
-     * ~1.9s and ~0.18s per tenant. Nothing in the application should change it.
+     * Replace this only from a test bootstrap — swapping migrate and seed for
+     * a copy of a prepared template database is worth roughly ten times the
+     * speed per tenant. Application code should leave it alone.
      *
      * @var list<class-string>
      */
@@ -167,28 +167,15 @@ class TenancyServiceProvider extends ServiceProvider
     }
 
     /**
-     * Without this, every request to a tenant subdomain pays a
-     * `whereHas('domains')` lookup (with `domains` eagerly loaded) against the
-     * central database before anything else runs — a two-query floor on the
-     * hot path for data that changes almost never. The cache is invalidated by
-     * `InvalidatesResolverCache` on {@see \Nvade\Numerosis\Models\Central\Tenant} and
-     * `InvalidatesTenantsResolverCache` on {@see \Nvade\Numerosis\Models\Central\Domain}.
+     * Caches the domain-to-tenant lookup, which every tenant request would
+     * otherwise pay against the central database before anything else runs.
+     * Invalidated whenever a tenant or domain changes.
      *
-     * The binding exists because `CachedTenantResolver::__construct()` resolves
-     * `cache` out of the container, and `CacheTenancyBootstrapper` swaps that
-     * binding for Stancl's tenant-aware manager, which forwards everything
-     * through `->tags(['tenant'.$key])`. A resolver constructed inside tenant
-     * context (a queue worker under `QueueTenancyBootstrapper`, a console
-     * command in tenant context) would therefore read and write a
-     * tenant-prefixed namespace, while `invalidateCache()` called from central
-     * context clears a different one — a domain change that intermittently
-     * appears not to take effect. Handing it a concrete `CacheManager`, built
-     * here and never swapped, pins the store to the central namespace.
-     *
-     * It is a singleton so that the resolver and both invalidation traits
-     * (which resolve `DomainTenantResolver` from the container themselves)
-     * share one repository instance. That also matters under
-     * `CACHE_STORE=array`, where a second manager means a second, empty store.
+     * Given a cache manager of its own rather than the container's, which
+     * becomes tenant-scoped inside tenant context — a resolver built there
+     * would write to one namespace while invalidation cleared another, so a
+     * domain change would appear not to take effect. Bound as a singleton so
+     * the resolver and its invalidators share one store.
      */
     protected function registerCachedDomainResolver(): void
     {
@@ -203,7 +190,6 @@ class TenancyServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->bootEvents();
-        //        $this->mapRoutes();
 
         $this->makeTenancyMiddlewareHighestPriority();
 

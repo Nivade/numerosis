@@ -10,9 +10,8 @@ use Spatie\LaravelData\Concerns\WireableData;
 use Spatie\LaravelData\Data;
 
 /**
- * The tenant-registration payload, persisted on the pending-provision row
- * (`PendingTenantProvision`). Stripe metadata only ever carries the domain —
- * see custom-checkout.md, "Consequence: Stripe metadata shrinks".
+ * What the user asked for at registration, persisted on the pending-provision
+ * row. Stripe metadata carries only the domain, which is enough to find this.
  */
 class TenantRegistrationData extends Data implements Wireable
 {

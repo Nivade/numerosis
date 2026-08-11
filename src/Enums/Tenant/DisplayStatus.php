@@ -5,14 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Enums\Tenant;
 
 /**
- * A user's presence status. Moved into core 2026-08-04 (Phase 10,
- * .claude/plans/opt-in-feature-classes.md) from Nvade\Chat\Enums\DisplayStatus
- * — presence is already core (last_seen_at, UpdateUserLastSeenMiddleware,
- * the 'online' broadcast channel), so the vocabulary describing it belongs
- * here regardless of whether the chat module is installed.
- * Nvade\Chat\Enums\DisplayStatus is now a class_alias for this enum (see
- * Nvade\Chat\Providers\ChatServiceProvider::register()) so the module's own
- * code and any external reference to the old name keep working unchanged.
+ * The presence status a user sets for themselves, alongside the online state
+ * derived from their activity.
  */
 enum DisplayStatus: string
 {

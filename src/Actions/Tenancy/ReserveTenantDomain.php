@@ -12,6 +12,10 @@ use Nvade\Numerosis\Exceptions\Tenancy\DomainAlreadyClaimed;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Support\Numerosis;
 
+/**
+ * Claims a domain for a user before they are sent to Stripe, so two people
+ * cannot pay for the same one. Re-running it for the same user is harmless.
+ */
 class ReserveTenantDomain
 {
     use AsAction;
@@ -19,8 +23,6 @@ class ReserveTenantDomain
     public function __construct(private readonly TenantDomainPolicy $domainPolicy) {}
 
     /**
-     * See .claude/rules/tenant-provisioning.md.
-     *
      * @throws DomainAlreadyClaimed
      */
     public function handle(TenantRegistrationData $registration): void

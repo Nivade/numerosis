@@ -27,11 +27,11 @@ use Nvade\Numerosis\Support\Numerosis;
 use Override;
 
 /**
- * No writes on render: the old SynchronizeModules::make()->handle() call on
- * every render is gone. What's shown is ModuleCatalog::available()
- * intersected with the modules installed on this node (InterNACHI\Modular's
- * Modules facade), left-joined against tenant `modules` rows. See
- * .claude/plans/module-marketplace.md, "Marketplace page".
+ * The module storefront for a tenant.
+ *
+ * Lists the available catalogue, narrowed to modules actually installed on
+ * this node, marked up with what the tenant already owns. Read-only: nothing
+ * is written when the page renders.
  */
 class Marketplace extends Page implements HasActions
 {

@@ -13,10 +13,11 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Stancl\Tenancy\Concerns\HasATenantsOption;
 
 /**
- * Runs a module's permission seeder inside each tenant. Permissions are
- * seeded rather than migrated (see .claude/plans/module-marketplace.md):
- * re-running this repairs a tenant without a migration rollback, and
- * granting a new permission doesn't need a new migration file.
+ * Runs a module's permission seeder inside each tenant.
+ *
+ * Module permissions are seeded rather than migrated, so re-running this
+ * repairs a tenant without a rollback, and adding a permission needs no new
+ * migration.
  */
 #[Description('Run a module\'s permission seeder for a tenant')]
 #[Signature('tenants:seed-module {module}')]

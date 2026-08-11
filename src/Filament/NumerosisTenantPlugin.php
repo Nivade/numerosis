@@ -46,29 +46,16 @@ use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 /**
- * The tenant panel's whole definition, in the package that owns every piece
- * of it. See {@see NumerosisAdminPlugin} for why this is a plugin rather than
- * something each host copies.
+ * The complete tenant panel: its resources, tenant-domain routing, guard and
+ * middleware stack.
  *
- * The tenant side is the one where copying was most dangerous, because the
- * middleware **order** here is load-bearing and nothing checks it:
- * identification must run first, `EnsureSessionMatchesTenant` must come after
- * `StartSession` (`.claude/rules/tenant-caching.md` — without it, one tenant's
- * session id authenticates a different person on the next tenant), and
- * `authGuard('tenant')` must be pinned because the ambient default guard
- * moves mid-request (`.claude/rules/auth-guards.md`). A host reordering that
- * list while copying it produces a cross-tenant identity leak, not an error.
+ * Compose it into a panel provider of your own to add resources or pages.
+ * Colours come from the theme rather than `->colors()`; override them through
+ * the custom properties in `tokens.css`.
  *
- * `->colors()` used to stay with the host for branding; it does not anymore
- * (design-system-unification Phase 4) — `->theme()` plus
- * {@see AppliesNumerosisPanelTheme} remap
- * Filament's colour vars from resources/css/tokens.css instead, sidestepping
- * `FilamentColor::register()`'s per-container memoisation (Phase 1 audit
- * §1.7) rather than fighting it. The optional `nvade/branding` app-module's
- * own per-tenant override is a separate mechanism (its `ApplyBranding`
- * middleware, thin-app-owned) and is untouched by this. What stays with the
- * host: the decision to register the panel at all.
- * {@see self::shouldRegisterPanel()}.
+ * If you replace {@see self::middleware()}, keep its order — see that
+ * method. Call {@see self::shouldRegisterPanel()} to decide whether to
+ * register the panel for the current request at all.
  */
 class NumerosisTenantPlugin implements Plugin
 {
@@ -86,23 +73,16 @@ class NumerosisTenantPlugin implements Plugin
     }
 
     /**
-     * Whether a host should register this panel for the current request.
+     * Whether to register this panel for the current request.
      *
-     * Two conditions, and the second is not an optimisation. This panel's
-     * `{tenant}.<domain>` pattern also matches the central host itself — the
-     * central subdomain fits `{tenant}` just as well as a real tenant id — so
-     * registering it on a central-domain request lets its `/` route steal the
-     * match from the central app's own `/` (`home`) route. That was tried and
-     * produced a 404 on the central domain instead of the homepage. Gating
-     * registration is what avoids the ambiguity rather than resolving it.
+     * Never on a central-domain request: the panel's `{tenant}.<domain>`
+     * pattern matches the central host too, so registering it there lets its
+     * `/` route win over the central app's homepage. Console commands are
+     * exempt, so `route:list`, queue workers and tests still see the panel.
      *
-     * Consequence worth knowing: no `filament.tenantAdmin.*` route exists
-     * during a central-domain request, which is why
-     * `Http\Controllers\Socialite\Login` builds its tenant-dashboard link off
-     * `route('home')` — see its own `tenantDashboardUrl()` docblock.
-     *
-     * `runningInConsole()` keeps the panel registered for route:list,
-     * queue workers and tests, none of which have a meaningful Host header.
+     * Worth knowing: no tenant-panel route exists during a central-domain
+     * request, so links into a tenant panel from central pages have to be
+     * built from the tenant's own URL rather than by route name.
      */
     public static function shouldRegisterPanel(): bool
     {
@@ -132,13 +112,6 @@ class NumerosisTenantPlugin implements Plugin
             ->discoverPages(in: $this->path('Pages'), for: 'Nvade\\Numerosis\\Filament\\TenantAdmin\\Pages')
             ->discoverClusters(in: $this->path('Clusters'), for: 'Nvade\\Numerosis\\Filament\\TenantAdmin\\Clusters')
             ->pages([
-                // ModulesMarketplace is not listed: it sits inside
-                // discoverPages()'s scan (Pages/Modules/Marketplace.php), so
-                // an explicit entry would be redundant and, if made
-                // conditional, misleading — discovery registers it regardless
-                // of array membership. The real gate is its own canAccess()
-                // and shouldRegisterNavigation(), both reading
-                // Features::enabled(ModuleSystemFeature::NAME).
                 Dashboard::class,
                 Billing::class,
             ])
@@ -172,11 +145,7 @@ class NumerosisTenantPlugin implements Plugin
             );
     }
 
-    /**
-     * Extracted so the view name can carry a `view-string` annotation —
-     * `view()` is typed `view-string|null` at level 9 and a bare literal
-     * inside a closure argument has nowhere to hang one.
-     */
+    /** The banner shown above panel content when payment needs attention. */
     protected function paymentStatusBanner(): string
     {
         /** @var view-string $view */
@@ -185,11 +154,6 @@ class NumerosisTenantPlugin implements Plugin
         $tenant = Filament::getTenant();
 
         return view($view, [
-            // Called as a method, not read as a property:
-            // Billable::latestSubscription() returns ?Subscription directly
-            // rather than a Relation, and Eloquent's magic property access
-            // always throws for a method that is not one — the
-            // @property-read annotation on Tenant is a lie.
             'subscription' => $tenant instanceof Tenant ? $tenant->latestSubscription() : null,
         ])->render();
     }
@@ -200,8 +164,10 @@ class NumerosisTenantPlugin implements Plugin
     }
 
     /**
-     * Order matters here more than anywhere else in this package; see the
-     * class docblock.
+     * The tenant panel's middleware stack. Its order is load-bearing and
+     * nothing validates it — tenant identification must run first, and
+     * `EnsureSessionMatchesTenant` must follow `StartSession`. Reordering
+     * either produces a cross-tenant identity leak rather than an error.
      *
      * @return list<class-string|string>
      */
@@ -209,23 +175,17 @@ class NumerosisTenantPlugin implements Plugin
     {
         return [
             TenancyServiceProvider::TENANCY_IDENTIFICATION,
-            // Belt-and-braces: shouldRegisterPanel() already stops these
-            // routes existing for a central-domain request. Kept in case a
-            // future change to that gate lets the panel register centrally
-            // again — without it a request sails past identification with no
-            // tenant found, and later middleware that assumes tenancy is
-            // initialized (UpdateUserLastSeenMiddleware) throws instead of
-            // 404ing.
+            // Second gate behind shouldRegisterPanel(). Keep it: without it,
+            // a central-domain request reaching these routes runs on past
+            // identification with no tenant, and later middleware that
+            // assumes one throws rather than 404ing.
             PreventAccessFromCentralDomains::class,
             EncryptCookies::class,
             AddQueuedCookiesToResponse::class,
             StartSession::class,
-            // Must follow StartSession: it forgets the tenant guard's session
-            // key when the session's recorded tenant changes. One session
-            // spans every tenant subdomain (SESSION_DOMAIN carries a leading
-            // dot) and SessionGuard stores nothing but a primary key, so
-            // without this the id written on tenant A authenticates whoever
-            // holds that id on tenant B. See .claude/rules/tenant-caching.md.
+            // One session spans every tenant subdomain, and the session
+            // stores only a user id — which means a different person on the
+            // next tenant. This forgets it when the tenant changes.
             EnsureSessionMatchesTenant::class,
             AuthenticateSession::class,
             ShareErrorsFromSession::class,
@@ -255,11 +215,8 @@ class NumerosisTenantPlugin implements Plugin
     }
 
     /**
-     * A module's Filament plugin, registered only when the current tenant has
-     * that module enabled, driven by the slug => plugin-class map in
-     * `config('numerosis.modules.plugins')`. Core holds no reference to any
-     * concrete module. {@see InteractsWithTenantModules} does not apply
-     * per-plugin — see its own docblock.
+     * Filament plugins belonging to modules the current tenant has enabled,
+     * from the slug => plugin-class map in `numerosis.modules.plugins`.
      *
      * @return list<ModulePlugin>
      */
@@ -283,7 +240,7 @@ class NumerosisTenantPlugin implements Plugin
         return $plugins;
     }
 
-    /** @see NumerosisAdminPlugin::path() — same reasoning. */
+    /** Absolute path to one of this panel's discovery directories. */
     protected function path(string $suffix): string
     {
         return __DIR__.'/TenantAdmin/'.$suffix;

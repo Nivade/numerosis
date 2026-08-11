@@ -14,10 +14,10 @@ use Stancl\Tenancy\Events\DatabaseMigrated;
 use Stancl\Tenancy\Events\MigratingDatabase;
 
 /**
- * Mirrors RollbackTenantModule's shape deliberately: `module:migrate`, the
- * command this used to call, does not exist in internachi/modular v3 (see
- * .claude/rules/billing-checkout.md and .claude/plans/module-marketplace.md).
- * The only path that works is core `migrate` given an explicit `--path`.
+ * Runs a module's tenant migrations inside each tenant.
+ *
+ * Enabling a module for a tenant queues this automatically; run it by hand
+ * to repair a tenant whose module migrations never completed.
  */
 #[Description('Run migrations for a tenant module')]
 #[Signature('tenants:migrate-module {module}')]

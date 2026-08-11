@@ -11,11 +11,8 @@ use Nvade\Numerosis\Notifications\InvitationSent;
 use Nvade\Numerosis\Support\Features;
 
 /**
- * Auto-discovered by Laravel's event discovery, so InvitationsFeature cannot
- * un-discover it — the listener stays registered and resolved regardless of
- * the feature toggle. The early return below is the named exception to
- * "a disabled feature must load nothing" (Ground rules,
- * .claude/plans/opt-in-feature-classes.md): this is deliberate, not a gap.
+ * Sends the invitation email. Always registered, and checks the invitations
+ * feature itself before sending.
  */
 class SendInvitationNotification
 {

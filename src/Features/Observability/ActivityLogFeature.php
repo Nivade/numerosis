@@ -7,22 +7,11 @@ namespace Nvade\Numerosis\Features\Observability;
 use Nvade\Numerosis\Contracts\NamedFeature;
 
 /**
- * The audit-log surface: AlizHarb\ActivityLog\ActivityLogPlugin in the tenant
- * panel and Nvade\Numerosis\Filament\TenantAdmin\Resources\Activities on top of it.
- * Removing this class from config('numerosis.features') stops the panel
- * registering the plugin and hides the resource — a third-party audit-log
- * package is not something every consumer wants forced on them.
+ * The audit-log UI in the tenant panel.
  *
- * bootstrap() is empty for the same reason ModuleSystemFeature's is: the
- * panel provider asks at boot, the resource asks at call time, and neither
- * needs a registration performed from here. Presence in the array is the
- * toggle.
- *
- * Disabling does not stop spatie/laravel-activitylog from *writing* — models
- * composing LogsActivity keep recording, and existing `activity_log` rows
- * are untouched. This removes the UI, not the audit trail. Stopping the
- * writes is a separate decision, and a destructive one for compliance-shaped
- * deployments.
+ * Remove it from `numerosis.features` to hide it. Activity is still
+ * recorded and existing rows are untouched — this removes the interface, not
+ * the audit trail.
  */
 class ActivityLogFeature implements NamedFeature
 {
@@ -35,6 +24,6 @@ class ActivityLogFeature implements NamedFeature
 
     public function bootstrap(): void
     {
-        // Nothing to register — see the class docblock.
+        // Nothing to register: this feature is read at call time.
     }
 }

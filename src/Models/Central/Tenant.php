@@ -77,11 +77,7 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
     /** @use HasFactory<TenantFactory> */
     use HasFactory;
 
-    /**
-     * Invalidates DomainTenantResolver's cache (see
-     * TenancyServiceProvider::register()) when a domain is renamed off of
-     * this tenant or the tenant is deleted.
-     */
+    /** Clears the cached domain lookup when a domain or tenant changes. */
     use InvalidatesResolverCache;
 
     /** @var list<string> */
@@ -99,20 +95,17 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
     }
 
     /**
-     * Every attribute not listed here is folded into the `data` JSON column by
-     * {@see \Stancl\VirtualColumn\VirtualColumn}, whose default is `['id']`
-     * alone. The billing columns and `provisioned_at` are real columns, so
-     * leaving them out wrote them to `data` and left the columns NULL — which
-     * silently breaks every SQL-level read of them (`whereNotNull('provisioned_at')`,
-     * Cashier's `stripe_id` lookups, the webhook's customer resolution), even
-     * though `$tenant->provisioned_at` still reads back fine off the model.
+     * The attributes stored in real columns. Everything else is folded into
+     * the `data` JSON column.
      *
-     * `name` is deliberately absent: there is no `name` column, so it belongs
-     * in `data`.
+     * Adding a column to the tenants table is only half the job: name it here
+     * too, via {@see Numerosis::addTenantColumns()}, or it is written to
+     * `data` and the column stays NULL. The model still reads the value back
+     * correctly, so the failure only shows up in SQL — a `where` on that
+     * column matching nothing, or a join finding no rows.
      *
-     * `addTenantColumns()` must be called from a service provider's `register()`,
-     * before any tenant model boots or saves. A late call silently folds the
-     * column into the `data` JSON blob — the exact bug this API prevents.
+     * Register additions from a service provider's `register()`, before any
+     * tenant is loaded or saved.
      *
      * @return list<string>
      */
@@ -169,15 +162,12 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
      */
     public function members(): BelongsToMany
     {
-        return $this->users(); // Alias for better readability
+        return $this->users();
     }
 
-    /**
-     * Get the tenant owner (the user who created/owns the subscription).
-     */
+    /** The user who created this tenant and owns its subscription. */
     public function owner(): ?CentralUser
     {
-        // Get the first membership with 'owner' role
         $membership = $this->users()
             ->wherePivot('role', 'owner')
             ->first();
@@ -199,11 +189,8 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
 
     public function latestInvoice(): ?Invoice
     {
-        // Called as a method, never as $this->latestSubscription: it returns
-        // ?Subscription rather than a Relation, so Eloquent's magic property
-        // access throws LogicException for it. The @property-read that used
-        // to advertise otherwise is gone for the same reason — it was what
-        // stopped PHPStan seeing this.
+        // latestSubscription() is a method, not a relation — reading it as a
+        // property throws.
         return $this->latestSubscription()?->latestInvoice([
             'download' => true,
         ]);
@@ -219,11 +206,11 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
     }
 
     /**
-     * Get the email address that should be associated with the Stripe customer.
+     * The owner's email, which is what identifies this tenant's customer in
+     * the Stripe dashboard.
      */
     public function stripeEmail(): ?string
     {
-        // Get the owner's email for Stripe dashboard identification
         return $this->owner()?->email;
     }
 

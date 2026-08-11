@@ -16,7 +16,15 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Throwable;
 
-// See .claude/rules/tenant-provisioning.md.
+/**
+ * Provisions a tenant: creates the tenant row synchronously, then runs the
+ * database, ownership, subscription and finalization work as a queued chain
+ * on the `provisioning` queue.
+ *
+ * Reach it through {@see ProvisionsTenant::queue()} rather than dispatching
+ * it directly. Add your own steps via `numerosis.tenancy.provisioning.steps`;
+ * every step must be idempotent, since the chain can be retried.
+ */
 class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
 {
     use AsAction;
@@ -61,11 +69,10 @@ class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * Chains the rest of provisioning as real queued jobs on the
-     * `provisioning` queue, guarded by a non-blocking per-domain lock —
-     * see Fix 3 in .claude/rules/tenant-provisioning.md for why
-     * `ShouldBeUnique` alone is not enough once this job itself returns in
-     * milliseconds.
+     * Queues the rest of provisioning, under a per-domain lock held for the
+     * whole chain. `ShouldBeUnique` cannot serve here: it only covers this
+     * job, which returns as soon as the chain is dispatched, leaving the
+     * checkout redirect and the Stripe webhook free to start a second one.
      */
     private function dispatchProvisioningChain(Tenant $tenant, TenantProvisionData $data): void
     {
@@ -92,10 +99,9 @@ class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * Gated on the whole `TenancyServiceProvider::$tenantCreatedJobs`
-     * segment at once, not per job — see Fix 2 in
-     * .claude/rules/tenant-provisioning.md. Per-job gating would re-run a
-     * seed step against an already-populated database on retry.
+     * The database-creation jobs, included only when the tenant database does
+     * not exist yet — all of them or none, since gating them individually
+     * would re-seed a database that is already populated.
      *
      * @return array<int, ShouldQueue>
      */

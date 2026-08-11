@@ -13,7 +13,13 @@ use Nvade\Numerosis\Http\Requests\Billing\StartCheckoutRequest;
 use Nvade\Numerosis\Services\Billing\Checkout\LocalCheckoutGateway;
 use Nvade\Numerosis\Services\Billing\Checkout\RedirectResponsable;
 
-// See .claude/rules/billing-checkout.md.
+/**
+ * Provisions a tenant locally without taking payment, for development.
+ *
+ * Takes the same path as a paid checkout — same pending row, same queued
+ * provisioning — so the shortcut exercises production's code rather than a
+ * parallel one. Its route is only registered in a local environment.
+ */
 class StartLocalCheckout
 {
     use AsAction;

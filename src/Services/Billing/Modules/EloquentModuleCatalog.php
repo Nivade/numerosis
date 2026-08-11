@@ -13,13 +13,12 @@ use Nvade\Numerosis\Support\Cache\CacheKeys;
 class EloquentModuleCatalog implements ModuleCatalog
 {
     /**
-     * Scoped to available modules on purpose. Every purchase path resolves
-     * its module through here from a client-supplied slug, and existence is
-     * not availability — see
-     * {@see \Nvade\Numerosis\Services\Billing\Plans\EloquentPaymentPlanRepository::findBySlug()}
-     * and `.claude/rules/billing-checkout.md` for the exact class of bug this
-     * closes. Use {@see findAnyBySlug()} for admin/reporting paths that must
-     * still see retired modules.
+     * Finds an *available* module by slug. Every purchase path resolves a
+     * client-supplied slug through here, so a retired module must not be
+     * reachable — existence is not availability.
+     *
+     * Use {@see findAnyBySlug()} for admin and reporting screens that have to
+     * describe retired modules too.
      */
     public function findBySlug(string $slug): ?ModuleOffer
     {

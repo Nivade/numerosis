@@ -108,13 +108,10 @@ class Registration extends WizardComponent
     }
 
     /**
-     * Everything in allStepState except Plan's Stripe secrets and
-     * request-local UI flags. Those never belong in the session: after
-     * Part 1 of this plan, the embedded Checkout component re-derives them
-     * from the pending_tenant_provisions row via ResumeCheckout, so a
-     * session-stored client secret would only ever be stale. Matches the
-     * "no session carrier means no tamper surface" principle in
-     * .claude/plans/custom-checkout.md.
+     * The wizard state worth persisting: everything except Stripe secrets and
+     * request-local UI flags. Checkout re-derives those from the pending
+     * provision row, so a session copy would only ever be stale — and one
+     * fewer thing in the session is one fewer thing to tamper with.
      *
      * @return array<string, array<string, mixed>>
      */

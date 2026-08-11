@@ -13,31 +13,13 @@ use Illuminate\Validation\ValidationException;
 /**
  * Per-identifier-and-IP throttling for a login component.
  *
- * Originally duplicated byte-identically across two login surfaces — the
- * password-based `Nvade\Numerosis\Livewire\Auth\Login` (dead code, deleted 2026-08-04;
- * see .claude/rules/auth-login.md) and `Nvade\Numerosis\Livewire\Auth\PasswordlessLogin`
- * — differing only in a `(string)` cast. That is the same shape as the
- * drift .claude/rules/auth-login.md records twice over — turnstile added to
- * one login surface and not the other, then the OTP check itself — and the
- * reason it matters here specifically is that `PasswordlessLogin` needed
- * this to *verify* codes, not merely to send them: the parent
- * `OneTimePasswordComponent::rateLimitHit()` throttles `sendCode()` alone,
- * leaving a six-digit code guessable at request speed. A helper that exists
- * but has no caller reads as protection and is not — check for a caller
- * before assuming the limit is live.
+ * Throttle code *verification*, not just code sending. Sending is already
+ * limited upstream; without this, a six-digit code is guessable at request
+ * speed.
  */
 trait ThrottlesLoginAttempts
 {
-    /**
-     * The value the limiter keys on alongside the request IP.
-     *
-     * Kept abstract rather than reading `$this->email` directly because the
-     * only remaining consumer, `PasswordlessLogin`, inherits a `?string`
-     * property from the package's own component — a trait cannot paper over
-     * a nullable/non-nullable mismatch without hiding it, and the previous
-     * (now-deleted) consumer typed it `string`, which is exactly the
-     * mismatch this abstraction existed to isolate.
-     */
+    /** The value the limiter keys on alongside the request IP. */
     abstract protected function throttleIdentifier(): string;
 
     /**
@@ -74,14 +56,9 @@ trait ThrottlesLoginAttempts
     /**
      * Record a failed attempt against the limiter.
      *
-     * Deliberately *not* named `hitRateLimiter()`/`clearRateLimiter()`:
-     * `DanHarrin\LivewireRateLimiting\WithRateLimiting` declares both names
-     * with different signatures, and any Filament page composing that
-     * trait — the deleted password-based `Login` page was one, see
-     * .claude/rules/auth-login.md — would have that limiter silently
-     * overridden by reusing either name. General rule, not specific to a
-     * consumer that no longer exists: grep a page's parent chain for a name
-     * before adding a method to a concern it composes.
+     * Named to avoid `hitRateLimiter()`/`clearRateLimiter()`, which Filament's
+     * own login pages already declare with different signatures — a trait
+     * reusing either name silently overrides theirs rather than colliding.
      */
     protected function hitLoginThrottle(): void
     {
@@ -96,9 +73,6 @@ trait ThrottlesLoginAttempts
         RateLimiter::clear($this->throttleKey());
     }
 
-    /**
-     * Get the authentication rate limiting throttle key.
-     */
     protected function throttleKey(): string
     {
         return Str::transliterate(Str::lower($this->throttleIdentifier()).'|'.request()->ip());

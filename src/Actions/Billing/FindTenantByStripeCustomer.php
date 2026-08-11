@@ -9,7 +9,10 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * See .claude/rules/billing-checkout.md.
+ * Resolves a Stripe customer id to a tenant, or null.
+ *
+ * Both tenants and central users are billable, so Cashier's own lookup cannot
+ * answer "which tenant is this?" on its own.
  *
  * @method static ?Tenant run(?string $customerId)
  */

@@ -12,7 +12,11 @@ use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\Tenant;
 
-// See .claude/rules/tenant-provisioning.md.
+/**
+ * Attaches the Stripe subscription paid for at checkout to the tenant it
+ * created. Runs as a provisioning step, and does nothing when the tenant was
+ * created without a subscription.
+ */
 class LinkTenantSubscription implements ShouldQueue
 {
     use AsAction;

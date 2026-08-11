@@ -18,7 +18,14 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 
 /**
- * See .claude/rules/billing-checkout.md.
+ * Creates the Stripe subscription for a checkout.
+ *
+ * Takes an explicit billable for callers with no session of their own — the
+ * Stripe webhook, in particular. Everyone else resolves it from the request.
+ *
+ * On an incomplete payment, the subscription id is recorded before the
+ * exception propagates, so a replay cannot create a second subscription
+ * while the challenge is still pending.
  *
  * @throws IncompletePayment
  *
@@ -59,7 +66,6 @@ class CreateInlineSubscription
         $stripeSubscription = $billable->newSubscription('default', $priceId)
             ->withMetadata(['domain' => $pending->domain]);
 
-        // See .claude/rules/static-analysis.md re: treatPhpDocTypesAsCertain.
         $additionalPrices = $plan->metadata()['additional_prices'] ?? [];
 
         if (is_array($additionalPrices)) {

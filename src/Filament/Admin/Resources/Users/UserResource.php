@@ -19,15 +19,11 @@ use Nvade\Numerosis\Support\Numerosis;
 use Override;
 
 /**
- * Every registered person — every tenant owner and member, not internal
- * staff — since {@see User} is created
- * only through the passwordless registration/login flow
- * (.claude/rules/auth-login.md), never through this panel. Its purpose here
- * is granting admin-panel roles to an existing person and reviewing who has
- * them, not provisioning new identities — which is why {@see getPages()}
- * carries no 'create', and why there is no delete: removing a row needs to
- * account for tenants that person owns and memberships they hold, not a
- * blanket action a table row supports safely.
+ * Every registered person — tenant owners and members, not internal staff.
+ *
+ * For granting admin-panel roles and reviewing who holds them. Deliberately
+ * offers neither create nor delete: accounts are created by registration,
+ * and removing one has to account for the tenants that person owns.
  */
 class UserResource extends Resource
 {

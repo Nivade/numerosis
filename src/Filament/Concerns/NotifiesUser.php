@@ -8,23 +8,15 @@ use Filament\Notifications\Notification;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 
 /**
- * The three Filament notifications this app actually sends.
+ * The success, warning and error notifications the panels send.
  *
- * Roughly twenty hand-built `Notification::make()` chains existed across the
- * panel pages, resources and the module traits, and the error variant was the
- * same five lines every time. Collapsing them matters less for the line count
- * than for {@see notifyDomainError()}: that method is typed against
- * {@see ShowsMessageToUser}, which is the only exception type allowed to reach
- * a user verbatim (.claude/rules/exception-handling.md). Every call site used
- * to re-state that rule in its own `catch`, so getting it right depended on
- * each author remembering it. Now the signature enforces it — a `Throwable`
- * will not type-check, so an unexpected error cannot leak a SQL fragment or
- * Stripe internals into the browser.
+ * Use {@see self::notifyDomainError()} for anything reporting an exception.
+ * It accepts only {@see ShowsMessageToUser}, the one exception type whose
+ * message is written for a user — so an unexpected error cannot leak a SQL
+ * fragment or Stripe internals into the browser.
  *
- * The methods are `static` because roughly half the call sites are inside
- * Filament's static `Resource::table()` closures, where there is no `$this`.
- * None of them touch instance state, and PHP allows `$this->notifySuccess(…)`
- * on a static method, so page classes read unchanged.
+ * Static, so they can be called from Filament's static resource closures as
+ * well as from pages.
  */
 trait NotifiesUser
 {

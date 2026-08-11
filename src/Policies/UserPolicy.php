@@ -19,17 +19,12 @@ class UserPolicy
     }
 
     /**
-     * A user may always read their own record.
+     * A user may always read their own record; otherwise `viewAny users`
+     * applies, since being allowed to list users implies being allowed to
+     * read any row in that list.
      *
-     * `viewAny users` — not `view users` — is the blanket permission here,
-     * because being allowed to list users is what implies being allowed to read
-     * any row in that list.
-     *
-     * `is()` rather than an `id` comparison: ids are per-database integers, so
-     * `$user->id === $model->id` is also true for a `CentralUser` and an
-     * unrelated `Tenant\User` that happen to share a primary key. `is()`
-     * compares the model class, table and connection too. Same family of bug as
-     * the cross-tenant cache leak in .claude/rules/tenant-caching.md.
+     * Identity is compared with `is()`, never by id. Ids are per-database
+     * integers, so an unrelated central and tenant user can share one.
      */
     public function view(User $user, User $model): bool
     {

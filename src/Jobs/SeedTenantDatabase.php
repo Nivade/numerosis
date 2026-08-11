@@ -25,28 +25,9 @@ class SeedTenantDatabase implements ShouldQueue
     public function __construct(protected TenantWithDatabase $tenant) {}
 
     /**
-     * `Stancl\Tenancy\Commands\Seed` ("tenants:seed") is unusable: it
-     * inherits `Illuminate\Database\Console\Seeds\SeedCommand`'s
-     * `$signature` without overriding it, so
-     * `Illuminate\Console\Command::__construct()` takes the fluent-signature
-     * branch and calls `setName()` from that inherited signature — the
-     * command actually registers as `db:seed`, not `tenants:seed`, and its
-     * `--tenants` option (added by `HasATenantsOption`) never reaches the
-     * input definition either, since that trait's own `__construct()` (the
-     * one that calls `specifyParameters()`) is shadowed by `Commands\Seed`'s
-     * own constructor override. `Artisan::call('tenants:seed', ...)` always
-     * threw `CommandNotFoundException`, and `Artisan::call('db:seed', ...)`
-     * (the name it actually registers under, because the console app
-     * resolves the collision in this package's favour) throws
-     * `InvalidOptionException` on `--tenants` the moment `Commands\Seed::handle()`
-     * calls `$this->option('tenants')`. Every previous "0 failed" measurement
-     * of this suite ran against a MySQL volume where `tenantphpunittemplate`
-     * already existed from an older session, so `Tests\Support\CloneTenantSchema`
-     * never actually rebuilt it and this path never ran — see
-     * .claude/plans/package-extraction.md, step 5. Runs the seeder directly
-     * instead, bypassing the broken command entirely; `Model::unguarded()`
-     * and `setContainer()` replicate what `SeedCommand::handle()` does for a
-     * seeder resolved this way.
+     * Invokes the tenant seeder directly rather than through `tenants:seed`,
+     * which does not work: with stancl/tenancy installed, that command
+     * registers under the wrong name and drops its own `--tenants` option.
      */
     public function handle(): void
     {
@@ -66,9 +47,9 @@ class SeedTenantDatabase implements ShouldQueue
     }
 
     /**
-     * An un-seeded tenant database has no roles or permissions, so leaving
-     * this silent would strand the tenant on the "still provisioning"
-     * spinner forever — see .claude/rules/tenant-provisioning.md.
+     * Marks the provision failed. An unseeded tenant database has no roles or
+     * permissions, and failing silently would leave the tenant on the "still
+     * provisioning" spinner forever.
      */
     public function failed(Throwable $e): void
     {

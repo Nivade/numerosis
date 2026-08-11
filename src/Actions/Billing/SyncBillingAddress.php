@@ -12,7 +12,12 @@ use Nvade\Numerosis\Support\Billing\TaxIdType;
 use Stripe\PaymentMethod;
 
 /**
- * See .claude/rules/billing-checkout.md.
+ * Copies the billing address collected at checkout onto the Stripe customer,
+ * with an optional VAT number.
+ *
+ * The Stripe customer is the source of truth for billing address; nothing is
+ * stored locally. A Stripe outage surfaces to the customer as checkout copy
+ * rather than a 500.
  *
  * @method static void run(CentralUser $billable, PaymentMethod $paymentMethod, ?string $vatNumber = null)
  */

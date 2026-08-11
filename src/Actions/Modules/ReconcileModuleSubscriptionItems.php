@@ -12,7 +12,13 @@ use Nvade\Numerosis\Support\Numerosis;
 use PDOException;
 use Stancl\Tenancy\Contracts\Tenant as TenantContract;
 
-// See .claude/rules/module-marketplace.md.
+/**
+ * Disables modules whose Stripe subscription item is gone, from a
+ * subscription-updated webhook.
+ *
+ * Only ever disables. Re-adding a price in Stripe's portal does not
+ * re-enable a module — purchasing is the only path that does.
+ */
 class ReconcileModuleSubscriptionItems
 {
     use AsAction;
@@ -28,7 +34,10 @@ class ReconcileModuleSubscriptionItems
             return;
         }
 
-        // Not $tenant->run() — see .claude/rules/module-marketplace.md.
+        // Tenancy is entered and reverted by hand rather than through
+        // $tenant->run(), which offers no guarantee of reverting if the
+        // callback throws — likely here, since a webhook can arrive before
+        // the tenant database exists.
         /** @var TenantContract|null $originalTenant */
         $originalTenant = tenant();
 

@@ -11,21 +11,16 @@ use SocialiteProviders\Discord\Provider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 
 /**
- * The whole OAuth surface: the oauth/oauth.callback routes, the button grid,
- * the connected-accounts manager, and the two SocialAccount* listeners.
- * Remove this class from config('numerosis.features') and a deployment has no
- * social login at all — no routes, no buttons, no listeners. The
- * socialite_logins table and any rows in it are untouched; disabling stops new
- * connections and hides the UI, it does not delete history.
+ * The whole OAuth surface: routes, provider buttons, and the connected-
+ * accounts manager.
  *
- * Discord is not a Socialite core driver — it needs the
- * socialiteproviders/discord package registered against SocialiteWasCalled.
- * That registration lives in bootstrap() here rather than as its own feature,
- * gated on credentials being present (config('services.discord.client_id')) —
- * same test Nvade\Numerosis\Support\Social\ConfiguredProviders applies to decide whether
- * to render the button. Google, GitHub, GitLab and Facebook are core drivers
- * and need no registration at all: credentials in config/services.php plus a
- * metadata entry in config('numerosis.social.providers') is the whole opt-in.
+ * Remove it from `numerosis.features` for no social login at all. Existing
+ * connections are untouched — this stops new ones and hides the UI.
+ *
+ * Enabling a provider means credentials in `config/services.php` plus an
+ * entry in `numerosis.social.providers`. Google, GitHub, GitLab and Facebook
+ * need nothing more; Discord's driver is registered here, since Socialite
+ * does not ship one.
  */
 class SocialLoginFeature implements NamedFeature
 {

@@ -8,27 +8,12 @@ use Nvade\Numerosis\Contracts\NamedFeature;
 use RyanChandler\LaravelCloudflareTurnstile\Rules\Turnstile as TurnstileRule;
 
 /**
- * The single on/off switch for Turnstile. `<x-numerosis::turnstile-field>` and
- * `<x-numerosis::turnstile-scripts>` (resources/views/components/) are always
- * discoverable Blade components — they never fail to resolve — but both
- * render nothing unless `self::isEnabled()` is true, so a Livewire form
- * referencing `<x-numerosis::turnstile-field />` unconditionally never breaks
- * regardless of whether this feature is wired up.
+ * Cloudflare Turnstile: the markup, the script tag and the validation rule
+ * together. Remove it from `numerosis.features` to drop all three.
  *
- * `isEnabled()` is just "was `bootstrap()` called" — and that only happens
- * if this class is listed in `config('numerosis.features')`. Presence in
- * that array *is* the toggle; there is no separate enabled/disabled flag.
- * Comment this class out there to remove Turnstile from the app entirely —
- * markup, validation and script tag together. Cloudflare credentials
- * (`key`/`secret`) stay in `config('services.turnstile')`.
- *
- * `$bootstrapped` is a plain static, not container-scoped, so — same
- * process-wide-static caveat `.claude/rules/testing.md` already documents
- * for `Tenant::unsetEventDispatcher()` — it is set once per PHP process and
- * survives every later test's fresh Application boot. `forceForTesting()`
- * exists so a test can still assert "disabled" behaviour without a config
- * flag to flip; call it with `null` in `tearDown()`/at the end of the test
- * to stop it leaking into whichever test runs next.
+ * `<x-numerosis::turnstile-field />` always resolves and simply renders
+ * nothing when this is off, so a form may reference it unconditionally.
+ * Credentials stay in `config('services.turnstile')`.
  */
 class TurnstileFeature implements NamedFeature
 {
@@ -53,6 +38,10 @@ class TurnstileFeature implements NamedFeature
         return self::$forcedForTesting ?? self::$bootstrapped;
     }
 
+    /**
+     * Override the switch in a test. Pass null in teardown to restore it —
+     * this is process-wide and otherwise leaks into the next test.
+     */
     public static function forceForTesting(?bool $enabled): void
     {
         self::$forcedForTesting = $enabled;

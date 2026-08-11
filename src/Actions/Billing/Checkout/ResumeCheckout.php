@@ -15,7 +15,10 @@ use Nvade\Numerosis\Support\Numerosis;
 use Stripe\Exception\ApiErrorException;
 
 /**
- * See .claude/rules/billing-checkout.md.
+ * Reopens a checkout against its stored SetupIntent, so a refresh or a
+ * direct visit to `/checkout/{domain}` resumes rather than starting over.
+ *
+ * Ownership is checked the same way {@see ResolveSetupIntent} checks it.
  *
  * @method static ResumedCheckout run(string $domain)
  */

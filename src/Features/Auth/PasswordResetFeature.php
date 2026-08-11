@@ -7,20 +7,12 @@ namespace Nvade\Numerosis\Features\Auth;
 use Nvade\Numerosis\Contracts\NamedFeature;
 
 /**
- * Password reset: forgot-password / reset-password routes and
- * settings/password. Login itself is passwordless (one-time codes), so this
- * is a secondary surface — a deployment that only ever issues OTP codes can
- * turn it off entirely. Remove this class from config('numerosis.features')
- * and a deployment has no way to set or recover a password.
+ * Password reset: the forgot- and reset-password routes and the password
+ * settings page.
  *
- * Does NOT cover password.confirm (routes/tenant.php) — that route backs
- * Filament's own sensitive-action confirmation flow, a different concern
- * from resetting a forgotten password, and needs its own investigation
- * before being folded into this switch.
- *
- * bootstrap() is empty — routes and the two call sites that build a
- * password-reset link (UserResource's "Send Password Reset" action, the
- * settings nav item) ask Features::enabled() at call/render time.
+ * Login is passwordless, so this is a secondary surface — turn it off and
+ * there is no way to set or recover a password. Password *confirmation* for
+ * sensitive actions is separate and stays available.
  */
 class PasswordResetFeature implements NamedFeature
 {
@@ -33,6 +25,6 @@ class PasswordResetFeature implements NamedFeature
 
     public function bootstrap(): void
     {
-        // Nothing to register — see the class docblock.
+        // Nothing to register: this feature is read at call time.
     }
 }

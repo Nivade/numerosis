@@ -17,45 +17,18 @@ use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
 use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
 
 /**
- * Boot-time config normalization: fills in every host config key this
- * package needs, but only when the host hasn't set one itself or is still
- * carrying an upstream package's stock default that predates this one's
- * needs. "Host hasn't set one itself" is judged against that stock value,
- * not against null — several of these keys (Laravel's own `auth.php`,
- * stancl's merged `tenancy.php`) always resolve to *something*, so a host
- * that changed nothing still reads as "set."
+ * Fills in the config this package needs, so an app only has to supply
+ * ordinary Laravel database credentials to get a working install.
  *
- * Called from a `booting()` callback registered first thing in
- * `NumerosisServiceProvider::packageRegistered()` — **not** inline during
- * `register()` the way the three Livewire/filesystem defaults in that same
- * method are (those touch Livewire's own config, which
- * `LivewireServiceProvider::boot()` reads eagerly, so they must land before
- * *any* provider's `boot()` runs, `register()` is the only phase early
- * enough for that regardless of discovery order). This class does not have
- * that constraint, and running during `register()` used to be actively
- * wrong for it: `Stancl\Tenancy\TenancyServiceProvider::register()`'s own
- * `mergeConfigFrom('tenancy')` frequently hadn't run yet (provider
- * registration order across auto-discovered packages isn't this package's
- * to control), so a dotted `Config::set('tenancy.database.central_connection',
- * …)` landing on a `tenancy.database` that wasn't an array yet made
- * `Arr::set()` replace it wholesale — discarding `prefix`/`suffix`/
- * `managers` the moment stancl's later merge saw an *existing* `database`
- * key and kept it instead of its own richer stock array. `booting()`
- * callbacks run once every provider has finished `register()` (stancl's
- * included) and before any provider's `boot()` starts, which is early
- * enough for everything below and immune to that race. `config('numerosis.*')`
- * is already merged with any host override by the time this runs either
- * way — `PackageServiceProvider::register()` calls `registerPackageConfigs()`
- * before `packageRegistered()`, and `packageRegistered()` itself completes,
- * booting callbacks included, before `packageBooted()` — so entries here may
- * read it directly regardless.
+ * Nothing here overrides a deliberate choice. Each key is only written when
+ * it is unset or still holds the stock value shipped by Laravel or
+ * stancl/tenancy — several of those never resolve to null, so "untouched"
+ * has to be judged against the stock value rather than against null.
+ * Anything you set yourself is left alone.
  *
- * Every private method below follows one rule: set the key only when
- * changing it would actually change something, and record every key it
- * touched into `$applied` — `numerosis:install` surfaces that list so a host
- * knows what got configured for them rather than having to diff against
- * every default by hand. Idempotent by construction: a second `apply()`
- * against already-normalized config touches nothing and reports nothing.
+ * Every key actually written is recorded and reported by `numerosis:install`,
+ * so you can see what was configured for you without diffing defaults by
+ * hand. Running twice changes nothing the second time.
  */
 final class HostConfig
 {
@@ -87,8 +60,7 @@ final class HostConfig
     }
 
     /**
-     * Config keys `apply()` actually changed on its most recent run — a
-     * key set to the value it already had is not "applied."
+     * Config keys the most recent {@see self::apply()} actually changed.
      *
      * @return list<string>
      */
@@ -104,14 +76,8 @@ final class HostConfig
     }
 
     /**
-     * `tenant_model`/`domain_model` are stancl's own keys — a host that
-     * hasn't published `config/tenancy.php` (or published it and left these
-     * untouched) still reads stancl's stock class here, not null.
-     * `central_user_model`/`tenant_user_model` are this package's own
-     * invented keys with no stancl stock value, so "unset" is the only
-     * stale state for them. See `.claude/rules/tenant-provisioning.md` (the
-     * non-fillable `id` trap) for why an unresolvable `tenant_model` fails
-     * silently rather than loudly — this is what stops that.
+     * Points tenancy at this package's tenant, domain and user models.
+     * Left alone once any of them names a class of your own.
      */
     private static function tenancyModels(): void
     {
@@ -132,22 +98,10 @@ final class HostConfig
     }
 
     /**
-     * `Numerosis::routes()` registers one central route group per entry
-     * here — an empty list 404s every central URL with no route registered
-     * at all. `numerosis.domains.central` is already this same value
-     * (derived from `APP_URL`, overridable via `NUMEROSIS_CENTRAL_DOMAIN`),
-     * so this reuses it rather than re-deriving it a second way.
-     *
-     * Stancl's own stock default is **not** an empty array — it's
-     * `['127.0.0.1', 'localhost']` — so a bare `$domains !== []` guard treats
-     * an untouched host as "already configured" and never applies this at
-     * all. `tests/Feature/FreshHostTest.php` caught this: `/login` matched a
-     * route domain-scoped to `127.0.0.1`/`localhost` instead of the real
-     * `APP_URL`-derived host, on every fresh host, silently, since every
-     * other test in this suite (and thin-app's published `config/
-     * tenancy.php`) always overrides this key explicitly and never exercised
-     * the stock default. Checked the same way `tenancyModels()` above checks
-     * its own stancl stock values.
+     * Derives the central domain from `APP_URL` (override with
+     * `NUMEROSIS_CENTRAL_DOMAIN`). Central routes are bound per hostname
+     * listed here, so leaving stancl's stock `127.0.0.1`/`localhost` in
+     * place would scope every central URL to the wrong host.
      */
     private static function centralDomains(): void
     {
@@ -167,12 +121,11 @@ final class HostConfig
     }
 
     /**
-     * `AuthGuardBootstrapper` is the entire enforcement mechanism for
-     * "central domain = central guard, inside tenant = tenant guard" (see
-     * `.claude/rules/auth-guards.md`); `SpatiePermissionsBootstrapper`
-     * keeps Spatie's guard resolution correct under tenancy. Appended, not
-     * replaced — a host's own bootstrapper list (stancl's stock four, or a
-     * host's customised list) keeps whatever it already has.
+     * Appends the two bootstrappers this package relies on:
+     * `AuthGuardBootstrapper` switches the default guard to match the
+     * current context, and `SpatiePermissionsBootstrapper` keeps role and
+     * permission lookups pointed at the right database. Your own
+     * bootstrappers are kept.
      */
     private static function tenancyBootstrappers(): void
     {
@@ -190,14 +143,9 @@ final class HostConfig
     }
 
     /**
-     * The package's own tenant migrations must run from the vendor path
-     * itself (`Numerosis::tenantMigrationPath()`), not a published copy —
-     * see that method's docblock. Appends the vendor path to whatever
-     * `--path` list already exists (stancl's stock single entry, or a
-     * host's customised list) rather than replacing it, and forces
-     * `--realpath` true — required for an absolute vendor path to resolve
-     * at all, and the one flag a host could plausibly have turned off
-     * without realising it broke this.
+     * Adds the package's tenant migrations to whatever paths are already
+     * configured, keeping yours. `--realpath` is forced on, since the added
+     * path is absolute.
      */
     private static function tenantMigrationParameters(): void
     {
@@ -229,10 +177,9 @@ final class HostConfig
     }
 
     /**
-     * Stancl's stock `--class` is the literal string `'DatabaseSeeder'` —
-     * the host's own root seeder, which knows nothing about tenant data.
-     * Redirected to this package's own tenant seeder whenever the host
-     * hasn't named something else.
+     * Seeds new tenant databases with this package's tenant seeder instead
+     * of stancl's stock `DatabaseSeeder`, which is your central-database
+     * root seeder and knows nothing about tenant data.
      */
     private static function tenantSeederParameters(): void
     {
@@ -249,11 +196,10 @@ final class HostConfig
     }
 
     /**
-     * See `.claude/rules/tenant-filesystem.md`: the `livewire` disk must
-     * never be tenant-suffixed — Livewire's upload route is never
-     * tenant-identified, so a suffixed root disagrees with where the
-     * upload actually lands. This only ever fires for a host that copied
-     * an example listing every disk, `livewire` included.
+     * Keeps the `livewire` disk out of the tenant-suffixed list. Livewire's
+     * temporary-upload route is never tenant-identified, so suffixing that
+     * disk makes validation look for the file in a directory the upload was
+     * never written to — surfacing as a bogus "invalid file type" error.
      */
     private static function livewireDiskExclusion(): void
     {
@@ -266,10 +212,8 @@ final class HostConfig
     }
 
     /**
-     * Stancl's stock `local` override predates Laravel 11's private-by-
-     * default local disk — see `.claude/rules/tenant-filesystem.md`. Fixed
-     * the same way that rule's incident was: point at
-     * `app/private/` instead of `app/`.
+     * Corrects stancl's stock tenant root for the `local` disk, which
+     * predates Laravel 11 moving that disk to `storage/app/private`.
      */
     private static function filesystemRootOverride(): void
     {
@@ -281,13 +225,10 @@ final class HostConfig
     }
 
     /**
-     * Stancl's stock value is `env('DB_CONNECTION', 'central')` — on a
-     * fresh Laravel skeleton that resolves to whatever `DB_CONNECTION` is
-     * (typically `mysql`), not the literal `'central'` this package's own
-     * fallbacks assume everywhere (`.claude/rules/testing.md`). Normalized
-     * only when the value still matches `database.default` — i.e. still
-     * riding that coincidence — so a host that deliberately named its
-     * central connection something else keeps it.
+     * Names the central connection `central`, which is what this package
+     * assumes throughout. Skipped once it names anything other than
+     * `database.default` — stancl's stock value resolves to `DB_CONNECTION`,
+     * so matching the default means it was never chosen deliberately.
      */
     private static function tenancyCentralConnection(): void
     {
@@ -300,11 +241,9 @@ final class HostConfig
     }
 
     /**
-     * A host that has never heard of this package's `central`/`tenant`
-     * connection split still has a working `database.default` connection —
-     * cloning it under the `central` name is what lets `numerosis:install`
-     * ask for nothing beyond ordinary Laravel database credentials. Never
-     * overwrites an existing `central` entry.
+     * Defines the `central` connection by cloning `database.default`, so
+     * ordinary Laravel database credentials are all an install needs. An
+     * existing `central` connection is never overwritten.
      */
     private static function centralDatabaseConnection(): void
     {
@@ -324,13 +263,10 @@ final class HostConfig
     }
 
     /**
-     * See `.claude/rules/testing.md`'s `innodb_lock_wait_timeout` bullet: a
-     * host that bounds `lock_wait_timeout` (metadata/DDL locks) but not
-     * `innodb_lock_wait_timeout` (ordinary row/FK locks) believes it has
-     * bounded lock waits and has not — a blocked `INSERT`/`DELETE` still
-     * waits out MySQL's 50s default. Mirrors the same numeric value into
-     * the same `SET SESSION` string rather than requiring a second
-     * connection edit.
+     * Mirrors any MySQL `lock_wait_timeout` you set into
+     * `innodb_lock_wait_timeout`. The first bounds waits on schema locks
+     * only; without the second, a blocked `INSERT` or `DELETE` still waits
+     * out MySQL's 50-second default while appearing to be bounded.
      */
     private static function databaseLockOptions(): void
     {
@@ -377,10 +313,9 @@ final class HostConfig
     }
 
     /**
-     * Left null, `SessionServiceProvider` scopes the session cookie to a
-     * single host — every tenant subdomain would then hold its own,
-     * separate session from the central app instead of sharing one
-     * cookie across `*.numerosis.domains.apex`.
+     * Scopes the session cookie to the apex domain, so one session spans the
+     * central app and every tenant subdomain. Left null, each subdomain gets
+     * its own separate session.
      */
     private static function sessionDomain(): void
     {
@@ -394,13 +329,10 @@ final class HostConfig
     }
 
     /**
-     * See `.claude/rules/exception-handling.md`: gated by
-     * `QUEUE_FAILED_DRIVER`, not `queue.default` — Laravel's stock value is
-     * `env('DB_CONNECTION', ...)`, the same coincidental value
-     * `tenancyCentralConnection()` above corrects. A connection name that
-     * moves under tenancy means a failed-job row inserted while a tenant
-     * connection is active never lands in the `failed_jobs` table
-     * `queue:work`'s own listener expects.
+     * Pins failed jobs to the central connection. Left on a connection that
+     * moves under tenancy, a job failing inside tenant context writes its
+     * `failed_jobs` row into that tenant's database, where nothing looks
+     * for it.
      */
     private static function failedJobsConnection(): void
     {
@@ -413,10 +345,8 @@ final class HostConfig
     }
 
     /**
-     * The tenant guard Laravel's own `config/auth.php` has no reason to
-     * ship — a host wiring nothing beyond database credentials still gets
-     * one, paired with `tenantAuthProvider()` below via the shared
-     * `'tenant'` provider name.
+     * Adds the `tenant` session guard, paired with the `tenant` provider
+     * defined below. Laravel's stock `config/auth.php` ships neither.
      */
     private static function tenantAuthGuard(): void
     {
@@ -439,12 +369,9 @@ final class HostConfig
     }
 
     /**
-     * Laravel's stock `auth.providers.users.model` is its own generic
-     * `App\Models\User`, which implements neither `SyncMaster` nor this
-     * package's `CentralUserModel` — every central-auth call site needs a
-     * model that does. Left alone the moment a host points this at
-     * something that already satisfies the contract, whether that's a
-     * published stub or a hand-written subclass.
+     * Points central auth at a user model that implements
+     * {@see CentralUserModel}, which Laravel's stock `App\Models\User` does
+     * not. Any model of yours that satisfies the contract is left alone.
      */
     private static function centralAuthProviderModel(): void
     {
@@ -458,13 +385,11 @@ final class HostConfig
     }
 
     /**
-     * `Password::sendResetLink()` resolves its user model through this
-     * broker config, not through `auth.providers` directly — with no
-     * broker entry Laravel falls back to its own generic
-     * `Illuminate\Foundation\Auth\User`, which has no `Notifiable` trait,
-     * so the failure reads as "Call to undefined method
-     * ...User::notify()" rather than as missing config. Paired against the
-     * `'users'` provider `centralAuthProviderModel()` above keeps correct.
+     * Defines the default password broker against the `users` provider.
+     * `Password::sendResetLink()` resolves its model through the broker
+     * rather than through `auth.providers`, and with no broker entry falls
+     * back to a model that cannot be notified — reported as "Call to
+     * undefined method ...User::notify()" rather than as missing config.
      */
     private static function authPasswordBroker(): void
     {
@@ -487,28 +412,9 @@ final class HostConfig
     }
 
     /**
-     * `database/migrations/{central,tenant}/*_activity_log_table.php` (four
-     * files, both directories — this package's own copies of spatie/
-     * laravel-activitylog's migrations, kept in-package rather than
-     * discovered from the vendor package so the tenant copy can exist at
-     * all) all read `config('activitylog.table_name')` directly, with no
-     * fallback. That was safe only against an older spatie/laravel-
-     * activitylog whose own stock config defined it; the version this
-     * package requires does not — its `config/activitylog.php` has no
-     * `table_name` key at all, so an otherwise-untouched host resolves
-     * `null` and the migration dies with `Incorrect table name ''` (a null
-     * table name interpolates to an empty string in the generated SQL,
-     * which reads like a corrupt migration rather than a missing config
-     * key). Discovered by `tests/Feature/FreshHostTest.php`, which is the
-     * first test in this suite that does not hand-set `activitylog.*`
-     * config the way `Tests\TestCase` and thin-app's stale published
-     * `config/activitylog.php` both happen to.
-     *
-     * `activitylog.database_connection` needs no equivalent default:
-     * `Schema::connection(null)` already resolves to the default
-     * connection, which is the same behaviour a set-but-empty value would
-     * produce, so leaving it `null` is not a bug the way an empty table
-     * name is.
+     * Names the activity-log table. Current spatie/laravel-activitylog
+     * ships no default for it, and the activity-log migrations read the key
+     * directly — unset, they fail with `Incorrect table name ''`.
      */
     private static function activityLogTable(): void
     {
@@ -518,16 +424,14 @@ final class HostConfig
     }
 
     /**
-     * `mergeConfigFrom()` merges `numerosis.*` exactly one level deep
-     * (Laravel's own `array_merge(package, host)`), so a host that
-     * publishes `config/numerosis.php` and overrides only
-     * `modules.catalogue` silently loses `modules.plugins` — the host's
-     * `modules` array replaces the package's wholesale, since `array_merge`
-     * only ever looks at top-level keys. This fills anything still missing
-     * at every depth, but only inside associative (keyed) arrays — a list
-     * like `features` is left exactly as the host set it, even to `[]`,
-     * because a list's meaning is its full contents and order, not "which
-     * keys are present."
+     * Backfills `config/numerosis.php` defaults at every depth. Laravel
+     * merges published config only one level deep, so overriding a single
+     * nested key such as `modules.catalogue` would otherwise drop every
+     * sibling under `modules`.
+     *
+     * Only keyed arrays are filled. Lists such as `features` are left
+     * exactly as you set them, including empty, since a list's meaning is
+     * its contents and order rather than which keys are present.
      */
     private static function numerosisConfig(): void
     {

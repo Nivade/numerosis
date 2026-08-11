@@ -10,17 +10,15 @@ use Nvade\Numerosis\Contracts\Feature;
 use Nvade\Numerosis\Contracts\NamedFeature;
 
 /**
- * Reads config('numerosis.features') — the one place a feature is switched on
- * or off — and answers questions the boot loop cannot: route files, service
- * providers and Blade all need "is this on?" at moments the loop has already
- * run or has not run yet.
+ * Answers "is this feature enabled?" from `config('numerosis.features')` —
+ * the single place features are switched on and off.
  *
- * $forcedForTesting is a plain static, not container-scoped, so it survives a
- * fresh Application boot within the same PHP process (same trap
- * .claude/rules/testing.md documents for Tenant::unsetEventDispatcher()).
- * A test that forces features must set them BEFORE parent::setUp(), because
- * routes are registered while the application boots — see the reset note in
- * Tests\TestCase::setUp().
+ * Route files, service providers and Blade views all need that answer at
+ * points where the feature-boot loop has not run or has already finished,
+ * which is why it is asked here rather than tracked as boot state.
+ *
+ * In tests, {@see self::forceForTesting()} overrides the config, and must be
+ * called before the application boots — routes are registered during boot.
  */
 final class Features
 {

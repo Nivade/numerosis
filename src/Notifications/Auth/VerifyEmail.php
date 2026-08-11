@@ -51,9 +51,6 @@ class VerifyEmail extends BaseVerifyEmail
         }
     }
 
-    /**
-     * Determine the origin URL for the verification link.
-     */
     protected function determineOriginUrl(): ?string
     {
         // If tenancy is initialized, use the tenant's domain

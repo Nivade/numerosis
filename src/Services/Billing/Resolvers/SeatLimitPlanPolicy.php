@@ -11,9 +11,8 @@ use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * The seat check formerly BillingService::checkPlanEligibility() — carried
- * over unused, since nothing called it. Wired to StartSubscriptionCheckout
- * and SwapSubscriptionPlan now.
+ * Refuses a plan whose seat limit the tenant already exceeds. Checked when
+ * starting a checkout and when swapping plans.
  */
 class SeatLimitPlanPolicy implements PlanPolicy
 {

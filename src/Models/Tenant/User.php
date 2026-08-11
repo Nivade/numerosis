@@ -28,22 +28,12 @@ use Spatie\Activitylog\Support\LogOptions;
 use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 
 /**
- * `channels()`/`channelMemberships()` are NOT declared here — they used to
- * be, via `Nvade\Chat\Concerns\HasChatCapabilities`, which made this core
- * model import from an optional app-modules package (removing
- * `app-modules/chat` was a fatal error, not a disabled feature). Moved to
- * `Illuminate\Database\Eloquent\Model::resolveRelationUsing()`, registered
- * by `Nvade\Chat\Providers\ChatServiceProvider::register()` — `$user->channels()`
- * still works when the module is installed, resolves to nothing (the
- * relation simply isn't callable) when it isn't. The `display_status` cast
- * below reads `Nvade\Numerosis\Enums\Tenant\DisplayStatus`, not the module's enum, for
- * the same reason — presence is core (last_seen_at, the 'online' broadcast
- * channel), the vocabulary describing it shouldn't require chat installed.
- * See .claude/plans/opt-in-feature-classes.md, Phase 10.
+ * A user inside a tenant database, paired with a central user by `global_id`.
  *
- * Trade-off accepted deliberately: `resolveRelationUsing()` relations are
- * invisible to PHPStan and IDE completion. `$user->channels` un-typed here
- * is the price of the core -> module import going away.
+ * Modules add their own relations to this model through
+ * `Model::resolveRelationUsing()` rather than by editing it, so a module can
+ * be removed without breaking the class. Such relations are invisible to
+ * static analysis and IDE completion.
  *
  * @property int $id
  * @property string $name

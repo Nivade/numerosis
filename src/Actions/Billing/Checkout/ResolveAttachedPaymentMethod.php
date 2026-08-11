@@ -10,7 +10,12 @@ use Stripe\PaymentMethod;
 use Stripe\SetupIntent;
 
 /**
- * See .claude/rules/billing-checkout.md.
+ * Finds the reusable payment method a SetupIntent produced, or null.
+ *
+ * Cards attach synchronously and are returned directly. Redirect methods
+ * such as iDEAL and Bancontact never attach: Stripe instead creates a
+ * separate SEPA direct-debit method, reachable only through the setup
+ * attempt, which is what this falls back to.
  *
  * @method static ?PaymentMethod run(SetupIntent $setupIntent)
  */

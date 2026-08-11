@@ -17,10 +17,8 @@ class DefaultUnpaidTenantQuota implements UnpaidTenantQuota
     {
         $max = Config::integer('numerosis.billing.unpaid_tenant_cap', 2);
 
-        // "Unpaid" is anything short of a confirmed active subscription —
-        // trialing included, since a trial collects zero money upfront, the
-        // same reasoning custom-checkout.md applies to an authorised-but-
-        // still-settling payment.
+        // "Unpaid" is anything short of a confirmed active subscription,
+        // trials included — a trial collects nothing upfront.
         // Eager-loaded because latestSubscription() is a query, not a
         // relation, and would otherwise fire once per owned tenant on the
         // checkout hot path. subscriptions() is already ordered latest-first,

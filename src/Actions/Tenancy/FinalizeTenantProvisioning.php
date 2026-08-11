@@ -15,20 +15,18 @@ use Stancl\Tenancy\Contracts\Tenant;
 use Throwable;
 
 /**
- * Final step of tenant provisioning: promotes the first non-bot user to
- * admin, then emits the "provisioning finished" signal via
- * MarkTenantProvisioned. See that class and
- * .claude/rules/tenant-provisioning.md for why this ordering matters.
+ * Final provisioning step: promotes the first non-bot user to admin, then
+ * signals that provisioning finished.
+ *
+ * Must stay last. It reads users out of the tenant database, and it is the
+ * only emitter of the "ready" signal the UI waits on — if it never completes,
+ * that UI spins forever, which is why it retries generously.
  */
 class FinalizeTenantProvisioning implements ShouldQueue
 {
     use AsAction;
     use TagsSentryScopeWithTenant;
 
-    /**
-     * The owner membership is written a few statements after the TenantCreated
-     * event fires, so allow generous retries for that narrow window.
-     */
     public int $jobTries = 20;
 
     public int $jobBackoff = 3;

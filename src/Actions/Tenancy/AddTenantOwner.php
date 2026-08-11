@@ -11,7 +11,12 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Support\Numerosis;
 
-// See .claude/rules/tenant-provisioning.md.
+/**
+ * Attaches the registering user to the tenant as its owner, and creates
+ * their counterpart row inside the tenant database.
+ *
+ * A provisioning step, idempotent so a retried provision is harmless.
+ */
 class AddTenantOwner
 {
     use AsAction;
@@ -32,14 +37,9 @@ class AddTenantOwner
             'joined_at' => now(),
         ]);
 
-        // Nothing else creates the owner's tenant-side row: provisioning has
-        // no other step for it, and login only ever reads
-        // (FindUserByGlobalId), never creates. Runs here because the tenant
-        // database is guaranteed to exist by this point — ProvisionTenant's
-        // chain places the database jobs (CreateDatabase/MigrateDatabase/
-        // SeedTenantDatabase) before this link — see module-marketplace.md
-        // on why $tenant->run() is only safe to use unguarded in contexts
-        // like this.
+        // The only place the owner's tenant-side row is created — login reads
+        // it, never creates it. Safe to run unguarded here because the tenant
+        // database is created earlier in the provisioning chain.
         $tenantUserClass = Numerosis::model(TenantUser::class);
 
         $tenant->run(function () use ($user, $tenantUserClass): void {

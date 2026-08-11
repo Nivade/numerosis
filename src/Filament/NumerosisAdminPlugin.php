@@ -26,31 +26,15 @@ use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Support\Features;
 
 /**
- * Everything the central admin panel needs that this package, not the host,
- * knows about: where its resources live, which guard it authenticates on,
- * which middleware stack it runs, which hostnames it answers on.
+ * The complete central admin panel: its resources, guard, middleware stack
+ * and the hostnames it answers on.
  *
- * Before this existed, a host copied all of it into its own
- * `AdminPanelProvider` — and so did this package's own Workbench harness, so
- * there were two hand-maintained copies of one panel definition and they had
- * already drifted: the harness copy was missing `->registration()`,
- * `->profile()`, `->persistentMiddleware(['universal'])`, `->domains()` and
- * the navigation groups, and the two resolved the package's source directory
- * two different ways. That is the same two-copies failure
- * `.claude/rules/auth-login.md` records for the passwordless-login
- * components, and the fix is the same shape: one definition, referenced
- * twice, rather than two definitions kept in agreement by hand.
+ * Compose it into a panel provider of your own to add resources or pages
+ * alongside it. Colours come from the theme rather than `->colors()`;
+ * override them through the custom properties in `tokens.css`.
  *
- * `->colors()` used to stay with the host for branding; it does not
- * anymore (design-system-unification Phase 4) — `->theme()` plus
- * {@see AppliesNumerosisPanelTheme}
- * remap Filament's colour vars from resources/css/tokens.css instead, so a
- * host `->colors()` call after the plugin would fight
- * `FilamentColor::register()`'s per-container memoisation for nothing (Phase
- * 1 audit §1.7). What still stays with the host: the decision to register
- * the panel at all — a `Plugin` configures a panel, it cannot decide whether
- * one exists. {@see self::shouldRegisterPanel()} is
- * the gate a host's provider calls for that.
+ * A plugin cannot decide whether a panel exists at all — call
+ * {@see self::shouldRegisterPanel()} for that.
  */
 class NumerosisAdminPlugin implements Plugin
 {
@@ -66,13 +50,7 @@ class NumerosisAdminPlugin implements Plugin
         return 'numerosis-admin';
     }
 
-    /**
-     * Whether a host should register this panel at all.
-     *
-     * Lives here rather than in the host's provider so that turning
-     * `AdminPanelFeature` off actually removes the panel, instead of removing
-     * it only in the hosts that remembered to check.
-     */
+    /** Whether this panel should be registered at all. */
     public static function shouldRegisterPanel(): bool
     {
         return Features::enabled(AdminPanelFeature::NAME);
@@ -86,11 +64,8 @@ class NumerosisAdminPlugin implements Plugin
             ->id('admin')
             ->theme(NumerosisServiceProvider::THEME_ID)
             ->path('admin')
-            // Read from config rather than the literal 'web': the guard name
-            // is host-configurable, and `.claude/rules/auth-guards.md` is
-            // explicit that a panel omitting authGuard() rides
-            // auth.defaults.guard, which moves mid-request once tenancy is
-            // initialized.
+            // Pinned, never inherited: the default guard moves mid-request
+            // once tenancy initializes.
             ->authGuard(Config::string('numerosis.auth.guards.central'))
             ->login()
             ->registration()
@@ -102,12 +77,8 @@ class NumerosisAdminPlugin implements Plugin
                 Dashboard::class,
             ])
             ->discoverWidgets(in: $this->path('Widgets'), for: 'Nvade\\Numerosis\\Filament\\Admin\\Widgets')
-            // BillingStatsWidget/RevenueChartWidget deliberately not
-            // registered here: they already appear on the Billing cluster's
-            // own Overview page (BillingDashboard), which also carries
-            // SubscriptionsByPlanChart and RecentSubscriptionsTable that
-            // never showed up here. Registering both here duplicated two of
-            // the four widgets on the default Dashboard for no reason.
+            // The billing widgets live on the Billing cluster's own overview
+            // page, not on the default dashboard.
             ->widgets([
                 AccountWidget::class,
             ])
@@ -122,10 +93,7 @@ class NumerosisAdminPlugin implements Plugin
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-            // The 'universal' group is registered by
-            // NumerosisServiceProvider::registerMiddleware(); persisting it
-            // is what lets a route resolve on either a central or a tenant
-            // host.
+            // Lets a route resolve on either a central or a tenant host.
             ->persistentMiddleware(['universal'])
             ->domains($this->centralDomains())
             ->authMiddleware([
@@ -143,14 +111,7 @@ class NumerosisAdminPlugin implements Plugin
         //
     }
 
-    /**
-     * Filament's directory discovery needs a real filesystem path, and after
-     * installation these files live under `vendor/`. `__DIR__` is the only
-     * form that is right in every consumer *and* in this package's own
-     * harness — `InstalledVersions::getInstallPath('nvade/numerosis')` is
-     * wrong when the package is the root project, and a `dirname(__DIR__, N)`
-     * count is wrong the moment a file moves.
-     */
+    /** Absolute path to one of this panel's discovery directories. */
     protected function path(string $suffix): string
     {
         return __DIR__.'/Admin/'.$suffix;

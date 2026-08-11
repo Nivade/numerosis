@@ -116,9 +116,6 @@ class CentralUser extends User implements CentralUserModel, HasTenants, Subscrib
 
     }
 
-    /**
-     * Get the user's initials
-     */
     public function initials(): string
     {
         return Str::of($this->name)
