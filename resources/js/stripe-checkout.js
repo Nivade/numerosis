@@ -9,7 +9,7 @@ import { buildAppearance, watchAppearance } from './stripe-appearance.js';
  * gone with no error. See custom-checkout.md, "Frontend".
  */
 document.addEventListener('alpine:init', () => {
-  Alpine.data('stripeCheckout', (clientSecret, publishableKey, returnUrl, declineCodes, customerEmail, savedBillingAddress, savedPaymentMethods) => ({
+  Alpine.data('stripeCheckout', (clientSecret, publishableKey, returnUrl, declineCodes, customerEmail, savedBillingAddress, savedPaymentMethods, paymentMethodOrder, detectedCountry) => ({
     stripe: null,
     elements: null,
     isSubmitting: false,
@@ -56,6 +56,11 @@ document.addEventListener('alpine:init', () => {
       const paymentElement = this.elements.create('payment', {
         wallets: { link: 'never' },
         defaultValues: customerEmail ? { billingDetails: { email: customerEmail } } : undefined,
+        // Ordering only — Stripe still decides eligibility (currency,
+        // amount, account country). A method this array doesn't name still
+        // appears if Stripe considers it eligible, just after the curated
+        // ones. See ResolveCheckoutRegion.
+        paymentMethodOrder: paymentMethodOrder && paymentMethodOrder.length > 0 ? paymentMethodOrder : undefined,
       });
       paymentElement.mount(this.$refs.paymentElement);
       paymentElement.on('ready', () => {
@@ -65,9 +70,15 @@ document.addEventListener('alpine:init', () => {
       // Same elements group as the Payment Element, so confirmSetup()
       // attaches this address to the PaymentMethod's billing_details with no
       // extra client payload.
+      // A saved address always wins over the IP-detected guess — it's a
+      // stronger signal and the customer already gave it to us. Only
+      // pre-fills the country, never an error if detection missed.
+      const addressDefaults = savedBillingAddress
+        ?? (detectedCountry ? { address: { country: detectedCountry } } : undefined);
+
       const addressElement = this.elements.create('address', {
         mode: 'billing',
-        defaultValues: savedBillingAddress ?? undefined,
+        defaultValues: addressDefaults,
       });
       addressElement.mount(this.$refs.addressElement);
       addressElement.on('ready', () => {

@@ -826,18 +826,6 @@ parameters:
 			path: src/Livewire/Auth/VerifyEmail.php
 
 		-
-			message: '#^Access to an undefined property Laravel\\Cashier\\Subscription\:\:\$stripe_status\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Livewire/Billing/Checkout.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Billing/Checkout.php
-
-		-
 			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
 			identifier: argument.type
 			count: 1

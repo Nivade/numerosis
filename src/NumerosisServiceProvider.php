@@ -306,6 +306,15 @@ class NumerosisServiceProvider extends PackageServiceProvider
             if (Config::boolean('numerosis.schedule.prune_stalled_provisions')) {
                 $schedule->command('tenancy:prune-stalled-provisions')->hourly();
             }
+
+            // torann/geoip's MaxMind database driver (backs ResolveCheckoutRegion)
+            // needs its local .mmdb file refreshed periodically — MaxMind
+            // rotates license keys and update cadence. Only registered when
+            // that service is actually configured, since geoip:update no-ops
+            // (with a log line, not an error) for every other driver.
+            if (Config::string('geoip.service') === 'maxmind_database') {
+                $schedule->command('geoip:update')->weekly();
+            }
         });
     }
 

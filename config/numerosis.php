@@ -717,6 +717,36 @@ return [
             'stripe_customer' => true,
         ],
 
+        /*
+        |----------------------------------------------------------------------
+        | Checkout Payment Method Order
+        |----------------------------------------------------------------------
+        |
+        | Display order only — Stripe still decides which methods are
+        | actually eligible (currency, amount, account country), this only
+        | reorders what it was already going to show. A method absent from a
+        | region's list still appears, just after the curated ones; nothing
+        | here restricts eligibility, only ResolveCheckoutRegion's country
+        | lookup feeds the pick. See .claude/plans/checkout-region-localization.md.
+        |
+        */
+
+        'payment_methods' => [
+            'default_order' => ['card', 'link'],
+            'regions' => [
+                'NL' => ['ideal', 'card', 'bancontact', 'sepa_debit', 'link'],
+                'BE' => ['bancontact', 'card', 'ideal', 'sepa_debit', 'link'],
+                'DE' => ['card', 'sepa_debit', 'giropay', 'link'],
+                'AT' => ['card', 'sepa_debit', 'eps', 'link'],
+                'FR' => ['card', 'sepa_debit', 'link'],
+                'ES' => ['card', 'sepa_debit', 'link'],
+                'IT' => ['card', 'sepa_debit', 'link'],
+                'GB' => ['card', 'link'],
+                'US' => ['card', 'link'],
+                'PL' => ['card', 'blik', 'link'],
+            ],
+        ],
+
     ],
 
     /*

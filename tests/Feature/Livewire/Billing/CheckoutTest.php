@@ -8,12 +8,15 @@ use App\Models\Central\CentralUser;
 use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Subscription;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
 use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
+use Torann\GeoIP\Facades\GeoIP;
+use Torann\GeoIP\Location;
 
 class CheckoutTest extends TestCase
 {
@@ -42,6 +45,62 @@ class CheckoutTest extends TestCase
         Livewire::test(Checkout::class, ['domain' => 'resume-render-test'])
             ->assertSet('checkoutClientSecret', $setupIntent->client_secret)
             ->assertSet('paymentError', null);
+    }
+
+    public function test_it_exposes_the_curated_payment_method_order_for_a_resolved_region(): void
+    {
+        $this->fakeStripe();
+        $user = CentralUser::factory()->create();
+        $this->actingAs($user);
+
+        $customer = $user->createOrGetStripeCustomer();
+
+        $setupIntent = Cashier::stripe()->setupIntents->create([
+            'customer' => $customer->id,
+            'payment_method_types' => ['card'],
+        ]);
+
+        PendingTenantProvision::factory()->create([
+            'domain' => 'region-hit-test',
+            'global_id' => $user->global_id,
+            'stripe_setup_intent_id' => $setupIntent->id,
+        ]);
+
+        GeoIP::shouldReceive('getLocation')
+            ->once()
+            ->andReturn(new Location(['iso_code' => 'NL', 'default' => false]));
+
+        Livewire::test(Checkout::class, ['domain' => 'region-hit-test'])
+            ->assertSet('detectedCountry', 'NL')
+            ->assertSet('paymentMethodOrder', Config::array('numerosis.billing.payment_methods.regions.NL'));
+    }
+
+    public function test_it_falls_back_to_the_default_payment_method_order_when_the_region_is_unresolved(): void
+    {
+        $this->fakeStripe();
+        $user = CentralUser::factory()->create();
+        $this->actingAs($user);
+
+        $customer = $user->createOrGetStripeCustomer();
+
+        $setupIntent = Cashier::stripe()->setupIntents->create([
+            'customer' => $customer->id,
+            'payment_method_types' => ['card'],
+        ]);
+
+        PendingTenantProvision::factory()->create([
+            'domain' => 'region-miss-test',
+            'global_id' => $user->global_id,
+            'stripe_setup_intent_id' => $setupIntent->id,
+        ]);
+
+        GeoIP::shouldReceive('getLocation')
+            ->once()
+            ->andReturn(new Location(['iso_code' => 'US', 'default' => true]));
+
+        Livewire::test(Checkout::class, ['domain' => 'region-miss-test'])
+            ->assertSet('detectedCountry', null)
+            ->assertSet('paymentMethodOrder', Config::array('numerosis.billing.payment_methods.default_order'));
     }
 
     public function test_it_surfaces_an_error_for_another_users_domain(): void

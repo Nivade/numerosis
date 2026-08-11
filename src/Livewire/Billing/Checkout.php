@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Billing;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\View\View;
 use Laravel\Cashier\Exceptions\IncompletePayment;
@@ -12,6 +13,7 @@ use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Billing\Checkout\AssertPendingReservationIsFresh;
 use Nvade\Numerosis\Actions\Billing\Checkout\CreateInlineSubscription;
+use Nvade\Numerosis\Actions\Billing\Checkout\ResolveCheckoutRegion;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveSavedPaymentMethod;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveSetupIntent;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResumeCheckout;
@@ -72,11 +74,34 @@ class Checkout extends Component
     #[Locked]
     public bool $savedPaymentMethodsFetchFailed = false;
 
-    public function mount(string $domain, bool $embedded = false): void
+    /**
+     * ISO country code from {@see ResolveCheckoutRegion}, null on an
+     * unresolved lookup (private/local IP, database miss). Only pre-fills
+     * the Address Element's default and picks $paymentMethodOrder — never
+     * restricts what Stripe is willing to show.
+     */
+    #[Locked]
+    public ?string $detectedCountry = null;
+
+    /**
+     * Display order for the Payment Element, in Stripe's `paymentMethodOrder`
+     * shape. A method absent here still appears if Stripe considers it
+     * eligible — this only reorders, per
+     * config('numerosis.billing.payment_methods').
+     *
+     * @var list<string>
+     */
+    #[Locked]
+    public array $paymentMethodOrder = [];
+
+    public function mount(string $domain, Request $request, bool $embedded = false): void
     {
         $this->pendingDomain = $domain;
         $this->embedded = $embedded;
         $this->checkoutPublishableKey = Config::string('cashier.key');
+
+        $this->detectedCountry = ResolveCheckoutRegion::run($request);
+        $this->paymentMethodOrder = $this->resolvePaymentMethodOrder($this->detectedCountry);
 
         $billable = GetAuthenticatedUser::run();
         $this->customerEmail = $billable instanceof CentralUser ? $billable->email : null;
@@ -247,6 +272,26 @@ class Checkout extends Component
         }
 
         $this->settle($subscription);
+    }
+
+    /**
+     * The curated payment method display order for a resolved country, or
+     * the config default when the country is null (unresolved) or has no
+     * curated entry of its own. Ordering only, never eligibility — see
+     * ResolveCheckoutRegion.
+     *
+     * @return list<string>
+     */
+    private function resolvePaymentMethodOrder(?string $country): array
+    {
+        $key = $country !== null ? "numerosis.billing.payment_methods.regions.{$country}" : null;
+
+        /** @var array<mixed> $order */
+        $order = $key !== null
+            ? Config::array($key, Config::array('numerosis.billing.payment_methods.default_order'))
+            : Config::array('numerosis.billing.payment_methods.default_order');
+
+        return array_values(array_filter($order, is_string(...)));
     }
 
     /**

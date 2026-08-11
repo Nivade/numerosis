@@ -56,6 +56,7 @@ final class HostConfig
         self::centralAuthProviderModel();
         self::authPasswordBroker();
         self::activityLogTable();
+        self::geoipService();
         self::numerosisConfig();
     }
 
@@ -420,6 +421,21 @@ final class HostConfig
     {
         if (Config::get('activitylog.table_name') === null) {
             self::set('activitylog.table_name', 'activity_log');
+        }
+    }
+
+    /**
+     * torann/geoip's own stock config ships `service` as `null`, and its
+     * `GeoIP::getService()` throws `Exception('No GeoIP service is
+     * configured.')` if left that way — every checkout page load would
+     * fatal the moment {@see \Nvade\Numerosis\Actions\Billing\Checkout\ResolveCheckoutRegion}
+     * calls it. Backfills the local MaxMind database driver, which needs no
+     * outbound request per lookup, unless you've already chosen a service.
+     */
+    private static function geoipService(): void
+    {
+        if (Config::get('geoip.service') === null) {
+            self::set('geoip.service', 'maxmind_database');
         }
     }
 

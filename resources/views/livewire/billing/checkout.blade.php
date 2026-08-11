@@ -10,7 +10,7 @@
 
     @if($checkoutClientSecret && $checkoutPublishableKey)
         <div
-            x-data="stripeCheckout(@js($checkoutClientSecret), @js($checkoutPublishableKey), @js(route('checkout.subscription.return')), @js(__('numerosis::billing.decline_codes')), @js($customerEmail), @js($savedBillingAddress), @js($savedPaymentMethods))"
+            x-data="stripeCheckout(@js($checkoutClientSecret), @js($checkoutPublishableKey), @js(route('checkout.subscription.return')), @js(__('numerosis::billing.decline_codes')), @js($customerEmail), @js($savedBillingAddress), @js($savedPaymentMethods), @js($paymentMethodOrder), @js($detectedCountry))"
             x-init="init()"
             class="space-y-8"
         >
