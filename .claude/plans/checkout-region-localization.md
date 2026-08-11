@@ -1,9 +1,19 @@
 # Checkout Region-Based Payment Method Localization
 
-**Status: ❌ Not executed.** `torann/geoip` not installed, no
-`ResolveCheckoutRegion` action, no `config/billing/payment_methods.php`. Plan
-never left the ground — likely still pending the geoip dependency approval
-called out in §1.
+**Status: ✅ Done, 2026-08-11 (`numerosis@a592cc5`).** `torann/geoip`
+approved and installed; `ResolveCheckoutRegion`,
+`config('numerosis.billing.payment_methods')` (single-config-file
+convention now, not a separate `config/billing/payment_methods.php` —
+see `.claude/rules/`), and the client wiring (§4/§5) all landed as
+described below, against current paths (`src/Livewire/Billing/Checkout.php`,
+not the `Payment` step this doc's body still names — see
+`.claude/rules/billing-checkout.md`'s 2026-07-31 naming note). Config's
+regional table is the first-draft seed from §3, 10 regions instead of the
+3 sketched — same "expect to revise it" caveat applies. Tests per §6 both
+landed. `geoip:update` scheduled weekly, gated on the `maxmind_database`
+driver actually being configured. `HostConfig::geoipService()` backfills
+the driver default since torann/geoip's stock config ships `service: null`
+and throws on lookup otherwise.
 
 ## Goal
 

@@ -89,11 +89,23 @@ time someone picks up Phase 5.3, not another workaround.
   nav group onto `NumerosisAdminPlugin`. Skipped static branding (no asset)
   and widget reordering (superseded by an existing deliberate comment). Full
   suite green, PHPStan clean of new errors.
-- **`checkout-region-localization.md` decision: keep, unstarted.** User
-  chose to leave it in the backlog as-is — still blocked on `torann/geoip`
-  dependency approval, no code changes made.
+- **`checkout-region-localization.md` — later approved and implemented,
+  same session (`numerosis@a592cc5`).** `torann/geoip` installed, config
+  normalized via new `HostConfig::geoipService()`, `ResolveCheckoutRegion`
+  action, `Checkout` component wires `paymentMethodOrder` +
+  `detectedCountry` into the Payment/Address Elements. Full suite green
+  (only the pre-existing baseline failure), PHPStan introduces zero new
+  errors (and 2 stale baseline entries in that file got pruned along the
+  way). Plan file closed.
+- **Also committed the other live session's pending work**, per explicit
+  user instruction: `resources/css/tokens.css` + rebuilt `dist/*.css`
+  (Flux accent-token remap, `numerosis@a8346a1`) and thin-app's
+  `bootstrap/providers.php`/`vite.config.js`/`composer.lock` (cosmetic,
+  `thin-app@ed182a6`). Neither repo has other-session uncommitted state
+  left as of this handoff — recheck `git status` in both before assuming
+  that's still true, a live PhpStorm ACP session may still be running.
 - **Both numerosis commits pushed?** No — check `git log origin/main..HEAD`
-  before assuming these are on the remote.
+  before assuming these are on the remote. Same for thin-app.
 
 ## Next-step menu
 
@@ -104,7 +116,7 @@ Still open:
    above.
 2. **`design-system-unification.md` Phase 7** — keyboard-nav + mobile-width.
    Needs a real browser pass.
-3. **`checkout-region-localization.md`** — still unstarted, needs
-   `torann/geoip` approval before any work can begin (kept, not dropped).
 
-None of these block on each other except 1 on the routing finding.
+Both open items are independent. checkout-region-localization.md and
+admin-panel-provider-polish.md are both closed now (see above) — nothing
+else queued unless a new task surfaces.
