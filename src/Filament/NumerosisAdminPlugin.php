@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Filament;
 
+use AlizHarb\ActivityLog\ActivityLogPlugin;
 use Filament\Contracts\Plugin;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -19,6 +20,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Config;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Nvade\Numerosis\Features\Observability\ActivityLogFeature;
 use Nvade\Numerosis\Features\Ui\AdminPanelFeature;
 use Nvade\Numerosis\Filament\Concerns\AppliesNumerosisPanelTheme;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
@@ -70,6 +72,9 @@ class NumerosisAdminPlugin implements Plugin
             ->login()
             ->registration()
             ->profile()
+            ->spa()
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('30s')
             ->discoverResources(in: $this->path('Resources'), for: 'Nvade\\Numerosis\\Filament\\Admin\\Resources')
             ->discoverClusters(in: $this->path('Clusters'), for: 'Nvade\\Numerosis\\Filament\\Admin\\Clusters')
             ->discoverPages(in: $this->path('Pages'), for: 'Nvade\\Numerosis\\Filament\\Admin\\Pages')
@@ -103,7 +108,27 @@ class NumerosisAdminPlugin implements Plugin
                 NavigationGroup::make()
                     ->label('Customers')
                     ->collapsible(false),
-            ]);
+                // Roles/Permissions/Users resources declare this group by
+                // name (getNavigationGroup()); registering it here just
+                // gives it the same un-collapsible treatment as Customers
+                // instead of Filament's unconfigured default.
+                NavigationGroup::make()
+                    ->label('Access Control')
+                    ->collapsible(false),
+            ])
+            ->plugins($this->plugins());
+    }
+
+    /**
+     * @return list<Plugin>
+     */
+    protected function plugins(): array
+    {
+        if (Features::enabled(ActivityLogFeature::NAME) && class_exists(ActivityLogPlugin::class)) {
+            return [ActivityLogPlugin::make()];
+        }
+
+        return [];
     }
 
     public function boot(Panel $panel): void

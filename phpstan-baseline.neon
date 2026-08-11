@@ -1132,12 +1132,6 @@ parameters:
 			path: tests/Feature/Actions/Modules/CancelModuleTest.php
 
 		-
-			message: '#^Cannot call method bind\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Actions/Modules/PurchaseModuleTest.php
-
-		-
 			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -1376,96 +1370,6 @@ parameters:
 			identifier: method.nonObject
 			count: 1
 			path: tests/Feature/Models/Central/TenantPrimaryDomainCacheTest.php
-
-		-
-			message: '#^Call to static method factory\(\) on an unknown class Nvade\\Announcements\\Models\\Announcement\.$#'
-			identifier: class.notFound
-			count: 3
-			path: tests/Feature/Modules/AnnouncementsModuleTest.php
-
-		-
-			message: '#^Call to static method query\(\) on an unknown class Nvade\\Announcements\\Models\\Announcement\.$#'
-			identifier: class.notFound
-			count: 1
-			path: tests/Feature/Modules/AnnouncementsModuleTest.php
-
-		-
-			message: '#^Call to method handle\(\) on an unknown class Nvade\\Branding\\Http\\Middleware\\ApplyBranding\.$#'
-			identifier: class.notFound
-			count: 1
-			path: tests/Feature/Modules/Branding/ApplyBrandingTest.php
-
-		-
-			message: '#^Call to static method current\(\) on an unknown class Nvade\\Branding\\Models\\BrandingSettings\.$#'
-			identifier: class.notFound
-			count: 5
-			path: tests/Feature/Modules/Branding/ApplyBrandingTest.php
-
-		-
-			message: '#^Call to static method panelBranding\(\) on an unknown class Nvade\\Branding\\Support\\BrandingCache\.$#'
-			identifier: class.notFound
-			count: 4
-			path: tests/Feature/Modules/Branding/ApplyBrandingTest.php
-
-		-
-			message: '#^Instantiated class Nvade\\Branding\\Http\\Middleware\\ApplyBranding not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: tests/Feature/Modules/Branding/ApplyBrandingTest.php
-
-		-
-			message: '#^Call to static method current\(\) on an unknown class Nvade\\Branding\\Models\\BrandingSettings\.$#'
-			identifier: class.notFound
-			count: 2
-			path: tests/Feature/Modules/BrandingModuleTest.php
-
-		-
-			message: '#^Call to static method query\(\) on an unknown class Nvade\\Branding\\Models\\BrandingSettings\.$#'
-			identifier: class.notFound
-			count: 1
-			path: tests/Feature/Modules/BrandingModuleTest.php
-
-		-
-			message: '#^Call to static method factory\(\) on an unknown class Nvade\\Notes\\Models\\Note\.$#'
-			identifier: class.notFound
-			count: 2
-			path: tests/Feature/Modules/NotesModuleTest.php
-
-		-
-			message: '#^Call to static method query\(\) on an unknown class Nvade\\Notes\\Models\\Note\.$#'
-			identifier: class.notFound
-			count: 1
-			path: tests/Feature/Modules/NotesModuleTest.php
-
-		-
-			message: '#^Access to constant Done on an unknown class Nvade\\Tasks\\Enums\\TaskStatus\.$#'
-			identifier: class.notFound
-			count: 1
-			path: tests/Feature/Modules/TasksModuleTest.php
-
-		-
-			message: '#^Access to constant High on an unknown class Nvade\\Tasks\\Enums\\TaskPriority\.$#'
-			identifier: class.notFound
-			count: 2
-			path: tests/Feature/Modules/TasksModuleTest.php
-
-		-
-			message: '#^Access to constant InProgress on an unknown class Nvade\\Tasks\\Enums\\TaskStatus\.$#'
-			identifier: class.notFound
-			count: 2
-			path: tests/Feature/Modules/TasksModuleTest.php
-
-		-
-			message: '#^Access to constant Open on an unknown class Nvade\\Tasks\\Enums\\TaskStatus\.$#'
-			identifier: class.notFound
-			count: 2
-			path: tests/Feature/Modules/TasksModuleTest.php
-
-		-
-			message: '#^Call to static method factory\(\) on an unknown class Nvade\\Tasks\\Models\\Task\.$#'
-			identifier: class.notFound
-			count: 4
-			path: tests/Feature/Modules/TasksModuleTest.php
 
 		-
 			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
