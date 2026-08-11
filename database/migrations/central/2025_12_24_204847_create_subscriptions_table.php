@@ -13,8 +13,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::drop('payments');
-        Schema::drop('subscriptions');
         Schema::create('subscriptions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id');

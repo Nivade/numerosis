@@ -1,11 +1,21 @@
 # Plan: De-duplicate against the packages we already depend on
 
-**Status: ✅ Executed** (commits `112696c`, `b334847`). Verified: #1
-`EloquentSubscriptionRepository::record()` now uses `updateOrCreate` (both
-subscription and items); #2 `App\Contracts\Cacheable` deleted; #3
-`app/helpers.php` deleted; #5 `MigrateTenantModule`/`RollbackTenantModule`
-rewritten in the stancl-trait image. Items #4, #6, #7, #8 not individually
-re-verified line-by-line — spot-check if any resurfaces.
+**Status: ✅ Executed** (commits `112696c`, `b334847`, plus #4 on
+2026-08-11). Verified: #1 `EloquentSubscriptionRepository::record()` now
+uses `updateOrCreate` (both subscription and items); #2
+`App\Contracts\Cacheable` deleted; #3 `app/helpers.php` deleted; #5
+`MigrateTenantModule`/`RollbackTenantModule` rewritten in the stancl-trait
+image; #4 the two dead legacy tables removed standalone (see below, the
+full migration squash this item originally deferred to never happened and
+`package-extraction.md`'s Phase 6 is otherwise done); #6 already moot by
+the time this was re-checked — `MoneyFormatter::format(int $amount)` takes
+minor units directly and no `Money` cast class exists in the current
+`src/` tree, so the float round-trip this item described is gone (not
+fixed by this session — already gone before it started, cause unclear,
+matches production code today regardless). Items #7, #8 not individually
+re-verified line-by-line — spot-check if either resurfaces. #7 is a
+product decision, not a re-verification — see its own section below,
+still open.
 
 Audit of where this codebase reimplements behaviour that `laravel/cashier`,
 `stancl/tenancy`, `spatie/*` or `internachi/modular` already provide. Separate
@@ -20,9 +30,9 @@ shrinks what has to be extracted.
 | 1 | `EloquentSubscriptionRepository::record()` vs Cashier webhook sync | Fix — real risk | M |
 | 2 | `App\Contracts\Cacheable` | Delete — dead | XS |
 | 3 | `app/helpers.php` | Delete — empty | XS |
-| 4 | Legacy `subscriptions` + `payments` tables | Delete in migration squash | S |
+| 4 | Legacy `subscriptions` + `payments` tables | ✅ Done, 2026-08-11 (standalone, not via a squash) | S |
 | 5 | `MigrateTenantModule` / `RollbackTenantModule` | Adopt stancl traits | S |
-| 6 | `Money` cast vs `MoneyFormatter` | Fix — float round-trip | S |
+| 6 | `Money` cast vs `MoneyFormatter` | ✅ Already moot — no float round-trip in current code | S |
 | 7 | Impersonation table with the feature disabled | Decide, then act | XS |
 | 8 | `Actions/Auth/*` vs Fortify | Keep, align contract names | M |
 
@@ -100,9 +110,42 @@ guarded package helper functions. Do not leave it as is.
 Neither costs anything at runtime, both cost a reader's time and both ship to
 consumers if the migration set is published as is. Remove them as part of the
 migration squash (`package-extraction.md` Phase 6), or standalone if that plan
-stalls. Same pass should catch the other historical fixups:
-`unfuck_payment_plans_and_features`, `rename_id`, `remove_morphs`,
-`change_subscribable_id_type_to_string`.
+stalls.
+
+**Done, 2026-08-11, standalone** — the full squash never happened and
+`package-extraction.md` is otherwise closed, so this went in on its own
+rather than waiting indefinitely. Deleted both dead files
+(`2025_06_23_213148_create_subscriptions_table.php`,
+`2025_06_23_214448_create_payments_table.php`) and removed the
+`Schema::drop('payments'); Schema::drop('subscriptions');` lines from
+`2025_12_24_204847_create_subscriptions_table.php` (Cashier's) that existed
+only to clear away what those two used to create — unconditional `drop()`,
+not `dropIfExists()`, so leaving them in place after deleting their targets
+would have broken every fresh install with a "table doesn't exist" error.
+Confirmed no code references the dead `payments` table or the legacy
+`subscriptions` columns before deleting (`grep` across `src/`+`tests/`,
+nothing). Existing installs are unaffected either way — Laravel does not
+re-run migrations already recorded in the `migrations` table, so neither
+deleting a file nor editing another one already-applied changes anything
+for a database that has already migrated past this point.
+
+Full suite re-run after: 550 passed / 1 known-baseline failure
+(`RegisterTenantTest`, unrelated) / 7 skipped — unchanged from the
+pre-existing baseline, so this is not a schema-shape check that only a
+fresh install would catch; the CI-provisioned suite still built its
+tenant template through this exact chain.
+
+**The other historical fixups this item nominated as a bonus catch
+(`unfuck_payment_plans_and_features`, `rename_id`, `remove_morphs`,
+`change_subscribable_id_type_to_string`) were deliberately left alone.**
+Removing two structurally-dead tables that ship data nothing reads is a
+different scale of change from squashing 15+ migrations into fewer files —
+that is real Phase 6 territory (rewriting/collapsing migrations that *are*
+load-bearing, just verbose), not a same-pass extension of this fix. Two of
+the four names no longer exactly match anything in the current migrations
+directory either (renamed since this plan was written) — whoever picks up
+the real squash should re-audit the current migration list rather than
+trust these four names literally.
 
 ## 5. Module migration commands reimplement stancl's tenant iteration
 
@@ -129,17 +172,22 @@ correctly per `.claude/rules/exception-handling.md`.
 
 ## 6. Two money representations
 
-`App\Casts\Money` divides the stored integer by 100 and returns a **float**;
-`CashierMoneyFormatter::format()` takes that float and does
-`(int) round($amount * 100)` to hand Cashier cents again. Money makes a
-float round-trip for no gain, and every consumer of a cast attribute is doing
-float arithmetic on currency.
-
-**Fix**: keep integer minor units on the model (drop the cast, or cast to `int`),
-and let `MoneyFormatter` take minor units directly — which is what
-`Cashier::formatAmount()` wants anyway. Audit the Filament columns and Blade
-views that read the cast before flipping it; the display path is where the
-float currently gets consumed.
+**Already moot, re-checked 2026-08-11 — no code changes made.** This item
+described `App\Casts\Money` dividing a stored integer by 100 into a float,
+with `CashierMoneyFormatter::format()` re-multiplying it back to cents.
+Neither half of that exists in the current `src/` tree:
+`grep -rn "Casts\\Money"` finds nothing, and
+`Nvade\Numerosis\Contracts\Billing\MoneyFormatter::format()` is typed
+`(int $amount, ...)` with a docblock stating outright that `$amount` is
+"Minor currency units (cents) — what Cashier's own formatting expects" —
+exactly the fix this item asked for. Whether this was fixed in an
+unrecorded pass or the `Money` cast never survived the package extraction
+in the first place is not established; what matters for anyone re-reading
+this plan is that the float round-trip this item warned about is not
+present in the code today. Re-verify with the same grep before assuming
+this stays true indefinitely — nothing pins it structurally, a future
+`Money`-named cast could reintroduce the same trap under a different
+class name.
 
 ## 7. Impersonation: table without the feature
 
