@@ -676,12 +676,6 @@ parameters:
 			path: src/Filament/Admin/Resources/Tenants/RelationManagers/DomainsRelationManager.php
 
 		-
-			message: '#^Access to an undefined property Nvade\\Numerosis\\Models\\Central\\Tenant\:\:\$provisioned_at\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Filament/Admin/Resources/Tenants/TenantResource.php
-
-		-
 			message: '''
 				#^Call to deprecated method bulkActions\(\) of class Filament\\Tables\\Table\:
 				Use `toolbarActions\(\)` instead\.$#

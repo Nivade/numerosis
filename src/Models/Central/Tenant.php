@@ -38,6 +38,7 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  * @property string|null $pm_last_four
  * @property Carbon|null $trial_ends_at
  * @property Carbon|null $suspended_at
+ * @property Carbon|null $provisioned_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property array<string, mixed>|null $data

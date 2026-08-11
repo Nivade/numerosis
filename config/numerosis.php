@@ -40,6 +40,7 @@ use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Features\Observability\ActivityLogFeature;
 use Nvade\Numerosis\Features\Social\SocialLoginFeature;
+use Nvade\Numerosis\Features\Tenancy\ImpersonationFeature;
 use Nvade\Numerosis\Features\Tenancy\MembershipsFeature;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
@@ -160,6 +161,11 @@ return [
         // Tenant membership UI (Team cluster / Users resource). Does not
         // gate InvitationsFeature — see the class docblock.
         MembershipsFeature::class,
+
+        // "Impersonate owner" on the central Tenants table — opens a real
+        // session as the tenant's owner, for support. Security-sensitive:
+        // remove this if central-panel staff should not be able to do that.
+        ImpersonationFeature::class,
 
     ],
 

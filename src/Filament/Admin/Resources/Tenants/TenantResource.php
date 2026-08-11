@@ -23,12 +23,15 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Actions\Tenancy\ImpersonateTenantUser;
 use Nvade\Numerosis\Actions\Tenancy\RestoreTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
+use Nvade\Numerosis\Features\Tenancy\ImpersonationFeature;
 use Nvade\Numerosis\Filament\Admin\Resources\Tenants\Pages\EditTenant;
 use Nvade\Numerosis\Filament\Admin\Resources\Tenants\Pages\ListTenants;
 use Nvade\Numerosis\Filament\Admin\Resources\Tenants\RelationManagers\DomainsRelationManager;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use UnitEnum;
@@ -171,6 +174,17 @@ class TenantResource extends Resource
                     ->visible(fn (Tenant $record): bool => $record->isSuspended())
                     ->requiresConfirmation()
                     ->action(fn (Tenant $record) => RestoreTenant::run($record)),
+                Action::make('impersonate')
+                    ->label('Impersonate owner')
+                    ->icon('heroicon-o-user-circle')
+                    ->color('gray')
+                    ->visible(fn (Tenant $record): bool => Features::enabled(ImpersonationFeature::NAME)
+                        && $record->provisioned_at !== null
+                        && ! $record->isSuspended()
+                        && $record->owner() !== null)
+                    ->requiresConfirmation()
+                    ->modalDescription('Opens a new browser session logged in as the tenant\'s owner, for support. The link expires in 60 seconds and can only be used once.')
+                    ->action(fn (Tenant $record) => ImpersonateTenantUser::run($record)),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

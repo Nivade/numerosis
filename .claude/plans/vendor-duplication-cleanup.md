@@ -12,10 +12,11 @@ the time this was re-checked — `MoneyFormatter::format(int $amount)` takes
 minor units directly and no `Money` cast class exists in the current
 `src/` tree, so the float round-trip this item described is gone (not
 fixed by this session — already gone before it started, cause unclear,
-matches production code today regardless). Items #7, #8 not individually
-re-verified line-by-line — spot-check if either resurfaces. #7 is a
-product decision, not a re-verification — see its own section below,
-still open.
+matches production code today regardless); #7 done, 2026-08-11 — user
+chose "enable it" over "drop the migration," implemented as a
+`NamedFeature` plus a central-panel action, see its own section below.
+Item #8 not individually re-verified line-by-line — spot-check if it
+resurfaces.
 
 Audit of where this codebase reimplements behaviour that `laravel/cashier`,
 `stancl/tenancy`, `spatie/*` or `internachi/modular` already provide. Separate
@@ -33,7 +34,7 @@ shrinks what has to be extracted.
 | 4 | Legacy `subscriptions` + `payments` tables | ✅ Done, 2026-08-11 (standalone, not via a squash) | S |
 | 5 | `MigrateTenantModule` / `RollbackTenantModule` | Adopt stancl traits | S |
 | 6 | `Money` cast vs `MoneyFormatter` | ✅ Already moot — no float round-trip in current code | S |
-| 7 | Impersonation table with the feature disabled | Decide, then act | XS |
+| 7 | Impersonation table with the feature disabled | ✅ Done, 2026-08-11 — enabled | XS |
 | 8 | `Actions/Auth/*` vs Fortify | Keep, align contract names | M |
 
 ---
@@ -200,6 +201,82 @@ still runs. Decide:
 - Don't → drop the migration in the squash.
 
 Do not ship a package that migrates a table for a disabled feature.
+
+**Done, 2026-08-11 — enabled, not dropped.** User's call (the config file
+this bullet describes was itself already gone by the time this was
+re-checked — `config/tenancy.php` isn't published in this package at all
+any more, everything comes from `HostConfig`/stancl's own defaults — so
+there was nothing to uncomment; the migration was the only surviving trace
+of the disabled state).
+
+- **`ImpersonationFeature` (`src/Features/Tenancy/ImpersonationFeature.php`),
+  a `NamedFeature` like every other toggle.** Its `bootstrap()` appends
+  `Stancl\Tenancy\Features\UserImpersonation::class` to
+  `config('tenancy.features')` — read-modify-write on the array, not a
+  multi-segment dotted `Config::set()`, so it can't hit the
+  `Arr::set()`-auto-vivification class of bug `package-host-bootstrap.md`
+  warns about for keys under a namespace this package doesn't own. Safe to
+  run from `packageBooted()`'s feature loop specifically because stancl
+  reads `tenancy.features` lazily, inside `app->extend(Tenancy::class, ...)`
+  — fired on first resolution of the `Tenancy` singleton, which happens
+  well after every provider's `register()` and `boot()` have run (during
+  request-time tenancy identification) — not a register-vs-booting race
+  like `HostConfig::apply()` was.
+- **Added to the default `numerosis.features` list** (`config/numerosis.php`),
+  not opt-in — matches this package's actual convention (every other
+  feature ships enabled, a host comments out what it doesn't want; see
+  `SocialLoginFeature`'s docblock for the same phrasing) rather than
+  inventing a new opt-in-only precedent for one feature. Flagged in its own
+  comment as security-sensitive, since it's a materially different kind of
+  toggle than "does this form field render."
+- **`ImpersonateTenantUser` (`src/Actions/Tenancy/ImpersonateTenantUser.php`)
+  writes the `ImpersonationToken` directly** (`ImpersonationToken::create([...])`)
+  rather than through stancl's `tenancy()->impersonate()` macro — the macro
+  is exactly that one `create()` call and nothing more, and calling it
+  directly keeps the action's return type checkable by PHPStan (the macro
+  is dynamically registered, so static analysis sees
+  `Tenancy::impersonate()` as an undefined method no matter what).
+  `ImpersonationFeature` still registers stancl's feature regardless, since
+  `UserImpersonation::makeResponse()` — the *login-consuming* half, reached
+  from the new `impersonate/{token}` route in `routes/tenant.php` — is
+  stancl's own static method, not reimplemented here.
+- **Resolves "the owner" via `Tenant::owner()`** (already existed — a
+  `BelongsToMany` keyed on `global_id`, central-side, no tenant-context
+  query needed to find *who*), then a single `$tenant->run()` read to
+  resolve that owner's tenant-side row id from `global_id` — same
+  "plain read, no try/finally needed" category `AddTenantOwner` already
+  uses, per `module-marketplace.md`'s guidance on `$tenant->run()`. No UI
+  for picking a *different* user yet — v1 is owner-only, matching the
+  stated "log in as the customer" support use case; the action already
+  takes just a `Tenant`, so extending it to accept a user id later is a
+  small, additive change, not a redesign.
+- **New `TenantHasNoOwner` exception** (`src/Exceptions/Tenancy/`), extends
+  `DomainException` per `exception-handling.md`'s split — thrown both when
+  a tenant genuinely has no owner membership and when the owner's
+  tenant-side row is missing (a `Membership` can exist without
+  `AddTenantOwner` ever having run, e.g. mid-provisioning).
+- **"Impersonate owner" table action on `TenantResource`**, same shape as
+  the existing `suspend`/`restore` actions. Visible only when the feature is
+  enabled, the tenant is provisioned and not suspended, and has a resolvable
+  owner — each a real query per visible row, same cost the existing
+  `isSuspended()` check already pays.
+- **Tests**: `ImpersonateTenantUserTest` (4 tests, including a real
+  end-to-end one — hits the actual `impersonate/{token}` URL over HTTP and
+  asserts the tenant guard authenticates as the right `Tenant\User`, and a
+  reuse test confirming a consumed token 404s on a second hit) and
+  `ImpersonationFeatureTest` (route registered, stancl's feature present in
+  `tenancy.features`). Full suite 556 passed (550 + 6 new) / 1
+  known-baseline failure / 7 skipped; PHPStan 10 baseline errors, 0 new —
+  and one *stale* baseline entry removed along the way:
+  `Tenant::$provisioned_at` was a real, undocumented column missing from
+  the model's `@property` block (not a `data`-JSON virtual column, unlike
+  the trap `tenant-provisioning.md` describes for the same column
+  historically), so PHPStan couldn't see it at all. The new "impersonate"
+  action's `->visible()` closure was the *second* place in
+  `TenantResource.php` to read it, which is what surfaced the gap — adding
+  the missing `@property` tag fixed both occurrences at once and made the
+  file's existing `count: 1` baseline entry stale, so it's gone rather than
+  bumped to `count: 2`.
 
 ## 8. `Actions/Auth/*` vs Fortify — keep, but align
 
