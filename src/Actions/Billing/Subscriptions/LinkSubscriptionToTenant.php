@@ -60,10 +60,16 @@ class LinkSubscriptionToTenant
                     'subscription_id' => $subscription->id,
                 ]);
             } else {
-                $subscription->update([
+                $update = [
                     'subscribable_id' => $tenant->id,
                     'subscribable_type' => Numerosis::model(Tenant::class),
-                ]);
+                ];
+
+                if ($subscription->payment_plan_id === null) {
+                    $update['payment_plan_id'] = Numerosis::model(PaymentPlan::class)::firstWhere('slug', $data->registration->payment_plan)?->id;
+                }
+
+                $subscription->update($update);
 
                 Log::info('Subscription transferred to tenant', [
                     'tenant_id' => $tenant->id,

@@ -51,6 +51,32 @@ class LinkSubscriptionToTenantTest extends TestCase
         $this->assertEquals(Tenant::class, $subscription->subscribable_type);
     }
 
+    public function test_it_backfills_payment_plan_id_when_transferring_a_subscription_created_without_one(): void
+    {
+        // Disable sync to avoid Stripe API calls
+        Tenant::unsetEventDispatcher();
+
+        $user = CentralUser::factory()->create();
+        $tenant = Tenant::factory()->create(['stripe_id' => null]);
+        $plan = PaymentPlan::factory()->create(['slug' => 'pro']);
+        $subscription = Subscription::factory()->create([
+            'stripe_id' => 'sub_789',
+            'subscribable_id' => $user->global_id,
+            'subscribable_type' => CentralUser::class,
+            'payment_plan_id' => null,
+        ]);
+
+        LinkSubscriptionToTenant::run(
+            $this->provisionData($user, 'test3', 'pro', 'cus_789', 'sub_789'),
+            $this->stripeSubscription('sub_789'),
+            $tenant,
+        );
+
+        $subscription->refresh();
+
+        $this->assertEquals($plan->id, $subscription->payment_plan_id);
+    }
+
     public function test_it_creates_subscription_manually_if_it_does_not_exist(): void
     {
         Tenant::unsetEventDispatcher();
