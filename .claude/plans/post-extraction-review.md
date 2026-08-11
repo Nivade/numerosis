@@ -29,7 +29,7 @@ Overwrite this block; never append.
 | Package suite | **550 passed / 7 skipped / 1 failed in 73.6s**, measured 2026-08-11 after moving the 11 files out. The 1 failure (`RegisterTenantTest` missing `livewire.js`) is the same pre-existing failure, unchanged. |
 | thin-app suite | **46 passed**, 0 failed — Pest installed, all 11 moved tests green (44 of them; 2 more come from the rewritten `ExampleTest`). Measured 2026-08-11. |
 | Open finding, not fixed | Central-domain HTTP routes (e.g. `app.thinapp.dev/`) are unreachable from any console-dispatched request (Pest/PHPUnit, `artisan tinker`) — they 404 via stancl's `PreventAccessFromCentralDomains`, because `app.thinapp.dev` also matches the tenant panel's `{tenant}.thinapp.dev` wildcard and the wildcard route wins when dispatched this way. Real nginx/php-fpm requests resolve correctly (confirmed via curl, 200). Root cause not found — console vs http kernel dispatch differ somehow even though both said `hasBeenBootstrapped()`. `thin-app/tests/Feature/ExampleTest.php`'s docblock records this; the workaround there is to not assert against `/`. This blocks Phase 5.3's "central routes bound per `tenancy.central_domains`" assertion until root-caused. |
-| Next | Phase 2 (delete dead weight, unverified since 2026-08-07) and Phase 5.3/5.4 (bootstrap-wiring tests, browser gate test) remain. 5.3 is blocked on the central-domain routing finding above. |
+| Next | Phase 2 is now done (reverified 2026-08-11, all 5 items already resolved, no changes needed). What's left: Phase 5.3/5.4 (bootstrap-wiring tests, browser gate test). 5.3 is blocked on the central-domain routing finding above. |
 
 Prerequisites: `cd ~/repos/private/numerosis && docker compose up -d`, then
 `vendor/bin/pest --ci`, `composer analyse`, `vendor/bin/pint --dirty --format
@@ -149,7 +149,19 @@ carries the not-canonical banner).
 
 ---
 
-## Phase 2 — Delete dead weight
+## Phase 2 — Delete dead weight — **DONE, reverified 2026-08-11**
+
+All 5 items already resolved by the time this was rechecked: 2.1
+(`src/Numerosis.php` doesn't exist), 2.2 (`src/Commands/` has only
+`InstallNumerosisCommand.php`, nothing else registered), 2.3 (no stale
+`numerosis-{tenancy,billing}.php` comment found in
+`NumerosisServiceProvider`), 2.4 (only one publish tag, `numerosis-models`,
+exists). 2.5's actual complaint — README pointing at
+`saas-m/.claude/plans/package-extraction.md` for remaining work — was
+already fixed (points at `.claude/plans/post-extraction-review.md` in this
+repo). The remaining `saas-m` mentions in README are the repo-role table,
+accurate given the 2026-08-10 decision (`package-extraction.md`) to keep
+saas-m rather than archive it — not stale pointers, nothing to change.
 
 All independent of Phase 1 and of each other. Safe to do first if 1.1 stalls.
 
