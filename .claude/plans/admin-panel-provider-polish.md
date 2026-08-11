@@ -1,5 +1,17 @@
 # AdminPanelProvider polish — thin-app
 
+**Done, 2026-08-11 (`numerosis@41f600b`)** — ported onto `NumerosisAdminPlugin`
+per the note below: `->spa()`, `->databaseNotifications()` (+ new central
+`notifications` migration, the table never existed), `ActivityLogPlugin`
+(mirrors the tenant panel), and an "Access Control" nav group for the three
+resources that already declared it by name. Skipped: static branding (no
+logo/favicon asset exists — branding is a dynamic tenant-only feature via
+`ApplyDefaultBranding`, doesn't apply to central) and widget reordering (the
+file already carries a deliberate comment keeping billing widgets off the
+default dashboard, superseding item 9 below). Verified: full package suite
+green (only the pre-existing `RegisterTenantTest` failure), PHPStan clean of
+new errors.
+
 **Superseded (2026-08-11) by `.claude/plans/better-dx.md` Phase 2.** That
 phase moves panel registration into the package itself
 (`src/Providers/Filament/NumerosisAdminPanelProvider.php`) and deletes

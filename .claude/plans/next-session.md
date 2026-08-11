@@ -79,18 +79,32 @@ routes bound per `tenancy.central_domains`" assertion needs a working way to
 test a central-domain route from Pest. Worth an actual root-cause pass next
 time someone picks up Phase 5.3, not another workaround.
 
+## Update — later same day, 2026-08-11
+
+- **Phase 2 closed** (`numerosis@e9140e2`, doc-only) — all 5 items already
+  resolved before recheck, no code changes needed.
+- **`admin-panel-provider-polish.md` closed** (`numerosis@41f600b`) —
+  ported `->spa()`, `->databaseNotifications()` (new central `notifications`
+  migration — never existed), `ActivityLogPlugin`, and an "Access Control"
+  nav group onto `NumerosisAdminPlugin`. Skipped static branding (no asset)
+  and widget reordering (superseded by an existing deliberate comment). Full
+  suite green, PHPStan clean of new errors.
+- **`checkout-region-localization.md` decision: keep, unstarted.** User
+  chose to leave it in the backlog as-is — still blocked on `torann/geoip`
+  dependency approval, no code changes made.
+- **Both numerosis commits pushed?** No — check `git log origin/main..HEAD`
+  before assuming these are on the remote.
+
 ## Next-step menu
 
 Still open:
 
-1. **`post-extraction-review.md` Phase 2** — delete 5 small dead-weight
-   items, unverified since 2026-08-07.
-2. **`post-extraction-review.md` Phase 5.3/5.4** — bootstrap-wiring tests +
-   browser gate test. 5.3 is blocked on the routing finding above.
-3. **`design-system-unification.md` Phase 7** — keyboard-nav + mobile-width.
+1. **`post-extraction-review.md` Phase 5.3/5.4** — bootstrap-wiring tests +
+   browser gate test. 5.3 is blocked on the central-domain routing finding
+   above.
+2. **`design-system-unification.md` Phase 7** — keyboard-nav + mobile-width.
    Needs a real browser pass.
-4. **Decide-and-close two orphaned backlog items**:
-   `checkout-region-localization.md` (never started — keep or drop?) and
-   `admin-panel-provider-polish.md`'s 4 unported features.
+3. **`checkout-region-localization.md`** — still unstarted, needs
+   `torann/geoip` approval before any work can begin (kept, not dropped).
 
-None of these block on each other except 5.3 on the routing finding.
+None of these block on each other except 1 on the routing finding.
