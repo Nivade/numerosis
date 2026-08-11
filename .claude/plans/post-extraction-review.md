@@ -28,8 +28,8 @@ Overwrite this block; never append.
 | saas-m | frozen, untouched. Archive still pending explicit user go-ahead (task 6.3). **Its `.claude/rules/` copies are now 3 files behind numerosis** — left alone deliberately, the repo is frozen and about to be archived |
 | Package suite | **415 passed / 7 skipped / 1 failed in 55.2s**, measured 2026-08-07 after Phase 3 (408 + 7 new seam tests). The 1 failure (`RegisterTenantTest` missing `livewire.js` in response) is **pre-existing**, unchanged from Phase 2 baseline |
 | PHPStan | **clean**, baseline unchanged |
-| thin-app suite | **does not exist.** `tests/{Feature,Unit}/ExampleTest.php` only; Pest not installed; no `.github/` |
-| Next | **Phase 4** — verification that survives install day (`numerosis:install --check`, failure-path tests, config schema version) |
+| thin-app suite | **Pest still not installed** — `tests/{Feature,Unit}/ExampleTest.php` only, 5.1-5.4 untouched. But `.github/` is no longer empty: `.github/workflows/smoke-test.yml` (added by `.claude/plans/better-dx.md`, 2026-08-11) is a real-boot smoke job — MySQL/Redis services, `numerosis:install`, provisions an actual tenant, hits its subdomain — green as of `thin-app@cf6530d` (`https://github.com/Nivade/thin-app/actions/runs/31506796193`). That satisfies 5.5's *intent* (a CI job that turns a re-introduced host requirement into a red build) without being the Pest/PHPUnit migration 5.1-5.4 describe — those remain genuinely open |
+| Next | **Phase 4 is done** — closed in full by `.claude/plans/better-dx.md`'s second 2026-08-11 session (4.1/4.4 already satisfied beforehand, 4.2/4.3 landed there: 17 failure-path tests + `verifyConfigSchemaVersion()`). What's left in *this* plan is Phase 2 (delete dead weight, unverified since 2026-08-07) and Phase 5.1-5.4 (thin-app Pest install + moving the 11 quarantined `#[Group('thin-app')]` test files) |
 
 Prerequisites: `cd ~/repos/private/numerosis && docker compose up -d`, then
 `vendor/bin/pest --ci`, `composer analyse`, `vendor/bin/pint --dirty --format

@@ -1,14 +1,16 @@
 # Reduce host requirements: from ~30 documented obligations to 6
 
-Status: ✅ Substantially complete, 2026-08-11 — Phases 0–6 all done except
-one dropped metric (`tests/TestCase.php`'s line-count target, accepted as a
-Testbench-harness limitation, see Phase 6's entry below), plus
-post-extraction-review.md's Phase 4 fully closed as a side effect. Written
-2026-08-10 against `numerosis@75f179d` / `thin-app@8713d74`. **Nothing
-committed yet in either repo** — all working-tree changes, this whole plan's
-execution. Remaining before this is truly "done": review the diff as a
-whole and decide what to commit, in what shape (likely more than one
-commit given the scope), in both repos.
+Status: ✅ Done, 2026-08-11 — Phases 0–6 all done except one dropped metric
+(`tests/TestCase.php`'s line-count target, accepted as a Testbench-harness
+limitation, see Phase 6's entry below), plus post-extraction-review.md's
+Phase 4 fully closed as a side effect. Written 2026-08-10 against
+`numerosis@75f179d` / `thin-app@8713d74`. Everything committed and pushed in
+both repos: numerosis `origin/main@069103d` (pushed for the first time this
+session — it had never left local history before), thin-app
+`origin/master@cf6530d`. `thin-app/.github/workflows/smoke-test.yml` — the
+"durable guard" from the Verification section below — has now run for real
+on GitHub Actions and is green; see its own entry further down for the four
+bugs that surfaced getting it there, none of them hypothetical.
 
 ## Progress — read this first before continuing
 
@@ -875,8 +877,68 @@ commit" state the Status line above already flags).
    Every script block extracted from the YAML and run for real against the
    live thin-app Sail container before being trusted (`bash -n` on all 15
    `run:` blocks too) — this is what caught and fixed a heredoc-indentation
-   concern before it could rot in CI silently. **Not yet exercised by an
-   actual GitHub Actions run**: thin-app has no `git remote` configured in
-   this environment, so the workflow is unpushed and unrun; every step's
-   logic is verified by hand instead, against the identical commands the
-   YAML issues.
+   concern before it could rot in CI silently.
+
+### smoke-test.yml — exercised for real on GitHub Actions, 2026-08-11 (later session)
+
+Went from unpushed/unrun to green in `thin-app@cf6530d`, five runs, four
+real bugs — the "verified by hand" claim above covered the app-level logic
+correctly but had no way to catch any of these, since none of them exist
+outside a real GitHub-hosted runner:
+
+1. **numerosis had never been pushed to `origin/main` at all.** `git fetch`
+   plus `gh api repos/Nivade/numerosis/branches/main` showed the GitHub
+   repo's default branch sitting at a single `Initial commit` from
+   2026-07-26 — 73 local commits, including this entire plan's work, had
+   never left local history. thin-app's own `composer.json` path-repos
+   `nvade/numerosis` from `../numerosis`, which only exists at all on a
+   runner once a checkout step puts it there — so this was invisible until
+   the very first CI attempt tried to resolve it. User pushed numerosis;
+   unblocked everything below.
+2. **`composer install` had no sibling `numerosis` checkout to satisfy the
+   path repo.** Added a `Checkout numerosis (path-repo dependency)` step —
+   `actions/checkout@v7` refuses a `path` outside `$GITHUB_WORKSPACE`, so it
+   checks out to a workspace subdir and a following step symlinks that into
+   `../numerosis`, matching what `composer.json` expects. Needs read access
+   to a second private repo, so a `NUMEROSIS_CHECKOUT_TOKEN` secret (the
+   user's own `gh` session token, reused rather than minting a new
+   fine-grained PAT) was added to `thin-app`.
+3. **`cismoke.127.0.0.1` can never be a valid HTTP Host, structurally.**
+   Symfony's `Request::isHostValid()` treats any host ending in a numeric
+   label as "must be a complete IPv4 address" — `127.0.0.1` alone passes
+   (it is one), no subdomain of it ever can, regardless of `TrustHosts`
+   config. This is not a numerosis bug; the workflow's own original comment
+   ("no real DNS needed") was the flawed assumption. No config fixes this —
+   only changing what the fake tenant subdomain is built on top of does.
+4. **`localhost`, then `smoke.numerosis.test`, both reproduced a second,
+   subtler bug once (3) was fixed.** `src/Support/Domains.php`'s
+   `apexFromAppUrl()` only splits a central subdomain from its apex for a
+   3+ label `APP_URL` host (`app.example.com` → `example.com`); a 1-label
+   host (`localhost`) makes the central domain and the tenant apex the
+   *same string*, which collapses stancl's `isSubdomain()` check
+   (`Str::endsWith($host, central_domains)`) into always-true for any
+   tenant host — misrouting into `InitializeTenancyBySubdomain` (looks up
+   the bare label, e.g. `cismoke`) instead of `InitializeTenancyByDomain`
+   (looks up the full stored domain, e.g. `cismoke.<apex>`), and
+   `CreateTenantDomain` stores the full domain, so the bare-label lookup
+   always misses:
+   `Stancl\Tenancy\Exceptions\TenantCouldNotBeIdentifiedOnDomainException`
+   on every tenant request. The first retry (`smoke.numerosis.test`, 3
+   labels) still collided: `Str::endsWith()` matches raw substrings, not
+   label boundaries, and the tenant id used in this workflow (`cismoke`)
+   literally ends with `smoke` character-for-character, so
+   `cismoke.numerosis.test` still satisfied
+   `Str::endsWith($host, ['smoke.numerosis.test'])`. Settled on
+   `app.numerosis.test` (verified against the collision with a one-line
+   `php -r` check before touching the workflow again, not by re-guessing).
+   This class of bug is invisible on any real host, since production's
+   `APP_URL` already has 3+ labels for unrelated reasons (a real central
+   subdomain) and no real tenant id happens to be a suffix of the central
+   one — CI's synthetic setup is what exposed it, which is exactly what
+   this guard is for.
+
+Final green run:
+`https://github.com/Nivade/thin-app/actions/runs/31506796193` (1m24s, all
+steps including real tenant provisioning and the Livewire-disk-isolation
+check). Every fix lives in `thin-app`'s workflow file only — nothing in
+numerosis changed as a result of any of the four.
