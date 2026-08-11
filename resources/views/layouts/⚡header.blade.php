@@ -16,7 +16,7 @@ new class extends Component {
     public function user(): ?CentralUser
     {
         /** @var ?CentralUser */
-        return GetAuthenticatedUser::run(Config::string('auth.defaults.guards.context.central'));
+        return GetAuthenticatedUser::run(Config::string('numerosis.auth.guards.central'));
     }
 };
 ?>

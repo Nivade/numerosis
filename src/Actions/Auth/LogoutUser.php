@@ -40,11 +40,11 @@ class LogoutUser
 
     public function tenant(): Guard|StatefulGuard
     {
-        return Auth::guard(Config::string('auth.defaults.guards.context.tenant'));
+        return Auth::guard(Config::string('numerosis.auth.guards.tenant'));
     }
 
     public function central(): Guard|StatefulGuard
     {
-        return Auth::guard(Config::string('auth.defaults.guards.context.central'));
+        return Auth::guard(Config::string('numerosis.auth.guards.central'));
     }
 }

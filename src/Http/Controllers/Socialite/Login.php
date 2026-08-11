@@ -69,8 +69,7 @@ class Login extends Controller
             $returnUrl = $this->tenantDashboardUrl($context['tenant']);
         }
 
-        /** @var string $redirectRoute */
-        $redirectRoute = $this->repository->get('auth.defaults.redirect-route');
+        $redirectRoute = RouteNames::tenantsMine();
 
         return is_string($returnUrl)
             ? $this->redirector->to($returnUrl)

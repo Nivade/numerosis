@@ -376,6 +376,59 @@ updated: 2026-07-31
   new `App\Models\*` sub-namespace, add matching factory sub-namespace
   with it.
 
+## `TestCase::getEnvironmentSetUp()` runs *after* providers register, not before
+
+- **This inverts a real host's config-file-then-providers order, and breaks
+  the intuitive "delete a Config::set(), let `HostConfig` backfill it"
+  refactor.** `Orchestra\Testbench\Concerns\CreatesApplication::
+  resolveApplicationBootstrappers()` calls
+  `$app->make(RegisterProviders::class)->bootstrap($app)` — which is what
+  fires `NumerosisServiceProvider::packageRegistered()`, and therefore
+  `HostConfig::apply()` — **before** it calls `getEnvironmentSetUp($app)`.
+  On a real host, `LoadConfiguration` reads every `config/*.php` file long
+  before any provider registers, so `HostConfig::apply()` sees the host's
+  real values. In this harness, `HostConfig::apply()` runs first and only
+  ever sees Testbench's and stancl's own stock defaults — every
+  `Config::set()` call inside `getEnvironmentSetUp()` happens strictly
+  *after*, and simply overwrites whatever `HostConfig` already decided.
+
+  Tried during Phase 6 of `.claude/plans/better-dx.md`: deleted the
+  `tenancy.*`/`database.connections.central`/`auth.guards.*`/`session.domain`
+  block from `getEnvironmentSetUp()` on the theory that `HostConfig` would
+  backfill every one of them, the same proof-by-deletion Phase 4 made safely
+  for `numerosis.models.*`. It does not generalise: **`numerosis.models.*`
+  is read lazily**, at the moment a test body calls `Numerosis::model()`
+  (long after `getEnvironmentSetUp()` has already run, so it sees this
+  method's real `database.default`/`numerosis.domains.*` etc) — but
+  `HostConfig::apply()` computes its OWN values once, synchronously, during
+  registration, and anything it derives from a key this method also sets
+  (`database.connections.{database.default}`, `numerosis.domains.central`,
+  stancl's own stock `tenancy.migration_parameters`) gets the pre-this-method
+  version. Deleting the block produced a `central` database connection
+  cloned from Testbench's own stock `sqlite`/`:memory:` default instead of
+  the real MySQL one, an empty `tenancy.central_domains` (so
+  `Numerosis::routes()` registered no central route group at all), and a
+  bogus stock tenant-migration path validated as if real — 319 of 526 tests
+  failed. Restored in full; see the comment left in
+  `getEnvironmentSetUp()` at the point of restoration.
+
+  **The tell, if this is attempted again:** a `QueryException` naming the
+  `central` connection against a `:memory:`/`sqlite` database, or a 404 on a
+  route that's registered but domain-bound to the wrong host. Neither reads
+  like a config-ordering bug on its own.
+
+  ## Suggested better approach
+
+  Not pursued here — the safe way to prove a `HostConfig` normalization
+  covers what a real host needs is `HostConfigTest`'s own pattern
+  (`rebootPackage()`: mutate config live, call `packageRegistered()` again
+  mid-test, assert the result), not deleting the equivalent line from
+  `TestCase.php` and hoping boot order cooperates. That pattern already
+  covers all 17 `HostConfig` normalizations independently of this ordering
+  trap, which is exactly why `InstallNumerosisCommand`'s `verify*()` methods
+  could be narrowed with confidence even though `TestCase.php` itself could
+  not be trimmed the same session.
+
 ## Isolation
 
 - **`Tenant::unsetEventDispatcher()` static, process-wide.** Single

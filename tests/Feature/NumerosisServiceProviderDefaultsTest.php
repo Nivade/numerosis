@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature;
 
 use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Database\Seeders\DatabaseSeeder as PackageDatabaseSeeder;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -77,6 +78,27 @@ class NumerosisServiceProviderDefaultsTest extends TestCase
         $this->rebootPackage();
 
         $this->assertSame('/tmp/custom-layouts', Config::get('livewire.component_namespaces.layouts'));
+    }
+
+    /**
+     * `Database\Seeders\DatabaseSeeder` (Laravel's skeleton default, what
+     * `php artisan db:seed` resolves) genuinely doesn't exist under that
+     * literal FQCN anywhere in this Testbench harness — the workbench
+     * fixture lives at `Workbench\Database\Seeders\DatabaseSeeder`, wired
+     * through testbench.yaml's own `seeders:` list, a different mechanism
+     * entirely. So this harness is already living proof of the "host wrote
+     * nothing" case on every boot; no reboot-and-reset dance needed the way
+     * the Livewire defaults above require. The inverse (a host that *did*
+     * write the class) isn't independently testable here — once a class is
+     * declared, `class_exists()` is true for the rest of the process, and
+     * that's exactly the guarantee: the binding only ever reaches this
+     * branch, never overrides a class that's already loaded.
+     */
+    public function test_it_binds_the_package_seeder_when_the_host_has_not_defined_one(): void
+    {
+        $seeder = $this->app?->make('Database\Seeders\DatabaseSeeder');
+
+        $this->assertInstanceOf(PackageDatabaseSeeder::class, $seeder);
     }
 
     private function rebootPackage(): void

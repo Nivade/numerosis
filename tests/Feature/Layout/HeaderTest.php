@@ -45,7 +45,7 @@ class HeaderTest extends TestCase
             'email' => 'john@example.com',
         ]);
 
-        $this->actingAs($user, Config::string('auth.defaults.guards.context.central'));
+        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
 
         Livewire::test(self::COMPONENT)
             ->assertSee('John Doe')

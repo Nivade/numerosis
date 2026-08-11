@@ -1,5 +1,16 @@
 # AdminPanelProvider polish — thin-app
 
+**Superseded (2026-08-11) by `.claude/plans/better-dx.md` Phase 2.** That
+phase moves panel registration into the package itself
+(`src/Providers/Filament/NumerosisAdminPanelProvider.php`) and deletes
+thin-app's `app/Providers/Filament/AdminPanelProvider.php` — the file this
+plan targets. Its four phases (`->spa()`, expanded `navigationGroups()`,
+`->databaseNotifications()`, branding, `ActivityLogPlugin`, widget ordering)
+are still wanted; they land on `NumerosisAdminPlugin` instead, where every
+host gets them, as a follow-up once Phase 2's thin-app deletion has actually
+happened. Do not execute this plan against the host file below — it is
+about to disappear.
+
 Target file: `~/repos/private/thin-app/app/Providers/Filament/AdminPanelProvider.php`
 (separate repo from numerosis — plan filed here per project convention).
 

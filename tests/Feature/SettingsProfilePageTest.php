@@ -27,7 +27,7 @@ class SettingsProfilePageTest extends TestCase
     {
         $user = CentralUser::factory()->create();
 
-        $this->actingAs($user, Config::string('auth.defaults.guards.context.central'));
+        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
 
         $this->get(route('settings.profile'))
             ->assertOk()

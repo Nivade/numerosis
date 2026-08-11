@@ -1,7 +1,5 @@
+@include('numerosis::partials.script-config')
 @vite(['resources/css/app.css', 'resources/js/app.js'])
-@vite('resources/js/central.js')
-@if(tenancy()->initialized)
-    @vite('resources/js/tenant.js')
-@endif
+{!! \Nvade\Numerosis\Support\Numerosis::assetTags() !!}
 @fluxAppearance
 @livewireStyles

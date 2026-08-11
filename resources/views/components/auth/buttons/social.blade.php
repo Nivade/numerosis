@@ -17,7 +17,7 @@
 
 <flux:button
     as="a"
-    :href="route(config('auth.social.routes.redirect.name'), $params)"
+    :href="route(config('numerosis.social.routes.redirect.name'), $params)"
     {{
         $attributes->class(
             'group w-full flex items-center justify-center gap-2

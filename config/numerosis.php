@@ -77,6 +77,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Schema version
+    |--------------------------------------------------------------------------
+    |
+    | `HostConfig::numerosisConfig()` deep-fills any *missing* key in a
+    | host's published file, at every depth — but a key the host's file
+    | still names, just with an older shape (a restructured array, a
+    | renamed top-level key its file still carries the old name of), is
+    | invisible to that fill: the key isn't missing, so nothing touches it.
+    | `InstallNumerosisCommand::verifyConfigSchemaVersion()` reads this
+    | value straight out of a *published* config/numerosis.php (not through
+    | config(), which would already show the package's current default —
+    | see that method's own docblock) and fails loudly when it's behind.
+    |
+    | Bump this in the same commit as any change to a top-level key's name
+    | or shape — not for additions inside an existing keyed array, which the
+    | deep-fill already covers safely.
+    |
+    */
+
+    'schema_version' => 1,
+
+    /*
+    |--------------------------------------------------------------------------
     | Feature toggles
     |--------------------------------------------------------------------------
     */
@@ -86,10 +109,10 @@ return [
         // Requires TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY — see .env.example.
         TurnstileFeature::class,
 
-        // OAuth login. Providers are configured in config/auth.php
-        // (auth.social.providers) + config/services.php (credentials).
-        // Discord's Socialite extension registers itself when credentials
-        // are present — see SocialLoginFeature::bootstrap().
+        // OAuth login. Providers are configured above ('social') +
+        // config/services.php (credentials). Discord's Socialite extension
+        // registers itself when credentials are present — see
+        // SocialLoginFeature::bootstrap().
         SocialLoginFeature::class,
 
         // The per-tenant module system, storefront included. Comment out to
@@ -236,6 +259,171 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Broadcasting
+    |--------------------------------------------------------------------------
+    |
+    | The browser's Reverb connection details — read here, at request time,
+    | rather than baked into resources/js/numerosis.js (formerly two
+    | separate files, central.js/tenant.js) as import.meta.env.VITE_REVERB_*
+    | at *build* time. That used to mean a
+    | prebuilt copy of that file was impossible: whatever Reverb host the
+    | package maintainer's machine had would be frozen into the JS forever,
+    | wrong for every consumer. See resources/views/partials/script-config.blade.php,
+    | which is what actually reads this.
+    |
+    | 'key' is public (Pusher-protocol client key, not REVERB_APP_SECRET) —
+    | safe to ship to the browser, same as it always was via Vite's env
+    | inlining.
+    |
+    | host/port/scheme default off the same REVERB_* values
+    | config('broadcasting.connections.reverb') reads — correct for a simple,
+    | unproxied setup where the browser reaches Reverb directly. A host
+    | fronting Reverb with a reverse proxy (thin-app's `ws.<domain>`, TLS
+    | terminated before the Reverb process ever sees it) needs the browser to
+    | connect somewhere different from where Reverb itself binds — that's
+    | what NUMEROSIS_BROADCAST_HOST/PORT/SCHEME are for; they replace the old
+    | VITE_REVERB_HOST/PORT/SCHEME env vars 1:1, just read server-side now
+    | instead of by Vite.
+    |
+    */
+
+    'broadcasting' => [
+        'reverb' => [
+            'key' => env('REVERB_APP_KEY'),
+            'host' => env('NUMEROSIS_BROADCAST_HOST', env('REVERB_HOST', 'localhost')),
+            'port' => (int) env('NUMEROSIS_BROADCAST_PORT', env('REVERB_PORT', 8080)),
+            'scheme' => env('NUMEROSIS_BROADCAST_SCHEME', env('REVERB_SCHEME', 'http')),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Auth
+    |--------------------------------------------------------------------------
+    |
+    | 'guards' used to live at auth.defaults.guards.context.* — a package key
+    | inside a framework config file, which meant no package default was
+    | possible (config/auth.php can't be merged one level deep the way
+    | config/numerosis.php is) and every consumer had to hand-write both
+    | entries before login worked at all. 'central' names the guard the
+    | central app authenticates on; 'tenant' the guard every tenant
+    | subdomain uses. See Nvade\Numerosis\Enums\Tenancy\Context::guard().
+    |
+    | 'verification_expire' is minutes a signed email-verification link stays
+    | valid for. Previously auth.verification.expire, same reasoning.
+    |
+    */
+
+    'auth' => [
+        'guards' => [
+            'central' => 'web',
+            'tenant' => 'tenant',
+        ],
+
+        'verification_expire' => 60,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Social Login
+    |--------------------------------------------------------------------------
+    |
+    | Previously auth.social.* — see 'auth' above for why that was a mistake.
+    | 'providers' is button label/icon metadata for every provider this
+    | package knows how to render a button for; it is not the source of
+    | truth for which are actually usable — Nvade\Numerosis\Support\Social\
+    | ConfiguredProviders::all() intersects this list against config('services')
+    | credentials, so a consumer with no OAuth app configured for a provider
+    | simply never sees its button, no override needed here. 'routes' names
+    | the two routes routes/auth.php registers for the OAuth redirect/callback
+    | — the package owns those routes, so it owns the names.
+    |
+    */
+
+    'social' => [
+        'routes' => [
+            'login' => ['name' => 'oauth.callback'],
+            'redirect' => ['name' => 'oauth'],
+        ],
+
+        'providers' => [
+            'google' => [
+                'label' => 'Google',
+                'hover' => 'hover:bg-blue-500/10 dark:hover:bg-blue-400/15',
+                'icon' => 'heroicon-o-globe-alt',
+            ],
+            'github' => [
+                'label' => 'GitHub',
+                'hover' => 'hover:bg-gray-500/10 dark:hover:bg-gray-400/15',
+                'icon' => 'heroicon-o-code-bracket',
+            ],
+            'discord' => [
+                'label' => 'Discord',
+                'hover' => 'hover:bg-indigo-500/10 dark:hover:bg-indigo-400/15',
+                'icon' => 'heroicon-o-chat-bubble-left-right',
+            ],
+            'facebook' => [
+                'label' => 'Facebook',
+                'hover' => 'hover:bg-blue-500/10 dark:hover:bg-blue-400/15',
+                'icon' => 'heroicon-o-globe-alt',
+            ],
+            'gitlab' => [
+                'label' => 'GitLab',
+                'hover' => 'hover:bg-orange-500/10 dark:hover:bg-orange-400/15',
+                'icon' => 'heroicon-o-code-bracket',
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Filament Panel Navigation
+    |--------------------------------------------------------------------------
+    |
+    | Previously read straight off permission.filament.* — a key spatie/
+    | laravel-permission's own published config does not define, so it had no
+    | package default either. 'navigation_group' is the shared group both
+    | Roles and Permissions resources sit under; each resource's own
+    | 'navigation_group' overrides it when set, matching the previous
+    | fallback chain in PermissionResource/RoleResource.
+    |
+    */
+
+    'panels' => [
+        'access_control' => [
+            'navigation_group' => 'Access Control',
+
+            'permissions' => [
+                'navigation_group' => null,
+                'navigation_label' => 'Permissions',
+            ],
+
+            'roles' => [
+                'navigation_group' => null,
+                'navigation_label' => 'Roles',
+            ],
+        ],
+
+        // Which of the package's two panels Filament treats as the
+        // application default (the one a bare '/' resolves into). 'admin' |
+        // 'tenant' | null — null registers neither as default, which is only
+        // safe if a host's own panel provider supplies one, since Filament
+        // otherwise has no panel to route an unscoped request to.
+        //
+        // 'provider' lets a host replace either package panel provider
+        // (Nvade\Numerosis\Providers\Filament\NumerosisAdminPanelProvider /
+        // NumerosisTenantPanelProvider) with its own class entirely — see
+        // NumerosisServiceProvider::registerFilamentPanels(). Left null, the
+        // package's own provider registers, gated the same way it always
+        // was: AdminPanelFeature/TenantPanelFeature via each plugin's own
+        // shouldRegisterPanel().
+        'default' => 'admin',
+        'admin' => ['provider' => null],
+        'tenant' => ['provider' => null],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Modules
     |--------------------------------------------------------------------------
     |
@@ -300,25 +488,27 @@ return [
     |--------------------------------------------------------------------------
     |
     | Every package call site that touches one of these 9 models resolves it
-    | through `Numerosis::model()` rather than referencing the class
-    | literally, so a host wanting its own subclass (extra columns,
-    | relationships, methods) sets one key here instead of editing call
-    | sites. Left `null`, each resolves to the package's own concrete class
-    | — the package models are not abstract, so this is a pure override, not
-    | a requirement to publish a stub before anything runs.
+    | through `Numerosis::model()`. Left `null` (the default a host never has
+    | to touch), that method still checks for a subclass named
+    | `App\Models\<suffix>` — the same location `artisan vendor:publish
+    | --tag=numerosis-models` writes its stub to — and uses it automatically
+    | when found, no key here required. This array stays as the *explicit*
+    | override for the rare case of a subclass living somewhere other than
+    | the conventional path; see `Numerosis::model()`'s own docblock for the
+    | full three-step resolution order.
     |
     */
 
     'models' => [
-        Tenant::class => env('NUMEROSIS_MODEL_TENANT'),
-        Domain::class => env('NUMEROSIS_MODEL_DOMAIN'),
-        CentralUser::class => env('NUMEROSIS_MODEL_CENTRAL_USER'),
-        Subscription::class => env('NUMEROSIS_MODEL_SUBSCRIPTION'),
-        PaymentPlan::class => env('NUMEROSIS_MODEL_PAYMENT_PLAN'),
-        PendingTenantProvision::class => env('NUMEROSIS_MODEL_PENDING_TENANT_PROVISION'),
-        Invitation::class => env('NUMEROSIS_MODEL_INVITATION'),
-        Module::class => env('NUMEROSIS_MODEL_MODULE'),
-        TenantUser::class => env('NUMEROSIS_MODEL_TENANT_USER'),
+        Tenant::class => null,
+        Domain::class => null,
+        CentralUser::class => null,
+        Subscription::class => null,
+        PaymentPlan::class => null,
+        PendingTenantProvision::class => null,
+        Invitation::class => null,
+        Module::class => null,
+        TenantUser::class => null,
     ],
 
     /*

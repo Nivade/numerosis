@@ -18,14 +18,9 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
-use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
-use Nvade\Numerosis\Models\Tenant\Invitation;
-use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
@@ -42,26 +37,24 @@ use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;
 use Stancl\Tenancy\UUIDGenerator;
-use Workbench\App\Providers\Filament\AdminPanelProvider;
-use Workbench\App\Providers\Filament\TenantAdminPanelProvider;
 
 abstract class TestCase extends Orchestra
 {
     use InteractsWithTenantPanel;
 
     /**
-     * The two Filament panel providers are Workbench-only stand-ins for
-     * what a real host (thin-app, Phase 7/8) will register — see their own
-     * class docblocks. They belong here, not in NumerosisServiceProvider,
-     * for the same reason `getEnvironmentSetUp()` below hand-sets
-     * `config('tenancy.*')` etc: the package never owns a panel.
+     * `NumerosisServiceProvider::registerFilamentPanels()` registers both
+     * panels itself now (Phase 2, package-host-bootstrap) — Workbench used
+     * to carry its own stand-in copies of `AdminPanelProvider`/
+     * `TenantAdminPanelProvider` for exactly what the package now supplies
+     * by default, and registering both would have silently double-registered
+     * the same panel ids (Filament's `PanelRegistry` keys by id and the
+     * second registration just overwrites the first — no error, no signal).
      */
     protected function getPackageProviders($app): array
     {
         return [
             NumerosisServiceProvider::class,
-            AdminPanelProvider::class,
-            TenantAdminPanelProvider::class,
         ];
     }
 
@@ -176,6 +169,30 @@ abstract class TestCase extends Orchestra
         $app->make(Repository::class)->set('database.connections.central', $mysql);
         $app->make(Repository::class)->set('database.connections.tenant', $mysql);
 
+        // Every key this block sets is one HostConfig::apply() would also
+        // set, given the chance — but it doesn't get the chance here.
+        // Testbench's own boot order (CreatesApplication::
+        // resolveApplicationBootstrappers()) runs RegisterProviders — which
+        // is what fires NumerosisServiceProvider::packageRegistered(), and
+        // therefore HostConfig::apply() — *before* getEnvironmentSetUp()
+        // runs. A real host's config files are loaded by LoadConfiguration,
+        // long before any provider registers, so HostConfig sees the real
+        // values there; here, it runs first and only ever sees Testbench's
+        // and stancl's own stock defaults, several steps before this
+        // method's putenv()/Config::set() calls exist for it to read.
+        // Tried deleting this block on the assumption HostConfig would
+        // backfill it (matching the numerosis.models.* proof Phase 4 could
+        // make safely — that one resolves lazily, at the moment a test
+        // calls Numerosis::model(), long after this method has already
+        // run); it does not hold for anything HostConfig computes from
+        // config this method itself sets (database.default,
+        // numerosis.domains.central, …) — HostConfig ran too early to see
+        // any of it, and cloned/derived from Testbench's own stock values
+        // instead (a sqlite :memory: 'central' connection, an empty
+        // tenancy.central_domains, a bogus stock tenant-migration path).
+        // 319 of 526 tests failed. Restored, with this note so the same
+        // experiment isn't repeated the same way — see
+        // .claude/rules/testing.md for the recorded version.
         $app->make(Repository::class)->set('tenancy.tenant_model', \App\Models\Central\Tenant::class);
         $app->make(Repository::class)->set('tenancy.id_generator', UUIDGenerator::class);
         $app->make(Repository::class)->set('tenancy.domain_model', Domain::class);
@@ -210,28 +227,20 @@ abstract class TestCase extends Orchestra
             '--class' => TenantDatabaseSeeder::class,
         ]);
 
-        // Every test in this suite creates models via the Workbench stubs
-        // (App\Models\Central\Tenant etc, not the package's own concrete
-        // classes) — the exact host shape D8/D12's config-first
-        // Numerosis::model() was designed for. Without this, package code
-        // that writes a class-string through Numerosis::model() (e.g.
-        // LinkSubscriptionToTenant's subscribable_type) disagrees with the
-        // class actually used to create the row, and a polymorphic lookup
-        // that filters on that column silently finds nothing.
-        $app->make(Repository::class)->set('numerosis.models', [
-            Tenant::class => \App\Models\Central\Tenant::class,
-            \Nvade\Numerosis\Models\Central\Domain::class => Domain::class,
-            \Nvade\Numerosis\Models\Central\CentralUser::class => CentralUser::class,
-            Subscription::class => \App\Models\Central\Subscription::class,
-            PaymentPlan::class => \App\Models\Central\PaymentPlan::class,
-            PendingTenantProvision::class => \App\Models\Central\PendingTenantProvision::class,
-            Invitation::class => \App\Models\Tenant\Invitation::class,
-            Module::class => \App\Models\Tenant\Module::class,
-            \Nvade\Numerosis\Models\Tenant\User::class => User::class,
-        ]);
+        // No explicit numerosis.models.* here (unlike before Phase 4 of
+        // better-dx.md): every test in this suite creates models via the
+        // Workbench stubs (App\Models\Central\Tenant etc), which sit at
+        // exactly the path Numerosis::model()'s convention step now checks
+        // (App\Models\<suffix>) and extend the package model it resolves —
+        // so they're picked up automatically, no config needed. This is the
+        // live proof that the convention fallback works: if it stopped
+        // resolving these stubs, every test touching
+        // LinkSubscriptionToTenant's subscribable_type (or any other
+        // class-string Numerosis::model() writes) would fail immediately.
 
-        $app->make(Repository::class)->set('auth.defaults.guards.context.central', 'web');
-        $app->make(Repository::class)->set('auth.defaults.guards.context.tenant', 'tenant');
+        // numerosis.auth.guards.{central,tenant} already default to 'web'/
+        // 'tenant' (config/numerosis.php), matching the guard names below —
+        // nothing to override here.
         $app->make(Repository::class)->set('auth.guards.web', ['driver' => 'session', 'provider' => 'central_users']);
         $app->make(Repository::class)->set('auth.guards.tenant', ['driver' => 'session', 'provider' => 'tenant_users']);
         $app->make(Repository::class)->set('auth.providers.central_users', [
@@ -242,34 +251,12 @@ abstract class TestCase extends Orchestra
             'driver' => 'eloquent',
             'model' => User::class,
         ]);
-        // Two host-owned files, deliberately disagreeing: config/auth.php's
-        // `social.providers` is button metadata for five providers, while
-        // config/services.php carries credentials for only two of them.
-        // `Support\Social\ConfiguredProviders` is the intersection, and
-        // SocialLoginButtonsTest asserts exactly that — a `github` button
-        // must not render off metadata alone. Setting `providers` to `[]`
-        // (what this was) made every socialite test either see no button or
-        // reach Socialite with no credentials, which surfaces as
-        // `Missing required configuration keys [client_id, client_secret,
-        // redirect] for [Laravel\Socialite\Two\GoogleProvider]` from the
-        // redirect route rather than as missing config.
-        $app->make(Repository::class)->set('auth.social.providers', [
-            'google' => ['label' => 'Google', 'hover' => '', 'icon' => 'heroicon-o-globe-alt'],
-            'github' => ['label' => 'GitHub', 'hover' => '', 'icon' => 'heroicon-o-code-bracket'],
-            'discord' => ['label' => 'Discord', 'hover' => '', 'icon' => 'heroicon-o-chat-bubble-left-right'],
-            'facebook' => ['label' => 'Facebook', 'hover' => '', 'icon' => 'heroicon-o-globe-alt'],
-            'gitlab' => ['label' => 'GitLab', 'hover' => '', 'icon' => 'heroicon-o-code-bracket'],
-        ]);
-
-        // The button component resolves its href as
-        // route(config('auth.social.routes.redirect.name')) — with the key
-        // unset that is route(null), i.e. `Route [] not defined` from a view,
-        // which names neither the config key nor the route.
-        $app->make(Repository::class)->set('auth.social.routes', [
-            'login' => ['name' => 'oauth.callback'],
-            'redirect' => ['name' => 'oauth'],
-        ]);
-
+        // numerosis.social.providers/routes (config/numerosis.php) already
+        // carry this same five-provider metadata and the oauth/oauth.callback
+        // route names — nothing to override here. `Support\Social\
+        // ConfiguredProviders` intersects that list against config('services')
+        // credentials, so SocialLoginButtonsTest's "no client id, no button"
+        // assertion still depends only on the services.* block below.
         foreach (['google', 'discord'] as $driver) {
             $app->make(Repository::class)->set("services.{$driver}", [
                 'client_id' => "{$driver}-test-client-id",
@@ -365,10 +352,14 @@ abstract class TestCase extends Orchestra
         // `failed_jobs` migration, so the host has to point this at a
         // connection that carries it; Testbench's skeleton points at sqlite,
         // and the failure is `Database file at path […]/database.sqlite does
-        // not exist`, which names neither this key nor failed_jobs.
+        // not exist`, which names neither this key nor failed_jobs. Named
+        // 'central' explicitly, not 'mysql' — HostConfig::failedJobsConnection()
+        // now normalizes exactly that coincidental-with-database.default
+        // pattern, so leaving it as 'mysql' here would make every reboot
+        // "fix" it and break HostConfigTest's idempotency assertion.
         $app->make(Repository::class)->set('queue.failed', [
             'driver' => 'database-uuids',
-            'database' => 'mysql',
+            'database' => 'central',
             'table' => 'failed_jobs',
         ]);
         $app->make(Repository::class)->set('mail.default', 'array');
@@ -411,8 +402,6 @@ abstract class TestCase extends Orchestra
         $entries = [
             'resources/css/app.css',
             'resources/js/app.js',
-            'resources/js/central.js',
-            'resources/js/tenant.js',
         ];
         $manifest = [];
 

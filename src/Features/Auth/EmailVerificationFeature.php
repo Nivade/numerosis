@@ -40,7 +40,7 @@ class EmailVerificationFeature implements NamedFeature
     {
         VerifyEmail::createUrlUsing(
             callback: fn (User $notifiable) => URL::temporarySignedRoute('verification.verify',
-                expiration: Date::now()->addMinutes(Config::integer('auth.verification.expire', 60)),
+                expiration: Date::now()->addMinutes(Config::integer('numerosis.auth.verification_expire', 60)),
                 parameters: [
                     'id' => $notifiable->getGlobalIdentifierKey(),
                     'hash' => sha1($notifiable->getEmailForVerification()),

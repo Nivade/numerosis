@@ -35,7 +35,10 @@ class PermissionResource extends BaseResource
     #[Override]
     public static function getNavigationGroup(): ?string
     {
-        $group = config('permission.filament.permissions.navigation.group', config('permission.filament.navigation.group'));
+        $group = config(
+            'numerosis.panels.access_control.permissions.navigation_group',
+            config('numerosis.panels.access_control.navigation_group'),
+        );
 
         return is_string($group) ? $group : null;
     }
@@ -43,9 +46,7 @@ class PermissionResource extends BaseResource
     #[Override]
     public static function getNavigationLabel(): string
     {
-        $label = config('permission.filament.permissions.navigation.label');
-
-        return is_string($label) ? $label : 'Permissions';
+        return Config::string('numerosis.panels.access_control.permissions.navigation_label', 'Permissions');
     }
 
     #[Override]

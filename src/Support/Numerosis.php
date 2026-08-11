@@ -5,18 +5,27 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Support;
 
 use Closure;
+use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\ApplicationBuilder;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Foundation\Vite;
+use Illuminate\Foundation\ViteException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\HtmlString;
 use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Models\User as NumerosisUser;
+use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Stancl\Tenancy\Contracts\Tenant;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
@@ -26,6 +35,9 @@ class Numerosis
 {
     /** @var list<string> */
     private static array $tenantColumns = [];
+
+    /** @var array<class-string, class-string> */
+    private static array $modelCache = [];
 
     /**
      * Extension hooks a host can set via `registerRoutesUsing()` /
@@ -44,6 +56,16 @@ class Numerosis
     public static ?Closure $registerBroadcastingCallback = null;
 
     public static ?Closure $registerMiddlewareCallback = null;
+
+    /**
+     * Whether `routes()` has run yet — `NumerosisServiceProvider`'s safety
+     * net reads this via {@see self::routesRegistered()} to decide whether
+     * it needs to call `routes()` itself. See that method's docblock for why
+     * a host that omitted `withRouting(using: Numerosis::routes(...))`
+     * entirely gets no other signal that anything is wrong: every URL just
+     * 404s.
+     */
+    private static bool $routesRegistered = false;
 
     /**
      * @param  list<string>  $columns
@@ -80,6 +102,32 @@ class Numerosis
     }
 
     /**
+     * `bootstrap/app.php` becomes one line:
+     * `return Numerosis::configure(basePath: dirname(__DIR__))->create();`.
+     * Wraps `Application::configure()` and applies `routes()`,
+     * `middleware()` and `exceptions()` the way a host would otherwise have
+     * to spell out three separate `->with*()` calls for — see
+     * `.claude/rules/package-host-bootstrap.md` for the three-bug incident
+     * that shipped from a host doing this by hand and getting two of the
+     * three calls wrong. `$basePath` passes straight through to
+     * `Application::configure()`; left null, it infers the host's base path
+     * the normal Laravel way (`Application::inferBasePath()`), which this
+     * method does not need to replicate.
+     *
+     * Still just a convenience: `routes()`/`middleware()`/`exceptions()`
+     * remain public and independently callable for a host that wants
+     * `Application::configure()`'s other options (`then:`, `web:`, `api:`,
+     * …) and would otherwise have to duplicate this method to get them.
+     */
+    public static function configure(?string $basePath = null): ApplicationBuilder
+    {
+        return Application::configure(basePath: $basePath)
+            ->withRouting(using: self::routes(...))
+            ->withMiddleware(self::middleware(...))
+            ->withExceptions(self::exceptions(...));
+    }
+
+    /**
      * Route registration for `bootstrap/app.php`'s `withRouting(using: ...)`.
      * Central-domain routes register once per entry in `tenancy.central_domains`
      * — the app can sit behind more than one central hostname (e.g. bare apex
@@ -98,6 +146,8 @@ class Numerosis
      */
     public static function routes(): void
     {
+        self::$routesRegistered = true;
+
         if (self::$registerRoutesCallback instanceof Closure) {
             (self::$registerRoutesCallback)(app());
 
@@ -120,6 +170,20 @@ class Numerosis
     }
 
     /**
+     * Whether `routes()` has run at all yet, regardless of which branch —
+     * the package's own default groups or a host's `registerRoutesUsing()`
+     * override. `NumerosisServiceProvider`'s safety net calls `routes()`
+     * itself when this is still false by the time the application has
+     * finished booting, which only happens for a host whose
+     * `bootstrap/app.php` never called `withRouting(using:
+     * Numerosis::routes(...))` at all.
+     */
+    public static function routesRegistered(): bool
+    {
+        return self::$routesRegistered;
+    }
+
+    /**
      * Absolute path to the package's own `routes/channels.php`, for
      * `bootstrap/app.php`'s `withBroadcasting()`. Same reasoning as
      * `tenantMigrationPath()`: `InstalledVersions::getInstallPath()` is wrong
@@ -133,7 +197,7 @@ class Numerosis
 
     /**
      * Middleware group used by `withBroadcasting()`. `auth:tenant` is
-     * hardcoded rather than read off `auth.defaults.guards.context.tenant`
+     * hardcoded rather than read off `numerosis.auth.guards.tenant`
      * because broadcasting auth always happens inside tenant context — see
      * .claude/rules/tenant-caching.md for why a mismatched guard here is a
      * cross-tenant identity leak, not a config nicety.
@@ -297,6 +361,48 @@ class Numerosis
     }
 
     /**
+     * The `<link>`/`<script>` tags `resources/views/partials/styles.blade.php`
+     * needs for this package's non-panel styling (`dist/numerosis.css`) and
+     * the merged central/tenant JS (`dist/numerosis.js` — see
+     * `resources/js/numerosis.js`'s own docblock for why central.js and
+     * tenant.js became one file). Both are prebuilt and registered as
+     * Filament assets (`NumerosisServiceProvider::registerFilamentTheme()`),
+     * copied to `public/{js,css}/nvade/numerosis/` by the `filament:assets`
+     * command a host already runs — the zero-config path needs nothing
+     * else.
+     *
+     * The CSS has no publish-and-customise escape hatch (a host overrides
+     * its look through `tokens.css` custom properties instead, same as
+     * `dist/filament-theme.css`), but the JS does — `numerosis-assets`
+     * publishes `resources/js/numerosis.js` as an ordinary source file a
+     * host can edit and point their own `vite.config.js` at. When a
+     * published copy exists, this tries `@vite(['resources/js/numerosis.js'])`
+     * first and only falls back to the prebuilt `<script>` tag if the
+     * host's own Vite manifest doesn't actually have an entry for it yet
+     * (published but not wired into `vite.config.js`) — `ViteException`
+     * covers both `Illuminate\Foundation\Vite`'s missing-manifest and
+     * missing-entry cases, since `ViteManifestNotFoundException extends
+     * ViteException`.
+     */
+    public static function assetTags(): Htmlable
+    {
+        $css = '<link href="'.e(FilamentAsset::getStyleHref(NumerosisServiceProvider::ASSET_ID, 'nvade/numerosis')).'" rel="stylesheet" />';
+
+        if (File::exists(resource_path('js/numerosis.js'))) {
+            try {
+                return new HtmlString($css.app(Vite::class)(['resources/js/numerosis.js'])->toHtml());
+            } catch (ViteException) {
+                // Published but not (yet) in the host's own Vite manifest —
+                // fall through to the prebuilt <script> tag below.
+            }
+        }
+
+        $js = '<script src="'.e(FilamentAsset::getScriptSrc(NumerosisServiceProvider::ASSET_ID, 'nvade/numerosis')).'"></script>';
+
+        return new HtmlString($css.$js);
+    }
+
+    /**
      * Exception context/throttling for `bootstrap/app.php`'s
      * `withExceptions()`. Reads `tenancy()->initialized` at **report** time,
      * which is wrong for a job that failed inside `$tenant->run()` — see
@@ -348,15 +454,32 @@ class Numerosis
      * calling `Tenant::query()` etc directly always works — this is a pure
      * override mechanism, not a requirement.
      *
-     * Config-first: `numerosis.models.{$model}` lets a host redirect every
-     * package call site touching that model to its own subclass (extra
-     * columns, relationships, methods) by setting one config key, instead of
-     * editing each call site by hand. Unset (the default), this returns
-     * `$model` unchanged — see D8 in .claude/plans/package-extraction.md for
-     * why the previous design (abstract package models + 108 hand-written
-     * wrapper calls with a by-convention host-namespace fallback) was
-     * dropped: it produced six distinct instantiation-by-proxy bugs across
-     * sessions and never actually read config despite being justified by it.
+     * Three-step resolution, config first: (1) `numerosis.models.{$model}`
+     * — explicit, always wins, set in the host's own config file (no `.env`
+     * key any more — see the array's docblock in config/numerosis.php).
+     * (2) `App\Models\<suffix>` (host's app namespace,
+     * same suffix `factoryNameFor()`/`modelNameFor()` derive) when that class
+     * exists *and* is a subclass of `$model` — a host that names its
+     * subclass exactly where Laravel convention expects it needs no config
+     * at all. (3) `$model` unchanged, the package's own class.
+     *
+     * `is_subclass_of()` is what makes step 2 safe: it only fires for a class
+     * that genuinely extends `$model`, so a host with an unrelated
+     * `App\Models\Central\Tenant` for some other purpose is never silently
+     * redirected into it — that class fails the subclass check and step 3
+     * falls through to the package's own class instead. This is a narrower
+     * version of the by-convention fallback D8
+     * (`.claude/plans/package-extraction.md`) removed from this exact
+     * method — that one guessed a class name with no
+     * subclass check and ran against *abstract* package models, so a guess
+     * that resolved to nothing crashed on instantiation; this fires only
+     * against a verified-compatible concrete class, and the worst case of a
+     * wrong guess is "resolves to nothing," which step 3 already handles.
+     * `modelNameFor()` already runs the same class_exists half of this check
+     * for factories with no incident since D8 shipped.
+     *
+     * Memoized per request — `app()->getNamespace()` and `is_subclass_of()`
+     * are not free, and this method sits on ~108 call sites.
      *
      * @template TModel of \Illuminate\Database\Eloquent\Model
      *
@@ -365,9 +488,42 @@ class Numerosis
      */
     public static function model(string $model): string
     {
+        if (isset(self::$modelCache[$model])) {
+            /** @var class-string<TModel> */
+            return self::$modelCache[$model];
+        }
+
         $override = Config::get("numerosis.models.{$model}");
 
-        return is_string($override) ? $override : $model;
+        if (is_string($override) && $override !== '') {
+            /** @var class-string<TModel> $override */
+            return self::$modelCache[$model] = $override;
+        }
+
+        $suffix = str_contains($model, '\\Models\\')
+            ? substr($model, strpos($model, '\\Models\\') + strlen('\\Models\\'))
+            : class_basename($model);
+
+        $hostModel = rtrim((string) app()->getNamespace(), '\\').'\\Models\\'.$suffix;
+
+        if (class_exists($hostModel) && is_subclass_of($hostModel, $model)) {
+            /** @var class-string<TModel> $hostModel */
+            return self::$modelCache[$model] = $hostModel;
+        }
+
+        return self::$modelCache[$model] = $model;
+    }
+
+    /**
+     * Clears `model()`'s memoization. Called from
+     * `NumerosisServiceProvider::packageRegistered()` on every boot — the
+     * cache is a bare static array, not container-bound, so nothing else
+     * clears it between Testbench's per-test `Application` rebuilds or
+     * between requests in a long-running (Octane) worker.
+     */
+    public static function resetModelCache(): void
+    {
+        self::$modelCache = [];
     }
 
     /**

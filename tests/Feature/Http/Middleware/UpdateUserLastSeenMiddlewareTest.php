@@ -84,7 +84,7 @@ class UpdateUserLastSeenMiddlewareTest extends TestCase
         $centralUser = CentralUser::factory()->create();
 
         $tenant->run(function () use ($centralUser) {
-            $this->actingAs($centralUser, Config::string('auth.defaults.guards.context.central'));
+            $this->actingAs($centralUser, Config::string('numerosis.auth.guards.central'));
 
             $middleware = new UpdateUserLastSeenMiddleware;
 

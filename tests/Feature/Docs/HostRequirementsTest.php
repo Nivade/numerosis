@@ -79,6 +79,34 @@ class HostRequirementsTest extends TestCase
     }
 
     /**
+     * post-extraction-review.md Phase 4.2: a `verify*()` reading a mistyped
+     * config key passes silently forever, and the two assertions above only
+     * prove a method and a doc row exist together — neither runs the
+     * method. This is what actually proves each one still fires: every
+     * test in `InstallNumerosisCommandTest` carries an `@verifies <method>`
+     * tag naming which `verify*()` it exercises, and this greps for them.
+     */
+    public function test_every_verify_method_has_a_failure_path_test(): void
+    {
+        $verifyMethods = array_values(array_filter(
+            $this->commandMethods(),
+            fn (string $method): bool => str_starts_with($method, 'verify'),
+        ));
+
+        $testFile = (string) file_get_contents(dirname(__DIR__, 2).'/Feature/Console/Commands/InstallNumerosisCommandTest.php');
+        preg_match_all('/@verifies\s+(\w+)/', $testFile, $matches);
+        $tested = $matches[1];
+
+        $untested = array_values(array_diff($verifyMethods, $tested));
+
+        $this->assertSame(
+            [],
+            $untested,
+            'InstallNumerosisCommand has a verify*() method with no @verifies tag naming it in InstallNumerosisCommandTest — add a failure-path test.',
+        );
+    }
+
+    /**
      * @return list<array{key: string, checked_by: string}>
      */
     private function documentedRows(): array

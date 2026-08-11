@@ -20,8 +20,7 @@ use Nvade\Numerosis\Models\Tenant\Invitation;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\NumerosisServiceProvider;
-use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
-use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
+use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
 
 /**
@@ -36,41 +35,31 @@ class InstallNumerosisCommand extends Command
 {
     public $signature = 'numerosis:install
                         {--verify-only : Run the host-configuration checks without publishing anything or touching .env}
-                        {--seed : Also run the package\'s central seeders (roles/permissions, example plans, module catalogue)}';
+                        {--no-seed : Skip the package\'s central seeders (roles/permissions, example plans, module catalogue) — run by default}';
 
     public $description = 'Publish Numerosis config and model stubs, then verify the host is wired correctly';
 
     /** @var list<string> */
     private array $failures = [];
 
-    /**
-     * Overrides written to .env during this run. Config was already resolved
-     * when they landed, so `config('numerosis.models.*')` still reads null for
-     * them — verification has to consult this instead of reporting a problem
-     * the command just fixed.
-     *
-     * @var array<class-string, string>
-     */
-    private array $appendedModelOverrides = [];
-
     public function handle(): int
     {
         if (! $this->option('verify-only')) {
             $this->publishAssets();
             $this->appendEnvKeys();
-            $this->appendModelOverrides();
         }
 
-        if ($this->option('seed') && ! $this->option('verify-only')) {
+        if (! $this->option('no-seed') && ! $this->option('verify-only')) {
             $this->seedCentralData();
         }
+
+        $this->printConfiguredKeys();
 
         $this->newLine();
         $this->components->info('Verifying host configuration');
 
         $this->verifyTenancyModels();
         $this->verifyCentralDomains();
-        $this->verifyTenancyBootstrappers();
         $this->verifyDatabaseConnections();
         $this->verifyLockWaitTimeout();
         $this->verifySessionDomain();
@@ -79,7 +68,6 @@ class InstallNumerosisCommand extends Command
         $this->verifySocialProviders();
         $this->verifySocialRoutes();
         $this->verifyFailedJobsConnection();
-        $this->verifyLivewireDiskExclusion();
         $this->verifyLivewireUploadDisk();
         $this->verifyLivewireComponentNamespaces();
         $this->verifyDomainConfig();
@@ -89,6 +77,7 @@ class InstallNumerosisCommand extends Command
         $this->verifyStripeKeys();
         $this->verifyModelOverrides();
         $this->verifyCentralDataSeeded();
+        $this->verifyConfigSchemaVersion();
 
         if ($this->failures !== []) {
             $this->newLine();
@@ -110,6 +99,27 @@ class InstallNumerosisCommand extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * `HostConfig::apply()` already ran, inside
+     * `NumerosisServiceProvider::packageRegistered()`, before this command's
+     * `handle()` was ever called — providers register ahead of any command
+     * executing. This just surfaces what it did, so a host can see "these N
+     * keys needed nothing from me" instead of having to diff every default
+     * by hand. Runs regardless of `--verify-only`: normalization isn't a
+     * side effect this command chooses to skip, it already happened.
+     */
+    private function printConfiguredKeys(): void
+    {
+        $applied = HostConfig::applied();
+
+        $this->newLine();
+        $this->components->info('Configured '.count($applied).' host config key(s) automatically:');
+
+        foreach ($applied as $key) {
+            $this->line("  - {$key}");
+        }
+    }
+
     private function publishAssets(): void
     {
         $this->call('vendor:publish', ['--tag' => 'numerosis-config', '--force' => false]);
@@ -122,14 +132,15 @@ class InstallNumerosisCommand extends Command
         // migration. Auto-publishing it here would recreate the duplicated,
         // drifting copy this command exists to prevent.
 
-        // resources/views/partials/styles.blade.php calls
-        // @vite('resources/js/central.js') / 'resources/js/tenant.js'
-        // unconditionally — without this, that view throws "Unable to
-        // locate file in Vite manifest" the moment it's first rendered,
-        // since those files never otherwise land in the host's
-        // resources/js. Publishing them is still not the whole fix — see
-        // printManualSteps() below for the vite.config.js entry this
-        // can't add on its own.
+        // resources/css/app.css and resources/js/app.js are the host's own
+        // starting templates — genuinely required, since nothing else
+        // creates them. resources/js/numerosis.js in the same group is not:
+        // Numerosis::assetTags() renders the prebuilt dist/numerosis.js
+        // when this hasn't been published, same "opt-in customisation
+        // escape hatch" shape as numerosis-tenant-migrations above. Published
+        // here anyway since it rides the same tag as app.css/app.js —
+        // --force=false means a host not customising it can simply leave
+        // (or delete) the copy this creates.
         $this->call('vendor:publish', ['--tag' => 'numerosis-assets', '--force' => false]);
     }
 
@@ -226,62 +237,17 @@ class InstallNumerosisCommand extends Command
     }
 
     /**
-     * Points config at the model stubs that were just published. Publishing a
-     * stub does nothing on its own: every package call site resolves through
-     * `Numerosis::model()`, which returns the package's own class unless
-     * `numerosis.models.<FQCN>` names something else. A host that publishes
-     * stubs, creates rows through them, and leaves config unset gets package
-     * class-strings written into morph columns and Cashier's `updateOrCreate`
-     * missing rows it should have found — surfacing as SQLSTATE 1205/1062 on
-     * an unrelated insert, which reads as lock contention rather than as a
-     * config gap.
-     *
-     * Values are single-quoted. A double-quoted class-string
-     * (`"App\Models\Central\Tenant"`) is an unrecognised escape sequence to
-     * phpdotenv, which throws `InvalidFileException` for the *whole file* —
-     * i.e. writing one here would stop the host booting at all.
-     */
-    private function appendModelOverrides(): void
-    {
-        $envPath = base_path('.env');
-
-        if (! File::exists($envPath)) {
-            return; // appendEnvKeys() already warned about this.
-        }
-
-        $env = File::get($envPath);
-        $missing = [];
-
-        foreach ($this->modelStubMap() as $packageModel => $stub) {
-            // No stub published means the host is running on the package's own
-            // models, which is a supported shape (D8) — nothing to point at.
-            if (! File::exists($stub['path'])) {
-                continue;
-            }
-
-            if (preg_match('/^'.preg_quote($stub['env'], '/').'=/m', $env) === 1) {
-                continue;
-            }
-
-            $missing[] = "{$stub['env']}='{$stub['class']}'";
-            $this->appendedModelOverrides[$packageModel] = $stub['class'];
-        }
-
-        if ($missing === []) {
-            return;
-        }
-
-        File::append($envPath, "\n# Added by numerosis:install — published model stubs, see docs/host-requirements.md\n".implode("\n", $missing)."\n");
-
-        $this->components->info('Pointed '.count($missing).' model override(s) at the published stubs.');
-    }
-
-    /**
      * The four model keys stancl and this package's own resolvers read. An
      * unresolvable `tenant_model` does not throw where it is read — the
      * Filament panel answers 404 on every tenant URL instead, because
      * `{tenant}` route-model binding silently resolves to nothing (see
      * filament-tenancy.md).
+     *
+     * `HostConfig::tenancyModels()`/`tenantSeederParameters()` already set
+     * all of this from `Numerosis::model()` on every boot, so a host that
+     * hasn't touched `config/tenancy.php` never fails here. This only
+     * fires for a host that set one of these keys directly (bypassing
+     * `Numerosis::model()`) to something broken.
      */
     private function verifyTenancyModels(): void
     {
@@ -307,30 +273,19 @@ class InstallNumerosisCommand extends Command
         }
     }
 
+    /**
+     * `HostConfig::centralDomains()` derives this from `APP_URL` on every
+     * boot whenever it's still empty, so this only fires when that
+     * derivation itself failed (`numerosis.domains.central` couldn't be
+     * worked out — see `NUMEROSIS_APEX_DOMAIN`/`NUMEROSIS_CENTRAL_DOMAIN` in
+     * docs/host-requirements.md) or a host set an empty array explicitly.
+     */
     private function verifyCentralDomains(): void
     {
         $domains = Config::get('tenancy.central_domains');
 
         if (! is_array($domains) || $domains === []) {
             $this->failures[] = "config('tenancy.central_domains') must list at least one hostname — Numerosis::routes() registers one route group per entry, so an empty list means every central URL 404s with no route registered at all.";
-        }
-    }
-
-    /**
-     * Both package bootstrappers must be present. `AuthGuardBootstrapper` is
-     * the entire enforcement mechanism for "central domain = central guard,
-     * inside tenant = tenant guard" — omit it and every ambient
-     * `auth()->user()` resolves a central user on tenant domains, silently.
-     */
-    private function verifyTenancyBootstrappers(): void
-    {
-        $bootstrappers = Config::get('tenancy.bootstrappers');
-        $bootstrappers = is_array($bootstrappers) ? $bootstrappers : [];
-
-        foreach ([SpatiePermissionsBootstrapper::class, AuthGuardBootstrapper::class] as $required) {
-            if (! in_array($required, $bootstrappers, true)) {
-                $this->failures[] = "config('tenancy.bootstrappers') is missing {$required} — see docs/host-requirements.md's config/tenancy.php row for what stops working without it.";
-            }
         }
     }
 
@@ -345,6 +300,12 @@ class InstallNumerosisCommand extends Command
      * Read as a string rather than through PDO's constant, so this behaves the
      * same on PHP 8.4 and 8.5, where the MySQL init-command constant moved to
      * `Pdo\Mysql`.
+     *
+     * `HostConfig::databaseLockOptions()` already mirrors
+     * `innodb_lock_wait_timeout` next to `lock_wait_timeout` on every boot
+     * whenever it finds the same pattern this checks for, so this only fires
+     * when a host's option string doesn't match that pattern (unusual
+     * formatting) rather than for the common case.
      */
     private function verifyLockWaitTimeout(): void
     {
@@ -367,6 +328,15 @@ class InstallNumerosisCommand extends Command
         }
     }
 
+    /**
+     * `HostConfig::centralDatabaseConnection()` already clones
+     * `database.connections.{database.default}` into `central` on every
+     * boot whenever that key is absent, so the first check here only fires
+     * when `database.default` itself doesn't resolve to a real connection
+     * array — a genuinely broken `DB_CONNECTION`, not a missing-config gap.
+     * `template_tenant_connection` is unrelated to `HostConfig` (only a
+     * multi-server host sets it at all) and stays a real check either way.
+     */
     private function verifyDatabaseConnections(): void
     {
         /** @var array<string, mixed> $connections */
@@ -390,6 +360,11 @@ class InstallNumerosisCommand extends Command
         }
     }
 
+    /**
+     * `HostConfig::sessionDomain()` already sets this from
+     * `numerosis.domains.apex` on every boot whenever it's null, so this
+     * only fires when that derivation itself failed.
+     */
     private function verifySessionDomain(): void
     {
         $domain = Config::get('session.domain');
@@ -399,16 +374,24 @@ class InstallNumerosisCommand extends Command
         }
     }
 
+    /**
+     * `numerosis.auth.guards.tenant` defaults to `'tenant'`
+     * (`config/numerosis.php`, Phase 0 of `better-dx.md`) and
+     * `HostConfig::tenantAuthGuard()` creates that guard whenever it's
+     * absent — `central` needs no equivalent, since it names Laravel's own
+     * stock `'web'` guard, always present. This only fires when a host has
+     * pointed either key at a name that isn't a real guard.
+     */
     private function verifyAuthGuards(): void
     {
         /** @var array<string, mixed> $guards */
         $guards = Config::array('auth.guards');
 
         foreach (['central', 'tenant'] as $context) {
-            $guardName = Config::get("auth.defaults.guards.context.{$context}");
+            $guardName = Config::get("numerosis.auth.guards.{$context}");
 
             if (! is_string($guardName) || ! array_key_exists($guardName, $guards)) {
-                $this->failures[] = "config('auth.defaults.guards.context.{$context}') does not resolve to a real guard in config('auth.guards') — see docs/host-requirements.md's config/auth.php row.";
+                $this->failures[] = "config('numerosis.auth.guards.{$context}') does not resolve to a real guard in config('auth.guards') — see docs/host-requirements.md's config/auth.php row.";
             }
         }
     }
@@ -419,6 +402,12 @@ class InstallNumerosisCommand extends Command
      * back to its own generic `Illuminate\Foundation\Auth\User`, which has no
      * `Notifiable` trait — so the failure is `Call to undefined method
      * ...User::notify()`, reading as a broken model rather than missing config.
+     *
+     * `HostConfig::authPasswordBroker()` already creates the broker entry
+     * whenever `auth.defaults.passwords` names one that's missing; Laravel's
+     * own stock config always sets `auth.defaults.passwords` itself, so the
+     * first failure branch below is a genuinely broken host, not a missing
+     * default.
      */
     private function verifyAuthPasswordBroker(): void
     {
@@ -452,11 +441,16 @@ class InstallNumerosisCommand extends Command
      * throws on a *missing* key rather than returning `[]` — an absent key
      * surfaces as a 500 from an unrelated view. An empty array is correct when
      * SocialLoginFeature is off.
+     *
+     * `HostConfig::numerosisConfig()` deep-fills `numerosis.*` from the
+     * package's own defaults (which include this key as its 5-provider
+     * metadata block) on every boot, so this only fires when a host has set
+     * the key itself to something that isn't an array.
      */
     private function verifySocialProviders(): void
     {
-        if (! is_array(Config::get('auth.social.providers'))) {
-            $this->failures[] = "config('auth.social.providers') must be an array (use [] when SocialLoginFeature is off) — a missing key throws InvalidArgumentException from whichever view renders the social-login buttons.";
+        if (! is_array(Config::get('numerosis.social.providers'))) {
+            $this->failures[] = "config('numerosis.social.providers') must be an array (use [] when SocialLoginFeature is off) — a missing key throws InvalidArgumentException from whichever view renders the social-login buttons.";
         }
     }
 
@@ -464,18 +458,21 @@ class InstallNumerosisCommand extends Command
      * Both names are read *inside* a `route()` call, so an unset key becomes
      * `route(null)` and the host sees `Route [] not defined` raised from a
      * Blade view — naming neither the config key nor the route it wanted.
+     *
+     * Same `HostConfig::numerosisConfig()` deep-fill as `verifySocialProviders()`
+     * above covers these two keys' own package defaults.
      */
     private function verifySocialRoutes(): void
     {
-        if (! is_array(Config::get('auth.social.providers')) || Config::get('auth.social.providers') === []) {
+        if (! is_array(Config::get('numerosis.social.providers')) || Config::get('numerosis.social.providers') === []) {
             return;
         }
 
         foreach (['redirect', 'login'] as $route) {
-            $name = Config::get("auth.social.routes.{$route}.name");
+            $name = Config::get("numerosis.social.routes.{$route}.name");
 
             if (! is_string($name) || $name === '') {
-                $this->failures[] = "config('auth.social.routes.{$route}.name') must name a route — the social-login views pass it straight to route(), so an unset key surfaces as `Route [] not defined` from a view rather than as missing config.";
+                $this->failures[] = "config('numerosis.social.routes.{$route}.name') must name a route — the social-login views pass it straight to route(), so an unset key surfaces as `Route [] not defined` from a view rather than as missing config.";
             }
         }
     }
@@ -485,6 +482,13 @@ class InstallNumerosisCommand extends Command
      * connection with no `failed_jobs` table does not lose a log line — it
      * throws inside the worker, from framework code, naming neither this key
      * nor the table.
+     *
+     * `HostConfig::failedJobsConnection()` already sets `queue.failed.database`
+     * to `'central'` on every boot whenever it's still riding
+     * `database.default`, so the "must name a connection" branch only fires
+     * for a genuinely broken `database.default`. The "has no failed_jobs
+     * table" branch stays fully real either way — that needs a migration to
+     * have actually run, which no boot-time normalization can do.
      */
     private function verifyFailedJobsConnection(): void
     {
@@ -498,16 +502,6 @@ class InstallNumerosisCommand extends Command
 
         if (! Schema::connection($connection)->hasTable('failed_jobs')) {
             $this->failures[] = "config('queue.failed.database') is '{$connection}', which has no `failed_jobs` table. Run the package's central migrations against it, or point the key at the central connection.";
-        }
-    }
-
-    private function verifyLivewireDiskExclusion(): void
-    {
-        /** @var list<string> $disks */
-        $disks = Config::array('tenancy.filesystem.disks');
-
-        if (in_array('livewire', $disks, true)) {
-            $this->failures[] = "config('tenancy.filesystem.disks') must NOT contain 'livewire' — see docs/host-requirements.md's config/filesystems.php row.";
         }
     }
 
@@ -575,18 +569,22 @@ class InstallNumerosisCommand extends Command
      * now and default off `APP_URL`, so "unset" is no longer reachable
      * through the package's own config file.
      *
-     * It is still reachable one way, which is why this check survives at all:
-     * a host holding a **published** copy of config/numerosis.php from before
-     * these keys existed. Laravel's `mergeConfigFrom()` merges only one level
-     * deep, so the host's older `domains` array wins wholesale and the new
-     * keys are simply absent — the same silent-loss shape D13 documents for
-     * the deleted numerosis-billing/tenancy config files. The failures that
-     * produces are worth naming: `Config::string()` throws on a missing key
-     * rather than defaulting, taking out tenant creation and both panel
-     * domain screens; and `Route::domain(null)` is a *getter* branch
-     * returning the route's current domain string instead of `$this`, so
-     * routes/auth.php fails one line later as
-     * "Call to a member function name() on string".
+     * It was reachable one way that `HostConfig::numerosisConfig()` has since
+     * closed: a host holding a **published** copy of config/numerosis.php
+     * from before these keys existed, where Laravel's `mergeConfigFrom()`
+     * merges only one level deep so the host's older `domains` array would
+     * win wholesale — the same silent-loss shape D13 documents for the
+     * deleted numerosis-billing/tenancy config files. `HostConfig` now
+     * deep-fills any *missing* key at every depth of `numerosis.*` on every
+     * boot, so that specific staleness no longer reaches here. What remains
+     * reachable: a host that set one of these keys to `''` explicitly (a
+     * present-but-empty key isn't "missing," so the deep-fill leaves it
+     * alone) — the failures that produces are worth naming either way:
+     * `Config::string()` throws on a missing key rather than defaulting,
+     * taking out tenant creation and both panel domain screens; and
+     * `Route::domain(null)` is a *getter* branch returning the route's
+     * current domain string instead of `$this`, so routes/auth.php fails one
+     * line later as "Call to a member function name() on string".
      */
     private function verifyDomainConfig(): void
     {
@@ -609,10 +607,28 @@ class InstallNumerosisCommand extends Command
      * The package's own migrations must be read straight from the vendor
      * directory (`Numerosis::tenantMigrationPath()`), not from a copy the
      * host published — publishing is the opt-in customisation escape hatch,
-     * not the default path. This checks the host's `--path` list includes
-     * the vendor path itself, rather than merely checking some directory
-     * exists, which is the question that let a duplicated, drifting copy
-     * pass silently before.
+     * not the default path.
+     *
+     * `HostConfig::tenantMigrationParameters()` already appends the vendor
+     * path (and forces `--realpath` true) on every boot, unconditionally —
+     * it runs inside `packageRegistered()`, before this command's `handle()`
+     * is ever reached, and nothing between the two touches this key. So the
+     * vendor path being present is no longer something a host can fail to
+     * wire; what remains genuinely host-owned is any *additional* path a
+     * host has appended for its own migrations — this validates those are
+     * well-formed, the same shape of check a duplicated, drifting published
+     * copy needed to be caught by before.
+     *
+     * Does **not** check the extra path actually exists on disk. Stancl's
+     * own stock `config/tenancy.php` (`vendor/stancl/tenancy/assets/config.php`)
+     * ships `'--path' => [database_path('migrations/tenant')]` by default —
+     * a conventional location for a host's own tenant migrations, present
+     * whether or not the host has ever put anything there. A host running
+     * on the package's tenant migrations alone (no custom ones) legitimately
+     * has no such directory; flagging that as broken was a false positive
+     * discovered while trimming thin-app's `config/tenancy.php` down to only
+     * its genuine customisations (Phase 6 of `better-dx.md`) — the very
+     * first host with no `database/migrations/tenant` directory tripped it.
      */
     private function verifyTenantMigrationPath(): void
     {
@@ -627,7 +643,6 @@ class InstallNumerosisCommand extends Command
         }
 
         $vendorPath = Numerosis::tenantMigrationPath();
-        $foundVendorPath = false;
 
         foreach ($paths as $path) {
             if (! is_string($path)) {
@@ -636,25 +651,13 @@ class InstallNumerosisCommand extends Command
                 continue;
             }
 
-            if (! str_starts_with($path, DIRECTORY_SEPARATOR)) {
-                $this->failures[] = "config('tenancy.migration_parameters')['--path'] must be absolute, got '{$path}' — pass --realpath and point it at Numerosis::tenantMigrationPath().";
-
-                continue;
-            }
-
             if ($path === $vendorPath) {
-                $foundVendorPath = true;
-
                 continue;
             }
 
-            if (! File::isDirectory($path)) {
-                $this->failures[] = "config('tenancy.migration_parameters')['--path'] entry '{$path}' does not exist.";
+            if (! str_starts_with($path, DIRECTORY_SEPARATOR)) {
+                $this->failures[] = "config('tenancy.migration_parameters')['--path'] must be absolute, got '{$path}' — pass --realpath.";
             }
-        }
-
-        if (! $foundVendorPath) {
-            $this->failures[] = "config('tenancy.migration_parameters')['--path'] does not include Numerosis::tenantMigrationPath() ('{$vendorPath}') — point it there instead of a published copy under database/migrations/tenant.";
         }
     }
 
@@ -662,11 +665,11 @@ class InstallNumerosisCommand extends Command
      * `numerosis-assets` is a deliberate publish, not a mistake (see
      * NumerosisServiceProvider's comment on why resources/{css,js} have to
      * land at resource_path() directly), so a host is allowed to customise
-     * the published copy. But three of the shipped JS files
-     * (stripe-checkout.js, stripe-confirm.js, and whatever central.js
-     * imports them by relative path) are load-bearing for payment, so
-     * silent drift between the vendor original and a host's copy is worth
-     * surfacing — this warns, it does not fail the install.
+     * the published copy. But two of the shipped JS files (stripe-checkout.js,
+     * stripe-confirm.js, imported by numerosis.js by relative path) are
+     * load-bearing for payment, so silent drift between the vendor original
+     * and a host's copy is worth surfacing — this warns, it does not fail
+     * the install.
      */
     private function verifyPublishedAssetsMatchSource(): void
     {
@@ -713,6 +716,13 @@ class InstallNumerosisCommand extends Command
      * landed, the same way a missing Filament core CSS file would mean the
      * command was never run. Silent-zero-CSS here reads as a broken deploy,
      * not a missing config line, so this fails loudly.
+     *
+     * Same check for `dist/numerosis.js`/`dist/numerosis.css`
+     * (`NumerosisServiceProvider::ASSET_ID`) — `Numerosis::assetTags()`
+     * falls back to these whenever the host hasn't published and built its
+     * own `resources/js/numerosis.js`, which is the default, so a missing
+     * file here breaks every page that renders
+     * `resources/views/partials/styles.blade.php`, not just the panels.
      */
     private function verifyFilamentThemeAsset(): void
     {
@@ -725,7 +735,14 @@ class InstallNumerosisCommand extends Command
         $themePath = public_path('css/nvade/numerosis/'.NumerosisServiceProvider::THEME_ID.'.css');
 
         if (! File::exists($themePath)) {
-            $this->failures[] = "public/css/filament exists but public/css/nvade/numerosis/".NumerosisServiceProvider::THEME_ID.'.css does not — run `php artisan filament:assets` again, or both Filament panels render with none of Numerosis\'s theming.';
+            $this->failures[] = 'public/css/filament exists but public/css/nvade/numerosis/'.NumerosisServiceProvider::THEME_ID.'.css does not — run `php artisan filament:assets` again, or both Filament panels render with none of Numerosis\'s theming.';
+        }
+
+        $assetCssPath = public_path('css/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.css');
+        $assetJsPath = public_path('js/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js');
+
+        if (! File::exists($assetCssPath) || ! File::exists($assetJsPath)) {
+            $this->failures[] = 'public/css/filament exists but public/css/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.css and/or public/js/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js does not — run `php artisan filament:assets` again, or every page rendering resources/views/partials/styles.blade.php fails resolving Numerosis::assetTags().';
         }
     }
 
@@ -739,38 +756,40 @@ class InstallNumerosisCommand extends Command
     }
 
     /**
-     * Three failure shapes, all of which a host hits silently otherwise: a
-     * stub published but not configured (see appendModelOverrides()'s note on
-     * the SQLSTATE it surfaces as), a configured class that does not exist,
-     * and a configured class that is not a subclass — `Numerosis::model()`
-     * returns whatever the key names, so an unrelated class is handed to
-     * Eloquent and fails far from here.
+     * Two failure shapes remain now that `Numerosis::model()` resolves a
+     * published stub by convention (`App\Models\<suffix>`, no config
+     * required — see that method's docblock): an explicit
+     * `numerosis.models.<FQCN>` naming a class that does not exist or is not
+     * a subclass, same as before; and a stub published at the conventional
+     * path that `Numerosis::model()` is *not* actually picking up (wrong
+     * namespace, or a class that exists but does not extend the package
+     * model) — a host would otherwise only discover this the way the
+     * pre-convention version of this check existed to prevent: package
+     * class-strings written into morph columns, surfacing later as
+     * SQLSTATE 1205/1062 on an unrelated insert.
      */
     private function verifyModelOverrides(): void
     {
         foreach ($this->modelStubMap() as $packageModel => $stub) {
+            /** @var class-string<Model> $packageModel */
             $configured = Config::get("numerosis.models.{$packageModel}");
 
-            if (! is_string($configured) || $configured === '') {
-                $configured = $this->appendedModelOverrides[$packageModel] ?? null;
-            }
+            if (is_string($configured) && $configured !== '') {
+                if (! class_exists($configured)) {
+                    $this->failures[] = "config('numerosis.models.{$packageModel}') names '{$configured}', which does not exist.";
 
-            if ($configured === null) {
-                if (File::exists($stub['path'])) {
-                    $this->failures[] = "A model stub is published at {$stub['path']}, but config('numerosis.models.{$packageModel}') is unset — every package call site keeps using the package's own class, so rows created through the stub are written with the wrong class-string (this surfaces later as SQLSTATE 1205/1062 on an unrelated insert). Set {$stub['env']}='{$stub['class']}' in .env.";
+                    continue;
+                }
+
+                if (! is_subclass_of($configured, $packageModel)) {
+                    $this->failures[] = "config('numerosis.models.{$packageModel}') names '{$configured}', which does not extend {$packageModel} — an override must be a subclass, or package code hands Eloquent a class it knows nothing about.";
                 }
 
                 continue;
             }
 
-            if (! class_exists($configured)) {
-                $this->failures[] = "config('numerosis.models.{$packageModel}') names '{$configured}', which does not exist — check {$stub['env']} in .env.";
-
-                continue;
-            }
-
-            if (! is_subclass_of($configured, $packageModel)) {
-                $this->failures[] = "config('numerosis.models.{$packageModel}') names '{$configured}', which does not extend {$packageModel} — an override must be a subclass, or package code hands Eloquent a class it knows nothing about.";
+            if (File::exists($stub['path']) && Numerosis::model($packageModel) === $packageModel) {
+                $this->failures[] = "A model stub is published at {$stub['path']}, but Numerosis::model({$packageModel}::class) still resolves to the package's own class — the stub either doesn't extend {$packageModel}, or its class name doesn't match {$stub['class']}. Every package call site keeps using the package's own class, so rows created through the stub are written with the wrong class-string (this surfaces later as SQLSTATE 1205/1062 on an unrelated insert).";
             }
         }
     }
@@ -809,44 +828,83 @@ class InstallNumerosisCommand extends Command
         $schema = Schema::connection($connection);
 
         if ($schema->getConnection()->table('permissions')->count() === 0) {
-            $this->failures[] = 'The central `permissions` table is empty — Spatie throws PermissionDoesNotExist rather than returning false, so every policy check 500s with "There is no permission named …", which reads as a guard bug. Run `php artisan numerosis:install --seed`.';
+            $this->failures[] = 'The central `permissions` table is empty — Spatie throws PermissionDoesNotExist rather than returning false, so every policy check 500s with "There is no permission named …", which reads as a guard bug. Run `php artisan numerosis:install` (seeds by default).';
         }
 
         if ($schema->getConnection()->table('payment_plans')->count() === 0) {
-            $this->failures[] = 'The central `payment_plans` table is empty — the registration wizard has nothing to sell and renders an empty plan step. Run `php artisan numerosis:install --seed`.';
+            $this->failures[] = 'The central `payment_plans` table is empty — the registration wizard has nothing to sell and renders an empty plan step. Run `php artisan numerosis:install` (seeds by default).';
         }
     }
 
     /**
-     * The 9 models a host may override, each with the env key
-     * config/numerosis.php reads it from and the path
-     * NumerosisServiceProvider publishes its stub to. Kept in one place so
-     * appendModelOverrides() and verifyModelOverrides() cannot disagree about
-     * which models exist.
+     * `HostConfig::numerosisConfig()` deep-fills any *missing* key in a
+     * published `config/numerosis.php`, at every depth — genuinely safe
+     * against a host's file merely being incomplete. It has no way to catch
+     * a key the host's file still names with an outdated shape: the key
+     * isn't missing, so nothing about the deep-fill notices. This reads
+     * `schema_version` straight out of the host's *published file* (via
+     * `require`, the same way a fresh boot's own `mergeConfigFrom()` would
+     * read it) rather than through `Config::get('numerosis.schema_version')`
+     * — that path would already show the package's current value, since an
+     * entirely-missing key is exactly what the deep-fill silently backfills,
+     * which would make this check pass regardless of how stale the file
+     * actually is.
      *
-     * @return array<class-string, array{env: string, path: string, class: string}>
+     * A host with no published file at all is unaffected — `config()`
+     * already reads the package's own file directly in that case, always
+     * current, so there's nothing to compare.
+     */
+    private function verifyConfigSchemaVersion(): void
+    {
+        $published = config_path('numerosis.php');
+
+        if (! File::exists($published)) {
+            return;
+        }
+
+        /** @var array<string, mixed> $hostConfig */
+        $hostConfig = require $published;
+        $hostVersion = is_int($hostConfig['schema_version'] ?? null) ? $hostConfig['schema_version'] : 0;
+
+        /** @var array<string, mixed> $packageConfig */
+        $packageConfig = require dirname(__DIR__, 2).'/config/numerosis.php';
+        /** @var int $currentVersion */
+        $currentVersion = $packageConfig['schema_version'];
+
+        if ($hostVersion < $currentVersion) {
+            $this->failures[] = "Published config/numerosis.php names schema_version {$hostVersion} (or none at all), but the package is on version {$currentVersion} — a top-level key may have been renamed or restructured since this file was written, which HostConfig's deep-fill cannot detect (it only backfills keys that are entirely missing, not ones your file still names with an old shape). Compare this file against the package's own config/numerosis.php, re-apply anything that changed, then set schema_version to {$currentVersion}.";
+        }
+    }
+
+    /**
+     * The 9 models a host may override, each with the path
+     * NumerosisServiceProvider publishes its stub to and the class name
+     * `Numerosis::model()`'s convention step expects it under. Kept in one
+     * place so `verifyModelOverrides()` and `Numerosis::model()` cannot
+     * disagree about which models exist or what a stub should be named.
+     *
+     * @return array<class-string, array{path: string, class: string}>
      */
     private function modelStubMap(): array
     {
-        /** @var array<class-string, array{string, string}> $models */
+        /** @var array<class-string, string> $models */
         $models = [
-            Tenant::class => ['NUMEROSIS_MODEL_TENANT', 'Central/Tenant'],
-            Domain::class => ['NUMEROSIS_MODEL_DOMAIN', 'Central/Domain'],
-            CentralUser::class => ['NUMEROSIS_MODEL_CENTRAL_USER', 'Central/CentralUser'],
-            Subscription::class => ['NUMEROSIS_MODEL_SUBSCRIPTION', 'Central/Subscription'],
-            PaymentPlan::class => ['NUMEROSIS_MODEL_PAYMENT_PLAN', 'Central/PaymentPlan'],
-            PendingTenantProvision::class => ['NUMEROSIS_MODEL_PENDING_TENANT_PROVISION', 'Central/PendingTenantProvision'],
-            Invitation::class => ['NUMEROSIS_MODEL_INVITATION', 'Tenant/Invitation'],
-            Module::class => ['NUMEROSIS_MODEL_MODULE', 'Tenant/Module'],
-            TenantUser::class => ['NUMEROSIS_MODEL_TENANT_USER', 'Tenant/User'],
+            Tenant::class => 'Central/Tenant',
+            Domain::class => 'Central/Domain',
+            CentralUser::class => 'Central/CentralUser',
+            Subscription::class => 'Central/Subscription',
+            PaymentPlan::class => 'Central/PaymentPlan',
+            PendingTenantProvision::class => 'Central/PendingTenantProvision',
+            Invitation::class => 'Tenant/Invitation',
+            Module::class => 'Tenant/Module',
+            TenantUser::class => 'Tenant/User',
         ];
 
         $namespace = $this->laravel->getNamespace();
         $map = [];
 
-        foreach ($models as $packageModel => [$env, $relative]) {
+        foreach ($models as $packageModel => $relative) {
             $map[$packageModel] = [
-                'env' => $env,
                 'path' => app_path("Models/{$relative}.php"),
                 'class' => $namespace.'Models\\'.str_replace('/', '\\', $relative),
             ];
@@ -860,10 +918,8 @@ class InstallNumerosisCommand extends Command
         $this->newLine();
         $this->components->info('Manual steps this command cannot do for you:');
         $this->line('  1. Wildcard DNS: point *.'.Config::string('numerosis.domains.tenant_pattern', '{tenant}.your-domain').' at this app.');
-        $this->line('  2. Register the package\'s Filament panel plugin(s) in your own AdminPanelProvider / TenantAdminPanelProvider.');
-        $this->line('  3. Run a queue worker on the dedicated "provisioning" queue (see docker/8.5/supervisord.conf\'s [program:queue-provisioning] in saas-m for the reference config) — tenant provisioning is queued there, not on the default worker.');
-        $this->line('  4. Add resources/js/central.js and resources/js/tenant.js to your vite.config.js input array (just published to resources/js/ by this command) — Vite compiles per-app, so this list can\'t be published, only the files it points at. Skipping this fails at first render with "Unable to locate file in Vite manifest".');
-        $this->line('  5. Run `php artisan filament:assets` (you likely already run this for Filament itself) — it copies both Filament panels\' theming (colours, radius, Instrument Sans) from this package\'s prebuilt CSS to public/css/nvade/numerosis/. No vite.config.js entry needed for it: it never goes through your build.');
-        $this->line('  6. To rebrand (accent colour, radius, fonts, density) for the *main app*, add a `:root { --pref-...: ...; }` block to your published resources/css/app.css AFTER its `@import \'.../vendor/nvade/numerosis/resources/css/tokens.css\';` line. See tokens.css for the full list of overridable custom properties. This does not reach either Filament panel — the panel theme from step 5 is a prebuilt file compiled once against the default `--pref-accent-hue` and does not read your app.css (a panel page loads only its own theme stylesheet, nothing else). Rebranding a panel\'s accent means building your own theme CSS (copy resources/theme-src/filament-theme.css from the package as a starting point, edit `--pref-accent-hue`, register it as your own Filament `Theme` asset or `->viteTheme()`) and pointing `->theme()`/`->viteTheme()` at it in your own panel providers instead of Numerosis\'s. This is a one-time, host-level choice either way — Numerosis has no per-user or per-tenant theme picker. A custom `--pref-accent-hue` is not contrast-verified for you — white text on `--color-primary` is only checked against the default hue; check your own hue\'s contrast (browser devtools\' contrast checker is enough) before shipping it.');
+        $this->line('  2. Run a queue worker on the dedicated "provisioning" queue (see docker/8.5/supervisord.conf\'s [program:queue-provisioning] in saas-m for the reference config) — tenant provisioning is queued there, not on the default worker.');
+        $this->line('  3. Run `php artisan filament:assets` (you likely already run this for Filament itself) — it copies both Filament panels\' theming (colours, radius, Instrument Sans) plus this package\'s prebuilt dist/numerosis.js and dist/numerosis.css to public/{css,js}/nvade/numerosis/. No vite.config.js entry needed for any of it: none of it goes through your build unless you\'ve published and customised resources/js/numerosis.js yourself (Numerosis::assetTags() prefers your own Vite manifest entry for it when one exists).');
+        $this->line('  4. To rebrand (accent colour, radius, fonts, density) for the *main app*, add a `:root { --pref-...: ...; }` block to your published resources/css/app.css AFTER its `@import \'.../vendor/nvade/numerosis/resources/css/tokens.css\';` line. See tokens.css for the full list of overridable custom properties. This does not reach either Filament panel — the panel theme from step 3 is a prebuilt file compiled once against the default `--pref-accent-hue` and does not read your app.css (a panel page loads only its own theme stylesheet, nothing else). Rebranding a panel\'s accent means building your own theme CSS (copy resources/theme-src/filament-theme.css from the package as a starting point, edit `--pref-accent-hue`, register it as your own Filament `Theme` asset or `->viteTheme()`) and pointing `->theme()`/`->viteTheme()` at it in your own panel providers instead of Numerosis\'s. This is a one-time, host-level choice either way — Numerosis has no per-user or per-tenant theme picker. A custom `--pref-accent-hue` is not contrast-verified for you — white text on `--color-primary` is only checked against the default hue; check your own hue\'s contrast (browser devtools\' contrast checker is enough) before shipping it.');
     }
 }

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis;
 
 use Closure;
+use Filament\Support\Assets\Css;
+use Filament\Support\Assets\Js;
 use Filament\Support\Assets\Theme;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Console\Scheduling\Schedule;
@@ -12,6 +14,7 @@ use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\Middleware\TrustHosts;
 use Illuminate\Http\Middleware\TrustProxies;
@@ -46,6 +49,7 @@ use Nvade\Numerosis\Contracts\Auth\SocialAccountRepository;
 use Nvade\Numerosis\Contracts\Invitations\CreatesInvitedUser;
 use Nvade\Numerosis\Contracts\Invitations\InvitationRepository;
 use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
+use Nvade\Numerosis\Database\Seeders\DatabaseSeeder as PackageDatabaseSeeder;
 use Nvade\Numerosis\Events\Auth\SocialAccountConnected;
 use Nvade\Numerosis\Events\Auth\SocialAccountDisconnected;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
@@ -65,11 +69,14 @@ use Nvade\Numerosis\Listeners\Modules\QueueModuleMigration;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
 use Nvade\Numerosis\Livewire\Settings\DeleteUserForm;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
+use Nvade\Numerosis\Providers\Filament\NumerosisAdminPanelProvider;
+use Nvade\Numerosis\Providers\Filament\NumerosisTenantPanelProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Support\Defaults\EloquentInvitationRepository;
 use Nvade\Numerosis\Support\Defaults\EloquentSocialAccountRepository;
 use Nvade\Numerosis\Support\Defaults\NotifiesTenantOwnerDirectly;
 use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -85,6 +92,14 @@ class NumerosisServiceProvider extends PackageServiceProvider
      * `->theme(self::THEME_ID)` calls consume it.
      */
     public const string THEME_ID = 'numerosis-filament-theme';
+
+    /**
+     * `Js`/`Css` asset id for `dist/numerosis.js`/`dist/numerosis.css` —
+     * {@see self::registerFilamentTheme()} registers both,
+     * `Numerosis::assetTags()` is what resolves them back via
+     * `FilamentAsset::getScriptSrc()`/`getStyleHref()`.
+     */
+    public const string ASSET_ID = 'numerosis';
 
     public function configurePackage(Package $package): void
     {
@@ -107,6 +122,19 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
+        // Numerosis::model()'s memoization is a bare static array, not
+        // container-bound, so it survives across Testbench's per-test
+        // Application rebuilds unless cleared here. Must run before
+        // anything below (or anything in a later provider's register())
+        // can call Numerosis::model() and cache a value against this
+        // boot's config.
+        Numerosis::resetModelCache();
+
+        // Must run before anything below reads the config it normalizes —
+        // see HostConfig's own docblock for why this phase and not
+        // packageBooted().
+        HostConfig::apply();
+
         // Registering these two here, rather than hardcoding them into
         // composer.json's extra.laravel.providers list alongside this class,
         // keeps them swappable the same way a consumer can already replace
@@ -123,6 +151,21 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->app->bind(InvitationRepository::class, EloquentInvitationRepository::class);
         $this->app->bind(SocialAccountRepository::class, EloquentSocialAccountRepository::class);
         $this->app->bind(NotifiesTenantOwner::class, NotifiesTenantOwnerDirectly::class);
+
+        // `php artisan db:seed` resolves the concrete class name
+        // `Database\Seeders\DatabaseSeeder` — Laravel's skeleton default,
+        // not an interface this package can bind against normally. A fresh
+        // host that never wrote that file got nothing: the package's own
+        // seeders (roles/permissions, example plans, module catalogue) sat
+        // unreached. Bound here only when the host hasn't defined the class
+        // itself — `class_exists()` triggers the host's own composer
+        // autoloader first, so a host file always wins outright; this only
+        // ever fires for the "wrote nothing" case. See
+        // docs/host-requirements.md's `database/seeders/DatabaseSeeder.php`
+        // section.
+        if (! class_exists('Database\Seeders\DatabaseSeeder')) {
+            $this->app->bind('Database\Seeders\DatabaseSeeder', PackageDatabaseSeeder::class);
+        }
 
         // Livewire's own default points 'layouts'/'pages' at
         // resource_path('views/{layouts,pages}') — correct for a
@@ -172,6 +215,36 @@ class NumerosisServiceProvider extends PackageServiceProvider
         if (Config::get('livewire.temporary_file_upload.disk') === null) {
             Config::set('livewire.temporary_file_upload.disk', 'livewire');
         }
+
+        $this->registerFilamentPanels();
+    }
+
+    /**
+     * Registers this package's two Filament panels — or a host's own
+     * replacement for either, via `numerosis.panels.{admin,tenant}.provider`
+     * — from `$this->app->booting()`, not directly here in
+     * `packageRegistered()`. `Filament::registerPanel()` (called from each
+     * provider's own `register()`) resolves `PanelRegistry` out of the
+     * container; registering our provider ahead of Filament's own service
+     * provider risks binding against a different `PanelRegistry` instance
+     * than the one Filament's facade ultimately resolves. `booting()`
+     * callbacks run only after every provider (including Filament's) has
+     * had `register()` called, so the registry is guaranteed to already be
+     * the real, final one by the time this fires.
+     *
+     * Each provider still gates itself on its own `shouldRegisterPanel()`
+     * (`AdminPanelFeature`/`TenantPanelFeature`) — this method decides
+     * *which class* registers, not whether it does.
+     */
+    protected function registerFilamentPanels(): void
+    {
+        $this->app->booting(function (): void {
+            $admin = Config::get('numerosis.panels.admin.provider');
+            $tenant = Config::get('numerosis.panels.tenant.provider');
+
+            $this->app->register(is_string($admin) ? $admin : NumerosisAdminPanelProvider::class);
+            $this->app->register(is_string($tenant) ? $tenant : NumerosisTenantPanelProvider::class);
+        });
     }
 
     public function packageBooted(): void
@@ -200,6 +273,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
         foreach (Features::all() as $feature) {
             $this->app->make($feature)->bootstrap();
         }
+
+        $this->registerRoutesFallback();
 
         $this->registerRequestMacros();
 
@@ -269,14 +344,16 @@ class NumerosisServiceProvider extends PackageServiceProvider
         ], 'numerosis-tenant-migrations');
 
         // Targets resource_path() directly, not a vendor/numerosis
-        // subdirectory: resources/views/partials/styles.blade.php (this
-        // package) calls @vite('resources/js/central.js') /
-        // @vite('resources/js/tenant.js') against the *host's* resources/js
-        // root, and central.js imports stripe-checkout.js/stripe-confirm.js
-        // by relative path — both only resolve if the whole directory lands
-        // together at resources/js, not nested under a package-specific
-        // path. --force=false (see publishAssets() below) means a host's
-        // own resources/js/app.js is never overwritten by this.
+        // subdirectory: this is the escape hatch for a host that wants to
+        // customise resources/js/numerosis.js and build it themselves
+        // (Numerosis::assetTags() prefers a host's own Vite manifest entry
+        // for it over the prebuilt dist/numerosis.js — see that method's
+        // docblock) rather than the zero-config default. numerosis.js
+        // imports stripe-checkout.js/stripe-confirm.js by relative path, so
+        // both only resolve if the whole directory lands together at
+        // resources/js, not nested under a package-specific path.
+        // --force=false (see publishAssets() below) means a host's own
+        // resources/js/app.js is never overwritten by this.
         $this->publishGroup(Numerosis::assetSourcePaths(), 'numerosis-assets');
 
         // The 9 concrete model stubs — every package model is concrete (D8
@@ -316,6 +393,33 @@ class NumerosisServiceProvider extends PackageServiceProvider
      * (it is a public API on `Request`), and silently replacing it would be
      * worse than not registering one.
      */
+    /**
+     * Safety net for a host whose `bootstrap/app.php` never calls
+     * `Numerosis::configure()`/`withRouting(using: Numerosis::routes(...))`
+     * at all — see `.claude/rules/package-host-bootstrap.md`'s three-
+     * stacked-bug incident, where exactly this omission 404'd every URL
+     * with no error at boot. `AppRouteServiceProvider` (registered by a
+     * correctly-wired `withRouting()`) loads routes from its own
+     * `Illuminate\Support\Facades\App::booted()` callback, queued during
+     * the `booting()` phase — earlier than this method's own `booted()`
+     * callback, queued here during the normal provider-boot phase. So by
+     * the time this callback runs, `Numerosis::routesRegistered()` is
+     * already `true` for a correctly-wired host, and this is a genuine
+     * no-op for it; only a host that never called `withRouting()` at all
+     * reaches the fallback. Provider-registered routes are still captured
+     * by `route:cache` — that command boots a fresh application and reads
+     * `$router->getRoutes()` after boot completes, same as any other route
+     * registration path — so this costs a host nothing extra.
+     */
+    protected function registerRoutesFallback(): void
+    {
+        $this->app->booted(function (): void {
+            if (! Numerosis::routesRegistered()) {
+                Numerosis::routes();
+            }
+        });
+    }
+
     protected function registerRequestMacros(): void
     {
         if (Request::hasMacro('isCentralDomain')) {
@@ -440,6 +544,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
             return;
         }
 
+        $this->seedMiddlewareBaselineIfMissing();
+
         Route::aliasMiddleware('invitation.status', CheckInvitationStatus::class);
         Route::aliasMiddleware('tenancy.identification', TenancyServiceProvider::TENANCY_IDENTIFICATION);
         Route::aliasMiddleware('tenancy.route', PreventAccessFromCentralDomains::class);
@@ -457,6 +563,53 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         $this->app->make(Kernel::class)->prependMiddleware(TrustHosts::class);
 
+    }
+
+    /**
+     * Safety net for a host whose `bootstrap/app.php` never calls
+     * `withMiddleware()` at all — see `.claude/rules/package-host-bootstrap.md`'s
+     * three-stacked-bug incident, where this omission surfaced one layer
+     * *after* the routing fix above, as
+     * `BindingResolutionException: Target class [web] does not exist`.
+     * `ApplicationBuilder::withMiddleware()`'s `afterResolving(HttpKernel::class,
+     * …)` hook is the only place Laravel's baseline `web`/`api` groups get
+     * seeded onto the kernel; without it, `Route::middlewareGroup('tenant',
+     * ['web', …])` below registers a group whose own first member resolves
+     * to nothing, and the framework treats an unrecognised middleware name
+     * as a class to instantiate.
+     *
+     * Detected by an empty `getMiddlewareGroups()`: a host that called
+     * `withMiddleware()`, even with an empty closure, already has Laravel's
+     * baseline `web`/`api` groups seeded by the time any provider's
+     * `boot()` runs — `HttpKernel::class` is resolved (and its
+     * `afterResolving` hook fired) before provider boot, in the normal
+     * `public/index.php` → `$kernel->handle($request)` flow. Only a host
+     * that never called `withMiddleware()` at all still has an empty array
+     * here. Seeds via `Kernel::setMiddlewareGroups()`/`setMiddlewareAliases()`/
+     * `setGlobalMiddleware()`, exactly what `withMiddleware()` itself calls —
+     * each setter syncs to the `Router` by key, not by wholesale replace, so
+     * this is safe to run either before or after this method's own
+     * `Route::aliasMiddleware()`/`middlewareGroup()` calls.
+     */
+    protected function seedMiddlewareBaselineIfMissing(): void
+    {
+        $kernel = $this->app->make(Kernel::class);
+
+        if ($kernel->getMiddlewareGroups() !== []) {
+            return;
+        }
+
+        $middleware = new Middleware;
+
+        $kernel->setGlobalMiddleware($middleware->getGlobalMiddleware());
+        $kernel->setMiddlewareGroups($middleware->getMiddlewareGroups());
+        $kernel->setMiddlewareAliases($middleware->getMiddlewareAliases());
+
+        $priorities = $middleware->getMiddlewarePriority();
+
+        if ($priorities !== []) {
+            $kernel->setMiddlewarePriority($priorities);
+        }
     }
 
     /**
@@ -479,11 +632,24 @@ class NumerosisServiceProvider extends PackageServiceProvider
      * published — see that file's own docblock for what was traded away to
      * get a zero-config host and the `npm run build:filament-theme` command
      * that regenerates `dist/filament-theme.css`).
+     *
+     * `dist/numerosis.js`/`dist/numerosis.css` register the same way, same
+     * reasoning, one addition: unlike the theme (which is only ever
+     * reached through Filament's own `->theme()`/`getTheme()`), a host can
+     * still opt out of the prebuilt pair by publishing `resources/js/
+     * numerosis.js` (the `numerosis-assets` tag) and adding it to their own
+     * `vite.config.js` — `Numerosis::assetTags()` is what checks for that
+     * and falls back to these registrations when it finds nothing. Not
+     * `->core()`: these load only where `Numerosis::assetTags()` is
+     * rendered (`resources/views/partials/styles.blade.php`), not on every
+     * Filament-touched page.
      */
     protected function registerFilamentTheme(): void
     {
         FilamentAsset::register([
             Theme::make(self::THEME_ID, __DIR__.'/../dist/filament-theme.css'),
+            Js::make(self::ASSET_ID, __DIR__.'/../dist/numerosis.js'),
+            Css::make(self::ASSET_ID, __DIR__.'/../dist/numerosis.css'),
         ], package: 'nvade/numerosis');
     }
 

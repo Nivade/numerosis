@@ -23,6 +23,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
 use Nvade\Numerosis\Filament\TenantAdmin\Resources\BaseResource;
 use Nvade\Numerosis\Models\Permission;
@@ -36,7 +37,10 @@ class RoleResource extends BaseResource
     #[Override]
     public static function getNavigationGroup(): ?string
     {
-        $group = config('permission.filament.roles.navigation.group', config('permission.filament.navigation.group'));
+        $group = config(
+            'numerosis.panels.access_control.roles.navigation_group',
+            config('numerosis.panels.access_control.navigation_group'),
+        );
 
         return is_string($group) ? $group : null;
     }
@@ -44,9 +48,7 @@ class RoleResource extends BaseResource
     #[Override]
     public static function getNavigationLabel(): string
     {
-        $label = config('permission.filament.roles.navigation.label');
-
-        return is_string($label) ? $label : 'Roles';
+        return Config::string('numerosis.panels.access_control.roles.navigation_label', 'Roles');
     }
 
     #[Override]

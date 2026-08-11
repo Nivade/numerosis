@@ -36,7 +36,7 @@ class SettingsAndAuthComponentViewsTest extends TestCase
     public function test_password_renders(): void
     {
         $user = CentralUser::factory()->create();
-        $this->actingAs($user, Config::string('auth.defaults.guards.context.central'));
+        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
 
         Livewire::test(Password::class)->assertStatus(200);
     }

@@ -41,7 +41,7 @@ class VerifyEmail extends BaseVerifyEmail
                 URL::useOrigin($originUrl);
             }
 
-            return URL::temporarySignedRoute('verification.verify', Date::now()->addMinutes(Config::integer('auth.verification.expire', 60)), [
+            return URL::temporarySignedRoute('verification.verify', Date::now()->addMinutes(Config::integer('numerosis.auth.verification_expire', 60)), [
                 'id' => $notifiable->getKey(),
                 'hash' => Hash::make($notifiable->getEmailForVerification()),
             ]);

@@ -25,7 +25,7 @@ use SocialiteProviders\Manager\SocialiteWasCalled;
  * same test Nvade\Numerosis\Support\Social\ConfiguredProviders applies to decide whether
  * to render the button. Google, GitHub, GitLab and Facebook are core drivers
  * and need no registration at all: credentials in config/services.php plus a
- * metadata entry in config('auth.social.providers') is the whole opt-in.
+ * metadata entry in config('numerosis.social.providers') is the whole opt-in.
  */
 class SocialLoginFeature implements NamedFeature
 {

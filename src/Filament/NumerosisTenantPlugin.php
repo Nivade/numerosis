@@ -160,7 +160,7 @@ class NumerosisTenantPlugin implements Plugin
             // Pinned, never inherited: `auth.defaults.guard` moves during a
             // request once tenancy initializes, so a panel that omits this
             // authenticates against whatever ran last.
-            ->authGuard(Config::string('auth.defaults.guards.context.tenant'))
+            ->authGuard(Config::string('numerosis.auth.guards.tenant'))
             ->authMiddleware([
                 Authenticate::class,
                 EnsureTenantSubscriptionActive::class,

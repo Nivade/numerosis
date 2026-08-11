@@ -37,7 +37,7 @@ trait InteractsWithTenantPanel
      */
     protected function actingAsTenantPanelUser(Tenant $tenant, Authenticatable $user, string $panel = 'tenantAdmin'): void
     {
-        $this->actingAs($user, Config::string('auth.defaults.guards.context.tenant'));
+        $this->actingAs($user, Config::string('numerosis.auth.guards.tenant'));
 
         Filament::setCurrentPanel(Filament::getPanel($panel));
         Filament::setTenant($tenant);

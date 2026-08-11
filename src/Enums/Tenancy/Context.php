@@ -27,14 +27,14 @@ enum Context: string
     /**
      * The name of the guard that authenticates users in this context.
      *
-     * Read through here rather than interpolating
-     * `auth.defaults.guards.context.*` at each call site: a dozen sites wrote
-     * that key by hand, and the two that did not — hardcoding `'tenant'` and
-     * `'web'` instead — are exactly where it had already drifted.
+     * Read through here rather than interpolating `numerosis.auth.guards.*`
+     * at each call site: a dozen sites wrote that key by hand, and the two
+     * that did not — hardcoding `'tenant'` and `'web'` instead — are exactly
+     * where it had already drifted.
      */
     public function guard(): string
     {
-        return Config::string("auth.defaults.guards.context.{$this->value}");
+        return Config::string("numerosis.auth.guards.{$this->value}");
     }
 
     /**

@@ -26,7 +26,7 @@ class LoginUser
 
         $this->loginToGuard($guardName, $user, $remember);
 
-        $centralGuard = Config::string('auth.defaults.guards.context.central', 'web');
+        $centralGuard = Config::string('numerosis.auth.guards.central', 'web');
 
         if ($guardName !== $centralGuard) {
             $this->loginToGuard($centralGuard, $user, $remember);

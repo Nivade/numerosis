@@ -91,7 +91,7 @@ class NumerosisAdminPlugin implements Plugin
             // explicit that a panel omitting authGuard() rides
             // auth.defaults.guard, which moves mid-request once tenancy is
             // initialized.
-            ->authGuard(Config::string('auth.defaults.guards.context.central'))
+            ->authGuard(Config::string('numerosis.auth.guards.central'))
             ->login()
             ->registration()
             ->profile()

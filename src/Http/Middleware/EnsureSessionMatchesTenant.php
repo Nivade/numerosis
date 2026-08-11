@@ -52,7 +52,7 @@ class EnsureSessionMatchesTenant
             return $next($request);
         }
 
-        $guard = $this->auth->guard($this->config->string('auth.defaults.guards.context.tenant'));
+        $guard = $this->auth->guard($this->config->string('numerosis.auth.guards.tenant'));
 
         if ($guard instanceof SessionGuard) {
             $session->forget($guard->getName());

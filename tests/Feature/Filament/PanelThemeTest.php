@@ -51,11 +51,11 @@ class PanelThemeTest extends TestCase
         }
     }
 
-    public function test_neither_workbench_panel_provider_calls_colors(): void
+    public function test_neither_panel_provider_calls_colors(): void
     {
         foreach ([
-            dirname(__DIR__, 3).'/workbench/app/Providers/Filament/AdminPanelProvider.php',
-            dirname(__DIR__, 3).'/workbench/app/Providers/Filament/TenantAdminPanelProvider.php',
+            dirname(__DIR__, 3).'/src/Providers/Filament/NumerosisAdminPanelProvider.php',
+            dirname(__DIR__, 3).'/src/Providers/Filament/NumerosisTenantPanelProvider.php',
         ] as $path) {
             // Comment-stripped: both files' docblocks explain in prose *why*
             // there is no ->colors() call, which would otherwise trip this

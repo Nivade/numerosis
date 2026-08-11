@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Console\Commands;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -14,9 +15,23 @@ use Nvade\Numerosis\Tests\TestCase;
 use stdClass;
 
 /**
- * Covers the model-override checks only. `--verify-only` is what makes this
- * testable: the default run publishes files and appends to the host's `.env`,
- * neither of which belongs in a test process.
+ * `--verify-only` is what makes this testable: the default run publishes
+ * files and appends to the host's `.env`, neither of which belongs in a
+ * test process.
+ *
+ * post-extraction-review.md Phase 4.2: one failure-path test per
+ * `verify*()` method, each unsetting or corrupting exactly the key that
+ * method reads and asserting the command names it. Model-override and
+ * seeded-data checks were already covered before this pass; the rest were
+ * not, per that plan's own reasoning — a `verify*()` reading a mistyped key
+ * passes silently forever, and `HostRequirementsTest`'s doc↔method parity
+ * check cannot catch that, only that the method and a doc row both exist.
+ *
+ * Every test below carries an `@verifies` tag naming the `verify*()` method
+ * it exercises — `HostRequirementsTest::test_every_verify_method_has_a_failure_path_test()`
+ * greps for these tags and asserts every method on `InstallNumerosisCommand`
+ * is named by at least one, so a new `verify*()` with no test here fails
+ * that assertion rather than silently shipping untested.
  */
 class InstallNumerosisCommandTest extends TestCase
 {
@@ -39,6 +54,8 @@ class InstallNumerosisCommandTest extends TestCase
     }
 
     /**
+     * @verifies verifyCentralDataSeeded
+     *
      * The gap this closes: thin-app's own `db:seed` runs Laravel's skeleton
      * seeder, so the package's seeders were never reached and the central
      * database sat at zero permissions and zero plans while every other check
@@ -53,6 +70,7 @@ class InstallNumerosisCommandTest extends TestCase
             ->assertFailed();
     }
 
+    /** @verifies verifyCentralDataSeeded */
     public function test_it_fails_when_no_payment_plan_has_been_seeded(): void
     {
         DB::connection('central')->table('payment_plan_features')->delete();
@@ -64,9 +82,10 @@ class InstallNumerosisCommandTest extends TestCase
     }
 
     /**
-     * `numerosis:install --seed` is the fix the failures above point at, so it
-     * has to survive being run against an already-seeded database — an install
-     * command nobody can re-run is one nobody runs at all.
+     * `numerosis:install` (seeds by default) is the fix the failures above
+     * point at, so it has to survive being run against an already-seeded
+     * database — an install command nobody can re-run is one nobody runs at
+     * all.
      */
     public function test_seeding_is_idempotent(): void
     {
@@ -104,15 +123,17 @@ class InstallNumerosisCommandTest extends TestCase
         });
     }
 
+    /** @verifies verifyModelOverrides */
     public function test_it_fails_when_a_model_override_names_a_class_that_does_not_exist(): void
     {
         config()->set('numerosis.models.'.Tenant::class, 'App\\Models\\Central\\NoSuchTenant');
 
         $this->install()
-            ->expectsOutputToContain('does not exist — check NUMEROSIS_MODEL_TENANT')
+            ->expectsOutputToContain('does not exist')
             ->assertFailed();
     }
 
+    /** @verifies verifyModelOverrides */
     public function test_it_fails_when_a_model_override_is_not_a_subclass_of_the_package_model(): void
     {
         config()->set('numerosis.models.'.Tenant::class, stdClass::class);
@@ -123,6 +144,8 @@ class InstallNumerosisCommandTest extends TestCase
     }
 
     /**
+     * @verifies verifyModelOverrides
+     *
      * The supported no-stub shape (D8): no override, no published stub, so
      * package code runs on the package's own models and nothing is wrong.
      */
@@ -131,6 +154,311 @@ class InstallNumerosisCommandTest extends TestCase
         config()->set('numerosis.models', []);
 
         $this->install()->assertSuccessful();
+    }
+
+    /**
+     * @verifies verifyTenancyModels
+     *
+     * Restores the real class before returning — `TestCase`'s own teardown
+     * (`deleteTenantDatabases()`) resolves `config('tenancy.tenant_model')`
+     * to query and clean up tenant rows, so leaving the bogus value in place
+     * for the rest of the test crashes teardown instead of just this test.
+     */
+    public function test_it_fails_when_tenancy_tenant_model_does_not_resolve_to_a_real_class(): void
+    {
+        $real = config('tenancy.tenant_model');
+        config()->set('tenancy.tenant_model', 'App\\Models\\Central\\NoSuchTenant');
+
+        try {
+            $this->install()
+                ->expectsOutputToContain("config('tenancy.tenant_model') must name a class that exists")
+                ->assertFailed();
+        } finally {
+            config()->set('tenancy.tenant_model', $real);
+        }
+    }
+
+    /** @verifies verifyTenancyModels */
+    public function test_it_fails_when_the_tenant_seeder_class_does_not_exist(): void
+    {
+        config()->set('tenancy.seeder_parameters', ['--class' => 'App\\Database\\Seeders\\NoSuchSeeder']);
+
+        $this->install()
+            ->expectsOutputToContain("['--class'] names 'App\\Database\\Seeders\\NoSuchSeeder', which does not exist")
+            ->assertFailed();
+    }
+
+    /** @verifies verifyCentralDomains */
+    public function test_it_fails_when_central_domains_is_empty(): void
+    {
+        config()->set('tenancy.central_domains', []);
+
+        $this->install()
+            ->expectsOutputToContain("config('tenancy.central_domains') must list at least one hostname")
+            ->assertFailed();
+    }
+
+    /** @verifies verifyLockWaitTimeout */
+    public function test_it_fails_when_lock_wait_timeout_is_set_without_the_innodb_variant(): void
+    {
+        /** @var array<string, mixed> $central */
+        $central = config('database.connections.central');
+        $central['options'] = ['SET SESSION lock_wait_timeout = 10'];
+        config()->set('database.connections.central', $central);
+
+        $this->install()
+            ->expectsOutputToContain('sets lock_wait_timeout but not innodb_lock_wait_timeout')
+            ->assertFailed();
+    }
+
+    /** @verifies verifyDatabaseConnections */
+    public function test_it_fails_when_the_central_database_connection_is_missing(): void
+    {
+        /** @var array<string, mixed> $connections */
+        $connections = config('database.connections');
+        unset($connections['central']);
+        config()->set('database.connections', $connections);
+
+        $this->install()
+            ->expectsOutputToContain("config('database.connections.central') is missing")
+            ->assertFailed();
+    }
+
+    /** @verifies verifyDatabaseConnections */
+    public function test_it_fails_when_the_template_tenant_connection_does_not_exist(): void
+    {
+        config()->set('tenancy.database.template_tenant_connection', 'no_such_connection');
+
+        $this->install()
+            ->expectsOutputToContain("names 'no_such_connection', which is not in config('database.connections')")
+            ->assertFailed();
+    }
+
+    /** @verifies verifySessionDomain */
+    public function test_it_fails_when_session_domain_has_no_leading_dot(): void
+    {
+        config()->set('session.domain', 'numerosistest.test');
+
+        $this->install()
+            ->expectsOutputToContain("config('session.domain') must start with a leading dot")
+            ->assertFailed();
+    }
+
+    /** @verifies verifyAuthGuards */
+    public function test_it_fails_when_a_numerosis_auth_guard_does_not_resolve(): void
+    {
+        config()->set('numerosis.auth.guards.central', 'no_such_guard');
+
+        $this->install()
+            ->expectsOutputToContain("config('numerosis.auth.guards.central') does not resolve to a real guard")
+            ->assertFailed();
+    }
+
+    /** @verifies verifyAuthPasswordBroker */
+    public function test_it_fails_when_the_default_password_broker_is_unset(): void
+    {
+        config()->set('auth.defaults.passwords', null);
+
+        $this->install()
+            ->expectsOutputToContain("config('auth.defaults.passwords') is unset")
+            ->assertFailed();
+    }
+
+    /** @verifies verifySocialProviders */
+    public function test_it_fails_when_social_providers_is_not_an_array(): void
+    {
+        config()->set('numerosis.social.providers', 'google');
+
+        $this->install()
+            ->expectsOutputToContain("config('numerosis.social.providers') must be an array")
+            ->assertFailed();
+    }
+
+    /** @verifies verifySocialRoutes */
+    public function test_it_fails_when_a_social_route_name_is_empty_and_providers_are_configured(): void
+    {
+        config()->set('numerosis.social.routes.redirect.name', '');
+
+        $this->install()
+            ->expectsOutputToContain("config('numerosis.social.routes.redirect.name') must name a route")
+            ->assertFailed();
+    }
+
+    /** @verifies verifyFailedJobsConnection */
+    public function test_it_fails_when_the_failed_jobs_connection_is_unset(): void
+    {
+        config()->set('queue.failed.database', '');
+
+        $this->install()
+            ->expectsOutputToContain("config('queue.failed.database') must name a database connection")
+            ->assertFailed();
+    }
+
+    /** @verifies verifyLivewireUploadDisk */
+    public function test_it_fails_when_the_livewire_upload_disk_is_tenant_suffixed(): void
+    {
+        config()->set('livewire.temporary_file_upload.disk', 'local');
+
+        $this->install()
+            ->expectsOutputToContain("which config('tenancy.filesystem.disks') tenant-suffixes")
+            ->assertFailed();
+    }
+
+    /** @verifies verifyLivewireComponentNamespaces */
+    public function test_it_fails_when_a_livewire_component_namespace_points_at_a_missing_directory(): void
+    {
+        config()->set('livewire.component_namespaces.layouts', '/no/such/directory');
+
+        $this->install()
+            ->expectsOutputToContain("config('livewire.component_namespaces.layouts') must point at an existing directory")
+            ->assertFailed();
+    }
+
+    /** @verifies verifyDomainConfig */
+    public function test_it_fails_when_numerosis_domains_apex_is_empty(): void
+    {
+        config()->set('numerosis.domains.apex', '');
+
+        $this->install()
+            ->expectsOutputToContain("config('numerosis.domains.apex') is unset")
+            ->assertFailed();
+    }
+
+    /** @verifies verifyDomainConfig */
+    public function test_it_fails_when_the_tenant_pattern_is_missing_the_tenant_placeholder(): void
+    {
+        config()->set('numerosis.domains.tenant_pattern', 'central.numerosistest.test');
+
+        $this->install()
+            ->expectsOutputToContain("must contain the literal '{tenant}' placeholder")
+            ->assertFailed();
+    }
+
+    /** @verifies verifyTenantMigrationPath */
+    public function test_it_fails_when_a_tenant_migration_path_entry_is_not_a_string(): void
+    {
+        /** @var array{'--path': list<string>} $parameters */
+        $parameters = config('tenancy.migration_parameters');
+        /** @var list<mixed> $paths */
+        $paths = [...$parameters['--path'], 123];
+        config()->set('tenancy.migration_parameters.--path', $paths);
+
+        $this->install()
+            ->expectsOutputToContain("['--path'] contains a non-string entry")
+            ->assertFailed();
+    }
+
+    /** @verifies verifyTenantMigrationPath */
+    public function test_it_fails_when_a_tenant_migration_path_entry_is_not_absolute(): void
+    {
+        /** @var array{'--path': list<string>} $parameters */
+        $parameters = config('tenancy.migration_parameters');
+        config()->set('tenancy.migration_parameters.--path', [...$parameters['--path'], 'relative/path']);
+
+        $this->install()
+            ->expectsOutputToContain("['--path'] must be absolute, got 'relative/path'")
+            ->assertFailed();
+    }
+
+    /**
+     * @verifies verifyPublishedAssetsMatchSource
+     *
+     * Warns, doesn't fail — the one check in this command that doesn't. A
+     * host is allowed to customise a published copy; this only exists so a
+     * *silent* drift on payment-critical JS gets noticed. `resource_path()`
+     * in this harness resolves under `vendor/orchestra/testbench-core/`, not
+     * this package's own `resources/` — genuinely a different path, so
+     * writing a diverged file there is a real test of the hash comparison,
+     * not comparing a file to itself.
+     */
+    public function test_it_warns_without_failing_when_a_published_asset_diverges_from_source(): void
+    {
+        $target = resource_path('css');
+        File::ensureDirectoryExists($target);
+        File::put($target.'/tokens.css', '/* intentionally diverged */');
+
+        try {
+            $this->install()
+                ->expectsOutputToContain('Published assets differ from the package originals')
+                ->assertSuccessful();
+        } finally {
+            File::delete($target.'/tokens.css');
+        }
+    }
+
+    /** @verifies verifyStripeKeys */
+    public function test_it_fails_when_a_stripe_key_is_unset(): void
+    {
+        config()->set('cashier.key', '');
+
+        $this->install()
+            ->expectsOutputToContain("config('cashier.key') is not set")
+            ->assertFailed();
+    }
+
+    /**
+     * @verifies verifyFilamentThemeAsset
+     *
+     * `verifyFilamentThemeAsset()` gates its whole check on
+     * `public_path('css/filament')` existing at all — the signal that
+     * `filament:assets` has run at least once. Nothing in the Workbench
+     * harness creates that directory on its own, so this test creates (and
+     * removes) it by hand to reach the branch it's testing at all.
+     */
+    public function test_it_fails_when_filament_assets_ran_but_the_numerosis_theme_did_not_land(): void
+    {
+        $filamentDir = public_path('css/filament');
+        File::ensureDirectoryExists($filamentDir);
+
+        try {
+            $this->install()
+                ->expectsOutputToContain('does not — run `php artisan filament:assets` again')
+                ->assertFailed();
+        } finally {
+            File::deleteDirectory(public_path('css'));
+            File::deleteDirectory(public_path('js'));
+        }
+    }
+
+    /**
+     * @verifies verifyConfigSchemaVersion
+     *
+     * Writes a real file at `config_path('numerosis.php')` — this check
+     * reads the published file directly (`require`), not through
+     * `config()`, precisely because a missing key there gets silently
+     * backfilled by `HostConfig::numerosisConfig()`'s deep-fill and would
+     * make the check pass regardless of the file's real age. A published
+     * file with no `schema_version` key at all is the common case for an
+     * old publish (the key didn't exist yet); `0` here stands in for that.
+     */
+    public function test_it_fails_when_a_published_config_file_names_an_old_schema_version(): void
+    {
+        $published = config_path('numerosis.php');
+        File::ensureDirectoryExists(dirname($published));
+        File::put($published, "<?php\n\nreturn ['schema_version' => 0];\n");
+
+        try {
+            $this->install()
+                ->expectsOutputToContain('names schema_version 0')
+                ->assertFailed();
+        } finally {
+            File::delete($published);
+        }
+    }
+
+    /** @verifies verifyConfigSchemaVersion */
+    public function test_it_passes_when_a_published_config_file_names_the_current_schema_version(): void
+    {
+        $currentVersion = require dirname(__DIR__, 4).'/config/numerosis.php';
+        $published = config_path('numerosis.php');
+        File::ensureDirectoryExists(dirname($published));
+        File::put($published, '<?php'."\n\nreturn ['schema_version' => {$currentVersion['schema_version']}];\n");
+
+        try {
+            $this->install()->assertSuccessful();
+        } finally {
+            File::delete($published);
+        }
     }
 
     /**
