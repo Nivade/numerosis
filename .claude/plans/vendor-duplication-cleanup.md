@@ -32,7 +32,7 @@ shrinks what has to be extracted.
 | 2 | `App\Contracts\Cacheable` | Delete — dead | XS |
 | 3 | `app/helpers.php` | Delete — empty | XS |
 | 4 | Legacy `subscriptions` + `payments` tables | ✅ Done, 2026-08-11 (standalone, not via a squash) | S |
-| 5 | `MigrateTenantModule` / `RollbackTenantModule` | Adopt stancl traits | S |
+| 5 | `MigrateTenantModule` / `RollbackTenantModule` | ✅ Done — already using `HasATenantsOption`, reverified 2026-08-11 | S |
 | 6 | `Money` cast vs `MoneyFormatter` | ✅ Already moot — no float round-trip in current code | S |
 | 7 | Impersonation table with the feature disabled | ✅ Done, 2026-08-11 — enabled | XS |
 | 8 | `Actions/Auth/*` vs Fortify | Keep, align contract names | M |

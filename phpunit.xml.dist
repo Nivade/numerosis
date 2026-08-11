@@ -29,15 +29,6 @@
             <directory>tests</directory>
         </testsuite>
     </testsuites>
-    <groups>
-        <exclude>
-            <!-- Needs a real app-modules/* package installed on the node
-                 (nvade/alerts, nvade/announcements, nvade/branding,
-                 nvade/notes, nvade/tasks) — thin-app owns these, numerosis
-                 only ships the module system. -->
-            <group>thin-app</group>
-        </exclude>
-    </groups>
     <logging>
         <junit outputFile="build/report.junit.xml"/>
     </logging>
