@@ -56,4 +56,38 @@ class RegisterTenantTest extends TestCase
             ->assertSuccessful()
             ->assertSee('livewire.js', escape: false);
     }
+
+    /**
+     * This page's view used to be a bare `@livewire('tenant-registration')`
+     * — its entire render output was that one directive, nothing else.
+     * Livewire collapsed the wizard's own component boundary into this
+     * page's: the rendered DOM carried a wire:id for this page and one for
+     * whichever step was current, never a third for the wizard itself. Since
+     * every step's "Continue"/"Back" dispatches its transition event
+     * `->to('tenant-registration')`, and no live component was ever
+     * registered under that name, the event had nowhere to land — 200 OK,
+     * no console error, no server exception, the wizard just silently never
+     * advanced past step one. Fixed by wrapping the directive in a `<div>`,
+     * which is enough to stop Livewire flattening the two components
+     * together. Asserting on the wire:id count directly (not on step
+     * advancement, which needs a real browser to click through) since that's
+     * the exact mechanical fact that broke.
+     */
+    public function test_the_wizard_gets_its_own_component_boundary_separate_from_the_page(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $content = $this->get(RegisterTenant::getUrl())->assertSuccessful()->getContent();
+
+        $this->assertIsString($content);
+
+        $wireIdCount = substr_count($content, 'wire:id="');
+
+        $this->assertGreaterThanOrEqual(
+            3,
+            $wireIdCount,
+            'Expected at least 3 separate Livewire components in the rendered page (the Filament page, the wizard, and the current step) — found '.$wireIdCount.'. If this dropped to 2, the wizard\'s component boundary collapsed into the page\'s again.'
+        );
+    }
 }

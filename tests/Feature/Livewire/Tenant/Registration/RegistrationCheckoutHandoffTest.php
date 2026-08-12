@@ -119,7 +119,7 @@ class RegistrationCheckoutHandoffTest extends TestCase
     private function planStep(array $stepsState): Testable
     {
         return Livewire::test(Plan::class, [
-            'wizardClassName' => Registration::class,
+            'wizardClassName' => resolve('livewire.finder')->normalizeName(Registration::class),
             'stateClassName' => RegistrationState::class,
             'allStepNames' => ['company-info', 'technical-setup', 'plan'],
             'allStepsState' => $stepsState,

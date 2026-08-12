@@ -44,6 +44,31 @@ class RegistrationRefreshTest extends TestCase
         $this->assertSame('acme-refresh-test', $component->getCurrentStepState('technical-setup')['domain'] ?? null);
     }
 
+    /**
+     * `WizardComponent::getCurrentStepState()` (vendor) hands every step
+     * component a `wizardClassName` of `static::class` — the raw FQCN —
+     * which `StepComponent::nextStep()`/`previousStep()`/`showStep()` then
+     * use as `->to($this->wizardClassName)` to target the event back at the
+     * wizard. `RegistrationWizardFeature` registers `Registration` under the
+     * short alias `tenant-registration` (`Livewire::addComponent`), not its
+     * class name, so the vendor default silently mistargets every
+     * transition: no exception, no validation error, the step just never
+     * advances. `Registration::getCurrentStepState()` overrides this to
+     * resolve the real alias. Confirmed against the pre-fix code that this
+     * test fails (dispatches to the raw FQCN instead).
+     */
+    public function test_it_dispatches_step_transitions_to_the_wizards_registered_alias(): void
+    {
+        $this->actingAs(CentralUser::factory()->create());
+
+        $alias = resolve('livewire.finder')->normalizeName(Registration::class);
+
+        Livewire::test(CompanyInfo::class, $this->wizardParams())
+            ->set('company_name', 'Acme Corp')
+            ->call('continue')
+            ->assertDispatchedTo($alias, 'nextStep');
+    }
+
     public function test_plan_step_stripe_fields_are_never_written_to_the_session(): void
     {
         $this->actingAs(CentralUser::factory()->create());
@@ -80,7 +105,7 @@ class RegistrationRefreshTest extends TestCase
         $paymentAlias = resolve('livewire.finder')->normalizeName(Payment::class);
 
         return [
-            'wizardClassName' => Registration::class,
+            'wizardClassName' => resolve('livewire.finder')->normalizeName(Registration::class),
             'stateClassName' => RegistrationState::class,
             'allStepNames' => [$companyInfoAlias, $technicalSetupAlias, $planAlias, $paymentAlias],
             'allStepsState' => [],

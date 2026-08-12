@@ -19,6 +19,7 @@ One line per file, under ~150 chars. Update index when rules file add/rename/rem
 - [static-analysis.md](static-analysis.md) — PHPStan level 9 over app/ + tests/; run red on master, baseline own errors before trust them.
 - [tenant-caching.md](tenant-caching.md) — `global_cache()` un-prefixed; cross-tenant leaks of cached tenant models + shared session guard keys.
 - [tenant-provisioning.md](tenant-provisioning.md) — races between sync checkout redirect + async Stripe webhook; idempotency requirements; JobPipeline vs AsAction calling-convention conflict.
+- [tenant-registration-wizard.md](tenant-registration-wizard.md) — bare `@livewire()` view flattens child's component boundary; spatie wizard's `wizardClassName` needs alias resolution, not raw FQCN.
 - [testing.md](testing.md) — central-connection rows escape RefreshDatabase; tenant DB leaks; providers register before getEnvironmentSetUp; suite-slow/known-failure baseline.
 - [tenant-filesystem.md](tenant-filesystem.md) — `local` disk root tenant-suffixed but Livewire upload route never tenant-identified; dedicated `livewire` disk fixes it.
 <!-- topic-index:end -->

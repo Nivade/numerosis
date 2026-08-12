@@ -113,7 +113,7 @@ class TechnicalSetupTest extends TestCase
     private function technicalSetupStep(array $stepsState): Testable
     {
         return Livewire::test(TechnicalSetup::class, [
-            'wizardClassName' => Registration::class,
+            'wizardClassName' => resolve('livewire.finder')->normalizeName(Registration::class),
             'stateClassName' => RegistrationState::class,
             'allStepNames' => [
                 resolve('livewire.finder')->normalizeName(CompanyInfo::class),

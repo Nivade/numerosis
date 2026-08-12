@@ -44,7 +44,7 @@ class PaymentTest extends TestCase
         $paymentAlias = resolve('livewire.finder')->normalizeName(Payment::class);
 
         return Livewire::test(Payment::class, [
-            'wizardClassName' => Registration::class,
+            'wizardClassName' => resolve('livewire.finder')->normalizeName(Registration::class),
             'stateClassName' => RegistrationState::class,
             'allStepNames' => ['company-info', 'technical-setup', 'plan', $paymentAlias],
             'allStepsState' => [

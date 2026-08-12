@@ -1,6 +1,6 @@
 # Design System Unification — main app + 2 Filament panels
 
-**Status:** Phases 0–8 done, browser-independent parts only (Phase 7's keyboard-nav and mobile-width items need a real browser and are explicitly deferred, not done); old per-user Phase 5 scaffolding removed and replaced with consumer-level override docs
+**Status:** Phases 0–8 done, including Phase 7's browser-only items — verified live via a real Chrome session against thin-app on 2026-08-12, see that phase's own writeup below for what was found and fixed. Old per-user Phase 5 scaffolding removed and replaced with consumer-level override docs
 **Date:** 2026-08-07
 **Repo:** `nvade/numerosis` (package repo, Testbench harness — *not* thin-app)
 
@@ -495,10 +495,27 @@ deliverable is:
   utility). Both normalized to `focus-ring`. Guard added:
   `DesignLanguageGuardTest::test_no_view_hand_rolls_its_own_focus_visible_ring`.
 - **Keyboard nav through Filament (sidebar, tables, modals; tab order,
-  focus trapping) — not done.** Needs a real browser to verify tab order
-  and focus trapping; this repo has no browser tests (`.claude/rules`'s
-  Risks table already flags this as a known gap). Left for manual/Playwright
-  verification, not guessed at from source reading.
+  focus trapping) — done, verified live 2026-08-12 against real Chrome
+  (browser-use, CDP) driving thin-app.** Sidebar tab order on both panels
+  matches visual order exactly (skip-link → logo → search → notifications →
+  user menu → nav items top-to-bottom, correctly skipping non-focusable
+  group labels). Modal focus trap (Filament's own action-modal Alpine
+  mechanism) correctly cycles Tab between Cancel/Confirm without leaking
+  focus to the page behind it, and Escape/Cancel correctly restores focus to
+  the trigger — **for real mouse or real keyboard activation**. One false
+  positive worth recording so it isn't rediscovered the hard way: opening
+  the modal via a **synthetic, non-trusted `element.click()`** (the obvious
+  shortcut when scripting a browser test) reliably breaks Filament's own
+  `rememberPreviouslyFocusedElement()`/`restorePreviouslyFocusedElement()`
+  pair (`vendor/filament/actions/resources/js/components/modals.js`) — focus
+  lands on `<body>` after close instead of back on the trigger. Confirmed
+  this does **not** reproduce with a real `click_at_xy` mouse click or a
+  real Tab-then-Space keyboard activation, tried both against the same
+  action, same page, same session. No fix applied — there's nothing to fix,
+  since no real user input path exercises it. **Browser-test methodology
+  note for next time**: script the interaction the way a user would produce
+  it (real coordinates, real key events), not `element.click()`, when the
+  thing under test is anything to do with focus.
 - **Target sizes ≥ 44px — done, coarse-pointer only, and smaller in
   practice than "at every density" implied.** Audited whether
   `--pref-density` actually affects real component height and found it
@@ -526,9 +543,99 @@ deliverable is:
   pattern, and what actually honours the preference regardless of which
   mechanism produced the motion. Guard:
   `DesignTokensTest::test_reduced_motion_resets_every_transition_not_just_the_dead_tokens`.
-- **Filament panels at mobile widths — not done.** Same as keyboard nav:
-  needs a real browser/viewport, not source reading. Left for
-  manual/Playwright verification.
+- **Filament panels at mobile widths — done, verified live 2026-08-12 the
+  same way.** Admin dashboard, Tenants table, tenant panel dashboard all
+  clean at 375px (CDP device + touch emulation): body-level
+  `scrollWidth === clientWidth` (no horizontal scroll), mobile sidebar
+  becomes a proper 320px fixed off-canvas drawer (`z-index: 30`, hamburger
+  toggle correctly sized at the 44px coarse-pointer floor Phase 7's own
+  earlier CSS rule already enforces), and the Tenants table's wide content
+  scrolls inside its own `fi-ta-content-ctn` container rather than the page.
+
+  **One real bug found and fixed**: `resources/views/components/ui/stepper.blade.php`
+  (the 4-step progress indicator used by the tenant registration wizard) gave
+  every step label `whitespace-nowrap` with no small-screen accommodation.
+  Combined min-content width of the four labels ("Company Info", "Technical
+  Setup", "Plan", "Payment") exceeded a 375px viewport, so the browser
+  widened the page's whole layout viewport to fit (`Page.getLayoutMetrics`
+  showed `layoutViewport.clientWidth: 434` against a `visualViewport` still
+  pinned to 375) and scaled the entire page down to compensate — the
+  textbook mobile-overflow failure mode, and visually obvious once screenshotted:
+  headline copy and the trailing step labels ran off the right edge. Fixed
+  by hiding the labels below `sm:` (`hidden sm:block`), leaving just the
+  numbered circles + connector lines on phones — comfortably narrower than
+  any viewport this needs to support. Confirmed both `Page.getLayoutMetrics()`
+  parity (375 = 375) and a visual re-screenshot. User independently spotted
+  the same page looked broken mid-session, before this was reported — see
+  below, that instinct led to a second, far more serious bug on the same
+  page.
+
+- **CRITICAL — found outside this phase's original scope, while mobile-testing
+  the registration wizard: the self-serve tenant signup flow was completely
+  broken. Fixed, 2026-08-12.** Clicking "Continue" on step one silently did
+  nothing — no console error, no server exception, no validation error,
+  the Livewire request round-tripped successfully (`company_name` genuinely
+  persisted server-side), and the wizard just never advanced. Two
+  independent, both-required bugs stacked:
+
+  1. **`Registration` (the wizard's `WizardComponent`) never became its own
+     addressable Livewire component.** `resources/views/filament/admin/pages/register-tenant.blade.php`
+     was a bare `@livewire('tenant-registration')` — the Filament page's
+     *entire* render output was that one directive. Confirmed via the raw
+     DOM (`wire:id`/`wire:snapshot` inspection) and the actual network
+     request payload sent on "Continue": only two Livewire components ever
+     existed on the page (the Filament page itself, and whichever step was
+     current) — never a third for the wizard. `StepComponent::nextStep()`/
+     `previousStep()`/`showStep()` (vendor, `spatie/laravel-livewire-wizard`)
+     dispatch their transition event `->to($wizardClassName)`; with no live
+     component registered under that name, the event had nowhere to land.
+     Fixed by wrapping the directive in a `<div>` — enough to stop Livewire
+     flattening the wizard's component boundary into the page's. Regression
+     guard: `RegisterTenantTest::test_the_wizard_gets_its_own_component_boundary_separate_from_the_page`
+     asserts on the rendered page's `wire:id` count directly, since the
+     actual mechanical fact that broke can't be observed from a component
+     unit test.
+  2. **Independently, `wizardClassName` itself was wrong even once a target
+     existed.** `WizardComponent::getCurrentStepState()` (vendor) hands every
+     step component `'wizardClassName' => static::class` — the raw FQCN.
+     `RegistrationWizardFeature` registers `Registration` under the short
+     alias `tenant-registration` (`Livewire::addComponent`), matching every
+     sibling step (`company-info`, `technical-setup`, `plan`) — so
+     `->to($wizardClassName)` was targeting a name nothing is ever embedded
+     under, vendor bug #1 above notwithstanding. Fixed with a
+     `Registration::getCurrentStepState()` override resolving the real
+     alias via `resolve('livewire.finder')->normalizeName(static::class)` —
+     the exact pattern `Registration::stateToPersist()` already used for
+     `Plan`'s own alias, see `.claude/rules/billing-checkout.md`'s note on
+     `Payment`'s alias collision with Cashier's published view name for the
+     precedent. Regression guard:
+     `RegistrationRefreshTest::test_it_dispatches_step_transitions_to_the_wizards_registered_alias`
+     uses Livewire's `assertDispatchedTo()` directly against the resolved
+     alias.
+
+  **Neither bug alone was sufficient to fix it — verified by testing each
+  in isolation before combining them.** Both fixes required together.
+
+  **How this stayed invisible**: `RegisterTenantTest.php` already carries
+  two prior docblocked incidents on this exact page (a missing-layout crash,
+  a missing `@livewireScripts` tag) — both times, the fix was "test HTTP
+  200 isn't enough, prove the specific mechanism," and this is a third
+  instance of the same lesson. Compounding it: `RegistrationRefreshTest.php`
+  (and `PaymentTest`/`TechnicalSetupTest`/`RegistrationCheckoutHandoffTest`)
+  all built their `Livewire::test(StepClass::class, [...])` mount params by
+  hand, and all four hardcoded `'wizardClassName' => Registration::class`
+  — reproducing the exact bug as if it were correct input, rather than
+  resolving it through `livewire.finder` the way those same files already
+  did for every *step's* alias one line above. Every isolated step-component
+  test therefore exercised a wizard-targeting value that was wrong in
+  exactly the way production was wrong, and asserted on session state or
+  validation errors that never depended on the event actually landing
+  anywhere — a vacuous pass, same family as `.claude/rules/testing.md`'s
+  documented "risky test" trap (`assertDontSee` on an unregistered
+  component). All four call sites now resolve the alias the same way their
+  sibling steps already did. Full suite (558 passed, 7 skipped, 1
+  pre-existing unrelated failure) and PHPStan clean on the touched files
+  after the fix.
 
 ---
 
@@ -610,4 +717,20 @@ against the full suite (baseline: 466 passed, 7 skipped, 1 pre-existing
 failure — `RegisterTenantTest`), `pint`, and `phpstan` (unchanged, 8
 pre-existing errors) before commit.
 
-**Next: Phase 7 (responsive + accessibility).** Nothing built yet.
+**Phase 7 (responsive + accessibility) is done**, 2026-08-12 — the two
+items requiring a real browser (keyboard nav/focus trapping, mobile
+viewport widths) verified live against thin-app; the earlier
+source-reading-only items (accent contrast, focus-visible ring, target
+sizes, `prefers-reduced-motion`) were already done. One real mobile-overflow
+bug found and fixed (the wizard stepper's non-wrapping labels), plus one
+severity-unrelated critical bug found along the way and fixed immediately
+rather than filed for later: the tenant registration wizard could not
+advance past step one at all (two independent Livewire component-targeting
+bugs, both required together — see this phase's own write-up above for the
+full mechanism). Full suite: 558 passed, 7 skipped, 1 pre-existing failure
+(`RegisterTenantTest::test_it_loads_the_livewire_javascript_runtime` —
+confirmed via `git stash` to fail identically on a clean `main`, unrelated
+to this session). `pint` clean. `phpstan` clean on every touched file.
+
+**Phase 8 (cleanup + final audit) — nothing further identified.** No open
+items remain in this plan.

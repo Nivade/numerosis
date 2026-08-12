@@ -84,8 +84,8 @@
         <div class="mt-10 flex flex-col-reverse items-center justify-between gap-4 border-t border-zinc-200 pt-6 dark:border-zinc-700 sm:flex-row">
             <p class="text-xs text-zinc-500 dark:text-zinc-400">&copy; {{ now()->year }} {{ config('app.name') }}. All rights reserved.</p>
             <div class="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 select-none" aria-label="Theme status: dark mode ready">
-                <flux:icon name="sun" class="hidden dark:inline" aria-hidden="true" />
-                <flux:icon name="moon" class="inline dark:hidden" aria-hidden="true" />
+                <flux:icon name="sun" class="inline dark:hidden" aria-hidden="true" />
+                <flux:icon name="moon" class="hidden dark:inline" aria-hidden="true" />
                 <span>Dark mode ready</span>
             </div>
         </div>

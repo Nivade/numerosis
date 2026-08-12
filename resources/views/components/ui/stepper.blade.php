@@ -26,7 +26,7 @@
                     @endif
                 </div>
                 <span @class([
-                    'mt-3 text-xs font-semibold uppercase tracking-wider whitespace-nowrap transition-colors duration-500',
+                    'hidden sm:block mt-3 text-xs font-semibold uppercase tracking-wider whitespace-nowrap transition-colors duration-500',
                     'text-primary' => $isActive,
                     'text-success-icon' => $isCompleted,
                     'text-zinc-400 dark:text-zinc-600' => !$isActive && !$isCompleted,

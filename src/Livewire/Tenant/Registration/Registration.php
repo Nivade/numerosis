@@ -44,6 +44,37 @@ class Registration extends WizardComponent
     public function register(): void {}
 
     /**
+     * `WizardComponent::getCurrentStepState()` hands each step component a
+     * `wizardClassName` of `static::class` — the raw FQCN — which every
+     * `StepComponent::nextStep()`/`previousStep()`/`showStep()` call then
+     * uses as `->to($this->wizardClassName)` to target the dispatched
+     * Livewire event back at this component. That only works if the wizard
+     * is discoverable under its own class name; `RegistrationWizardFeature`
+     * registers it under the short alias `tenant-registration` instead (via
+     * `Livewire::addComponent`), same as `company-info`/`technical-setup`/
+     * `plan`. Left uncorrected, `.to()` targets a component name nothing is
+     * embedded under, so the dispatched event has nowhere to land —
+     * `nextStep`/`previousStep`/`showStep` become silent no-ops: no
+     * exception, no validation error, the request round-trips successfully,
+     * and the wizard simply never advances. Confirmed live, 2026-08-12:
+     * clicking "Continue" (and calling `$wire.continue()` directly) on the
+     * first step never changed `currentStepName`, with nothing in the logs.
+     * Same fix shape `stateToPersist()` below already uses for `Plan`'s own
+     * alias (`livewire.finder`, not a hardcoded string) — resolved here
+     * rather than reintroducing the exact class-name assumption that broke.
+     *
+     * @return array<string, mixed>
+     */
+    #[Override]
+    public function getCurrentStepState(?string $step = null): array
+    {
+        return [
+            ...parent::getCurrentStepState($step),
+            'wizardClassName' => resolve('livewire.finder')->normalizeName(static::class),
+        ];
+    }
+
+    /**
      * @return list<class-string<Component>>
      */
     public function steps(): array
