@@ -29,6 +29,7 @@
 @import '../css/tokens.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/livewire/flux/stubs/resources/views/**/*.blade.php';
 @source '../views/**/*.blade.php';
 
 @variant dark (&:where(.dark, .dark *));
