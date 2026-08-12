@@ -65,3 +65,38 @@ updated: 2026-07-28
   (`SocialAccounts::disconnectSocialAccountAction()`), not a public method a
   test can `->call()`. Fix the tenancy setup first, then read what is actually
   left.
+
+- **`NumerosisTenantPlugin::shouldRegisterPanel()` deliberately registers the
+  tenant panel on a central-domain request whenever `app()->runningInConsole()`
+  is true — and that exemption is what makes "central route wins over the
+  tenant wildcard" untestable from Pest/tinker, not a routing bug.** The
+  panel's `{tenant}.<domain>` pattern syntactically matches a central domain
+  that happens to be a single label too (`app.thinapp.dev` matches
+  `{tenant}.thinapp.dev` with `tenant=app`), so the plugin normally skips
+  registering itself there — real HTTP (`php-fpm`, or even PHP's built-in
+  server, both report `PHP_SAPI !== 'cli'` so `runningInConsole()` is false)
+  only ever sees the central route and resolves `/` correctly. Console
+  (`PHP_SAPI === 'cli'`, i.e. every artisan command, Pest, and Tinker) is
+  *exempted from the skip on purpose* — so `route:list`, queue workers, and
+  ordinary tenant-panel tests still see the panel — but that means any
+  Pest/tinker code that then *dispatches a fake HTTP request* against the
+  central domain (`Http\Kernel::handle()`/`$app->handleRequest()` called by
+  hand with a `Request` built for `app.thinapp.dev`) still has the tenant
+  panel registered, and the wildcard route wins the match, 404ing central's
+  own `/`. Confirmed empirically 2026-08-12: identical `Request` objects,
+  dispatched through the literal `public/index.php` flow, resolve to the
+  central route under `php -S` (`PHP_SAPI = 'cli-server'`, so
+  `runningInConsole()` false) and to the tenant wildcard under plain `php`
+  or `artisan tinker` (`PHP_SAPI = 'cli'`) — same code, same request, only
+  `PHP_SAPI` differs. **This is not a bug to fix — it is
+  `shouldRegisterPanel()`'s documented tradeoff working as designed.** It
+  does mean `post-extraction-review.md`'s Phase 5.3 "central routes bound
+  per `tenancy.central_domains`" assertion cannot be written as a plain Pest
+  HTTP-dispatch test — it will always see the tenant panel registered and
+  always resolve the wildcard, regardless of what `tenancy.central_domains`
+  actually contains. It needs either a Pest **browser** test (real request
+  through the actual web server, where `runningInConsole()` is genuinely
+  false) or a narrower unit test against `shouldRegisterPanel()`'s decision
+  logic itself (stub `runningInConsole()` false, assert it returns `false`
+  for a central-domain request) rather than asserting on route-match
+  outcome from console.
