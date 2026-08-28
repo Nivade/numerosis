@@ -34,6 +34,20 @@ the repo layout:
 "require": { "nvade/numerosis": "@dev" }
 ```
 
+```php
+// bootstrap/app.php
+use Nvade\Numerosis\Support\Numerosis;
+
+return Numerosis::configure(basePath: dirname(__DIR__))->create();
+```
+
+Then set `APP_URL`, `STRIPE_KEY`/`STRIPE_SECRET`/`STRIPE_WEBHOOK_SECRET` and
+MySQL credentials in `.env`, run `php artisan migrate`, and run
+`php artisan numerosis:install` — it publishes config/model stubs, seeds
+central data, and verifies the rest. See `docs/host-requirements.md` for
+everything above that's not optional, and everything the install command
+configures for you automatically.
+
 ## Development
 
 ```bash
