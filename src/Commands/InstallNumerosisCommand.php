@@ -22,6 +22,7 @@ use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
+use ReflectionProperty;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 
 /**
@@ -127,6 +128,36 @@ class InstallNumerosisCommand extends Command
 
         // Tenant migrations are deliberately not published: they run from
         // the package. Publish `numerosis-tenant-migrations` only to edit one.
+
+        // Numerosis::model() memoizes per class for the life of the process.
+        // A model stub published above didn't exist when boot-time code
+        // (HostConfig::apply()) first resolved these classes, so without
+        // this the cache still answers with the package's own class and
+        // verifyModelOverrides() below fails against stubs this same
+        // command just wrote.
+        Numerosis::resetModelCache();
+
+        $this->forgetMissingClasses();
+    }
+
+    /**
+     * That same boot-time resolution also called `class_exists()` on each
+     * host model path before the stub existed, and Composer's ClassLoader
+     * caches a class name as permanently missing the first time it can't
+     * find it (`ClassLoader::$missingClasses`, private, no public reset).
+     * `Numerosis::resetModelCache()` alone isn't enough — the *next*
+     * `class_exists()` call still short-circuits to false via that cache,
+     * so verification would see the stub's class as undefined even once
+     * the file is on disk and would be autoloadable in any other process.
+     * Reflection is the only way to clear it; scoped to this one-shot
+     * install command, never on a request path.
+     */
+    private function forgetMissingClasses(): void
+    {
+        foreach (\Composer\Autoload\ClassLoader::getRegisteredLoaders() as $loader) {
+            $property = new ReflectionProperty($loader, 'missingClasses');
+            $property->setValue($loader, []);
+        }
     }
 
     /**
@@ -545,9 +576,33 @@ class InstallNumerosisCommand extends Command
                     continue;
                 }
 
-                if (File::hash($file->getPathname()) !== File::hash($targetFile)) {
-                    $diverged[] = $targetFile;
+                if (File::hash($file->getPathname()) === File::hash($targetFile)) {
+                    continue;
                 }
+
+                // `app.css`/`app.js` are names every Laravel skeleton
+                // already ships under, so an unequal hash alone doesn't
+                // mean this file was ever ours — a host that never
+                // published `numerosis-assets` still has its own
+                // resources/js/app.js sitting at this same relative path
+                // (a fresh skeleton's is a bare `//`), and comparing it
+                // against the package's copy is comparing two unrelated
+                // files, on every single install. Every other path this
+                // loop can reach (`numerosis.js`, `tokens.css`, …) is
+                // namespaced enough that its mere existence already means
+                // it came from us, so only these two need a second check:
+                // does the target still carry something that only a
+                // genuinely published-then-edited copy would.
+                $fingerprints = [
+                    'app.css' => 'vendor/nvade/numerosis/resources/css/tokens.css',
+                    'app.js' => 'virtual:livewire-hot-reload',
+                ];
+
+                if (isset($fingerprints[$relative]) && ! str_contains((string) File::get($targetFile), $fingerprints[$relative])) {
+                    continue;
+                }
+
+                $diverged[] = $targetFile;
             }
         }
 

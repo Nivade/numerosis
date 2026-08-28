@@ -389,6 +389,37 @@ class InstallNumerosisCommandTest extends TestCase
     }
 
     /**
+     * @verifies verifyPublishedAssetsMatchSource
+     *
+     * Regression: `app.css`/`app.js` are the two names every fresh Laravel
+     * skeleton already ships under (a bare `//` for `app.js`), so before the
+     * fingerprint check this warned on *every* install that never published
+     * `numerosis-assets` at all — comparing a host's own untouched default
+     * against an unrelated package file with the same relative path. Only a
+     * target that still carries something a genuinely published-then-edited
+     * copy would (the `tokens.css` import, the `livewire-hot-reload` import)
+     * should count as drift.
+     */
+    public function test_it_says_nothing_when_the_hosts_own_app_assets_never_came_from_the_package(): void
+    {
+        $css = resource_path('css');
+        $js = resource_path('js');
+        File::ensureDirectoryExists($css);
+        File::ensureDirectoryExists($js);
+        File::put($css.'/app.css', "@import 'tailwindcss';\n");
+        File::put($js.'/app.js', "//\n");
+
+        try {
+            $this->install()
+                ->doesntExpectOutputToContain('Published assets differ from the package originals')
+                ->assertSuccessful();
+        } finally {
+            File::delete($css.'/app.css');
+            File::delete($js.'/app.js');
+        }
+    }
+
+    /**
      * @verifies verifyCentralMigrationCollisions
      *
      * Warns rather than fails, like the published-asset check: a host may
