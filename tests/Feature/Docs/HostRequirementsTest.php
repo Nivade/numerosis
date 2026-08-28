@@ -107,6 +107,51 @@ class HostRequirementsTest extends TestCase
     }
 
     /**
+     * The other half of the same pairing. The assertions above pin
+     * `InstallNumerosisCommand`'s checks to the doc, but nothing pinned
+     * `HostConfig`'s normalizations to it — which is how `geoip.service`
+     * came to be written on every boot while appearing nowhere in the
+     * table, and stayed that way until someone re-read the doc by hand.
+     *
+     * Deliberately covers every dotted config key the file *names*, read or
+     * written: a key `HostConfig` reasons about is a key a host can break
+     * by setting it, so it belongs in the table either way.
+     */
+    public function test_every_config_key_host_config_touches_is_documented(): void
+    {
+        $root = dirname(__DIR__, 3);
+        $source = (string) file_get_contents($root.'/src/Support/HostConfig.php');
+        $doc = (string) file_get_contents($root.'/docs/host-requirements.md');
+
+        preg_match_all('/[\'"]([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)[\'"]/', $source, $matches);
+
+        $undocumented = [];
+
+        foreach (array_unique($matches[1]) as $key) {
+            // One row often documents a group of sibling keys under a shared
+            // heading (`numerosis.domains.apex` / `.central` /
+            // `.tenant_pattern`), so a key's own parent path counts — but
+            // only when that parent is itself more than a namespace, or
+            // every future `tenancy.*` key would pass on the strength of the
+            // word "tenancy" appearing somewhere in the file.
+            $parent = implode('.', array_slice(explode('.', $key), 0, -1));
+            $parentCounts = str_contains($parent, '.') && str_contains($doc, $parent);
+
+            if (str_contains($doc, $key) || $parentCounts) {
+                continue;
+            }
+
+            $undocumented[] = $key;
+        }
+
+        $this->assertSame(
+            [],
+            $undocumented,
+            'HostConfig names a config key docs/host-requirements.md never mentions. Add a §2 row saying what it is set to and how to override it.',
+        );
+    }
+
+    /**
      * @return list<array{key: string, checked_by: string}>
      */
     private function documentedRows(): array

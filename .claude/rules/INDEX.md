@@ -9,7 +9,7 @@ One line per file, under ~150 chars. Update index when rules file add/rename/rem
 **Bare commit hashes in these rules refer to the archived saas-m repo** (`git@gitlab.com:nvade_/saas-m.git`), not numerosis — `c66cc72`, `ddd7c35`, `de06293`, `438f12f`, `549223e`, `6b8c78c` are all saas-m's. Hashes for this package or thin-app always name their repo.
 
 <!-- topic-index:start -->
-- [auth-guards.md](auth-guards.md) — default guard follow tenancy context; `web` central guard; why models must not container-bound.
+- [auth-guards.md](auth-guards.md) — guard follows tenancy; `web` = central; tenant guard outside tenancy reads central `users`; don't bind models.
 - [auth-login.md](auth-login.md) — two passwordless-login components, two domains, protections drift between; Livewire method order not enforced.
 - [billing-checkout.md](billing-checkout.md) — Livewire wizard bypass StartCheckoutRequest; stale local stripe_status; retired plans stay purchasable.
 - [exception-handling.md](exception-handling.md) — DomainException/ShowsMessageToUser split; TagsSentryScopeWithTenant fix tenant-less job-failure reports; failed_jobs trap.
@@ -22,4 +22,5 @@ One line per file, under ~150 chars. Update index when rules file add/rename/rem
 - [tenant-registration-wizard.md](tenant-registration-wizard.md) — bare `@livewire()` view flattens child's component boundary; spatie wizard's `wizardClassName` needs alias resolution, not raw FQCN.
 - [testing.md](testing.md) — central-connection rows escape RefreshDatabase; tenant DB leaks; providers register before getEnvironmentSetUp; suite-slow/known-failure baseline.
 - [tenant-filesystem.md](tenant-filesystem.md) — `local` disk root tenant-suffixed but Livewire upload route never tenant-identified; dedicated `livewire` disk fixes it.
+- [host-integration-quickstart.md](host-integration-quickstart.md) — 7 silent traps integrating into a pre-existing host app (tabellio); all 7 fixed 2026-08-13 — read for the mechanism to reach for now.
 <!-- topic-index:end -->

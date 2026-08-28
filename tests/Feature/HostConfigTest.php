@@ -443,6 +443,31 @@ class HostConfigTest extends TestCase
     }
 
     /**
+     * torann/geoip's own stock config ships `service => null`, and
+     * `GeoIP::getService()` throws `No GeoIP service is configured.` on
+     * that rather than degrading — so an unset key would fatal every
+     * checkout page load through `ResolveCheckoutRegion`, not merely lose
+     * the region-specific payment-method order.
+     */
+    public function test_it_defaults_the_geoip_service_when_unset(): void
+    {
+        Config::set('geoip.service');
+
+        $this->rebootPackage();
+
+        $this->assertSame('maxmind_database', Config::get('geoip.service'));
+    }
+
+    public function test_it_does_not_override_a_hosts_geoip_service(): void
+    {
+        Config::set('geoip.service', 'maxmind_api');
+
+        $this->rebootPackage();
+
+        $this->assertSame('maxmind_api', Config::get('geoip.service'));
+    }
+
+    /**
      * `HostConfig::apply()` no longer runs inline from `packageRegistered()`
      * — it's deferred to a `booting()` callback (see that method's own
      * docblock for why: `Stancl\Tenancy\TenancyServiceProvider::register()`

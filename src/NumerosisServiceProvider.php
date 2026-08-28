@@ -143,7 +143,14 @@ class NumerosisServiceProvider extends PackageServiceProvider
         }
 
         // Points the `layouts::` and `pages::` Livewire namespaces at the
-        // views this package ships. Set either yourself to use your own.
+        // views this package ships. Set either yourself to use your own —
+        // from your own provider's register(), not boot(): Livewire reads this
+        // config once in its own boot() and bakes the result into the view
+        // finder's hints, so a later config change is accepted and has no
+        // effect on how views actually resolve. App providers register after
+        // package providers, so a register()-phase override wins here (this
+        // loop only writes an unset or still-stock value) while a boot()-phase
+        // one silently loses. See docs/host-requirements.md.
         foreach (['layouts', 'pages'] as $namespace) {
             $current = Config::get("livewire.component_namespaces.{$namespace}");
 

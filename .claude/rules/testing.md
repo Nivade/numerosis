@@ -49,6 +49,27 @@ updated: 2026-07-31
   behaviour that depends on callback order needs re-checking the same way
   when ported.
 
+  **2026-08-13: both hooks moved out of `tests/TestCase.php` into a shipped
+  trait, `Nvade\Numerosis\Testing\CleansUpTenancyDatabases`, and the callback
+  ordering above is no longer load-bearing.** Hosts need this teardown too and
+  were copying it by hand, inverting the registration order half the time
+  (`.claude/rules/host-integration-quickstart.md` records what that cost
+  tabellio), so the trait stopped relying on landing after
+  `RefreshDatabase`'s rollback and instead does what being after it bought:
+  `endTenancy()` first (so nothing reconnects to a database this teardown is
+  about to drop), then `releaseTestTransactions()` (rolls every open
+  transaction back to level 0, so the central deletes don't block on the
+  test's own row locks — `RefreshDatabase`'s later `rollBack()` returns early
+  at level 0 rather than conflicting). `TestCase::setUp()` still registers it
+  before `parent::setUp()`, which under Testbench still puts it behind the
+  rollback; that's now belt-and-braces, not the mechanism. Tenant database
+  *names* are also read **before** the central deletes run, since those empty
+  the `tenants` table the lookup reads — the nested `finally` chain is
+  unchanged in shape. Suite-specific bits stayed in `TestCase` as overrides:
+  `additionalTenantDatabases()` (`CloneTenantSchema::takeCreatedDatabases()`)
+  and `preservedTenantDatabases()` (the clone template), plus
+  `keepDatabaseSchema()` in `tearDown()` where `keepSchema()` used to be.
+
 - **A view test that renders a component from a `suggest`-only package
   asserts nothing, and passes.** Blade leaves an unregistered
   `<flux:button …>` as literal text rather than erroring, so

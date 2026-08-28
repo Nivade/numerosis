@@ -9,12 +9,15 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use Livewire;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Jobs\SeedTenantDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Stancl\JobPipeline\JobPipeline;
 use Stancl\Tenancy\Events\BootstrappingTenancy;
@@ -179,12 +182,64 @@ class TenancyServiceProvider extends ServiceProvider
      */
     protected function registerCachedDomainResolver(): void
     {
-        DomainTenantResolver::$shouldCache = true;
+        // Decided from a booting() callback rather than here: the allowlist
+        // check reads `tenancy.tenant_model`, which HostConfig::apply() fills
+        // in from its own booting() callback — registered earlier, so it runs
+        // first. Nothing reads the flag until a request resolves a domain.
+        $this->app->booting(function (): void {
+            DomainTenantResolver::$shouldCache = self::shouldCacheResolvedTenants();
+        });
 
         $this->app->singleton(
             DomainTenantResolver::class,
             fn (Application $app) => new DomainTenantResolver(new CacheManager($app)),
         );
+    }
+
+    /**
+     * Whether the resolver's tenant cache can be trusted on this host.
+     *
+     * `DomainTenantResolver` caches a whole tenant *model*, and Laravel's own
+     * `cache.serializable_classes` decides whether any cache store may
+     * `unserialize()` an object at all. A fresh Laravel app ships `false`
+     * there — hardening against gadget chains — which does not make the read
+     * fail: it silently returns `__PHP_Incomplete_Class` instead of the
+     * object, with no exception and no log line. The first request after a
+     * cache clear then resolves fine (cache miss) and every request after it
+     * dies on `DomainTenantResolver::resolved(): Argument #1 ($tenant) must be
+     * of type Tenant, __PHP_Incomplete_Class given`, which reads like a
+     * tenancy bug and is two config defaults disagreeing.
+     *
+     * So the cache follows what the host's cache config can actually store: an
+     * allowlist has to name the tenant model, `false` disables the cache, and
+     * `numerosis.tenancy.cache_resolved_tenants` overrides the lot in either
+     * direction. `numerosis:install`'s `verifyTenantResolverCache()` reports
+     * when this has turned the cache off, since losing it costs a central
+     * lookup per tenant request.
+     */
+    public static function shouldCacheResolvedTenants(): bool
+    {
+        $configured = Config::get('numerosis.tenancy.cache_resolved_tenants');
+
+        if (is_bool($configured)) {
+            return $configured;
+        }
+
+        $serializableClasses = Config::get('cache.serializable_classes');
+
+        // null is Laravel's "no restriction" value: the stores only pass
+        // `allowed_classes` to unserialize() when this is non-null.
+        if ($serializableClasses === null || $serializableClasses === true) {
+            return true;
+        }
+
+        if (! is_array($serializableClasses)) {
+            return false;
+        }
+
+        $tenantModel = Config::get('tenancy.tenant_model') ?? Numerosis::model(Tenant::class);
+
+        return in_array($tenantModel, $serializableClasses, true);
     }
 
     public function boot(): void

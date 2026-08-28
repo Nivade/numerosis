@@ -794,6 +794,24 @@ return [
 
         /*
         |----------------------------------------------------------------------
+        | Domain-to-Tenant Resolver Cache
+        |----------------------------------------------------------------------
+        |
+        | Caches the domain lookup every tenant request would otherwise pay
+        | against the central database. Leave null to follow what your cache
+        | store can actually hold: the resolver caches a tenant *model*, and
+        | a fresh Laravel app's `cache.serializable_classes => false` turns
+        | any cached object into __PHP_Incomplete_Class on read — silently —
+        | so the cache stays off unless that config allows the tenant model
+        | through. true or false decides it yourself; see
+        | TenancyServiceProvider::shouldCacheResolvedTenants().
+        |
+        */
+
+        'cache_resolved_tenants' => null,
+
+        /*
+        |----------------------------------------------------------------------
         | Contract Bindings
         |----------------------------------------------------------------------
         |

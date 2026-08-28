@@ -22,6 +22,7 @@ use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
+use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 
 /**
  * Publishes config and model stubs, appends missing `.env` keys, seeds
@@ -73,6 +74,8 @@ class InstallNumerosisCommand extends Command
         $this->verifyLivewireComponentNamespaces();
         $this->verifyDomainConfig();
         $this->verifyTenantMigrationPath();
+        $this->verifyCentralMigrationCollisions();
+        $this->verifyTenantResolverCache();
         $this->verifyPublishedAssetsMatchSource();
         $this->verifyFilamentThemeAsset();
         $this->verifyStripeKeys();
@@ -434,6 +437,92 @@ class InstallNumerosisCommand extends Command
     }
 
     /**
+     * Warns when one of your own migrations shares a filename with one of the
+     * package's central migrations.
+     *
+     * Laravel's migrator collects the files from every registered path and
+     * keys them by migration *name* — the filename without its extension — so
+     * two files of the same name are not merged and do not error: one is
+     * silently dropped. `MigrateCommand` appends `database/migrations` after
+     * every package-registered path, and the later path wins the key, so it is
+     * always the package's copy that never runs.
+     *
+     * A fresh Laravel app ships three of the names this package also ships
+     * (`0001_01_01_00000{0,1,2}_create_{users,cache,jobs}_table`), because
+     * those *are* the stock migrations, copied in and extended. Keeping the
+     * host's copy therefore means the `users` table is created without the
+     * columns package code queries — which surfaces much later as an
+     * `Unknown column` on an unrelated insert, never as a migration problem.
+     */
+    private function verifyCentralMigrationCollisions(): void
+    {
+        $hostDirectory = database_path('migrations');
+
+        if (! File::isDirectory($hostDirectory)) {
+            return;
+        }
+
+        $packageMigrations = [];
+
+        // Not allFiles(): the migrator globs each registered path without
+        // recursing, so `database/migrations/tenant` (published tenant
+        // migrations, a deliberate copy) is a different path, not a collision.
+        foreach (File::files(dirname(__DIR__, 2).'/database/migrations/central') as $file) {
+            $packageMigrations[$file->getFilenameWithoutExtension()] = true;
+        }
+
+        $collisions = [];
+
+        foreach (File::files($hostDirectory) as $file) {
+            if (isset($packageMigrations[$file->getFilenameWithoutExtension()])) {
+                $collisions[] = $file->getPathname();
+            }
+        }
+
+        if ($collisions === []) {
+            return;
+        }
+
+        $this->components->warn('These migrations share a filename with one of this package\'s central migrations, so yours runs and the package\'s copy is silently skipped — delete yours, or merge what it adds into the package copy\'s tenant-aware schema:');
+
+        foreach ($collisions as $collision) {
+            $this->line("  - {$collision}");
+        }
+    }
+
+    /**
+     * Warns when the domain-to-tenant resolver cache is off because the host's
+     * cache store cannot round-trip an object.
+     *
+     * A fresh Laravel app ships `cache.serializable_classes => false`, which
+     * passes `['allowed_classes' => false]` to every `unserialize()` a cache
+     * store makes. That does not reject the read — it turns any cached object
+     * into `__PHP_Incomplete_Class`, with no exception and no log line — and
+     * the resolver caches a whole tenant model. So the package leaves its
+     * cache off in that case rather than resolving the first request and
+     * failing every one after it (see `TenancyServiceProvider::
+     * shouldCacheResolvedTenants()`); this reports the cost.
+     */
+    private function verifyTenantResolverCache(): void
+    {
+        if (DomainTenantResolver::$shouldCache) {
+            return;
+        }
+
+        if (Config::get('numerosis.tenancy.cache_resolved_tenants') === false) {
+            return;
+        }
+
+        $this->components->warn(
+            'The domain-to-tenant resolver cache is disabled because config(\'cache.serializable_classes\') is '
+            .var_export(Config::get('cache.serializable_classes'), true)
+            .', which cannot round-trip a cached tenant model. Every tenant request pays a central-database lookup before anything else runs. To turn it back on, add '
+            .Config::string('tenancy.tenant_model', Tenant::class)
+            .' to that allowlist (or set it to true), then re-run this command. Set numerosis.tenancy.cache_resolved_tenants to false to silence this deliberately.'
+        );
+    }
+
+    /**
      * Warns when a published asset differs from the package's own copy.
      * Editing them is allowed and expected; this exists because the Stripe
      * scripts among them are load-bearing for payment, and drifting from
@@ -634,6 +723,10 @@ class InstallNumerosisCommand extends Command
         $this->line('  1. Wildcard DNS: point *.'.Config::string('numerosis.domains.tenant_pattern', '{tenant}.your-domain').' at this app.');
         $this->line('  2. Run a queue worker on the dedicated "provisioning" queue (`php artisan queue:work --queue=provisioning`) — tenant provisioning is queued there, not on the default worker.');
         $this->line('  3. Run `php artisan filament:assets` (you likely already run this for Filament itself) — it copies both Filament panels\' theming (colours, radius, Instrument Sans) plus this package\'s prebuilt dist/numerosis.js and dist/numerosis.css to public/{css,js}/nvade/numerosis/. No vite.config.js entry needed for any of it: none of it goes through your build unless you\'ve published and customised resources/js/numerosis.js yourself (Numerosis::assetTags() prefers your own Vite manifest entry for it when one exists).');
-        $this->line('  4. To rebrand (accent colour, radius, fonts, density) for the *main app*, add a `:root { --pref-...: ...; }` block to your published resources/css/app.css AFTER its `@import \'.../vendor/nvade/numerosis/resources/css/tokens.css\';` line. See tokens.css for the full list of overridable custom properties. This does not reach either Filament panel — the panel theme from step 3 is a prebuilt file compiled once against the default `--pref-accent-hue` and does not read your app.css (a panel page loads only its own theme stylesheet, nothing else). Rebranding a panel\'s accent means building your own theme CSS (copy resources/theme-src/filament-theme.css from the package as a starting point, edit `--pref-accent-hue`, register it as your own Filament `Theme` asset or `->viteTheme()`) and pointing `->theme()`/`->viteTheme()` at it in your own panel providers instead of Numerosis\'s. This is a one-time, host-level choice either way — Numerosis has no per-user or per-tenant theme picker. A custom `--pref-accent-hue` is not contrast-verified for you — white text on `--color-primary` is only checked against the default hue; check your own hue\'s contrast (browser devtools\' contrast checker is enough) before shipping it.');
+        if (Config::string('geoip.service', '') === 'maxmind_database') {
+            $this->line('  4. Optional, for checkout\'s region-specific payment-method order: set MAXMIND_LICENSE_KEY and run `php artisan geoip:update` once. The .mmdb database torann/geoip reads is licensed, so nothing here can fetch it for you; the weekly refresh afterwards is scheduled for you. Skipping this is supported — ResolveCheckoutRegion reports the driver\'s throw and falls back to numerosis.billing.payment_methods.default_order, at one reported exception per checkout page load.');
+        }
+
+        $this->line('  5. To rebrand (accent colour, radius, fonts, density) for the *main app*, add a `:root { --pref-...: ...; }` block to your published resources/css/app.css AFTER its `@import \'.../vendor/nvade/numerosis/resources/css/tokens.css\';` line. See tokens.css for the full list of overridable custom properties. This does not reach either Filament panel — the panel theme from step 3 is a prebuilt file compiled once against the default `--pref-accent-hue` and does not read your app.css (a panel page loads only its own theme stylesheet, nothing else). Rebranding a panel\'s accent means building your own theme CSS (copy resources/theme-src/filament-theme.css from the package as a starting point, edit `--pref-accent-hue`, register it as your own Filament `Theme` asset or `->viteTheme()`) and pointing `->theme()`/`->viteTheme()` at it in your own panel providers instead of Numerosis\'s. This is a one-time, host-level choice either way — Numerosis has no per-user or per-tenant theme picker. A custom `--pref-accent-hue` is not contrast-verified for you — white text on `--color-primary` is only checked against the default hue; check your own hue\'s contrast (browser devtools\' contrast checker is enough) before shipping it.');
     }
 }

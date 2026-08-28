@@ -6,12 +6,14 @@ namespace Nvade\Numerosis\Tests\Feature\Console\Commands;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Tests\TestCase;
+use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 use stdClass;
 
 /**
@@ -386,6 +388,87 @@ class InstallNumerosisCommandTest extends TestCase
         }
     }
 
+    /**
+     * @verifies verifyCentralMigrationCollisions
+     *
+     * Warns rather than fails, like the published-asset check: a host may
+     * legitimately have merged the package's schema into its own file. The
+     * silence is what this closes — Laravel's migrator keys migrations by
+     * filename across every registered path, and `database/migrations` is
+     * appended last, so the host's copy wins and the package's never runs,
+     * with no error at any point.
+     */
+    public function test_it_warns_when_a_host_migration_collides_with_a_package_central_migration(): void
+    {
+        $collision = database_path('migrations/0001_01_01_000000_create_users_table.php');
+        File::ensureDirectoryExists(dirname($collision));
+        File::put($collision, '<?php'."\n\n// stock Laravel migration, kept by accident\n");
+
+        try {
+            $this->install()
+                ->expectsOutputToContain('0001_01_01_000000_create_users_table.php')
+                ->assertSuccessful();
+        } finally {
+            File::delete($collision);
+        }
+    }
+
+    /** @verifies verifyCentralMigrationCollisions */
+    public function test_it_says_nothing_when_no_host_migration_shares_a_package_filename(): void
+    {
+        $ownMigration = database_path('migrations/2026_08_13_000000_create_host_widgets_table.php');
+        File::ensureDirectoryExists(dirname($ownMigration));
+        File::put($ownMigration, '<?php'."\n\n// a migration only this host has\n");
+
+        try {
+            $this->install()
+                ->doesntExpectOutputToContain('share a filename')
+                ->assertSuccessful();
+        } finally {
+            File::delete($ownMigration);
+        }
+    }
+
+    /**
+     * @verifies verifyTenantResolverCache
+     *
+     * Warns rather than fails: the resolver cache being off is a cost, not a
+     * break. `$shouldCache` is a static the provider sets from a `booting()`
+     * callback, so it is set here directly — what this test is about is the
+     * command reporting the state, not how the provider arrived at it (that
+     * is `TenantResolverCacheTest`'s job).
+     */
+    public function test_it_warns_when_the_tenant_resolver_cache_is_off(): void
+    {
+        $original = DomainTenantResolver::$shouldCache;
+        DomainTenantResolver::$shouldCache = false;
+        Config::set('cache.serializable_classes', false);
+
+        try {
+            $this->install()
+                ->expectsOutputToContain('resolver cache is disabled')
+                ->assertSuccessful();
+        } finally {
+            DomainTenantResolver::$shouldCache = $original;
+        }
+    }
+
+    /** @verifies verifyTenantResolverCache */
+    public function test_it_says_nothing_about_the_resolver_cache_when_a_host_turned_it_off_deliberately(): void
+    {
+        $original = DomainTenantResolver::$shouldCache;
+        DomainTenantResolver::$shouldCache = false;
+        Config::set('numerosis.tenancy.cache_resolved_tenants', false);
+
+        try {
+            $this->install()
+                ->doesntExpectOutputToContain('resolver cache is disabled')
+                ->assertSuccessful();
+        } finally {
+            DomainTenantResolver::$shouldCache = $original;
+        }
+    }
+
     /** @verifies verifyStripeKeys */
     public function test_it_fails_when_a_stripe_key_is_unset(): void
     {
@@ -459,6 +542,32 @@ class InstallNumerosisCommandTest extends TestCase
         } finally {
             File::delete($published);
         }
+    }
+
+    /**
+     * The MaxMind database file is the one thing `HostConfig`'s `geoip`
+     * default cannot finish on its own (the `.mmdb` is licensed), so
+     * `docs/host-requirements.md` §1 lists it as a conditional obligation
+     * and the command has to say so too — there is no `verify*()` for it,
+     * since a missing file costs only the region-specific payment-method
+     * order, not the checkout.
+     */
+    public function test_it_names_the_maxmind_step_while_the_package_geoip_default_is_in_place(): void
+    {
+        Config::set('geoip.service', 'maxmind_database');
+
+        $this->install()
+            ->expectsOutputToContain('MAXMIND_LICENSE_KEY')
+            ->assertSuccessful();
+    }
+
+    public function test_it_omits_the_maxmind_step_when_the_host_chose_another_geoip_service(): void
+    {
+        Config::set('geoip.service', 'ipapi');
+
+        $this->install()
+            ->doesntExpectOutputToContain('MAXMIND_LICENSE_KEY')
+            ->assertSuccessful();
     }
 
     /**

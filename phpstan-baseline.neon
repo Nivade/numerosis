@@ -1407,8 +1407,3 @@ parameters:
 			count: 1
 			path: tests/Support/CloneTenantSchema.php
 
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getTenantKey\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/TestCase.php

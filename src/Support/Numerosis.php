@@ -53,6 +53,8 @@ class Numerosis
 
     private static bool $routesRegistered = false;
 
+    private static bool $authRoutesEnabled = true;
+
     /**
      * @param  list<string>  $columns
      */
@@ -108,12 +110,31 @@ class Numerosis
      * Central routes are bound to each hostname in `tenancy.central_domains`
      * separately, because tenant identification never runs for those domains.
      *
+     * Pass `withAuth: false` if you keep an auth system of your own —
+     * `routes/auth.php` is skipped, and everything else in `routes/web.php`
+     * (billing webhook, checkout, registration wizard, account pages) still
+     * registers:
+     *
+     * ```php
+     * ->withRouting(using: fn () => Numerosis::routes(withAuth: false))
+     * ```
+     *
+     * That flag exists because those four route *names* — `login`,
+     * `register`, `logout`, `verification.verify` — are registered
+     * unconditionally otherwise, behind no feature flag, so a host with its
+     * own Fortify/Breeze routes gets a silent name collision: Laravel keeps
+     * whichever was registered last, making "which system serves /login" an
+     * artifact of provider order rather than a decision. Everything the
+     * package generates from those names (the login redirect, the email
+     * verification link) becomes yours to provide under the same names.
+     *
      * {@see self::registerRoutesUsing()} replaces this wholesale; there is no
      * hook to append to the defaults.
      */
-    public static function routes(): void
+    public static function routes(bool $withAuth = true): void
     {
         self::$routesRegistered = true;
+        self::$authRoutesEnabled = $withAuth;
 
         if (self::$registerRoutesCallback instanceof Closure) {
             (self::$registerRoutesCallback)(app());
@@ -146,6 +167,15 @@ class Numerosis
     public static function routesRegistered(): bool
     {
         return self::$routesRegistered;
+    }
+
+    /**
+     * Whether `routes/web.php` should require `routes/auth.php`. Read there,
+     * set by {@see self::routes()}'s `$withAuth` argument.
+     */
+    public static function authRoutesEnabled(): bool
+    {
+        return self::$authRoutesEnabled;
     }
 
     /**
@@ -218,6 +248,22 @@ class Numerosis
      * `Models\` (`Central\Tenant` → `Central\TenantFactory`). Registered as
      * Laravel's factory-name resolver, because every factory ships with this
      * package even when the model is a subclass in your own app namespace.
+     *
+     * This replaces Laravel's *global* resolver, so it also answers for models
+     * of your own that have nothing to do with this package: any class under a
+     * `\Models\` namespace — `App\Models\User` included — resolves to
+     * `Nvade\Numerosis\Database\Factories\<suffix>Factory`. The failure that
+     * causes is not a wrong class but wrong *fields*: {@see
+     * self::modelNameFor()} still instantiates your model, so
+     * `App\Models\User::factory()` builds your model from the package
+     * factory's definition, silently missing whatever columns your own
+     * migrations added. Escape it per model with Laravel's own attribute,
+     * which `HasFactory::newFactory()` consults before any global resolver:
+     *
+     * ```php
+     * #[UseFactory(\Database\Factories\UserFactory::class)]
+     * class User extends Authenticatable {}
+     * ```
      *
      * @param  class-string<Model>  $modelName
      * @return class-string<Factory<Model>>

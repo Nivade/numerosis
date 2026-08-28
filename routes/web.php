@@ -16,6 +16,7 @@ use Nvade\Numerosis\Livewire\Settings\Password;
 use Nvade\Numerosis\Livewire\Settings\Profile;
 use Nvade\Numerosis\Livewire\Tenant;
 use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 
 //
@@ -84,4 +85,10 @@ Route::middleware(['auth:web'])->group(function () {
 
 });
 
-require __DIR__.'/auth.php';
+// Skipped by `Numerosis::routes(withAuth: false)`, for a host keeping its own
+// auth system: the names in there (`login`, `register`, `logout`,
+// `verification.verify`) are behind no feature flag, so registering both
+// systems silently resolves to whichever ran last. See that method's docblock.
+if (Numerosis::authRoutesEnabled()) {
+    require __DIR__.'/auth.php';
+}
