@@ -8,10 +8,11 @@
 > — read both before starting, they are not summaries of this file, they carry
 > facts this file only references.
 >
-> **Status 2026-08-29: Phase 0 is done and both gates are green** (0 failed /
-> 7 skipped / 584 passed; PHPStan 0 outside a 216-entry baseline). Phases 1–8
-> are untouched. Start at Phase 1, or at Phase 0.3 for the cheap items that
-> "breaking changes are free" reopened.
+> **Status 2026-08-29: Phase 0, 0.3, and 1 (1.1/1.2/1.3) are all done and
+> both gates are green** (0 failed / 7 skipped / 584 passed; PHPStan 0
+> outside a 218-entry baseline). Phases 2–8 are untouched. Start at Phase 2
+> (widen the constraint, add the CI matrix) or Phase 3/4 (can run in
+> parallel with 2).
 >
 > **Re-audit result:** every structural claim in Phases 1, 3, 4, 6 and 7 was
 > re-verified against the code and holds, line numbers included. Both baselines
@@ -181,7 +182,54 @@ passed) and PHPStan (0 outside baseline) re-verified green after:
   breaks existing installs. Rename them.
 - **Raise the `stancl/tenancy` floor without ceremony** — folds into Phase 2.1.
 
-## Phase 1 — dual-version compat layers, built against v3 only
+## Phase 1 — dual-version compat layers, built against v3 only ✅ DONE (2026-08-29)
+
+**All three sub-phases done, verified green on the currently-installed
+`v3.10.1`: suite 0 failed/7 skipped/584 passed, PHPStan 0 outside baseline
+(216 → 218, two new deliberate entries documented in
+`.claude/rules/static-analysis.md`-style reasoning inline in
+`phpstan-baseline.neon`), ArchTest passes. No behaviour change — this phase
+is pure refactor, by design.**
+
+- **1.1** — `Support\Compat\Tenancy\*` (7 files: SyncMaster, Syncable,
+  ResourceSyncing, TenantPivot, TenantWithDatabase,
+  UpdateOrCreateSyncedResource, HasTenantOptions) + `Support\Tenancy\TenancyVersion`
+  for the two sync events and two `::class`-string sites. Shim count matches
+  the plan's "9 eager symbols" exactly — no growth, no re-run of the symbol
+  diff needed. One real surprise: PHPStan resolves a conditionally-declared
+  class/interface to a single canonical branch for LSP/generic checking
+  **regardless of which real version is installed** — an `if
+  (TenancyVersion::isDevMaster()) {...} else {...}` gate (a custom method
+  call) let it flatten to the wrong branch and cascade into ~68 unrelated
+  errors; switching the gate to the literal, inlined
+  `class_exists(\Stancl\Tenancy\Enums\RouteMode::class)` (matching the
+  existing Filament/activitylog shims' own idiom exactly) fixed the
+  cascade, since PHPStan specifically recognises that literal-call form and
+  picks the branch matching the real environment. `.phpstan/stancl-tenancy-dev-master.stub.php`
+  (registered via `phpstan.neon.dist`'s `scanFiles`) gives PHPStan the
+  dev-master-only symbols' shapes so it can resolve both branches with only
+  v3 actually installed. Two narrow, documented baseline entries remain
+  (`tests/Support/CloneTenantSchema.php`) — a real vendor v3 job's
+  constructor, two files from the model that nominally satisfies it.
+  `UpdateSyncedResource`/`LogSyncedResourceChangedInForeignDatabase` no
+  longer override `handle()` with a version-typed parameter at all — an
+  untyped-native, `@param`-narrowed parameter sidesteps the same
+  canonical-branch problem instead of fighting it.
+- **1.2/1.3** — `Support\Tenancy\TenancyConfigKeys` is the only place either
+  reads or writes the 4 moved keys, in `src/` *and* `tests/` (the plan's own
+  "was wrong" note that two-thirds of the sites are in tests held up —
+  every one of them needed converting too, not just `HostConfig`).
+  `::set()` does the read-modify-write of the whole parent array on
+  dev-master, never a multi-segment dotted `Config::set()` — exactly the
+  fix `.claude/rules/package-host-bootstrap.md` suggested for the
+  `tenancy.database` truncation bug, now not-optional the moment a write
+  targets a dev-master key.
+
+**Checkpoint result: shim count did not grow beyond nine. Proceed to Phase 2.**
+
+---
+
+## Phase 1 (historical framing, kept for reference)
 
 No constraint change in this phase. Everything here is a refactor that must
 stay green on the currently-installed `v3.10.1`. Splitting it this way means
@@ -603,10 +651,9 @@ check that proves the split composes; per-package suites do not.
 
 ```
 0  baseline repair            ── ✅ DONE 2026-08-29 (suite + PHPStan green)
-0.3 reopened migration fixes  ── unblocked by "breaking changes are free";
-                                 independent of 1-8, do whenever
-1  compat layers (v3 only)    ── depends on 0
-2  constraint + CI matrix     ── depends on 1
+0.3 reopened migration fixes  ── ✅ DONE 2026-08-29
+1  compat layers (v3 only)    ── ✅ DONE 2026-08-29 (1.1/1.2/1.3 all landed)
+2  constraint + CI matrix     ── depends on 1; next up
 3  contribution seams         ── depends on 0;  can run beside 1/2
 4  wizard step config         ── depends on 0;  can run beside 1/2/3
 5  identification modes       ── depends on 2 and 1.2
