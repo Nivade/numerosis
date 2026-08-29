@@ -28,6 +28,7 @@ use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Models\User as NumerosisUser;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Stancl\Tenancy\Contracts\Tenant;
 use Throwable;
@@ -96,7 +97,7 @@ class Numerosis
     {
         $request ??= resolve(Request::class);
 
-        return in_array($request->getHost(), Config::array('tenancy.central_domains'), true);
+        return in_array($request->getHost(), Config::array(TenancyConfigKeys::key('central_domains')), true);
     }
 
     /**
@@ -159,7 +160,7 @@ class Numerosis
 
         $routes = dirname(__DIR__, 2).'/routes';
 
-        foreach (Config::array('tenancy.central_domains') as $domain) {
+        foreach (Config::array(TenancyConfigKeys::key('central_domains')) as $domain) {
             if (! is_string($domain)) {
                 continue;
             }

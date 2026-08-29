@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 
 class InferTenantFromCurrentRequest
 {
@@ -23,7 +24,7 @@ class InferTenantFromCurrentRequest
         $host = request()->getHost();
 
         /** @var list<string> $centralDomains */
-        $centralDomains = Config::get('tenancy.central_domains', []);
+        $centralDomains = Config::get(TenancyConfigKeys::key('central_domains'), []);
 
         if (in_array($host, $centralDomains, true)) {
             return null;

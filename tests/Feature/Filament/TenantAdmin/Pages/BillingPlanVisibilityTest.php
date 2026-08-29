@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Filament\TenantAdmin\Pages\Billing;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
 
 class BillingPlanVisibilityTest extends TestCase
@@ -21,7 +22,7 @@ class BillingPlanVisibilityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['tenancy.central_domains' => ['localhost']]);
+        TenancyConfigKeys::set('central_domains', ['localhost']);
     }
 
     public function test_active_plan_is_highlighted_with_badge(): void

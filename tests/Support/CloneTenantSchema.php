@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Nvade\Numerosis\Jobs\SeedTenantDatabase;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Jobs\CreateDatabase;
 use Stancl\Tenancy\Jobs\MigrateDatabase;
@@ -132,9 +133,9 @@ class CloneTenantSchema implements ShouldQueue
         // resolves to whatever class the call was written against. Written
         // as Tenant::forceCreate(...) that would be the abstract class
         // itself; going through the configured concrete class instead is
-        // what a real request does via config('tenancy.tenant_model').
+        // what a real request does via the tenant-model config key.
         /** @var class-string<Tenant> $tenantClass */
-        $tenantClass = Config::string('tenancy.tenant_model');
+        $tenantClass = Config::string(TenancyConfigKeys::key('tenant_model'));
 
         // withoutEvents keeps this out of the TenantCreated pipeline that the
         // test bootstrap points at this very class, which would recurse. It

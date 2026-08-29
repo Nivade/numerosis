@@ -12,6 +12,7 @@ use Livewire\Livewire;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\EditPaymentPlan;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\RelationManagers\FeaturesRelationManager;
 use Nvade\Numerosis\Models\Central\Feature;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -27,7 +28,7 @@ class FeaturesRelationManagerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['tenancy.central_domains' => ['localhost']]);
+        TenancyConfigKeys::set('central_domains', ['localhost']);
 
         Gate::before(fn () => true);
     }

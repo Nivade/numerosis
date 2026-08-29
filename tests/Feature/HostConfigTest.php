@@ -14,6 +14,7 @@ use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
 use Pdo\Mysql;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
@@ -35,15 +36,15 @@ class HostConfigTest extends TestCase
 {
     public function test_it_defaults_tenancy_models_when_unset_or_still_stancls_stock_class(): void
     {
-        Config::set('tenancy.tenant_model', StanclTenant::class);
-        Config::set('tenancy.domain_model', StanclDomain::class);
+        TenancyConfigKeys::set('tenant_model', StanclTenant::class);
+        TenancyConfigKeys::set('domain_model', StanclDomain::class);
         Config::set('tenancy.central_user_model');
         Config::set('tenancy.tenant_user_model');
 
         $this->rebootPackage();
 
-        $this->assertSame(Numerosis::model(Tenant::class), Config::get('tenancy.tenant_model'));
-        $this->assertSame(Numerosis::model(Domain::class), Config::get('tenancy.domain_model'));
+        $this->assertSame(Numerosis::model(Tenant::class), Config::get(TenancyConfigKeys::key('tenant_model')));
+        $this->assertSame(Numerosis::model(Domain::class), Config::get(TenancyConfigKeys::key('domain_model')));
         $this->assertSame(Numerosis::model(CentralUser::class), Config::get('tenancy.central_user_model'));
         $this->assertSame(Numerosis::model(TenantUser::class), Config::get('tenancy.tenant_user_model'));
     }
@@ -51,47 +52,47 @@ class HostConfigTest extends TestCase
     public function test_it_does_not_override_a_hosts_tenancy_models(): void
     {
         // A real, autoloadable class rather than a fake namespace: TestCase's
-        // own teardown queries through whatever `tenancy.tenant_model`
+        // own teardown queries through whatever the tenant-model key
         // resolves to, so a nonexistent class here would crash cleanup
         // rather than the assertion below.
-        Config::set('tenancy.tenant_model', Tenant::class);
+        TenancyConfigKeys::set('tenant_model', Tenant::class);
 
         $this->rebootPackage();
 
-        $this->assertSame(Tenant::class, Config::get('tenancy.tenant_model'));
+        $this->assertSame(Tenant::class, Config::get(TenancyConfigKeys::key('tenant_model')));
     }
 
     public function test_it_defaults_central_domains_when_empty(): void
     {
-        Config::set('tenancy.central_domains', []);
+        TenancyConfigKeys::set('central_domains', []);
 
         $this->rebootPackage();
 
-        $this->assertSame([Config::string('numerosis.domains.central')], Config::get('tenancy.central_domains'));
+        $this->assertSame([Config::string('numerosis.domains.central')], Config::get(TenancyConfigKeys::key('central_domains')));
     }
 
     public function test_it_does_not_override_existing_central_domains(): void
     {
-        Config::set('tenancy.central_domains', ['custom.test']);
+        TenancyConfigKeys::set('central_domains', ['custom.test']);
 
         $this->rebootPackage();
 
-        $this->assertSame(['custom.test'], Config::get('tenancy.central_domains'));
+        $this->assertSame(['custom.test'], Config::get(TenancyConfigKeys::key('central_domains')));
     }
 
     /**
      * Stancl's own stock default is `['127.0.0.1', 'localhost']`, not `[]` —
      * found by `tests/Feature/FreshHostTest.php`, which is the first test in
-     * this suite that never overrides `tenancy.central_domains` itself and
+     * this suite that never overrides the central-domains key itself and
      * so is the first to actually reach this branch of `apply()`.
      */
     public function test_it_defaults_central_domains_when_still_stancls_stock_value(): void
     {
-        Config::set('tenancy.central_domains', ['127.0.0.1', 'localhost']);
+        TenancyConfigKeys::set('central_domains', ['127.0.0.1', 'localhost']);
 
         $this->rebootPackage();
 
-        $this->assertSame([Config::string('numerosis.domains.central')], Config::get('tenancy.central_domains'));
+        $this->assertSame([Config::string('numerosis.domains.central')], Config::get(TenancyConfigKeys::key('central_domains')));
     }
 
     public function test_it_appends_missing_tenancy_bootstrappers(): void

@@ -13,6 +13,7 @@ use Livewire\Livewire;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\General;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\Security;
 use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\SocialAccounts;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
 
 class ProfileTest extends TestCase
@@ -22,7 +23,7 @@ class ProfileTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['tenancy.central_domains' => ['localhost']]);
+        TenancyConfigKeys::set('central_domains', ['localhost']);
     }
 
     public function test_can_render_profile_page(): void

@@ -13,6 +13,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
 use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
 
@@ -82,17 +83,40 @@ final class HostConfig
      */
     private static function tenancyModels(): void
     {
-        $map = [
-            'tenancy.tenant_model' => [StanclTenant::class, Numerosis::model(Tenant::class)],
-            'tenancy.domain_model' => [StanclDomain::class, Numerosis::model(Domain::class)],
-            'tenancy.central_user_model' => [null, Numerosis::model(CentralUser::class)],
-            'tenancy.tenant_user_model' => [null, Numerosis::model(TenantUser::class)],
+        /**
+         * v3 leaf name => [stock value, package default]. Keys resolved
+         * and written through TenancyConfigKeys, not this class's own
+         * `self::set()`: on dev-master these live 2 segments under
+         * `tenancy.*`, and a bare `Config::set()` there hits the same
+         * `Arr::set()` auto-vivification hazard `.claude/rules/package-host-bootstrap.md`
+         * documents for `tenancy.database`.
+         */
+        $moved = [
+            'tenant_model' => [StanclTenant::class, Numerosis::model(Tenant::class)],
+            'domain_model' => [StanclDomain::class, Numerosis::model(Domain::class)],
         ];
 
-        foreach ($map as $key => [$stock, $default]) {
+        foreach ($moved as $leaf => [$stock, $default]) {
+            $key = TenancyConfigKeys::key($leaf);
             $current = Config::get($key);
 
             if ($current === null || $current === $stock) {
+                TenancyConfigKeys::set($leaf, $default);
+                self::$applied[] = $key;
+            }
+        }
+
+        // Not stancl keys at all — this package's own, unaffected by version.
+        // No "stock value" to compare against here (unlike tenant_model/
+        // domain_model above, which start out pointed at stancl's own
+        // classes) — unset is the only signal.
+        $ownKeys = [
+            'tenancy.central_user_model' => Numerosis::model(CentralUser::class),
+            'tenancy.tenant_user_model' => Numerosis::model(TenantUser::class),
+        ];
+
+        foreach ($ownKeys as $key => $default) {
+            if (Config::get($key) === null) {
                 self::set($key, $default);
             }
         }
@@ -108,7 +132,8 @@ final class HostConfig
     {
         /** @var list<string> $stock */
         $stock = ['127.0.0.1', 'localhost'];
-        $domains = Config::array('tenancy.central_domains', []);
+        $key = TenancyConfigKeys::key('central_domains');
+        $domains = Config::array($key, []);
 
         if ($domains !== [] && $domains !== $stock) {
             return;
@@ -117,7 +142,8 @@ final class HostConfig
         $central = Config::string('numerosis.domains.central', '');
 
         if ($central !== '') {
-            self::set('tenancy.central_domains', [$central]);
+            TenancyConfigKeys::set('central_domains', [$central]);
+            self::$applied[] = $key;
         }
     }
 

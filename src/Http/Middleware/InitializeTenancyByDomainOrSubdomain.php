@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Override;
 
 class InitializeTenancyByDomainOrSubdomain extends \Stancl\Tenancy\Middleware\InitializeTenancyByDomainOrSubdomain
@@ -27,7 +28,7 @@ class InitializeTenancyByDomainOrSubdomain extends \Stancl\Tenancy\Middleware\In
     public function shouldSkip(Request $request): bool
     {
         /** @var array<int, string> $centralDomains */
-        $centralDomains = $this->repository->get('tenancy.central_domains', []);
+        $centralDomains = $this->repository->get(TenancyConfigKeys::key('central_domains'), []);
 
         return new Collection($centralDomains)->contains($request->getHost());
     }

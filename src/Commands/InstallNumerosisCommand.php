@@ -22,6 +22,7 @@ use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use ReflectionProperty;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 
@@ -222,7 +223,17 @@ class InstallNumerosisCommand extends Command
 
     private function verifyTenancyModels(): void
     {
-        foreach (['tenant_model', 'domain_model', 'central_user_model', 'tenant_user_model'] as $key) {
+        foreach (['tenant_model', 'domain_model'] as $leaf) {
+            $key = TenancyConfigKeys::key($leaf);
+            $class = Config::get($key);
+
+            if (! is_string($class) || $class === '' || ! class_exists($class)) {
+                $this->failures[] = "config('{$key}') must name a class that exists — a tenant panel answers 404 on every tenant URL when this is unresolvable, rather than reporting a config problem.";
+            }
+        }
+
+        // Not stancl keys at all — this package's own, unaffected by version.
+        foreach (['central_user_model', 'tenant_user_model'] as $key) {
             $class = Config::get("tenancy.{$key}");
 
             if (! is_string($class) || $class === '' || ! class_exists($class)) {
@@ -246,10 +257,11 @@ class InstallNumerosisCommand extends Command
 
     private function verifyCentralDomains(): void
     {
-        $domains = Config::get('tenancy.central_domains');
+        $key = TenancyConfigKeys::key('central_domains');
+        $domains = Config::get($key);
 
         if (! is_array($domains) || $domains === []) {
-            $this->failures[] = "config('tenancy.central_domains') must list at least one hostname — Numerosis::routes() registers one route group per entry, so an empty list means every central URL 404s with no route registered at all.";
+            $this->failures[] = "config('{$key}') must list at least one hostname — Numerosis::routes() registers one route group per entry, so an empty list means every central URL 404s with no route registered at all.";
         }
     }
 
@@ -549,7 +561,7 @@ class InstallNumerosisCommand extends Command
             'The domain-to-tenant resolver cache is disabled because config(\'cache.serializable_classes\') is '
             .var_export(Config::get('cache.serializable_classes'), true)
             .', which cannot round-trip a cached tenant model. Every tenant request pays a central-database lookup before anything else runs. To turn it back on, add '
-            .Config::string('tenancy.tenant_model', Tenant::class)
+            .Config::string(TenancyConfigKeys::key('tenant_model'), Tenant::class)
             .' to that allowlist (or set it to true), then re-run this command. Set numerosis.tenancy.cache_resolved_tenants to false to silence this deliberately.'
         );
     }

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Nvade\Numerosis\Support\Compat\Tenancy\TenantWithDatabase;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Throwable;
 
 /**
@@ -325,7 +326,7 @@ trait CleansUpTenancyDatabases
 
         if (Schema::connection($central)->hasTable('tenants')) {
             /** @var class-string<\Illuminate\Database\Eloquent\Model> $tenantClass */
-            $tenantClass = Config::string('tenancy.tenant_model');
+            $tenantClass = Config::string(TenancyConfigKeys::key('tenant_model'));
 
             $tenants = $tenantClass::query()->get();
 

@@ -13,6 +13,7 @@ use Livewire\Livewire;
 use Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets\SubscriptionsByPlanChart;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -28,7 +29,7 @@ class SubscriptionsByPlanChartTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['tenancy.central_domains' => ['localhost']]);
+        TenancyConfigKeys::set('central_domains', ['localhost']);
 
         Gate::before(fn () => true);
     }

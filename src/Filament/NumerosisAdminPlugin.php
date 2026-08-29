@@ -26,6 +26,7 @@ use Nvade\Numerosis\Filament\Concerns\AppliesNumerosisPanelTheme;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 
 /**
  * The complete central admin panel: its resources, guard, middleware stack
@@ -148,7 +149,7 @@ class NumerosisAdminPlugin implements Plugin
     protected function centralDomains(): array
     {
         return array_values(array_filter(
-            Config::array('tenancy.central_domains'),
+            Config::array(TenancyConfigKeys::key('central_domains')),
             is_string(...),
         ));
     }

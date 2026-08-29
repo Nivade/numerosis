@@ -18,6 +18,7 @@ use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Override;
 use Stancl\JobPipeline\JobPipeline;
@@ -235,7 +236,7 @@ class TenancyServiceProvider extends ServiceProvider
             return false;
         }
 
-        $tenantModel = Config::get('tenancy.tenant_model') ?? Numerosis::model(Tenant::class);
+        $tenantModel = Config::get(TenancyConfigKeys::key('tenant_model')) ?? Numerosis::model(Tenant::class);
 
         return in_array($tenantModel, $serializableClasses, true);
     }

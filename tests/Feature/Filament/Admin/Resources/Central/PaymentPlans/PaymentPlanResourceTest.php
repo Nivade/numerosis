@@ -13,6 +13,7 @@ use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\ListPaym
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\ViewPaymentPlan;
 use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\PaymentPlanResource;
 use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
 
 class PaymentPlanResourceTest extends TestCase
@@ -22,7 +23,7 @@ class PaymentPlanResourceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['tenancy.central_domains' => ['localhost']]);
+        TenancyConfigKeys::set('central_domains', ['localhost']);
 
         Gate::before(fn () => true);
     }

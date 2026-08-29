@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 use stdClass;
@@ -162,21 +163,22 @@ class InstallNumerosisCommandTest extends TestCase
      * @verifies verifyTenancyModels
      *
      * Restores the real class before returning — `TestCase`'s own teardown
-     * (`deleteTenantDatabases()`) resolves `config('tenancy.tenant_model')`
+     * (`deleteTenantDatabases()`) resolves the tenant-model config key
      * to query and clean up tenant rows, so leaving the bogus value in place
      * for the rest of the test crashes teardown instead of just this test.
      */
     public function test_it_fails_when_tenancy_tenant_model_does_not_resolve_to_a_real_class(): void
     {
-        $real = config('tenancy.tenant_model');
-        config()->set('tenancy.tenant_model', 'App\\Models\\Central\\NoSuchTenant');
+        $key = TenancyConfigKeys::key('tenant_model');
+        $real = config($key);
+        TenancyConfigKeys::set('tenant_model', 'App\\Models\\Central\\NoSuchTenant');
 
         try {
             $this->install()
-                ->expectsOutputToContain("config('tenancy.tenant_model') must name a class that exists")
+                ->expectsOutputToContain("config('{$key}') must name a class that exists")
                 ->assertFailed();
         } finally {
-            config()->set('tenancy.tenant_model', $real);
+            TenancyConfigKeys::set('tenant_model', $real);
         }
     }
 
@@ -193,10 +195,10 @@ class InstallNumerosisCommandTest extends TestCase
     /** @verifies verifyCentralDomains */
     public function test_it_fails_when_central_domains_is_empty(): void
     {
-        config()->set('tenancy.central_domains', []);
+        TenancyConfigKeys::set('central_domains', []);
 
         $this->install()
-            ->expectsOutputToContain("config('tenancy.central_domains') must list at least one hostname")
+            ->expectsOutputToContain("config('".TenancyConfigKeys::key('central_domains')."') must list at least one hostname")
             ->assertFailed();
     }
 
