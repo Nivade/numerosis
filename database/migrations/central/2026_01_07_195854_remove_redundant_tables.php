@@ -13,8 +13,6 @@ return new class extends Migration
         Schema::dropIfExists('cache_locks');
         Schema::dropIfExists('sessions');
         Schema::dropIfExists('failed_jobs');
-        Schema::dropIfExists('jobs');
         Schema::dropIfExists('job_batches');
-
     }
 };

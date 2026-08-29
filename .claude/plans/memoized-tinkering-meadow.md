@@ -150,12 +150,12 @@ entries, but surfaces ~66 false positives because Larastan cannot follow
 three type errors and broke *"billing contracts do not depend on app models"*.
 Run `--filter=ArchTest` after any type-narrowing pass over `src/Contracts`.
 
-### 0.3 — reopened by "breaking changes are free"
+### 0.3 — reopened by "breaking changes are free" ✅ DONE (2026-08-29)
 
 Deferred during Phase 0 **only** because shipping migrations to existing
 installs was assumed costly. That assumption is now void (see "Project
-constraint" above), so these are cheap and should be picked up — they are not
-blocked on any later phase:
+constraint" above). All three items done; suite (0 failed/7 skipped/584
+passed) and PHPStan (0 outside baseline) re-verified green after:
 
 - **Recreate the `jobs` table.** `2026_01_07_195854_remove_redundant_tables.php`
   drops `jobs`/`job_batches`/`cache`/`cache_locks`/`sessions` on a Redis

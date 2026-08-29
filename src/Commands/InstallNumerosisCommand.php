@@ -478,12 +478,13 @@ class InstallNumerosisCommand extends Command
      * every package-registered path, and the later path wins the key, so it is
      * always the package's copy that never runs.
      *
-     * A fresh Laravel app ships three of the names this package also ships
-     * (`0001_01_01_00000{0,1,2}_create_{users,cache,jobs}_table`), because
-     * those *are* the stock migrations, copied in and extended. Keeping the
-     * host's copy therefore means the `users` table is created without the
-     * columns package code queries — which surfaces much later as an
-     * `Unknown column` on an unrelated insert, never as a migration problem.
+     * This package's `users`/`cache`/`jobs` migrations used to ship under the
+     * exact filenames a fresh Laravel app's own stock migrations use
+     * (`0001_01_01_00000{0,1,2}_*`), guaranteeing a collision on every
+     * install — renamed to `2019_09_01_00000{0,1,2}_*` so a host no longer
+     * has to delete its own copy before installing. This check now guards
+     * the general case: any future host migration whose basename happens to
+     * match one of ours.
      */
     private function verifyCentralMigrationCollisions(): void
     {

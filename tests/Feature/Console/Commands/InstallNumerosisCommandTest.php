@@ -431,13 +431,13 @@ class InstallNumerosisCommandTest extends TestCase
      */
     public function test_it_warns_when_a_host_migration_collides_with_a_package_central_migration(): void
     {
-        $collision = database_path('migrations/0001_01_01_000000_create_users_table.php');
+        $collision = database_path('migrations/2019_09_01_000000_create_users_table.php');
         File::ensureDirectoryExists(dirname($collision));
-        File::put($collision, '<?php'."\n\n// stock Laravel migration, kept by accident\n");
+        File::put($collision, '<?php'."\n\n// package central migration, kept by accident\n");
 
         try {
             $this->install()
-                ->expectsOutputToContain('0001_01_01_000000_create_users_table.php')
+                ->expectsOutputToContain('2019_09_01_000000_create_users_table.php')
                 ->assertSuccessful();
         } finally {
             File::delete($collision);

@@ -52,10 +52,11 @@ suite) rather than a fresh install. Every one of these produced a passing
   `routes/web-without-auth.php` or a `Numerosis::routes(withAuth: false)`
   flag) if this pattern repeats.
 
-- **`0001_01_01_000000_create_users_table`,
+- **Historical — fixed 2026-08-29, see "All seven follow-ups" section below.**
+  `0001_01_01_000000_create_users_table`,
   `0001_01_01_000001_create_cache_table`, and
-  `0001_01_01_000002_create_jobs_table` collide by filename with the stock
-  Laravel migrations every fresh app ships** — because they *are* those
+  `0001_01_01_000002_create_jobs_table` used to collide by filename with the
+  stock Laravel migrations every fresh app ships — because they *were* those
   stock migrations, copied into `database/migrations/central` unmodified
   apart from the `users` one. Laravel's migrator discovers migrations from
   every path and dedupes by filename; a host that hasn't deleted its own
@@ -250,12 +251,14 @@ original follow-up list, which this replaces.
    if Laravel ever changes it.
 7. Folded into 1.
 
-**Still not fixed — but the reason expired.** The three colliding migration
-basenames (`0001_01_01_00000{0,1,2}_*`) are still shipped under those names.
-Renaming them is the structural fix, and was rejected because it breaks every
-existing install: the `migrations` table records the old name, so a renamed
-file re-runs and fails on an existing table. That mechanism is still true and
-the objection is now void — the maintainer confirmed 2026-08-29 that **there
-are no existing installs and the app is not live**. Rename them; the warning
-in 2 stays useful for hosts that merged the schema into their own files.
-Tracked as Phase 0.3 in `.claude/plans/memoized-tinkering-meadow.md`.
+**Fixed 2026-08-29 (Phase 0.3).** The three colliding migration basenames
+were renamed `0001_01_01_00000{0,1,2}_*` → `2019_09_01_00000{0,1,2}_*` (still
+before every other central migration, no FK ordering issue). This was
+rejected earlier because it breaks every existing install: the `migrations`
+table records the old name, so a renamed file re-runs and fails on an
+existing table. That mechanism is still true; the objection went void when
+the maintainer confirmed 2026-08-29 that **there are no existing installs and
+the app is not live**. The warning in 2 (`verifyCentralMigrationCollisions()`)
+stays useful for hosts that merge the schema into their own files, or for any
+*future* basename collision — it names the colliding file dynamically, not
+these three specifically.

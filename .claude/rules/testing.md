@@ -530,14 +530,15 @@ updated: 2026-08-29
   `delete from cache where key in (...)` from Spatie's permission registrar
   clearing its own cache during tenant seeding.
 
-  **Not fixed yet, and no longer for the original reason.** That test now pins
-  `QUEUE_CONNECTION=sync` and `CACHE_STORE=array` for its own reasons, which
-  also sidesteps it. It was left alone because recreating the tables ships new
-  migrations to every existing install — but the maintainer confirmed
+  **Fixed 2026-08-29 (Phase 0.3): `remove_redundant_tables` no longer drops
+  `jobs`.** It was left alone at first because recreating the table ships a
+  new migration to every existing install — but the maintainer confirmed
   2026-08-29 that **there are no existing installs and the app is not live**,
-  so that objection is void and `remove_redundant_tables` can simply be edited
-  in place to stop dropping `jobs`. Tracked as Phase 0.3 in
-  `.claude/plans/memoized-tinkering-meadow.md`. Note `cache` is not simply
+  so that objection is void; the `Schema::dropIfExists('jobs')` line was
+  simply deleted from the central migration. `FreshHostTest` still pins
+  `QUEUE_CONNECTION=sync`/`CACHE_STORE=array` for its own reasons (a real
+  fresh host now gets a working `jobs` table regardless, since it's never
+  dropped). `cache` was deliberately left dropped, not simply
   "add the table back": `CacheTenancyBootstrapper` isolates tenants with cache
   *tags* and Laravel's `database` store is not taggable, so a host on
   `CACHE_STORE=database` is outside what this package supports regardless of
