@@ -28,11 +28,11 @@ updated: 2026-07-28
 - **The tenant guard's session key is shared by every tenant subdomain.**
   `SESSION_DOMAIN=.nvade.dev`, so one session spans `*.nvade.dev`, and
   `SessionGuard` stores nothing but a primary key. The id written on tenant A is
-  read as a *different person* on tenant B. `App\Http\Middleware\Authenticate`
+  read as a *different person* on tenant B. `Nvade\Numerosis\Http\Middleware\Authenticate`
   repairs this on panel routes only (it compares `global_id` against the central
   guard); routes wired to the framework's `auth:tenant` — `broadcasting/auth`,
   `routes/tenant.php` — had no such check and would authenticate whoever holds
-  that id in the current tenant. `App\Http\Middleware\EnsureSessionMatchesTenant`
+  that id in the current tenant. `Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant`
   now fails the mismatch closed by forgetting the tenant guard's session key and
   recaller cookie whenever the session's recorded tenant changes. It must be
   registered **after** `StartSession` in every stack that can reach a tenant
@@ -61,7 +61,7 @@ updated: 2026-07-28
   (and which no invalidation hook watches). Cache arrays and ids, never
   models.
 
-- **Every cache key lives in `App\Support\Cache\CacheKeys`, and nothing
+- **Every cache key lives in `Nvade\Numerosis\Support\Cache\CacheKeys`, and nothing
   rebuilds one by hand.** The keys that caused the incidents above were
   string-interpolated at each call site, so a read and its invalidation were
   written in different files and only agreed by luck —
@@ -69,7 +69,7 @@ updated: 2026-07-28
   get subtly wrong twice. `CacheKeys` also documents which keys are
   tenant-scoped (`Cache::`, prefixed by Stancl's manager) versus global
   (`global_cache()`, not prefixed at all), which is the distinction the whole
-  file exists to protect. `userModel()` takes an `App\Enums\Tenancy\Context`
+  file exists to protect. `userModel()` takes an `Nvade\Numerosis\Enums\Tenancy\Context`
   rather than a `'central'`/`'tenant'` string, so a typo is a type error.
 
 - **`rememberForever` is gone from anything derived from a mutable row.**

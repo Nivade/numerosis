@@ -360,10 +360,11 @@ abstract class TestCase extends Orchestra
         ]);
         $app->make(Repository::class)->set('mail.default', 'array');
 
-        // spatie/laravel-activitylog: not a "suggest" in composer.json terms
-        // despite the config name — Tenant\User and Tenant\Invitation compose
-        // LogsActivity unconditionally (see composer.json's "require" list),
-        // so its config/migration must exist regardless of ActivityLogFeature
+        // spatie/laravel-activitylog is a "suggest" in composer.json (moved
+        // there so it isn't forced on every consumer — see
+        // Nvade\Numerosis\Support\Compat\LogsActivityIfInstalled), but the
+        // package's own require-dev pulls it in for the test suite, so this
+        // config/migration must exist here regardless of ActivityLogFeature
         // (which only gates the Filament UI on top of it).
         $app->make(Repository::class)->set('activitylog.database_connection', null);
         $app->make(Repository::class)->set('activitylog.table_name', 'activity_log');

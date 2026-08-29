@@ -114,6 +114,21 @@ what stops the next normalization from shipping undocumented the way
 
 ### Notes worth keeping in mind
 
+- **`filament/filament`, `spatie/laravel-one-time-passwords`,
+  `spatie/laravel-activitylog` and `alizharb/filament-activity-log` are all
+  `suggest`, not `require`.** Skip all four and you get a working
+  multi-tenant SaaS with no admin/tenant panel, no passwordless (OTP)
+  login, and no activity logging — `App\Models\User` (or your own subclass)
+  still autoloads and works, it just doesn't `implements FilamentUser` or
+  compose `HasOneTimePasswords`/`LogsActivity`. This works because
+  `Nvade\Numerosis\Support\Compat\*` (`FilamentUserContract`,
+  `FilamentHasTenantsContract`, `HasOneTimePasswordsIfInstalled`,
+  `LogsActivityIfInstalled`) conditionally define themselves against the
+  real package's interface/trait only when it's installed
+  (`interface_exists()`/`trait_exists()`, checked once at file scope) —
+  install one of these four later and the corresponding behaviour turns on
+  with no code change on your side, since the base models already
+  reference the compat symbol, not the real one directly.
 - **Don't name a guard literally `central` alongside `web`.** Two session
   guards over one model meant a user could authenticate under one and not
   the other. `web` *is* the central guard; `numerosis.auth.guards.central`

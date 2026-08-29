@@ -45,20 +45,69 @@ Three verdicts:
 | `spatie/laravel-package-tools` | Already in numerosis's skeleton `composer.json` (not sourced from saas-m — saas-m is the app, not the package). `NumerosisServiceProvider` extends its `PackageServiceProvider`. Listed here only for completeness. |
 | `laravel/framework` (as `illuminate/*`) | Not itself installable by a package — numerosis already requires `illuminate/contracts` in the skeleton. As more of `app/` copies in (Phase 4), add the specific `illuminate/*` components actually used (`illuminate/database`, `illuminate/support`, etc.) rather than the `laravel/framework` meta-package. Not in the plan's original three-bucket list; added here because it has no meaningful "optional" state — every class in `src/` depends on some `illuminate/*` symbol. |
 | `livewire/livewire` | Also not in the plan's original list, also not optional: the registration wizard, the checkout component, the tenant panel — Livewire is how every one of the package's interactive surfaces is built, not a plugin bolted onto them. |
-| `filament/filament` | **Reclassified from suggest during Phase 6 (2026-08-05) — the guard this row originally described does not exist.** `AdminPanelFeature`/`TenantPanelFeature` gate the *panel*, but `src/Models/User.php` (`implements FilamentUser`) and `src/Models/Central/CentralUser.php` compose Filament unconditionally — both are abstract base models every consumer's concrete `User`/`CentralUser` stub extends, regardless of whether either panel feature is enabled. `class_exists()` cannot guard an `implements` clause; the class fails to autoload at all without this package installed. Confirmed by the package's own test suite: `Trait/interface not found` on every model test until this moved to `require`. Making this genuinely optional needs the interface pulled off the base model (a real refactor, not a guard) — not attempted here; see the "Known gap" note below. |
-| `spatie/laravel-one-time-passwords` | **Reclassified alongside `filament/filament`, same root cause.** `src/Models/User.php` composes `HasOneTimePasswords` unconditionally (`use` inside the class body, not behind a feature check) — same "interface/trait on an always-loaded abstract model" trap, same fix. |
-| `spatie/laravel-activitylog` | **Not in saas-m's own `require` block at all — found only via this package's abstract models, not via the plan's Phase 1.8 audit of saas-m's composer.json.** `src/Models/Tenant/User.php` and `src/Models/Tenant/Invitation.php` compose `LogsActivity` unconditionally; saas-m never listed it directly because `alizharb/filament-activity-log` pulled it in transitively as *that* package's own dependency, so the audit this file records never saw a top-level requirement to classify. Central migration `database/migrations/central/2026_01_19_151109_create_activity_log_table.php` also runs unconditionally (`loadMigrationsFrom` has no feature gate), reading `config('activitylog.table_name')` — a config key nothing in the package publishes, so a host without this installed gets a migration failure (`Incorrect table name ''`), not a clean autoload error. |
+| `filament/filament` | **Moved back to `suggest` 2026-08-28 — see the "Fixed" note below the table.** Reclassified from suggest during Phase 6 (2026-08-05) — the guard this row originally described does not exist.** `AdminPanelFeature`/`TenantPanelFeature` gate the *panel*, but `src/Models/User.php` (`implements FilamentUser`) and `src/Models/Central/CentralUser.php` compose Filament unconditionally — both are abstract base models every consumer's concrete `User`/`CentralUser` stub extends, regardless of whether either panel feature is enabled. `class_exists()` cannot guard an `implements` clause; the class fails to autoload at all without this package installed. Confirmed by the package's own test suite: `Trait/interface not found` on every model test until this moved to `require`. Making this genuinely optional needs the interface pulled off the base model (a real refactor, not a guard) — not attempted here; see the "Known gap" note below. |
+| `spatie/laravel-one-time-passwords` | **Moved back to `suggest` 2026-08-28.** Reclassified alongside `filament/filament`, same root cause. `src/Models/User.php` composes `HasOneTimePasswords` unconditionally (`use` inside the class body, not behind a feature check) — same "interface/trait on an always-loaded abstract model" trap, same fix. |
+| `spatie/laravel-activitylog` | **Moved back to `suggest` 2026-08-28.** Not in saas-m's own `require` block at all — found only via this package's abstract models, not via the plan's Phase 1.8 audit of saas-m's composer.json.** `src/Models/Tenant/User.php` and `src/Models/Tenant/Invitation.php` compose `LogsActivity` unconditionally; saas-m never listed it directly because `alizharb/filament-activity-log` pulled it in transitively as *that* package's own dependency, so the audit this file records never saw a top-level requirement to classify. Central migration `database/migrations/central/2026_01_19_151109_create_activity_log_table.php` also runs unconditionally (`loadMigrationsFrom` has no feature gate), reading `config('activitylog.table_name')` — a config key nothing in the package publishes, so a host without this installed gets a migration failure (`Incorrect table name ''`), not a clean autoload error. |
 
 | `livewire/flux` | **Moved from suggest 2026-08-10.** 60 shipped views use `<flux:*>` components. Blade leaves an unregistered component as *literal text* rather than erroring (see `.claude/rules/testing.md`), so "optional" here means "silently renders markup as prose", not a guardable degradation — and no `class_exists()` can protect a Blade tag. |
 | `internachi/modular` | **Moved from suggest 2026-08-10.** `ModuleSystemFeature` ships enabled, and the whole `src/Actions/Modules/*` + `src/Console/Commands/*TenantModule*` surface talks to it. The `ModuleRegistry` contract abstracts *which* registry, not whether one exists. |
 | `laravel/socialite` + `socialiteproviders/discord` + `socialiteproviders/zoho` | **Moved from suggest 2026-08-10.** `SocialLoginFeature` ships enabled; `ConfiguredProviders` already gates the login *buttons* on credentials being present, which is the toggle that matters at runtime. The two providers register themselves against `SocialiteWasCalled` and are meaningless without the base package, so all three move together. |
 | `ryangjchandler/laravel-cloudflare-turnstile` | **Moved from suggest 2026-08-10.** `TurnstileFeature` imports `RyanChandler\LaravelCloudflareTurnstile\Rules\Turnstile` at file scope — that resolves whenever the feature class loads to answer `isEnabled()`, i.e. before the switch can be read. |
 | `spatie/laravel-livewire-wizard` | **Moved from suggest 2026-08-10.** The five registration components `extends StepComponent`/`WizardComponent`; an `extends` clause is not guardable, same shape as `filament/filament` above. `RegistrationWizardFeature` gates the *route*, not the autoload. |
-| `alizharb/filament-activity-log` | **Moved from suggest 2026-08-10.** `ActivityLogFeature` ships enabled and `ActivityResource` extends the package's classes. The `class_exists(ActivityLogPlugin::class)` guard in `NumerosisTenantPlugin` stays — cheap and still correct — but is no longer load-bearing. |
+| `alizharb/filament-activity-log` | **Moved from suggest 2026-08-10, moved back 2026-08-28** — see the "Fixed" note below the table. `ActivityLogFeature` ships enabled and `ActivityResource` extends the package's classes. The `class_exists(ActivityLogPlugin::class)` guard in `NumerosisTenantPlugin` stays — cheap and still correct — but is no longer load-bearing. |
 
-**Known gap, not fixed this phase:** the `filament/filament`,
-`spatie/laravel-one-time-passwords` and `spatie/laravel-activitylog` rows above
-genuinely contradict `config('numerosis.features')`'s "everything else opt-in" premise for exactly the two abstract user models and the two `Tenant\*` models that carry `LogsActivity`. A consumer who does not want Filament, OTP login, or activity logging still pays for all three at `composer install` time. The structural fix — pull `implements FilamentUser`, `HasOneTimePasswords`, and `LogsActivity` off the base models and onto something feature-conditional (a trait composed only by the thin-app stub when the matching feature is on, mirroring how `#[UsePolicy]` already has to be re-declared per stub because attributes don't inherit) — is real work belonging to whichever phase revisits the 9 abstract models, not a `composer.json` fix. Recorded here so it is not mistaken for settled architecture.
+**Fixed 2026-08-28:** `filament/filament`, `spatie/laravel-one-time-passwords`,
+`spatie/laravel-activitylog` and `alizharb/filament-activity-log` moved
+`require` → `suggest` (with matching `require-dev` entries so the package's
+own test suite still exercises all four by default). The four abstract
+models that previously forced these on every consumer regardless of
+`config('numerosis.features')` — `implements FilamentUser`/`HasTenants` and
+`use HasOneTimePasswords` on `Nvade\Numerosis\Models\User`, `use
+LogsActivity` on `Tenant\User` and `Tenant\Invitation` — are what made this
+impossible before: `implements`/`use trait` resolve their target eagerly,
+at class-declaration time, unlike a method's own parameter/return type
+(resolved lazily, only when called). `Nvade\Numerosis\Support\Compat\*`
+now provides always-present interfaces/traits
+(`FilamentUserContract`, `FilamentHasTenantsContract`,
+`HasOneTimePasswordsIfInstalled`, `LogsActivityIfInstalled`) that
+conditionally extend/compose the real package's contract only when it's
+installed (`interface_exists()`/`trait_exists()` checked once, at file
+scope) — a consumer without one of these four installed gets a model that
+autoloads fine and simply has none of that feature's methods.
+
+Two more eager-binding points needed the same fix, found while making this
+work rather than while just moving `composer.json` entries:
+
+- `NumerosisServiceProvider::registerFilamentPanels()` unconditionally
+  registered `NumerosisAdminPanelProvider`/`NumerosisTenantPanelProvider` —
+  both `extends Filament\PanelProvider`, so autoloading either without
+  Filament installed fatals regardless of any feature flag or
+  `class_exists()` guard *inside* either class. Now skipped (for the
+  package's own default provider only — a host naming its own provider via
+  `numerosis.panels.*.provider` is trusted to have Filament) when
+  `class_exists(\Filament\PanelProvider::class)` is false.
+  `registerFilamentTheme()` (asset registration via `FilamentAsset`,
+  `Theme`/`Js`/`Css`) had the same problem and got the same guard.
+- `src/Filament/TenantAdmin/Resources/Activities/ActivityResource.php` is
+  autoloaded unconditionally by `NumerosisTenantPlugin`'s
+  `discoverResources()` directory scan the moment the tenant panel boots —
+  Filament is guaranteed present at that point, but
+  `alizharb/filament-activity-log` is a *separate*, independently optional
+  dependency, and `extends ActivityLogResource` would fatal for a host with
+  Filament but not that package. Same conditional-class-definition pattern
+  as the model traits, scoped to this one file.
+
+`activitylog.table_name`/`activitylog.database_connection` needed no
+change: `HostConfig::activityLogTable()` already defaults the table name
+regardless of whether the package is installed, so the eight central/tenant
+activity-log migrations (pure `config()` reads, no `Spatie\*` class
+references) were never actually a problem — verified, not assumed.
+
+Full suite run against this change: 582 passed, 7 skipped, 1 failed (same
+`RegisterTenantTest` `livewire.js` asset failure reproduces identically on
+`git stash`, so it predates and is unrelated to this change) — no new
+failures, no new PHPStan errors (30 → 28, `git stash`-compared, both
+pre-existing baseline drift per `.claude/rules/static-analysis.md`).
 
 ## suggest + `class_exists()` guard
 

@@ -16,10 +16,10 @@ use Illuminate\Support\Str;
 use Nvade\Numerosis\Database\Factories\Tenant\InvitationFactory;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Policies\InvitationPolicy;
+use Nvade\Numerosis\Support\Compat\LogsActivityIfInstalled;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Spatie\Activitylog\Models\Activity;
-use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
 /**
@@ -55,7 +55,7 @@ class Invitation extends Model
     /** @use HasFactory<InvitationFactory> */
     use HasFactory;
 
-    use LogsActivity;
+    use LogsActivityIfInstalled;
 
     #[Override]
     protected function casts(): array

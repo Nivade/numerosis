@@ -191,8 +191,22 @@ class NumerosisServiceProvider extends PackageServiceProvider
             $admin = Config::get('numerosis.panels.admin.provider');
             $tenant = Config::get('numerosis.panels.tenant.provider');
 
-            $this->app->register(is_string($admin) ? $admin : NumerosisAdminPanelProvider::class);
-            $this->app->register(is_string($tenant) ? $tenant : NumerosisTenantPanelProvider::class);
+            // A host naming its own provider is trusted to have Filament
+            // installed — only the package's own default classes need the
+            // guard, since NumerosisAdminPanelProvider/NumerosisTenantPanelProvider
+            // extend Filament\PanelProvider and would fatal on autoload
+            // otherwise (filament/filament is suggest, not require).
+            if (is_string($admin)) {
+                $this->app->register($admin);
+            } elseif (class_exists(\Filament\PanelProvider::class)) {
+                $this->app->register(NumerosisAdminPanelProvider::class);
+            }
+
+            if (is_string($tenant)) {
+                $this->app->register($tenant);
+            } elseif (class_exists(\Filament\PanelProvider::class)) {
+                $this->app->register(NumerosisTenantPanelProvider::class);
+            }
         });
     }
 
@@ -418,6 +432,10 @@ class NumerosisServiceProvider extends PackageServiceProvider
      */
     protected function registerFilamentTheme(): void
     {
+        if (! class_exists(FilamentAsset::class)) {
+            return;
+        }
+
         FilamentAsset::register([
             Theme::make(self::THEME_ID, __DIR__.'/../dist/filament-theme.css'),
             Js::make(self::ASSET_ID, __DIR__.'/../dist/numerosis.js'),
@@ -452,11 +470,21 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
     /**
      * Applies {@see Numerosis::exceptions()} for an app that never calls it
-     * from `bootstrap/app.php`. Skipped if you have replaced Laravel's
-     * exception handler with one of your own.
+     * from `bootstrap/app.php` — including one that never calls
+     * `->withExceptions()` at all, which leaves `ExceptionHandler::class`
+     * unbound (that binding is normally made by `ApplicationBuilder::
+     * withExceptions()` itself, the one framework call this self-heal can't
+     * assume happened). Skipped if you have replaced Laravel's exception
+     * handler with one of your own. {@see Numerosis::exceptions()} is
+     * idempotent, so this runs unconditionally without double-registering
+     * against a host that also calls it from its own bootstrap file.
      */
     protected function registerExceptionHandling(): void
     {
+        if (! $this->app->bound(ExceptionHandler::class)) {
+            $this->app->singleton(ExceptionHandler::class, Handler::class);
+        }
+
         $handler = $this->app->make(ExceptionHandler::class);
 
         if ($handler instanceof Handler) {

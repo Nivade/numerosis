@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models;
 
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,8 +17,10 @@ use Illuminate\Support\Collection;
 use Nvade\Numerosis\Actions\Queries\GetTenantsByGlobalId;
 use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
 use Nvade\Numerosis\Database\Factories\UserFactory;
+use Nvade\Numerosis\Support\Compat\FilamentHasTenantsContract;
+use Nvade\Numerosis\Support\Compat\FilamentUserContract;
+use Nvade\Numerosis\Support\Compat\HasOneTimePasswordsIfInstalled;
 use Override;
-use Spatie\OneTimePasswords\Models\Concerns\HasOneTimePasswords;
 use Spatie\Permission\Traits\HasRoles;
 use Stancl\Tenancy\Contracts\Syncable;
 
@@ -54,12 +54,12 @@ use Stancl\Tenancy\Contracts\Syncable;
 //    'remember_token',
 // ])]
 // #[WithoutTimestamps]
-abstract class User extends Authenticatable implements FilamentUser, HasTenants, MustVerifyEmail, Syncable
+abstract class User extends Authenticatable implements FilamentHasTenantsContract, FilamentUserContract, MustVerifyEmail, Syncable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory;
 
-    use HasOneTimePasswords;
+    use HasOneTimePasswordsIfInstalled;
     use HasRoles;
     use Notifiable;
 

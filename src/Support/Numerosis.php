@@ -14,6 +14,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\ApplicationBuilder;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Foundation\Vite;
 use Illuminate\Foundation\ViteException;
 use Illuminate\Http\Request;
@@ -30,6 +31,7 @@ use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Stancl\Tenancy\Contracts\Tenant;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 use Throwable;
+use WeakMap;
 
 class Numerosis
 {
@@ -54,6 +56,19 @@ class Numerosis
     private static bool $routesRegistered = false;
 
     private static bool $authRoutesEnabled = true;
+
+    /**
+     * Tracks which `Handler` instances {@see self::exceptions()} has already
+     * registered against, so calling it twice for the *same* singleton
+     * (host's own `withExceptions()` closure plus `NumerosisServiceProvider::
+     * registerExceptionHandling()`'s fallback) is a no-op the second time.
+     * Keyed by instance rather than a plain bool so a fresh `Handler` built
+     * for a test, or for a new application under Octane, is never blocked by
+     * a previous one's registration.
+     *
+     * @var \WeakMap<Handler, true>|null
+     */
+    private static ?WeakMap $exceptionsRegisteredFor = null;
 
     /**
      * @param  list<string>  $columns
@@ -374,9 +389,26 @@ class Numerosis
      * already reverted by then. Compose
      * {@see \Nvade\Numerosis\Concerns\TagsSentryScopeWithTenant} into such
      * jobs to tag them correctly.
+     *
+     * Idempotent per `Handler` instance: `NumerosisServiceProvider::
+     * registerExceptionHandling()` always calls this from `packageBooted()`,
+     * so an app that also calls it from its own `bootstrap/app.php` would
+     * otherwise register the context callback and throttle twice onto the
+     * same real handler. The second call for a given `$exceptions->handler`
+     * is a no-op regardless of which one runs first; a different `Handler`
+     * instance (a fresh one built for a test, or for a new application under
+     * Octane) always registers.
      */
     public static function exceptions(Exceptions $exceptions): void
     {
+        self::$exceptionsRegisteredFor ??= new WeakMap();
+
+        if (isset(self::$exceptionsRegisteredFor[$exceptions->handler])) {
+            return;
+        }
+
+        self::$exceptionsRegisteredFor[$exceptions->handler] = true;
+
         $exceptions->context(function (): array {
             // Best-effort, never a hard dependency: an exception thrown during
             // bootstrap is reported before facades are available, and letting

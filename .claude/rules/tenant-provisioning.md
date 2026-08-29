@@ -48,8 +48,8 @@ updated: 2026-07-27
   derived values into `data`. Never add accessor name to `Fillable`.
 
 - All provisioning funnels through one queued action,
-  `App\Actions\Tenancy\ProvisionTenant`, reached only through
-  `App\Contracts\Tenancy\ProvisionsTenant::queue()` contract — never called
+  `Nvade\Numerosis\Actions\Tenancy\ProvisionTenant`, reached only through
+  `Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant::queue()` contract — never called
   direct, so consumer provisioning onto separate DB servers/regions can swap
   it. Queues rather than provisions sync because creating DB + running
   migrations/seeders comfortably exceeds Stripe webhook's response budget.
@@ -97,7 +97,7 @@ updated: 2026-07-27
   `JobPipeline`) deadlocked the single `queue:work` worker against itself;
   a dedicated worker removes the reason for the workaround. Chain order:
   database jobs (if needed) → `RunProvisioningSteps` (the remaining
-  `config('billing.provisioning.steps')` entries — `AddTenantOwner` lives in
+  `config('numerosis.tenancy.provisioning.steps')` entries — `AddTenantOwner` lives in
   that list now, not hardcoded as its own chain link; see "one pipeline
   definition" below) → `LinkTenantSubscription` (only if a Stripe
   subscription id is present) → `FinalizeTenantProvisioning`, always last.
@@ -187,10 +187,10 @@ updated: 2026-07-27
   (`provisioned_at`, pending-row deletion, `TenantProvisioned` broadcast, and
   now the chain-lock release from fix 3 above), so if it silently exhausts
   retries UI spins forever. Hence `$tries = 20` and `failed()` handler
-  marking pending row `failed` (`App\Actions\Tenancy\MarkProvisionFailed`).
+  marking pending row `failed` (`Nvade\Numerosis\Actions\Tenancy\MarkProvisionFailed`).
 
 - **One pipeline definition for business-level provisioning
-  (`config('billing.provisioning.steps')`), separate on purpose from the
+  (`config('numerosis.tenancy.provisioning.steps')`), separate on purpose from the
   physical-database one (`TenancyServiceProvider::$tenantCreatedJobs`).**
   Default list is `[CreateTenant::class, AddTenantOwner::class]`; consumer
   appends idempotent post-creation steps after those, each
@@ -239,7 +239,7 @@ updated: 2026-07-27
   `StartSubscriptionCheckout`). That reservation stops two users both paying
   for same domain, and is why `TechnicalSetup` validates against that table as
   well as `domains`. Its own domain-format/reserved-word check goes through
-  `App\Contracts\Tenancy\TenantDomainPolicy`, same policy `StartCheckoutRequest`
+  `Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy`, same policy `StartCheckoutRequest`
   validates against — but that policy deliberately does **not** check
   `pending_tenant_provisions`, cuz "already claimed by someone else" rule has
   same-user-retry idempotency semantics (`firstOrCreate` + ownership check)
@@ -298,7 +298,7 @@ updated: 2026-07-27
   default. Structural fix, if this bites again: override listener so create
   path filtered to columns central table actually has.
 
-- `pending_tenant_provisions.status` is `App\Enums\TenantProvisionStatus`
+- `pending_tenant_provisions.status` is `Nvade\Numerosis\Enums\TenantProvisionStatus`
   (`Reserved`/`Provisioning`/`Failed`), cast on model — not old `STATUS_*`
   string constants, which gone.
 

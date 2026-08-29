@@ -2,7 +2,7 @@
 
 > **Naming note (2026-07-31):** registration wizard's `Payment` step no
 > longer owns `subscribe()`/`confirmed()`/`settle()`/`$pendingDomain` — only
-> resolves reserved domain, embeds `App\Livewire\Billing\Checkout`, now
+> resolves reserved domain, embeds `Nvade\Numerosis\Livewire\Billing\Checkout`, now
 > single implementation of protocol (standalone at
 > `/checkout/{domain}`, embedded in wizard). Bullets below written against
 > `Payment::x()` describe `Checkout::x()` today; reasoning unchanged.
@@ -13,7 +13,7 @@
   `Cashier::findBillable($id)` + `instanceof Tenant` at four sites (nullable-id
   guard written slightly differently each time) plus one site reaching for
   `CentralUser::where('stripe_id', …)` instead. Centralized in
-  `App\Actions\Billing\FindTenantByStripeCustomer::run(?string $customerId): ?Tenant`.
+  `Nvade\Numerosis\Actions\Billing\FindTenantByStripeCustomer::run(?string $customerId): ?Tenant`.
 - **Stripe customer is single source of truth for billing
   address — no local column, no override.** `SyncBillingAddress` (writes
   address + optional VAT from checkout) and `AddVatNumber` (VAT-only,
@@ -30,7 +30,7 @@
   PaymentMethod, reachable only via SetupAttempt's own
   `payment_method_details.{type}.generated_sepa_debit`. Cards/Link attach
   `payment_method` synchronously, don't hit this.
-  `App\Actions\Billing\Checkout\ResolveAttachedPaymentMethod` finds
+  `Nvade\Numerosis\Actions\Billing\Checkout\ResolveAttachedPaymentMethod` finds
   reusable PaymentMethod for both cases.
 - **`ResolveSetupIntent` is the one ownership check shared by
   `Checkout::subscribe()` and redirect-return route
@@ -57,7 +57,7 @@
   settle" pair so `CompleteRedirectCheckout` (sync return-request path) and
   `WebhookController::handlePaymentMethodAttached` (deferred path) run
   identical sequence instead of two copies drifting apart** — same reasoning
-  as `ResolveSetupIntent` being shared. `App\Livewire\Billing\Checkout`'s own
+  as `ResolveSetupIntent` being shared. `Nvade\Numerosis\Livewire\Billing\Checkout`'s own
   `subscribe()`/`settle()` deliberately separate third copy for
   non-redirect (card/Link) path, not touched by this. Doesn't catch
   `IncompletePayment` itself — each caller decides what that means for own
@@ -220,14 +220,14 @@
 ## Known gap — fixed
 
 - **Enabling module now runs its migrations.** Fixed in `549223e` (module
-  marketplace rewrite). `App\Actions\Modules\PurchaseModule::handle()`
+  marketplace rewrite). `Nvade\Numerosis\Actions\Modules\PurchaseModule::handle()`
   dispatches `MigrateModules::dispatch($tenant, $slug)` right after
   `RecordModulePurchase::run()` — no longer dead code, no longer missing
-  caller. `App\Jobs\RollbackModules` is uninstall-side counterpart,
-  documented on `App\Actions\Modules\CancelModule` but deliberately **not**
+  caller. `Nvade\Numerosis\Jobs\RollbackModules` is uninstall-side counterpart,
+  documented on `Nvade\Numerosis\Actions\Modules\CancelModule` but deliberately **not**
   called from it: `CancelModule` stops billing, disables module
   without dropping its tenant rows, by design — dropping data separate,
-  explicitly-confirmed operation. `App\Concerns\InteractsWithTenantModules`
+  explicitly-confirmed operation. `Nvade\Numerosis\Concerns\InteractsWithTenantModules`
   remains orphaned (its consumer was clients module, since removed) and
   still only mechanism for registering Filament plugin conditionally
   on module being enabled — that part of gap unchanged.

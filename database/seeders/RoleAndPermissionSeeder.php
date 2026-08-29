@@ -8,6 +8,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RoleAndPermissionSeeder extends Seeder
 {
@@ -63,5 +64,14 @@ class RoleAndPermissionSeeder extends Seeder
         ]);
 
         $admin->givePermissionTo($permissions);
+
+        // A host with a persistent permission cache store (Redis, database)
+        // otherwise disagrees with the DB on what permissions exist for the
+        // lifetime of every already-running worker after any reseed that
+        // adds or renames a permission — see .claude/rules/auth-guards.md's
+        // "Missing permission row = 500, not 403" bullet, which documents
+        // this biting a real host (`viewAny modules` 500ing the whole panel)
+        // because nothing here cleared the cache after writing new rows.
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

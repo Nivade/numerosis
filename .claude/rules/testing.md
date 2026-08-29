@@ -388,14 +388,21 @@ updated: 2026-07-31
   Run `vendor/bin/sail exec -T laravel.test bash -lc "vendor/bin/phpstan analyse"`
   after any rename. Takes seconds, doesn't need database.
 
-  **Can't see factories.** Laravel resolves factory from model's
-  namespace below `App\Models` — `App\Models\Tenant\User` looks for
-  `Database\Factories\Tenant\UserFactory` and nothing else — that name
-  built from string at runtime, so no reference for static analysis
+  **Can't see factories.** At the time (pre-extraction, saas-m), Laravel resolved
+  factory from model's namespace below `App\Models` — `App\Models\Tenant\User`
+  looked for `Database\Factories\Tenant\UserFactory` and nothing else — that
+  name built from string at runtime, so no reference for static analysis
   to check. Both tenant factories missing or in wrong namespace, cost
-  11 failures only full run could reveal. When adding model under
-  new `App\Models\*` sub-namespace, add matching factory sub-namespace
-  with it.
+  11 failures only full run could reveal. **Post-extraction, this package
+  overrides Laravel's own convention entirely** — `Numerosis::factoryNameFor()`
+  (registered via `Factory::guessFactoryNamesUsing()` in
+  `NumerosisServiceProvider`) matches on any `\Models\` segment, not literally
+  `App\Models`, and always resolves to `Nvade\Numerosis\Database\Factories\{suffix}Factory`
+  — see `.claude/rules/host-integration-quickstart.md`'s `#[UseFactory]` bullet
+  for the trap this creates for a *host's own* model under `App\Models\`.
+  The underlying lesson stands regardless of mechanism: when adding a model
+  under a new `Models\*` sub-namespace (package or host), add the matching
+  factory sub-namespace with it — nothing statically checks the pairing.
 
 ## `TestCase::getEnvironmentSetUp()` runs *after* providers register, not before
 

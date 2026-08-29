@@ -135,6 +135,30 @@ it('reports the tenant key for tenant_id inside $tenant->run()', function () {
     });
 });
 
+it('does not double-register onto the same Handler instance', function () {
+    // The real scenario this guards: a host calling Numerosis::exceptions()
+    // from its own bootstrap/app.php AND NumerosisServiceProvider::
+    // registerExceptionHandling()'s fallback both firing against the one
+    // real Handler singleton. Simulated here by calling it twice by hand
+    // against the same $exceptions wrapper.
+    $exceptions = new class(new Handler(app())) extends Exceptions
+    {
+        public int $contextCalls = 0;
+
+        public function context(Closure $contextCallback)
+        {
+            $this->contextCalls++;
+
+            return $this;
+        }
+    };
+
+    Numerosis::exceptions($exceptions);
+    Numerosis::exceptions($exceptions);
+
+    expect($exceptions->contextCalls)->toBe(1);
+});
+
 it('registers the middleware aliases/groups against the real router with no host bootstrap call', function () {
     // NumerosisServiceProvider::registerMiddleware() already ran during
     // package boot — nothing in this test calls Numerosis::middleware()

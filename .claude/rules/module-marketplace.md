@@ -55,7 +55,7 @@
   guarantee, `TenantRun::run()`'s source has no `finally` at all. Any new
   code calling `->run()` where callback might throw (rather than
   controlled, already-tested action) should manage tenancy manually with
-  own `try/finally`, way `App\Actions\Modules\ReconcileModuleSubscriptionItems`
+  own `try/finally`, way `Nvade\Numerosis\Actions\Modules\ReconcileModuleSubscriptionItems`
   does, instead of trusting `->run()` to clean up. Exactly what broke
   `WebhookControllerLifecycleTest` first time reconciliation wired in:
   exception caught, but tenancy context left switched, next operation
