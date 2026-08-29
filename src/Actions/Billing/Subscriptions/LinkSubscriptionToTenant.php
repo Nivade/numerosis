@@ -12,6 +12,7 @@ use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
+use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
 
@@ -65,7 +66,11 @@ class LinkSubscriptionToTenant
                     'subscribable_type' => Numerosis::model(Tenant::class),
                 ];
 
-                if ($subscription->payment_plan_id === null) {
+                // `payment_plan_id` is a column this package adds, so it only
+                // exists on this package's own subscription model — which is
+                // what the repository returns, but not what its contract can
+                // promise (see SubscriptionRepository's docblock).
+                if ($subscription instanceof Subscription && $subscription->payment_plan_id === null) {
                     $update['payment_plan_id'] = Numerosis::model(PaymentPlan::class)::firstWhere('slug', $data->registration->payment_plan)?->id;
                 }
 

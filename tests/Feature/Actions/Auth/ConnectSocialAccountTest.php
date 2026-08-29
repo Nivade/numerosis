@@ -20,7 +20,6 @@ class ConnectSocialAccountTest extends TestCase
 
         $socialLogin = ConnectSocialAccount::run($user, 'github', 'github-123');
 
-        $this->assertInstanceOf(SocialiteLogin::class, $socialLogin);
         $this->assertEquals($user->id, $socialLogin->user_id);
         $this->assertEquals('github', $socialLogin->provider);
         $this->assertEquals('github-123', $socialLogin->provider_id);

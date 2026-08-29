@@ -4,27 +4,41 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Database\Factories\Central;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
 
-class SubscriptionFactory extends \Laravel\Cashier\Database\Factories\SubscriptionFactory
+/**
+ * Extends Laravel's `Factory` directly rather than Cashier's
+ * `SubscriptionFactory`. Cashier's declares no `@extends Factory<...>`, so
+ * anything inheriting from it resolves its model type as the bare
+ * `Model` — which made `Subscription::factory()->make()` statically a
+ * `Model` and every call passing that fixture to a `Subscription` parameter
+ * a type error. `definition()` and `modelName()` were already fully
+ * overridden here, so the only thing given up is Cashier's unused state
+ * helpers (`active()`, `trialing()`, `canceled()`, …), none of which this
+ * package or its tests call.
+ *
+ * @extends Factory<Subscription>
+ */
+class SubscriptionFactory extends Factory
 {
     /**
-     * Cashier's own factory declares `protected $model =
-     * \Laravel\Cashier\Subscription::class`, and an *inherited* property still
-     * short-circuits `Factory::modelName()`'s resolver — so omitting a
-     * `$model` override here does not reach `Numerosis::modelNameFor()`.
-     * Left alone, every fixture is built as Cashier's model, which does not
-     * compose stancl's `CentralConnection`: the row is written on the
-     * *default* connection (inside `RefreshDatabase`'s open transaction) while
-     * the application reads and writes `subscriptions` on `central`. The
-     * fixture is invisible to the code under test, which then inserts its own
-     * row carrying the same unique `stripe_id` and blocks on the uncommitted
-     * duplicate key — surfacing as `SQLSTATE 1205 Lock wait timeout`, not as a
-     * wrong-model error.
+     * Resolved through `Numerosis::model()` so a host's own subclass is what
+     * gets built. This must stay an explicit override rather than a `$model`
+     * property: while this factory extended Cashier's, the inherited
+     * `protected $model = \Laravel\Cashier\Subscription::class` short-circuited
+     * `Factory::modelName()`'s resolver and every fixture was built as
+     * Cashier's model, which does not compose stancl's `CentralConnection`.
+     * The row then went to the *default* connection (inside `RefreshDatabase`'s
+     * open transaction) while the application read and wrote `subscriptions`
+     * on `central` — the fixture was invisible to the code under test, which
+     * inserted its own row with the same unique `stripe_id` and blocked on the
+     * uncommitted duplicate key, surfacing as `SQLSTATE 1205 Lock wait
+     * timeout` rather than as a wrong-model error.
      *
-     * @return class-string<\Illuminate\Database\Eloquent\Model>
+     * @return class-string<Subscription>
      */
     public function modelName(): string
     {

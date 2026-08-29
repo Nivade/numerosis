@@ -30,7 +30,11 @@ class LocalCheckoutGateway implements CheckoutGateway
     {
         MarkProvisionInProgress::run($registration);
 
-        $userId = GetAuthenticatedUser::run()?->id;
+        // Kept as two statements: PHPStan does not credit `?->` with
+        // handling the null when it is chained straight onto an action's
+        // `::run()`, and reports `Cannot access property $id on User|null`.
+        $user = GetAuthenticatedUser::run();
+        $userId = $user?->id;
 
         $this->provisioning->queue(new TenantProvisionData(
             registration: $registration,

@@ -1,8 +1,17 @@
 ---
 topic: tenant-provisioning
-updated: 2026-07-27
+updated: 2026-08-29
 ---
 # Tenant Provisioning
+
+> Two bullets below are v3-specific and change on `stancl/tenancy:dev-master`:
+> the `Stancl\Tenancy\Commands\Seed` double-break is **fixed** there (so
+> `SeedTenantDatabase`'s container-resolve workaround stays required only for
+> the v3 leg, and must not be deleted), and the `is_bot`-column crash needs
+> re-testing against the reworked `UpdateOrCreateSyncedResource`. The
+> `JobPipeline`-vs-`AsAction` conflict appears intact — dev-master's provider
+> stub still uses `JobPipeline` — but jobpipeline itself goes v1 → `2.0.0-rc7`,
+> so re-verify rather than assume. See `.claude/rules/stancl-tenancy-v4.md`.
 
 - **Readiness = `tenants.provisioned_at`, never "`Tenant` row exists".**
   Stripe webhook (`WebhookController::handleCustomerSubscriptionCreated`)

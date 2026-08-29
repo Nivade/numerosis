@@ -25,7 +25,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property string|null $subscribable_id
  * @property string|null $subscribable_type
  * @property string $type
- * @property int $payment_plan_id
+ * @property int|null $payment_plan_id
  * @property string $stripe_id
  * @property string $stripe_status
  * @property string|null $stripe_price

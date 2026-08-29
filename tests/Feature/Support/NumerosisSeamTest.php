@@ -321,7 +321,7 @@ it('replaces middleware registration entirely when registerMiddlewareUsing is se
     // body runs — a presence check can't tell "replaced" from "ran twice".
     // Count the alias table instead: a second, overridden run must add
     // nothing to it.
-    $aliasCountBefore = count(Route::getFacadeRoot()->getMiddleware());
+    $aliasCountBefore = count(resolve(Router::class)->getMiddleware());
 
     $called = null;
 
@@ -333,7 +333,7 @@ it('replaces middleware registration entirely when registerMiddlewareUsing is se
     new ReflectionMethod($provider, 'registerMiddleware')->invoke($provider);
 
     expect($called)->toBe(app())
-        ->and(Route::getFacadeRoot()->getMiddleware())->toHaveCount($aliasCountBefore);
+        ->and(resolve(Router::class)->getMiddleware())->toHaveCount($aliasCountBefore);
 });
 
 it('replaces broadcasting registration entirely when registerBroadcastingUsing is set', function () {

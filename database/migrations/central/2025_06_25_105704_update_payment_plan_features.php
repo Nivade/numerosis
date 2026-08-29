@@ -11,29 +11,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('payment_plan_features', function (Blueprint $table) {
-            try {
-                $table->dropColumn('feature_key');
-            } catch (Exception $e) {
-                // Silent fail if column doesn't exist
-            }
-
-            try {
-                $table->dropColumn('feature_name');
-            } catch (Exception $e) {
-                // Silent fail if column doesn't exist
-            }
-
-            try {
-                $table->dropColumn('description');
-            } catch (Exception $e) {
-                // Silent fail if column doesn't exist
-            }
-
-            try {
-                $table->dropColumn('value_type');
-            } catch (Exception $e) {
-                // Silent fail if column doesn't exist
-            }
+            $table->dropIndex('payment_plan_features_payment_plan_id_feature_key_index');
+            $table->dropColumn(['feature_key', 'feature_name', 'description', 'value_type']);
         });
 
         Schema::table('payment_plan_features', function (Blueprint $table) {

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Concerns\Billing;
 
 use Laravel\Cashier\Exceptions\IncompletePayment;
-use Laravel\Cashier\Subscription;
+use Nvade\Numerosis\Models\Central\Subscription;
 use Stripe\Exception\ApiErrorException;
 
 /**

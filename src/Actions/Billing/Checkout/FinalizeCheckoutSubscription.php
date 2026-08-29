@@ -9,6 +9,7 @@ use Laravel\Cashier\Subscription;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentMethod;
 
 /**
@@ -26,6 +27,7 @@ class FinalizeCheckoutSubscription
 
     /**
      * @throws IncompletePayment
+     * @throws ApiErrorException propagated from {@see CreateInlineSubscription}
      */
     public function handle(PendingTenantProvision $pending, PaymentMethod $paymentMethod, ?CentralUser $billable): Subscription
     {

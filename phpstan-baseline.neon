@@ -613,24 +613,6 @@ parameters:
 			path: src/Contracts/Tenancy/HasTenants.php
 
 		-
-			message: '#^Call to method extendSocialite\(\) on an unknown class SocialiteProviders\\Manager\\SocialiteWasCalled\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Features/Social/SocialLoginFeature.php
-
-		-
-			message: '#^Class SocialiteProviders\\Discord\\Provider not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Features/Social/SocialLoginFeature.php
-
-		-
-			message: '#^Parameter \$event of anonymous function has invalid type SocialiteProviders\\Manager\\SocialiteWasCalled\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Features/Social/SocialLoginFeature.php
-
-		-
 			message: '''
 				#^Call to deprecated method bulkActions\(\) of class Filament\\Tables\\Table\:
 				Use `toolbarActions\(\)` instead\.$#
@@ -734,18 +716,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: src/Filament/TenantAdmin/Pages/Billing.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Cashier\\Subscription\:\:\$stripe_status\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Filament/TenantAdmin/Pages/Modules/Marketplace.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Cashier\\Subscription\:\:\$stripe_status\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Filament/TenantAdmin/Pages/Modules/ModuleDetail.php
 
 		-
 			message: '#^Access to an undefined property Workbench\\App\\Models\\User\:\:\$global_id\.$#'
@@ -1030,12 +1000,6 @@ parameters:
 			path: tests/ArchTest.php
 
 		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Actions/Auth/LoginUserTest.php
-
-		-
 			message: '#^Call to an undefined method App\\Models\\Central\\CentralUser\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Central\\CentralUser\>\:\:hasRole\(\)\.$#'
 			identifier: method.notFound
 			count: 3
@@ -1064,18 +1028,6 @@ parameters:
 			identifier: method.alreadyNarrowedType
 			count: 1
 			path: tests/Feature/Actions/Billing/Checkout/StartSubscriptionCheckoutTest.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$subscribable_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: tests/Feature/Actions/Billing/Subscriptions/LinkSubscriptionToTenantTest.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$subscribable_type\.$#'
-			identifier: property.notFound
-			count: 1
-			path: tests/Feature/Actions/Billing/Subscriptions/LinkSubscriptionToTenantTest.php
 
 		-
 			message: '#^Property Stripe\\Subscription\:\:\$items \(Stripe\\Collection\<Stripe\\SubscriptionItem\>\) does not accept object\{data\: array\{object\{id\: ''si_123'', price\: object\{id\: ''price_123'', product\: ''prod_123''\}&stdClass, quantity\: 1\}&stdClass\}\}&stdClass\.$#'
@@ -1118,12 +1070,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: tests/Feature/Actions/Modules/CancelModuleTest.php
-
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Actions/Queries/FindUserByGlobalIdTest.php
 
 		-
 			message: '#^Cannot access property \$error on App\\Models\\Central\\PendingTenantProvision\|null\.$#'
@@ -1252,12 +1198,6 @@ parameters:
 			path: tests/Feature/Filament/TenantAdmin/Pages/BillingTest.php
 
 		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/GetTenantsByGlobalIdTest.php
-
-		-
 			message: '#^Cannot call method instance\(\) on Illuminate\\Foundation\\Application\|null\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -1278,18 +1218,6 @@ parameters:
 		-
 			message: '#^Cannot call method instance\(\) on Illuminate\\Foundation\\Application\|null\.$#'
 			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Invitations/CheckInvitationStatusTest.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Contracts\\Invitations\\InvitationRepository@anonymous/tests/Feature/Invitations/CheckInvitationStatusTest\.php\:105\:\:find\(\) never returns null so it can be removed from the return type\.$#'
-			identifier: return.unusedType
-			count: 1
-			path: tests/Feature/Invitations/CheckInvitationStatusTest.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Contracts\\Invitations\\InvitationRepository@anonymous/tests/Feature/Invitations/CheckInvitationStatusTest\.php\:105\:\:findByToken\(\) never returns null so it can be removed from the return type\.$#'
-			identifier: return.unusedType
 			count: 1
 			path: tests/Feature/Invitations/CheckInvitationStatusTest.php
 
@@ -1348,30 +1276,6 @@ parameters:
 			path: tests/Feature/Livewire/TenantsMineTest.php
 
 		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Models/Central/PaymentPlanPopularCacheTest.php
-
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Models/Central/TenantPrimaryDomainCacheTest.php
-
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Services/Billing/Modules/EloquentModuleCatalogTest.php
-
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Services/Billing/Plans/EloquentPaymentPlanRepositoryTest.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertSeeLivewire\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -1406,4 +1310,14 @@ parameters:
 			identifier: assign.propertyType
 			count: 1
 			path: tests/Support/CloneTenantSchema.php
+		-
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Livewire/Billing/Checkout.php
 
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: tests/Feature/Support/NumerosisSeamTest.php

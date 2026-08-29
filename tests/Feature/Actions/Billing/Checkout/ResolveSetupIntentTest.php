@@ -13,7 +13,6 @@ use Nvade\Numerosis\Actions\Billing\Checkout\ResolveSetupIntent;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Exceptions\Billing\SetupIntentNotConfirmed;
-use Nvade\Numerosis\Services\Billing\Checkout\ResolvedSetupIntent;
 use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -45,7 +44,6 @@ class ResolveSetupIntentTest extends TestCase
 
         $resolved = ResolveSetupIntent::run($setupIntent->id);
 
-        $this->assertInstanceOf(ResolvedSetupIntent::class, $resolved);
         $this->assertSame($pending->domain, $resolved->pending->domain);
         $this->assertSame($setupIntent->payment_method, $resolved->paymentMethodId());
         $this->assertSame($setupIntent->payment_method, $resolved->paymentMethod->id);

@@ -16,6 +16,7 @@ use Nvade\Numerosis\Exceptions\Billing\StripePriceNotConfigured;
 use Nvade\Numerosis\Exceptions\Billing\UnsupportedBillable;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Stripe\Exception\ApiErrorException;
 
 /**
  * Creates the Stripe subscription for a checkout.
@@ -28,6 +29,7 @@ use Nvade\Numerosis\Models\Central\PendingTenantProvision;
  * while the challenge is still pending.
  *
  * @throws IncompletePayment
+ * @throws ApiErrorException the Stripe call underneath `newSubscription()->create()`
  *
  * @method static Subscription run(PendingTenantProvision $pending, string $paymentMethodId, ?CentralUser $billable = null)
  */

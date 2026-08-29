@@ -70,8 +70,9 @@
 
 - **A migration reading `config('some-package.some-key')` with no fallback
   is not automatically broken just because the package moved to `suggest` —
-  check whether `HostConfig` already defaults that key first.** The eight
-  central/tenant `activity_log` migrations all read
+  check whether `HostConfig` already defaults that key first.** The nine
+  (4 central, 5 tenant — recounted 2026-08-29; this bullet said eight)
+  `activity_log` migrations all read
   `config('activitylog.table_name')`/`config('activitylog.database_connection')`
   with no package-supplied default (nothing merges `spatie/laravel-activitylog`'s
   own config file if it isn't installed) — this looked like it needed the

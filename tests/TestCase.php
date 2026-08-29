@@ -24,7 +24,6 @@ use Nvade\Numerosis\Testing\CleansUpTenancyDatabases;
 use Nvade\Numerosis\Testing\InteractsWithTenantPanel;
 use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
 use Orchestra\Testbench\TestCase as Orchestra;
-use PDO;
 use Pdo\Mysql;
 use Spatie\Activitylog\Models\Activity;
 use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
@@ -140,7 +139,7 @@ abstract class TestCase extends Orchestra
         $app->make(Repository::class)->set('database.lock_wait_timeout', $lockWaitTimeout);
 
         $mysqlOptions = extension_loaded('pdo_mysql') ? [
-            (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_INIT_COMMAND : PDO::MYSQL_ATTR_INIT_COMMAND) => "SET SESSION lock_wait_timeout = {$lockWaitTimeout}, innodb_lock_wait_timeout = {$lockWaitTimeout}",
+            Mysql::ATTR_INIT_COMMAND => "SET SESSION lock_wait_timeout = {$lockWaitTimeout}, innodb_lock_wait_timeout = {$lockWaitTimeout}",
         ] : [];
 
         $mysql = [

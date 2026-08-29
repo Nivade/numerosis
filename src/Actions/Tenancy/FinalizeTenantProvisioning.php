@@ -10,8 +10,7 @@ use Lorisleiva\Actions\Decorators\JobDecorator;
 use Nvade\Numerosis\Concerns\TagsSentryScopeWithTenant;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant as CentralTenant;
-use Stancl\Tenancy\Contracts\Tenant;
+use Nvade\Numerosis\Models\Central\Tenant;
 use Throwable;
 
 /**
@@ -21,6 +20,12 @@ use Throwable;
  * Must stay last. It reads users out of the tenant database, and it is the
  * only emitter of the "ready" signal the UI waits on — if it never completes,
  * that UI spins forever, which is why it retries generously.
+ *
+ * Typed against this package's own {@see Tenant} rather than stancl's
+ * `Contracts\Tenant`: {@see PromoteFirstUserToAdmin} requires the concrete
+ * model, and the only caller ({@see ProvisionTenant::dispatchProvisioningChain()})
+ * has always passed one. The broader hint bought nothing and forced
+ * `owner()` into an `instanceof` that could never be false.
  */
 class FinalizeTenantProvisioning implements ShouldQueue
 {
@@ -55,6 +60,6 @@ class FinalizeTenantProvisioning implements ShouldQueue
 
     private function owner(Tenant $tenant): ?CentralUser
     {
-        return $tenant instanceof CentralTenant ? $tenant->owner() : null;
+        return $tenant->owner();
     }
 }

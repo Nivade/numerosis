@@ -250,8 +250,12 @@ original follow-up list, which this replaces.
    if Laravel ever changes it.
 7. Folded into 1.
 
-**Still not fixed, deliberately:** the three colliding migration basenames
-(`0001_01_01_00000{0,1,2}_*`) are still shipped under those names. Renaming
-them would be the structural fix and would break every existing install —
-the `migrations` table records the old name, so a renamed file re-runs and
-fails on an existing table. The warning in 2 is the trade.
+**Still not fixed — but the reason expired.** The three colliding migration
+basenames (`0001_01_01_00000{0,1,2}_*`) are still shipped under those names.
+Renaming them is the structural fix, and was rejected because it breaks every
+existing install: the `migrations` table records the old name, so a renamed
+file re-runs and fails on an existing table. That mechanism is still true and
+the objection is now void — the maintainer confirmed 2026-08-29 that **there
+are no existing installs and the app is not live**. Rename them; the warning
+in 2 stays useful for hosts that merged the schema into their own files.
+Tracked as Phase 0.3 in `.claude/plans/memoized-tinkering-meadow.md`.

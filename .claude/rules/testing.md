@@ -1,10 +1,20 @@
 ---
 topic: testing
-updated: 2026-07-31
+updated: 2026-08-29
 ---
 # Test Suite
 
 ## Running it
+
+- **This repo has no Sail, and `CLAUDE.md`'s `vendor/bin/sail …` instructions do not apply to it.** `laravel/sail` appears nowhere in `composer.lock` and there is no `vendor/bin/sail`; the guidelines block in `CLAUDE.md` is inherited from the saas-m host app this package was extracted from. Here it is Testbench plus a single `docker-compose.yml` MySQL service, and the commands are run on the host:
+
+  - tests — `php -d memory_limit=1G vendor/bin/pest --compact` (or `composer test`)
+  - one file/filter — `vendor/bin/pest --compact --filter=SomeTest`
+  - static analysis — see `.claude/rules/static-analysis.md` (needs a `tmpDir` override)
+  - formatting — `vendor/bin/pint`
+  - MySQL must be up: `docker compose ps` should show `numerosis-mysql-1` healthy
+
+  Anywhere below that still says `sail exec laravel.test …`, read it as "run this inside whatever gives you a shell next to MySQL" — the diagnostic SQL and the process-hunting are still right, the wrapper is not.
 
 - **Suite run serial. No add `--parallel`.** Tried two sessions, abandoned; see "Why parallel was dropped" below. Single files (~5s), subsets (~10s) right granularity for iterating.
 
@@ -279,15 +289,64 @@ updated: 2026-07-31
   `SELECT id FROM laravel.tenants;` — orphans left by tests use faker-slug or
   fixture names (`tenantsignaltenant`) easy to mistake for dev data.
 
-- **Known failing tests — don't attribute these to your change.** Measured on
-  full run, 2026-07-28: **149 passed, 28 failed, 1 skipped in ~546s**, then
-  14 of those 28 fixed (see `.claude/rules/filament-tenancy.md`). Further
-  pass on 2026-07-31 fixed rest of that list except lock-wait
-  contention itself (see below) — current baseline, full run: **9 failed, 1
-  skipped, 313 passed in ~307s**, all 9 same `SQLSTATE 1205` class. Baseline
-  suspicious failure against `git stash` before investigating; list moves.
+- **Known failing tests — don't attribute these to your change.**
 
-  What's left, by cause rather than file:
+  **Current baseline, measured 2026-08-29 on this package repo:
+  `php -d memory_limit=1G vendor/bin/pest --compact` ⇒ 0 failed, 7 skipped,
+  584 passed (5394 assertions) in ~90s.** The suite is green; treat *any*
+  failure as yours until proven otherwise.
+
+  The previous baseline was 4 failed / 580 passed, all 4 in
+  `tests/Feature/FreshHostTest`. They were not one cause but four, uncovered
+  in sequence — worth keeping, because each was a real defect that only that
+  harness could see:
+
+  1. **SQLite refuses to drop a column an index still references.**
+     `2025_06_25_105704_update_payment_plan_features.php` dropped
+     `feature_key` while `payment_plan_features_payment_plan_id_feature_key_index`
+     still named it. Fixed by dropping the index first. The same migration's
+     two `try { $table->dropColumn(...) } catch (Exception)` blocks were
+     removed with it: `Blueprint::dropColumn()` only *queues* a command, which
+     runs after the closure returns, so nothing was ever thrown inside that
+     `try` and the "silent fail if column doesn't exist" comment described
+     protection that never existed.
+  2. **`dropForeign('name')` is unsupported on SQLite.**
+     `2026_01_07_001248_unfuck_payment_plans_and_features.php` dropped the
+     `subscriptions.payment_plan_id` FK by constraint *name*;
+     `SQLiteGrammar::compileDropForeign()` throws unless `$command->columns`
+     is populated, i.e. unless you pass the **column array** form
+     (`dropForeign(['payment_plan_id'])`). `Schema::hasForeignKey()` matches
+     on either name or columns, so the guard works both ways.
+  3. **`QUEUE_CONNECTION`/`CACHE_STORE` were assumed to be `sync`/`array` and
+     are neither.** Testbench's own skeleton `.env` sets both to `database`
+     (matching a fresh Laravel install), and this package's central schema
+     drops the `jobs`/`cache` tables, so the real `TenantCreated` pipeline
+     died on `Table 'jobs' doesn't exist`. Now set explicitly in that test's
+     `setUp()`. See the separate note below — the dropped tables are a real
+     host trap, not just a harness one.
+  4. **The `Illuminate\Support\Env` repository is static and memoized, so
+     `putenv()` only wins on the first app boot in a process.** This is the
+     big one and has its own bullet below.
+
+  `FreshHostTest` is the only harness that migrates the central schema
+  against `:memory:` and the only one that proves a from-scratch host boots,
+  so keep it green before trusting any "fresh install works" claim —
+  including anything verifying a multi-package split or a `stancl/tenancy`
+  version swap (`.claude/rules/stancl-tenancy-v4.md`).
+
+  The lock-wait contention described below **did not reproduce in this run**
+  (0 occurrences of `SQLSTATE 1205`, and ~82s rather than ~307s). Treat the
+  `innodb_lock_wait_timeout` material as still-true mechanism and the
+  9-failure count as history, not as an expected floor.
+
+  Older measurements, kept for the fixed-list they carry, not as current
+  fact: 2026-07-28 full run **149 passed, 28 failed, 1 skipped in ~546s**,
+  then 14 of those 28 fixed (see `.claude/rules/filament-tenancy.md`); a
+  2026-07-31 pass fixed the rest except lock-wait contention, landing at
+  **9 failed, 1 skipped, 313 passed in ~307s**. Baseline a suspicious
+  failure against `git stash` before investigating; the list moves.
+
+  What that older run left, by cause rather than file:
 
   - **~9 `SQLSTATE 1205 Lock wait timeout exceeded`** on `delete from users`
     (`deleteCentralWrites()`), `delete from socialite_logins`, and
@@ -385,8 +444,12 @@ updated: 2026-07-31
   exists so *new* errors fail immediately, shrinking it ordinary
   cleanup, not prerequisite.
 
-  Run `vendor/bin/sail exec -T laravel.test bash -lc "vendor/bin/phpstan analyse"`
-  after any rename. Takes seconds, doesn't need database.
+  Run PHPStan after any rename — takes seconds, doesn't need a database. Use
+  the `tmpDir`-override invocation in `.claude/rules/static-analysis.md`, not
+  a bare `vendor/bin/phpstan analyse` (uid-owned cache aborts the run) and not
+  `vendor/bin/sail …` (no Sail in this repo). Note the run is currently red on
+  `main` — 28 errors outside the baseline as of 2026-08-29 — so diff your
+  count against `git stash` rather than reading any error as yours.
 
   **Can't see factories.** At the time (pre-extraction, saas-m), Laravel resolved
   factory from model's namespace below `App\Models` — `App\Models\Tenant\User`
@@ -403,6 +466,85 @@ updated: 2026-07-31
   The underlying lesson stands regardless of mechanism: when adding a model
   under a new `Models\*` sub-namespace (package or host), add the matching
   factory sub-namespace with it — nothing statically checks the pairing.
+
+## `putenv()` in a test only wins on the first app boot in the process
+
+- **`Illuminate\Support\Env::$repository` is static, built once per process,
+  and wrapped in phpdotenv's `ImmutableWriter` — whose `$loaded` array
+  accumulates across every app boot. That turns "set env, boot app" into
+  something that works run alone and silently reverts run in the suite.**
+  `ImmutableWriter::write()` refuses to overwrite a variable only while
+  `isExternallyDefined()` is true, and that is
+  `$this->reader->read($name)->isDefined() && ! isset($this->loaded[$name])`.
+  Once the writer has written a key *once*, it is no longer "external", so the
+  next `Dotenv::load()` overwrites it freely.
+
+  Every Testbench boot runs `LoadEnvironmentVariables`, which loads
+  `vendor/orchestra/testbench-core/laravel/.env` — and that file sets
+  `DB_CONNECTION=sqlite`, `QUEUE_CONNECTION=database`, `CACHE_STORE=database`.
+  So on the **first** boot in a process a test's own `putenv()` wins (the
+  values really are external, `$loaded` is empty); on **every boot after
+  that** the `.env` clobbers them.
+
+  `tests/Feature/FreshHostTest` is the one test that sets its environment this
+  way, and it failed exactly this way: green under
+  `--filter=FreshHostTest`, red in the full suite. The symptom does not look
+  like an env problem at all — `DB_CONNECTION` reverted to `sqlite`,
+  Testbench's `LoadConfiguration::configureDefaultDatabaseConnection()` saw
+  `sqlite` with no database file and rewrote `database.default` to its
+  in-memory `testing` connection, and `HostConfig` then cloned *that* into the
+  `central` connection. Meanwhile `DB_DATABASE` is **not** in that `.env`, so
+  it alone survived — producing a connection reported as
+  `Connection: sqlite, Database: testing_fresh_host`, an incoherent
+  MySQL/SQLite mix that reads like a `HostConfig` bug.
+
+  Fix: discard the memoized repository before `parent::setUp()`, so the next
+  `getRepository()` rebuilds with a fresh, empty `ImmutableWriter`.
+  `Env::enablePutenv()` is the public way to do it (it nulls the repository;
+  the putenv adapter is on by default, so nothing else changes). Do it in
+  `tearDown()` too, so this test's own `$loaded` state is not what breaks
+  whichever test boots next.
+
+  **Tell, if this resurfaces:** a test that passes under `--filter` and fails
+  in a full run, where the failure names a connection/driver/queue nobody
+  configured. Check `config('database.default')` right after `parent::setUp()`
+  against the `putenv()` above it before suspecting `HostConfig`.
+
+## The central schema drops `jobs`/`cache`/`sessions`, and stock Laravel defaults use all three
+
+- **`2026_01_07_195854_remove_redundant_tables.php` drops `cache`,
+  `cache_locks`, `sessions`, `failed_jobs`, `jobs` and `job_batches` on the
+  reasoning that Redis makes them redundant — but nothing in
+  `docs/host-requirements.md` requires Redis, and a fresh Laravel install's
+  own `.env` ships `QUEUE_CONNECTION=database`, `CACHE_STORE=database`,
+  `SESSION_DRIVER=database`.** `failed_jobs` was already recreated
+  (`2026_07_28_233114`, see `.claude/rules/exception-handling.md`) for exactly
+  this class of reason; `jobs`/`cache`/`cache_locks`/`sessions` were not.
+
+  Found 2026-08-29 while repairing `FreshHostTest`, which boots with
+  Testbench's skeleton `.env` (same defaults as a fresh app) and died on
+  `Base table or view not found: 1146 Table 'jobs' doesn't exist` thrown from
+  inside `Tenant::create()` — the `TenantCreated` `JobPipeline` is
+  `shouldBeQueued(true)`, so the *first* tenant a stock-configured host ever
+  creates hits this. Then, past that, on
+  `delete from cache where key in (...)` from Spatie's permission registrar
+  clearing its own cache during tenant seeding.
+
+  **Not fixed yet, and no longer for the original reason.** That test now pins
+  `QUEUE_CONNECTION=sync` and `CACHE_STORE=array` for its own reasons, which
+  also sidesteps it. It was left alone because recreating the tables ships new
+  migrations to every existing install — but the maintainer confirmed
+  2026-08-29 that **there are no existing installs and the app is not live**,
+  so that objection is void and `remove_redundant_tables` can simply be edited
+  in place to stop dropping `jobs`. Tracked as Phase 0.3 in
+  `.claude/plans/memoized-tinkering-meadow.md`. Note `cache` is not simply
+  "add the table back": `CacheTenancyBootstrapper` isolates tenants with cache
+  *tags* and Laravel's `database` store is not taggable, so a host on
+  `CACHE_STORE=database` is outside what this package supports regardless of
+  whether the table exists (see `.claude/rules/tenant-caching.md`). `jobs` is
+  the unambiguous one — it has a first-party consumer and no such caveat.
+  `job_batches` has neither (nothing here uses `Bus::batch()`, only
+  `Bus::chain()`).
 
 ## `TestCase::getEnvironmentSetUp()` runs *after* providers register, not before
 

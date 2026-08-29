@@ -13,10 +13,10 @@ return new class extends Migration
         Schema::dropIfExists('payment_plan_features');
         Schema::dropIfExists('features');
         Schema::whenTableHasColumn('subscriptions', 'payment_plan_id', function (Blueprint $table) {
-            Schema::whenTableHasIndex('subscriptions', 'subscriptions_payment_plan_id_foreign', function (Blueprint $table) {
-                $table->dropForeign('subscriptions_payment_plan_id_foreign');
-            });
-            Schema::dropColumns('subscriptions', ['payment_plan_id']);
+            if (Schema::hasForeignKey('subscriptions', ['payment_plan_id'])) {
+                $table->dropForeign(['payment_plan_id']);
+            }
+            $table->dropColumn('payment_plan_id');
         });
         Schema::dropIfExists('payment_plans');
     }

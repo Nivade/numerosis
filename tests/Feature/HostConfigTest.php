@@ -15,7 +15,6 @@ use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Tests\TestCase;
-use PDO;
 use Pdo\Mysql;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
@@ -260,7 +259,7 @@ class HostConfigTest extends TestCase
 
     public function test_it_mirrors_innodb_lock_wait_timeout_when_only_lock_wait_timeout_set(): void
     {
-        $initCommandKey = PHP_VERSION_ID >= 80500 ? Mysql::ATTR_INIT_COMMAND : PDO::MYSQL_ATTR_INIT_COMMAND;
+        $initCommandKey = Mysql::ATTR_INIT_COMMAND;
 
         Config::set('database.connections.central.driver', 'mysql');
         Config::set('database.connections.central.options', [

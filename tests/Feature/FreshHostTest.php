@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature;
 
+use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
@@ -97,7 +98,7 @@ class FreshHostTest extends Orchestra
      * `getEnvironmentSetUp()`. `filament:assets`/migrate/the routing hook/
      * DNS+worker obligations are satisfied by this method's other lines
      * (migrate below), `defineRoutes()`, and `QUEUE_CONNECTION=sync`
-     * (already Testbench's own skeleton default — see below) respectively.
+     * respectively.
      */
     protected function setUp(): void
     {
@@ -113,6 +114,27 @@ class FreshHostTest extends Orchestra
             'STRIPE_KEY' => 'pk_test_dummy',
             'STRIPE_SECRET' => 'sk_test_dummy',
             'STRIPE_WEBHOOK_SECRET' => 'whsec_test_dummy',
+
+            // The two below are infrastructure choices, in the same category
+            // as this file's `docs/host-requirements.md` §1 obligation #6
+            // ("a queue worker runs on the `provisioning` queue") — not
+            // `numerosis.*`/`tenancy.*`/`auth.*` config, which is what this
+            // test exists to prove unnecessary. Both are set explicitly
+            // because Testbench's own skeleton `.env` picks `database` for
+            // each, and neither is what this harness can run against:
+            //
+            // - `sync` because this test asserts the provisioning pipeline's
+            //   *result* inline and no worker process exists to drain a real
+            //   queue. Note this is NOT Testbench's default — its `.env` says
+            //   `QUEUE_CONNECTION=database`, matching a fresh Laravel install.
+            // - `array` because `CacheTenancyBootstrapper` isolates tenants
+            //   with cache *tags*, and Laravel's `database` store is not
+            //   taggable (see `.claude/rules/tenant-caching.md`). A host on
+            //   `CACHE_STORE=database` is already outside what this package
+            //   supports, so pinning it here changes nothing a real host
+            //   would have gotten away with.
+            'QUEUE_CONNECTION' => 'sync',
+            'CACHE_STORE' => 'array',
         ] as $key => $value) {
             putenv("{$key}={$value}");
             $_ENV[$key] = $value;
@@ -142,6 +164,11 @@ class FreshHostTest extends Orchestra
             SeedTenantDatabase::class,
         ];
 
+        // Without this, every putenv() above is silently reverted to
+        // Testbench's own `.env` value on the second and later boots in a
+        // process — so this test passes run alone and fails run in the suite.
+        self::forgetMemoizedEnvironmentRepository();
+
         parent::setUp();
 
         $this->stubViteManifest();
@@ -170,6 +197,50 @@ class FreshHostTest extends Orchestra
         // every other test in the suite.
         $pdo = new PDO('mysql:host=127.0.0.1;port=3306', 'root', 'root');
         $pdo->exec('DROP DATABASE IF EXISTS `'.self::DB_DATABASE.'`');
+
+        // Same reset on the way out, so this test's own env does not become
+        // the stale `$loaded` state that breaks whichever test boots next.
+        self::forgetMemoizedEnvironmentRepository();
+    }
+
+    /**
+     * Drops `Illuminate\Support\Env`'s memoized repository so the next read
+     * treats this test's `putenv()` values as externally defined again.
+     *
+     * `Env::$repository` is **static**, built once per process, and wrapped
+     * in phpdotenv's `ImmutableWriter`. That writer keeps a `$loaded` array
+     * of every key it has written, and its `isExternallyDefined()` check is
+     * `$this->reader->read($name)->isDefined() && ! isset($this->loaded[$name])`
+     * — so a key it has already written once is no longer considered
+     * externally defined, and `Dotenv::load()` is free to overwrite it on
+     * the next call.
+     *
+     * Every Testbench boot runs `LoadEnvironmentVariables`, which loads
+     * `vendor/orchestra/testbench-core/laravel/.env` (`DB_CONNECTION=sqlite`,
+     * `QUEUE_CONNECTION=database`, `CACHE_STORE=database`). On the *first*
+     * boot in a process the `putenv()` calls above win, because `$loaded` is
+     * empty and the values genuinely are external. On every boot after that
+     * `$loaded` still carries those keys from the previous boot, so the
+     * `.env` silently clobbers them.
+     *
+     * That is exactly why this file used to pass under `--filter=FreshHostTest`
+     * and fail in the full suite: `DB_CONNECTION` reverted to `sqlite`,
+     * Testbench's `LoadConfiguration::configureDefaultDatabaseConnection()`
+     * then saw `sqlite` with no database file and rewrote `database.default`
+     * to its in-memory `testing` connection, and `HostConfig` cloned *that*
+     * into the `central` connection. `DB_DATABASE` was never in the `.env`,
+     * so it alone survived — which is what made the failure read as an
+     * incoherent mix of MySQL and SQLite rather than as one env problem.
+     *
+     * `Env::enablePutenv()` is the public way to discard the repository (it
+     * nulls it so the next `getRepository()` rebuilds with a fresh, empty
+     * `ImmutableWriter`). Enabling the putenv adapter is also exactly what
+     * this test wants on its own terms, since `setUp()` sets its environment
+     * through `putenv()`.
+     */
+    private static function forgetMemoizedEnvironmentRepository(): void
+    {
+        Env::enablePutenv();
     }
 
     /**
@@ -237,10 +308,10 @@ class FreshHostTest extends Orchestra
         $prefix = Config::string('tenancy.database.prefix', 'tenant');
         $this->provisionedTenantDatabase = $prefix.$tenant->getTenantKey();
 
-        // QUEUE_CONNECTION=sync (Testbench's own skeleton default — never
-        // set by this test) is what makes the TenantCreated pipeline this
-        // setUp() restored to the real CreateDatabase+MigrateDatabase+
-        // SeedTenantDatabase jobs run synchronously, inline, right here.
+        // QUEUE_CONNECTION=sync, forced in setUp() above, is what makes the
+        // TenantCreated pipeline this setUp() restored to the real
+        // CreateDatabase+MigrateDatabase+SeedTenantDatabase jobs run
+        // synchronously, inline, right here.
         $this->assertTrue(
             DB::connection('central')->getSchemaBuilder()->hasTable('tenants'),
         );

@@ -18,6 +18,6 @@ trait PinsGlobalCache
 {
     protected function pinGlobalCache(): void
     {
-        $this->app->singleton('globalCache', fn ($app) => new CacheManager($app));
+        app()->singleton('globalCache', fn ($app) => new CacheManager($app));
     }
 }

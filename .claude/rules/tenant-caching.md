@@ -1,9 +1,18 @@
 ---
 topic: tenant-caching
-updated: 2026-07-28
+updated: 2026-08-29
 ---
 
 # Tenant Caching
+
+> **This file is written against stancl/tenancy v3's tag-based isolation and
+> does not need the rewrite the package-split plan once scheduled for it.**
+> `dev-master` has no `CachePrefixingBootstrapper` — it keeps
+> `CacheTenancyBootstrapper` and *adds* `CacheTagsBootstrapper` /
+> `DatabaseCacheBootstrapper`, with `tenancy.cache.prefix` and
+> `tenancy.cache.stores` beside the existing `tag_base`. Verify against
+> `src/Bootstrappers/` and `assets/config.php` in a real checkout before
+> changing anything here; see `.claude/rules/stancl-tenancy-v4.md`.
 
 - **`global_cache()` is not tenant-scoped, and the name does not say so.**
   Despite living next to stancl's tenant-aware `CacheManager`, the `globalCache`

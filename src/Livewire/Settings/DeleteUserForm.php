@@ -9,6 +9,7 @@ use Illuminate\View\View;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Auth\DeleteUserAccount;
 use Nvade\Numerosis\Livewire\Actions\Logout;
+use Nvade\Numerosis\Models\Central\CentralUser;
 
 class DeleteUserForm extends Component
 {
@@ -24,6 +25,17 @@ class DeleteUserForm extends Component
         ]);
 
         $user = Auth::user();
+
+        // Deleting a central account is a central-guard operation, and this
+        // form is only ever reached from the central account pages. Anything
+        // else resolving here (a tenant user, or no user at all once the
+        // session has expired mid-form) must not reach the delete action —
+        // it would either target the wrong table or fatal on null.
+        if (! $user instanceof CentralUser) {
+            $this->addError('password', __('numerosis::auth.failed'));
+
+            return;
+        }
 
         if (DeleteUserAccount::run($user)) {
             $logout();

@@ -21,11 +21,19 @@ use PHPUnit\Framework\Assert as PHPUnit;
  */
 class FakeCheckoutGateway implements CheckoutGateway, ProvisionsTenant
 {
-    /** @var Collection<int, TenantRegistrationData> */
-    private readonly Collection $checkoutsStarted;
+    /**
+     * Not `readonly`: that pins the property to the type of the expression
+     * assigned in the constructor, and `new Collection` infers
+     * `Collection<*NEVER*, *NEVER*>` — which makes every later
+     * `isNotEmpty()` look statically impossible even though `push()`
+     * fills it at runtime.
+     *
+     * @var Collection<int, TenantRegistrationData>
+     */
+    private Collection $checkoutsStarted;
 
     /** @var Collection<int, TenantProvisionData> */
-    private readonly Collection $provisioned;
+    private Collection $provisioned;
 
     public function __construct()
     {
