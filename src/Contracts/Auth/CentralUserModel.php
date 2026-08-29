@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Contracts\Auth;
 
-use Stancl\Tenancy\Contracts\SyncMaster;
+use Nvade\Numerosis\Support\Compat\Tenancy\SyncMaster;
 
 /**
  * @property-read string $global_id

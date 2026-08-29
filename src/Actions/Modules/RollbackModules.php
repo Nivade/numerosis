@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Artisan;
 use InterNACHI\Modular\Support\Facades\Modules;
 use InterNACHI\Modular\Support\ModuleConfig;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Support\Compat\Tenancy\TenantWithDatabase;
 use RuntimeException;
-use Stancl\Tenancy\Contracts\TenantWithDatabase;
 
 /**
  * Rolls back a module's tenant migrations, dropping its tables.

@@ -13,10 +13,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Nvade\Numerosis\Observers\MembershipObserver;
+use Nvade\Numerosis\Support\Compat\Tenancy\TenantPivot;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
-use Stancl\Tenancy\Database\Models\TenantPivot;
 
 /**
  * @property int $id

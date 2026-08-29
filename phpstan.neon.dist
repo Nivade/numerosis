@@ -10,4 +10,10 @@ parameters:
         - database
         - tests
         - workbench
+    # Reflection-only shapes for stancl/tenancy:dev-master symbols the
+    # Support\Compat\Tenancy\* shims reference — not autoloaded, only
+    # installed here so PHPStan can resolve both version branches when only
+    # v3.10.1 is actually present. See the file's own docblock.
+    scanFiles:
+        - .phpstan/stancl-tenancy-dev-master.stub.php
     tmpDir: build/phpstan

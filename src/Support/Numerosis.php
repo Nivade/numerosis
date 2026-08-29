@@ -28,8 +28,8 @@ use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Models\User as NumerosisUser;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
+use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Stancl\Tenancy\Contracts\Tenant;
-use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 use Throwable;
 use WeakMap;
 
@@ -66,7 +66,7 @@ class Numerosis
      * for a test, or for a new application under Octane, is never blocked by
      * a previous one's registration.
      *
-     * @var \WeakMap<Handler, true>|null
+     * @var WeakMap<Handler, true>|null
      */
     private static ?WeakMap $exceptionsRegisteredFor = null;
 
@@ -238,7 +238,7 @@ class Numerosis
         $middleware->alias([
             'invitation.status' => CheckInvitationStatus::class,
             'tenancy.identification' => TenancyServiceProvider::TENANCY_IDENTIFICATION,
-            'tenancy.route' => PreventAccessFromCentralDomains::class,
+            'tenancy.route' => TenancyVersion::preventAccessFromCentralDomainsMiddleware(),
             'tenancy.session' => EnsureSessionMatchesTenant::class,
         ]);
 
@@ -401,7 +401,7 @@ class Numerosis
      */
     public static function exceptions(Exceptions $exceptions): void
     {
-        self::$exceptionsRegisteredFor ??= new WeakMap();
+        self::$exceptionsRegisteredFor ??= new WeakMap;
 
         if (isset(self::$exceptionsRegisteredFor[$exceptions->handler])) {
             return;

@@ -20,6 +20,7 @@ use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Nvade\Numerosis\Testing\CleansUpTenancyDatabases;
 use Nvade\Numerosis\Testing\InteractsWithTenantPanel;
 use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
@@ -30,7 +31,6 @@ use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;
-use Stancl\Tenancy\UUIDGenerator;
 
 abstract class TestCase extends Orchestra
 {
@@ -189,7 +189,7 @@ abstract class TestCase extends Orchestra
         // experiment isn't repeated the same way — see
         // .claude/rules/testing.md for the recorded version.
         $app->make(Repository::class)->set('tenancy.tenant_model', \App\Models\Central\Tenant::class);
-        $app->make(Repository::class)->set('tenancy.id_generator', UUIDGenerator::class);
+        $app->make(Repository::class)->set('tenancy.id_generator', TenancyVersion::uuidGeneratorClass());
         $app->make(Repository::class)->set('tenancy.domain_model', Domain::class);
         $app->make(Repository::class)->set('tenancy.central_user_model', CentralUser::class);
         $app->make(Repository::class)->set('tenancy.tenant_user_model', User::class);

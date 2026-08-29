@@ -18,6 +18,7 @@ use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Override;
 use Stancl\JobPipeline\JobPipeline;
 use Stancl\Tenancy\Events\BootstrappingTenancy;
@@ -40,8 +41,6 @@ use Stancl\Tenancy\Events\RevertedToCentralContext;
 use Stancl\Tenancy\Events\RevertingToCentralContext;
 use Stancl\Tenancy\Events\SavingDomain;
 use Stancl\Tenancy\Events\SavingTenant;
-use Stancl\Tenancy\Events\SyncedResourceChangedInForeignDatabase;
-use Stancl\Tenancy\Events\SyncedResourceSaved;
 use Stancl\Tenancy\Events\TenancyBootstrapped;
 use Stancl\Tenancy\Events\TenancyEnded;
 use Stancl\Tenancy\Events\TenancyInitialized;
@@ -61,7 +60,6 @@ use Stancl\Tenancy\Middleware\InitializeTenancyByDomainOrSubdomain;
 use Stancl\Tenancy\Middleware\InitializeTenancyByPath;
 use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
 use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
-use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 
 class TenancyServiceProvider extends ServiceProvider
@@ -143,12 +141,12 @@ class TenancyServiceProvider extends ServiceProvider
             RevertedToCentralContext::class => [],
 
             // Resource syncing
-            SyncedResourceSaved::class => [
+            TenancyVersion::syncedResourceSavedEventClass() => [
                 UpdateSyncedResource::class,
             ],
 
             // Fired only when a synced resource is changed in a different DB than the origin DB (to avoid infinite loops)
-            SyncedResourceChangedInForeignDatabase::class => [
+            TenancyVersion::syncedResourceChangedInForeignDatabaseEventClass() => [
                 LogSyncedResourceChangedInForeignDatabase::class,
             ],
         ];
@@ -272,7 +270,7 @@ class TenancyServiceProvider extends ServiceProvider
     {
         $tenancyMiddleware = [
             // Even higher priority than the initialization middleware
-            PreventAccessFromCentralDomains::class,
+            TenancyVersion::preventAccessFromCentralDomainsMiddleware(),
 
             InitializeTenancyByDomain::class,
             InitializeTenancyBySubdomain::class,

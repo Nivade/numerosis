@@ -14,8 +14,8 @@ use Nvade\Numerosis\Actions\Tenancy\MarkProvisionFailed;
 use Nvade\Numerosis\Concerns\TagsSentryScopeWithTenant;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
+use Nvade\Numerosis\Support\Compat\Tenancy\TenantWithDatabase;
 use RuntimeException;
-use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Throwable;
 
 class SeedTenantDatabase implements ShouldQueue

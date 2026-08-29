@@ -1321,3 +1321,26 @@ parameters:
 			identifier: deadCode.unreachable
 			count: 1
 			path: tests/Feature/Support/NumerosisSeamTest.php
+
+		# Phase 1 (stancl/tenancy dual-version compat, .claude/rules/stancl-tenancy-v4.md):
+		# Nvade\Numerosis\Models\Central\Tenant implements the conditionally-declared
+		# Support\Compat\Tenancy\TenantWithDatabase, whose v3 branch extends the real
+		# Stancl\Tenancy\Contracts\TenantWithDatabase — genuinely satisfied at runtime,
+		# proven by every test that provisions a tenant through this exact code path.
+		# PHPStan does not carry that nominal chain through to a real, unshimmed vendor
+		# job's constructor (CreateDatabase/MigrateDatabase, both real v3, untouched by
+		# this package) two files away — every other consumer of this shim (this
+		# package's own RollbackModules/MigrateModules/SeedTenantDatabase) type-hints
+		# against the shim directly and is unaffected. Narrower than baselining the shim
+		# itself; revisit if PHPStan's conditional-class-declaration support changes.
+		-
+			message: '#^Parameter \#1 \$tenant of class Stancl\\Tenancy\\Jobs\\CreateDatabase constructor expects Stancl\\Tenancy\\Contracts\\TenantWithDatabase, Nvade\\Numerosis\\Models\\Central\\Tenant given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Support/CloneTenantSchema.php
+
+		-
+			message: '#^Parameter \#1 \$tenant of class Stancl\\Tenancy\\Jobs\\MigrateDatabase constructor expects Stancl\\Tenancy\\Contracts\\TenantWithDatabase, Nvade\\Numerosis\\Models\\Central\\Tenant given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Support/CloneTenantSchema.php

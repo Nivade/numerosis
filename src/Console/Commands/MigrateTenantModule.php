@@ -9,7 +9,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use InterNACHI\Modular\Support\Facades\Modules;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Stancl\Tenancy\Concerns\HasATenantsOption;
+use Nvade\Numerosis\Support\Compat\Tenancy\HasTenantOptions;
 use Stancl\Tenancy\Events\DatabaseMigrated;
 use Stancl\Tenancy\Events\MigratingDatabase;
 
@@ -23,7 +23,7 @@ use Stancl\Tenancy\Events\MigratingDatabase;
 #[Signature('tenants:migrate-module {module}')]
 class MigrateTenantModule extends Command
 {
-    use HasATenantsOption;
+    use HasTenantOptions;
 
     public function handle(): int
     {

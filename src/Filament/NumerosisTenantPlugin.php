@@ -43,7 +43,7 @@ use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
-use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
+use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 
 /**
  * The complete tenant panel: its resources, tenant-domain routing, guard and
@@ -179,7 +179,7 @@ class NumerosisTenantPlugin implements Plugin
             // a central-domain request reaching these routes runs on past
             // identification with no tenant, and later middleware that
             // assumes one throws rather than 404ing.
-            PreventAccessFromCentralDomains::class,
+            TenancyVersion::preventAccessFromCentralDomainsMiddleware(),
             EncryptCookies::class,
             AddQueuedCookiesToResponse::class,
             StartSession::class,

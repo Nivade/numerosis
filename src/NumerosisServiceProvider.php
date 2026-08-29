@@ -78,9 +78,9 @@ use Nvade\Numerosis\Support\Defaults\NotifiesTenantOwnerDirectly;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 class NumerosisServiceProvider extends PackageServiceProvider
 {
@@ -381,7 +381,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         Route::aliasMiddleware('invitation.status', CheckInvitationStatus::class);
         Route::aliasMiddleware('tenancy.identification', TenancyServiceProvider::TENANCY_IDENTIFICATION);
-        Route::aliasMiddleware('tenancy.route', PreventAccessFromCentralDomains::class);
+        Route::aliasMiddleware('tenancy.route', TenancyVersion::preventAccessFromCentralDomainsMiddleware());
         Route::aliasMiddleware('tenancy.session', EnsureSessionMatchesTenant::class);
 
         Route::middlewareGroup('tenant', [

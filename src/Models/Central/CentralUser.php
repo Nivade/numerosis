@@ -27,10 +27,10 @@ use Nvade\Numerosis\Models\SocialiteLogin;
 use Nvade\Numerosis\Models\Tenant as Workspace;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Observers\CentralUserObserver;
+use Nvade\Numerosis\Support\Compat\Tenancy\ResourceSyncing;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
-use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 
 /**
  * @property int $id

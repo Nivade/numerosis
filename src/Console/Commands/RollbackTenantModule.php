@@ -9,13 +9,13 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use InterNACHI\Modular\Support\Facades\Modules;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Stancl\Tenancy\Concerns\HasATenantsOption;
+use Nvade\Numerosis\Support\Compat\Tenancy\HasTenantOptions;
 
 #[Description('Roll back migrations for a tenant module')]
 #[Signature('tenants:rollback-module {module}')]
 class RollbackTenantModule extends Command
 {
-    use HasATenantsOption;
+    use HasTenantOptions;
 
     public function handle(): int
     {

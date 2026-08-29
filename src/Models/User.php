@@ -20,9 +20,9 @@ use Nvade\Numerosis\Database\Factories\UserFactory;
 use Nvade\Numerosis\Support\Compat\FilamentHasTenantsContract;
 use Nvade\Numerosis\Support\Compat\FilamentUserContract;
 use Nvade\Numerosis\Support\Compat\HasOneTimePasswordsIfInstalled;
+use Nvade\Numerosis\Support\Compat\Tenancy\Syncable;
 use Override;
 use Spatie\Permission\Traits\HasRoles;
-use Stancl\Tenancy\Contracts\Syncable;
 
 /**
  * @property int $id

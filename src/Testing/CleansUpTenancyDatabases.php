@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Stancl\Tenancy\Contracts\TenantWithDatabase;
+use Nvade\Numerosis\Support\Compat\Tenancy\TenantWithDatabase;
 use Throwable;
 
 /**

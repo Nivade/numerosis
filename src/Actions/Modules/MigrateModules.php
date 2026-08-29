@@ -8,9 +8,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Artisan;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Models\Tenant\Module;
+use Nvade\Numerosis\Support\Compat\Tenancy\TenantWithDatabase;
 use Nvade\Numerosis\Support\Numerosis;
 use RuntimeException;
-use Stancl\Tenancy\Contracts\TenantWithDatabase;
 
 class MigrateModules implements ShouldQueue
 {
