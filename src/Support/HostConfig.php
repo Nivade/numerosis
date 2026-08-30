@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Support;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
+use Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -14,6 +15,7 @@ use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
+use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
 use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
 
@@ -43,6 +45,8 @@ final class HostConfig
         self::tenancyModels();
         self::centralDomains();
         self::tenancyBootstrappers();
+        self::tenancyIdentificationMiddleware();
+        self::cacheTenancyStores();
         self::tenantMigrationParameters();
         self::tenantSeederParameters();
         self::livewireDiskExclusion();
@@ -170,9 +174,79 @@ final class HostConfig
     }
 
     /**
-     * Adds the package's tenant migrations to whatever paths are already
-     * configured, keeping yours. `--realpath` is forced on, since the added
-     * path is absolute.
+     * dev-master ("v4") derives a route's tenant/central/universal mode from
+     * `tenancy.identification.middleware` (and, for the access-prevention
+     * skip logic, `.domain_identification_middleware`) — an exact-string
+     * `in_array()` check against stancl's own middleware classes
+     * (`Concerns\DealsWithRouteContexts::routeHasMiddleware()`). This
+     * package's `TENANCY_IDENTIFICATION` constant is a subclass
+     * ({@see InitializeTenancyByDomainOrSubdomain}), not the class stancl's
+     * stub lists, so every route wired with it silently fails that check —
+     * `getRouteMode()` falls through to `tenancy.default_route_mode`
+     * (`RouteMode::CENTRAL`), and `PreventAccessFromUnwantedDomains` then
+     * 404s any tenant-domain request as "central route from a tenant
+     * domain". v3 has no route-mode concept at all, so this is a
+     * dev-master-only gap; a no-op on v3 since neither config key exists
+     * there for `Config::array()` to find.
+     */
+    private static function tenancyIdentificationMiddleware(): void
+    {
+        if (! TenancyVersion::isDevMaster()) {
+            return;
+        }
+
+        foreach (['identification.middleware', 'identification.domain_identification_middleware'] as $suffix) {
+            $key = 'tenancy.'.$suffix;
+
+            /** @var list<class-string> $middleware */
+            $middleware = Config::array($key, []);
+
+            if (! in_array(InitializeTenancyByDomainOrSubdomain::class, $middleware, true)) {
+                self::set($key, [...$middleware, InitializeTenancyByDomainOrSubdomain::class]);
+            }
+        }
+    }
+
+    /**
+     * dev-master's `CacheTenancyBootstrapper::getCacheStores()` hard-throws
+     * ("Cache store [array] is not supported by this bootstrapper.") the
+     * moment `tenancy.cache.stores` names a store whose driver is `array` —
+     * v3's equivalent has no such check. That list defaults to
+     * `[env('CACHE_STORE')]` in stancl's own stub, so a host that actually
+     * sets `CACHE_STORE=array` (a real choice — `.claude/rules/tenant-caching.md`
+     * already treats `database` as unsupported for the same
+     * not-taggable reason, and `array` has no persistence to tag either)
+     * gets a boot-time crash instead of the graceful "nothing to prefix"
+     * degradation the rest of this package relies on for every other cache
+     * store this bootstrapper skips (`null`/`file`). Filtering `array`
+     * stores out here trades cache-tenancy isolation for that store (there
+     * was none to have — `array` never persists across requests) for a
+     * host that boots instead of crashing.
+     */
+    private static function cacheTenancyStores(): void
+    {
+        if (! TenancyVersion::isDevMaster()) {
+            return;
+        }
+
+        /** @var list<string|null> $stores */
+        $stores = Config::array('tenancy.cache.stores', []);
+
+        $filtered = array_values(array_filter(
+            $stores,
+            fn (?string $store): bool => $store !== null && Config::string("cache.stores.{$store}.driver", '') !== 'array',
+        ));
+
+        if ($filtered !== $stores) {
+            self::set('tenancy.cache.stores', $filtered);
+        }
+    }
+
+    /**
+     * Adds the package's tenant migrations — plus any registered via
+     * {@see Numerosis::addTenantMigrationPath()} — to whatever paths are
+     * already configured, keeping yours. `--realpath` is forced on, since
+     * the added paths are absolute.
      */
     private static function tenantMigrationParameters(): void
     {
@@ -182,12 +256,13 @@ final class HostConfig
         $paths = $parameters['--path'] ?? [];
         $paths = is_array($paths) ? array_values($paths) : [];
 
-        $vendorPath = Numerosis::tenantMigrationPath();
         $changed = false;
 
-        if (! in_array($vendorPath, $paths, true)) {
-            $paths[] = $vendorPath;
-            $changed = true;
+        foreach (Numerosis::tenantMigrationPaths() as $vendorPath) {
+            if (! in_array($vendorPath, $paths, true)) {
+                $paths[] = $vendorPath;
+                $changed = true;
+            }
         }
 
         if (($parameters['--realpath'] ?? null) !== true) {

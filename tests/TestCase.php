@@ -292,6 +292,17 @@ abstract class TestCase extends Orchestra
         // gets the same treatment for the same reason.
         $app->make(Repository::class)->set('cache.default', 'array');
 
+        // dev-master only: CacheTenancyBootstrapper::getCacheStores() throws
+        // ("Cache store [array] is not supported by this bootstrapper.") the
+        // moment it tries to scope a cache-backed session whose driver is
+        // `array` — v3's equivalent bootstrapper has no such check. Every
+        // test entering tenant context hits this, since `session.driver`
+        // above is always `array` here. No key on v3 (harmless no-op there,
+        // see .claude/rules/stancl-tenancy-v4.md); this package's tests
+        // exercise tenant *cache* scoping directly, never session scoping,
+        // so turning it off costs nothing.
+        $app->make(Repository::class)->set('tenancy.cache.scope_sessions', false);
+
         $app->make(Repository::class)->set('filesystems.disks.local', [
             'driver' => 'local',
             'root' => storage_path('app/private'),

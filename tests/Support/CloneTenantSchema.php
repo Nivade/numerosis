@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Nvade\Numerosis\Jobs\SeedTenantDatabase;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Support\Compat\Tenancy\TenantWithDatabase;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
-use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Jobs\CreateDatabase;
 use Stancl\Tenancy\Jobs\MigrateDatabase;
 

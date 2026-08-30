@@ -6,9 +6,11 @@ namespace Nvade\Numerosis\Livewire\Tenant\Registration\Steps;
 
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Validate;
+use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
+use Override;
 use Spatie\LivewireWizard\Components\StepComponent;
 
-class CompanyInfo extends StepComponent
+class CompanyInfo extends StepComponent implements ProvidesTenantIdentity
 {
     #[Validate('required|string|max:255')]
     public string $company_name = '';
@@ -18,6 +20,12 @@ class CompanyInfo extends StepComponent
         $this->validate();
 
         $this->nextStep();
+    }
+
+    #[Override]
+    public function tenantIdentityStateKeys(): array
+    {
+        return ['company_name'];
     }
 
     public function render(): View

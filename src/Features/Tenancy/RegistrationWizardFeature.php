@@ -6,7 +6,9 @@ namespace Nvade\Numerosis\Features\Tenancy;
 
 use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
+use LogicException;
 use Nvade\Numerosis\Contracts\NamedFeature;
+use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
 use Nvade\Numerosis\Livewire\Tenant as Tenants;
 
 /**
@@ -20,6 +22,31 @@ class RegistrationWizardFeature implements NamedFeature
 {
     public const NAME = 'registration_wizard';
 
+    /**
+     * Alias each shipped step registers under, and the view file that alias
+     * resolves to. `Steps\Payment` is deliberately absent: its natural alias
+     * (`payment`) collides with Cashier's own published
+     * `resources/views/vendor/cashier/payment.blade.php`
+     * (`.claude/rules/billing-checkout.md`), so it keeps resolving by its
+     * full FQCN instead — Livewire supports that with no `addComponent()`
+     * call at all. Deriving every alias as `Str::kebab(class_basename($step))`
+     * in a naive loop is exactly what would reintroduce that collision
+     * (`.claude/plans/memoized-tinkering-meadow.md`'s Phase 4.2) — this map
+     * is the fix, not an oversight to "complete" later.
+     *
+     * A host-supplied step (added to `numerosis.tenancy.registration.steps`
+     * but not in this map) is not auto-registered here — the package only
+     * knows the view path for steps it ships. Register your own component
+     * for it before adding it to that config key.
+     *
+     * @var array<class-string, string>
+     */
+    private const SHIPPED_STEP_ALIASES = [
+        Tenants\Registration\Steps\CompanyInfo::class => 'company-info',
+        Tenants\Registration\Steps\TechnicalSetup::class => 'technical-setup',
+        Tenants\Registration\Steps\Plan::class => 'plan',
+    ];
+
     public static function featureName(): string
     {
         return self::NAME;
@@ -29,25 +56,52 @@ class RegistrationWizardFeature implements NamedFeature
     {
         $viewsPath = Config::string('numerosis.views.path');
 
+        /** @var list<class-string> $steps */
+        $steps = Config::array('numerosis.tenancy.registration.steps');
+
+        $this->assertAStepProvidesTenantIdentity($steps);
+
         Livewire::addComponent(
             name: 'tenant-registration',
             viewPath: $viewsPath.'/livewire/tenant/registration/wizard/index.blade.php',
             class: Tenants\Registration\Registration::class,
         );
-        Livewire::addComponent(
-            name: 'plan',
-            viewPath: $viewsPath.'/livewire/tenant/registration/wizard/steps/plan.blade.php',
-            class: Tenants\Registration\Steps\Plan::class,
-        );
-        Livewire::addComponent(
-            name: 'technical-setup',
-            viewPath: $viewsPath.'/livewire/tenant/registration/wizard/steps/technical-setup.blade.php',
-            class: Tenants\Registration\Steps\TechnicalSetup::class,
-        );
-        Livewire::addComponent(
-            name: 'company-info',
-            viewPath: $viewsPath.'/livewire/tenant/registration/wizard/steps/company-info.blade.php',
-            class: Tenants\Registration\Steps\CompanyInfo::class,
+
+        foreach ($steps as $step) {
+            if (! isset(self::SHIPPED_STEP_ALIASES[$step])) {
+                continue;
+            }
+
+            $alias = self::SHIPPED_STEP_ALIASES[$step];
+
+            Livewire::addComponent(
+                name: $alias,
+                viewPath: $viewsPath.'/livewire/tenant/registration/wizard/steps/'.$alias.'.blade.php',
+                class: $step,
+            );
+        }
+    }
+
+    /**
+     * A step list with no identity source still renders a working wizard —
+     * the missing identifier/display name only surfaces once
+     * `ProvisionTenant`'s queued chain tries to build the tenant, far from
+     * whoever misconfigured this key. Fail here instead.
+     *
+     * @param  list<class-string>  $steps
+     */
+    private function assertAStepProvidesTenantIdentity(array $steps): void
+    {
+        foreach ($steps as $step) {
+            if (is_subclass_of($step, ProvidesTenantIdentity::class)) {
+                return;
+            }
+        }
+
+        throw new LogicException(
+            'numerosis.tenancy.registration.steps must include at least one step implementing '
+            .ProvidesTenantIdentity::class.', or the provisioning pipeline has no source for '
+            .'the tenant\'s identifier or display name.'
         );
     }
 }

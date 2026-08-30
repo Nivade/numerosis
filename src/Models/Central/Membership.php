@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Nvade\Numerosis\Observers\MembershipObserver;
+use Nvade\Numerosis\Support\Compat\Tenancy\PivotWithCentralResource;
 use Nvade\Numerosis\Support\Compat\Tenancy\TenantPivot;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
@@ -44,7 +45,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
 ])]
 #[Table(name: 'memberships')]
 #[ObservedBy(MembershipObserver::class)]
-class Membership extends TenantPivot
+class Membership extends TenantPivot implements PivotWithCentralResource
 {
     use CentralConnection;
 
@@ -58,6 +59,16 @@ class Membership extends TenantPivot
             'invited_at' => 'datetime',
             'joined_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The central-side resource this pivot syncs — `CentralUser`, never
+     * `Tenant`. Satisfies `PivotWithCentralResource` on dev-master; a no-op
+     * declaration on v3, which has no such interface to satisfy.
+     */
+    public function getCentralResourceClass(): string
+    {
+        return Numerosis::model(CentralUser::class);
     }
 
     /**

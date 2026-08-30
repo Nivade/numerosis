@@ -10,6 +10,7 @@ use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Notification;
+use Nvade\Numerosis\Actions\Billing\SyncTenantToStripe;
 use Nvade\Numerosis\Notifications\Billing\PaymentFailed;
 use Nvade\Numerosis\Notifications\Billing\TenantSuspended;
 use Nvade\Numerosis\Tests\TestCase;
@@ -33,6 +34,19 @@ class WebhookControllerLifecycleTest extends TestCase
         // VerifyWebhookSignature is bound at controller construction time,
         // so it has to be off before that happens.
         config(['cashier.webhook.secret' => null]);
+
+        // Tenant::save() is no longer event-suppressed (see
+        // tenantWithStripeCustomer() below — dev-master's DatabaseTenancyBootstrapper
+        // now eagerly checks the tenant database exists, so CreateDatabase
+        // must actually run), which means the real `TenantSaved` ->
+        // SyncTenantToStripeOnSave -> SyncTenantToStripe chain fires for any
+        // tenant with a stripe_id. `Bus::fake()` doesn't reach it — laravel-actions
+        // dispatches a `JobDecorator` wrapper, not `SyncTenantToStripe`
+        // itself, so a class-keyed queue fake never matches. Use the
+        // package's own fake instead, which mocks `handle()` directly.
+        // `configureJob()` also has to be stubbed — `JobDecorator` calls it
+        // unconditionally on every dispatch, mock or not.
+        SyncTenantToStripe::mock()->shouldReceive('handle', 'configureJob')->andReturnNull();
     }
 
     /**
@@ -40,8 +54,6 @@ class WebhookControllerLifecycleTest extends TestCase
      */
     private function tenantWithStripeCustomer(string $customerId): array
     {
-        Tenant::unsetEventDispatcher();
-
         $owner = CentralUser::factory()->create();
         $tenant = Tenant::factory()->create(['stripe_id' => $customerId]);
         $tenant->users()->attach($owner->global_id, ['role' => 'owner']);

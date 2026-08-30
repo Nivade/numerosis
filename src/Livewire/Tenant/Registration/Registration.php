@@ -5,15 +5,13 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Livewire\Tenant\Registration;
 
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\TechnicalSetup;
 use Nvade\Numerosis\Support\State\RegistrationState;
 use Override;
 use Spatie\LivewireWizard\Components\WizardComponent;
@@ -75,16 +73,18 @@ class Registration extends WizardComponent
     }
 
     /**
+     * Mirrors `numerosis.tenancy.provisioning.steps`'s nesting deliberately —
+     * see that key's docblock in `config/numerosis.php`. Default is the
+     * same four steps this method used to hardcode.
+     *
      * @return list<class-string<Component>>
      */
     public function steps(): array
     {
-        return [
-            CompanyInfo::class,
-            TechnicalSetup::class,
-            Plan::class,
-            Payment::class,
-        ];
+        /** @var list<class-string<Component>> $steps */
+        $steps = Config::array('numerosis.tenancy.registration.steps');
+
+        return $steps;
     }
 
     #[Override]

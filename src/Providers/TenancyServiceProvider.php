@@ -178,6 +178,16 @@ class TenancyServiceProvider extends ServiceProvider
      * would write to one namespace while invalidation cleared another, so a
      * domain change would appear not to take effect. Bound as a singleton so
      * the resolver and its invalidators share one store.
+     *
+     * `CachedTenantResolver::__construct()`'s own signature changed between
+     * versions, not just its body: v3 takes `Contracts\Cache\Factory $cache`
+     * directly (why this package builds its own `new CacheManager($app)` —
+     * v3 never resolves `globalCache` itself); dev-master takes
+     * `Contracts\Foundation\Application $app` and resolves `globalCache`
+     * internally (`$app->make('globalCache')->store(...)`), i.e. it already
+     * does what this package's own `CacheManager` construction exists for.
+     * Passing our own `CacheManager` to dev-master's constructor is a
+     * `TypeError`, not silently wrong — see `.claude/rules/stancl-tenancy-v4.md`.
      */
     protected function registerCachedDomainResolver(): void
     {
@@ -186,12 +196,14 @@ class TenancyServiceProvider extends ServiceProvider
         // in from its own booting() callback — registered earlier, so it runs
         // first. Nothing reads the flag until a request resolves a domain.
         $this->app->booting(function (): void {
-            DomainTenantResolver::$shouldCache = self::shouldCacheResolvedTenants();
+            TenancyVersion::setResolverShouldCache(DomainTenantResolver::class, self::shouldCacheResolvedTenants());
         });
 
         $this->app->singleton(
             DomainTenantResolver::class,
-            fn (Application $app) => new DomainTenantResolver(new CacheManager($app)),
+            fn (Application $app) => TenancyVersion::isDevMaster()
+                ? new DomainTenantResolver($app)
+                : new DomainTenantResolver(new CacheManager($app)),
         );
     }
 

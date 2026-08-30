@@ -8,14 +8,22 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
+use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Rules\DomainIsAvailable;
+use Override;
 use Spatie\LivewireWizard\Components\StepComponent;
 
-class TechnicalSetup extends StepComponent
+class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
 {
     public string $domain = '';
+
+    #[Override]
+    public function tenantIdentityStateKeys(): array
+    {
+        return ['domain'];
+    }
 
     /**
      * wire:model.blur.live only syncs the value to the server; it does not

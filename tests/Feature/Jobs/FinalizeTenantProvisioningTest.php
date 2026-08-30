@@ -18,7 +18,7 @@ it('assigns admin role to the first non-bot user and ignores bots', function () 
     ]);
 
     // Run migrations for the tenant
-    Artisan::call('tenants:migrate', ['--tenants' => $tenant->id]);
+    Artisan::call('tenants:migrate', ['--tenants' => [$tenant->id]]);
 
     $tenant->run(function () use ($tenant) {
         // Create the 'admin' role in tenant context
@@ -56,7 +56,7 @@ it('fails if only bots exist', function () {
         'id' => 'bot-only-tenant-'.uniqid(),
     ]);
 
-    Artisan::call('tenants:migrate', ['--tenants' => $tenant->id]);
+    Artisan::call('tenants:migrate', ['--tenants' => [$tenant->id]]);
 
     $tenant->run(function () use ($tenant) {
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'tenant']);

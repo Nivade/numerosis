@@ -51,11 +51,17 @@ jobs:
         php: [8.5, 8.4]
         laravel: [13.*]
         stability: [prefer-stable]
+        # Two legs: stable v3 (what every ordinary host resolves to) and
+        # dev-master (v4 — reachable only by a host that opts into
+        # minimum-stability: dev, see .claude/rules/stancl-tenancy-v4.md).
+        # dev-master needs stancl/jobpipeline:2.0.0-rc7 too — it's a hard
+        # require of dev-master itself, not this package's choice.
+        stancl: ['^3.10', 'dev-master']
         include:
           - laravel: 13.*
             testbench: 11.*
 
-    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - stancl:${{ matrix.stancl }} - ${{ matrix.os }}
 
     steps:
       - name: Checkout code
@@ -74,10 +80,18 @@ jobs:
           echo "::add-matcher::${{ runner.tool_cache }}/php.json"
           echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
-      - name: Install dependencies
+      - name: Install dependencies (stancl/tenancy stable leg)
+        if: matrix.stancl != 'dev-master'
         run: |
-          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "stancl/tenancy:${{ matrix.stancl }}" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: Install dependencies (stancl/tenancy dev-master leg)
+        if: matrix.stancl == 'dev-master'
+        run: |
+          composer config minimum-stability dev
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "stancl/tenancy:dev-master" "stancl/jobpipeline:2.0.0-rc7" --no-interaction --no-update
+          composer update --prefer-stable --prefer-dist --no-interaction
 
       - name: List Installed Dependencies
         run: composer show -D

@@ -29,6 +29,15 @@ final class Features
     private static ?array $nameMap = null;
 
     /**
+     * Features contributed via {@see self::register()}, kept separate from
+     * `config('numerosis.features')` so a second package can add itself
+     * without the host editing that array by hand.
+     *
+     * @var list<class-string<Feature>>
+     */
+    private static array $registered = [];
+
+    /**
      * @return list<class-string<Feature>>
      */
     public static function all(): array
@@ -40,7 +49,34 @@ final class Features
         /** @var list<class-string<Feature>> $features */
         $features = Config::array('numerosis.features');
 
-        return $features;
+        return array_values(array_unique([...$features, ...self::$registered]));
+    }
+
+    /**
+     * Register a feature outside `config('numerosis.features')` — the seam
+     * a second package uses to contribute its own {@see Feature} without the
+     * host having to edit that array. Duplicate registration (or a class
+     * already listed in config) is a no-op, not a second `bootstrap()` call.
+     *
+     * @param  class-string<Feature>  $feature
+     */
+    public static function register(string $feature): void
+    {
+        if (! in_array($feature, self::$registered, true)) {
+            self::$registered[] = $feature;
+            self::$nameMap = null;
+        }
+    }
+
+    /**
+     * Clears {@see self::register()} contributions. For tests only — a real
+     * host/package registers once and it lives for the application's
+     * lifetime.
+     */
+    public static function resetRegisteredForTesting(): void
+    {
+        self::$registered = [];
+        self::$nameMap = null;
     }
 
     /**

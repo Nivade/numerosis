@@ -54,6 +54,19 @@ class Numerosis
 
     public static ?Closure $registerMiddlewareCallback = null;
 
+    /**
+     * Set through {@see self::addCentralRoutes()} / {@see self::addTenantRoutes()}.
+     * Each runs inside the same domain/middleware group {@see self::routes()}
+     * already opens for its own route files — a second package can register
+     * routes without reproducing that wiring.
+     *
+     * @var list<Closure(): void>
+     */
+    private static array $extraCentralRouteCallbacks = [];
+
+    /** @var list<Closure(): void> */
+    private static array $extraTenantRouteCallbacks = [];
+
     private static bool $routesRegistered = false;
 
     private static bool $authRoutesEnabled = true;
@@ -167,10 +180,59 @@ class Numerosis
 
             Route::middleware('web')
                 ->domain($domain)
-                ->group($routes.'/web.php');
+                ->group(function () use ($routes): void {
+                    require $routes.'/web.php';
+
+                    foreach (self::$extraCentralRouteCallbacks as $callback) {
+                        $callback();
+                    }
+                });
         }
 
-        Route::middleware('tenant')->group($routes.'/tenant.php');
+        Route::middleware('tenant')->group(function () use ($routes): void {
+            require $routes.'/tenant.php';
+
+            foreach (self::$extraTenantRouteCallbacks as $callback) {
+                $callback();
+            }
+        });
+    }
+
+    /**
+     * Register central-domain routes alongside `routes/web.php`, without
+     * reproducing {@see self::routes()}'s per-domain loop. The callback runs
+     * once per configured central domain, inside that domain's own
+     * `Route::middleware('web')->domain($domain)` group — so a route added
+     * here is bound to the same hostnames the package's own central routes
+     * are, automatically.
+     *
+     * {@see self::registerRoutesUsing()} bypasses this entirely, since it
+     * replaces {@see self::routes()} wholesale.
+     */
+    public static function addCentralRoutes(Closure $callback): void
+    {
+        self::$extraCentralRouteCallbacks[] = $callback;
+    }
+
+    /**
+     * Register tenant routes alongside `routes/tenant.php`, inside the same
+     * `Route::middleware('tenant')` group. See {@see self::addCentralRoutes()}.
+     */
+    public static function addTenantRoutes(Closure $callback): void
+    {
+        self::$extraTenantRouteCallbacks[] = $callback;
+    }
+
+    /**
+     * Clears route contributions registered via {@see self::addCentralRoutes()}
+     * / {@see self::addTenantRoutes()}. For tests only — a real host registers
+     * these once and they live for the application's lifetime, same as
+     * {@see self::$registerRoutesCallback}.
+     */
+    public static function resetRouteContributionsForTesting(): void
+    {
+        self::$extraCentralRouteCallbacks = [];
+        self::$extraTenantRouteCallbacks = [];
     }
 
     /**
@@ -334,6 +396,74 @@ class Numerosis
     public static function tenantMigrationPath(): string
     {
         return dirname(__DIR__, 2).'/database/migrations/tenant';
+    }
+
+    /**
+     * Additional tenant migration paths registered via
+     * {@see self::addTenantMigrationPath()}, kept separate from this
+     * package's own so {@see self::tenantMigrationPath()} keeps answering
+     * "where are the package's tenant migrations", not "all of them".
+     *
+     * @var list<string>
+     */
+    private static array $extraTenantMigrationPaths = [];
+
+    /**
+     * Register a second tenant migration path — for a satellite package
+     * shipping its own tenant-database tables. `HostConfig` appends every
+     * registered path (this one plus {@see self::tenantMigrationPath()})
+     * to `tenancy.migration_parameters['--path']`, the same array a host's
+     * own path already lives in.
+     */
+    public static function addTenantMigrationPath(string $path): void
+    {
+        self::$extraTenantMigrationPaths[] = $path;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function tenantMigrationPaths(): array
+    {
+        return [self::tenantMigrationPath(), ...self::$extraTenantMigrationPaths];
+    }
+
+    /**
+     * Extra tenant seeders registered via {@see self::addTenantSeeder()}.
+     *
+     * @var list<class-string<\Illuminate\Database\Seeder>>
+     */
+    private static array $extraTenantSeeders = [];
+
+    /**
+     * Register a seeder to run after `TenantDatabaseSeeder`'s own
+     * `PermissionAndRoleSeeder`/`UserSeeder` calls, for a satellite package
+     * seeding its own tenant tables — without a host needing to publish and
+     * edit `TenantDatabaseSeeder` itself.
+     *
+     * @param  class-string<\Illuminate\Database\Seeder>  $seeder
+     */
+    public static function addTenantSeeder(string $seeder): void
+    {
+        self::$extraTenantSeeders[] = $seeder;
+    }
+
+    /**
+     * @return list<class-string<\Illuminate\Database\Seeder>>
+     */
+    public static function tenantSeeders(): array
+    {
+        return self::$extraTenantSeeders;
+    }
+
+    /**
+     * Clears {@see self::addTenantMigrationPath()} / {@see self::addTenantSeeder()}
+     * contributions. For tests only — see {@see self::resetRouteContributionsForTesting()}.
+     */
+    public static function resetMigrationAndSeederContributionsForTesting(): void
+    {
+        self::$extraTenantMigrationPaths = [];
+        self::$extraTenantSeeders = [];
     }
 
     /**

@@ -8,11 +8,19 @@ updated: 2026-08-29
 
 - **This repo has no Sail, and `CLAUDE.md`'s `vendor/bin/sail …` instructions do not apply to it.** `laravel/sail` appears nowhere in `composer.lock` and there is no `vendor/bin/sail`; the guidelines block in `CLAUDE.md` is inherited from the saas-m host app this package was extracted from. Here it is Testbench plus a single `docker-compose.yml` MySQL service, and the commands are run on the host:
 
+  - formatting — `vendor/bin/pint` (run **first**, see below)
   - tests — `php -d memory_limit=1G vendor/bin/pest --compact` (or `composer test`)
   - one file/filter — `vendor/bin/pest --compact --filter=SomeTest`
   - static analysis — see `.claude/rules/static-analysis.md` (needs a `tmpDir` override)
-  - formatting — `vendor/bin/pint`
   - MySQL must be up: `docker compose ps` should show `numerosis-mysql-1` healthy
+
+  **Run Pint before Pest, not after.** Pint rewrites files (`class_definition`,
+  `fully_qualified_strict_types`, `braces_position`, `single_line_empty_body`,
+  …) — if the suite runs first, a Pint pass afterward can silently change the
+  files a green run just checked, and that run is no longer evidence for the
+  code on disk. Running Pint first means whatever Pest then executes is
+  exactly what gets committed; no second test run needed to re-cover
+  Pint's own edits.
 
   Anywhere below that still says `sail exec laravel.test …`, read it as "run this inside whatever gives you a shell next to MySQL" — the diagnostic SQL and the process-hunting are still right, the wrapper is not.
 

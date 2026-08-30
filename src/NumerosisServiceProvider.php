@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Nvade\Numerosis\Actions\Auth\AuthenticateLoginCandidate;
@@ -221,6 +222,12 @@ class NumerosisServiceProvider extends PackageServiceProvider
         Factory::guessModelNamesUsing(fn (Factory $factory): string => Numerosis::modelNameFor($factory::class));
 
         foreach (Features::all() as $feature) {
+            if (! class_exists($feature)) {
+                Log::warning("Numerosis: configured feature [{$feature}] does not exist; skipping.");
+
+                continue;
+            }
+
             $this->app->make($feature)->bootstrap();
         }
 

@@ -32,7 +32,7 @@ class ProfileSyncTest extends TestCase
     public function test_profile_update_syncs_to_central(): void
     {
         $tenant = Tenant::factory()->create([
-            'id' => 'test'.uniqid('', true),
+            'id' => 'test'.str_replace('.', '', uniqid('', true)),
         ]);
 
         $centralUser = CentralUser::factory()->create([
@@ -73,7 +73,7 @@ class ProfileSyncTest extends TestCase
     public function test_password_update_syncs_to_central(): void
     {
         $tenant = Tenant::factory()->create([
-            'id' => 'test'.uniqid('', true),
+            'id' => 'test'.str_replace('.', '', uniqid('', true)),
         ]);
 
         $centralUser = CentralUser::factory()->create([

@@ -70,6 +70,26 @@ class FreshHostTest extends Orchestra
 
     private ?string $provisionedTenantDatabase = null;
 
+    /**
+     * The real `putenv()` calls in `setUp()` below never got reversed —
+     * `forgetMemoizedEnvironmentRepository()` only resets Laravel's own
+     * cached view of the environment, not the process environment itself,
+     * so `CACHE_STORE=array`/`QUEUE_CONNECTION=sync` silently stayed real
+     * for the rest of the PHP process once this test had run once. Under
+     * v3 nothing downstream cared; on `stancl/tenancy:dev-master`,
+     * `CacheTenancyBootstrapper` rejects an `array`-driver store outright,
+     * so *every* later test in the same process that enters tenant context
+     * started throwing "Cache store [array] is not supported by this
+     * bootstrapper." — order-dependent, only after this test had run.
+     * `$envKeysSet` records exactly the keys this test's `setUp()` put into
+     * the real environment, so `tearDown()` can `putenv($key)` (unset form)
+     * and clear `$_ENV`/`$_SERVER` for each, undoing the leak rather than
+     * only its symptom.
+     *
+     * @var list<string>
+     */
+    private array $envKeysSet = [];
+
     protected function getPackageProviders($app): array
     {
         return [NumerosisServiceProvider::class];
@@ -139,6 +159,7 @@ class FreshHostTest extends Orchestra
             putenv("{$key}={$value}");
             $_ENV[$key] = $value;
             $_SERVER[$key] = $value;
+            $this->envKeysSet[] = $key;
         }
 
         // The physical database has to exist before Laravel can even connect
@@ -197,6 +218,13 @@ class FreshHostTest extends Orchestra
         // every other test in the suite.
         $pdo = new PDO('mysql:host=127.0.0.1;port=3306', 'root', 'root');
         $pdo->exec('DROP DATABASE IF EXISTS `'.self::DB_DATABASE.'`');
+
+        // Undo the real putenv() calls setUp() made, not just Laravel's
+        // cached view of them — see $envKeysSet's docblock.
+        foreach ($this->envKeysSet as $key) {
+            putenv($key);
+            unset($_ENV[$key], $_SERVER[$key]);
+        }
 
         // Same reset on the way out, so this test's own env does not become
         // the stale `$loaded` state that breaks whichever test boots next.

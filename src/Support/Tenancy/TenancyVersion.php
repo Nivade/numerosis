@@ -70,4 +70,39 @@ final class TenancyVersion
             ? \Stancl\Tenancy\ResourceSyncing\Events\SyncedResourceSavedInForeignDatabase::class
             : \Stancl\Tenancy\Events\SyncedResourceChangedInForeignDatabase::class;
     }
+
+    /**
+     * `Resolvers\Contracts\CachedTenantResolver::$shouldCache` (v3, a plain
+     * public static bool, settable directly) became `shouldCache(): bool`
+     * (dev-master, a method reading
+     * `tenancy.identification.resolvers.<class>.cache` — not settable at
+     * all). dev-master's own stub already declares that key for
+     * `DomainTenantResolver`/`PathTenantResolver`, so a normal dotted
+     * `Config::set()` is safe here — unlike `HostConfig::apply()`'s writes,
+     * this only ever runs from a `booting()` callback, after every
+     * provider's `register()` (and therefore stancl's own
+     * `mergeConfigFrom()`) has already run, so there is no parent-array
+     * auto-vivification to guard against. `$resolverClass` must be the exact
+     * class dev-master's config keys against (`DomainTenantResolver::class`),
+     * not a string it constructs itself.
+     */
+    public static function setResolverShouldCache(string $resolverClass, bool $enabled, int $ttlSeconds = 3600): void
+    {
+        if (self::isDevMaster()) {
+            \Illuminate\Support\Facades\Config::set("tenancy.identification.resolvers.{$resolverClass}.cache", $enabled);
+            \Illuminate\Support\Facades\Config::set("tenancy.identification.resolvers.{$resolverClass}.cache_ttl", $ttlSeconds);
+
+            return;
+        }
+
+        $resolverClass::$shouldCache = $enabled;
+    }
+
+    /** @param class-string<\Stancl\Tenancy\Resolvers\DomainTenantResolver> $resolverClass */
+    public static function resolverShouldCache(string $resolverClass): bool
+    {
+        return self::isDevMaster()
+            ? $resolverClass::shouldCache()
+            : $resolverClass::$shouldCache;
+    }
 }

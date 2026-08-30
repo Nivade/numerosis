@@ -13,6 +13,7 @@ use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
+use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Nvade\Numerosis\Tests\TestCase;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 use stdClass;
@@ -473,8 +474,8 @@ class InstallNumerosisCommandTest extends TestCase
      */
     public function test_it_warns_when_the_tenant_resolver_cache_is_off(): void
     {
-        $original = DomainTenantResolver::$shouldCache;
-        DomainTenantResolver::$shouldCache = false;
+        $original = TenancyVersion::resolverShouldCache(DomainTenantResolver::class);
+        TenancyVersion::setResolverShouldCache(DomainTenantResolver::class, false);
         Config::set('cache.serializable_classes', false);
 
         try {
@@ -482,15 +483,15 @@ class InstallNumerosisCommandTest extends TestCase
                 ->expectsOutputToContain('resolver cache is disabled')
                 ->assertSuccessful();
         } finally {
-            DomainTenantResolver::$shouldCache = $original;
+            TenancyVersion::setResolverShouldCache(DomainTenantResolver::class, $original);
         }
     }
 
     /** @verifies verifyTenantResolverCache */
     public function test_it_says_nothing_about_the_resolver_cache_when_a_host_turned_it_off_deliberately(): void
     {
-        $original = DomainTenantResolver::$shouldCache;
-        DomainTenantResolver::$shouldCache = false;
+        $original = TenancyVersion::resolverShouldCache(DomainTenantResolver::class);
+        TenancyVersion::setResolverShouldCache(DomainTenantResolver::class, false);
         Config::set('numerosis.tenancy.cache_resolved_tenants', false);
 
         try {
@@ -498,7 +499,7 @@ class InstallNumerosisCommandTest extends TestCase
                 ->doesntExpectOutputToContain('resolver cache is disabled')
                 ->assertSuccessful();
         } finally {
-            DomainTenantResolver::$shouldCache = $original;
+            TenancyVersion::setResolverShouldCache(DomainTenantResolver::class, $original);
         }
     }
 

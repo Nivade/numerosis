@@ -1344,3 +1344,34 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: tests/Support/CloneTenantSchema.php
+
+		# Phase 2 (stancl/tenancy dual-version compat, .claude/rules/stancl-tenancy-v4.md):
+		# these three all sit inside a `TenancyVersion::isDevMaster()` branch that only
+		# ever executes when dev-master is the real installed version — but PHPStan
+		# analyses whichever version composer.json actually resolved for this run (here,
+		# stable v3.10.1), so it checks the dev-master branch's calls against v3's real,
+		# differently-shaped classes: v3's InitializeTenancyByDomainOrSubdomain has no
+		# `__construct` at all (so `parent::__construct()` is "undefined"), v3's
+		# DomainTenantResolver takes `Cache\Factory` not `Application`, and v3's
+		# `$shouldCache` is a public property, not a `shouldCache()` method. Each is
+		# genuinely correct on dev-master and dead code on v3 — not a real defect on
+		# either leg. Re-verify by running PHPStan a second time with `dev-master`
+		# actually installed (swap composer.json, see this session's own working notes)
+		# rather than assuming these three are still accurate after either shim changes.
+		-
+			message: '#^Call to an undefined static method Stancl\\Tenancy\\Middleware\\InitializeTenancyByDomainOrSubdomain\:\:__construct\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: src/Http/Middleware/InitializeTenancyByDomainOrSubdomain.php
+
+		-
+			message: '#^Parameter \#1 \$cache of class Stancl\\Tenancy\\Resolvers\\DomainTenantResolver constructor expects Illuminate\\Contracts\\Cache\\Factory, Illuminate\\Contracts\\Foundation\\Application given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Providers/TenancyServiceProvider.php
+
+		-
+			message: '#^Call to an undefined static method Stancl\\Tenancy\\Resolvers\\DomainTenantResolver\:\:shouldCache\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: src/Support/Tenancy/TenancyVersion.php

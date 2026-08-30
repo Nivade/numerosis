@@ -23,6 +23,7 @@ use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
+use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use ReflectionProperty;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 
@@ -549,7 +550,7 @@ class InstallNumerosisCommand extends Command
      */
     private function verifyTenantResolverCache(): void
     {
-        if (DomainTenantResolver::$shouldCache) {
+        if (TenancyVersion::resolverShouldCache(DomainTenantResolver::class)) {
             return;
         }
 

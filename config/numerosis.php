@@ -48,6 +48,10 @@ use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
 use Nvade\Numerosis\Features\Ui\AdminPanelFeature;
 use Nvade\Numerosis\Features\Ui\MarketingPagesFeature;
 use Nvade\Numerosis\Features\Ui\TenantPanelFeature;
+use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
+use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
+use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
+use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\TechnicalSetup;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
@@ -789,6 +793,36 @@ return [
             'steps' => [
                 CreateTenantAction::class,
                 AddTenantOwner::class,
+            ],
+        ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Registration Wizard Steps
+        |----------------------------------------------------------------------
+        |
+        | Read by Registration::steps() — the ordered list of step
+        | components the self-serve signup wizard walks through. Nested
+        | under 'tenancy' to mirror 'provisioning.steps' above deliberately,
+        | not under a top-level 'registration' key.
+        |
+        | A step this package does not ship its own view for is not
+        | auto-registered by RegistrationWizardFeature — register your own
+        | Livewire component for it first (see that class's docblock).
+        |
+        | At least one step in this list must implement
+        | Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity, or
+        | RegistrationWizardFeature refuses to boot — CreateTenant has no
+        | source for the tenant's identifier/display name otherwise.
+        |
+        */
+
+        'registration' => [
+            'steps' => [
+                CompanyInfo::class,
+                TechnicalSetup::class,
+                Plan::class,
+                Payment::class,
             ],
         ],
 

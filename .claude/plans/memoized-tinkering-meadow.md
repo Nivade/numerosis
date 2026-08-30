@@ -8,11 +8,14 @@
 > — read both before starting, they are not summaries of this file, they carry
 > facts this file only references.
 >
-> **Status 2026-08-29: Phase 0, 0.3, and 1 (1.1/1.2/1.3) are all done and
-> both gates are green** (0 failed / 7 skipped / 584 passed; PHPStan 0
-> outside a 218-entry baseline). Phases 2–8 are untouched. Start at Phase 2
-> (widen the constraint, add the CI matrix) or Phase 3/4 (can run in
-> parallel with 2).
+> **Status 2026-08-30: Phases 0, 0.3, 1, 2, 3, and 4 are all done.** Both
+> `stancl/tenancy` matrix legs pass their test suites (v3.10.1: 589 passed,
+> 7 skipped, 1 pre-existing unrelated failure; dev-master: 590 passed, 7
+> skipped, 0 failed); PHPStan is clean on the stable leg (0 outside a
+> 221-entry baseline) but **not yet clean on dev-master** — tracked as a
+> follow-up in Phase 2's own section, not blocking. Phases 5–8 are
+> untouched. Start at Phase 5 (identification modes) or Phase 6 (package
+> map decision, no code, can happen anytime).
 >
 > **Re-audit result:** every structural claim in Phases 1, 3, 4, 6 and 7 was
 > re-verified against the code and holds, line numbers included. Both baselines
@@ -349,7 +352,263 @@ beyond the nine above, something else moved; re-run the symbol diff in
 
 ---
 
-## Phase 2 — widen the constraint, add the CI matrix
+## Phase 2 — widen the constraint, add the CI matrix ✅ DONE (2026-08-30)
+
+**Both matrix legs are green. Measured on branch `package-scope-reduction`:**
+
+| | v3.10.1 (stable) | dev-master |
+|---|---|---|
+| `php -d memory_limit=1G vendor/bin/pest --compact` | 1 failed (pre-existing, unrelated — see below), 7 skipped, 589 passed | 0 failed, 7 skipped, 590 passed |
+| PHPStan (`tmpDir` invocation) | 0 errors outside baseline (218 → 221 entries) | not clean — see "PHPStan on dev-master" below, tracked as follow-up, not blocking |
+| `vendor/bin/pint --dirty` | passes | — |
+
+`composer.json` is back to the real target constraint,
+`"stancl/tenancy": "^3.10 || dev-master"`, with no `minimum-stability`/
+`stancl/jobpipeline` pinned at the root — those only apply inside the
+dev-master CI leg (`.github/workflows/run-tests.yml`, done in 2.2) or a
+host that opts in per the top-of-file dev-master block.
+
+### 2.3/2.4 — what was actually wrong, beyond the prior session's list
+
+The prior session (handoff below, kept for the mechanism) had already found
+and fixed 8 real dev-master incompatibilities and landed at 24 failures
+seen once, un-reproduced. Resuming from a fresh measurement found **21**
+failures on that same uncommitted tree, all newly diagnosed this session:
+
+1. **`InitializeTenancyByDomainOrSubdomain`'s own constructor never called
+   `parent::__construct()`.** On dev-master this leaves `$tenancy`/
+   `$resolver` — typed properties promoted by the real parent
+   (`InitializeTenancyByDomain`) — uninitialized, throwing the moment
+   `parent::handle()` touches them. But v3's version of the same class has
+   **no constructor at all** (a standalone dispatcher, not a subclass), so
+   calling `parent::__construct()` unconditionally is *itself* fatal on
+   v3 ("Cannot call constructor") — this is a real per-version shape
+   difference, not the same bug on both legs. Fixed by gating the
+   `parent::__construct()` call on `TenancyVersion::isDevMaster()`.
+2. **`HostConfig` never added this package's identification middleware
+   subclass to dev-master's own `tenancy.identification.middleware` /
+   `.domain_identification_middleware` config.** dev-master derives a
+   route's tenant/central/universal mode from an exact-string
+   `in_array()` check against those two arrays
+   (`Concerns\DealsWithRouteContexts::routeHasMiddleware()`); this
+   package's middleware is a subclass, not the literal class stancl's
+   stub lists, so every tenant-panel route silently fell through to
+   `RouteMode::CENTRAL` and 404'd as "central route from a tenant
+   domain". New `HostConfig::tenancyIdentificationMiddleware()`, no-op on
+   v3 (neither key exists there).
+3. **dev-master's `CacheTenancyBootstrapper` hard-throws on any
+   `array`-driver store named in `tenancy.cache.stores`** (defaults to
+   `[env('CACHE_STORE')]`), which `FreshHostTest` hits for real — v3's
+   bootstrapper has no such check. New `HostConfig::cacheTenancyStores()`
+   filters `array`-driver entries out; no-op on v3 and a no-op whenever
+   the store isn't actually `array`.
+4. **`Tenant::unsetEventDispatcher()` (used by several tests to skip
+   provisioning overhead) now silently produces a tenant with no physical
+   database on dev-master**, because dev-master's
+   `DatabaseTenancyBootstrapper` eagerly checks `databaseExists()` before
+   every `tenancy()->initialize()` — v3 doesn't. `EnsureTenantSubscriptionActiveTest`
+   (calls `$tenant->run()` directly) and
+   `WebhookControllerLifecycleTest::tenantWithStripeCustomer()` (reached
+   indirectly through `ReconcileModuleSubscriptionItems`) both stopped
+   disabling events, so `CreateDatabase`/`CloneTenantSchema` actually run.
+5. That fix's own side effect: with events no longer suppressed, the real
+   `TenantSaved` → `SyncTenantToStripeOnSave` → `SyncTenantToStripe` chain
+   fired for any tenant with a `stripe_id`, hitting the real Stripe API
+   with a dummy test key. `Bus::fake([SyncTenantToStripe::class])`
+   **does not catch this** — laravel-actions dispatches a `JobDecorator`
+   wrapper, not the action class itself, so a class-keyed queue fake never
+   matches. Fixed with the package's own fake,
+   `SyncTenantToStripe::mock()->shouldReceive('handle', 'configureJob')->andReturnNull()`
+   (both methods need stubbing — `JobDecorator` calls `configureJob()`
+   unconditionally on every dispatch).
+6. **`tests/Feature/Listeners/Tenancy/LogSyncedResourceChangedInForeignDatabaseTest.php`**
+   hardcoded the v3-only event class directly (`use Stancl\Tenancy\Events\SyncedResourceChangedInForeignDatabase`)
+   instead of resolving through `TenancyVersion::syncedResourceChangedInForeignDatabaseEventClass()`
+   — the same class of bug `.claude/rules/tenant-registration-wizard.md`
+   already documents for hardcoded values in test setup.
+7. **`Artisan::call('tenants:migrate', ['--tenants' => $tenant->id])`**
+   (two sites in `FinalizeTenantProvisioningTest`) passed a bare string for
+   an option Symfony declares `InputOption::VALUE_IS_ARRAY`. Under
+   dev-master's `HasTenantOptions::getTenants()` this reaches
+   `$query->whereIn($key, $this->option('tenants'))` with a string, not an
+   array, throwing `count(): Argument #1 must be of type Countable|array,
+   string given`. Fixed by passing `[$tenant->id]`.
+
+None of these seven were in the prior session's list — all found via
+`Bus::fake`/`TenancyVersion`-style tracing rather than assumed. Also fixed,
+found by PHPStan rather than the test suite:
+
+8. **`src/Livewire/Tenant/Registration/Registration.php`** referenced bare
+   `Plan::class` after a concurrent Phase 4 edit (same working tree, not
+   this session's own work) removed the `use ...Steps\Plan;` import —
+   resolved to the wrong FQCN silently (no fatal, since `::class` on an
+   unqualified name never triggers autoload), so `stateToPersist()`'s
+   Stripe-secret-stripping never ran. Real bug, unrelated to tenancy
+   version; fixed by restoring the import.
+
+### PHPStan on dev-master — not clean, follow-up not this session's scope
+
+Running the `tmpDir` invocation with dev-master actually installed reports
+errors beyond the stable-leg baseline. Some are the same
+"PHPStan analyses whichever version is really installed, and a
+`TenancyVersion::isDevMaster()`-gated branch reads as wrong when the
+*other* version is installed" class already documented for the reverse
+direction (three new baseline entries added below, for the stable leg).
+Getting dev-master's own leg to `0 outside baseline` needs a **second,
+dev-master-specific baseline** (or the reflection-stub mechanism extended
+significantly) — not attempted this session; CI's dev-master leg
+(`.github/workflows/run-tests.yml`) currently runs tests only, not
+PHPStan, so this doesn't block the matrix from being useful. Treat "both
+PHPStan runs clean" in this phase's original verification line as still
+open.
+
+### Three new deliberate baseline entries (stable leg)
+
+Same shape as `static-analysis.md`'s existing two: code that's correct on
+dev-master and unreachable on v3, checked by PHPStan against v3's real,
+differently-shaped classes because that's what's actually installed when
+the baseline was generated. All three sit inside a
+`TenancyVersion::isDevMaster()` branch:
+
+- `InitializeTenancyByDomainOrSubdomain::__construct()`'s
+  `parent::__construct()` call (v3's real parent has none)
+- `TenancyServiceProvider`'s dev-master branch of
+  `registerCachedDomainResolver()` (checked against v3's real
+  `DomainTenantResolver` constructor, which takes `Cache\Factory` not
+  `Application`)
+- `TenancyVersion::resolverShouldCache()`'s `$resolverClass::shouldCache()`
+  call (v3's real class has no such static method)
+
+A fourth dev-master-only symbol, `Stancl\Tenancy\ResourceSyncing\PivotWithCentralResource`,
+could not go in the baseline at all — PHPStan reports `interface.notFound`
+as **non-ignorable**. Added to `.phpstan/stancl-tenancy-dev-master.stub.php`
+instead (safe: v3 has no `ResourceSyncing` namespace at all, so there's no
+real class to conflict with).
+
+### Two new host-config rows
+
+`docs/host-requirements.md` §2 gained rows for
+`tenancy.identification.middleware` / `.domain_identification_middleware`
+and `tenancy.cache.stores`, both dev-master-only — `tests/Feature/Docs/HostRequirementsTest.php`
+enforces every `HostConfig::applied()` key has a row, and both new
+`HostConfig` methods above trip it.
+
+**Checkpoint result: both matrix legs pass their test suites. Proceed to
+Phase 3/4 (already done, see below) or Phase 5.**
+
+---
+
+## Phase 2 (prior-session handoff, kept for the mechanism — historical)
+
+> `composer.json` sat on `dev-master` forced (not the final
+> `"^3.10 || dev-master"`) mid-investigation; that has since been restored.
+>
+> 2.2 (CI matrix in `.github/workflows/run-tests.yml`, two-leg `stancl`
+> axis) was done and committed-worthy in that session — still true.
+>
+> 2.3 (make the dev-master leg green) was **in progress, not done**. Real
+> bugs found and fixed in that session, all now confirmed still correct
+> and still in the working tree:
+> - `src/Concerns/HasGlobalIdentity.php` — dev-master's `ResourceSyncing`
+>   trait now declares `getGlobalIdentifierKeyName()`/`getGlobalIdentifierKey()`
+>   itself (v3's didn't), fatal trait-collision with this trait in
+>   `CentralUser`/`Tenant\User`. Made version-conditional (empty on
+>   dev-master).
+> - `src/Providers/TenancyServiceProvider.php` — `CachedTenantResolver::
+>   __construct()` signature changed (`Cache\Factory $cache` on v3 vs
+>   `Application $app` on dev-master, which resolves `globalCache`
+>   internally). Added `TenancyVersion::isDevMaster()` branch in
+>   `registerCachedDomainResolver()`.
+> - `src/Support/Tenancy/TenancyVersion.php` — added
+>   `setResolverShouldCache()`/`resolverShouldCache()`, since
+>   `DomainTenantResolver::$shouldCache` (v3 public static property) became
+>   `shouldCache(): bool` reading `tenancy.identification.resolvers.<class>.cache`
+>   on dev-master. Updated the two call sites
+>   (`TenancyServiceProvider.php`, `InstallNumerosisCommand.php`) and the
+>   two `InstallNumerosisCommandTest.php` tests that poked the property
+>   directly.
+> - `tests/Support/CloneTenantSchema.php` — was importing raw
+>   `Stancl\Tenancy\Contracts\TenantWithDatabase` (v3-only) instead of the
+>   `Support\Compat\Tenancy\TenantWithDatabase` shim — the 6th
+>   `TenantWithDatabase` site Phase 1.1's table missed (only found 5 +
+>   the declaration site).
+> - `src/Support/Compat/Tenancy/PivotWithCentralResource.php` (new file) +
+>   `src/Models/Central/Membership.php` — dev-master's `TenantPivot` now
+>   throws `CentralResourceNotAvailableInPivotException` when attached from
+>   the tenant side (`$tenant->users()->attach($user)`, used by ~35 test
+>   call sites) rather than the central side. `Membership` now implements
+>   the (shimmed) `PivotWithCentralResource` interface with
+>   `getCentralResourceClass(): string` returning `CentralUser`, which
+>   makes both directions work rather than rewriting every test call site.
+> - `tests/TestCase.php` — dev-master's `CacheTenancyBootstrapper` throws
+>   on an `array`-driver cache store (v3's didn't check). Test harness
+>   pins `cache.default`/`session.driver` to `array`, so every tenant-context
+>   test hit this. Added `tenancy.cache.scope_sessions = false` (no-op key
+>   on v3).
+> - `tests/Feature/FreshHostTest.php` — its `putenv()` calls (setting
+>   `CACHE_STORE=array` etc for its own scenario) were never actually
+>   reversed in `tearDown()` (only Laravel's *cached* view of env was
+>   reset via `Env::enablePutenv()`, not the real process env) — so once
+>   this test ran once in a process, `CACHE_STORE=array` silently became
+>   real/global for every later test, which is what surfaced the
+>   `CacheTenancyBootstrapper` bug above process-wide rather than just in
+>   this one test. Added `$envKeysSet` tracking + real `putenv($key)`
+>   (unset form) + `unset($_ENV[$key], $_SERVER[$key])` in `tearDown()`.
+> - `src/Models/Tenant/User.php` + `src/Models/Central/CentralUser.php` —
+>   added `getCreationAttributes()` overrides (`[...getSyncedAttributeNames(), getGlobalIdentifierKeyName()]`).
+>   Root cause: dev-master's `UpdateOrCreateSyncedResource` listener
+>   creates the counterpart record via `$model::withoutEvents(fn () =>
+>   $model::create($this->parseCreationAttributes($event->model)))` —
+>   `withoutEvents` suppresses the `creating` hook that would otherwise
+>   auto-generate `global_id`, and the default `getCreationAttributes()`
+>   (= `getSyncedAttributeNames()`) never included `global_id` in the
+>   first place — so a central/tenant record created *by the sync path*
+>   (not directly) got `global_id = null`, and this package's own
+>   `LogSyncedResourceChangedInForeignDatabase` listener threw a
+>   `TypeError` reading it straight back off the model. This is the
+>   "is_bot-column crash… re-test against `UpdateOrCreateSyncedResource` +
+>   `ParsesCreationAttributes`" item 2.4 called for — turned out to be a
+>   *different* symptom (`global_id` null) than the original bug, not the
+>   original bug recurring.
+> - `tests/Feature/ProfileSyncTest.php` — two `'id' => 'test'.uniqid('',
+>   true)` sites produced dots in the tenant id (`uniqid` with
+>   `more_entropy=true`), which dev-master's new
+>   `ValidatesDatabaseParameters` rejects (`Forbidden character '.' in
+>   parameter`) — v3 had no such validation. Fixed by stripping the dot.
+>
+> **Confirmed NOT dev-master-related, left alone:**
+> `tests/Feature/Filament/Admin/RegisterTenantTest.php`'s
+> `assertSee('livewire.js', ...)` fails identically under a clean v3
+> install too (verified by temporarily swapping `composer.json` back and
+> re-running just that filter) — Livewire's asset filename is
+> `livewire.min.js`/hashed now, unrelated to tenancy version. Pre-existing
+> breakage, not in scope here, don't waste time on it again.
+>
+> **Last full run before the interrupt**: 24 failed / 7 skipped / 566
+> passed, trending down each fix (was 90+ failed at the start of hunting).
+> The `testing` MySQL database needed `DROP DATABASE; CREATE DATABASE …`
+> between several of these runs — it kept ending up half-migrated
+> (0 or ~8 stock tables only) after fatal-error runs; see
+> `.claude/rules/testing.md`'s recovery recipe if this recurs. **Next
+> step: rerun the full suite fresh (`docker compose exec -T mysql mysql
+> -uroot -proot -e "DROP DATABASE IF EXISTS testing; CREATE DATABASE
+> testing CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"` then `php -d
+> memory_limit=1G vendor/bin/pest --compact`) against the *current*
+> dev-master install to see what's left of the 24, then fix or triage each
+> before declaring 2.3 done.** After that: 2.4 (re-verify `JobPipeline`
+> vs `2.0.0-rc7` calling convention — not yet checked this session, only
+> the sync-listener half of 2.4 was); then restore the real `^3.10 ||
+> dev-master` constraint, re-verify the **stable** leg is still green
+> (should be — all fixes above are additive/version-branched, but hasn't
+> been re-run since `HasGlobalIdentity`/`PivotWithCentralResource`
+> landed), run PHPStan on both, then commit.
+>
+> Nothing here was committed. `git status`/`git diff` shows every change
+> above, uncommitted, in the working tree — check it's all still there
+> before resuming, and check for the other agents' Phase 3/4 work
+> (`src/Support/Numerosis.php`, `src/Support/Features.php`,
+> `tests/Feature/Support/PackageContributionSeamsTest.php`, etc — also
+> uncommitted) that shares this same working tree; don't clobber it.
 
 **2.1** — `composer.json`: `"stancl/tenancy": "^3.10 || dev-master"`.
 
@@ -398,11 +657,50 @@ does **not** need the rewrite the old plan scheduled — check
 
 ---
 
-## Phase 3 — contribution seams
+## Phase 3 — contribution seams ✅ DONE (2026-08-29)
 
-Additive, independently testable, and required before any code moves to a
-second package. Rationale and the full trap list:
-`.claude/rules/package-boundaries.md`.
+**All three seams landed. New test file
+`tests/Feature/Support/PackageContributionSeamsTest.php` (6 tests) proves
+each is actually reached; `--filter=PackageContributionSeamsTest` and
+`--filter=HostConfigTest` (38 tests) both green, `ArchTest` green, PHPStan 0
+new errors in any touched/new file (verified with the `tmpDir` invocation).
+Full-suite run was not usable to re-verify globally at landing time — a
+concurrent Phase 2 edit to `TenancyServiceProvider.php`
+(`CachedTenantResolver`'s dev-master branch) was mid-flight in the same
+working tree and threw an unrelated `TypeError` across ~130 unrelated tests;
+confirmed unrelated by filtering to the specific suites this phase touches.**
+
+- **3.1 Routes.** `Numerosis::addCentralRoutes(Closure)` /
+  `addTenantRoutes(Closure)` (`src/Support/Numerosis.php`). Each callback
+  runs inside `routes()`'s existing groups — central ones once per
+  configured central domain, under that domain's own
+  `Route::middleware('web')->domain($domain)` group, tenant ones under the
+  single `Route::middleware('tenant')` group — by switching those groups
+  from `->group($file)` to `->group(function () { require $file; foreach
+  ($callbacks as $cb) { $cb(); } })`. `registerRoutesUsing()` still replaces
+  `routes()` wholesale and bypasses this entirely.
+  `resetRouteContributionsForTesting()` clears both lists for tests; a real
+  host registers once and it lives for the app's lifetime, same as
+  `$registerRoutesCallback`.
+- **3.2 Features.** `Features::register(class-string<Feature>)` appends to
+  a package-contributed list, separate from `config('numerosis.features')`;
+  `Features::all()` returns the deduplicated union. Duplicate registration
+  is a no-op. `NumerosisServiceProvider::packageBooted()`'s feature-boot
+  loop now does `class_exists($feature)` before `$this->app->make($feature)`
+  and logs a warning + `continue`s on a missing class, rather than a hard
+  boot failure — `Log::warning(...)`, import added.
+  `Features::resetRegisteredForTesting()` for tests.
+- **3.3 Migration paths + seed data.** `Numerosis::addTenantMigrationPath(string)`
+  appends to a list `tenantMigrationPaths()` returns alongside the
+  package's own `tenantMigrationPath()`; `HostConfig::tenantMigrationParameters()`
+  now loops that list instead of appending the single vendor path. Same
+  shape for seed data: `Numerosis::addTenantSeeder(class-string<Seeder>)` /
+  `tenantSeeders()`, and `TenantDatabaseSeeder::run()` calls
+  `$this->call(Numerosis::tenantSeeders())` after its own two seeders — a
+  satellite package's tenant tables get seeded without publishing/editing
+  that file. `resetMigrationAndSeederContributionsForTesting()` for tests.
+
+Original Phase 3 brief, kept for reference:
 
 **3.1 — Routes.** `Numerosis::routes()`'s own docblock says "there is no hook
 to append to the defaults", and the central group is not reproducible from
@@ -431,9 +729,58 @@ feature / migration path is actually reached, plus the existing suite green.
 
 ---
 
-## Phase 4 — config-driven wizard steps
+## Phase 4 — config-driven wizard steps ✅ DONE (2026-08-29)
 
 Independent of Phases 1–3; can run in parallel with them.
+
+**Status: 4.1/4.2/4.3 all landed.** `php -l` clean on every changed file,
+`pint` passes. **Full suite not re-verified after landing** — at the time
+this phase finished, Phase 2/3 work running concurrently in the same working
+tree had `CentralUser` in a broken state (`Trait method
+Nvade\Numerosis\Support\Compat\Tenancy\ResourceSyncing::getGlobalIdentifierKeyName
+has not been applied ... because of collision with
+Nvade\Numerosis\Concerns\HasGlobalIdentity::getGlobalIdentifierKeyName`),
+unrelated to any Phase 4 file. **Before trusting Phase 4 green, run:**
+
+```bash
+vendor/bin/pest --compact --filter="Registration|Wizard|CompanyInfo|TechnicalSetup"
+php -d memory_limit=1G vendor/bin/pest --compact   # full suite, once Phase 2/3 lands
+```
+
+What landed:
+
+- **4.1** — `Registration::steps()` (`src/Livewire/Tenant/Registration/Registration.php`)
+  reads `Config::array('numerosis.tenancy.registration.steps')` instead of a
+  hardcoded array. New key added under `tenancy` in `config/numerosis.php`,
+  nested to mirror `tenancy.provisioning.steps` (not top-level
+  `numerosis.registration.steps`, which the original plan text said and this
+  file already flagged as wrong). Default unchanged:
+  `[CompanyInfo, TechnicalSetup, Plan, Payment]`.
+- **4.2** — `RegistrationWizardFeature::bootstrap()` (`src/Features/Tenancy/RegistrationWizardFeature.php`)
+  now loops the configured step list against a `SHIPPED_STEP_ALIASES` map
+  (`company-info`, `technical-setup`, `plan`) instead of four hardcoded
+  `Livewire::addComponent()` calls. `Payment` is deliberately **not** in the
+  map — it keeps resolving by its full FQCN, avoiding the `payment` alias
+  collision with Cashier's own published `payment.blade.php`
+  (`.claude/rules/billing-checkout.md`) that a naive
+  `Str::kebab(class_basename($step))` loop would have reintroduced. A
+  host-supplied step present in config but absent from the map is skipped —
+  the package only auto-registers steps it ships a view for.
+  `getCurrentStepState()`'s `livewire.finder`-based alias resolution
+  (already fixed pre-Phase-4, see `.claude/rules/tenant-registration-wizard.md`)
+  is untouched and still correct regardless of alias source.
+- **4.3** — New `Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity`
+  (`tenantIdentityStateKeys(): array` — wizard-state field name(s) a step
+  contributes). `CompanyInfo` implements it returning `['company_name']`,
+  `TechnicalSetup` returning `['domain']`. `RegistrationWizardFeature::bootstrap()`
+  asserts at least one configured step implements it and throws
+  `LogicException` at boot if not — before this, a misconfigured step list
+  with no identity source would only surface as a missing tenant
+  name/domain deep inside the queued `ProvisionTenant` chain. The contract
+  is declarative only in this pass — nothing yet rewires
+  `TechnicalSetup::continue()`/`Plan::continue()`'s hand-written
+  `$this->state()->get('company_name')` / `get('domain')` lookups to read
+  through it; that's a follow-up, not required by this phase's plan text.
 
 **4.1** — `Registration::steps()` (`src/Livewire/Tenant/Registration/Registration.php:80`)
 reads `config('numerosis.tenancy.registration.steps')` instead of its
@@ -653,10 +1000,10 @@ check that proves the split composes; per-package suites do not.
 0  baseline repair            ── ✅ DONE 2026-08-29 (suite + PHPStan green)
 0.3 reopened migration fixes  ── ✅ DONE 2026-08-29
 1  compat layers (v3 only)    ── ✅ DONE 2026-08-29 (1.1/1.2/1.3 all landed)
-2  constraint + CI matrix     ── depends on 1; next up
-3  contribution seams         ── depends on 0;  can run beside 1/2
-4  wizard step config         ── depends on 0;  can run beside 1/2/3
-5  identification modes       ── depends on 2 and 1.2
+2  constraint + CI matrix     ── ✅ DONE 2026-08-30 (both legs green; dev-master PHPStan is a tracked follow-up)
+3  contribution seams         ── ✅ DONE 2026-08-29
+4  wizard step config         ── ✅ DONE 2026-08-30 (re-verified green now Phase 2/3 landed)
+5  identification modes       ── depends on 2 and 1.2; next up
 6  package map agreed         ── decision gate, no code
 7  scaffold + move            ── depends on 3, 6
 8  docs + verification        ── depends on 7

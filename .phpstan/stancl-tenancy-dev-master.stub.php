@@ -125,6 +125,11 @@ namespace Stancl\Tenancy\ResourceSyncing {
     }
 
     class TenantPivot extends \Illuminate\Database\Eloquent\Relations\Pivot {}
+
+    interface PivotWithCentralResource
+    {
+        public function getCentralResourceClass(): string;
+    }
 }
 
 namespace Stancl\Tenancy\ResourceSyncing\Events {
