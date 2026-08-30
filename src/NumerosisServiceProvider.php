@@ -19,7 +19,6 @@ use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\Middleware\TrustHosts;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -250,12 +249,6 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // views. Livewire cannot discover package classes on its own.
         Livewire::addComponent(name: 'billing.checkout', class: Checkout::class);
         Livewire::addComponent(name: 'settings.delete-user-form', class: DeleteUserForm::class);
-
-        // Lucide icons this package's views use that Flux does not ship.
-        // Registered after Flux's own paths, so yours still take precedence.
-        $this->app->booted(function (): void {
-            Blade::anonymousComponentPath(__DIR__.'/../resources/views/flux', 'flux');
-        });
 
         // Tenant migrations run per-tenant, never centrally. Publish them
         // only to customize one; tenancy config points at the package copy.

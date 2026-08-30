@@ -16,6 +16,7 @@ One line per file, under ~150 chars. Update index when rules file add/rename/rem
 - [filament-tenancy.md](filament-tenancy.md) — Filament tenancy + stancl's share no state; `{tenant}` route param null in tests, not routing bug.
 - [optional-dependencies.md](optional-dependencies.md) — `implements`/`use trait` resolve eagerly (unlike method type-hints); `Support\Compat\*` pattern to make one genuinely optional.
 - [module-marketplace.md](module-marketplace.md) — stale module registry on long-running queue workers; `$tenant->run()` no try/finally, manage tenancy manually for webhook-triggered code.
+- [package-split.md](package-split.md) — doing the split: one view namespace, two packages; scanning tests go vacuous, not red; grep decides leaf contents.
 - [package-boundaries.md](package-boundaries.md) — no route/feature/migration-path contribution seams; core→Filament edges incl. one latent cycle; one 847-line config names every feature area.
 - [package-host-bootstrap.md](package-host-bootstrap.md) — `Domains.php` can't call facades; host `bootstrap/app.php`/`providers.php` staleness; `HostConfig::apply()` register-vs-booting race truncating `tenancy.database`.
 - [stancl-tenancy-v4.md](stancl-tenancy-v4.md) — no v4 tag, dev-master needs host stability flags; 11 moved symbols (9 eager) + 4 moved config keys; docs wrong on 3 points.

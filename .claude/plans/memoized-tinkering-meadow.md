@@ -1171,13 +1171,65 @@ tenant side carries an upgrade migration with no central counterpart.
 
 ## Phase 7 — scaffold and move
 
-Only after Phase 6 is agreed and Phase 3's seams exist.
+**In progress. `numerosis-ui` is extracted and green (2026-08-30);
+four packages remain.** Mechanism learned doing it is in
+`.claude/rules/package-split.md` — read that before the next one.
 
-**7.1** — Four repos under `~/repos/private/numerosis-split/`, each on the
+**Two decisions changed the plan text below**, both taken with the
+maintainer: the satellites live as **siblings in `~/repos/private/`**, not in
+a `numerosis-split/` wrapper; and 7.1/7.2 run **one package at a time**
+(scaffold, move, green on its own, then re-verify core on both matrix legs)
+rather than scaffolding all five first. The slice ordering paid for itself
+immediately — see the `layouts`/`partials` correction below, which would
+otherwise have been baked into four more packages before anyone noticed.
+
+### 7.1/7.2 — numerosis-ui ✅ DONE (2026-08-30)
+
+`~/repos/private/numerosis-ui`, wired into core through a `path` repository
+with `symlink: true`, discovered normally via `extra.laravel.providers`.
+`livewire/flux` moved out of core's `require` into it.
+
+**Contents are narrower than D4 said, on evidence.** `resources/views/layouts`
+and `resources/views/partials` were moved and moved straight back: they name
+`Nvade\Numerosis\Support\{Numerosis,Features,Routes\RouteNames}`,
+`Models\Central\CentralUser`, and call `tenancy()`, so a leaf package
+shipping them would depend on core — the one property `numerosis-ui` exists
+to have. It holds `components/ui`, `components/icons`, `flux`, and
+`placeholder-pattern` (pulled in because `ui/card` renders it), and pins that
+property with a test of its own.
+
+**Zero view-reference edits**, because the package registers
+`->hasViews('numerosis')` — the same namespace core uses. `addNamespace()`
+appends rather than replaces, so both packages serve it.
+
+Two things this surfaced that the remaining four will hit as well:
+
+- **A directory-scanning test goes vacuous, not red, when what it guards
+  moves.** The suite stayed at 615 passed while assertions fell 5561 → 5325.
+  `DesignLanguageGuardTest`/`RegisteredComponentTagsTest` now enumerate paths
+  from `FileViewFinder::getHints()['numerosis']` instead of one hardcoded
+  directory, so they stay correct as further packages split out. **Diff the
+  assertion count on every future move, not just the pass count.**
+- **The Testbench harness overrides package registration**, because
+  `getEnvironmentSetUp()` runs after every provider registers. It set
+  `livewire.component_namespaces` as a whole array; setting the dotted key
+  instead preserves siblings and lets the owning package's registration
+  stand.
+
+Verified after: core 1 failed (the known `livewire.js` one) / 7 skipped /
+**615 passed, 5564 assertions** on **both** matrix legs, PHPStan 0 outside
+baseline on both, and `numerosis-ui`'s own suite 4 passed standalone.
+
+### Remaining: numerosis-filament, -onboarding, -auth-ui, -modules
+
+Original brief, still accurate for those four:
+
+**7.1** — Each repo on the
 `spatie/laravel-package-tools` skeleton this repo uses
 (`NumerosisServiceProvider::configurePackage()` is the template). Each
 `composer.json` requires `numerosis` through a `path` repository pointing at
 this repo, so all five compose and test locally without publishing.
+`numerosis-ui/composer.json` is now the worked example of that wiring.
 
 **History:** `git subtree split` preserves file-level blame and is worth it
 for numerosis-filament and numerosis-onboarding. Note the original
@@ -1191,7 +1243,9 @@ blame is the real benefit; decide on that basis.
 this surfaces (`.claude/rules/optional-dependencies.md`) rather than inventing
 a second mechanism.
 
-**7.3 — composer.json cleanup.** Move `livewire/flux`, `laravel/socialite`
+**7.3 — composer.json cleanup.** `livewire/flux` is done (it moved with the
+views that render it, which is what keeps `.claude/rules/testing.md`'s
+require-not-suggest rule satisfied). Still to move: `laravel/socialite`
 (+ `socialiteproviders/discord`, `socialiteproviders/zoho` — the original plan
 missed both), `internachi/modular`, `spatie/laravel-livewire-wizard`,
 `ryangjchandler/laravel-cloudflare-turnstile` out of this repo's `require`.
@@ -1239,7 +1293,7 @@ check that proves the split composes; per-package suites do not.
 4  wizard step config         ── ✅ DONE 2026-08-30 (re-verified green now Phase 2/3 landed)
 5  identification modes       ── ✅ DONE 2026-08-30 (all 3 modes; path mode's HTTP round trip needs a browser test)
 6  package map agreed         ── ✅ DONE 2026-08-30 (six packages incl. numerosis-ui; D1–D4 recorded)
-7  scaffold + move            ── depends on 3, 6; next up
+7  scaffold + move            ── IN PROGRESS: numerosis-ui done 2026-08-30; 4 packages left; next up
 8  docs + verification        ── depends on 7
 ```
 

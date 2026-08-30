@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Livewire;
 
+use Illuminate\View\FileViewFinder;
 use Livewire\Livewire;
 use Nvade\Numerosis\Tests\TestCase;
 use Symfony\Component\Finder\Finder;
@@ -27,11 +28,22 @@ class RegisteredComponentTagsTest extends TestCase
 {
     public function test_every_unnamespaced_component_tag_is_registered(): void
     {
-        $viewsPath = __DIR__.'/../../../resources/views';
+        // Every path registered under the `numerosis::` namespace, not just
+        // this package's own — nvade/numerosis-ui serves the same namespace,
+        // and a hardcoded path would quietly stop scanning what moved there.
+        $finder = view()->getFinder();
+
+        // ViewFinderInterface declares no getHints(); FileViewFinder is what
+        // is bound, and is the only implementation that can answer this.
+        throw_unless($finder instanceof FileViewFinder, 'Expected a FileViewFinder.');
+
+        /** @var array<string, list<string>> $hints */
+        $hints = $finder->getHints();
+        $viewsPaths = array_values(array_filter($hints['numerosis'] ?? [], is_dir(...)));
 
         $names = [];
 
-        foreach (Finder::create()->files()->in($viewsPath)->name('*.blade.php') as $file) {
+        foreach (Finder::create()->files()->in($viewsPaths)->name('*.blade.php') as $file) {
             if (preg_match_all('/<livewire:([a-zA-Z0-9_.:\-]+)/', $file->getContents(), $matches) === false) {
                 continue;
             }
@@ -43,7 +55,7 @@ class RegisteredComponentTagsTest extends TestCase
             }
         }
 
-        $this->assertNotEmpty($names, 'expected to find at least one <livewire:…> tag under resources/views');
+        $this->assertNotEmpty($names, 'expected to find at least one <livewire:…> tag under the numerosis:: view namespace');
 
         foreach (array_keys($names) as $name) {
             $this->assertTrue(

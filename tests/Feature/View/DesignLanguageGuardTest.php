@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\View;
 
+use Illuminate\View\FileViewFinder;
 use Nvade\Numerosis\Tests\TestCase;
 use Symfony\Component\Finder\Finder;
 
@@ -68,14 +69,50 @@ class DesignLanguageGuardTest extends TestCase
         'welcome.blade.php',
     ];
 
-    /** @return list<\Symfony\Component\Finder\SplFileInfo> */
+    /**
+     * Every path serving the `numerosis::` view namespace, not just this
+     * package's own `resources/views`.
+     *
+     * The namespace is shared: `nvade/numerosis-ui` registers its own path
+     * under the same name (see that package's provider for why), so a scan
+     * hardcoded to one directory silently stops covering the components it
+     * was written to guard the moment they move. It does not fail — the
+     * per-file loop just runs fewer times, and the only tell is the assertion
+     * count dropping. Reading the finder's hints keeps this honest as further
+     * packages split out, with no edit here.
+     *
+     * @return list<\Symfony\Component\Finder\SplFileInfo>
+     */
     private function viewFiles(): array
     {
-        $root = dirname(__DIR__, 3).'/resources/views';
+        $roots = array_filter(
+            $this->viewNamespacePaths(),
+            static fn (string $path): bool => is_dir($path)
+        );
 
-        $finder = (new Finder)->files()->in($root)->name('*.blade.php');
+        $finder = (new Finder)->files()->in($roots)->name('*.blade.php');
 
         return iterator_to_array($finder, false);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function viewNamespacePaths(): array
+    {
+        $finder = view()->getFinder();
+
+        // ViewFinderInterface declares no getHints(); FileViewFinder is what
+        // is actually bound, and is the only implementation that can answer
+        // "which paths serve this namespace".
+        if (! $finder instanceof FileViewFinder) {
+            return [];
+        }
+
+        /** @var array<string, list<string>> $hints */
+        $hints = $finder->getHints();
+
+        return array_values($hints['numerosis'] ?? []);
     }
 
     private function stripComments(string $contents): string
@@ -89,7 +126,7 @@ class DesignLanguageGuardTest extends TestCase
     {
         $files = $this->viewFiles();
 
-        $this->assertNotEmpty($files, 'Scanned no view files — the resources/views path above is wrong.');
+        $this->assertNotEmpty($files, 'Scanned no view files — the numerosis:: namespace resolved no readable path.');
 
         foreach ($files as $file) {
             $code = $this->stripComments($file->getContents());
