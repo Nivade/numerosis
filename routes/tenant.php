@@ -5,8 +5,6 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Features\Tenancy\ImpersonationFeature;
-use Nvade\Numerosis\Livewire\Auth\ConfirmPassword;
-use Nvade\Numerosis\Livewire\Auth\VerifyEmail;
 use Nvade\Numerosis\Livewire\Invitations\Accept;
 use Nvade\Numerosis\Support\Features;
 use Stancl\Tenancy\Features\UserImpersonation;
@@ -38,13 +36,10 @@ if (Features::enabled(ImpersonationFeature::NAME)) {
         ->name('impersonate');
 }
 
+// `verification.notice` and `password.confirm` are screens, so they live in
+// nvade/numerosis-auth-ui and are contributed through
+// Numerosis::addTenantRoutes() — inside this same tenant middleware group.
 Route::middleware(['universal', 'auth:tenant'])->group(function () {
-    Route::get('verify-email', VerifyEmail::class)
-        ->name('verification.notice');
-
-    Route::get('confirm-password', ConfirmPassword::class)
-        ->name('password.confirm');
-
     // Deliberately outside the tenant Filament panel: EnsureTenantSubscriptionActive
     // is scoped to the panel's own middleware stack, so redirecting here can
     // never loop back through the same gate.

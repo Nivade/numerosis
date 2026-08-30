@@ -11,16 +11,22 @@ use Nvade\Numerosis\Tests\TestCase;
 use Override;
 
 /**
- * `routes/auth.php` registers `login`, `register`, `logout` and
- * `verification.verify` behind no feature flag at all (only the OAuth and
- * password-reset routes inside it are gated), so a host keeping its own auth
- * system — Fortify, Breeze, anything — used to get a silent route-name
- * collision on those four: Laravel's router keeps whichever was registered
- * last, making "which system serves /login" a function of provider order.
+ * `login`, `register`, `logout` and `verification.verify` are registered
+ * behind no feature flag at all, so a host keeping its own auth system —
+ * Fortify, Breeze, anything — used to get a silent route-name collision on
+ * those four: Laravel's router keeps whichever was registered last, making
+ * "which system serves /login" a function of provider order.
  * `Numerosis::routes(withAuth: false)` is the opt-out; everything else in
  * `routes/web.php` still has to register, which is the half worth testing —
  * the previous answer was "skip Numerosis::routes() entirely and hand-roll a
  * replacement", i.e. duplicate the billing and checkout wiring.
+ *
+ * Two of those four names now come from `nvade/numerosis-auth-ui`, which owns
+ * the auth *screens* and contributes them through `Numerosis::addCentralRoutes()`.
+ * That is exactly why the opt-out is tested from here rather than there: the
+ * flag lives on core, the callback that reads it lives in the satellite, and
+ * a satellite that forgot to consult it would reintroduce the collision this
+ * flag exists to prevent, with nothing in core failing.
  */
 class AuthRoutesOptOutTest extends TestCase
 {
@@ -32,7 +38,12 @@ class AuthRoutesOptOutTest extends TestCase
 
     public function test_it_registers_none_of_the_auth_route_names(): void
     {
-        foreach (['login', 'register', 'logout', 'verification.verify'] as $name) {
+        foreach ([
+            // core's own two
+            'logout', 'verification.verify',
+            // contributed by nvade/numerosis-auth-ui
+            'login', 'register', 'password.request', 'password.reset',
+        ] as $name) {
             $this->assertFalse(Route::has($name), "Route [{$name}] was registered despite withAuth: false.");
         }
     }

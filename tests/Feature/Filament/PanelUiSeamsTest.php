@@ -32,7 +32,7 @@ class PanelUiSeamsTest extends TestCase
     public function test_the_tenant_panel_login_defaults_to_the_shipped_passwordless_component(): void
     {
         $this->assertSame(
-            \Nvade\Numerosis\Livewire\Auth\PasswordlessLogin::class,
+            \Nvade\NumerosisAuthUi\Livewire\PasswordlessLogin::class,
             $this->loginComponent()
         );
     }

@@ -299,9 +299,14 @@ updated: 2026-08-29
 
 - **Known failing tests — don't attribute these to your change.**
 
-  **Current baseline, measured 2026-08-30 on this package repo:
-  `php -d memory_limit=1G vendor/bin/pest --compact` ⇒ 0 failed, 7 skipped,
-  616 passed (5565 assertions) in ~90s, on *both* `stancl/tenancy` legs.**
+  **Current baseline, measured 2026-08-30 on this package repo, after the
+  `numerosis-auth-ui` extraction: `php -d memory_limit=1G vendor/bin/pest
+  --compact` ⇒ 0 failed, 7 skipped, 622 passed (5540 assertions) in ~105s, on
+  *both* `stancl/tenancy` legs.** The assertion count fell while the pass
+  count rose: 6 new tests, minus ~35 assertions `ArchTest`'s cashier-key scan
+  no longer makes because the 9 files it covered moved to the satellite (which
+  now carries that scan itself). **Diff the assertion count, not just the pass
+  count, after any package move** — see `.claude/rules/package-split.md`.
   The suite is green; treat *any* failure as yours until proven otherwise.
 
   **One open flake**: a single stable-leg run once reported a second failure

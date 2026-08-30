@@ -14,8 +14,8 @@ use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesPostLoginRedirectUrl;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
-use Nvade\Numerosis\Livewire\Auth\PasswordlessLogin;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisAuthUi\Livewire\PasswordlessLogin;
 use RyanChandler\LaravelCloudflareTurnstile\Facades\Turnstile;
 
 class PasswordlessLoginTest extends TestCase

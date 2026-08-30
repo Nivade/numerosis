@@ -69,6 +69,19 @@ final class Features
     }
 
     /**
+     * The contributions made through {@see self::register()}, without the
+     * host's own `numerosis.features` entries. Exists so a caller can tell
+     * "the host asked for this" from "an installed satellite package brought
+     * it along" — {@see self::all()} deliberately erases that distinction.
+     *
+     * @return list<class-string<Feature>>
+     */
+    public static function registered(): array
+    {
+        return self::$registered;
+    }
+
+    /**
      * Clears {@see self::register()} contributions. For tests only — a real
      * host/package registers once and it lives for the application's
      * lifetime.

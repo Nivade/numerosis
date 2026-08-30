@@ -39,7 +39,6 @@ use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Features\Observability\ActivityLogFeature;
-use Nvade\Numerosis\Features\Social\SocialLoginFeature;
 use Nvade\Numerosis\Features\Tenancy\ImpersonationFeature;
 use Nvade\Numerosis\Features\Tenancy\MembershipsFeature;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
@@ -114,11 +113,10 @@ return [
         // Requires TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY — see .env.example.
         TurnstileFeature::class,
 
-        // OAuth login. Providers are configured above ('social') +
-        // config/services.php (credentials). Discord's Socialite extension
-        // registers itself when credentials are present — see
-        // SocialLoginFeature::bootstrap().
-        SocialLoginFeature::class,
+        // OAuth login is NOT listed here. It ships in nvade/numerosis-auth-ui,
+        // whose provider registers it through Features::register() — naming a
+        // satellite's class in core's config would make core boot against a
+        // class that may not be installed.
 
         // The per-tenant module system, storefront included. Comment out to
         // run no modules at all.
@@ -453,7 +451,9 @@ return [
         ],
         'tenant' => [
             'provider' => null,
-            'login' => Nvade\Numerosis\Livewire\Auth\PasswordlessLogin::class,
+            // Filled by nvade/numerosis-auth-ui's provider when installed;
+            // null leaves Filament's own login page in place.
+            'login' => null,
         ],
     ],
 

@@ -10,8 +10,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
-use Nvade\Numerosis\Livewire\Auth\ForgotPassword;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisAuthUi\Livewire\ForgotPassword;
 use RyanChandler\LaravelCloudflareTurnstile\Facades\Turnstile;
 
 class ForgotPasswordTest extends TestCase

@@ -9,7 +9,7 @@ namespace Nvade\Numerosis\Support\Compat;
  * eager-`use trait` problem, for `spatie/laravel-one-time-passwords`. A
  * consumer without that package installed gets a base model that compiles
  * fine and simply has no passwordless-login methods; nothing in this
- * package calls them unless {@see \Nvade\Numerosis\Livewire\Auth\PasswordlessLogin}
+ * package calls them unless {@see \Nvade\NumerosisAuthUi\Livewire\PasswordlessLogin}
  * (or a host's own OTP code) is reached, which requires the package anyway.
  */
 if (trait_exists(\Spatie\OneTimePasswords\Models\Concerns\HasOneTimePasswords::class)) {

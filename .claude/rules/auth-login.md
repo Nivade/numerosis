@@ -2,6 +2,18 @@
 topic: auth-login
 updated: 2026-07-31
 ---
+
+> **Moved 2026-08-30.** The auth *screens* this file is mostly about now live
+> in `nvade/numerosis-auth-ui`: `Nvade\Numerosis\Livewire\Auth\*` is
+> `Nvade\NumerosisAuthUi\Livewire\*` (no `Auth` segment),
+> `Concerns\Auth\ThrottlesLoginAttempts` is `NumerosisAuthUi\Concerns\…`,
+> `SocialLoginFeature` is `NumerosisAuthUi\Features\…`, and `routes/auth.php`
+> is that package's, contributed through `Numerosis::addCentralRoutes()`.
+> Auth *mechanics* — guards, `Actions\Auth\*`, `Models\SocialiteLogin`,
+> `ConfiguredProviders`, `TurnstileFeature`, both `one_time_passwords`
+> migrations — stayed in core, so every claim below still holds; only the
+> namespaces moved. `.claude/rules/auth-guards.md` is unaffected.
+
 - **Tenancy-aware user resolver answer diff question than "does email have central account" — two must not share contract.** `Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate` (default impl `FindLoginCandidate`, via `TenancyAwareUserModel`) correct for `PasswordlessLogin` — deliberately switch tenant/central user model based on ambient tenancy, cuz that's what "who login this host" mean. `Nvade\Numerosis\Livewire\Invitations\Accept` looked same op (`CentralUser::where('email', ...)`), briefly rewired onto same contract during refactor — but invitation accept run *inside* `$tenant->run()` (link visited on tenant subdomain), so tenancy-aware resolver silently start looking up `Tenant\User` that could never exist yet, `existingUser` went permanently false. `AcceptTest::test_it_accepts_without_a_password_for_a_central_user_new_to_this_tenant` caught it immediate. Left as direct `CentralUser::where(...)` calls; only *creation* of new invited user (`Nvade\Numerosis\Contracts\Invitations\CreatesInvitedUser`) swappable, since that step no tenancy ambiguity. **Before reuse contract across two call sites, check both actually want same answer under tenancy, not just same-looking query.**
 
 - **`Nvade\Numerosis\Actions\Auth\LoginUser::handle()` used log into two guards (current + central) via two copy-pasted resolve blocks — same trap as passwordless-login drift above.** Each block: resolve guard → `getProvider()` w/ `throw_if(null)` → `getModel()` → `$user instanceof $expectedModel` check → fallback `userResolver()`. Five steps, twice, only guard name differed. Extracted into `resolveUserForGuard(string $guardName, User $user): User` + `loginToGuard(string $guardName, User $user, bool $remember): void`, both call sites in `handle()` now share one path. `userResolver()`'s doc comment (guard being logged into decides model, never ambient `tenancy()->initialized`) now applies uniformly since only one call site left. **Add third guard later, extend `handle()`'s loop over guard names — don't hand-copy block again.**

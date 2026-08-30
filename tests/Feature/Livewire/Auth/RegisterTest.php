@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 use Nvade\Numerosis\Contracts\Auth\CreatesRegisteredUser;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
-use Nvade\Numerosis\Livewire\Auth\Register;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisAuthUi\Livewire\Register;
 use RyanChandler\LaravelCloudflareTurnstile\Facades\Turnstile;
 
 class RegisterTest extends TestCase

@@ -9,8 +9,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Password;
 use Livewire\Livewire;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
-use Nvade\Numerosis\Livewire\Auth\ResetPassword;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisAuthUi\Livewire\ResetPassword;
 use RyanChandler\LaravelCloudflareTurnstile\Facades\Turnstile;
 
 class ResetPasswordTest extends TestCase

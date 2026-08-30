@@ -59,7 +59,7 @@
         </flux:button>
     </form>
 
-    @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Social\SocialLoginFeature::NAME))
+    @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Social\ConfiguredProviders::FEATURE))
         <div class="flex items-center gap-3">
             <div class="h-px grow bg-zinc-200 dark:bg-zinc-800"></div>
             <span class="text-xs text-zinc-500">{{ __('or') }}</span>

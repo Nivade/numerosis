@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Config;
  * The social providers that are both described (numerosis.social.providers)
  * and actually usable (a client id present in
  * config/services.php). This is the same check
- * Nvade\Numerosis\Http\Controllers\Socialite\Login::ensureProviderIsConfigured() applies
+ * Nvade\NumerosisAuthUi\Http\Controllers\Socialite\Login::ensureProviderIsConfigured() applies
  * on the callback side — a provider with no credentials would render a button
  * that always fails.
  *
@@ -31,6 +31,21 @@ use Illuminate\Support\Facades\Config;
  */
 final class ConfiguredProviders
 {
+    /**
+     * The feature name social login is gated on, owned here rather than on
+     * the feature class itself.
+     *
+     * `SocialLoginFeature` lives in `nvade/numerosis-auth-ui`, and core has
+     * three views that must ask "is social login on?" — the invitation-accept
+     * screen, the auth button grid, and the tenant panel's connected-accounts
+     * manager. Reading `SocialLoginFeature::NAME` there would autoload a
+     * class that may not be installed (unlike a bare `use` import, a constant
+     * fetch *does* trigger autoloading), turning an absent optional package
+     * into a fatal on three core screens. The satellite's own constant is
+     * defined as `= ConfiguredProviders::FEATURE`, so the two cannot drift.
+     */
+    public const FEATURE = 'social';
+
     /**
      * @return array<string, array{label: string, hover: string, icon: string}>
      */

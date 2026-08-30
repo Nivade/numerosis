@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Contracts\Auth;
 use Nvade\Numerosis\Models\Central\CentralUser;
 
 /**
- * `Http\Controllers\Socialite\Login` resolves an existing social login by
+ * `Nvade\NumerosisAuthUi\Http\Controllers\Socialite\Login` resolves an existing social login by
  * querying `SocialiteLogin::where('provider', ...)->firstWhere('provider_id',
  * ...)` directly. A consumer storing OAuth identities differently (a
  * separate `social_accounts` table shape, an external identity provider)

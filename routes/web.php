@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Http\Request;
+use Nvade\Numerosis\Actions\Auth\LogoutUser;
 use Nvade\Numerosis\Actions\Billing\Checkout\CompleteRedirectCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartLocalCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
@@ -10,6 +11,7 @@ use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
 use Nvade\Numerosis\Features\Ui\MarketingPagesFeature;
+use Nvade\Numerosis\Http\Controllers\Auth\VerifyEmailController;
 use Nvade\Numerosis\Http\Controllers\Billing\WebhookController;
 use Nvade\Numerosis\Livewire\Settings\Appearance;
 use Nvade\Numerosis\Livewire\Settings\Password;
@@ -85,10 +87,21 @@ Route::middleware(['auth:web'])->group(function () {
 
 });
 
-// Skipped by `Numerosis::routes(withAuth: false)`, for a host keeping its own
-// auth system: the names in there (`login`, `register`, `logout`,
-// `verification.verify`) are behind no feature flag, so registering both
-// systems silently resolves to whichever ran last. See that method's docblock.
+// The auth screens (`login`, `register`, `forgot-password`, `reset-password`,
+// the OAuth redirect/callback) live in `nvade/numerosis-auth-ui`, which
+// contributes them through `Numerosis::addCentralRoutes()` — so they still
+// land inside this file's own per-central-domain group. That package honours
+// `Numerosis::authRoutesEnabled()` itself, which is why the flag stays public
+// here even though nothing in this file reads it any more.
+//
+// `logout` and `verification.verify` are the exception: their handlers
+// (`Actions\Auth\LogoutUser`, `Http\Controllers\Auth\VerifyEmailController`)
+// are core auth *mechanics*, not screens, and core's own flows generate both
+// names — so they stay here and remain subject to the same opt-out flag.
 if (Numerosis::authRoutesEnabled()) {
-    require __DIR__.'/auth.php';
+    Route::post('logout', LogoutUser::class)->name('logout');
+
+    Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
+        ->middleware(['signed', 'throttle:6,1', 'auth'])
+        ->name('verification.verify');
 }

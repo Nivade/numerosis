@@ -6,7 +6,7 @@
 
   A stub must copy the real signature **exactly**, including nullability. `DatabaseConfig::getName()` is `?string` on v3 and `string` on dev-master; declaring the v3 stub's as `string` turned this package's own `?? throw` and `!== null` guards into `nullCoalesce.expr` / `notIdentical.alwaysTrue` "always true" reports — a stricter-than-real stub makes the analysis wrong in the opposite direction.
 
-  The dev-master config deliberately does **not** include the stable baseline: it was generated against v3's real class shapes, so on the other leg most of its patterns match nothing (non-ignorable `ignore.unmatched`) and a few could match and hide a real regression. Both baselines are ~equal size (221 stable / 228 dev-master as of 2026-08-30) because they grandfather the same ordinary level-9 noise, not because either leg is worse.
+  The dev-master config deliberately does **not** include the stable baseline: it was generated against v3's real class shapes, so on the other leg most of its patterns match nothing (non-ignorable `ignore.unmatched`) and a few could match and hide a real regression. Both baselines are ~equal size (214 stable / 221 dev-master as of 2026-08-30, after the numerosis-auth-ui extraction removed 7 entries from each — they named files that moved) because they grandfather the same ordinary level-9 noise, not because either leg is worse.
 
   CI runs both (`.github/workflows/run-tests.yml`, `Static analysis` step, gated to one PHP version since the analysis does not vary by patch).
 

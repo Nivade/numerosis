@@ -8,11 +8,11 @@ use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
-use Nvade\Numerosis\Livewire\Auth\ConfirmPassword;
-use Nvade\Numerosis\Livewire\Auth\VerifyEmail;
 use Nvade\Numerosis\Livewire\Settings\Appearance;
 use Nvade\Numerosis\Livewire\Settings\Password;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisAuthUi\Livewire\ConfirmPassword;
+use Nvade\NumerosisAuthUi\Livewire\VerifyEmail;
 
 /**
  * Regression for the convention-registration audit

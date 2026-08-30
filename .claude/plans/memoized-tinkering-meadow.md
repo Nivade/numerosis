@@ -1230,9 +1230,92 @@ PHPStan 0 outside baseline on both, and `numerosis-ui`'s own suite 4 passed
 standalone. With that failure fixed the current figure is **0 failed / 7
 skipped / 616 passed (5565 assertions)**.
 
-### Remaining: numerosis-filament, -onboarding, -auth-ui, -modules
+### 7.1/7.2 — numerosis-auth-ui ✅ DONE (2026-08-30)
 
-Original brief, still accurate for those four:
+`~/repos/private/numerosis-auth-ui`, same `path`-repository-with-symlink
+wiring, discovered through `extra.laravel.providers`. `laravel/socialite`,
+`socialiteproviders/discord` and `socialiteproviders/zoho` moved out of core's
+`require` into it.
+
+**Contents are narrower than the Phase-6 table said, in three places, and each
+was decided by grep rather than by the map** — the same correction the
+`layouts`/`partials` one was, and the reason the one-package-at-a-time
+ordering keeps paying:
+
+- **`TurnstileFeature` stays in core.** The map assigned it here. Core's own
+  `Livewire\Invitations\Accept` calls `TurnstileFeature::rules()`,
+  `partials/head.blade.php` renders its scripts, and `tests/TestCase.php`
+  resets its static — moving it would have made core depend on this package.
+- **The `one_time_passwords` migrations stay in core**, both of them (central
+  and tenant — see `.claude/rules/auth-login.md` for why the tenant copy
+  exists). `Models\User` composes `HasOneTimePasswordsIfInstalled`, so the
+  tables have to exist wherever core does. Same reasoning D3 used for
+  `activity_log`.
+- **`layouts/auth*`, `components/auth*` and `auth-header` stay in core.** They
+  are rendered by core's invitation screens (`accept`, `already-accepted`,
+  `expired`) and by `pages/tenant/⚡suspended`, not only by the auth screens.
+
+What did move: the six `Livewire\Auth\*` components and their views,
+`Concerns\Auth\ThrottlesLoginAttempts`, both `Http\Controllers\Socialite\*`,
+`SocialLoginFeature`, and `routes/auth.php`. What stayed with it in core:
+every auth *mechanic* — `Actions\Auth\*`, `Models\SocialiteLogin`,
+`EloquentSocialAccountRepository`, `Support\Social\ConfiguredProviders`,
+`VerifyEmailController`, the guards.
+
+Three seams carried the whole move, all built earlier in this plan:
+
+- **Routes** go through Phase 3.1's `Numerosis::addCentralRoutes()` /
+  `addTenantRoutes()`, so they land inside core's own per-central-domain group
+  rather than beside it. `logout` and `verification.verify` deliberately
+  **stayed** in core's `routes/web.php` — their handlers are core mechanics
+  and core's own flows generate both names, so core must not 404 them when
+  this package is absent. `Numerosis::authRoutesEnabled()` is now read by the
+  satellite as well as by core.
+- **The feature** goes through Phase 3.2's `Features::register()`, and
+  `SocialLoginFeature::class` came *out* of core's `numerosis.features`
+  array — D2's "a satellite's class must never be named in core's config",
+  applied for real.
+- **The tenant panel's login page** goes through the D1 seam. Core's
+  `numerosis.panels.tenant.login` now defaults to `null`; the satellite fills
+  it at register time and leaves a host-configured value alone.
+
+Four things worth carrying into the next three packages:
+
+- **A constant fetch autoloads; a `use` import does not.** Three core views
+  gated on `SocialLoginFeature::NAME`, which would have fataled on a host
+  without this package installed — the exact asymmetry
+  `.claude/rules/optional-dependencies.md` documents, reached from a new
+  direction (a class constant, not an `implements`). The string now lives on
+  `ConfiguredProviders::FEATURE` in core, and the satellite's own `NAME` is
+  defined as that constant so the two cannot drift.
+- **Core `require-dev`s the satellite, and the circular `path` repositories
+  resolve fine.** That is what keeps the moved code's real coverage in core's
+  suite (where the tenancy harness lives) instead of forcing a duplicate
+  harness into every satellite. `nvade/numerosis-auth-ui` is in core's
+  `suggest`, never its `require`.
+- **The assertion count moved again, and it was ArchTest.** 616 passed /
+  5565 assertions → 622 / 5540. The six new tests add ~10; the ~35 lost are
+  `ArchTest`'s cashier-key scan over `src`, which no longer sees the 9 moved
+  files. That scan is now carried by the satellite's own `BoundaryTest`,
+  alongside a "must not reference Filament or another satellite" guard — the
+  auth-ui half of D1's no-cycle claim, pinned rather than argued.
+- **Two new core tests exist because the split's failure modes are silent.**
+  `SatelliteViewNamespaceTest` asserts each installed satellite actually
+  appears in the `numerosis::` hint list (if one stops registering, the
+  scanning guards go vacuous rather than red), and
+  `SatelliteRouteContributionTest` asserts the contributed routes are bound to
+  a central domain and the `web` group — a satellite registering with a plain
+  `Route::get()` would answer on every tenant subdomain and nothing would
+  fail. Both were verified to fail when the thing they name is broken.
+
+Verified after: core **0 failed / 7 skipped / 622 passed (5540 assertions)**
+on **both** matrix legs, PHPStan 0 outside baseline on both (baselines 221 →
+214 stable, 228 → 221 dev-master, all seven removed on each side being entries
+for the moved files), and `numerosis-auth-ui`'s own suite 10 passed standalone.
+
+### Remaining: numerosis-filament, -onboarding, -modules
+
+Original brief, still accurate for those three:
 
 **7.1** — Each repo on the
 `spatie/laravel-package-tools` skeleton this repo uses
@@ -1255,10 +1338,13 @@ a second mechanism.
 
 **7.3 — composer.json cleanup.** `livewire/flux` is done (it moved with the
 views that render it, which is what keeps `.claude/rules/testing.md`'s
-require-not-suggest rule satisfied). Still to move: `laravel/socialite`
-(+ `socialiteproviders/discord`, `socialiteproviders/zoho` — the original plan
-missed both), `internachi/modular`, `spatie/laravel-livewire-wizard`,
-`ryangjchandler/laravel-cloudflare-turnstile` out of this repo's `require`.
+require-not-suggest rule satisfied), and so are `laravel/socialite` +
+`socialiteproviders/discord` + `socialiteproviders/zoho` (moved with the two
+Socialite controllers). Still to move: `internachi/modular`,
+`spatie/laravel-livewire-wizard`. **`ryangjchandler/laravel-cloudflare-turnstile`
+stays in core** — `TurnstileFeature` turned out to be core's, not auth-ui's
+(core's invitation screen and `partials/head` both use it); revisit only if
+those move.
 **[was wrong]** `alizharb/filament-activity-log` is already `require-dev` +
 `suggest`, not `require`. Each satellite must prove its own `suggest` list
 degrades cleanly — a Blade tag rendering as literal text is a silent pass, not
@@ -1303,7 +1389,7 @@ check that proves the split composes; per-package suites do not.
 4  wizard step config         ── ✅ DONE 2026-08-30 (re-verified green now Phase 2/3 landed)
 5  identification modes       ── ✅ DONE 2026-08-30 (all 3 modes; path mode's HTTP round trip needs a browser test)
 6  package map agreed         ── ✅ DONE 2026-08-30 (six packages incl. numerosis-ui; D1–D4 recorded)
-7  scaffold + move            ── IN PROGRESS: numerosis-ui done 2026-08-30; 4 packages left; next up
+7  scaffold + move            ── IN PROGRESS: numerosis-ui + numerosis-auth-ui done 2026-08-30; 3 packages left
 8  docs + verification        ── depends on 7
 ```
 

@@ -796,48 +796,6 @@ parameters:
 			path: src/Listeners/Tenancy/LogSyncedResourceChangedInForeignDatabase.php
 
 		-
-			message: '#^Access to an undefined property Workbench\\App\\Models\\User\:\:\$email\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Livewire/Auth/ConfirmPassword.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Auth/ConfirmPassword.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Auth/ForgotPassword.php
-
-		-
-			message: '#^PHPDoc tag @var with type view\-string is not subtype of native type non\-falsy\-string\.$#'
-			identifier: varTag.nativeType
-			count: 1
-			path: src/Livewire/Auth/PasswordlessLogin.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Auth/Register.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Auth/ResetPassword.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Auth/VerifyEmail.php
-
-		-
 			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
 			identifier: argument.type
 			count: 1

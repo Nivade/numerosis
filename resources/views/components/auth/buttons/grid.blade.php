@@ -3,7 +3,7 @@
 ])
 
 @php
-    $providers = \Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Social\SocialLoginFeature::NAME)
+    $providers = \Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Social\ConfiguredProviders::FEATURE)
         ? \Nvade\Numerosis\Support\Social\ConfiguredProviders::all()
         : [];
 @endphp
