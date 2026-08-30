@@ -6,7 +6,7 @@
 
     <x-numerosis::auth.buttons.grid />
 
-    @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Social\SocialLoginFeature::NAME))
+    @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\NumerosisAuthUi\Features\SocialLoginFeature::NAME))
         <x-numerosis::auth.social-divider />
     @endif
 
