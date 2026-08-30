@@ -10,19 +10,33 @@ use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
+use Nvade\Numerosis\Rules\CustomDomainIsAvailable;
 use Nvade\Numerosis\Rules\DomainIsAvailable;
 use Override;
 use Spatie\LivewireWizard\Components\StepComponent;
 
 class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
 {
+    /**
+     * Always the tenant's safe id/slug, regardless of mode — see
+     * Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain.
+     */
     public string $domain = '';
+
+    /**
+     * Only used under IdentificationMode::CustomDomain — see
+     * IdentificationMode::current().
+     */
+    public string $customDomain = '';
 
     #[Override]
     public function tenantIdentityStateKeys(): array
     {
-        return ['domain'];
+        return IdentificationMode::current() === IdentificationMode::CustomDomain
+            ? ['domain', 'customDomain']
+            : ['domain'];
     }
 
     /**
@@ -35,6 +49,11 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
         $this->validateOnly('domain');
     }
 
+    public function updatedCustomDomain(): void
+    {
+        $this->validateOnly('customDomain');
+    }
+
     /**
      * @return array<string, list<mixed>>
      */
@@ -42,7 +61,7 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
     {
         $user = GetAuthenticatedUser::run();
 
-        return [
+        $rules = [
             'domain' => [
                 'required',
                 'string',
@@ -55,6 +74,18 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
                     ->where(fn ($query) => $query->where('global_id', '!=', $user?->global_id)),
             ],
         ];
+
+        if (IdentificationMode::current() === IdentificationMode::CustomDomain) {
+            $rules['customDomain'] = [
+                'required',
+                'string',
+                new CustomDomainIsAvailable,
+                Rule::unique('pending_tenant_provisions', 'custom_domain')
+                    ->where(fn ($query) => $query->where('global_id', '!=', $user?->global_id)),
+            ];
+        }
+
+        return $rules;
     }
 
     /**
@@ -83,6 +114,7 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
                 company_name: (string) $companyName,
                 domain: $this->domain,
                 global_id: $user->global_id,
+                custom_domain: $this->customDomain !== '' ? $this->customDomain : null,
             ));
         } catch (ShowsMessageToUser $e) {
             $this->addError('domain', $e->getMessage());

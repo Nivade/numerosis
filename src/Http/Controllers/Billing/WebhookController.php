@@ -82,6 +82,7 @@ class WebhookController extends CashierWebhookController
                 global_id: $pending->global_id,
                 payment_plan: $pending->payment_plan,
                 billing_cycle: $pending->billing_cycle,
+                custom_domain: $pending->custom_domain,
             );
 
             $centralUserClass = Numerosis::model(CentralUser::class);

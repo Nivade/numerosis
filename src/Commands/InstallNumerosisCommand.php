@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
+use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
@@ -437,6 +438,13 @@ class InstallNumerosisCommand extends Command
             }
         }
 
+        // Only meaningful under IdentificationMode::Subdomain — CustomDomain
+        // mode uses a fixed '{tenant}' pattern internally, and Path mode uses
+        // no domain pattern at all. See .claude/rules/identification-modes.md.
+        if (IdentificationMode::current() !== IdentificationMode::Subdomain) {
+            return;
+        }
+
         $pattern = Config::get('numerosis.domains.tenant_pattern');
 
         if (! is_string($pattern) || ! str_contains($pattern, '{tenant}')) {
@@ -789,7 +797,11 @@ class InstallNumerosisCommand extends Command
     {
         $this->newLine();
         $this->components->info('Manual steps this command cannot do for you:');
-        $this->line('  1. Wildcard DNS: point *.'.Config::string('numerosis.domains.tenant_pattern', '{tenant}.your-domain').' at this app.');
+        $this->line('  1. '.match (IdentificationMode::current()) {
+            IdentificationMode::Subdomain => 'Wildcard DNS: point *.'.Config::string('numerosis.domains.tenant_pattern', '{tenant}.your-domain').' at this app.',
+            IdentificationMode::CustomDomain => 'DNS: each tenant points their own custom domain at this app (CNAME or A record) — no wildcard DNS needed.',
+            IdentificationMode::Path => 'No DNS changes needed — tenants are identified by URL path under this app\'s own domain.',
+        });
         $this->line('  2. Run a queue worker on the dedicated "provisioning" queue (`php artisan queue:work --queue=provisioning`) — tenant provisioning is queued there, not on the default worker.');
         $this->line('  3. Run `php artisan filament:assets` (you likely already run this for Filament itself) — it copies both Filament panels\' theming (colours, radius, Instrument Sans) plus this package\'s prebuilt dist/numerosis.js and dist/numerosis.css to public/{css,js}/nvade/numerosis/. No vite.config.js entry needed for any of it: none of it goes through your build unless you\'ve published and customised resources/js/numerosis.js yourself (Numerosis::assetTags() prefers your own Vite manifest entry for it when one exists).');
         if (Config::string('geoip.service', '') === 'maxmind_database') {

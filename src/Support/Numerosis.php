@@ -29,7 +29,6 @@ use Nvade\Numerosis\Models\User as NumerosisUser;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
-use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Stancl\Tenancy\Contracts\Tenant;
 use Throwable;
 use WeakMap;
@@ -300,8 +299,8 @@ class Numerosis
     {
         $middleware->alias([
             'invitation.status' => CheckInvitationStatus::class,
-            'tenancy.identification' => TenancyServiceProvider::TENANCY_IDENTIFICATION,
-            'tenancy.route' => TenancyVersion::preventAccessFromCentralDomainsMiddleware(),
+            'tenancy.identification' => TenancyServiceProvider::identificationMiddleware(),
+            'tenancy.route' => TenancyServiceProvider::tenancyRouteMiddleware(),
             'tenancy.session' => EnsureSessionMatchesTenant::class,
         ]);
 

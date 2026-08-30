@@ -33,7 +33,7 @@ framework hook that has to run before any package code can act.
 | — same, `failed_jobs` table specifically | present on whichever connection `queue.failed.database` names | migrations create it; nothing else does | `verifyFailedJobsConnection()` |
 | One-line `bootstrap/app.php` | `Numerosis::configure(...)`, or `->withRouting()`/`->withMiddleware()` calling `Numerosis::routes()`/`Numerosis::middleware()` | `ApplicationBuilder::withRouting()`/`withMiddleware()` run at builder time, before any service provider — nothing inside `packageRegistered()`/`packageBooted()` can substitute for the framework hook itself | — `NumerosisServiceProvider::booted()` self-heals a missing call (registers routes/middleware itself if it detects neither ran) rather than failing the install command; see `.claude/rules/package-host-bootstrap.md` |
 | `php artisan filament:assets` | run at least once | already required for Filament's own core CSS; also copies this package's prebuilt theme + app JS/CSS to `public/{css,js}/nvade/numerosis/` | `verifyFilamentThemeAsset()` |
-| Wildcard DNS + a provisioning worker | `*.{tenant_pattern}` resolves; a queue worker runs on the `provisioning` queue | infrastructure — tenant provisioning is queued there, not on the default worker | — infrastructure, outside anything a boot-time check can observe |
+| DNS + a provisioning worker | depends on `numerosis.tenancy.identification.mode` — `subdomain`: `*.{tenant_pattern}` resolves; `custom_domain`: each tenant points their own domain here; `path`: no DNS change at all. Plus, in every mode, a queue worker on the `provisioning` queue | infrastructure — tenant provisioning is queued there, not on the default worker | — infrastructure, outside anything a boot-time check can observe; `numerosis:install`'s printed manual steps name the right one for your mode |
 
 **Plus two conditionals**:
 
@@ -116,6 +116,18 @@ what stops the next normalization from shipping undocumented the way
 
 ### Notes worth keeping in mind
 
+- **`numerosis.tenancy.identification.mode` is a deploy-time choice, not a
+  runtime toggle.** `subdomain` (default) keeps the original behaviour
+  exactly: `{tenant}.{apex}`, a `domains` row per tenant, wildcard DNS.
+  `custom_domain` gives each tenant its own fully-qualified host — the
+  registration wizard grows a second field, because the tenant's *identifier*
+  (which is also its database name) can never be the domain itself. `path`
+  serves tenants at `{central_domain}/{tenant}/…` with no DNS and no
+  `domains` rows at all. Switching after tenants exist does not migrate the
+  ones already provisioned. `path` mode's full request round trip is
+  source-verified rather than covered by an automated test — verify it by
+  hand against a real web server before relying on it. See
+  `.claude/rules/identification-modes.md`.
 - **`filament/filament`, `spatie/laravel-one-time-passwords`,
   `spatie/laravel-activitylog` and `alizharb/filament-activity-log` are all
   `suggest`, not `require`.** Skip all four and you get a working

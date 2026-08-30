@@ -26,6 +26,7 @@ use Illuminate\Support\Str;
 use Nvade\Numerosis\Actions\Tenancy\ImpersonateTenantUser;
 use Nvade\Numerosis\Actions\Tenancy\RestoreTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
+use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Features\Tenancy\ImpersonationFeature;
 use Nvade\Numerosis\Filament\Admin\Resources\Tenants\Pages\EditTenant;
 use Nvade\Numerosis\Filament\Admin\Resources\Tenants\Pages\ListTenants;
@@ -67,12 +68,12 @@ class TenantResource extends Resource
                         ->disabled(fn ($context) => $context !== 'create')
                         ->unique(table: 'tenants', ignoreRecord: true),
                     TextInput::make('domain')
-                        ->label('Sub-Domain')
+                        ->label(IdentificationMode::current() === IdentificationMode::Subdomain ? 'Sub-Domain' : 'Domain')
                         ->required()
                         ->visible(fn ($context) => $context === 'create')
                         ->unique(table: 'domains', ignoreRecord: true)
-                        ->prefix('https://')
-                        ->suffix('.'.Config::string('numerosis.domains.apex')),
+                        ->prefix(IdentificationMode::current() === IdentificationMode::Subdomain ? 'https://' : null)
+                        ->suffix(IdentificationMode::current() === IdentificationMode::Subdomain ? '.'.Config::string('numerosis.domains.apex') : null),
                     TextInput::make('email')->email(),
                     TextInput::make('phone')->tel(),
                     TextInput::make('mobile')->tel(),

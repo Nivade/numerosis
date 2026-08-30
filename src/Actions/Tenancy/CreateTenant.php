@@ -47,7 +47,7 @@ class CreateTenant
                 ]);
             });
 
-            CreateTenantDomain::run($tenant, $registration->domain);
+            CreateTenantDomain::run($tenant, $registration->domain, $registration->custom_domain);
 
             return $tenant;
         });

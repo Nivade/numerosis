@@ -25,6 +25,7 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Concerns\InteractsWithTenantModules;
 use Nvade\Numerosis\Contracts\Tenancy\ModulePlugin;
+use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Features\Observability\ActivityLogFeature;
 use Nvade\Numerosis\Features\Ui\TenantPanelFeature;
@@ -43,7 +44,6 @@ use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
-use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 
 /**
  * The complete tenant panel: its resources, tenant-domain routing, guard and
@@ -89,6 +89,17 @@ class NumerosisTenantPlugin implements Plugin
         if (! Features::enabled(TenantPanelFeature::NAME)) {
             return false;
         }
+
+        // Path mode's tenant routes deliberately live on the central domain
+        // (path-prefixed) — the central-domain skip below exists to stop a
+        // domain-based tenant pattern winning over the central app's own
+        // routes, which cannot happen when there is no separate pattern to
+        // win with. Registering unconditionally is what makes the panel
+        // reachable outside a console process at all under this mode.
+        if (IdentificationMode::current() === IdentificationMode::Path) {
+            return true;
+        }
+
         if (! Numerosis::isCentralDomain()) {
             return true;
         }
@@ -103,7 +114,7 @@ class NumerosisTenantPlugin implements Plugin
         $panel
             ->id('tenantAdmin')
             ->theme(NumerosisServiceProvider::THEME_ID)
-            ->tenantDomain(Config::string('numerosis.domains.tenant_pattern'))
+            ->tenantDomain(static::tenantDomainPattern())
             ->tenant(Numerosis::model(Tenant::class), 'id')
             ->path('/')
             ->spa()
@@ -145,6 +156,26 @@ class NumerosisTenantPlugin implements Plugin
             );
     }
 
+    /**
+     * `null` (path mode) makes Filament fall back to its own path-based
+     * tenant routing — `{tenant}` prefixed under the panel's own path,
+     * resolved via `getTenant()`'s default `resolveRouteBinding($key, 'id')`
+     * with no domain concept at all. `'{tenant}'` (custom domain mode) makes
+     * `Route::domain('{tenant}')` match the entire host, dots included —
+     * `Filament\Panel::register()` widens the `tenant` route-parameter
+     * pattern to allow them specifically for a bare `{tenant}`/`{tenant:*}`
+     * value. `Tenant::resolveRouteBinding()` is what turns that raw host
+     * string into the right tenant for this mode; see its own docblock.
+     */
+    protected static function tenantDomainPattern(): ?string
+    {
+        return match (IdentificationMode::current()) {
+            IdentificationMode::Subdomain => Config::string('numerosis.domains.tenant_pattern'),
+            IdentificationMode::CustomDomain => '{tenant}',
+            IdentificationMode::Path => null,
+        };
+    }
+
     /** The banner shown above panel content when payment needs attention. */
     protected function paymentStatusBanner(): string
     {
@@ -174,12 +205,15 @@ class NumerosisTenantPlugin implements Plugin
     protected function middleware(): array
     {
         return [
-            TenancyServiceProvider::TENANCY_IDENTIFICATION,
+            TenancyServiceProvider::identificationMiddleware(),
             // Second gate behind shouldRegisterPanel(). Keep it: without it,
             // a central-domain request reaching these routes runs on past
             // identification with no tenant, and later middleware that
-            // assumes one throws rather than 404ing.
-            TenancyVersion::preventAccessFromCentralDomainsMiddleware(),
+            // assumes one throws rather than 404ing. A no-op under
+            // IdentificationMode::Path, where tenant routes deliberately
+            // live on the central domain — see
+            // TenancyServiceProvider::tenancyRouteMiddleware().
+            TenancyServiceProvider::tenancyRouteMiddleware(),
             EncryptCookies::class,
             AddQueuedCookiesToResponse::class,
             StartSession::class,

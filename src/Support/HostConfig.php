@@ -7,11 +7,13 @@ namespace Nvade\Numerosis\Support;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
+use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
@@ -178,16 +180,23 @@ final class HostConfig
      * `tenancy.identification.middleware` (and, for the access-prevention
      * skip logic, `.domain_identification_middleware`) — an exact-string
      * `in_array()` check against stancl's own middleware classes
-     * (`Concerns\DealsWithRouteContexts::routeHasMiddleware()`). This
-     * package's `TENANCY_IDENTIFICATION` constant is a subclass
-     * ({@see InitializeTenancyByDomainOrSubdomain}), not the class stancl's
-     * stub lists, so every route wired with it silently fails that check —
-     * `getRouteMode()` falls through to `tenancy.default_route_mode`
-     * (`RouteMode::CENTRAL`), and `PreventAccessFromUnwantedDomains` then
-     * 404s any tenant-domain request as "central route from a tenant
-     * domain". v3 has no route-mode concept at all, so this is a
-     * dev-master-only gap; a no-op on v3 since neither config key exists
-     * there for `Config::array()` to find.
+     * (`Concerns\DealsWithRouteContexts::routeHasMiddleware()`). Whichever
+     * class {@see TenancyServiceProvider::identificationMiddleware()} picks
+     * for the current {@see IdentificationMode} is either this package's own
+     * subclass ({@see InitializeTenancyByDomainOrSubdomain}, subdomain mode)
+     * or a stock stancl class it doesn't already know about the way it does
+     * `IdentifyTenant`, so every mode needs registering here, not just the
+     * default one. Without it, `getRouteMode()` falls through to
+     * `tenancy.default_route_mode` (`RouteMode::CENTRAL`), and
+     * `PreventAccessFromUnwantedDomains` then 404s any tenant-domain request
+     * as "central route from a tenant domain". v3 has no route-mode concept
+     * at all, so this is a dev-master-only gap; a no-op on v3 since neither
+     * config key exists there for `Config::array()` to find.
+     *
+     * `identification.domain_identification_middleware` is specifically the
+     * subset stancl treats as *domain*-based — path mode's middleware is
+     * not, so it is only added to the general `identification.middleware`
+     * list, never to this narrower one.
      */
     private static function tenancyIdentificationMiddleware(): void
     {
@@ -195,14 +204,20 @@ final class HostConfig
             return;
         }
 
-        foreach (['identification.middleware', 'identification.domain_identification_middleware'] as $suffix) {
+        $middlewareClass = TenancyServiceProvider::identificationMiddleware();
+
+        $keys = IdentificationMode::current() === IdentificationMode::Path
+            ? ['identification.middleware']
+            : ['identification.middleware', 'identification.domain_identification_middleware'];
+
+        foreach ($keys as $suffix) {
             $key = 'tenancy.'.$suffix;
 
             /** @var list<class-string> $middleware */
             $middleware = Config::array($key, []);
 
-            if (! in_array(InitializeTenancyByDomainOrSubdomain::class, $middleware, true)) {
-                self::set($key, [...$middleware, InitializeTenancyByDomainOrSubdomain::class]);
+            if (! in_array($middlewareClass, $middleware, true)) {
+                self::set($key, [...$middleware, $middlewareClass]);
             }
         }
     }

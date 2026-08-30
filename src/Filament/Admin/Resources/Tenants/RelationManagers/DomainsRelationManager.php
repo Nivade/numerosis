@@ -16,6 +16,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Override;
 
 class DomainsRelationManager extends RelationManager
@@ -25,12 +26,14 @@ class DomainsRelationManager extends RelationManager
     #[Override]
     public function form(Schema $schema): Schema
     {
+        $isSubdomain = IdentificationMode::current() === IdentificationMode::Subdomain;
+
         return $schema
             ->components([
                 TextInput::make('id')
-                    ->label('Subdomain')
-                    ->prefix('https://')
-                    ->suffix('.'.Config::string('numerosis.domains.apex'))
+                    ->label($isSubdomain ? 'Subdomain' : 'Identifier')
+                    ->prefix($isSubdomain ? 'https://' : null)
+                    ->suffix($isSubdomain ? '.'.Config::string('numerosis.domains.apex') : null)
                     ->columnSpanFull()
                     ->maxLength(255),
             ]);

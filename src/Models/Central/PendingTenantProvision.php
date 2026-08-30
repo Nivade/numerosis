@@ -25,6 +25,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * there, readiness is tracked by `tenants.provisioned_at` instead.
  *
  * @property string $domain
+ * @property string|null $custom_domain
  * @property string $company_name
  * @property string $global_id
  * @property string|null $payment_plan

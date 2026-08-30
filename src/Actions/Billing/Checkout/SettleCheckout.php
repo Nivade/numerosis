@@ -45,6 +45,7 @@ class SettleCheckout
             global_id: $pending->global_id,
             payment_plan: $pending->payment_plan,
             billing_cycle: $pending->billing_cycle,
+            custom_domain: $pending->custom_domain,
         );
 
         $this->provisioning->queue(new TenantProvisionData(

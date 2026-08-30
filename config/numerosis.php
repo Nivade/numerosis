@@ -763,6 +763,32 @@ return [
 
         /*
         |----------------------------------------------------------------------
+        | Tenant Identification Mode
+        |----------------------------------------------------------------------
+        |
+        | How a request is matched to a tenant. One of
+        | Nvade\Numerosis\Enums\Tenancy\IdentificationMode's cases:
+        |
+        | - 'subdomain'     (default) — "{tenant}.".domains.apex, e.g.
+        |                    acme.example.com. Unchanged, original behaviour.
+        | - 'custom_domain' — each tenant supplies their own fully-qualified
+        |                     domain (e.g. app.acme.com) at registration; the
+        |                     tenant's safe id/slug stays separate from it.
+        | - 'path'          — "{central_domain}/{tenant}/...". No DNS or
+        |                     `domains` rows involved at all.
+        |
+        | Changing this after tenants already exist under a different mode
+        | does not migrate their identification — treat it as a deploy-time
+        | choice, not a runtime toggle.
+        |
+        */
+
+        'identification' => [
+            'mode' => env('NUMEROSIS_TENANCY_IDENTIFICATION_MODE', Nvade\Numerosis\Enums\Tenancy\IdentificationMode::Subdomain->value),
+        ],
+
+        /*
+        |----------------------------------------------------------------------
         | Tenant Provisioning Pipeline
         |----------------------------------------------------------------------
         |

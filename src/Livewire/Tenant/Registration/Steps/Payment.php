@@ -33,6 +33,7 @@ class Payment extends StepComponent
             'plan' => is_string($paymentPlanSlug) ? Numerosis::model(PaymentPlan::class)::available()->where('slug', $paymentPlanSlug)->first() : null,
             'billingCycle' => is_string($billingCycle) ? BillingCycle::from($billingCycle) : BillingCycle::Monthly,
             'domain' => $this->state()->get('domain'),
+            'customDomain' => $this->state()->get('customDomain'),
         ]);
     }
 }

@@ -6,18 +6,42 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Illuminate\Support\Facades\Config;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
+use RuntimeException;
 
 class CreateTenantDomain
 {
     use AsAction;
 
-    public function handle(Tenant $tenant, string $subdomain): Domain
+    /**
+     * `$subdomain` is always the tenant's safe id/slug (also `tenants.id` and
+     * the physical database name), regardless of mode — it is never the raw
+     * value of a custom domain, which cannot safely be either of those (see
+     * .claude/rules/tenant-provisioning.md's `id` bullet and
+     * .claude/rules/identification-modes.md).
+     *
+     * Returns null under `IdentificationMode::Path`, which resolves tenants
+     * purely by id and creates no `domains` row at all.
+     */
+    public function handle(Tenant $tenant, string $subdomain, ?string $customDomain = null): ?Domain
     {
+        $mode = IdentificationMode::current();
+
+        if (! $mode->usesDomainRecord()) {
+            return null;
+        }
+
         return $tenant->domains()->firstOrCreate(
             ['id' => $subdomain],
-            ['domain' => $subdomain.'.'.Config::string('numerosis.domains.apex')],
+            ['domain' => match ($mode) {
+                IdentificationMode::Subdomain => $subdomain.'.'.Config::string('numerosis.domains.apex'),
+                IdentificationMode::CustomDomain => $customDomain ?? throw new RuntimeException(
+                    'IdentificationMode::CustomDomain requires a custom domain to create a tenant domain.'
+                ),
+                IdentificationMode::Path => $subdomain,
+            }],
         );
     }
 }

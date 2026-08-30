@@ -12,11 +12,14 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use Livewire;
+use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
+use Nvade\Numerosis\Http\Middleware\NullMiddleware;
 use Nvade\Numerosis\Jobs\SeedTenantDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Resolvers\PreservingPathTenantResolver;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
@@ -62,13 +65,43 @@ use Stancl\Tenancy\Middleware\InitializeTenancyByPath;
 use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
 use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
+use Stancl\Tenancy\Resolvers\PathTenantResolver;
 
 class TenancyServiceProvider extends ServiceProvider
 {
     // By default, no namespace is used to support the callable array syntax.
     public static string $controllerNamespace = '';
 
-    public const TENANCY_IDENTIFICATION = \Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain::class;
+    /**
+     * The middleware that identifies a tenant from the request, chosen by
+     * {@see IdentificationMode::current()}. Was a compile-time
+     * `TENANCY_IDENTIFICATION` constant before Phase 5 of
+     * `.claude/plans/memoized-tinkering-meadow.md` — a method, because the
+     * choice now depends on config read at boot, not at class-declaration
+     * time.
+     */
+    public static function identificationMiddleware(): string
+    {
+        return match (IdentificationMode::current()) {
+            IdentificationMode::Subdomain => \Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain::class,
+            IdentificationMode::CustomDomain => InitializeTenancyByDomain::class,
+            IdentificationMode::Path => InitializeTenancyByPath::class,
+        };
+    }
+
+    /**
+     * The central-domain-block gate used inside the `tenant` middleware
+     * group. Under `IdentificationMode::Path`, tenant routes deliberately
+     * live on the central domain (path-prefixed), so the ordinary block
+     * would 404 every tenant request — see
+     * .claude/rules/identification-modes.md.
+     */
+    public static function tenancyRouteMiddleware(): string
+    {
+        return IdentificationMode::current() === IdentificationMode::Path
+            ? NullMiddleware::class
+            : TenancyVersion::preventAccessFromCentralDomainsMiddleware();
+    }
 
     /**
      * The jobs that build a tenant's database, in order.
@@ -166,6 +199,11 @@ class TenancyServiceProvider extends ServiceProvider
         }
 
         $this->registerCachedDomainResolver();
+
+        // See PreservingPathTenantResolver's docblock: only matters when
+        // IdentificationMode::Path is selected and InitializeTenancyByPath
+        // is actually used, harmless otherwise.
+        $this->app->bind(PathTenantResolver::class, PreservingPathTenantResolver::class);
     }
 
     /**
@@ -263,7 +301,7 @@ class TenancyServiceProvider extends ServiceProvider
             ->middleware(
                 'web',
                 'universal',
-                static::TENANCY_IDENTIFICATION,
+                static::identificationMiddleware(),
                 EnsureSessionMatchesTenant::class,
             ));
     }

@@ -23,7 +23,6 @@ use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
-use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 
 /*
  * Every host-seam bug this extraction found lived in these methods (see
@@ -41,8 +40,8 @@ it('registers the 4 middleware aliases and both groups, tenant group in order', 
 
     expect($middleware->getMiddlewareAliases())->toMatchArray([
         'invitation.status' => CheckInvitationStatus::class,
-        'tenancy.identification' => TenancyServiceProvider::TENANCY_IDENTIFICATION,
-        'tenancy.route' => TenancyVersion::preventAccessFromCentralDomainsMiddleware(),
+        'tenancy.identification' => TenancyServiceProvider::identificationMiddleware(),
+        'tenancy.route' => TenancyServiceProvider::tenancyRouteMiddleware(),
         'tenancy.session' => EnsureSessionMatchesTenant::class,
     ]);
 
@@ -169,8 +168,8 @@ it('registers the middleware aliases/groups against the real router with no host
 
     expect($router->getMiddleware())->toMatchArray([
         'invitation.status' => CheckInvitationStatus::class,
-        'tenancy.identification' => TenancyServiceProvider::TENANCY_IDENTIFICATION,
-        'tenancy.route' => TenancyVersion::preventAccessFromCentralDomainsMiddleware(),
+        'tenancy.identification' => TenancyServiceProvider::identificationMiddleware(),
+        'tenancy.route' => TenancyServiceProvider::tenancyRouteMiddleware(),
         'tenancy.session' => EnsureSessionMatchesTenant::class,
     ]);
 

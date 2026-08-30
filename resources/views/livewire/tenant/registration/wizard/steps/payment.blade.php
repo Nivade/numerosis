@@ -7,7 +7,7 @@
 
     @if($plan && $domain)
         <div class="grid gap-6 lg:grid-cols-5 items-start">
-            <x-numerosis::billing.order-summary :plan="$plan" :billing-cycle="$billingCycle" :domain="$domain" class="lg:col-span-2" />
+            <x-numerosis::billing.order-summary :plan="$plan" :billing-cycle="$billingCycle" :domain="$domain" :custom-domain="$customDomain" class="lg:col-span-2" />
 
             <div class="lg:col-span-3">
                 <livewire:billing.checkout :domain="$domain" :embedded="true" :key="'checkout-'.$domain" />

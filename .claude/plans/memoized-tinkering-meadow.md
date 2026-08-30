@@ -8,14 +8,16 @@
 > — read both before starting, they are not summaries of this file, they carry
 > facts this file only references.
 >
-> **Status 2026-08-30: Phases 0, 0.3, 1, 2, 3, and 4 are all done.** Both
-> `stancl/tenancy` matrix legs pass their test suites (v3.10.1: 589 passed,
-> 7 skipped, 1 pre-existing unrelated failure; dev-master: 590 passed, 7
-> skipped, 0 failed); PHPStan is clean on the stable leg (0 outside a
-> 221-entry baseline) but **not yet clean on dev-master** — tracked as a
-> follow-up in Phase 2's own section, not blocking. Phases 5–8 are
-> untouched. Start at Phase 5 (identification modes) or Phase 6 (package
-> map decision, no code, can happen anytime).
+> **Status 2026-08-30: Phases 0, 0.3, 1, 2, 3, 4 and 5 are all done.** Both
+> `stancl/tenancy` matrix legs pass their test suites (v3.10.1, after Phase 5:
+> 603 passed, 7 skipped, 1 pre-existing unrelated failure — `RegisterTenantTest`'s
+> `assertSee('livewire.js')`, reproduced with the whole branch stashed;
+> dev-master measured at Phase 2: 590 passed, 7 skipped, 0 failed, **not
+> re-run since Phase 5** — do that before trusting the matrix again).
+> PHPStan is clean on the stable leg (0 outside a 221-entry baseline) but
+> **not yet clean on dev-master** — tracked as a follow-up in Phase 2's own
+> section, not blocking. **Phases 6–8 remain. Start at Phase 6 (package map
+> decision, no code).**
 >
 > **Re-audit result:** every structural claim in Phases 1, 3, 4, 6 and 7 was
 > re-verified against the code and holds, line numbers included. Both baselines
@@ -820,7 +822,71 @@ list still completes provisioning end to end.
 
 ---
 
-## Phase 5 — identification modes
+## Phase 5 — identification modes ✅ DONE (2026-08-30)
+
+**All three modes implemented. Measured on branch `package-scope-reduction`
+against `v3.10.1`:**
+
+| | before | after |
+|---|---|---|
+| `php -d memory_limit=1G vendor/bin/pest --compact` | 1 failed, 7 skipped, 589 passed | **1 failed, 7 skipped, 603 passed** (589 + 14 new) |
+| PHPStan (`tmpDir` invocation) | 0 outside baseline | **0 outside baseline** (one `count:` bump, 22 → 23, on the pre-existing `config/numerosis.php` env-call entry — not a new suppression) |
+| `vendor/bin/pint --dirty` | — | passes |
+
+The single failure is `RegisterTenantTest`'s `assertSee('livewire.js')`,
+which this file's own Phase 2 handoff already records as pre-existing and
+unrelated (Livewire's asset filename is hashed now) — reproduced identically
+with the whole branch stashed.
+
+**Full mechanism, and the four things that are non-obvious enough to
+rediscover the hard way, are in `.claude/rules/identification-modes.md`.**
+Summary of what landed:
+
+- **`Enums\Tenancy\IdentificationMode`** (`Subdomain`/`CustomDomain`/`Path`),
+  read via `::current()` from `numerosis.tenancy.identification.mode`,
+  default `subdomain` — behaviour unchanged for every existing host.
+  **`Path` is not v4-only after all**, contrary to this plan's original text:
+  `InitializeTenancyByPath` and `PathTenantResolver` both exist in v3.10.1
+  (verified in `vendor/`); it is `RouteMode` that is dev-master-only, and
+  nothing in path mode needs it. No v3 fail-loudly branch was written,
+  because there is nothing to fail on.
+- **`TENANCY_IDENTIFICATION` const → `TenancyServiceProvider::identificationMiddleware()`**,
+  plus a new `::tenancyRouteMiddleware()` (returns `Http\Middleware\NullMiddleware`
+  under path mode, where tenant routes deliberately live on the central
+  domain and the usual `PreventAccessFromCentralDomains` would 404 all of
+  them). All 6 const sites converted, plus the 2 `NumerosisSeamTest`
+  assertions.
+- **All 14 subdomain-assumption sites** from the list below, plus **two the
+  list missed**: `NumerosisTenantPlugin::shouldRegisterPanel()` (its
+  central-domain skip makes the panel unreachable under path mode) and
+  `HostConfig::tenancyIdentificationMiddleware()` (registered only the
+  subdomain class, so dev-master's route-mode `in_array()` would 404 the
+  other two modes).
+- **`Nvade\Numerosis\Resolvers\PreservingPathTenantResolver`** — stancl's
+  `PathTenantResolver` calls `$route->forgetParameter('tenant')`, which runs
+  before Filament's `IdentifyTenant` reads that same parameter, so
+  `Filament::setTenant()` was silently never called. Bound over the parent
+  in `register()`.
+- **Identifier and domain kept separate**: `TenantRegistrationData::$custom_domain`,
+  a new `pending_tenant_provisions.custom_domain` column
+  (`2026_08_30_000000_*`), `CreateTenantDomain::run($tenant, $slug, $customDomain)`
+  returning `?Domain` (null under path mode), and a second
+  `TenantDomainPolicy::assertCustomDomainAvailable()` contract method with
+  its own rule (`Rules\CustomDomainIsAvailable`). The slug can never *be*
+  the domain — it is also the physical database name.
+- **`tests/Feature/Providers/IdentificationModeTest`** (15 tests). Note the
+  load-bearing one is the *negative* case: a policy that checked
+  `tenants.id` in every mode passes "rejects a taken subdomain" perfectly
+  and only fails
+  `test_default_policy_ignores_a_tenant_id_collision_under_subdomain_mode`.
+
+**Not covered, deliberately and documented:** path mode's full HTTP round
+trip. `.claude/rules/filament-tenancy.md`'s `shouldRegisterPanel()` console
+exemption means a Pest-dispatched request always sees the tenant panel
+registered, so route-match outcome is unassertable from console — it needs a
+browser test, exactly as this plan's own Verification note anticipated.
+
+### Original brief, kept for reference
 
 Depends on Phase 2 (v4's `identification.*` and `RouteMode` are the real
 mechanism) and Phase 1.2 (`TenancyConfigKeys`).
@@ -1003,8 +1069,8 @@ check that proves the split composes; per-package suites do not.
 2  constraint + CI matrix     ── ✅ DONE 2026-08-30 (both legs green; dev-master PHPStan is a tracked follow-up)
 3  contribution seams         ── ✅ DONE 2026-08-29
 4  wizard step config         ── ✅ DONE 2026-08-30 (re-verified green now Phase 2/3 landed)
-5  identification modes       ── depends on 2 and 1.2; next up
-6  package map agreed         ── decision gate, no code
+5  identification modes       ── ✅ DONE 2026-08-30 (all 3 modes; path mode's HTTP round trip needs a browser test)
+6  package map agreed         ── decision gate, no code; next up
 7  scaffold + move            ── depends on 3, 6
 8  docs + verification        ── depends on 7
 ```

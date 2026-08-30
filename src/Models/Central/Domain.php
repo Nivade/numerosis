@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Request;
+use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Observers\DomainObserver;
 use Stancl\Tenancy\Database\Concerns\InvalidatesTenantsResolverCache;
 
@@ -55,9 +56,18 @@ class Domain extends \Stancl\Tenancy\Database\Models\Domain
         );
     }
 
+    /**
+     * Only ever reconstructs `{id}.{apex}` under subdomain mode, where
+     * `domain` is exactly that concatenation and `getHost()` predates having
+     * a stored value to just return. Every other mode's `domain` column
+     * already holds the real host — see
+     * Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain.
+     */
     public function getHost(): string
     {
-        return $this->id.'.'.Config::string('numerosis.domains.apex');
+        return IdentificationMode::current() === IdentificationMode::Subdomain
+            ? $this->id.'.'.Config::string('numerosis.domains.apex')
+            : $this->domain;
     }
 
     /**

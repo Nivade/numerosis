@@ -25,5 +25,6 @@ One line per file, under ~150 chars. Update index when rules file add/rename/rem
 - [tenant-registration-wizard.md](tenant-registration-wizard.md) — bare `@livewire()` view flattens child's component boundary; spatie wizard's `wizardClassName` needs alias resolution, not raw FQCN.
 - [testing.md](testing.md) — no Sail here (`vendor/bin/pest`); central rows escape RefreshDatabase; `Env` repo memoized so putenv only wins on first boot; suite green.
 - [tenant-filesystem.md](tenant-filesystem.md) — `local` disk root tenant-suffixed but Livewire upload route never tenant-identified; dedicated `livewire` disk fixes it.
+- [identification-modes.md](identification-modes.md) — subdomain/custom-domain/path; slug ≠ domain; `{tenant}` literal enables dots; stancl forgets the param Filament needs.
 - [host-integration-quickstart.md](host-integration-quickstart.md) — 7 silent traps integrating into a pre-existing host app (tabellio); all 7 fixed 2026-08-13 — read for the mechanism to reach for now.
 <!-- topic-index:end -->
