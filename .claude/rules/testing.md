@@ -299,10 +299,38 @@ updated: 2026-08-29
 
 - **Known failing tests — don't attribute these to your change.**
 
-  **Current baseline, measured 2026-08-29 on this package repo:
+  **Current baseline, measured 2026-08-30 on this package repo:
   `php -d memory_limit=1G vendor/bin/pest --compact` ⇒ 0 failed, 7 skipped,
-  584 passed (5394 assertions) in ~90s.** The suite is green; treat *any*
-  failure as yours until proven otherwise.
+  616 passed (5565 assertions) in ~90s, on *both* `stancl/tenancy` legs.**
+  The suite is green; treat *any* failure as yours until proven otherwise.
+
+  **One open flake**: a single stable-leg run once reported a second failure
+  that did not recur across four further full runs and three targeted ones,
+  and was never identified. Nothing was found stranded when checked directly
+  (no `pest` process, no open transaction, no metadata lock on `testing`), so
+  it is not the killed-run class documented below. If a second unexplained
+  failure ever appears, capture the full output before re-running — the
+  re-run is what destroyed the evidence last time.
+
+- **A long-standing red test attracts explanations instead of diagnosis, and
+  a written root-cause note is not a diagnosis.** `RegisterTenantTest`'s
+  `assertSee('livewire.js')` was carried for weeks as "pre-existing,
+  unrelated, Livewire's asset filename is hashed now, don't waste time on it
+  again" — a note that was half right and entirely load-bearing in stopping
+  anyone from opening the page. The page was fine throughout: it serves
+  `livewire.min.js`, and the minified name does not contain the un-minified
+  one as a substring, so the assertion pinned `config('app.debug')` rather
+  than behaviour.
+
+  **Repairing an assertion is not finished until you have made it fail.**
+  Fixing the needle here produced a test that *could not fail at all*:
+  deleting `@livewireScripts` from the layout still passed (Flux emits the
+  runtime too), and deleting `@fluxScripts` as well still passed (Filament's
+  `@filamentScripts` does too) — three independent suppliers on one page. The
+  test now also asserts the layout file itself carries the directive, which is
+  what protects its non-Filament consumer, and that half was verified to fail
+  when the directive is removed. Same discipline this file already demands of
+  new regression tests; it applies equally to old ones being repaired.
 
   The previous baseline was 4 failed / 580 passed, all 4 in
   `tests/Feature/FreshHostTest`. They were not one cause but four, uncovered

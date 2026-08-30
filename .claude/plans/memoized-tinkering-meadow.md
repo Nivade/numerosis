@@ -15,16 +15,18 @@
 > dev-master measured at Phase 2: 590 passed, 7 skipped, 0 failed, **not
 > re-run since Phase 5** — do that before trusting the matrix again).
 > **Both legs re-measured 2026-08-30, after Phases 5 and 6, and they agree:
-> 1 failed / 7 skipped / 607 passed on each** (the failure is
-> `RegisterTenantTest`'s `assertSee('livewire.js')`, pre-existing and
-> unrelated). **PHPStan is now clean on both** — 0 outside a 221-entry
+> 1 failed / 7 skipped / 607 passed on each** (the failure was
+> `RegisterTenantTest`'s `assertSee('livewire.js')`, then thought pre-existing
+> and unfixable — **it was neither; fixed 2026-08-30, see below, and the
+> suite is now fully green at 0 failed / 7 skipped / 616 passed**). **PHPStan is now clean on both** — 0 outside a 221-entry
 > baseline on stable, 0 outside a 228-entry one on dev-master; see Phase 2's
 > "PHPStan on dev-master" section, which is closed.
 >
 > One caveat on the suite number: a single stable-leg run reported a second
-> failure that did **not** recur across three further full runs and three
-> targeted ones, and was never identified. Treat 607 as the baseline and that
-> flake as open, not as noise to ignore.
+> failure that did **not** recur across four further full runs and three
+> targeted ones, and was never identified. Treat the flake as open, not as
+> noise to ignore — but note nothing was found stranded (no `pest` process,
+> no open transaction, no metadata lock on `testing`) when checked directly.
 >
 > **Phase 6 agreed 2026-08-30**: six packages, adding `numerosis-ui` as a leaf;
 > decisions D1–D4 and the one open item (no central-seeder seam) are in that
@@ -628,6 +630,11 @@ Phase 3/4 (already done, see below) or Phase 5.**
 > `livewire.min.js`/hashed now, unrelated to tenancy version. Pre-existing
 > breakage, not in scope here, don't waste time on it again.
 >
+> **[was wrong] — the diagnosis was right and the conclusion was not.** The
+> filename observation is correct; "pre-existing breakage" is not. Nothing
+> was broken: the page loads the runtime fine, the *assertion* pinned a build
+> flag. Fixed 2026-08-30 — see the end of this file.
+>
 > **Last full run before the interrupt**: 24 failed / 7 skipped / 566
 > passed, trending down each fix (was 90+ failed at the start of hunting).
 > The `testing` MySQL database needed `DROP DATABASE; CREATE DATABASE …`
@@ -875,10 +882,10 @@ against `v3.10.1`:**
 | PHPStan (`tmpDir` invocation) | 0 outside baseline | **0 outside baseline** (one `count:` bump, 22 → 23, on the pre-existing `config/numerosis.php` env-call entry — not a new suppression) |
 | `vendor/bin/pint --dirty` | — | passes |
 
-The single failure is `RegisterTenantTest`'s `assertSee('livewire.js')`,
-which this file's own Phase 2 handoff already records as pre-existing and
-unrelated (Livewire's asset filename is hashed now) — reproduced identically
-with the whole branch stashed.
+The single failure was `RegisterTenantTest`'s `assertSee('livewire.js')`.
+**Both this file's Phase 2 handoff and this line were wrong about it** — see
+"The `livewire.js` failure was never a Livewire problem" at the end of this
+file. Fixed 2026-08-30; the suite is green.
 
 **Full mechanism, and the four things that are non-obvious enough to
 rediscover the hard way, are in `.claude/rules/identification-modes.md`.**
@@ -1081,8 +1088,9 @@ Both are additive against the current single-package layout, and both are
 verified by the existing suite here — the same reasoning
 `.claude/rules/package-boundaries.md` gives for adding seams *before* moving
 files, rather than rewriting the extension model and moving 400 files at once.
-Suite after: 1 failed (the known `livewire.js` one) / 7 skipped / **615
-passed**, on both matrix legs; PHPStan 0 outside baseline on both.
+Suite after: 1 failed (the then-known `livewire.js` one, since fixed) /
+7 skipped / **615 passed**, on both matrix legs; PHPStan 0 outside baseline
+on both.
 
 **D1's two seams.** `numerosis.panels.tenant.login` (class-string|null,
 defaulting to the shipped `PasswordlessLogin`) and
@@ -1216,9 +1224,11 @@ Two things this surfaced that the remaining four will hit as well:
   instead preserves siblings and lets the owning package's registration
   stand.
 
-Verified after: core 1 failed (the known `livewire.js` one) / 7 skipped /
-**615 passed, 5564 assertions** on **both** matrix legs, PHPStan 0 outside
-baseline on both, and `numerosis-ui`'s own suite 4 passed standalone.
+Verified after: core 1 failed (the then-known `livewire.js` one, since
+fixed) / 7 skipped / **615 passed, 5564 assertions** on **both** matrix legs,
+PHPStan 0 outside baseline on both, and `numerosis-ui`'s own suite 4 passed
+standalone. With that failure fixed the current figure is **0 failed / 7
+skipped / 616 passed (5565 assertions)**.
 
 ### Remaining: numerosis-filament, -onboarding, -auth-ui, -modules
 
@@ -1299,3 +1309,42 @@ check that proves the split composes; per-package suites do not.
 
 Phases 3 and 4 are the only ones that can run in parallel with the version
 work. Everything else is a real dependency, not a preference.
+
+---
+
+## The `livewire.js` failure was never a Livewire problem ✅ FIXED (2026-08-30)
+
+Carried through four phases of this plan as "pre-existing, unrelated, don't
+waste time on it". Both halves of that were wrong, and the way it was wrong is
+the point.
+
+`RegisterTenantTest::test_it_loads_the_livewire_javascript_runtime()` asserted
+`assertSee('livewire.js', escape: false)`. **The page was fine the whole
+time** — it renders
+`<script src=".../livewire-<hash>/livewire.min.js?id=...">`. Livewire serves
+the runtime as `livewire.js` or `livewire.min.js` depending on
+`config('app.debug')`, and the minified name does not contain the un-minified
+one as a substring. The assertion pinned a build flag, not behaviour. Now
+matched by pattern.
+
+**The more useful half: the rendered-page assertion cannot fail at all on this
+page, and only deleting things proved it.** Removing `@livewireScripts` from
+`layouts::app.none` — the exact regression the test was written for — still
+passed, because Flux emits the runtime too; removing `@fluxScripts` as well
+still passed, because Filament's `@filamentScripts` does. Three independent
+suppliers. So the test now *also* asserts the layout file itself still carries
+`@livewireScripts`, which is what protects the layout's other consumer
+(`Livewire\Tenant\Registration\Registration` via `#[Layout]`, rendered
+outside any panel), and that assertion was verified to fail when the directive
+is removed.
+
+Two things worth carrying forward:
+
+- **A red test is not evidence that the code is broken**, and a long-standing
+  red one attracts explanations rather than diagnosis. This had a written
+  root-cause note attached to it for weeks that was half right, which is
+  exactly what stopped anyone opening the page.
+- **"Fixed the assertion" is not done.** Check the fixed assertion can still
+  fail, by breaking the thing it names. Same discipline
+  `.claude/rules/testing.md` already demands for new regression tests; it
+  applies just as much to repairing an old one.

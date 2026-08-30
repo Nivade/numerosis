@@ -46,15 +46,48 @@ class RegisterTenantTest extends TestCase
      * since Livewire's JS runtime never loaded at all. Asserting the actual
      * script tag is present, not just a successful HTTP status, since 200
      * alone doesn't prove the page is actually interactive.
+     *
+     * Matched by pattern rather than by the literal string `livewire.js`,
+     * which is what this assertion used to look for and why it spent a while
+     * failing while the page was in fact fine. Livewire serves the runtime
+     * from `livewire.js` or `livewire.min.js` depending on `config('app.debug')`
+     * (Mechanisms\FrontendAssets\FrontendAssets::returnJavaScriptAsFile()),
+     * and the minified name does not contain the un-minified one as a
+     * substring — so a literal needle pins a build flag, not the behaviour
+     * this test exists to protect.
+     *
+     * **The rendered-page half of this can no longer fail, and that is worth
+     * knowing rather than trusting.** Verified 2026-08-30 by deleting
+     * `@livewireScripts` from the layout (still passed — Flux emits the
+     * runtime too) and then both `@livewireScripts` and `@fluxScripts`
+     * (still passed — Filament's own `@filamentScripts` emits it as well).
+     * On *this* page the runtime is supplied three ways over. So the second
+     * assertion checks the layout itself: `layouts::app.none` is also used by
+     * `Livewire\Tenant\Registration\Registration` via `#[Layout]`, where
+     * nothing else would supply it, and that directive going missing is the
+     * regression this test was written for in the first place.
      */
     public function test_it_loads_the_livewire_javascript_runtime(): void
     {
         $user = User::factory()->create();
         $this->actingAs($user);
 
-        $this->get(RegisterTenant::getUrl())
-            ->assertSuccessful()
-            ->assertSee('livewire.js', escape: false);
+        $response = $this->get(RegisterTenant::getUrl())->assertSuccessful();
+
+        $this->assertMatchesRegularExpression(
+            '/<script[^>]+src="[^"]*\/livewire(?:\.min)?\.js[^"]*"/',
+            (string) $response->getContent(),
+            'The page rendered no Livewire runtime <script> tag, so nothing on it is interactive.'
+        );
+
+        $this->assertStringContainsString(
+            '@livewireScripts',
+            (string) file_get_contents(
+                (string) view()->getFinder()->find('layouts::app.none')
+            ),
+            'layouts::app.none must emit the Livewire runtime itself — Filament supplies it on '
+            .'its own pages, but Registration uses this layout outside a panel.'
+        );
     }
 
     /**

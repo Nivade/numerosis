@@ -24,7 +24,7 @@ One line per file, under ~150 chars. Update index when rules file add/rename/rem
 - [tenant-caching.md](tenant-caching.md) — `global_cache()` un-prefixed; cross-tenant leaks of cached tenant models + shared session guard keys.
 - [tenant-provisioning.md](tenant-provisioning.md) — races between sync checkout redirect + async Stripe webhook; idempotency requirements; JobPipeline vs AsAction calling-convention conflict.
 - [tenant-registration-wizard.md](tenant-registration-wizard.md) — bare `@livewire()` view flattens child's component boundary; spatie wizard's `wizardClassName` needs alias resolution, not raw FQCN.
-- [testing.md](testing.md) — no Sail here (`vendor/bin/pest`); central rows escape RefreshDatabase; `Env` repo memoized so putenv only wins on first boot; suite green.
+- [testing.md](testing.md) — no Sail here (`vendor/bin/pest`); central rows escape RefreshDatabase; a repaired assertion isn't done till you make it fail; suite green.
 - [tenant-filesystem.md](tenant-filesystem.md) — `local` disk root tenant-suffixed but Livewire upload route never tenant-identified; dedicated `livewire` disk fixes it.
 - [identification-modes.md](identification-modes.md) — subdomain/custom-domain/path; slug ≠ domain; `{tenant}` literal enables dots; stancl forgets the param Filament needs.
 - [host-integration-quickstart.md](host-integration-quickstart.md) — 7 silent traps integrating into a pre-existing host app (tabellio); all 7 fixed 2026-08-13 — read for the mechanism to reach for now.
