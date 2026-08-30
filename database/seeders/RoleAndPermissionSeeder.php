@@ -8,6 +8,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
+use Nvade\Numerosis\Support\Numerosis;
 use Spatie\Permission\PermissionRegistrar;
 
 class RoleAndPermissionSeeder extends Seeder
@@ -46,6 +47,7 @@ class RoleAndPermissionSeeder extends Seeder
             'payment_plans',
             'payment_plan_features',
             'users',
+            ...Numerosis::permissionContexts(),
         ];
 
         $permissions = collect([]);

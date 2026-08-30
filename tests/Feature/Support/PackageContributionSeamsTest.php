@@ -10,6 +10,9 @@ use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 
+use function Pest\Laravel\assertDatabaseHas;
+use function Pest\Laravel\seed;
+
 /*
  * Phase 3 of .claude/plans/memoized-tinkering-meadow.md: additive
  * contribution seams a second package uses to add a route, a feature, or a
@@ -110,4 +113,46 @@ it('adds a registered tenant seeder to what TenantDatabaseSeeder::run() calls', 
     expect(Numerosis::tenantSeeders())->toBe([
         Nvade\Numerosis\Database\Seeders\Tenant\UserSeeder::class,
     ]);
+});
+
+/*
+ * Phase 6 (`.claude/plans/memoized-tinkering-meadow.md`) added the two
+ * central-side seams below. The package map assigns the `modules` permission
+ * context to numerosis-modules while `RoleAndPermissionSeeder` stays in core,
+ * and a satellite cannot be asked to publish and edit that seeder — a missing
+ * permission context 500s *every* page in the panel, not just its own
+ * (`.claude/rules/auth-guards.md`), so this is not a case where "the host can
+ * wire it up" is an acceptable answer.
+ */
+
+it('adds a registered central seeder to what DatabaseSeeder::run() calls', function () {
+    Numerosis::addCentralSeeder(Nvade\Numerosis\Database\Seeders\PaymentPlanSeeder::class);
+
+    expect(Numerosis::centralSeeders())->toBe([
+        Nvade\Numerosis\Database\Seeders\PaymentPlanSeeder::class,
+    ]);
+});
+
+it('seeds a contributed permission context under the central guard and grants it to admin', function () {
+    Numerosis::addPermissionContext('seam_probe');
+
+    seed(Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder::class);
+
+    $central = Config::string('tenancy.database.central_connection', 'central');
+
+    // Asserted on the central connection explicitly: these rows are written
+    // through it (autocommit) and are invisible to the default connection's
+    // open RefreshDatabase transaction — see .claude/rules/testing.md.
+    foreach (Nvade\Numerosis\Models\Permission::defaultActions() as $action) {
+        assertDatabaseHas('permissions', [
+            'name' => $action.' seam_probe',
+            'guard_name' => 'web',
+        ], $central);
+    }
+
+    $admin = Nvade\Numerosis\Models\Role::on($central)
+        ->where(['name' => 'admin', 'guard_name' => 'web'])
+        ->sole();
+
+    expect($admin->hasPermissionTo('viewAny seam_probe'))->toBeTrue();
 });

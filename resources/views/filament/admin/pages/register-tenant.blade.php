@@ -16,6 +16,12 @@
     `RegistrationWizardFeature` actually registers it under) — both were
     required together; either alone still left the wizard stuck.
 --}}
+{{--
+    The component is named by `numerosis.panels.admin.tenant_registration_component`
+    rather than hardcoded, so the wizard can live in a different package than
+    this page. `canAccess()` already refuses the page when that key is unset,
+    so reaching this line with a null alias is not a case to handle here.
+--}}
 <div>
-    @livewire('tenant-registration')
+    @livewire(\Nvade\Numerosis\Filament\Admin\Pages\RegisterTenant::wizardComponent())
 </div>

@@ -38,7 +38,6 @@ use Nvade\Numerosis\Http\Middleware\Authenticate;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
 use Nvade\Numerosis\Http\Middleware\UpdateUserLastSeenMiddleware;
-use Nvade\Numerosis\Livewire\Auth\PasswordlessLogin;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
@@ -107,9 +106,33 @@ class NumerosisTenantPlugin implements Plugin
         return app()->runningInConsole();
     }
 
+    /**
+     * The login page this panel serves, or `null` to leave Filament's own in
+     * place.
+     *
+     * Read from `numerosis.panels.tenant.login` rather than naming a class
+     * here, so this Filament layer does not hard-depend on the auth UI. The
+     * `class_exists()` check is the point of the seam and not belt-and-braces:
+     * `->login(Foo::class)` takes a compile-time string, so a configured but
+     * uninstalled component registers without complaint and fatals at the
+     * first `/login` hit on a tenant subdomain — a long way from the cause.
+     *
+     * @return class-string|null
+     */
+    protected static function loginComponent(): ?string
+    {
+        $login = Config::get('numerosis.panels.tenant.login');
+
+        return is_string($login) && class_exists($login) ? $login : null;
+    }
+
     public function register(Panel $panel): void
     {
         $panel = $this->applyNumerosisPanelTheme($panel);
+
+        if ($login = static::loginComponent()) {
+            $panel->login($login);
+        }
 
         $panel
             ->id('tenantAdmin')
@@ -118,7 +141,6 @@ class NumerosisTenantPlugin implements Plugin
             ->tenant(Numerosis::model(Tenant::class), 'id')
             ->path('/')
             ->spa()
-            ->login(PasswordlessLogin::class)
             ->discoverResources(in: $this->path('Resources'), for: 'Nvade\\Numerosis\\Filament\\TenantAdmin\\Resources')
             ->discoverPages(in: $this->path('Pages'), for: 'Nvade\\Numerosis\\Filament\\TenantAdmin\\Pages')
             ->discoverClusters(in: $this->path('Clusters'), for: 'Nvade\\Numerosis\\Filament\\TenantAdmin\\Clusters')

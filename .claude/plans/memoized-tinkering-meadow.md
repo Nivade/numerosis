@@ -1075,18 +1075,56 @@ views.
 Marketing pages (`welcome`, `about`, `terms`, `privacy`, `features`) stay in
 **core**, not ui — they are host-facing sample content, not shared primitives.
 
-### Open item this map creates
+### Phase-7 prerequisites, built in this repo first ✅ DONE (2026-08-30)
 
-**There is no central-seeder contribution seam.** Phase 3.3 added
+Both are additive against the current single-package layout, and both are
+verified by the existing suite here — the same reasoning
+`.claude/rules/package-boundaries.md` gives for adding seams *before* moving
+files, rather than rewriting the extension model and moving 400 files at once.
+Suite after: 1 failed (the known `livewire.js` one) / 7 skipped / **615
+passed**, on both matrix legs; PHPStan 0 outside baseline on both.
+
+**D1's two seams.** `numerosis.panels.tenant.login` (class-string|null,
+defaulting to the shipped `PasswordlessLogin`) and
+`numerosis.panels.admin.tenant_registration_component`. Both read defensively:
+null, empty, or a class that isn't installed all mean "skip that wiring".
+
+**One deviation from D1 as written, deliberate:** the second key names the
+wizard's **Livewire alias**, not the `RegisterTenant` page class. The page
+belongs to the Filament layer and the wizard to onboarding, so neither may
+name the other's class — and the alias is what the wizard is genuinely
+addressed by anyway (`.claude/rules/tenant-registration-wizard.md` records
+what using the raw FQCN cost last time). Because Filament *discovers* every
+page in that directory, opting out happens in `RegisterTenant::canAccess()` /
+`shouldRegisterNavigation()` rather than at the plugin's registration call;
+`ListTenants` drops its "New Tenant" action to match, with no fallback create
+action, since inserting a tenant row directly produces one with no database
+and no owner. `tests/Feature/Filament/PanelUiSeamsTest` (6 tests) covers both
+edges at the seam, because both fail *late* — a missing login component
+registers cleanly and only fatals at the first `/login` on a tenant subdomain.
+
+**The central-seeder seam.** `Numerosis::addCentralSeeder()` (mirror of
+Phase 3.3's tenant one, called by `DatabaseSeeder`) **and**
+`Numerosis::addPermissionContext()`, which is the one that actually solves the
+open item below: a satellite contributes the noun half of a permission name
+(`modules`) and `RoleAndPermissionSeeder` creates a row per default action
+under guard `web` and grants them to `admin`. A whole-seeder seam alone would
+have made each satellite duplicate that role wiring. Two tests in
+`PackageContributionSeamsTest`; the permission one was verified to fail with
+the contribution line removed.
+
+### Open item this map creates ✅ CLOSED by the above
+
+**There was no central-seeder contribution seam.** Phase 3.3 added
 `Numerosis::addTenantSeeder()` but no central equivalent, and
 `RoleAndPermissionSeeder` is a single core file that seeds the `modules`
 permission context under guard `web` — a context that belongs to
 numerosis-modules once it moves. A missing permission there 500s *every page*
 in the panel, not just its own (`.claude/rules/auth-guards.md`), so this cannot
-be left to the host. Phase 7 needs either `Numerosis::addCentralSeeder()` or a
-narrower `addPermissionContext()` seam, built the same way as the Phase-3
-three. Decide which when 7.2 reaches the modules move; do not ship the split
-without it.
+be left to the host. **Both now exist** (see the section above) — `addCentralSeeder()` for the
+general case and `addPermissionContext()` for this one specifically, since
+a satellite shipping only its own seeder would have had to duplicate the
+role-granting half.
 
 ### Corrections against the original map (all still hold)
 

@@ -456,13 +456,77 @@ class Numerosis
     }
 
     /**
-     * Clears {@see self::addTenantMigrationPath()} / {@see self::addTenantSeeder()}
+     * Extra central seeders registered via {@see self::addCentralSeeder()}.
+     *
+     * @var list<class-string<\Illuminate\Database\Seeder>>
+     */
+    private static array $extraCentralSeeders = [];
+
+    /**
+     * The central-database counterpart of {@see self::addTenantSeeder()},
+     * run after `DatabaseSeeder`'s own three.
+     *
+     * @param  class-string<\Illuminate\Database\Seeder>  $seeder
+     */
+    public static function addCentralSeeder(string $seeder): void
+    {
+        self::$extraCentralSeeders[] = $seeder;
+    }
+
+    /**
+     * @return list<class-string<\Illuminate\Database\Seeder>>
+     */
+    public static function centralSeeders(): array
+    {
+        return self::$extraCentralSeeders;
+    }
+
+    /**
+     * Extra permission contexts registered via {@see self::addPermissionContext()}.
+     *
+     * @var list<string>
+     */
+    private static array $extraPermissionContexts = [];
+
+    /**
+     * Contribute a permission *context* — the noun half of a permission name,
+     * e.g. `modules` in `viewAny modules` — to `RoleAndPermissionSeeder`,
+     * which creates one row per {@see \Nvade\Numerosis\Models\Permission::defaultActions()}
+     * action for it under guard `web` and grants them all to `admin`.
+     *
+     * This exists rather than "register your own seeder" because the failure
+     * mode of getting it wrong is total, not local: Filament evaluates every
+     * registered resource's `viewAny` to decide nav visibility on *every*
+     * page render, and Spatie throws `PermissionDoesNotExist` rather than
+     * returning false — so one missing context 500s the entire panel, not
+     * just its own screen (`.claude/rules/auth-guards.md`). A satellite
+     * shipping a policy-guarded resource must contribute its context here,
+     * from its own service provider, before the seeder runs.
+     */
+    public static function addPermissionContext(string $context): void
+    {
+        self::$extraPermissionContexts[] = $context;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function permissionContexts(): array
+    {
+        return self::$extraPermissionContexts;
+    }
+
+    /**
+     * Clears {@see self::addTenantMigrationPath()} / {@see self::addTenantSeeder()} /
+     * {@see self::addCentralSeeder()} / {@see self::addPermissionContext()}
      * contributions. For tests only — see {@see self::resetRouteContributionsForTesting()}.
      */
     public static function resetMigrationAndSeederContributionsForTesting(): void
     {
         self::$extraTenantMigrationPaths = [];
         self::$extraTenantSeeders = [];
+        self::$extraCentralSeeders = [];
+        self::$extraPermissionContexts = [];
     }
 
     /**
