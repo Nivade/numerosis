@@ -9,6 +9,7 @@ use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
+use Nvade\Numerosis\Support\Cache\GlobalCache;
 use Nvade\Numerosis\Support\Numerosis;
 
 class EloquentPaymentPlanRepository implements PaymentPlanRepository
@@ -49,7 +50,7 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
     public function available(): Collection
     {
         /** @var Collection<int, Plan> */
-        return global_cache()->remember(
+        return GlobalCache::store()->remember(
             CacheKeys::availablePaymentPlans(),
             now()->addHour(),
             fn () => Numerosis::model(PaymentPlan::class)::available()->orderBy('monthly_price')->get()

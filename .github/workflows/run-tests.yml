@@ -98,3 +98,18 @@ jobs:
 
       - name: Execute tests
         run: vendor/bin/pest --ci
+
+      # Each leg analyses against its own config: the reflection stub for the
+      # version that is NOT installed, plus its own baseline. `scanFiles`
+      # stubs shadow real classes rather than merging with them, so loading
+      # the wrong one makes correct code report as `method.notFound` — see
+      # phpstan-common.neon. Runs once per stancl leg, on one PHP version
+      # only, since the analysis does not vary by PHP patch.
+      - name: Static analysis
+        if: matrix.php == '8.5'
+        run: |
+          config=phpstan.neon.dist
+          if [ "${{ matrix.stancl }}" = "dev-master" ]; then
+            config=phpstan-dev-master.neon.dist
+          fi
+          php -d memory_limit=2G vendor/bin/phpstan analyse -c "$config" --no-progress

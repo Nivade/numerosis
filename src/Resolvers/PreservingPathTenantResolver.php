@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Resolvers;
 
+use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Override;
 use Stancl\Tenancy\Contracts\Tenant;
 use Stancl\Tenancy\Exceptions\TenantCouldNotBeIdentifiedByPathException;
@@ -25,19 +26,37 @@ use Stancl\Tenancy\Resolvers\PathTenantResolver;
  */
 class PreservingPathTenantResolver extends PathTenantResolver
 {
+    /**
+     * The two versions forget the parameter in different places, so only one
+     * of them needs this method reimplemented at all:
+     *
+     * - **v3** calls `$route->forgetParameter()` inside its own
+     *   `resolveWithoutCache()` as well as in `resolved()`, so the body has to
+     *   be replaced.
+     * - **dev-master** only does it in `resolved()` — which this class already
+     *   overrides — so the parent body is safe to delegate to, and delegating
+     *   keeps its binding-field resolution and `allowedExtraModelColumns()`
+     *   whitelist check, both of which a reimplementation here would silently
+     *   drop.
+     */
     #[Override]
     public function resolveWithoutCache(mixed ...$args): Tenant
     {
+        if (TenancyVersion::isDevMaster()) {
+            return parent::resolveWithoutCache(...$args);
+        }
+
         /** @var \Illuminate\Routing\Route $route */
         $route = $args[0];
 
-        if ($id = $route->parameter(static::$tenantParameterName)) {
-            if ($tenant = tenancy()->find($id)) {
-                return $tenant;
-            }
+        $id = $route->parameter(TenancyVersion::pathTenantParameterName());
+        $id = is_string($id) || is_int($id) ? $id : null;
+
+        if ($id !== null && $tenant = tenancy()->find($id)) {
+            return $tenant;
         }
 
-        throw new TenantCouldNotBeIdentifiedByPathException($id ?? null);
+        throw new TenantCouldNotBeIdentifiedByPathException((string) $id);
     }
 
     #[Override]

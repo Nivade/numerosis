@@ -23,6 +23,7 @@ use Nvade\Numerosis\Models\Tenant\User;
 use Nvade\Numerosis\Observers\TenantObserver;
 use Nvade\Numerosis\Policies\TenantPolicy;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
+use Nvade\Numerosis\Support\Cache\GlobalCache;
 use Nvade\Numerosis\Support\Compat\Tenancy\TenantWithDatabase;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
@@ -201,7 +202,7 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
 
     public function primaryDomain(): ?Domain
     {
-        return global_cache()->remember(
+        return GlobalCache::store()->remember(
             CacheKeys::tenantPrimaryDomain($this->id),
             now()->addHour(),
             fn () => $this->domains()

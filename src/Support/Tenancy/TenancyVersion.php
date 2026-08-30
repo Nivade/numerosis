@@ -105,4 +105,37 @@ final class TenancyVersion
             ? $resolverClass::shouldCache()
             : $resolverClass::$shouldCache;
     }
+
+    /**
+     * The route-parameter name `PathTenantResolver` identifies tenants by.
+     *
+     * v3 exposes it as a public static **property**
+     * (`PathTenantResolver::$tenantParameterName`, default `'tenant'`);
+     * dev-master replaced it with a static **method** reading
+     * `tenancy.identification.resolvers.<class>.tenant_parameter_name`.
+     * Reading the property on dev-master is not a type error but a fatal
+     * `Error: Access to undeclared static property` — and nothing in the test
+     * suite reaches it, because path mode's HTTP round trip cannot be
+     * exercised from console (see `.claude/rules/identification-modes.md`).
+     *
+     * Deliberately reached through `is_callable()`/`get_class_vars()` rather
+     * than `Class::method()`/`Class::$property` syntax: both forms have to
+     * survive static analysis on **both** matrix legs, and only one of the
+     * two members exists in either. `is_callable()` is what makes the method
+     * branch analysable — PHPStan narrows on it, where a `method_exists()`
+     * guard plus `call_user_func()` still reports the array callable as
+     * invalid on the leg where the method is absent.
+     */
+    public static function pathTenantParameterName(): string
+    {
+        $resolver = \Stancl\Tenancy\Resolvers\PathTenantResolver::class;
+
+        $accessor = [$resolver, 'tenantParameterName'];
+
+        $name = is_callable($accessor)
+            ? $accessor()
+            : (get_class_vars($resolver)['tenantParameterName'] ?? null);
+
+        return is_string($name) ? $name : 'tenant';
+    }
 }

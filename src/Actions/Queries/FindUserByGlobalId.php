@@ -9,6 +9,7 @@ use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Services\Tenancy\UserModelResolver;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
+use Nvade\Numerosis\Support\Cache\GlobalCache;
 
 /**
  * @method static ?User run(string $globalId, ?Context $context = null)
@@ -32,7 +33,7 @@ class FindUserByGlobalId
             ? UserModelResolver::tenantUserModel()
             : UserModelResolver::centralUserModel();
 
-        $attributes = global_cache()->remember(
+        $attributes = GlobalCache::store()->remember(
             CacheKeys::userModel($globalId, $context),
             now()->addHour(),
             fn () => $model::query()->where('global_id', $globalId)->first()?->getAttributes()

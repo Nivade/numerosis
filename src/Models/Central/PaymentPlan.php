@@ -23,6 +23,7 @@ use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Observers\PaymentPlanObserver;
 use Nvade\Numerosis\Policies\PaymentPlanPolicy;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
+use Nvade\Numerosis\Support\Cache\GlobalCache;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
@@ -191,7 +192,7 @@ class PaymentPlan extends Model implements Plan
      */
     public function popular(): bool
     {
-        $popularPlanId = global_cache()->remember(
+        $popularPlanId = GlobalCache::store()->remember(
             CacheKeys::popularPaymentPlanId(),
             now()->addMinutes(5),
             fn () => Numerosis::model(Subscription::class)::select('payment_plan_id')

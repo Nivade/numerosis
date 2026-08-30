@@ -14,15 +14,22 @@
 > `assertSee('livewire.js')`, reproduced with the whole branch stashed;
 > dev-master measured at Phase 2: 590 passed, 7 skipped, 0 failed, **not
 > re-run since Phase 5** — do that before trusting the matrix again).
-> PHPStan is clean on the stable leg (0 outside a 221-entry baseline) but
-> **not yet clean on dev-master** — tracked as a follow-up in Phase 2's own
-> section, not blocking.
+> **Both legs re-measured 2026-08-30, after Phases 5 and 6, and they agree:
+> 1 failed / 7 skipped / 607 passed on each** (the failure is
+> `RegisterTenantTest`'s `assertSee('livewire.js')`, pre-existing and
+> unrelated). **PHPStan is now clean on both** — 0 outside a 221-entry
+> baseline on stable, 0 outside a 228-entry one on dev-master; see Phase 2's
+> "PHPStan on dev-master" section, which is closed.
+>
+> One caveat on the suite number: a single stable-leg run reported a second
+> failure that did **not** recur across three further full runs and three
+> targeted ones, and was never identified. Treat 607 as the baseline and that
+> flake as open, not as noise to ignore.
 >
 > **Phase 6 agreed 2026-08-30**: six packages, adding `numerosis-ui` as a leaf;
 > decisions D1–D4 and the one open item (no central-seeder seam) are in that
 > section. **Phases 7–8 remain. Start at Phase 7.1 (scaffold four… now five
-> satellite repos).** Two chores to clear first, neither blocking the decision:
-> re-run the dev-master leg (untouched since Phase 2, three phases ago), and
+> satellite repos).** One prerequisite inside Phase 7 itself:
 > `Numerosis::addCentralSeeder()`/`addPermissionContext()` must exist before
 > 7.2 moves the modules package.
 >
@@ -455,21 +462,49 @@ found by PHPStan rather than the test suite:
    Stripe-secret-stripping never ran. Real bug, unrelated to tenancy
    version; fixed by restoring the import.
 
-### PHPStan on dev-master — not clean, follow-up not this session's scope
+### PHPStan on dev-master ✅ CLOSED (2026-08-30)
 
-Running the `tmpDir` invocation with dev-master actually installed reports
-errors beyond the stable-leg baseline. Some are the same
-"PHPStan analyses whichever version is really installed, and a
-`TenancyVersion::isDevMaster()`-gated branch reads as wrong when the
-*other* version is installed" class already documented for the reverse
-direction (three new baseline entries added below, for the stable leg).
-Getting dev-master's own leg to `0 outside baseline` needs a **second,
-dev-master-specific baseline** (or the reflection-stub mechanism extended
-significantly) — not attempted this session; CI's dev-master leg
-(`.github/workflows/run-tests.yml`) currently runs tests only, not
-PHPStan, so this doesn't block the matrix from being useful. Treat "both
-PHPStan runs clean" in this phase's original verification line as still
-open.
+**Both legs are now clean and both run in CI.** Full mechanism in
+`.claude/rules/static-analysis.md`; the short version, because the first
+diagnosis was wrong in an instructive way:
+
+The dev-master run reported 49 "real" errors, and **most of them were the
+harness, not the code**. A `scanFiles` stub *shadows* the real class rather
+than merging with it, so analysing with dev-master installed while still
+loading `.phpstan/stancl-tenancy-dev-master.stub.php` replaced the real
+`Stancl\Tenancy\Database\DatabaseConfig` with the stub's trimmed copy —
+every `->database()->getName()`/`->manager()` in the package then read as
+`method.notFound`. Fixed structurally rather than by baselining: the config
+is split into `phpstan-common.neon` + one leaf per leg
+(`phpstan.neon.dist`, `phpstan-dev-master.neon.dist`), each loading the stub
+for the version that is **not** installed, and a new
+`.phpstan/stancl-tenancy-v3.stub.php` mirrors the existing dev-master one.
+The dev-master leg deliberately does not include the stable baseline.
+
+Two genuine findings came out of it, neither reachable by the test suite:
+
+1. **`PreservingPathTenantResolver` would have fatalled on dev-master.** It
+   read `PathTenantResolver::$tenantParameterName`, a v3 static *property*
+   that dev-master replaced with a static *method* — `Error: Access to
+   undeclared static property`, not a type complaint. Only a real path-mode
+   HTTP request reaches it, which Phase 5 already documented as untestable
+   from console. Now `TenancyVersion::pathTenantParameterName()`, and the
+   dev-master branch delegates to `parent::resolveWithoutCache()` instead of
+   reimplementing it (dev-master only forgets the parameter in `resolved()`,
+   which this class already overrides — so delegating also keeps the
+   binding-field and `allowedExtraModelColumns()` handling the old body
+   silently dropped). `tests/Feature/Resolvers/PreservingPathTenantResolverTest`
+   drives the resolver directly and was verified to fail against the
+   pre-fix file.
+2. **`global_cache()` is `: mixed` on dev-master.** Ten call sites became
+   `Cannot call method remember() on mixed`. New
+   `Support\Cache\GlobalCache::store()` narrows once; no behaviour change
+   (stancl binds `globalCache` to a `CacheManager`, whose `__call` already
+   forwarded to `->store()`).
+
+Measured after: stable leg 0 outside a 221-entry baseline, dev-master leg 0
+outside a 228-entry one. CI gained a `Static analysis` step that picks the
+config matching its `stancl` axis value.
 
 ### Three new deliberate baseline entries (stable leg)
 

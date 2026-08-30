@@ -9,6 +9,7 @@ use Nvade\Numerosis\Contracts\Billing\ModuleCatalog;
 use Nvade\Numerosis\Contracts\Billing\ModuleOffer;
 use Nvade\Numerosis\Models\Central\ModuleOffering;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
+use Nvade\Numerosis\Support\Cache\GlobalCache;
 
 class EloquentModuleCatalog implements ModuleCatalog
 {
@@ -40,7 +41,7 @@ class EloquentModuleCatalog implements ModuleCatalog
     public function available(): Collection
     {
         /** @var Collection<int, ModuleOffer> */
-        return global_cache()->remember(
+        return GlobalCache::store()->remember(
             CacheKeys::availableModules(),
             now()->addHour(),
             fn () => ModuleOffering::available()->orderBy('name')->get()

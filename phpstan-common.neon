@@ -1,0 +1,20 @@
+### Everything both matrix legs share.
+#
+# Neither this file nor either leaf config is meant to be run directly — use
+# `phpstan.neon.dist` (stancl/tenancy ^3.10 installed) or
+# `phpstan-dev-master.neon.dist` (dev-master installed). The split exists for
+# one reason: `scanFiles` stubs SHADOW real classes rather than merging with
+# them, so the reflection stub for the version that is *not* installed must
+# never be loaded alongside the version that is. Each leg therefore carries
+# its own stub file and its own baseline; only the parameters below are
+# genuinely version-independent.
+parameters:
+    level: 9
+    treatPhpDocTypesAsCertain: false
+    paths:
+        - src
+        - config
+        - database
+        - tests
+        - workbench
+    tmpDir: build/phpstan
