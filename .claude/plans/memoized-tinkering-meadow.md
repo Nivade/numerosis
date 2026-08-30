@@ -16,8 +16,15 @@
 > re-run since Phase 5** — do that before trusting the matrix again).
 > PHPStan is clean on the stable leg (0 outside a 221-entry baseline) but
 > **not yet clean on dev-master** — tracked as a follow-up in Phase 2's own
-> section, not blocking. **Phases 6–8 remain. Start at Phase 6 (package map
-> decision, no code).**
+> section, not blocking.
+>
+> **Phase 6 agreed 2026-08-30**: six packages, adding `numerosis-ui` as a leaf;
+> decisions D1–D4 and the one open item (no central-seeder seam) are in that
+> section. **Phases 7–8 remain. Start at Phase 7.1 (scaffold four… now five
+> satellite repos).** Two chores to clear first, neither blocking the decision:
+> re-run the dev-master leg (untouched since Phase 2, three phases ago), and
+> `Numerosis::addCentralSeeder()`/`addPermissionContext()` must exist before
+> 7.2 moves the modules package.
 >
 > **Re-audit result:** every structural claim in Phases 1, 3, 4, 6 and 7 was
 > re-verified against the code and holds, line numbers included. Both baselines
@@ -945,21 +952,108 @@ request always sees the tenant wildcard win).
 
 ---
 
-## Phase 6 — package map
+## Phase 6 — package map ✅ AGREED (2026-08-30)
 
-**Do not create repos until this table is agreed.** The original map had four
-defects, all confirmed against the code; the corrections are folded in below
-and the open questions are listed after it.
+**Six packages, decided with the maintainer 2026-08-30.** The four decisions
+that were open are recorded in "Decisions taken" below, with the evidence each
+was made against. Phase 7 may start from this table.
 
-| Package | Owns |
-|---|---|
-| **numerosis** (this repo) | Tenancy engine (bootstrappers, guards, identification modes, `HostConfig`, the compat layers from Phase 1), billing/subscription engine, provisioning pipeline, auth contracts + guard mechanics, central Eloquent models, the Feature mechanism and the three Phase-3 seams |
-| **numerosis-filament** | Both panels in full — `Filament/{Admin,TenantAdmin,App,Concerns}`, `NumerosisAdminPlugin`/`NumerosisTenantPlugin`, `Providers/Filament/*`, theme/asset registration, `Testing/InteractsWithTenantPanel`, the `Support/Compat/Filament*` shims |
-| **numerosis-onboarding** | `Livewire/Tenant/Registration/*`, `RegistrationWizardFeature`, `Support/State/RegistrationState`, the Phase-4 step config and identity contract |
-| **numerosis-auth-ui** | `Livewire/Auth/*`, `routes/auth.php`, `SocialLoginFeature`, `TurnstileFeature`, `Http/Controllers/Socialite/*`, the `one_time_passwords` migrations |
-| **numerosis-modules** | `ModuleSystemFeature`, `ModuleRegistry` + `EloquentModuleRegistry`, `Actions/Modules/*`, `Console/Commands/*TenantModule`, `Concerns/Modules/PurchasesModules`, all module Filament UI, the 4 module migrations |
+| Package | Depends on | Owns |
+|---|---|---|
+| **numerosis-ui** | — (leaf) | `resources/views/{components/ui,components/icons,layouts,partials,flux}`, the `livewire/flux` require. No tenancy, billing or Filament references at all |
+| **numerosis** (this repo) | numerosis-ui | Tenancy engine (bootstrappers, guards, identification modes, `HostConfig`, the Phase-1 compat layers), billing/subscription engine, provisioning pipeline, auth contracts + guard mechanics, central Eloquent models, the Feature mechanism and the Phase-3 seams, the `panels.*` config section incl. the two new seam keys, `activity_log` migrations + `LogsActivity` shim, `database/seeders/*`, `stubs/`, `components/billing` + marketing views |
+| **numerosis-filament** | numerosis, numerosis-ui | Both panels in full — `Filament/{Admin,TenantAdmin,App,Concerns}`, `NumerosisAdminPlugin`/`NumerosisTenantPlugin`, `Providers/Filament/*`, theme/asset registration, `Testing/InteractsWithTenantPanel`, the `Support/Compat/Filament*` shims, `ActivityResource` + `ActivityLogFeature`, `resources/views/filament/*` |
+| **numerosis-onboarding** | numerosis, numerosis-ui | `Livewire/Tenant/Registration/*`, `RegistrationWizardFeature`, `Support/State/RegistrationState`, the Phase-4 step config and identity contract, `resources/views/livewire/tenant` + `components/registration` |
+| **numerosis-auth-ui** | numerosis, numerosis-ui | `Livewire/Auth/*`, `routes/auth.php`, `SocialLoginFeature`, `TurnstileFeature`, `Http/Controllers/Socialite/*`, the `one_time_passwords` migrations, `resources/views/livewire/auth` + `components/auth` + `layouts/auth` |
+| **numerosis-modules** | numerosis, numerosis-filament | `ModuleSystemFeature`, `ModuleRegistry` + `EloquentModuleRegistry`, `Actions/Modules/*`, `Console/Commands/*TenantModule`, `Concerns/Modules/PurchasesModules`, `Contracts/Tenancy/ModulePlugin`, all module Filament UI (both `Filament/Admin/Resources/Central/Modules/` and `Filament/TenantAdmin/{Resources,Pages}/Modules`), the 4 module migrations |
 
-**Corrections against the original map:**
+Star, not a graph: **only numerosis-modules depends on another satellite**, and
+it must (its own UI is Filament resources, and `ModulePlugin extends
+Filament\Contracts\Plugin`). Every other satellite reaches core and ui only.
+
+### Decisions taken (2026-08-30)
+
+**D1 — numerosis-filament's two satellite edges become config-bound. Star.**
+Both edges were measured first, and they are different shapes:
+
+- **login is hard and fails late.** `NumerosisTenantPlugin:121`
+  `->login(PasswordlessLogin::class)`. `::class` on an imported name never
+  autoloads, so the panel *registers* fine without auth-ui; the fatal arrives
+  at the first `/login` hit on a tenant subdomain, from Filament's route
+  resolution, nowhere near the cause.
+- **the register page is soft.** `Filament/Admin/Pages/RegisterTenant` is a
+  ~20-line shell whose Blade is `@livewire('tenant-registration')` — an alias
+  string, no class reference. Without onboarding it renders and throws
+  `Unable to find component: [tenant-registration]`, reached only via
+  `ListTenants`' "New Tenant" action.
+
+**There is no cycle in either direction** — verified, not assumed:
+`src/Livewire/Auth/` and `src/Livewire/Tenant/Registration/` contain **zero**
+`Filament\` references. `PasswordlessLogin` extends spatie's
+`OneTimePasswordComponent`; Filament merely accepts it as a login page. So
+"graph" would have been acyclic and structurally fine — this was a
+dependency-weight call, not a correctness one.
+
+What Phase 7 must build for it:
+
+- Two new **core**-owned config keys, in core's existing `numerosis.panels.*`
+  section (core owns that section already — a satellite writing three segments
+  deep into another package's namespace is exactly the `Arr::set()`
+  auto-vivification hazard `.claude/rules/package-host-bootstrap.md` records):
+  `numerosis.panels.tenant.login` and `numerosis.panels.admin.register_tenant_page`,
+  both `class-string|null`, both defaulting to `null`.
+- numerosis-filament reads them and **skips gracefully on null** — no
+  `->login()` call at all (Filament falls back to its own login page), and no
+  `RegisterTenant` page registered, with `ListTenants`' action conditional on
+  the same key rather than on `RegisterTenant::class` existing.
+- numerosis-auth-ui / numerosis-onboarding each register themselves into their
+  key at boot, the same shape as `Features::register()` from Phase 3.
+
+**D2 — per-package config, merged.** Core keeps `config/numerosis.php` with
+core keys only; each satellite ships its own file and `mergeConfigFrom`s it,
+and registers its feature through Phase 3's `Features::register()` seam rather
+than appearing in core's `features` array. This is what removes the hard boot
+failure `.claude/rules/package-boundaries.md` documents (a listed-but-missing
+feature class reaching `$this->app->make()`) **by construction** rather than by
+the warn-and-continue guard Phase 3.2 added — keep that guard anyway, it now
+covers host-authored entries only.
+
+**D3 — activity_log splits: recording in core, UI in filament.** The 9
+migrations and the `LogsActivity` compat shim stay in core, because core's own
+models (`Tenant\User`, `Invitation`) compose the trait — the tables must exist
+wherever core does. `ActivityResource` and `ActivityLogFeature` move to
+numerosis-filament, which is what the feature's own docblock already says it is
+("the audit-log UI in the tenant panel"). `alizharb/filament-activity-log`
+moves to numerosis-filament's `require-dev` + `suggest`.
+
+**D4 — numerosis-ui exists, as a leaf.** Measured consumption of
+`components/ui` (29 files): `components/billing` (8 files, core),
+`livewire/auth` (5, auth-ui), `livewire/tenant` (2, onboarding),
+`livewire/settings` (2), plus layouts, partials and the marketing pages. It is
+a genuine leaf — nothing in it references tenancy, billing or Filament — and
+every other package depends on it, **including core**, so it is not optional
+for anyone. `livewire/flux` moves out of core's `require` into it, which does
+not weaken `.claude/rules/testing.md`'s "a package rendering another package's
+components must `require`, not `suggest`" rule: the requirement moves with the
+views.
+
+Marketing pages (`welcome`, `about`, `terms`, `privacy`, `features`) stay in
+**core**, not ui — they are host-facing sample content, not shared primitives.
+
+### Open item this map creates
+
+**There is no central-seeder contribution seam.** Phase 3.3 added
+`Numerosis::addTenantSeeder()` but no central equivalent, and
+`RoleAndPermissionSeeder` is a single core file that seeds the `modules`
+permission context under guard `web` — a context that belongs to
+numerosis-modules once it moves. A missing permission there 500s *every page*
+in the panel, not just its own (`.claude/rules/auth-guards.md`), so this cannot
+be left to the host. Phase 7 needs either `Numerosis::addCentralSeeder()` or a
+narrower `addPermissionContext()` seam, built the same way as the Phase-3
+three. Decide which when 7.2 reaches the modules move; do not ship the split
+without it.
+
+### Corrections against the original map (all still hold)
 
 1. **`PurchaseModule`/`CancelModule` move to numerosis-modules, not core.**
    `src/Actions/Modules/PurchaseModule.php:9` hard-uses
@@ -969,12 +1063,12 @@ and the open questions are listed after it.
    `use Nvade\Numerosis\Filament\Concerns\NotifiesUser;`, returns
    `Filament\Actions\Action`, and its only consumers are two Filament pages.
    Left in core it creates core → filament → core.
-3. **numerosis-filament is not a leaf.** `NumerosisTenantPlugin:110` does
+3. **numerosis-filament is not a leaf.** `NumerosisTenantPlugin:121` does
    `->login(PasswordlessLogin::class)` (auth-ui) and
    `Filament/Admin/Pages/RegisterTenant.php` exists to host the wizard
-   (onboarding). Either those two classes become contract-bound and
-   host-configured, or numerosis-filament depends on both satellites. **Decide
-   this before Phase 7** — it is the difference between a star and a graph.
+   (onboarding). **Resolved by D1 above** — both become config-bound, filament
+   requires core + ui only. (Line was 110 in the original note; it is 121
+   post-Phase-5.)
 4. **`src/Filament/Admin/Resources/Central/Modules/` (6 files) was claimed
    twice** — by "all `Admin/` resources" and by "all module Filament UI". The
    table above assigns it to numerosis-modules. Its `modules` permission
@@ -982,11 +1076,12 @@ and the open questions are listed after it.
    `.claude/rules/auth-guards.md` for why a missing permission there 500s
    every page in the panel, not just its own.
 
-**Also unassigned in the original and needing a decision:** the 847-line
-`config/numerosis.php` (a listed-but-uninstalled feature class is a hard boot
-failure — see `.claude/rules/package-boundaries.md`), all of
-`resources/views/`, `database/seeders/`, `stubs/`, the **9** `activity_log`
-migrations and `ActivityLogFeature`, `Contracts/Tenancy/ModulePlugin.php`.
+**Everything unassigned in the original now has a home** (D2/D3/D4 above, plus:
+`database/seeders/*` and `stubs/` stay in core — subject to the central-seeder
+seam noted above; `Contracts/Tenancy/ModulePlugin` goes to numerosis-modules,
+since it `extends Filament\Contracts\Plugin` and that package depends on
+filament anyway). `config/numerosis.php` is 907 lines, not 847 — recount before
+quoting it again.
 
 **[was wrong] — there are 9 activity_log migrations, not 7, and they are not
 symmetrical.** 4 central (`create`, `add_event_column`, `add_batch_uuid_column`,
@@ -1070,8 +1165,8 @@ check that proves the split composes; per-package suites do not.
 3  contribution seams         ── ✅ DONE 2026-08-29
 4  wizard step config         ── ✅ DONE 2026-08-30 (re-verified green now Phase 2/3 landed)
 5  identification modes       ── ✅ DONE 2026-08-30 (all 3 modes; path mode's HTTP round trip needs a browser test)
-6  package map agreed         ── decision gate, no code; next up
-7  scaffold + move            ── depends on 3, 6
+6  package map agreed         ── ✅ DONE 2026-08-30 (six packages incl. numerosis-ui; D1–D4 recorded)
+7  scaffold + move            ── depends on 3, 6; next up
 8  docs + verification        ── depends on 7
 ```
 
