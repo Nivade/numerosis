@@ -154,12 +154,22 @@ page and passed under both resolvers — the panel's login page is not
 tenant-scoped, so it cannot tell them apart. If this test is ever rewritten,
 keep it on an authenticated panel page.
 
-**Subdomain mode's HTTP round trip is still not provable, and a browser test
-does not fix it.** `pestphp/pest-plugin-browser` serves the application
-*in-process*, so `PHP_SAPI` remains `cli` and `app()->runningInConsole()` is
-`true` inside a browser request — `shouldRegisterPanel()`'s console exemption
-applies exactly as `.claude/rules/filament-tenancy.md` describes. That needs a
-genuinely separate FPM or `php -S` server, which nothing here has.
+**The subdomain and custom-domain tenant-panel round trips are now covered
+too, as of 2026-08-31**, by `tests/Browser/SubdomainModeTest` and
+`tests/Browser/CustomDomainModeTest` — same shape as `PathModeTest`
+(authenticated dashboard render including the tenant's own name, plus an
+unauthenticated login-page request), both asserted free of `Server Error`.
+Neither test visits a central domain, so neither touches the one thing that
+still can't be proven here:
+
+**"Central route wins over the `{tenant}` wildcard" is still not provable,
+and a browser test does not fix it.** `pestphp/pest-plugin-browser` serves the
+application *in-process*, so `PHP_SAPI` remains `cli` and
+`app()->runningInConsole()` is `true` inside a browser request —
+`shouldRegisterPanel()`'s console exemption applies exactly as
+`.claude/rules/filament-tenancy.md` describes, regardless of what a request's
+`Host` header is set to. That needs a genuinely separate FPM or `php -S`
+server, which nothing here has.
 
 ## Suggested better approach
 
