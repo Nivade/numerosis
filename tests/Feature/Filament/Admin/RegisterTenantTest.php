@@ -8,8 +8,8 @@ use App\Models\Central\CentralUser as User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
-use Nvade\Numerosis\Filament\Admin\Pages\RegisterTenant;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\Admin\Pages\RegisterTenant;
 
 /**
  * RegisterTenant::$layout pointed at 'components.layouts.app.none', a view

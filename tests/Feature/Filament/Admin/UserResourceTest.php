@@ -10,10 +10,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Nvade\Numerosis\Filament\Admin\Resources\Users\Pages\EditUser;
-use Nvade\Numerosis\Filament\Admin\Resources\Users\UserResource;
 use Nvade\Numerosis\Models\Central\Role;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\Admin\Resources\Users\Pages\EditUser;
+use Nvade\NumerosisFilament\Admin\Resources\Users\UserResource;
 
 /**
  * UserResource::form() used Select::make('role_id')->relationship('role',

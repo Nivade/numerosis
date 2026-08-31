@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Features;
 
 use Illuminate\Support\Facades\Route;
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\InvitationResource;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\TenantAdmin\Resources\Invitations\InvitationResource;
 
 class InvitationsDisabledTest extends TestCase
 {

@@ -6,10 +6,10 @@ namespace Nvade\Numerosis\Tests\Feature\Features;
 
 use AlizHarb\ActivityLog\ActivityLogPlugin;
 use Filament\Facades\Filament;
-use Nvade\Numerosis\Features\Ui\TenantPanelFeature;
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\Activities\ActivityResource;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\Features\TenantPanelFeature;
+use Nvade\NumerosisFilament\TenantAdmin\Resources\Activities\ActivityResource;
 
 /**
  * The plugin's absence is a boot-time assertion — ->plugins([...]) is

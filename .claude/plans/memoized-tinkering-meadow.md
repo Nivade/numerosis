@@ -1,5 +1,17 @@
 # Numerosis: dual-version tenancy, customizable wizard, package split
 
+> ## ⚠️ Phases 7–8 below are SUPERSEDED. Live plan: `.claude/plans/numerosis-consolidation.md`
+>
+> Audited 2026-08-30. Three premises were re-decided with the maintainer:
+> **dual-version tenancy is dropped (v3 only)**, the split **collapses into one
+> repo with `packages/*` and split-on-tag**, and **numerosis-modules is not
+> extracted** (modules stay in core behind a `class_exists` guard). Reasoning
+> and measurements are in the consolidation plan.
+>
+> **This file is kept as the record of Phases 0–6 and the ui / auth-ui /
+> filament extractions.** Do not follow its Phase 7/8 text. Durable learnings
+> from all of it already live in `.claude/rules/`.
+
 > Revised 2026-08-29 after auditing the original plan against the code, then
 > **re-audited the same day** against a fresh measurement. Claims that turned
 > out to be wrong are corrected inline and marked **[was wrong]** so nobody
@@ -1313,7 +1325,89 @@ on **both** matrix legs, PHPStan 0 outside baseline on both (baselines 221 →
 214 stable, 228 → 221 dev-master, all seven removed on each side being entries
 for the moved files), and `numerosis-auth-ui`'s own suite 10 passed standalone.
 
-### Remaining: numerosis-filament, -onboarding, -modules
+### 7.1/7.2 — numerosis-filament ✅ DONE (2026-08-30)
+
+`~/repos/private/numerosis-filament`, same `path`-repository-with-symlink
+wiring. Biggest slice by far: **110 PHP files and 9 views**.
+
+What moved: all of `src/Filament/**` (flattened — `Nvade\Numerosis\Filament\X`
+became `Nvade\NumerosisFilament\X`), both `Providers/Filament/*`,
+`Http/Middleware/ApplyDefaultBranding`, `Testing/InteractsWithTenantPanel`,
+`Concerns/Modules/PurchasesModules`, `ActivityLogFeature`, `AdminPanelFeature`,
+`TenantPanelFeature`, and `resources/views/filament/**`.
+
+**Three corrections to the Phase-6 map, again decided by grep:**
+
+- **The `Support/Compat/Filament*` shims stay in core.** The map assigned
+  them here. They are precisely what lets core's own `Models\User` declare
+  `implements FilamentUserContract` without Filament installed — a satellite
+  owning them would invert the dependency and defeat their whole purpose.
+- **`registerFilamentTheme()` stays in core.** The map said "theme/asset
+  registration". The `dist/` files are core's, `Numerosis::assetTags()` and
+  `InstallNumerosisCommand` both name `NumerosisServiceProvider::{THEME_ID,
+  ASSET_ID}`, and the registration is already `class_exists(FilamentAsset)`-
+  guarded. Splitting one guarded block to move one of its three lines buys
+  nothing.
+- **The module Filament UI moved here temporarily**, not to core. Both
+  `Admin/Resources/Central/Modules/` and `TenantAdmin/{Resources,Pages}/
+  Modules/` belong to numerosis-modules per the map, but that package depends
+  on this one and does not exist yet. They ride here until the -modules slice
+  moves them out; this package's `BoundaryTest` already forbids a
+  `Nvade\NumerosisModules\` reference so the direction cannot invert in the
+  meantime.
+
+**Core's edges into Filament, audited rather than assumed.**
+`.claude/rules/package-boundaries.md` lists 14 core files naming `Filament\`;
+only two were real. `CheckInvitationStatus` calls
+`Filament\Notifications\Notification::make()` on an ordinary invitation link —
+a core route with no panel anywhere — now `class_exists()`-guarded with a
+session-flash fallback. `ApplyDefaultBranding` moved. The rest are lazy method
+type-hints, comments, or the compat shims above.
+
+**Core no longer registers panel providers**, only whatever a host names in
+`numerosis.panels.{admin,tenant}.provider`; the satellite registers its own
+two and stands down for a panel a host has claimed. That decision is a static
+`panelProvidersToRegister()` rather than inline in the `booting()` callback,
+so it is directly assertable — two providers fighting over one panel id does
+not fail, it silently produces the wrong panel.
+
+Three things worth carrying into the last two packages:
+
+- **A satellite must be able to register with core's config absent, and do
+  nothing.** Found by PHPStan, not by the suite: Larastan boots an app that
+  discovers every vendor package but not the root one, so all three
+  satellites register with core missing. The first guard used
+  `numerosis.panels` as its sentinel and was never once true — because
+  numerosis-auth-ui's own `Config::set('numerosis.panels.tenant.login', …)`
+  *auto-vivifies* that namespace via `Arr::set()`. Sentinel is now
+  `numerosis.features` (core's alone) and `Features::all()` reads
+  `Config::array('numerosis.features', [])`. Guarding the *write* on the same
+  sentinel was tried and reverted — provider register order between two
+  discovered packages is not ours to choose, and it suppressed a write that
+  had to happen. The rule is phase, not check: a satellite writes config in
+  the register phase and *reads* core's config only from `booting()`. Full
+  write-up in `.claude/rules/package-split.md`.
+- **An escaped namespace inside a string survives a namespace rewrite.**
+  Filament's `->discoverResources(for: 'Nvade\\Numerosis\\Filament\\…')` takes
+  the namespace as a literal, so the rewrite missed all eight discovery calls.
+  Nothing failed at load — the panels registered with zero resources, and the
+  symptom was `RouteNotFoundException` in an unrelated test. Grep the
+  double-backslash form too, and bare `namespace X;` lines.
+- **`alizharb/filament-activity-log` came *back* into core's `require-dev`.**
+  It moved to the satellite's `require-dev` + `suggest` per D3, and core's
+  suite promptly went red on 4 activity-log panel tests — the panels' real
+  coverage stays in core (that is the point of core `require-dev`ing each
+  satellite), so core still needs the dev dependency even though it no longer
+  `suggest`s it. Same shape as `spatie/laravel-one-time-passwords` in the
+  auth-ui slice.
+
+Verified after: core **0 failed / 7 skipped / 623 passed** on both matrix
+legs, PHPStan 0 outside baseline on both (baselines 214 → 199 stable, 221 →
+206 dev-master), `numerosis-filament`'s own suite 8 passed standalone.
+Assertions fell 5540 → 4882: `ArchTest`'s cashier-key scan lost 110 files,
+which the satellite's own `BoundaryTest` now carries (905 assertions there).
+
+### Remaining: numerosis-onboarding, -modules
 
 Original brief, still accurate for those three:
 

@@ -7,6 +7,9 @@ namespace Nvade\Numerosis\Tests\Feature\Filament;
 use Filament\Facades\Filament;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\Providers\NumerosisAdminPanelProvider;
+use Nvade\NumerosisFilament\Providers\NumerosisTenantPanelProvider;
+use ReflectionClass;
 
 /**
  * Phase 4 of .claude/plans/design-system-unification.md: both panels share
@@ -40,9 +43,9 @@ class PanelThemeTest extends TestCase
      */
     public function test_both_plugins_share_the_same_theme_concern(): void
     {
-        $trait = 'Nvade\Numerosis\Filament\Concerns\AppliesNumerosisPanelTheme';
+        $trait = 'Nvade\NumerosisFilament\Concerns\AppliesNumerosisPanelTheme';
 
-        foreach (['Nvade\Numerosis\Filament\NumerosisAdminPlugin', 'Nvade\Numerosis\Filament\NumerosisTenantPlugin'] as $plugin) {
+        foreach (['Nvade\NumerosisFilament\NumerosisAdminPlugin', 'Nvade\NumerosisFilament\NumerosisTenantPlugin'] as $plugin) {
             $this->assertContains(
                 $trait,
                 class_uses_recursive($plugin),
@@ -53,10 +56,16 @@ class PanelThemeTest extends TestCase
 
     public function test_neither_panel_provider_calls_colors(): void
     {
+        // Resolved by reflection, not by a hardcoded path: both providers moved
+        // to nvade/numerosis-filament, and a path that no longer exists makes
+        // this fail loudly here but would have gone *vacuous* in a scan-style
+        // guard. See .claude/rules/package-split.md.
         foreach ([
-            dirname(__DIR__, 3).'/src/Providers/Filament/NumerosisAdminPanelProvider.php',
-            dirname(__DIR__, 3).'/src/Providers/Filament/NumerosisTenantPanelProvider.php',
+            (new ReflectionClass(NumerosisAdminPanelProvider::class))->getFileName(),
+            (new ReflectionClass(NumerosisTenantPanelProvider::class))->getFileName(),
         ] as $path) {
+            $this->assertIsString($path);
+
             // Comment-stripped: both files' docblocks explain in prose *why*
             // there is no ->colors() call, which would otherwise trip this
             // assertion on the very sentence documenting the fix.

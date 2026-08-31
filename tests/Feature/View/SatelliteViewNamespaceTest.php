@@ -33,6 +33,7 @@ class SatelliteViewNamespaceTest extends TestCase
         return [
             'numerosis-ui' => ['numerosis-ui', 'components/ui/card.blade.php'],
             'numerosis-auth-ui' => ['numerosis-auth-ui', 'livewire/auth/register.blade.php'],
+            'numerosis-filament' => ['numerosis-filament', 'filament/admin/pages/register-tenant.blade.php'],
         ];
     }
 

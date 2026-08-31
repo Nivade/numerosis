@@ -8,9 +8,9 @@ use App\Models\Central\Tenant;
 use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Roles\Pages\ListRoles;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\TenantAdmin\Clusters\Team\Resources\Roles\Pages\ListRoles;
 use Spatie\Permission\Models\Role;
 
 class RoleResourceUiTest extends TestCase

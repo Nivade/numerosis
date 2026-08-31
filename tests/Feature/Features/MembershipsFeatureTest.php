@@ -7,8 +7,8 @@ namespace Nvade\Numerosis\Tests\Feature\Features;
 use App\Models\Central\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Users\UserResource;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\TenantAdmin\Clusters\Team\Resources\Users\UserResource;
 use Spatie\Permission\Models\Permission;
 
 class MembershipsFeatureTest extends TestCase

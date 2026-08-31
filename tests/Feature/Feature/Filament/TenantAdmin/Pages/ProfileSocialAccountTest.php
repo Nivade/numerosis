@@ -9,8 +9,8 @@ use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Nvade\Numerosis\Actions\Auth\ConnectSocialAccount;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\SocialAccounts;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\TenantAdmin\Clusters\Profile\Pages\SocialAccounts;
 
 class ProfileSocialAccountTest extends TestCase
 {

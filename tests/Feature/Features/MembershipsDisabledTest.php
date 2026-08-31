@@ -7,10 +7,10 @@ namespace Nvade\Numerosis\Tests\Feature\Features;
 use App\Models\Central\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Nvade\Numerosis\Features\Ui\TenantPanelFeature;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Team\Resources\Users\UserResource;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\Features\TenantPanelFeature;
+use Nvade\NumerosisFilament\TenantAdmin\Clusters\Team\Resources\Users\UserResource;
 
 class MembershipsDisabledTest extends TestCase
 {

@@ -9,14 +9,14 @@ use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Pages\EditSubscription;
-use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Pages\ListSubscriptions;
-use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\Pages\ViewSubscription;
-use Nvade\Numerosis\Filament\Admin\Resources\Central\Subscriptions\SubscriptionResource;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\Admin\Resources\Central\Subscriptions\Pages\EditSubscription;
+use Nvade\NumerosisFilament\Admin\Resources\Central\Subscriptions\Pages\ListSubscriptions;
+use Nvade\NumerosisFilament\Admin\Resources\Central\Subscriptions\Pages\ViewSubscription;
+use Nvade\NumerosisFilament\Admin\Resources\Central\Subscriptions\SubscriptionResource;
 
 /**
  * Covers the tenant Select added to SubscriptionForm's 'subscribable_id'

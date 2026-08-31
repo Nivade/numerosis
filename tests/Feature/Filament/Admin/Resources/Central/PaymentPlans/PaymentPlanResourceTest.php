@@ -9,12 +9,12 @@ use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\ListPaymentPlans;
-use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\ViewPaymentPlan;
-use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\PaymentPlanResource;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\Pages\ListPaymentPlans;
+use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\Pages\ViewPaymentPlan;
+use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\PaymentPlanResource;
 
 class PaymentPlanResourceTest extends TestCase
 {

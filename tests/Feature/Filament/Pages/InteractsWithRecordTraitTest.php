@@ -8,8 +8,8 @@ use App\Models\Central\CentralUser;
 use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Nvade\Numerosis\Filament\Concerns\InteractsWithRecord;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\Concerns\InteractsWithRecord;
 
 /**
  * Exercises the Filament trait, not tenancy, so the record is a CentralUser:

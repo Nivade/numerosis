@@ -11,11 +11,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Modules\CancelModule;
 use Nvade\Numerosis\Actions\Modules\PurchaseModule;
 use Nvade\Numerosis\Exceptions\Modules\ModulesDisabled;
-use Nvade\Numerosis\Filament\TenantAdmin\Pages\Modules\Marketplace;
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\Modules\ModuleResource;
 use Nvade\Numerosis\Models\Central\ModuleOffering;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\TenantAdmin\Pages\Modules\Marketplace;
+use Nvade\NumerosisFilament\TenantAdmin\Resources\Modules\ModuleResource;
 
 class ModuleFeatureSwitchesTest extends TestCase
 {

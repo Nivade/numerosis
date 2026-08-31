@@ -9,11 +9,11 @@ use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\Pages\EditPaymentPlan;
-use Nvade\Numerosis\Filament\Admin\Resources\Central\PaymentPlans\RelationManagers\FeaturesRelationManager;
 use Nvade\Numerosis\Models\Central\Feature;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\Pages\EditPaymentPlan;
+use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\RelationManagers\FeaturesRelationManager;
 
 /**
  * FeaturesRelationManager was fully built but commented out of

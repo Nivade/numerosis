@@ -13,9 +13,9 @@ use Livewire\Livewire;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\General;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\Security;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\TenantAdmin\Clusters\Profile\Pages\General;
+use Nvade\NumerosisFilament\TenantAdmin\Clusters\Profile\Pages\Security;
 
 class ProfileSyncTest extends TestCase
 {

@@ -9,8 +9,8 @@ use App\Models\Central\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\Activities\ActivityResource;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\TenantAdmin\Resources\Activities\ActivityResource;
 
 class ActivityLogFeatureTest extends TestCase
 {

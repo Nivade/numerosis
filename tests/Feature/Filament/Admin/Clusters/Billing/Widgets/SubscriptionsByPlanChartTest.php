@@ -10,11 +10,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Nvade\Numerosis\Filament\Admin\Clusters\Billing\Widgets\SubscriptionsByPlanChart;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\Admin\Clusters\Billing\Widgets\SubscriptionsByPlanChart;
 
 /**
  * getData() used to call PaymentPlan::find() inside a mapWithKeys() loop —

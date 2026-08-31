@@ -141,6 +141,43 @@ come.
   guard. **Every package's own boundary test is the first file to write, and
   it should absorb whatever core-wide scan stops covering the moved code.**
 
+- **A hardcoded `dirname(__DIR__, N).'/src/...'` in a test fails *loudly* when
+  the file moves, which is the good case — resolve it by reflection so it
+  keeps working.** `PanelThemeTest` read both panel providers off disk by
+  path; after the filament extraction that path did not exist and the test
+  errored on `file_get_contents(): Failed to open stream`. Compare the
+  view-directory scans, which went vacuous instead. `(new
+  ReflectionClass(Foo::class))->getFileName()` is correct wherever the class
+  lives, and PHPStan needs the `?string` return narrowed.
+
+- **A `Filament\` reference in core is not automatically a boundary
+  violation — check whether it is reached without a panel.**
+  `.claude/rules/package-boundaries.md` lists 14 core files naming
+  `Filament\`. Only two actually moved. `Models/{User,Central/CentralUser}`
+  keep `Filament\Panel` in method signatures (lazy, and the
+  `Support\Compat\Filament*` shims that make them optional **stay in core**,
+  against the Phase-6 map — they are what lets core's own models load without
+  Filament, so a satellite cannot own them). `Models/Central/Tenant` and
+  `Resolvers/PreservingPathTenantResolver` were comments only.
+  `Http/Middleware/CheckInvitationStatus` was the one real find: it calls
+  `Filament\Notifications\Notification::make()` on an ordinary
+  expired-invitation link, i.e. a **core** route reached with no panel
+  anywhere — now `class_exists()`-guarded with a session flash fallback.
+  `ApplyDefaultBranding` moved (its only consumer is the tenant plugin).
+  `Support\Numerosis::assetTags()` stayed: it is core's public API and the
+  registration behind it is already guarded.
+
+- **A string containing an escaped namespace is invisible to a
+  namespace-rewrite pass.** Filament's discovery calls take the namespace as
+  a *string* — `->discoverResources(in: ..., for: 'Nvade\\Numerosis\\Filament\\Admin\\Resources')`
+  — so a rewrite matching `Nvade\Numerosis\Filament\` misses them entirely.
+  Nothing fails at load; the panel registers with zero resources and the
+  symptom is `RouteNotFoundException: Route [filament.admin….index] not
+  defined` from an unrelated test. **After any namespace move, grep for the
+  double-backslash form as well as the single one**, and for bare
+  `namespace X;` lines (no trailing separator, so a prefix-with-separator
+  match skips them too).
+
 - **Not everything the plan's package map assigns actually belongs there —
   and the second extraction corrected the map in three more places.**
   `TurnstileFeature` (core's invitation screen and `partials/head` use it),
@@ -155,6 +192,43 @@ come.
   grep -rn "ThatClass::" src/ resources/ tests/ config/   # constants + statics
   grep -rn "x-numerosis::that-component" resources/       # view-level reach-back
   ```
+
+- **A satellite's `Config::set()` into core's namespace auto-vivifies it, so
+  "that namespace exists" is not evidence core registered.** `Arr::set()`
+  creates every missing segment on the way down —
+  `.claude/rules/package-host-bootstrap.md` records the destructive version of
+  this (a truncated `tenancy.database`); the quiet version is that
+  `numerosis-auth-ui` writing `numerosis.panels.tenant.login` *creates*
+  `numerosis.panels` as an array of its own invention when core has not
+  merged its config. `numerosis-filament` then guarded panel registration on
+  `numerosis.panels` being non-null and the guard was simply never true-false
+  — it passed on a namespace no core had supplied. **The sentinel has to be a
+  key only core writes** (`numerosis.features`).
+
+  Guarding the *write* on that same sentinel was tried and reverted: provider
+  register order between two discovered packages is not ours to choose, so
+  auth-ui legitimately registers before core in the package's own Testbench
+  harness and the guard suppressed a write that had to happen (2 red tests in
+  `SatelliteRouteContributionTest`). The asymmetry that makes this work is
+  **phase, not check**: a satellite's config *write* belongs in the register
+  phase (unordered, must vivify), and anything *reading* core's config to
+  decide whether to wire something belongs in a `booting()` callback, which
+  runs after every provider's `register()` — including core's `mergeConfigFrom`.
+  `HostConfig::numerosisConfig()`'s deep-fill is what makes the vivified
+  namespace harmless rather than truncating, the same way
+  `.claude/rules/package-host-bootstrap.md` describes for `tenancy.database`.
+
+  This is reachable in ordinary use, not just in an odd harness: Larastan
+  boots an application that discovers every *vendor* package but not the root
+  one (`.claude/rules/static-analysis.md`), so every satellite registers with
+  core absent. That is exactly the shape of a host that installs a satellite
+  and, for any reason, does not have core's provider registered — and the
+  failure it produced was `Configuration value for key
+  [numerosis.auth.guards.central] must be a string, NULL given`, thrown from
+  inside Filament's own boot, nowhere near the cause. **A satellite must be
+  able to register into a world where core's config is not there, and do
+  nothing.** `Features::all()` now reads `Config::array('numerosis.features',
+  [])` for the same reason.
 
 - **A route *name* the rest of core generates cannot move to a satellite.**
   `logout` and `verification.verify` stayed in core's `routes/web.php` even

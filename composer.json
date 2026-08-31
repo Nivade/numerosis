@@ -57,6 +57,7 @@
         "laravel/pint": "^1.14",
         "nunomaduro/collision": "^8.8",
         "nvade/numerosis-auth-ui": "@dev",
+        "nvade/numerosis-filament": "@dev",
         "orchestra/testbench": "^11.0",
         "pestphp/pest": "^4.0",
         "pestphp/pest-plugin-arch": "^4.0",
@@ -74,11 +75,11 @@
         "filament/filament": "Admin + tenant panels (both self-register when installed). Without it, App\\Models\\User loses Filament's FilamentUser/HasTenants contracts and neither panel registers \u2014 everything else still works.",
         "spatie/laravel-one-time-passwords": "Passwordless (OTP) login. Without it, User::HasOneTimePasswordsIfInstalled no-ops and nvade/numerosis-auth-ui's PasswordlessLogin is unreachable.",
         "spatie/laravel-activitylog": "Tenant\\User and Tenant\\Invitation activity logging. Without it, LogsActivityIfInstalled no-ops.",
-        "alizharb/filament-activity-log": "Activity log resource in the tenant panel. Requires filament/filament and spatie/laravel-activitylog; without it, ActivityResource silently doesn't register.",
         "sentry/sentry-laravel": "Enables TagsSentryScopeWithTenant; guarded by app()->bound('sentry') where used.",
         "laravel/telescope": "Adds a scheduled telescope:prune entry and is why 'telescope/*' is CSRF-exempt; both are class_exists-guarded.",
         "laravel/reverb": "Broadcasting/presence-channel support for the tenant panel's realtime features.",
-        "pusher/pusher-php-server": "Alternative broadcast driver to laravel/reverb, same broadcasting code paths."
+        "pusher/pusher-php-server": "Alternative broadcast driver to laravel/reverb, same broadcasting code paths.",
+        "nvade/numerosis-filament": "The admin and tenant Filament panels. Without it this package registers no panels, and filament/filament is not needed at all."
     },
     "autoload": {
         "psr-4": {
@@ -144,6 +145,13 @@
         {
             "type": "path",
             "url": "../numerosis-auth-ui",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../numerosis-filament",
             "options": {
                 "symlink": true
             }

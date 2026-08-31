@@ -11,16 +11,16 @@ use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
-use Nvade\Numerosis\Features\Observability\ActivityLogFeature;
 use Nvade\Numerosis\Features\Tenancy\MembershipsFeature;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
-use Nvade\Numerosis\Features\Ui\AdminPanelFeature;
 use Nvade\Numerosis\Features\Ui\MarketingPagesFeature;
-use Nvade\Numerosis\Features\Ui\TenantPanelFeature;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Tests\TestCase;
 use Nvade\NumerosisAuthUi\Features\SocialLoginFeature;
+use Nvade\NumerosisFilament\Features\ActivityLogFeature;
+use Nvade\NumerosisFilament\Features\AdminPanelFeature;
+use Nvade\NumerosisFilament\Features\TenantPanelFeature;
 
 class RegistrationWizardDisabledTest extends TestCase
 {

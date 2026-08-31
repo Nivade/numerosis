@@ -69,8 +69,6 @@ use Nvade\Numerosis\Listeners\Modules\QueueModuleMigration;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
 use Nvade\Numerosis\Livewire\Settings\DeleteUserForm;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
-use Nvade\Numerosis\Providers\Filament\NumerosisAdminPanelProvider;
-use Nvade\Numerosis\Providers\Filament\NumerosisTenantPanelProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Support\Defaults\EloquentInvitationRepository;
 use Nvade\Numerosis\Support\Defaults\EloquentSocialAccountRepository;
@@ -174,37 +172,30 @@ class NumerosisServiceProvider extends PackageServiceProvider
             Config::set('livewire.temporary_file_upload.disk', 'livewire');
         }
 
-        $this->registerFilamentPanels();
+        $this->registerHostPanelProviders();
     }
 
     /**
-     * Registers the admin and tenant panels. Name your own provider in
-     * `numerosis.panels.{admin,tenant}.provider` to replace either.
+     * Registers a host's own panel providers, named in
+     * `numerosis.panels.{admin,tenant}.provider`.
      *
-     * Whether a panel registers at all is each provider's own decision;
-     * this only chooses the class.
+     * The package's own defaults are no longer registered from here:
+     * nvade/numerosis-filament owns both panels and registers them itself
+     * when installed. A host naming a provider here is trusted to have
+     * Filament, so the class is registered unguarded — this key is the
+     * escape hatch for replacing a package panel wholesale, and a null
+     * value simply means "whatever numerosis-filament registers, or
+     * nothing at all".
      */
-    protected function registerFilamentPanels(): void
+    protected function registerHostPanelProviders(): void
     {
         $this->app->booting(function (): void {
-            $admin = Config::get('numerosis.panels.admin.provider');
-            $tenant = Config::get('numerosis.panels.tenant.provider');
+            foreach (['admin', 'tenant'] as $panel) {
+                $provider = Config::get("numerosis.panels.{$panel}.provider");
 
-            // A host naming its own provider is trusted to have Filament
-            // installed — only the package's own default classes need the
-            // guard, since NumerosisAdminPanelProvider/NumerosisTenantPanelProvider
-            // extend Filament\PanelProvider and would fatal on autoload
-            // otherwise (filament/filament is suggest, not require).
-            if (is_string($admin)) {
-                $this->app->register($admin);
-            } elseif (class_exists(\Filament\PanelProvider::class)) {
-                $this->app->register(NumerosisAdminPanelProvider::class);
-            }
-
-            if (is_string($tenant)) {
-                $this->app->register($tenant);
-            } elseif (class_exists(\Filament\PanelProvider::class)) {
-                $this->app->register(NumerosisTenantPanelProvider::class);
+                if (is_string($provider)) {
+                    $this->app->register($provider);
+                }
             }
         });
     }

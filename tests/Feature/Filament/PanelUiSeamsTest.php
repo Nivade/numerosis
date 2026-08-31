@@ -8,9 +8,9 @@ use App\Models\Central\CentralUser as User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Gate;
-use Nvade\Numerosis\Filament\Admin\Pages\RegisterTenant;
-use Nvade\Numerosis\Filament\NumerosisTenantPlugin;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\Admin\Pages\RegisterTenant;
+use Nvade\NumerosisFilament\NumerosisTenantPlugin;
 use ReflectionMethod;
 
 /**

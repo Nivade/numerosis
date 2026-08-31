@@ -8,10 +8,10 @@ use App\Models\Central\CentralUser;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
-use Nvade\Numerosis\Filament\TenantAdmin\Pages\Billing;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\TenantAdmin\Pages\Billing;
 
 class BillingTest extends TestCase
 {

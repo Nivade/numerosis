@@ -11,9 +11,9 @@ use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Filament\TenantAdmin\Pages\Billing;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\TenantAdmin\Pages\Billing;
 
 class BillingPlanVisibilityTest extends TestCase
 {

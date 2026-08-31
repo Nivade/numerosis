@@ -10,9 +10,9 @@ use Filament\Pages\Dashboard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Nvade\Numerosis\Filament\Admin\Widgets\TenantOverviewWidget;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\Admin\Widgets\TenantOverviewWidget;
 
 /**
  * Covers TenantOverviewWidget, the default Dashboard's replacement for the

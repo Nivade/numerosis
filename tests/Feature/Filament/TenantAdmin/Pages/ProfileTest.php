@@ -10,11 +10,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\General;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\Security;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\SocialAccounts;
 use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\TenantAdmin\Clusters\Profile\Pages\General;
+use Nvade\NumerosisFilament\TenantAdmin\Clusters\Profile\Pages\Security;
+use Nvade\NumerosisFilament\TenantAdmin\Clusters\Profile\Pages\SocialAccounts;
 
 class ProfileTest extends TestCase
 {

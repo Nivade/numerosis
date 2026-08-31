@@ -8,8 +8,8 @@ use App\Models\Central\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
-use Nvade\Numerosis\Filament\TenantAdmin\Resources\Invitations\InvitationResource;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisFilament\TenantAdmin\Resources\Invitations\InvitationResource;
 
 class InvitationsFeatureTest extends TestCase
 {

@@ -38,15 +38,12 @@ use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
-use Nvade\Numerosis\Features\Observability\ActivityLogFeature;
 use Nvade\Numerosis\Features\Tenancy\ImpersonationFeature;
 use Nvade\Numerosis\Features\Tenancy\MembershipsFeature;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
-use Nvade\Numerosis\Features\Ui\AdminPanelFeature;
 use Nvade\Numerosis\Features\Ui\MarketingPagesFeature;
-use Nvade\Numerosis\Features\Ui\TenantPanelFeature;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
@@ -113,8 +110,10 @@ return [
         // Requires TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY — see .env.example.
         TurnstileFeature::class,
 
-        // OAuth login is NOT listed here. It ships in nvade/numerosis-auth-ui,
-        // whose provider registers it through Features::register() — naming a
+        // Some features are NOT listed here, because they ship in satellite
+        // packages whose providers register them through Features::register():
+        // OAuth login (nvade/numerosis-auth-ui), and the two panel toggles
+        // plus the audit-log UI (nvade/numerosis-filament). Naming a
         // satellite's class in core's config would make core boot against a
         // class that may not be installed.
 
@@ -141,24 +140,12 @@ return [
         // password.confirm — see the class docblock.
         PasswordResetFeature::class,
 
-        // Third-party audit-log UI (AlizHarb\ActivityLog). Does not stop
-        // spatie/laravel-activitylog from writing — see the class docblock.
-        ActivityLogFeature::class,
-
         // This product's marketing pages — a package consumer replaces
         // these with their own. See the class docblock re: 'home'.
         MarketingPagesFeature::class,
 
         // This product's account UI. See the class docblock re: 'tenants.mine'.
         AccountPagesFeature::class,
-
-        // The central admin panel (/admin). Gate lives in
-        // AdminPanelProvider::register() — see the class docblock.
-        AdminPanelFeature::class,
-
-        // The tenant admin panel ({tenant}.<domain>/). Gate lives in
-        // TenantAdminPanelProvider::register() — see the class docblock.
-        TenantPanelFeature::class,
 
         // Tenant membership UI (Team cluster / Users resource). Does not
         // gate InvitationsFeature — see the class docblock.
@@ -412,19 +399,28 @@ return [
             ],
         ],
 
-        // Which of the package's two panels Filament treats as the
-        // application default (the one a bare '/' resolves into). 'admin' |
-        // 'tenant' | null — null registers neither as default, which is only
-        // safe if a host's own panel provider supplies one, since Filament
-        // otherwise has no panel to route an unscoped request to.
+        // This whole section is core's, deliberately, even though the panels
+        // themselves live in nvade/numerosis-filament: a satellite writing
+        // three segments deep into another package's config namespace is the
+        // Arr::set() auto-vivification hazard .claude/rules/
+        // package-host-bootstrap.md records.
         //
-        // 'provider' lets a host replace either package panel provider
-        // (Nvade\Numerosis\Providers\Filament\NumerosisAdminPanelProvider /
-        // NumerosisTenantPanelProvider) with its own class entirely — see
-        // NumerosisServiceProvider::registerFilamentPanels(). Left null, the
-        // package's own provider registers, gated the same way it always
-        // was: AdminPanelFeature/TenantPanelFeature via each plugin's own
-        // shouldRegisterPanel().
+        // Which of the two panels Filament treats as the application default
+        // (the one a bare '/' resolves into). 'admin' | 'tenant' | null —
+        // null registers neither as default, which is only safe if a host's
+        // own panel provider supplies one, since Filament otherwise has no
+        // panel to route an unscoped request to.
+        //
+        // 'provider' lets a host replace either panel provider
+        // (Nvade\NumerosisFilament\Providers\NumerosisAdminPanelProvider /
+        // NumerosisTenantPanelProvider) with its own class entirely. Core
+        // registers whatever this names; numerosis-filament stands down for
+        // that panel rather than registering a second provider for the same
+        // panel id. Left null with numerosis-filament installed, its own
+        // provider registers, gated the same way it always was:
+        // AdminPanelFeature/TenantPanelFeature via each plugin's own
+        // shouldRegisterPanel(). Left null without it, no panel registers and
+        // filament/filament is not needed at all.
         // 'tenant.login' and 'admin.tenant_registration_component' are the two
         // seams that keep the Filament layer from hard-depending on the auth
         // and onboarding UI. Both are read defensively — a null value, or a
