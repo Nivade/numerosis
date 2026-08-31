@@ -27,9 +27,17 @@ class TenantFactory extends Factory
             // apostrophes, which produced unquotable database names and left
             // orphaned schemas behind on teardown.
             'id' => \Illuminate\Support\Str::slug($company),
-            'data' => [
-                'name' => $company,
-            ],
+            // `name` is set as a top-level attribute, never as
+            // `'data' => ['name' => …]`. VirtualColumn folds every
+            // non-custom attribute into `data` on save, so passing `data`
+            // itself makes it just another virtual attribute — the written
+            // column came out as {"user_id":…,"tenancy_db_name":…} with no
+            // `name` in it at all, and every tenant the suite has ever built
+            // had a null name. Nothing failed: the only thing that requires
+            // one is Filament's own tenant layout
+            // (`FilamentManager::getTenantName(): string`), which no test
+            // rendered until the browser suite did.
+            'name' => $company,
             'user_id' => \Nvade\Numerosis\Models\Central\CentralUser::factory(),
         ];
     }
