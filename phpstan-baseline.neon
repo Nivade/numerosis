@@ -553,36 +553,6 @@ parameters:
 			path: src/Actions/Modules/CancelModule.php
 
 		-
-			message: '#^Argument of an invalid type array\|bool\|float\|int\|string\|null supplied for foreach, only iterables are supported\.$#'
-			identifier: foreach.nonIterable
-			count: 1
-			path: src/Console/Commands/DeleteTenants.php
-
-		-
-			message: '#^Call to an undefined method Nvade\\Numerosis\\Models\\Central\\Tenant\|Stancl\\Tenancy\\Database\\TenantCollection\:\:delete\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Console/Commands/DeleteTenants.php
-
-		-
-			message: '#^Cannot cast array\|bool\|float\|int\|string\|null to string\.$#'
-			identifier: cast.string
-			count: 1
-			path: src/Console/Commands/MigrateTenantModule.php
-
-		-
-			message: '#^Cannot cast array\|bool\|float\|int\|string\|null to string\.$#'
-			identifier: cast.string
-			count: 1
-			path: src/Console/Commands/RollbackTenantModule.php
-
-		-
-			message: '#^Cannot cast array\|bool\|float\|int\|string\|null to string\.$#'
-			identifier: cast.string
-			count: 1
-			path: src/Console/Commands/SeedTenantModule.php
-
-		-
 			message: '#^Method Nvade\\Numerosis\\Contracts\\Billing\\Plan\:\:metadata\(\) has invalid return type Nvade\\Numerosis\\Contracts\\Billing\\PlanMetadata\.$#'
 			identifier: class.notFound
 			count: 1
@@ -613,88 +583,10 @@ parameters:
 			path: src/Contracts/Tenancy/HasTenants.php
 
 		-
-			message: '#^Parameter \#1 \$user of class Illuminate\\Auth\\Events\\Verified constructor expects Illuminate\\Contracts\\Auth\\MustVerifyEmail, Workbench\\App\\Models\\User given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Http/Controllers/Auth/VerifyEmailController.php
-
-		-
 			message: '#^Access to an undefined property Nvade\\Numerosis\\Models\\Tenant\\User\:\:\$is_bot\.$#'
 			identifier: property.notFound
 			count: 1
 			path: src/Http/Middleware/Authenticate.php
-
-		-
-			message: '#^Access to an undefined property Workbench\\App\\Models\\User\:\:\$global_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Http/Requests/Billing/StartCheckoutRequest.php
-
-		-
-			message: '#^Call to an undefined method Workbench\\App\\Models\\User\:\:getGlobalIdentifierKey\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Http/Requests/EmailVerificationRequest.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Invitations/Accept.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Settings/Appearance.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Settings/DeleteUserForm.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Settings/Password.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Settings/Profile.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Tenant/Registration/Registration.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Tenant/Registration/Steps/CompanyInfo.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Tenant/Registration/Steps/Payment.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Tenant/Registration/Steps/Plan.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Tenant/Registration/Steps/TechnicalSetup.php
 
 		-
 			message: '#^Return type \(Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany\<Nvade\\Numerosis\\Models\\Central\\Tenant, \$this\(Nvade\\Numerosis\\Models\\Central\\CentralUser\), Nvade\\Numerosis\\Models\\Central\\Membership, ''pivot''\>\) of method Nvade\\Numerosis\\Models\\Central\\CentralUser\:\:tenants\(\) should be compatible with return type \(Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany\<Nvade\\Numerosis\\Models\\Central\\Tenant, static\(Nvade\\Numerosis\\Contracts\\Tenancy\\HasTenants\), Nvade\\Numerosis\\Models\\Central\\Membership, ''pivot''\>\) of method Nvade\\Numerosis\\Contracts\\Tenancy\\HasTenants\:\:tenants\(\)$#'
@@ -841,12 +733,6 @@ parameters:
 			path: tests/ArchTest.php
 
 		-
-			message: '#^Call to an undefined method App\\Models\\Central\\CentralUser\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Central\\CentralUser\>\:\:hasRole\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: tests/Feature/Actions/Auth/PromoteFirstCentralUserToAdminTest.php
-
-		-
 			message: '#^Access to an undefined property Laravel\\Cashier\\Subscription\:\:\$stripe_id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -869,6 +755,12 @@ parameters:
 			identifier: method.alreadyNarrowedType
 			count: 1
 			path: tests/Feature/Actions/Billing/Checkout/StartSubscriptionCheckoutTest.php
+
+		-
+			message: '#^Parameter \#1 \$user of method Nvade\\Numerosis\\Tests\\Feature\\Actions\\Billing\\Subscriptions\\LinkSubscriptionToTenantTest\:\:provisionData\(\) expects App\\Models\\Central\\CentralUser, Nvade\\Numerosis\\Models\\Central\\CentralUser given\.$#'
+			identifier: argument.type
+			count: 3
+			path: tests/Feature/Actions/Billing/Subscriptions/LinkSubscriptionToTenantTest.php
 
 		-
 			message: '#^Property Stripe\\Subscription\:\:\$items \(Stripe\\Collection\<Stripe\\SubscriptionItem\>\) does not accept object\{data\: array\{object\{id\: ''si_123'', price\: object\{id\: ''price_123'', product\: ''prod_123''\}&stdClass, quantity\: 1\}&stdClass\}\}&stdClass\.$#'
@@ -907,10 +799,58 @@ parameters:
 			path: tests/Feature/Actions/Billing/Subscriptions/RecordSubscriptionTest.php
 
 		-
+			message: '#^Parameter \#1 \$user of method Nvade\\Numerosis\\Tests\\Feature\\Actions\\Billing\\Subscriptions\\SubscriptionDualWriterTest\:\:provisionData\(\) expects App\\Models\\Central\\CentralUser, Nvade\\Numerosis\\Models\\Central\\CentralUser given\.$#'
+			identifier: argument.type
+			count: 2
+			path: tests/Feature/Actions/Billing/Subscriptions/SubscriptionDualWriterTest.php
+
+		-
+			message: '#^Anonymous function should return App\\Models\\Tenant\\Invitation but returns Nvade\\Numerosis\\Models\\Tenant\\Invitation\.$#'
+			identifier: return.type
+			count: 1
+			path: tests/Feature/Actions/Invitations/AcceptInvitationTest.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Cashier\\Subscription\:\:\$stripe_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: tests/Feature/Actions/Modules/CancelModuleTest.php
+
+		-
 			message: '#^Access to an undefined property Laravel\\Cashier\\SubscriptionItem\:\:\$stripe_id\.$#'
 			identifier: property.notFound
 			count: 1
 			path: tests/Feature/Actions/Modules/CancelModuleTest.php
+
+		-
+			message: '#^Method Nvade\\Numerosis\\Tests\\Feature\\Actions\\Modules\\CancelModuleTest\:\:ownerOf\(\) should return App\\Models\\Central\\CentralUser but returns Nvade\\Numerosis\\Models\\Central\\CentralUser\.$#'
+			identifier: return.type
+			count: 1
+			path: tests/Feature/Actions/Modules/CancelModuleTest.php
+
+		-
+			message: '#^Parameter \#1 \$tenant of method Nvade\\Numerosis\\Tests\\Feature\\Actions\\Modules\\CancelModuleTest\:\:ownerOf\(\) expects App\\Models\\Central\\Tenant, Nvade\\Numerosis\\Models\\Central\\Tenant given\.$#'
+			identifier: argument.type
+			count: 6
+			path: tests/Feature/Actions/Modules/CancelModuleTest.php
+
+		-
+			message: '#^Method Nvade\\Numerosis\\Tests\\Feature\\Actions\\Modules\\ModuleFeatureSwitchesTest\:\:ownerOf\(\) should return App\\Models\\Central\\CentralUser but returns Nvade\\Numerosis\\Models\\Central\\CentralUser\.$#'
+			identifier: return.type
+			count: 1
+			path: tests/Feature/Actions/Modules/ModuleFeatureSwitchesTest.php
+
+		-
+			message: '#^Parameter \#1 \$tenant of method Nvade\\Numerosis\\Tests\\Feature\\Actions\\Modules\\ModuleFeatureSwitchesTest\:\:ownerOf\(\) expects App\\Models\\Central\\Tenant, Nvade\\Numerosis\\Models\\Central\\Tenant given\.$#'
+			identifier: argument.type
+			count: 2
+			path: tests/Feature/Actions/Modules/ModuleFeatureSwitchesTest.php
+
+		-
+			message: '#^Method Nvade\\Numerosis\\Tests\\Feature\\Actions\\Tenancy\\ImpersonateTenantUserTest\:\:provisionedTenantWithOwner\(\) should return array\{App\\Models\\Central\\Tenant, App\\Models\\Central\\CentralUser, string\} but returns array\{Nvade\\Numerosis\\Models\\Central\\Tenant, Nvade\\Numerosis\\Models\\Central\\CentralUser, string\}\.$#'
+			identifier: return.type
+			count: 1
+			path: tests/Feature/Actions/Tenancy/ImpersonateTenantUserTest.php
 
 		-
 			message: '#^Cannot access property \$error on App\\Models\\Central\\PendingTenantProvision\|null\.$#'
@@ -931,13 +871,19 @@ parameters:
 			path: tests/Feature/Actions/Tenancy/ProvisionTenantTest.php
 
 		-
-			message: '#^Cannot access property \$error on App\\Models\\Central\\PendingTenantProvision\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Central\\PendingTenantProvision\>\|null\.$#'
+			message: '#^Parameter \#1 \$user of method Nvade\\Numerosis\\Tests\\Feature\\Actions\\Tenancy\\ProvisionTenantTest\:\:provisionData\(\) expects App\\Models\\Central\\CentralUser, Nvade\\Numerosis\\Models\\Central\\CentralUser given\.$#'
+			identifier: argument.type
+			count: 8
+			path: tests/Feature/Actions/Tenancy/ProvisionTenantTest.php
+
+		-
+			message: '#^Cannot access property \$error on App\\Models\\Central\\PendingTenantProvision\|null\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: tests/Feature/Actions/Tenancy/TenantProvisioningSignalTest.php
 
 		-
-			message: '#^Cannot access property \$failed_at on App\\Models\\Central\\PendingTenantProvision\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Central\\PendingTenantProvision\>\|null\.$#'
+			message: '#^Cannot access property \$failed_at on App\\Models\\Central\\PendingTenantProvision\|null\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: tests/Feature/Actions/Tenancy/TenantProvisioningSignalTest.php
@@ -955,9 +901,15 @@ parameters:
 			path: tests/Feature/Actions/Tenancy/TenantProvisioningSignalTest.php
 
 		-
-			message: '#^Cannot access property \$status on App\\Models\\Central\\PendingTenantProvision\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Central\\PendingTenantProvision\>\|null\.$#'
+			message: '#^Cannot access property \$status on App\\Models\\Central\\PendingTenantProvision\|null\.$#'
 			identifier: property.nonObject
 			count: 1
+			path: tests/Feature/Actions/Tenancy/TenantProvisioningSignalTest.php
+
+		-
+			message: '#^Parameter \#1 \$user of method Nvade\\Numerosis\\Tests\\Feature\\Actions\\Tenancy\\TenantProvisioningSignalTest\:\:provisionData\(\) expects App\\Models\\Central\\CentralUser, Nvade\\Numerosis\\Models\\Central\\CentralUser given\.$#'
+			identifier: argument.type
+			count: 2
 			path: tests/Feature/Actions/Tenancy/TenantProvisioningSignalTest.php
 
 		-
@@ -967,25 +919,25 @@ parameters:
 			path: tests/Feature/ArchTest.php
 
 		-
+			message: '#^Cannot call method hasVerifiedEmail\(\) on Nvade\\Numerosis\\Models\\Central\\CentralUser\|null\.$#'
+			identifier: method.nonObject
+			count: 4
+			path: tests/Feature/Auth/EmailVerificationTest.php
+
+		-
 			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: tests/Feature/Auth/EmailVerificationTest.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Contracts\\Auth\\Authenticatable\:\:\$global_id\.$#'
+			message: '#^Access to an undefined property App\\Models\\Tenant\\User\:\:\$is_bot\.$#'
 			identifier: property.notFound
 			count: 1
 			path: tests/Feature/BotBlockingAuthTest.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Contracts\\Auth\\Authenticatable\:\:\$is_bot\.$#'
-			identifier: property.notFound
-			count: 1
-			path: tests/Feature/BotBlockingAuthTest.php
-
-		-
-			message: '#^Cannot access property \$is_bot on Illuminate\\Contracts\\Auth\\Authenticatable\|null\.$#'
+			message: '#^Cannot access property \$is_bot on App\\Models\\Tenant\\User\|null\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: tests/Feature/BotBlockingAuthTest.php
@@ -1021,6 +973,12 @@ parameters:
 			path: tests/Feature/Events/Auth/SocialAccountDisconnectedTest.php
 
 		-
+			message: '#^Property Nvade\\Numerosis\\Tests\\Feature\\Filament\\App\\RoleResourceUiTest\:\:\$tenant \(App\\Models\\Central\\Tenant\) does not accept Nvade\\Numerosis\\Models\\Central\\Tenant\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: tests/Feature/Filament/App/RoleResourceUiTest.php
+
+		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -1039,19 +997,49 @@ parameters:
 			path: tests/Feature/Filament/TenantAdmin/Pages/BillingTest.php
 
 		-
+			message: '#^Method Nvade\\Numerosis\\Tests\\Feature\\Http\\Controllers\\Billing\\WebhookControllerLifecycleTest\:\:tenantWithStripeCustomer\(\) should return array\{tenant\: App\\Models\\Central\\Tenant, owner\: App\\Models\\Central\\CentralUser\} but returns array\{tenant\: Nvade\\Numerosis\\Models\\Central\\Tenant, owner\: Nvade\\Numerosis\\Models\\Central\\CentralUser\}\.$#'
+			identifier: return.type
+			count: 1
+			path: tests/Feature/Http/Controllers/Billing/WebhookControllerLifecycleTest.php
+
+		-
+			message: '#^Parameter \#1 \$user of method Nvade\\Numerosis\\Tests\\Feature\\Http\\Controllers\\Billing\\WebhookControllerSetupIntentTest\:\:confirmedSetupIntent\(\) expects App\\Models\\Central\\CentralUser, Nvade\\Numerosis\\Models\\Central\\CentralUser given\.$#'
+			identifier: argument.type
+			count: 2
+			path: tests/Feature/Http/Controllers/Billing/WebhookControllerSetupIntentTest.php
+
+		-
+			message: '#^Anonymous function should return App\\Models\\Tenant\\Invitation but returns Nvade\\Numerosis\\Models\\Tenant\\Invitation\.$#'
+			identifier: return.type
+			count: 1
+			path: tests/Feature/Http/Controllers/Socialite/LoginTest.php
+
+		-
 			message: '#^Cannot call method instance\(\) on Illuminate\\Foundation\\Application\|null\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: tests/Feature/Http/Controllers/Socialite/LoginTest.php
 
 		-
-			message: '#^Call to an undefined method App\\Models\\Central\\CentralUser\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Central\\CentralUser\>\:\:getAttributes\(\)\.$#'
-			identifier: method.notFound
+			message: '#^Parameter \#1 \$user of class Nvade\\Numerosis\\Contracts\\Auth\\SocialAccountRepository@anonymous/tests/Feature/Http/Controllers/Socialite/LoginTest\.php\:96 constructor expects App\\Models\\Central\\CentralUser, Nvade\\Numerosis\\Models\\Central\\CentralUser given\.$#'
+			identifier: argument.type
 			count: 1
-			path: tests/Feature/Http/Middleware/UpdateUserLastSeenMiddlewareTest.php
+			path: tests/Feature/Http/Controllers/Socialite/LoginTest.php
+
+		-
+			message: '#^Cannot access property \$id on \(Nvade\\Numerosis\\Models\\Central\\Tenant&object\{pivot\: Nvade\\Numerosis\\Models\\Central\\Membership\}\)\|null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: tests/Feature/InterviewShowcaseTest.php
 
 		-
 			message: '#^Cannot access property \$id on Nvade\\Numerosis\\Models\\Role\|null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: tests/Feature/InterviewShowcaseTest.php
+
+		-
+			message: '#^Cannot access property \$pivot on \(Nvade\\Numerosis\\Models\\Central\\Tenant&object\{pivot\: Nvade\\Numerosis\\Models\\Central\\Membership\}\)\|null\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: tests/Feature/InterviewShowcaseTest.php
@@ -1087,6 +1075,12 @@ parameters:
 			path: tests/Feature/Listeners/Tenancy/LogSyncedResourceChangedInForeignDatabaseTest.php
 
 		-
+			message: '#^Access to an undefined property Spatie\\OneTimePasswords\\Models\\OneTimePassword\:\:\$password\.$#'
+			identifier: property.notFound
+			count: 5
+			path: tests/Feature/Livewire/Auth/PasswordlessLoginTest.php
+
+		-
 			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
 			identifier: method.nonObject
 			count: 3
@@ -1111,10 +1105,40 @@ parameters:
 			path: tests/Feature/Livewire/Tenant/Registration/RegistrationCheckoutHandoffTest.php
 
 		-
+			message: '#^Parameter \#1 \$user of method Nvade\\Numerosis\\Tests\\Feature\\Livewire\\TenantsMineTest\:\:attach\(\) expects App\\Models\\Central\\CentralUser, Nvade\\Numerosis\\Models\\Central\\CentralUser given\.$#'
+			identifier: argument.type
+			count: 3
+			path: tests/Feature/Livewire/TenantsMineTest.php
+
+		-
+			message: '#^Parameter \#2 \$tenant of method Nvade\\Numerosis\\Tests\\Feature\\Livewire\\TenantsMineTest\:\:attach\(\) expects App\\Models\\Central\\Tenant, Nvade\\Numerosis\\Models\\Central\\Tenant given\.$#'
+			identifier: argument.type
+			count: 3
+			path: tests/Feature/Livewire/TenantsMineTest.php
+
+		-
 			message: '#^Unable to resolve the template type TComponent in call to method Livewire\\LivewireManager\:\:test\(\)$#'
 			identifier: argument.templateType
 			count: 9
 			path: tests/Feature/Livewire/TenantsMineTest.php
+
+		-
+			message: '#^Parameter \#1 \$tenant of method Nvade\\Numerosis\\Tests\\Feature\\ProfileSyncTest\:\:provisionData\(\) expects App\\Models\\Central\\Tenant, Nvade\\Numerosis\\Models\\Central\\Tenant given\.$#'
+			identifier: argument.type
+			count: 2
+			path: tests/Feature/ProfileSyncTest.php
+
+		-
+			message: '#^Parameter \#2 \$user of method Nvade\\Numerosis\\Tests\\Feature\\ProfileSyncTest\:\:provisionData\(\) expects App\\Models\\Central\\CentralUser, Nvade\\Numerosis\\Models\\Central\\CentralUser given\.$#'
+			identifier: argument.type
+			count: 2
+			path: tests/Feature/ProfileSyncTest.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: tests/Feature/Providers/IdentificationModeTest.php
 
 		-
 			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertSeeLivewire\(\)\.$#'
@@ -1123,15 +1147,39 @@ parameters:
 			path: tests/Feature/SettingsProfilePageTest.php
 
 		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: tests/Feature/Support/NumerosisSeamTest.php
+
+		-
 			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertTrue\(\) with true will always evaluate to true\.$#'
 			identifier: method.alreadyNarrowedType
 			count: 1
 			path: tests/Feature/SyncTenantToStripeTest.php
 
 		-
+			message: '#^Parameter \#1 \$database of method Nvade\\Numerosis\\Tests\\Feature\\Testing\\CleansUpTenancyDatabasesTest\:\:databaseExists\(\) expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: tests/Feature/Testing/CleansUpTenancyDatabasesTest.php
+
+		-
+			message: '#^Property Nvade\\Numerosis\\Tests\\Feature\\Testing\\CleansUpTenancyDatabasesTest\:\:\$hiddenFromTeardown \(list\<string\>\) does not accept array\{string\|null\}\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: tests/Feature/Testing/CleansUpTenancyDatabasesTest.php
+
+		-
 			message: '#^Parameter \#1 \$amount of method Nvade\\Numerosis\\Services\\Billing\\BillingService\:\:formatAmount\(\) expects int, int\|null given\.$#'
 			identifier: argument.type
-			count: 1
+			count: 2
+			path: tests/Feature/View/Components/PlanCardTest.php
+
+		-
+			message: '#^Parameter \#1 \$plan of method Nvade\\Numerosis\\Tests\\Feature\\View\\Components\\PlanCardTest\:\:render\(\) expects App\\Models\\Central\\PaymentPlan, Nvade\\Numerosis\\Models\\Central\\PaymentPlan given\.$#'
+			identifier: argument.type
+			count: 2
 			path: tests/Feature/View/Components/PlanCardTest.php
 
 		-
@@ -1151,68 +1199,3 @@ parameters:
 			identifier: assign.propertyType
 			count: 1
 			path: tests/Support/CloneTenantSchema.php
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Billing/Checkout.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 1
-			path: tests/Feature/Support/NumerosisSeamTest.php
-
-		# Phase 1 (stancl/tenancy dual-version compat, .claude/rules/stancl-tenancy-v4.md):
-		# Nvade\Numerosis\Models\Central\Tenant implements the conditionally-declared
-		# Support\Compat\Tenancy\TenantWithDatabase, whose v3 branch extends the real
-		# Stancl\Tenancy\Contracts\TenantWithDatabase — genuinely satisfied at runtime,
-		# proven by every test that provisions a tenant through this exact code path.
-		# PHPStan does not carry that nominal chain through to a real, unshimmed vendor
-		# job's constructor (CreateDatabase/MigrateDatabase, both real v3, untouched by
-		# this package) two files away — every other consumer of this shim (this
-		# package's own RollbackModules/MigrateModules/SeedTenantDatabase) type-hints
-		# against the shim directly and is unaffected. Narrower than baselining the shim
-		# itself; revisit if PHPStan's conditional-class-declaration support changes.
-		-
-			message: '#^Parameter \#1 \$tenant of class Stancl\\Tenancy\\Jobs\\CreateDatabase constructor expects Stancl\\Tenancy\\Contracts\\TenantWithDatabase, Nvade\\Numerosis\\Models\\Central\\Tenant given\.$#'
-			identifier: argument.type
-			count: 1
-			path: tests/Support/CloneTenantSchema.php
-
-		-
-			message: '#^Parameter \#1 \$tenant of class Stancl\\Tenancy\\Jobs\\MigrateDatabase constructor expects Stancl\\Tenancy\\Contracts\\TenantWithDatabase, Nvade\\Numerosis\\Models\\Central\\Tenant given\.$#'
-			identifier: argument.type
-			count: 1
-			path: tests/Support/CloneTenantSchema.php
-
-		# Phase 2 (stancl/tenancy dual-version compat, .claude/rules/stancl-tenancy-v4.md):
-		# these three all sit inside a `TenancyVersion::isDevMaster()` branch that only
-		# ever executes when dev-master is the real installed version — but PHPStan
-		# analyses whichever version composer.json actually resolved for this run (here,
-		# stable v3.10.1), so it checks the dev-master branch's calls against v3's real,
-		# differently-shaped classes: v3's InitializeTenancyByDomainOrSubdomain has no
-		# `__construct` at all (so `parent::__construct()` is "undefined"), v3's
-		# DomainTenantResolver takes `Cache\Factory` not `Application`, and v3's
-		# `$shouldCache` is a public property, not a `shouldCache()` method. Each is
-		# genuinely correct on dev-master and dead code on v3 — not a real defect on
-		# either leg. Re-verify by running PHPStan a second time with `dev-master`
-		# actually installed (swap composer.json, see this session's own working notes)
-		# rather than assuming these three are still accurate after either shim changes.
-		-
-			message: '#^Call to an undefined static method Stancl\\Tenancy\\Middleware\\InitializeTenancyByDomainOrSubdomain\:\:__construct\(\)\.$#'
-			identifier: staticMethod.notFound
-			count: 1
-			path: src/Http/Middleware/InitializeTenancyByDomainOrSubdomain.php
-
-		-
-			message: '#^Parameter \#1 \$cache of class Stancl\\Tenancy\\Resolvers\\DomainTenantResolver constructor expects Illuminate\\Contracts\\Cache\\Factory, Illuminate\\Contracts\\Foundation\\Application given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Providers/TenancyServiceProvider.php
-
-		-
-			message: '#^Call to an undefined static method Stancl\\Tenancy\\Resolvers\\DomainTenantResolver\:\:shouldCache\(\)\.$#'
-			identifier: staticMethod.notFound
-			count: 1
-			path: src/Support/Tenancy/TenancyVersion.php

@@ -1,9 +1,31 @@
 ---
 topic: stancl-tenancy-v4
-updated: 2026-08-29
+updated: 2026-08-31
 ---
 
-# stancl/tenancy v3 → dev-master ("v4")
+# Port map: stancl/tenancy v3 → dev-master ("v4")
+
+> **This package is v3-only. The dual-version layer described below was
+> built, measured, and deliberately deleted on 2026-08-31** (section A of
+> `.claude/plans/numerosis-consolidation.md`). What existed: 8
+> `Support\Compat\Tenancy\*` shims, `Support\Tenancy\{TenancyVersion,
+> TenancyConfigKeys}`, 27 runtime branches across 12 files, 427 LOC of
+> hand-written PHPStan reflection stubs that had to mirror real signatures
+> exactly, two baselines (~405 entries), three PHPStan configs, and a 4-job
+> CI matrix. It delivered exactly one bug — `PreservingPathTenantResolver`
+> reading a static property dev-master turned into a static method, in path
+> mode, which has no HTTP coverage either way. **It protected no host**: with
+> no v4 tag, a host reaches dev-master only through the two root-level
+> opt-ins below, which no host has.
+>
+> **This file is the durable asset and survives deleting all of that code.**
+> The symbol map, the config-key map, the signature changes and the three
+> "the v4 docs are wrong" corrections are all still accurate. Port as one
+> hard cut when stancl tags a release, driven by this file. Every eager
+> symbol it names carries an inline `.claude/rules/stancl-tenancy-v4.md`
+> pointer at its site in `src/` — grep for that string to find them.
+>
+> `composer.json` is `"stancl/tenancy": "^3.10"`. CI runs one leg.
 
 Everything here was derived by cloning the branch and diffing it against what
 this package actually references — **not** from the v4 docs site, which stancl
@@ -41,11 +63,13 @@ hard-requires `stancl/jobpipeline: 2.0.0-rc7`, so a host needs *two* opt-ins:
 }
 ```
 
-This is why the constraint here is `^3.10 || dev-master` rather than
-`dev-master` alone. **Under that constraint every ordinary host resolves to
-v3.10.1**; v4 is reachable only by a host that writes the block above. Anyone
-reading "numerosis supports v4" as "hosts get v4" is wrong until stancl tags
-a release, and no change on this side can alter that.
+**This is the measurement that killed the dual-version layer.** The
+constraint was `^3.10 || dev-master`; under it every ordinary host still
+resolved to v3.10.1, because only a host writing the block above reaches
+dev-master at all. So the second leg cost real maintenance to protect a
+population of zero. Anyone reading "numerosis supports v4" as "hosts get v4"
+is wrong until stancl tags a release, and no change on this side can alter
+that — which is why the answer is to port on the tag, not to carry both.
 
 `dev-master` also adds hard requires this package did not previously pull:
 `laravel/tinker`, `laravel/prompts`, `spatie/invade`; and drops
@@ -105,9 +129,10 @@ string), `tenancy.cache.{prefix,stores}`, `tenancy.database.template_tenant_conn
 `tenancy.pending.*`.
 
 `tenancy.central_user_model` and `tenancy.tenant_user_model` are **this
-package's own keys** (`src/Support/HostConfig.php:88-89`), not stancl's —
-they appear in no stancl config stub, v3 or v4, and are unaffected by any of
-this.
+package's own keys** (`HostConfig::tenancyModels()`), not stancl's — they
+appear in no stancl config stub, v3 or v4, and are unaffected by any of this.
+The two that do move (`tenant_model`, `domain_model`) are written from that
+same method and carry a pointer to this file.
 
 **`HostConfig::apply()` gets more dangerous, not less, under v4.**
 `.claude/rules/package-host-bootstrap.md` already records that a multi-segment
@@ -188,15 +213,34 @@ rather than assumed fixed or assumed unchanged.
 
 ## Suggested better approach
 
-Two shim layers are being added for one reason — this package reads another
-package's names directly, in ~120 places, with no indirection. The
-`Support\Compat\*` layer is unavoidable (PHP has no conditional
-`implements`), but the **config-key layer is a symptom worth not repeating**:
-if a fifth key moves, or if a third supported version ever appears, the answer
-should not be a third branch inside `TenancyConfigKeys`. The structurally
-simpler shape is for `HostConfig` to be the *only* thing in this package that
-ever names a raw `tenancy.*` key — normalizing them all into `numerosis.*`
-keys this package owns at boot, with everything downstream reading only its
-own namespace. That is a larger change than the dual-version work needs right
-now, and it moves a real risk (a normalization bug becomes global rather than
-local), so it is a recommendation rather than part of the plan.
+The port is expensive for one reason that no compat layer fixed: **this
+package reads another package's names directly, in ~120 places, with no
+indirection.** Two layers were built to absorb that and both are now gone —
+which does not make the observation wrong, only the timing.
+
+The eager-symbol half genuinely needs conditional definition when the day
+comes (PHP has no conditional `implements`), so redo it then, one file per
+symbol, using `src/Support/Compat/{FilamentUserContract,LogsActivityIfInstalled}.php`
+as the pattern that survived. Two things learned building it that are not
+obvious and would otherwise be rediscovered:
+
+- **PHPStan resolves a conditionally-declared class to one canonical branch
+  regardless of which version is installed** — an `if
+  (SomeHelper::isDevMaster())` gate let it pick the wrong one and cascaded
+  into ~68 unrelated errors. The literal, inlined
+  `class_exists(\Stancl\Tenancy\Enums\RouteMode::class)` is recognised and
+  picks the branch matching the real environment; a helper-method gate is not.
+- **A `scanFiles` stub shadows the real class rather than merging with it**,
+  so the stub for the version that is *not* installed can never be loaded
+  beside the one that is, and a stricter-than-real stub makes the analysis
+  wrong in the opposite direction (declaring `DatabaseConfig::getName()` as
+  `string` when v3 returns `?string` turned this package's own `?? throw`
+  guards into "always true" reports).
+
+The config-key half should **not** come back as a key-routing class. The
+structurally simpler shape is for `HostConfig` to be the only thing here that
+ever names a raw `tenancy.*` key, normalizing them into `numerosis.*` keys
+this package owns at boot, with everything downstream reading only its own
+namespace. That was true before the port and is true after it; it was not
+done because it moves a real risk (a normalization bug becomes global rather
+than local), so it stays a recommendation.

@@ -8,7 +8,6 @@ use Nvade\Numerosis\Contracts\Feature;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
-use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 
 use function Pest\Laravel\assertDatabaseHas;
 use function Pest\Laravel\seed;
@@ -42,7 +41,7 @@ it('runs an addCentralRoutes() callback inside the central domain group, with th
     // fresh route added here has to be found by scanning the collection.
     $route = collect(Route::getRoutes()->getRoutes())
         ->sole(fn ($r) => $r->getName() === 'seam.central.probe');
-    $centralDomains = Config::array(TenancyConfigKeys::key('central_domains'));
+    $centralDomains = Config::array('tenancy.central_domains');
 
     expect($route->getDomain())->toBe($centralDomains[0])
         ->and($route->gatherMiddleware())->toContain('web');

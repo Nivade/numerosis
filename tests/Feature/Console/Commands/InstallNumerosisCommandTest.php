@@ -12,8 +12,6 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
-use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Nvade\Numerosis\Tests\TestCase;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 use stdClass;
@@ -170,16 +168,16 @@ class InstallNumerosisCommandTest extends TestCase
      */
     public function test_it_fails_when_tenancy_tenant_model_does_not_resolve_to_a_real_class(): void
     {
-        $key = TenancyConfigKeys::key('tenant_model');
+        $key = 'tenancy.tenant_model';
         $real = config($key);
-        TenancyConfigKeys::set('tenant_model', 'App\\Models\\Central\\NoSuchTenant');
+        Config::set('tenancy.tenant_model', 'App\\Models\\Central\\NoSuchTenant');
 
         try {
             $this->install()
                 ->expectsOutputToContain("config('{$key}') must name a class that exists")
                 ->assertFailed();
         } finally {
-            TenancyConfigKeys::set('tenant_model', $real);
+            Config::set('tenancy.tenant_model', $real);
         }
     }
 
@@ -196,10 +194,10 @@ class InstallNumerosisCommandTest extends TestCase
     /** @verifies verifyCentralDomains */
     public function test_it_fails_when_central_domains_is_empty(): void
     {
-        TenancyConfigKeys::set('central_domains', []);
+        Config::set('tenancy.central_domains', []);
 
         $this->install()
-            ->expectsOutputToContain("config('".TenancyConfigKeys::key('central_domains')."') must list at least one hostname")
+            ->expectsOutputToContain("config('".'tenancy.central_domains'."') must list at least one hostname")
             ->assertFailed();
     }
 
@@ -474,8 +472,8 @@ class InstallNumerosisCommandTest extends TestCase
      */
     public function test_it_warns_when_the_tenant_resolver_cache_is_off(): void
     {
-        $original = TenancyVersion::resolverShouldCache(DomainTenantResolver::class);
-        TenancyVersion::setResolverShouldCache(DomainTenantResolver::class, false);
+        $original = DomainTenantResolver::$shouldCache;
+        DomainTenantResolver::$shouldCache = false;
         Config::set('cache.serializable_classes', false);
 
         try {
@@ -483,15 +481,15 @@ class InstallNumerosisCommandTest extends TestCase
                 ->expectsOutputToContain('resolver cache is disabled')
                 ->assertSuccessful();
         } finally {
-            TenancyVersion::setResolverShouldCache(DomainTenantResolver::class, $original);
+            DomainTenantResolver::$shouldCache = $original;
         }
     }
 
     /** @verifies verifyTenantResolverCache */
     public function test_it_says_nothing_about_the_resolver_cache_when_a_host_turned_it_off_deliberately(): void
     {
-        $original = TenancyVersion::resolverShouldCache(DomainTenantResolver::class);
-        TenancyVersion::setResolverShouldCache(DomainTenantResolver::class, false);
+        $original = DomainTenantResolver::$shouldCache;
+        DomainTenantResolver::$shouldCache = false;
         Config::set('numerosis.tenancy.cache_resolved_tenants', false);
 
         try {
@@ -499,7 +497,7 @@ class InstallNumerosisCommandTest extends TestCase
                 ->doesntExpectOutputToContain('resolver cache is disabled')
                 ->assertSuccessful();
         } finally {
-            TenancyVersion::setResolverShouldCache(DomainTenantResolver::class, $original);
+            DomainTenantResolver::$shouldCache = $original;
         }
     }
 

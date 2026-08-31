@@ -5,16 +5,17 @@ updated: 2026-08-29
 
 # Tenant Caching
 
-> **This file is written against stancl/tenancy v3's tag-based isolation and
-> does not need the rewrite the package-split plan once scheduled for it.**
-> `dev-master` has no `CachePrefixingBootstrapper` — it keeps
-> `CacheTenancyBootstrapper` and *adds* `CacheTagsBootstrapper` /
-> `DatabaseCacheBootstrapper`, with `tenancy.cache.prefix` and
-> `tenancy.cache.stores` beside the existing `tag_base`. Verify against
-> `src/Bootstrappers/` and `assets/config.php` in a real checkout before
-> changing anything here; see `.claude/rules/stancl-tenancy-v4.md`.
+> **This file is written against stancl/tenancy v3's tag-based isolation,
+> which is the only version this package supports.** It does *not* need the
+> rewrite the package-split plan once scheduled for it: dev-master has no
+> `CachePrefixingBootstrapper` — it keeps `CacheTenancyBootstrapper` and
+> *adds* `CacheTagsBootstrapper` / `DatabaseCacheBootstrapper`, with
+> `tenancy.cache.prefix` and `tenancy.cache.stores` beside the existing
+> `tag_base`. Verify against `src/Bootstrappers/` and `assets/config.php` in
+> a real checkout before changing anything here on the eventual v4 port; see
+> `.claude/rules/stancl-tenancy-v4.md`.
 
-- **Nothing in `src/` calls `global_cache()` any more — go through `Nvade\Numerosis\Support\Cache\GlobalCache::store()`.** dev-master declares the helper `global_cache(): mixed` (v3 did not), so every `global_cache()->remember(...)` became `Cannot call method remember() on mixed` at level 9 on that leg — ten call sites, no defect at any of them. `GlobalCache::store()` narrows once and returns an `Illuminate\Contracts\Cache\Repository`. Note the branch that actually runs is the **`Factory`** one: stancl binds `globalCache` to a `CacheManager`, which implements `Factory` and *not* `Repository`, so every historical `global_cache()->remember()` reached the default store through `CacheManager::__call()` — which is exactly what `->store()` returns, hence no behaviour change. Everything the bullet below says about the binding still applies unchanged; only the accessor moved.
+- **Nothing in `src/` calls `global_cache()` any more — go through `Nvade\Numerosis\Support\Cache\GlobalCache::store()`.** dev-master declares the helper `global_cache(): mixed` (v3 does not), so every `global_cache()->remember(...)` read as `Cannot call method remember() on mixed` at level 9 there — ten call sites, no defect at any of them. **Kept after the v3-only cut**, since the narrowing is correct on v3 too and it is one fewer thing for the eventual port to redo. `GlobalCache::store()` narrows once and returns an `Illuminate\Contracts\Cache\Repository`. Note the branch that actually runs is the **`Factory`** one: stancl binds `globalCache` to a `CacheManager`, which implements `Factory` and *not* `Repository`, so every historical `global_cache()->remember()` reached the default store through `CacheManager::__call()` — which is exactly what `->store()` returns, hence no behaviour change. Everything the bullet below says about the binding still applies unchanged; only the accessor moved.
 
 - **`global_cache()` is not tenant-scoped, and the name does not say so.**
   Despite living next to stancl's tenant-aware `CacheManager`, the `globalCache`

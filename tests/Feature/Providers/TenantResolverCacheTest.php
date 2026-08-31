@@ -8,7 +8,6 @@ use App\Models\Central\Tenant;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
-use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -46,7 +45,7 @@ class TenantResolverCacheTest extends TestCase
 
         $this->assertFalse(TenancyServiceProvider::shouldCacheResolvedTenants());
 
-        Config::set('cache.serializable_classes', ['DateTimeImmutable', Config::string(TenancyConfigKeys::key('tenant_model'))]);
+        Config::set('cache.serializable_classes', ['DateTimeImmutable', Config::string('tenancy.tenant_model')]);
 
         $this->assertTrue(TenancyServiceProvider::shouldCacheResolvedTenants());
     }

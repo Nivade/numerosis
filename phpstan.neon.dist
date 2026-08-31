@@ -1,15 +1,13 @@
-### Stable leg — run this with `stancl/tenancy:^3.10` installed (the default).
-#
-# The dev-master leg has its own config, `phpstan-dev-master.neon.dist`; see
-# `phpstan-common.neon` for why the two cannot share one stub or one baseline.
 includes:
-    - phpstan-common.neon
     - phpstan-baseline.neon
 
 parameters:
-    # Reflection-only shapes for stancl/tenancy:dev-master symbols the
-    # Support\Compat\Tenancy\* shims reference — not autoloaded, only
-    # installed here so PHPStan can resolve both version branches when only
-    # v3.10.1 is actually present. See the file's own docblock.
-    scanFiles:
-        - .phpstan/stancl-tenancy-dev-master.stub.php
+    level: 9
+    treatPhpDocTypesAsCertain: false
+    paths:
+        - src
+        - config
+        - database
+        - tests
+        - workbench
+    tmpDir: build/phpstan

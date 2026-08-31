@@ -21,8 +21,6 @@ use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Resolvers\PreservingPathTenantResolver;
 use Nvade\Numerosis\Support\Numerosis;
-use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
-use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Override;
 use Stancl\JobPipeline\JobPipeline;
 use Stancl\Tenancy\Events\BootstrappingTenancy;
@@ -45,6 +43,8 @@ use Stancl\Tenancy\Events\RevertedToCentralContext;
 use Stancl\Tenancy\Events\RevertingToCentralContext;
 use Stancl\Tenancy\Events\SavingDomain;
 use Stancl\Tenancy\Events\SavingTenant;
+use Stancl\Tenancy\Events\SyncedResourceChangedInForeignDatabase;
+use Stancl\Tenancy\Events\SyncedResourceSaved;
 use Stancl\Tenancy\Events\TenancyBootstrapped;
 use Stancl\Tenancy\Events\TenancyEnded;
 use Stancl\Tenancy\Events\TenancyInitialized;
@@ -64,6 +64,7 @@ use Stancl\Tenancy\Middleware\InitializeTenancyByDomainOrSubdomain;
 use Stancl\Tenancy\Middleware\InitializeTenancyByPath;
 use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
 use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
+use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 use Stancl\Tenancy\Resolvers\PathTenantResolver;
 
@@ -100,7 +101,7 @@ class TenancyServiceProvider extends ServiceProvider
     {
         return IdentificationMode::current() === IdentificationMode::Path
             ? NullMiddleware::class
-            : TenancyVersion::preventAccessFromCentralDomainsMiddleware();
+            : PreventAccessFromCentralDomains::class;
     }
 
     /**
@@ -175,12 +176,12 @@ class TenancyServiceProvider extends ServiceProvider
             RevertedToCentralContext::class => [],
 
             // Resource syncing
-            TenancyVersion::syncedResourceSavedEventClass() => [
+            SyncedResourceSaved::class => [
                 UpdateSyncedResource::class,
             ],
 
             // Fired only when a synced resource is changed in a different DB than the origin DB (to avoid infinite loops)
-            TenancyVersion::syncedResourceChangedInForeignDatabaseEventClass() => [
+            SyncedResourceChangedInForeignDatabase::class => [
                 LogSyncedResourceChangedInForeignDatabase::class,
             ],
         ];
@@ -217,15 +218,11 @@ class TenancyServiceProvider extends ServiceProvider
      * domain change would appear not to take effect. Bound as a singleton so
      * the resolver and its invalidators share one store.
      *
-     * `CachedTenantResolver::__construct()`'s own signature changed between
-     * versions, not just its body: v3 takes `Contracts\Cache\Factory $cache`
-     * directly (why this package builds its own `new CacheManager($app)` —
-     * v3 never resolves `globalCache` itself); dev-master takes
-     * `Contracts\Foundation\Application $app` and resolves `globalCache`
-     * internally (`$app->make('globalCache')->store(...)`), i.e. it already
-     * does what this package's own `CacheManager` construction exists for.
-     * Passing our own `CacheManager` to dev-master's constructor is a
-     * `TypeError`, not silently wrong — see `.claude/rules/stancl-tenancy-v4.md`.
+     * `CachedTenantResolver::__construct()` takes `Contracts\Cache\Factory`
+     * on v3, which is why this package builds its own `new CacheManager($app)`
+     * — v3 never resolves `globalCache` itself. **Both the constructor
+     * signature and `$shouldCache` change on dev-master**; see
+     * `.claude/rules/stancl-tenancy-v4.md` when porting.
      */
     protected function registerCachedDomainResolver(): void
     {
@@ -234,14 +231,12 @@ class TenancyServiceProvider extends ServiceProvider
         // in from its own booting() callback — registered earlier, so it runs
         // first. Nothing reads the flag until a request resolves a domain.
         $this->app->booting(function (): void {
-            TenancyVersion::setResolverShouldCache(DomainTenantResolver::class, self::shouldCacheResolvedTenants());
+            DomainTenantResolver::$shouldCache = self::shouldCacheResolvedTenants();
         });
 
         $this->app->singleton(
             DomainTenantResolver::class,
-            fn (Application $app) => TenancyVersion::isDevMaster()
-                ? new DomainTenantResolver($app)
-                : new DomainTenantResolver(new CacheManager($app)),
+            fn (Application $app) => new DomainTenantResolver(new CacheManager($app)),
         );
     }
 
@@ -286,7 +281,7 @@ class TenancyServiceProvider extends ServiceProvider
             return false;
         }
 
-        $tenantModel = Config::get(TenancyConfigKeys::key('tenant_model')) ?? Numerosis::model(Tenant::class);
+        $tenantModel = Config::get('tenancy.tenant_model') ?? Numerosis::model(Tenant::class);
 
         return in_array($tenantModel, $serializableClasses, true);
     }
@@ -321,7 +316,7 @@ class TenancyServiceProvider extends ServiceProvider
     {
         $tenancyMiddleware = [
             // Even higher priority than the initialization middleware
-            TenancyVersion::preventAccessFromCentralDomainsMiddleware(),
+            PreventAccessFromCentralDomains::class,
 
             InitializeTenancyByDomain::class,
             InitializeTenancyBySubdomain::class,

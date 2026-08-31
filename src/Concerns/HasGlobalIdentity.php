@@ -10,31 +10,21 @@ namespace Nvade\Numerosis\Concerns;
  *
  * Compose it into any model that syncs between the two.
  *
- * On `stancl/tenancy:dev-master`, `Stancl\Tenancy\ResourceSyncing\ResourceSyncing`
- * (composed via `Support\Compat\Tenancy\ResourceSyncing`) declares both
- * methods itself — v3's did not, only called them. Every model that composes
- * both this trait and that one (`CentralUser`, `Tenant\User`) would hit a
- * fatal trait-method collision under dev-master if this trait redeclared
- * them too, so on that version it contributes nothing and the vendor trait's
- * identical `'global_id'` implementation wins instead. See
- * `.claude/rules/stancl-tenancy-v4.md`.
+ * `stancl/tenancy` v3's `ResourceSyncing` trait calls both methods without
+ * declaring them, which is why they live here. **On dev-master that trait
+ * declares them itself**, so a model composing both would hit a fatal
+ * trait-method collision — see `.claude/rules/stancl-tenancy-v4.md` when
+ * porting.
  */
-if (class_exists(\Stancl\Tenancy\Enums\RouteMode::class)) {
-    trait HasGlobalIdentity
+trait HasGlobalIdentity
+{
+    public function getGlobalIdentifierKeyName(): string
     {
-        //
+        return 'global_id';
     }
-} else {
-    trait HasGlobalIdentity
-    {
-        public function getGlobalIdentifierKeyName(): string
-        {
-            return 'global_id';
-        }
 
-        public function getGlobalIdentifierKey(): string
-        {
-            return $this->global_id;
-        }
+    public function getGlobalIdentifierKey(): string
+    {
+        return $this->global_id;
     }
 }

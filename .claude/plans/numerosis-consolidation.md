@@ -78,15 +78,67 @@ printf 'includes:\n  - %s/phpstan.neon.dist\nparameters:\n  tmpDir: /tmp/phpstan
 php -d memory_limit=2G vendor/bin/phpstan analyse -c /tmp/phpstan-audit.neon --no-progress
 ```
 
-Baseline to hold, as of the filament slice: **0 failed / 7 skipped / 623
-passed**, PHPStan 0 outside a 199-entry baseline (stable). **Diff the assertion
-count as well as the pass count after any move** — a directory-scanning test
-goes vacuous, not red, when what it guards moves. Current 4882, after
-`ArchTest`'s scan handed 110 files to the filament package's own `BoundaryTest`.
+Baseline to hold, as of section A: **0 failed / 7 skipped / 623 passed
+(4816 assertions)**, PHPStan 0 outside a 200-entry baseline. **Diff the
+assertion count as well as the pass count after any move, and attribute the
+delta** — a directory-scanning test goes vacuous, not red, when what it guards
+moves. It has moved twice for boring reasons (5540 → 4882 when `ArchTest`'s
+scan handed 110 files to the filament package's own `BoundaryTest`; 4882 →
+4816 when the same scan lost the 10 files section A deleted).
 
 ---
 
-## A — delete the dual-version layer
+## A — delete the dual-version layer ✅ DONE (2026-08-31)
+
+**Verified: 0 failed / 7 skipped / 623 passed (4816 assertions) in ~112s;
+PHPStan 0 outside a regenerated 200-entry baseline; Pint clean.** One CI job
+axis, one PHPStan config, one `stancl/tenancy` constraint (`^3.10`).
+
+12 files deleted (8 shims + `TenancyVersion` + `TenancyConfigKeys` + 2
+PHPStan stubs) plus 3 config files; every one of the 27 runtime branches
+collapsed to its v3 arm.
+
+Four things worth carrying, none of which were in the plan text:
+
+- **`Membership::getCentralResourceClass()` went with `PivotWithCentralResource`.**
+  It was declared to satisfy the dev-master interface and is called by
+  nothing on v3 — grep confirmed a single occurrence in the whole tree,
+  its own declaration.
+- **`InitializeTenancyByDomainOrSubdomain`'s constructor lost two
+  parameters, not just the gated `parent::__construct()` call.** `Tenancy`
+  and `DomainTenantResolver` were only ever there to forward to dev-master's
+  parent; v3's parent resolves both from the container inside `handle()`.
+  It now takes `Repository` alone.
+- **The satellites had to be swept too.** `numerosis-filament`'s
+  `NumerosisAdminPlugin` read `TenancyConfigKeys::key('central_domains')`,
+  which the core-only grep did not cover — 615 tests failed on the first run
+  purely from that one line. Grep `../numerosis-*` as well as `src`/`tests`
+  before deleting anything public.
+- **Regenerating the baseline needs a diff, not just a green run.** From
+  empty it baselines any regression the change introduced. Old vs new paired
+  on `(message, path)`: 33 added, 32 removed, **none in `src/`** — all the
+  documented Larastan host-subclass false positives and test-idiom noise.
+  Recorded in `.claude/rules/static-analysis.md`, along with the trap that
+  cost the most time here: a baseline's `path:` entries resolve against *the
+  baseline file's own directory*, so a copy of it in `/tmp` matches nothing
+  and silently reports the entire baselined set as live errors.
+
+**One deliberate deviation from A.3.** The plan said to keep
+`TenancyConfigKeys`'s read-modify-write of the parent array. It was dropped,
+because on v3 all four keys are a single segment under `tenancy.`
+(`tenancy.central_domains`, not `tenancy.identification.central_domains`) —
+there is no intermediate array to truncate, so the RMW protected nothing that
+a plain `Config::set()` doesn't. It is also worth being precise that RMW was
+never the fix it was described as: `mergeConfigFrom()`'s one-level
+`array_merge()` keeps an existing partial parent wholesale either way, so
+writing `tenancy.filesystem` as a merged array before stancl registers
+truncates it exactly as a dotted write would. **What actually fixes it is
+phase, not form** — `HostConfig::apply()` running from a `booting()` callback,
+after every provider's `register()`, which is unchanged and still in place
+(`.claude/rules/package-host-bootstrap.md`). The moved keys carry a pointer
+to `.claude/rules/stancl-tenancy-v4.md` at their write site instead.
+
+### Original brief, kept for reference
 
 Do this **first**: it shrinks every later step, and every remaining move is
 currently verified twice.
@@ -300,7 +352,7 @@ misleads in a way a stale plan does not.
 ## Order
 
 ```
-A  delete dual-version layer   ── first; shrinks everything after it
+A  delete dual-version layer   ── ✅ DONE 2026-08-31
 B  collapse to monorepo        ── cheapest now (filament has 0 commits)
 C  modules stay in core        ── independent of A/B, may interleave
 E  browser tests               ── before D

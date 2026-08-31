@@ -9,8 +9,8 @@ use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
-use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Nvade\Numerosis\Tests\TestCase;
+use Stancl\Tenancy\Events\SyncedResourceChangedInForeignDatabase;
 
 class LogSyncedResourceChangedInForeignDatabaseTest extends TestCase
 {
@@ -23,12 +23,9 @@ class LogSyncedResourceChangedInForeignDatabaseTest extends TestCase
         $user = TenantUser::factory()->make(['global_id' => 'global-123']);
         $tenant = Tenant::factory()->make(['id' => 'acme']);
 
-        $eventClass = TenancyVersion::syncedResourceChangedInForeignDatabaseEventClass();
-
-        /** @var \Stancl\Tenancy\Events\SyncedResourceChangedInForeignDatabase|\Stancl\Tenancy\ResourceSyncing\Events\SyncedResourceSavedInForeignDatabase $event */
-        $event = new $eventClass($user, $tenant);
-
-        (new LogSyncedResourceChangedInForeignDatabase)->handle($event);
+        (new LogSyncedResourceChangedInForeignDatabase)->handle(
+            new SyncedResourceChangedInForeignDatabase($user, $tenant)
+        );
 
         Log::shouldHaveReceived('warning')
             ->once()

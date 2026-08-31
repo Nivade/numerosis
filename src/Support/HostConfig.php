@@ -7,17 +7,12 @@ namespace Nvade\Numerosis\Support;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
-use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
-use Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
-use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
-use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
-use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
 use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
 
@@ -47,8 +42,6 @@ final class HostConfig
         self::tenancyModels();
         self::centralDomains();
         self::tenancyBootstrappers();
-        self::tenancyIdentificationMiddleware();
-        self::cacheTenancyStores();
         self::tenantMigrationParameters();
         self::tenantSeederParameters();
         self::livewireDiskExclusion();
@@ -90,29 +83,28 @@ final class HostConfig
     private static function tenancyModels(): void
     {
         /**
-         * v3 leaf name => [stock value, package default]. Keys resolved
-         * and written through TenancyConfigKeys, not this class's own
-         * `self::set()`: on dev-master these live 2 segments under
-         * `tenancy.*`, and a bare `Config::set()` there hits the same
-         * `Arr::set()` auto-vivification hazard `.claude/rules/package-host-bootstrap.md`
-         * documents for `tenancy.database`.
+         * key => [stock value, package default]. **Both keys move on
+         * dev-master** — `tenancy.models.{tenant,domain}`, two segments
+         * under a sub-array stancl's own `mergeConfigFrom()` populates, so
+         * a dotted `Config::set()` would then hit the `Arr::set()`
+         * auto-vivification hazard `.claude/rules/package-host-bootstrap.md`
+         * documents for `tenancy.database`. See
+         * `.claude/rules/stancl-tenancy-v4.md`'s config-key map.
          */
-        $moved = [
-            'tenant_model' => [StanclTenant::class, Numerosis::model(Tenant::class)],
-            'domain_model' => [StanclDomain::class, Numerosis::model(Domain::class)],
+        $stancl = [
+            'tenancy.tenant_model' => [StanclTenant::class, Numerosis::model(Tenant::class)],
+            'tenancy.domain_model' => [StanclDomain::class, Numerosis::model(Domain::class)],
         ];
 
-        foreach ($moved as $leaf => [$stock, $default]) {
-            $key = TenancyConfigKeys::key($leaf);
+        foreach ($stancl as $key => [$stock, $default]) {
             $current = Config::get($key);
 
             if ($current === null || $current === $stock) {
-                TenancyConfigKeys::set($leaf, $default);
-                self::$applied[] = $key;
+                self::set($key, $default);
             }
         }
 
-        // Not stancl keys at all — this package's own, unaffected by version.
+        // This package's own keys, in no stancl config stub.
         // No "stock value" to compare against here (unlike tenant_model/
         // domain_model above, which start out pointed at stancl's own
         // classes) — unset is the only signal.
@@ -138,7 +130,7 @@ final class HostConfig
     {
         /** @var list<string> $stock */
         $stock = ['127.0.0.1', 'localhost'];
-        $key = TenancyConfigKeys::key('central_domains');
+        $key = 'tenancy.central_domains';
         $domains = Config::array($key, []);
 
         if ($domains !== [] && $domains !== $stock) {
@@ -148,8 +140,7 @@ final class HostConfig
         $central = Config::string('numerosis.domains.central', '');
 
         if ($central !== '') {
-            TenancyConfigKeys::set('central_domains', [$central]);
-            self::$applied[] = $key;
+            self::set($key, [$central]);
         }
     }
 
@@ -172,88 +163,6 @@ final class HostConfig
 
         if ($missing !== []) {
             self::set('tenancy.bootstrappers', [...$bootstrappers, ...$missing]);
-        }
-    }
-
-    /**
-     * dev-master ("v4") derives a route's tenant/central/universal mode from
-     * `tenancy.identification.middleware` (and, for the access-prevention
-     * skip logic, `.domain_identification_middleware`) — an exact-string
-     * `in_array()` check against stancl's own middleware classes
-     * (`Concerns\DealsWithRouteContexts::routeHasMiddleware()`). Whichever
-     * class {@see TenancyServiceProvider::identificationMiddleware()} picks
-     * for the current {@see IdentificationMode} is either this package's own
-     * subclass ({@see InitializeTenancyByDomainOrSubdomain}, subdomain mode)
-     * or a stock stancl class it doesn't already know about the way it does
-     * `IdentifyTenant`, so every mode needs registering here, not just the
-     * default one. Without it, `getRouteMode()` falls through to
-     * `tenancy.default_route_mode` (`RouteMode::CENTRAL`), and
-     * `PreventAccessFromUnwantedDomains` then 404s any tenant-domain request
-     * as "central route from a tenant domain". v3 has no route-mode concept
-     * at all, so this is a dev-master-only gap; a no-op on v3 since neither
-     * config key exists there for `Config::array()` to find.
-     *
-     * `identification.domain_identification_middleware` is specifically the
-     * subset stancl treats as *domain*-based — path mode's middleware is
-     * not, so it is only added to the general `identification.middleware`
-     * list, never to this narrower one.
-     */
-    private static function tenancyIdentificationMiddleware(): void
-    {
-        if (! TenancyVersion::isDevMaster()) {
-            return;
-        }
-
-        $middlewareClass = TenancyServiceProvider::identificationMiddleware();
-
-        $keys = IdentificationMode::current() === IdentificationMode::Path
-            ? ['identification.middleware']
-            : ['identification.middleware', 'identification.domain_identification_middleware'];
-
-        foreach ($keys as $suffix) {
-            $key = 'tenancy.'.$suffix;
-
-            /** @var list<class-string> $middleware */
-            $middleware = Config::array($key, []);
-
-            if (! in_array($middlewareClass, $middleware, true)) {
-                self::set($key, [...$middleware, $middlewareClass]);
-            }
-        }
-    }
-
-    /**
-     * dev-master's `CacheTenancyBootstrapper::getCacheStores()` hard-throws
-     * ("Cache store [array] is not supported by this bootstrapper.") the
-     * moment `tenancy.cache.stores` names a store whose driver is `array` —
-     * v3's equivalent has no such check. That list defaults to
-     * `[env('CACHE_STORE')]` in stancl's own stub, so a host that actually
-     * sets `CACHE_STORE=array` (a real choice — `.claude/rules/tenant-caching.md`
-     * already treats `database` as unsupported for the same
-     * not-taggable reason, and `array` has no persistence to tag either)
-     * gets a boot-time crash instead of the graceful "nothing to prefix"
-     * degradation the rest of this package relies on for every other cache
-     * store this bootstrapper skips (`null`/`file`). Filtering `array`
-     * stores out here trades cache-tenancy isolation for that store (there
-     * was none to have — `array` never persists across requests) for a
-     * host that boots instead of crashing.
-     */
-    private static function cacheTenancyStores(): void
-    {
-        if (! TenancyVersion::isDevMaster()) {
-            return;
-        }
-
-        /** @var list<string|null> $stores */
-        $stores = Config::array('tenancy.cache.stores', []);
-
-        $filtered = array_values(array_filter(
-            $stores,
-            fn (?string $store): bool => $store !== null && Config::string("cache.stores.{$store}.driver", '') !== 'array',
-        ));
-
-        if ($filtered !== $stores) {
-            self::set('tenancy.cache.stores', $filtered);
         }
     }
 

@@ -8,8 +8,8 @@ use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Route;
 use Nvade\Numerosis\Resolvers\PreservingPathTenantResolver;
-use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Nvade\Numerosis\Tests\TestCase;
+use Stancl\Tenancy\Resolvers\PathTenantResolver;
 
 /**
  * Path mode's full HTTP round trip is not testable from console — see
@@ -52,7 +52,7 @@ class PreservingPathTenantResolverTest extends TestCase
 
         $this->assertSame(
             $tenant->id,
-            $route->parameter(TenancyVersion::pathTenantParameterName())
+            $route->parameter(PathTenantResolver::$tenantParameterName)
         );
     }
 
@@ -63,12 +63,12 @@ class PreservingPathTenantResolverTest extends TestCase
      */
     public function test_the_parameter_name_resolves_on_the_installed_version(): void
     {
-        $this->assertSame('tenant', TenancyVersion::pathTenantParameterName());
+        $this->assertSame('tenant', PathTenantResolver::$tenantParameterName);
     }
 
     private function routeWithTenantParameter(string $tenantKey): Route
     {
-        $parameter = TenancyVersion::pathTenantParameterName();
+        $parameter = PathTenantResolver::$tenantParameterName;
 
         $route = new Route(['GET'], '/{'.$parameter.'}/dashboard', fn () => null);
         $route->bind(request());

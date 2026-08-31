@@ -299,17 +299,24 @@ updated: 2026-08-29
 
 - **Known failing tests — don't attribute these to your change.**
 
-  **Current baseline, measured 2026-08-30 on this package repo, after the
-  `numerosis-auth-ui` extraction: `php -d memory_limit=1G vendor/bin/pest
-  --compact` ⇒ 0 failed, 7 skipped, 622 passed (5540 assertions) in ~105s, on
-  *both* `stancl/tenancy` legs.** The assertion count fell while the pass
-  count rose: 6 new tests, minus ~35 assertions `ArchTest`'s cashier-key scan
-  no longer makes because the 9 files it covered moved to the satellite (which
-  now carries that scan itself). **Diff the assertion count, not just the pass
-  count, after any package move** — see `.claude/rules/package-split.md`.
-  The suite is green; treat *any* failure as yours until proven otherwise.
+  **Current baseline, measured 2026-08-31 after deleting the dual-version
+  tenancy layer: `php -d memory_limit=1G vendor/bin/pest --compact` ⇒ 0
+  failed, 7 skipped, 623 passed (4816 assertions) in ~112s.** There is one
+  `stancl/tenancy` leg now, not two — the constraint is `^3.10`.
 
-  **One open flake**: a single stable-leg run once reported a second failure
+  **The assertion count keeps moving, and every move so far has had a
+  boring explanation that was only boring once measured.** 5540 → 4882 across
+  the filament extraction (`ArchTest`'s cashier-key scan lost 110 files to
+  that package's own `BoundaryTest`); 4882 → 4816 across the dual-version
+  deletion (50 of the 66 are the same `ArchTest` scan losing the 10 deleted
+  `src/` files — 5 arch rules × 10 files — and the rest is coverage for the
+  shims themselves). **Diff the assertion count, not just the pass count,
+  after any move, and identify the delta rather than accepting it** — a
+  directory-scanning test goes vacuous, not red, when what it guards
+  disappears. `--filter=ArchTest` alone against `git stash` is usually enough
+  to attribute it.
+
+  **One open flake**: a single run once reported a second failure
   that did not recur across four further full runs and three targeted ones,
   and was never identified. Nothing was found stranded when checked directly
   (no `pest` process, no open transaction, no metadata lock on `testing`), so

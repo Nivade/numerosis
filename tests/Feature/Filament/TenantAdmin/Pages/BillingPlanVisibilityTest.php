@@ -9,9 +9,9 @@ use App\Models\Central\PaymentPlan;
 use App\Models\Central\Subscription;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
 use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
 use Nvade\NumerosisFilament\TenantAdmin\Pages\Billing;
 
@@ -22,7 +22,7 @@ class BillingPlanVisibilityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        TenancyConfigKeys::set('central_domains', ['localhost']);
+        Config::set('tenancy.central_domains', ['localhost']);
     }
 
     public function test_active_plan_is_highlighted_with_badge(): void

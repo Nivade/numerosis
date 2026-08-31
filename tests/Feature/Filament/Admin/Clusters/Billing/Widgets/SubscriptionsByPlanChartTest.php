@@ -7,12 +7,12 @@ namespace Nvade\Numerosis\Tests\Feature\Filament\Admin\Clusters\Billing\Widgets;
 use App\Models\Central\CentralUser;
 use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
 use Nvade\NumerosisFilament\Admin\Clusters\Billing\Widgets\SubscriptionsByPlanChart;
 
@@ -29,7 +29,7 @@ class SubscriptionsByPlanChartTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        TenancyConfigKeys::set('central_domains', ['localhost']);
+        Config::set('tenancy.central_domains', ['localhost']);
 
         Gate::before(fn () => true);
     }

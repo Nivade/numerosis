@@ -20,8 +20,6 @@ use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
-use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
-use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use Nvade\Numerosis\Testing\CleansUpTenancyDatabases;
 use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
 use Nvade\NumerosisFilament\Testing\InteractsWithTenantPanel;
@@ -32,6 +30,7 @@ use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;
+use Stancl\Tenancy\UUIDGenerator;
 
 abstract class TestCase extends Orchestra
 {
@@ -189,12 +188,12 @@ abstract class TestCase extends Orchestra
         // 319 of 526 tests failed. Restored, with this note so the same
         // experiment isn't repeated the same way — see
         // .claude/rules/testing.md for the recorded version.
-        TenancyConfigKeys::set('tenant_model', \App\Models\Central\Tenant::class);
-        TenancyConfigKeys::set('id_generator', TenancyVersion::uuidGeneratorClass());
-        TenancyConfigKeys::set('domain_model', Domain::class);
+        Config::set('tenancy.tenant_model', \App\Models\Central\Tenant::class);
+        Config::set('tenancy.id_generator', UUIDGenerator::class);
+        Config::set('tenancy.domain_model', Domain::class);
         $app->make(Repository::class)->set('tenancy.central_user_model', CentralUser::class);
         $app->make(Repository::class)->set('tenancy.tenant_user_model', User::class);
-        TenancyConfigKeys::set('central_domains', ['central.numerosistest.test']);
+        Config::set('tenancy.central_domains', ['central.numerosistest.test']);
         $app->make(Repository::class)->set('tenancy.bootstrappers', [
             DatabaseTenancyBootstrapper::class,
             CacheTenancyBootstrapper::class,

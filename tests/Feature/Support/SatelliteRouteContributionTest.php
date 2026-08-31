@@ -6,7 +6,6 @@ namespace Nvade\Numerosis\Tests\Feature\Support;
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
-use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -34,7 +33,7 @@ class SatelliteRouteContributionTest extends TestCase
     public function test_those_routes_are_bound_to_the_central_domain_and_the_web_group(): void
     {
         /** @var list<string> $central */
-        $central = Config::array(TenancyConfigKeys::key('central_domains'));
+        $central = Config::array('tenancy.central_domains');
 
         $route = Route::getRoutes()->getByName('login');
 

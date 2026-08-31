@@ -241,7 +241,7 @@ come.
 ## Suggested better approach
 
 The vertical slice — scaffold one package, move its files, get it green on
-its own, then verify both matrix legs of core — cost one round trip to
+its own, then verify core — cost one round trip to
 discover the `layouts`/`partials` mistake and fix it cheaply. Scaffolding all
 five skeletons first, as the plan originally sequenced it, would have deferred
 that discovery until four packages had been built on the same wrong

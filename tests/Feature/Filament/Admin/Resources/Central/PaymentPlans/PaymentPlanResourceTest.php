@@ -7,10 +7,10 @@ namespace Nvade\Numerosis\Tests\Feature\Filament\Admin\Resources\Central\Payment
 use App\Models\Central\CentralUser;
 use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
 use Nvade\Numerosis\Models\Central\Subscription;
-use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
 use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\Pages\ListPaymentPlans;
 use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\Pages\ViewPaymentPlan;
@@ -23,7 +23,7 @@ class PaymentPlanResourceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        TenancyConfigKeys::set('central_domains', ['localhost']);
+        Config::set('tenancy.central_domains', ['localhost']);
 
         Gate::before(fn () => true);
     }

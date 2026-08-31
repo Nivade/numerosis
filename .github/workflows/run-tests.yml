@@ -51,17 +51,11 @@ jobs:
         php: [8.5, 8.4]
         laravel: [13.*]
         stability: [prefer-stable]
-        # Two legs: stable v3 (what every ordinary host resolves to) and
-        # dev-master (v4 — reachable only by a host that opts into
-        # minimum-stability: dev, see .claude/rules/stancl-tenancy-v4.md).
-        # dev-master needs stancl/jobpipeline:2.0.0-rc7 too — it's a hard
-        # require of dev-master itself, not this package's choice.
-        stancl: ['^3.10', 'dev-master']
         include:
           - laravel: 13.*
             testbench: 11.*
 
-    name: P${{ matrix.php }} - L${{ matrix.laravel }} - stancl:${{ matrix.stancl }} - ${{ matrix.os }}
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.os }}
 
     steps:
       - name: Checkout code
@@ -80,18 +74,10 @@ jobs:
           echo "::add-matcher::${{ runner.tool_cache }}/php.json"
           echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
-      - name: Install dependencies (stancl/tenancy stable leg)
-        if: matrix.stancl != 'dev-master'
+      - name: Install dependencies
         run: |
-          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "stancl/tenancy:${{ matrix.stancl }}" --no-interaction --no-update
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
-
-      - name: Install dependencies (stancl/tenancy dev-master leg)
-        if: matrix.stancl == 'dev-master'
-        run: |
-          composer config minimum-stability dev
-          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "stancl/tenancy:dev-master" "stancl/jobpipeline:2.0.0-rc7" --no-interaction --no-update
-          composer update --prefer-stable --prefer-dist --no-interaction
 
       - name: List Installed Dependencies
         run: composer show -D
@@ -99,17 +85,7 @@ jobs:
       - name: Execute tests
         run: vendor/bin/pest --ci
 
-      # Each leg analyses against its own config: the reflection stub for the
-      # version that is NOT installed, plus its own baseline. `scanFiles`
-      # stubs shadow real classes rather than merging with them, so loading
-      # the wrong one makes correct code report as `method.notFound` — see
-      # phpstan-common.neon. Runs once per stancl leg, on one PHP version
-      # only, since the analysis does not vary by PHP patch.
+      # One PHP version only — the analysis does not vary by PHP patch.
       - name: Static analysis
         if: matrix.php == '8.5'
-        run: |
-          config=phpstan.neon.dist
-          if [ "${{ matrix.stancl }}" = "dev-master" ]; then
-            config=phpstan-dev-master.neon.dist
-          fi
-          php -d memory_limit=2G vendor/bin/phpstan analyse -c "$config" --no-progress
+        run: php -d memory_limit=2G vendor/bin/phpstan analyse --no-progress

@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use InterNACHI\Modular\Support\Facades\Modules;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Support\Compat\Tenancy\HasTenantOptions;
+use Stancl\Tenancy\Concerns\HasATenantsOption;
 
 /**
  * Runs a module's permission seeder inside each tenant.
@@ -23,7 +23,7 @@ use Nvade\Numerosis\Support\Compat\Tenancy\HasTenantOptions;
 #[Signature('tenants:seed-module {module}')]
 class SeedTenantModule extends Command
 {
-    use HasTenantOptions;
+    use HasATenantsOption;
 
     public function handle(): int
     {

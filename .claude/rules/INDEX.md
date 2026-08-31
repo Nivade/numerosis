@@ -19,8 +19,8 @@ One line per file, under ~150 chars. Update index when rules file add/rename/rem
 - [package-split.md](package-split.md) — doing the split: one shared view namespace; scanning tests go vacuous, not red; class constants autoload; grep beats the package map.
 - [package-boundaries.md](package-boundaries.md) — no route/feature/migration-path contribution seams; core→Filament edges incl. one latent cycle; one 847-line config names every feature area.
 - [package-host-bootstrap.md](package-host-bootstrap.md) — `Domains.php` can't call facades; host `bootstrap/app.php`/`providers.php` staleness; `HostConfig::apply()` register-vs-booting race truncating `tenancy.database`.
-- [stancl-tenancy-v4.md](stancl-tenancy-v4.md) — no v4 tag, dev-master needs host stability flags; 11 moved symbols (9 eager) + 4 moved config keys; docs wrong on 3 points.
-- [static-analysis.md](static-analysis.md) — PHPStan level 9, two configs (one per tenancy leg); `scanFiles` stubs shadow real classes; found a bug the suite can't reach.
+- [stancl-tenancy-v4.md](stancl-tenancy-v4.md) — **port map, not current code**: v3-only since 2026-08-31; 11 moved symbols (9 eager) + 4 moved config keys; v4 docs wrong on 3 points.
+- [static-analysis.md](static-analysis.md) — PHPStan level 9, one config + one baseline; diff a regenerated baseline before trusting it; `scanFiles` stubs shadow real classes.
 - [tenant-caching.md](tenant-caching.md) — `global_cache()` un-prefixed; cross-tenant leaks of cached tenant models + shared session guard keys.
 - [tenant-provisioning.md](tenant-provisioning.md) — races between sync checkout redirect + async Stripe webhook; idempotency requirements; JobPipeline vs AsAction calling-convention conflict.
 - [tenant-registration-wizard.md](tenant-registration-wizard.md) — bare `@livewire()` view flattens child's component boundary; spatie wizard's `wizardClassName` needs alias resolution, not raw FQCN.

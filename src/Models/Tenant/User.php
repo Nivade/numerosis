@@ -21,11 +21,11 @@ use Nvade\Numerosis\Models\User as BaseUser;
 use Nvade\Numerosis\Observers\TenantUserObserver;
 use Nvade\Numerosis\Policies\UserPolicy;
 use Nvade\Numerosis\Support\Compat\LogsActivityIfInstalled;
-use Nvade\Numerosis\Support\Compat\Tenancy\ResourceSyncing;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Support\LogOptions;
+use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 
 /**
  * A user inside a tenant database, paired with a central user by `global_id`.

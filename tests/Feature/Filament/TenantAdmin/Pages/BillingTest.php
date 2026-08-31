@@ -7,9 +7,9 @@ namespace Nvade\Numerosis\Tests\Feature\Filament\TenantAdmin\Pages;
 use App\Models\Central\CentralUser;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
 use Nvade\NumerosisFilament\TenantAdmin\Pages\Billing;
 
@@ -20,7 +20,7 @@ class BillingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        TenancyConfigKeys::set('central_domains', ['localhost']);
+        Config::set('tenancy.central_domains', ['localhost']);
     }
 
     public function test_can_render_billing_page(): void

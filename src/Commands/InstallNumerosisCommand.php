@@ -23,8 +23,6 @@ use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
-use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
-use Nvade\Numerosis\Support\Tenancy\TenancyVersion;
 use ReflectionProperty;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 
@@ -225,8 +223,7 @@ class InstallNumerosisCommand extends Command
 
     private function verifyTenancyModels(): void
     {
-        foreach (['tenant_model', 'domain_model'] as $leaf) {
-            $key = TenancyConfigKeys::key($leaf);
+        foreach (['tenancy.tenant_model', 'tenancy.domain_model'] as $key) {
             $class = Config::get($key);
 
             if (! is_string($class) || $class === '' || ! class_exists($class)) {
@@ -234,7 +231,7 @@ class InstallNumerosisCommand extends Command
             }
         }
 
-        // Not stancl keys at all — this package's own, unaffected by version.
+        // This package's own keys, in no stancl config stub.
         foreach (['central_user_model', 'tenant_user_model'] as $key) {
             $class = Config::get("tenancy.{$key}");
 
@@ -259,7 +256,7 @@ class InstallNumerosisCommand extends Command
 
     private function verifyCentralDomains(): void
     {
-        $key = TenancyConfigKeys::key('central_domains');
+        $key = 'tenancy.central_domains';
         $domains = Config::get($key);
 
         if (! is_array($domains) || $domains === []) {
@@ -558,7 +555,7 @@ class InstallNumerosisCommand extends Command
      */
     private function verifyTenantResolverCache(): void
     {
-        if (TenancyVersion::resolverShouldCache(DomainTenantResolver::class)) {
+        if (DomainTenantResolver::$shouldCache) {
             return;
         }
 
@@ -570,7 +567,7 @@ class InstallNumerosisCommand extends Command
             'The domain-to-tenant resolver cache is disabled because config(\'cache.serializable_classes\') is '
             .var_export(Config::get('cache.serializable_classes'), true)
             .', which cannot round-trip a cached tenant model. Every tenant request pays a central-database lookup before anything else runs. To turn it back on, add '
-            .Config::string(TenancyConfigKeys::key('tenant_model'), Tenant::class)
+            .Config::string('tenancy.tenant_model', Tenant::class)
             .' to that allowlist (or set it to true), then re-run this command. Set numerosis.tenancy.cache_resolved_tenants to false to silence this deliberately.'
         );
     }

@@ -107,20 +107,27 @@ pass the "rejects a taken subdomain" test perfectly.
 second call to `assertAvailable()` — different format regex (FQDN vs. single
 label), different table scope, different error-bag key (`customDomain`).
 
-## dev-master route modes need the selected class registered, per mode
+## On an eventual v4 port, every mode's middleware must be registered
 
-`HostConfig::tenancyIdentificationMiddleware()` (added in Phase 2 for the
-subdomain class only) now registers whichever class
-`TenancyServiceProvider::identificationMiddleware()` returns. dev-master's
+Not a live concern — v3 has no route-mode concept and this package is v3-only
+— but it is the first thing that breaks on the port, and it breaks as a 404
+rather than an error. dev-master's
 `Concerns\DealsWithRouteContexts::routeHasMiddleware()` is an exact-string
-`in_array()`, so a mode whose middleware is missing from
-`tenancy.identification.middleware` falls through to
-`RouteMode::CENTRAL` and 404s every tenant request.
+`in_array()` against `tenancy.identification.middleware`, so a mode whose
+middleware is absent from that list falls through to `RouteMode::CENTRAL`,
+and `PreventAccessFromUnwantedDomains` then 404s every tenant request as
+"central route from a tenant domain". Whichever class
+`TenancyServiceProvider::identificationMiddleware()` returns has to be in
+there, including this package's own `InitializeTenancyByDomainOrSubdomain`
+subclass, which stancl cannot know about.
 
-**Path mode's middleware goes in `identification.middleware` only, never in
-`identification.domain_identification_middleware`** — that narrower list is
-specifically stancl's domain-based subset, and path identification is not
-domain-based. Both are no-ops on v3, which has no route-mode concept.
+**Path mode's middleware belongs in `identification.middleware` only, never
+in `identification.domain_identification_middleware`** — that narrower list
+is stancl's domain-based subset, and path identification is not domain-based.
+
+A `HostConfig::tenancyIdentificationMiddleware()` doing exactly this existed
+and was deleted with the rest of the dual-version layer on 2026-08-31; it is
+recoverable from that commit rather than needing rewriting.
 
 ## What is NOT proven by the test suite
 

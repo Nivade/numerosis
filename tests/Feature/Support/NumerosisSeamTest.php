@@ -22,7 +22,6 @@ use Nvade\Numerosis\Models\Central\Tenant as PackageTenant;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Support\Numerosis;
-use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 
 /*
  * Every host-seam bug this extraction found lived in these methods (see
@@ -75,7 +74,7 @@ it('binds a web-middleware route per central domain and a tenant group', functio
     $central = Route::getRoutes()->getByName('terms');
     throw_unless($central instanceof IlluminateRoute, RuntimeException::class, 'route [terms] not registered');
 
-    expect($central->getDomain())->toBe(Config::array(TenancyConfigKeys::key('central_domains'))[0]);
+    expect($central->getDomain())->toBe(Config::array('tenancy.central_domains')[0]);
     expect($central->middleware())->toContain('web');
 
     $tenant = Route::getRoutes()->getByName('verification.notice');

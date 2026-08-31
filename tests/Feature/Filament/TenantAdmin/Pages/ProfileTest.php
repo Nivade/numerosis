@@ -8,9 +8,9 @@ use App\Models\Central\CentralUser;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
-use Nvade\Numerosis\Support\Tenancy\TenancyConfigKeys;
 use Nvade\Numerosis\Tests\TestCase;
 use Nvade\NumerosisFilament\TenantAdmin\Clusters\Profile\Pages\General;
 use Nvade\NumerosisFilament\TenantAdmin\Clusters\Profile\Pages\Security;
@@ -23,7 +23,7 @@ class ProfileTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        TenancyConfigKeys::set('central_domains', ['localhost']);
+        Config::set('tenancy.central_domains', ['localhost']);
     }
 
     public function test_can_render_profile_page(): void
