@@ -22,8 +22,8 @@
         "illuminate/contracts": "^13.0",
         "illuminate/support": "^13.0",
         "livewire/livewire": "^4.2",
-        "nvade/numerosis": "@dev",
-        "nvade/numerosis-ui": "@dev",
+        "nvade/numerosis": "self.version",
+        "nvade/numerosis-ui": "self.version",
         "spatie/laravel-package-tools": "^1.16"
     },
     "require-dev": {
