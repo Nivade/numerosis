@@ -4,7 +4,8 @@ updated: 2026-07-31
 ---
 
 > **Moved 2026-08-30.** The auth *screens* this file is mostly about now live
-> in `nvade/numerosis-auth-ui`: `Nvade\Numerosis\Livewire\Auth\*` is
+> in `packages/auth-ui` (`nvade/numerosis-auth-ui`):
+> `Nvade\Numerosis\Livewire\Auth\*` is
 > `Nvade\NumerosisAuthUi\Livewire\*` (no `Auth` segment),
 > `Concerns\Auth\ThrottlesLoginAttempts` is `NumerosisAuthUi\Concerns\…`,
 > `SocialLoginFeature` is `NumerosisAuthUi\Features\…`, and `routes/auth.php`

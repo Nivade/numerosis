@@ -4,6 +4,18 @@ updated: 2026-07-28
 ---
 # Filament Tenancy vs stancl Tenancy
 
+> **Everything Filament-side here lives in `packages/filament`
+> (`nvade/numerosis-filament`) as of 2026-08-30**, and two names below are
+> from before that: the panel opt-in is `NumerosisTenantPlugin::panel()`
+> (`packages/filament/src/NumerosisTenantPlugin.php:140-141`), not a host
+> `TenantAdminPanelProvider` — the providers are
+> `packages/filament/src/Providers/Numerosis{Admin,Tenant}PanelProvider.php`
+> and register themselves. `actingAsTenantPanelUser()` is on
+> `Nvade\NumerosisFilament\Testing\InteractsWithTenantPanel`. Core names
+> `Filament\` in 11 files, all lazily; see `.claude/rules/package-boundaries.md`.
+> Every claim below still holds — the seam between the two tenancy systems is
+> unchanged by the move.
+
 - **Two tenancy systems run side by side and share no state.** stancl owns the
   database, cache prefix, queue payload, auth guard and Spatie permission
   registrar; Filament owns its own "current tenant", a plain property on
@@ -90,13 +102,21 @@ updated: 2026-07-28
   or `artisan tinker` (`PHP_SAPI = 'cli'`) — same code, same request, only
   `PHP_SAPI` differs. **This is not a bug to fix — it is
   `shouldRegisterPanel()`'s documented tradeoff working as designed.** It
-  does mean `post-extraction-review.md`'s Phase 5.3 "central routes bound
-  per `tenancy.central_domains`" assertion cannot be written as a plain Pest
-  HTTP-dispatch test — it will always see the tenant panel registered and
-  always resolve the wildcard, regardless of what `tenancy.central_domains`
-  actually contains. It needs either a Pest **browser** test (real request
-  through the actual web server, where `runningInConsole()` is genuinely
-  false) or a narrower unit test against `shouldRegisterPanel()`'s decision
-  logic itself (stub `runningInConsole()` false, assert it returns `false`
-  for a central-domain request) rather than asserting on route-match
-  outcome from console.
+  does mean a "central routes bound per `tenancy.central_domains`" assertion
+  cannot be written as a plain Pest HTTP-dispatch test — it will always see
+  the tenant panel registered and always resolve the wildcard, regardless of
+  what `tenancy.central_domains` actually contains.
+
+  **A browser test does not fix this, which is the correction worth carrying.**
+  `pestphp/pest-plugin-browser` (added 2026-08-31) serves Laravel
+  **in-process** — an amphp socket in front of the same booted kernel the test
+  holds — so `PHP_SAPI` stays `cli` and `runningInConsole()` is still `true`
+  inside a browser request. The console exemption applies exactly as it does
+  under `Livewire::test()`. Closing this needs a genuinely separate FPM or
+  `php -S` server, which nothing here has; the available substitute is a
+  narrow unit test against `shouldRegisterPanel()`'s decision logic (stub
+  `runningInConsole()` false, assert it returns `false` for a central-domain
+  request) rather than asserting on route-match outcome. Path mode *is*
+  browser-covered (`tests/Browser/PathModeTest`) precisely because it
+  registers no wildcard and so has no console dependence —
+  `.claude/rules/identification-modes.md`.

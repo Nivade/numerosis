@@ -155,8 +155,12 @@ class Numerosis
      * package generates from those names (the login redirect, the email
      * verification link) becomes yours to provide under the same names.
      *
-     * {@see self::registerRoutesUsing()} replaces this wholesale; there is no
-     * hook to append to the defaults.
+     * To *add* routes rather than replace these, use
+     * {@see self::addCentralRoutes()} / {@see self::addTenantRoutes()} — they
+     * run inside the groups built below, so a contributed central route is
+     * bound to the same hostnames the package's own are.
+     * {@see self::registerRoutesUsing()} replaces this wholesale, and bypasses
+     * both.
      */
     public static function routes(bool $withAuth = true): void
     {

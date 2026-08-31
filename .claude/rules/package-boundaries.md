@@ -1,121 +1,126 @@
----
-topic: package-boundaries
-updated: 2026-08-29
----
-
 # Package Boundaries
 
-Facts about what this package can and cannot be cut apart along, found while
-auditing the split plan (`.claude/plans/memoized-tinkering-meadow.md`). Every
-one is a property of the code as it stands today, not of the plan — they hold
-whether or not the split ever happens, and each one silently invalidates an
-"obvious" boundary.
+> **Rewritten 2026-08-31 (section F of `.claude/plans/numerosis-consolidation.md`).**
+> The original version of this file argued that the split could not happen
+> because this package had exactly one extension point per concern, each of
+> them "replace it wholesale" rather than "contribute to it". **Every seam it
+> asked for now exists**, and four packages were extracted through them. What
+> follows is the seam map — what to contribute through, and the boundary facts
+> that are still load-bearing. The old "here is why you cannot" framing is
+> gone; its conclusions are void, its mechanisms are preserved below and in
+> `.claude/rules/package-split.md`.
 
-- **`Numerosis::routes()` has no append hook, and its own docblock says so:
-  "there is no hook to append to the defaults."** (`src/Support/Numerosis.php:146`.)
-  `registerRoutesUsing()` replaces the whole thing; there is no
-  `addCentralRoutes()`/`addTenantRoutes()`. That matters because the central
-  route group is not something a second package can reconstruct from outside:
-  `routes()` loops `Config::array('tenancy.central_domains')` and wraps
-  `routes/web.php` in `Route::middleware('web')->domain($domain)` **once per
-  central domain**, then registers `routes/tenant.php` under the `tenant`
-  group. Any package wanting to add a central-domain route (the registration
-  wizard's `/get-started`, everything in `routes/auth.php`) has to reproduce
-  that loop and stay in sync with it, or register outside the domain scoping
-  and answer on tenant subdomains too. `.claude/rules/host-integration-quickstart.md`
-  already records what this cost tabellio — it hand-rolled a `routes/central.php`
-  and duplicated the wiring — and `Numerosis::routes(withAuth: false)` was the
-  narrow fix for that one case. **A route-contribution seam has to exist before
-  any route-owning code moves to a second package**; it is not a Phase-3
-  mechanical detail.
+Layout: one repo, core at the root plus `packages/{ui,auth-ui,filament,onboarding}`,
+path-installed from a single `{"type":"path","url":"packages/*"}` entry and
+published as read-only splits on tag. `tests/Feature/PackageBoundariesTest.php`
+is what enforces the boundaries now — in a monorepo the filesystem enforces
+nothing.
 
-- **Core → Filament edges exist and one of them is a cycle waiting to
-  happen.** `src/Concerns/Modules/PurchasesModules.php` (core, `Concerns/`)
-  does `use Nvade\Numerosis\Filament\Concerns\NotifiesUser;` and returns
-  `Filament\Actions\Action` objects — and its only two consumers are
-  `Filament\TenantAdmin\Pages\Modules\{Marketplace,ModuleDetail}`. It reads
-  like core because of where it lives; it is Filament UI glue. Move Filament
-  out and leave this behind and core depends on the package that depends on
-  core. Six more core files name `Filament\*` without a `class_exists()`
-  guard — `Http/Middleware/{Authenticate,CheckInvitationStatus,ApplyDefaultBranding}`,
-  `Models/{User,Central/CentralUser}`, `Support/Numerosis`,
-  `Testing/InteractsWithTenantPanel`, `Contracts/Tenancy/ModulePlugin` — all
-  currently safe only because a bare `use` statement is lazy and the call
-  sites are reached only when Filament is installed. That is the same
-  eager-vs-lazy asymmetry `.claude/rules/optional-dependencies.md` documents;
-  it holds for `use` imports and method type-hints, and does **not** hold the
-  moment one of them becomes an `extends`/`implements`/`use <Trait>`.
+## The seams
 
-- **`Actions\Modules\PurchaseModule` hard-uses `InterNACHI\Modular\Support\Facades\Modules`**
-  (`src/Actions/Modules/PurchaseModule.php:9`). Buying a module is a billing
-  operation on core's own tables *and* a module-registry lookup, so
-  "billing stays, module system moves" does not cut cleanly here — whichever
-  package holds `PurchaseModule` requires `internachi/modular`. Same for
-  `Actions/Modules/{MigrateModules,RollbackModules,SynchronizeModules}` and
-  the three `Console/Commands/*TenantModule` commands.
+All on `Nvade\Numerosis\Support\{Numerosis,Features}`, all additive. A
+satellite or a host calls these; neither ever names the other's classes.
 
-- **The central admin panel's module UI is a third location, distinct from
-  both the tenant marketplace and core.** `src/Filament/Admin/Resources/Central/Modules/`
-  (6 files — `ModuleOfferingResource`, 3 pages, `ModuleForm`, `ModulesTable`)
-  is the staff-facing module *catalogue*, while
-  `src/Filament/TenantAdmin/{Resources/Modules,Pages/Modules}` is the
-  customer-facing marketplace. Any rule of the form "all module-related
-  Filament UI goes together" and "all `Admin/` resources go together" claims
-  these six files twice. Related: `ModuleOfferingPolicy`'s `modules`
-  permission context is seeded by `RoleAndPermissionSeeder` under guard `web`
-  — see `.claude/rules/auth-guards.md` for why a missing permission there
-  500s *every* page in the panel, not just its own.
+| Contribute | Call | Notes |
+|---|---|---|
+| central-domain routes | `Numerosis::addCentralRoutes(Closure)` | callback runs **once per configured central domain**, inside that domain's own `Route::middleware('web')->domain($domain)` group. A plain `Route::get()` instead would answer on every tenant subdomain, and nothing would fail — `SatelliteRouteContributionTest` is the guard. |
+| tenant routes | `Numerosis::addTenantRoutes(Closure)` | same, inside the single `Route::middleware('tenant')` group. |
+| a `Feature` | `Features::register(class-string<Feature>)` | merges with `config('numerosis.features')`; `Features::registered()` tells a contributed feature from a host-configured one. |
+| tenant migrations | `Numerosis::addTenantMigrationPath(string)` | `HostConfig::tenancyMigrationParameters()` already treated `--path` as an array; this is the public way in. |
+| seed data | `Numerosis::addTenantSeeder()` / `addCentralSeeder()` | ran by the package's own `TenantDatabaseSeeder` / `DatabaseSeeder`. |
+| permissions | `Numerosis::addPermissionContext(string)` | a missing permission row is a **500, not a 403** (`.claude/rules/auth-guards.md`), and Filament evaluates every resource's `viewAny` on every page render, so one missing context breaks the whole panel. |
+| views | `->hasViews('numerosis')` from the satellite's own provider | `FileViewFinder::addNamespace()` *appends*, so several packages serve one namespace. Paths are searched in registration order — files must be **moved, never copied**. |
+| the tenant panel's login page | `numerosis.panels.tenant.login` | a Livewire component class. `null` = Filament's own login page. |
+| the registration wizard | `numerosis.panels.admin.tenant_registration_component` | a Livewire **alias**, not a class — that is what keeps core and `packages/filament` from naming `packages/onboarding`'s classes. |
+| a panel wholesale | `numerosis.panels.{admin,tenant}.provider` | core registers what you name and `numerosis-filament` stands down for that panel. |
 
-- **`Filament\NumerosisTenantPlugin` names components from two other feature
-  areas.** `->login(PasswordlessLogin::class)` (`:110`) makes the tenant
-  panel's login page an auth-UI component, and `Filament\Admin\Pages\RegisterTenant`
-  exists solely to host the registration wizard. So "Filament" is not a leaf:
-  it depends on auth UI and on onboarding, not only on core.
+`Numerosis::registerRoutesUsing()` / `registerMiddlewareUsing()` /
+`registerBroadcastingUsing()` still exist and still replace the whole
+mechanism. Reach for the `add*` seams first; the `registerXUsing()` ones are
+for a host that genuinely wants none of the defaults.
 
-- **`config/numerosis.php` is one 847-line file that names classes from every
-  feature area at once** — `Features\*` entries, `implementations` bindings,
-  panel providers, model overrides. `Support\Features::all()` reads that array
-  and `NumerosisServiceProvider` does `$this->app->make($feature)` on each
-  entry, so **a feature class listed in config but not installed is a hard
-  container failure at boot**, not a skipped feature. `is_a($class, NamedFeature::class, true)`
-  in `Features::names()` autoloads and quietly returns `false` for a missing
-  class, so the name map silently loses the entry first and the crash arrives
-  from the `make()` loop instead — two different symptoms, one cause. Any
+## Boundary facts that still bite
+
+- **A satellite must be able to register into a world where core's config is
+  not there, and do nothing.** Larastan boots an application that discovers
+  every *vendor* package but not the root one, so every satellite registers
+  with core absent — the same shape as a host that installs a satellite and
+  doesn't register core. `Features::all()` reads
+  `Config::array('numerosis.features', [])` for exactly this reason. Sentinel
+  on a key **only core writes**; `Arr::set()` auto-vivifies, so "the namespace
+  exists" is not evidence core registered.
+
+- **A satellite config write belongs in the register phase only where the
+  parent namespace is deep-filled.** `numerosis.panels` survives a
+  `packageRegistered()` write because `HostConfig::numerosisConfig()`
+  deep-fills it; `numerosis.tenancy` does not, and the identical write
+  destroyed `implementations`/`provisioning`/`identification`. Full mechanism
+  and both symptoms in `.claude/rules/package-split.md`.
+
+- **A feature class listed in config but not installed is a hard container
+  failure at boot, and the first symptom is the wrong one.**
+  `NumerosisServiceProvider` does `$this->app->make($feature)->bootstrap()`
+  over `Features::all()` (`src/NumerosisServiceProvider.php:238-245`), while
+  `Features::names()`'s `is_a($class, NamedFeature::class, true)` autoloads
+  and quietly returns `false` for a missing class — so the *name map* silently
+  loses the entry first and the crash arrives from the `make()` loop. Any
   packaging change that could leave a feature class unavailable needs the
-  config split with it, in the same change.
+  config change in the same commit.
 
-- **Satellite-owned tenant migrations are possible but have no public seam.**
-  `HostConfig::tenancyMigrationParameters()` (`src/Support/HostConfig.php:154-177`)
-  treats `tenancy.migration_parameters['--path']` as an array and *appends*
-  `Numerosis::tenantMigrationPath()` if absent, so multiple paths already
-  work — but `tenantMigrationPath()` is singular and there is no
-  `addTenantMigrationPath()`. Same shape for tenant seed data: everything
-  funnels through the single `Database\Seeders\TenantDatabaseSeeder`.
-  84 migrations currently sit here (63 central, 21 tenant), including 4 for
-  modules, 9 for `activity_log` (4 central, 5 tenant — not symmetrical; the
-  tenant side carries an `upgrade_activitylog` migration with no central
-  counterpart), and 2 for `one_time_passwords` — none of
-  which belong to the tenancy/billing core by the same reasoning that moves
-  their code.
+- **Core still names `Filament\`, in 11 files, and that is fine.** Every one
+  is lazy — a method type-hint, a `use` import reached only when a panel
+  exists, or a `class_exists()`-guarded call. `Support\Compat\Filament*` stay
+  in **core**: they are what lets core's own models load without Filament, so
+  a satellite owning them would invert the dependency they exist to prevent.
+  The asymmetry (`extends`/`implements`/`use <Trait>` resolve eagerly, type
+  hints do not) is in `.claude/rules/optional-dependencies.md`.
 
-- **The `Features` list is plain config with no registration API.** A second
-  package cannot add its own `NamedFeature` without the host editing
-  `config('numerosis.features')` by hand. If features are meant to be the
-  plug-in seam, `Features::register()` has to exist first.
+  The one real cycle this file used to name is **resolved**:
+  `Concerns\Modules\PurchasesModules` returned `Filament\Actions\Action`
+  objects from core, and its only two consumers were Filament pages. It lives
+  at `packages/filament/src/Concerns/Modules/PurchasesModules.php` now.
+  `Http\Middleware\CheckInvitationStatus` was the other — a core route
+  reachable with no panel anywhere, calling `Notification::make()`; it is
+  `class_exists()`-guarded with a session-flash fallback.
+
+- **The module system stays in core, deliberately** (decision D-C). It threads
+  ~30 files through 13 top-level `src/` directories, owns two Eloquent models
+  whose migrations are core's, and its Filament UI already sits in
+  `packages/filament` — the "temporarily, until a modules package exists" note
+  there is **permanent and correct**, not debt. `internachi/modular` is
+  `suggest`, behind one seam: `ModuleSystemFeature::available()` (feature
+  enabled ∧ registry installed). One seam per optional package, not one
+  `class_exists()` per call site.
+
+- **Module Filament UI lives in two places on purpose.**
+  `packages/filament/src/Admin/Resources/Central/Modules/` is the staff-facing
+  catalogue; `packages/filament/src/TenantAdmin/{Resources,Pages}/Modules/` is
+  the customer-facing marketplace. Any rule of the form "all module UI goes
+  together" claims the same files twice.
+
+- **85 migrations live in core** (64 central, 21 tenant), including 4 for
+  modules, 9 for `activity_log` (4 central, 5 tenant — **not** symmetrical;
+  the tenant side carries an `upgrade_activitylog` migration with no central
+  counterpart) and 2 for `one_time_passwords`. They stay in core even where
+  the code that reads them moved, because the tables have to exist wherever
+  core does — `Models\User` composes the OTP trait, `Tenant\User` and
+  `Invitation` compose `LogsActivity`, both through
+  `Support\Compat\*IfInstalled` shims that no-op without the package.
+
+- **`config/numerosis.php` is one 922-line file naming classes from every
+  feature area.** It is not split per package and does not need to be: a
+  satellite fills its own keys at register time and a host-published value
+  wins. Core's config deliberately does **not** name the onboarding wizard's
+  step classes — that would put a package core does not depend on into core's
+  own config.
 
 ## Suggested better approach
 
-Every bullet above is the same shape: **this package has exactly one
-extension point per concern (one routes callback, one feature array, one
-migration path, one seeder, one config file), and each is "replace it
-wholesale" rather than "contribute to it".** That is the right design for a
-single package with one host, and it is precisely what stops a second package
-from participating. Before moving any code, add the three contribution seams
-— routes, features, migration paths — as additive, independently testable
-changes against the current single-package layout. They are useful on their
-own (a host gains the same seams), they are verifiable by this repo's
-existing suite, and they convert the split from "rewrite the extension model
-while also moving 400 files" into "move files through a model that already
-works". The trade-off is that each seam is new public API that has to be
-supported afterwards, so keep them narrow: contribute-a-callback, not
-override-the-mechanism.
+The seams are narrow on purpose — contribute-a-callback, not
+override-the-mechanism — and that is worth keeping as more get added. The one
+thing they lack is a way to *inspect* what has been contributed:
+`Features::registered()` exists, but there is no equivalent for routes,
+migration paths or seeders, so "which package added this route" is answerable
+only by grep. If a fifth package lands, add the readers alongside the writers
+rather than after — a boundary test that can enumerate contributions is
+strictly better than one that scans files for forbidden strings.

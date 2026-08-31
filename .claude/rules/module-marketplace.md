@@ -1,5 +1,30 @@
 # Module Marketplace
 
+> **Where this code lives, as of 2026-08-31 (decision D-C).** The module
+> *system* stays in **core**: `Actions/Modules/*`, `Concerns/InteractsWithTenantModules`,
+> `Concerns/ResolvesInstalledModules`, the three `tenants:*-module` commands,
+> both Eloquent models and their 4 migrations. The module *UI* is in
+> **`packages/filament`** — `TenantAdmin/{Pages,Resources}/Modules/*` (the
+> customer-facing marketplace), `Admin/Resources/Central/Modules/*` (the
+> staff-facing catalogue), and `Concerns/Modules/PurchasesModules`, which
+> returns `Filament\Actions\Action` objects and used to sit in core's
+> `Concerns/` where it read as core but was Filament glue. That is
+> **permanent**, not a staging step; there is no `numerosis-modules` package
+> and there is not going to be one.
+>
+> `internachi/modular` is `suggest` now, behind one seam —
+> `ModuleSystemFeature::available()` (feature enabled ∧ registry installed) —
+> which every entry point asks rather than repeating `class_exists()`. See
+> `.claude/rules/optional-dependencies.md` for the guard, the subprocess probe
+> that proves absence, and why a page gated only inside `mount()` is not
+> gated.
+>
+> Two names below are from the saas-m host app and no longer exist anywhere
+> here: `ApplyPanelColorMiddleware` (the branding module's, deleted with it)
+> and the five `app-modules/*` packages the first bullet describes. Both are
+> kept because the reasoning still applies to whatever a consumer ships in
+> their place.
+
 - **5 shipped modules (`alerts`, `announcements`, `branding`, `notes`,
   `tasks`, all under `Nvade\*`) first-party example/premium content, not
   core framework — and `config('app-modules.modules_namespace') === 'Nvade'`

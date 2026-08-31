@@ -19,6 +19,40 @@ both — it prints what `HostConfig` configured for you, then runs every
 something is still wrong. Run it with `--verify-only` to check without
 publishing or seeding anything.
 
+## 0. What you install
+
+`nvade/numerosis` is five Composer packages developed in one repository and
+published as read-only splits. Core is the only one you must have; the other
+four are UI layers you can decline, and declining one is a supported state,
+not a degraded one.
+
+| Package | What it is | Declining it costs |
+|---|---|---|
+| `nvade/numerosis` | Tenancy, billing, provisioning, auth mechanics, the module system, every migration and seeder. | — it is the package. |
+| `nvade/numerosis-ui` | The shared Blade layer: `<x-numerosis::ui.*>`, the design tokens, `livewire/flux`. | Not declinable in practice — core `require`s it, because core's own views render its components and a missing Blade tag renders as literal text rather than failing. |
+| `nvade/numerosis-filament` | The admin and tenant Filament panels, every resource and page, the module marketplace UI. Pulls `filament/filament` in with it. | No panel registers at all, and `filament/filament` is then not needed either. Everything below the UI still works; `App\Models\User` loses `FilamentUser`/`HasTenants` and autoloads fine without them. |
+| `nvade/numerosis-auth-ui` | The login / register / password-reset / OAuth **screens**, and `laravel/socialite`. | No `/login`, `/register` or `/forgot-password` route; the tenant panel falls back to Filament's own login page; social login is unavailable. Core keeps the auth *mechanics* — guards, `LogoutUser`, email verification, the social-account repository, `TurnstileFeature`, both `one_time_passwords` migrations. |
+| `nvade/numerosis-onboarding` | The self-serve registration wizard at `/get-started`. | No signup route, and core's own references to it — links in four views plus `CompleteRedirectCheckout`'s post-checkout redirect — are hidden. All of them gate on `Support\Tenancy\SelfServeRegistration::FEATURE`, a constant **core** owns for exactly this reason: a class-constant fetch autoloads the class, so gating on the satellite's own `NAME` would fatal a host that declined it. Tenants can still be created from an admin screen, a job or a Stripe webhook. |
+
+Two consequences worth knowing before you pick:
+
+- **Installing a package is not the same decision as switching its feature
+  on.** `config('numerosis.features')` is a code-level switch; a package you
+  installed but whose feature you removed registers nothing. The wizard is the
+  live example — `/get-started` stays behind `RegistrationWizardFeature`
+  whether or not `nvade/numerosis-onboarding` is present.
+- **Neither layer names the other's classes.** The tenant panel's login
+  component and the wizard reach core through
+  `numerosis.panels.tenant.login` and
+  `numerosis.panels.admin.tenant_registration_component` (a Livewire
+  **alias**, not a class), and both default to something harmless when the
+  owning package is absent. If you replace a layer with your own, fill those
+  keys rather than subclassing anything.
+
+`.claude/rules/package-boundaries.md` is the full seam map — routes,
+features, migration paths, seeders, permission contexts, panels — for anyone
+writing a sixth package rather than a host.
+
 ## 1. What you must provide
 
 Nothing here can be defaulted — each is a secret, infrastructure, or a
@@ -93,7 +127,7 @@ what stops the next normalization from shipping undocumented the way
 | `session.domain` | `'.'.numerosis.domains.apex` | set it yourself | `verifySessionDomain()` (narrowed) |
 | `queue.failed.database` | `'central'` | set it yourself | `verifyFailedJobsConnection()` (narrowed for the connection name; the "table actually exists" half stays fully real — that needs a migration to have run) |
 | `auth.guards.tenant` / `auth.providers.tenant` | session guard over an eloquent provider on `Numerosis::model(Tenant\User::class)` | set `auth.guards.tenant` / `auth.providers.tenant` yourself | `verifyAuthGuards()` (narrowed) |
-| `auth.providers.users.model` | `Numerosis::model(CentralUser::class)`, whenever the current value doesn't implement `App\Contracts\Auth\CentralUserModel` | point it at your own model, as long as it implements that contract | folded into `verifyAuthGuards()` |
+| `auth.providers.users.model` | `Numerosis::model(CentralUser::class)`, whenever the current value doesn't implement `Nvade\Numerosis\Contracts\Auth\CentralUserModel` | point it at your own model, as long as it implements that contract | folded into `verifyAuthGuards()` |
 | `auth.passwords.<broker>` | a broker over the `users` provider, `password_reset_tokens` table, whenever `auth.defaults.passwords` names a broker with no entry | define the broker yourself | `verifyAuthPasswordBroker()` (narrowed) |
 | `numerosis.*` deep-fill (the mechanism, not any one key) | every key under `config/numerosis.php` is filled in at every depth from the package's own defaults, so a host override file only has to name what it's actually changing | publish `config/numerosis.php` (or write a smaller override file — any key you omit is filled in, at any depth, not just the top level) | — a mechanism, not a single checkable value; the individual keys it protects each have their own row and check below |
 | `numerosis.schema_version`, in a *published* `config/numerosis.php` | must match the package's own current value | bump it once you've confirmed your file still matches the package's current shape | `verifyConfigSchemaVersion()` |
@@ -123,16 +157,24 @@ what stops the next normalization from shipping undocumented the way
   (which is also its database name) can never be the domain itself. `path`
   serves tenants at `{central_domain}/{tenant}/…` with no DNS and no
   `domains` rows at all. Switching after tenants exist does not migrate the
-  ones already provisioned. `path` mode's full request round trip is
-  source-verified rather than covered by an automated test — verify it by
-  hand against a real web server before relying on it. See
-  `.claude/rules/identification-modes.md`.
-- **`filament/filament`, `spatie/laravel-one-time-passwords` and
-  `spatie/laravel-activitylog` are all `suggest`, not `require`** — as is
-  `nvade/numerosis-filament`, which owns both panels and pulls
-  `filament/filament` in with it (`alizharb/filament-activity-log` is that
-  package's `suggest`, not this one's). Skip them and you get a working
-  multi-tenant SaaS with no admin/tenant panel, no passwordless (OTP)
+  ones already provisioned. `path` mode's full request round trip **is**
+  covered, by `tests/Browser/PathModeTest` (a real HTTP request into an
+  authenticated tenant panel, with stancl's own resolver rebound as the
+  negative control). `subdomain` mode's is not, and cannot be from this
+  suite — the browser plugin serves Laravel in-process, so
+  `runningInConsole()` stays true and the tenant panel's `{tenant}` wildcard
+  is always registered; verify that one by hand against a real web server.
+  See `.claude/rules/identification-modes.md` and
+  `.claude/rules/filament-tenancy.md`.
+- **`filament/filament`, `internachi/modular`,
+  `spatie/laravel-one-time-passwords` and `spatie/laravel-activitylog` are
+  all `suggest`, not `require`** — as are the three optional packages in §0
+  (`nvade/numerosis-{filament,auth-ui,onboarding}`).
+  `nvade/numerosis-filament` owns both panels and pulls `filament/filament`
+  in with it (`alizharb/filament-activity-log` is that package's `suggest`,
+  not this one's). Skip them and you get a working
+  multi-tenant SaaS with no admin/tenant panel, no module marketplace, no
+  passwordless (OTP)
   login, and no activity logging — `App\Models\User` (or your own subclass)
   still autoloads and works, it just doesn't `implements FilamentUser` or
   compose `HasOneTimePasswords`/`LogsActivity`. This works because
@@ -153,7 +195,7 @@ what stops the next normalization from shipping undocumented the way
   and tenant user ids are per-database integers. Visiting tenant A (where
   you're id 2) then tenant B (where id 2 is someone else) would authenticate
   the session as that someone else on B, with no error, if nothing else
-  intervened. `App\Http\Middleware\EnsureSessionMatchesTenant` is the fix
+  intervened. `Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant` is the fix
   (forgets the tenant guard's session key when the session's recorded tenant
   changes) and must stay registered **after** `StartSession` in any stack
   that can reach a tenant route — it already is, inside

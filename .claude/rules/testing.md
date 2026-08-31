@@ -4,6 +4,31 @@ updated: 2026-08-29
 ---
 # Test Suite
 
+## Browser tests (added 2026-08-31)
+
+Full write-up in `tests/Browser/README.md`. Three facts that change how the
+rest of this file is read:
+
+- **`npm install && npx playwright install chromium` is now a prerequisite for
+  running *any* test here, not just the browser ones.**
+  `Pest\Browser\Plugin::terminate()` starts the Playwright server on every Pest
+  run regardless of which tests ran, so without them even
+  `--filter=SomeUnrelatedTest` aborts with **no test output** and a non-zero
+  exit. That reads like a broken suite; it is a missing npm install. A
+  `beforeEach()` skip guard cannot help — the plugin aborts before any test
+  hook runs, so one that was written for this got removed rather than left in
+  as decoration.
+- **The plugin serves Laravel in-process**, so `RefreshDatabase`'s
+  transaction, `CloneTenantSchema`'s tenant databases and `actingAs()` all
+  carry into browser requests — no second harness. And `PHP_SAPI` stays `cli`,
+  so a browser test does **not** escape `runningInConsole()`.
+- **It orphans its `node … playwright run-server` process**, and the orphan
+  holds the inherited stdout pipe open. A `pest … | tail` pipeline then hangs
+  long after PHP has exited — twice mistaken for a slow test in the session
+  that added this. Redirect to a file rather than piping, and
+  `pkill -f "playwright run-server"` afterwards. Same family as the
+  can't-`pkill`-a-Sail-run note below.
+
 ## Running it
 
 - **This repo has no Sail, and `CLAUDE.md`'s `vendor/bin/sail …` instructions do not apply to it.** `laravel/sail` appears nowhere in `composer.lock` and there is no `vendor/bin/sail`; the guidelines block in `CLAUDE.md` is inherited from the saas-m host app this package was extracted from. Here it is Testbench plus a single `docker-compose.yml` MySQL service, and the commands are run on the host:
@@ -104,6 +129,23 @@ updated: 2026-08-29
   Testbench: empty directory, zero assertions, reported *risky* rather than
   failing. Treat "risky" and "one odd failure in a green file" as the same
   signal — an assertion that never ran.
+
+- **A test that parses a *document* has to scope itself to the part it
+  guards, or the document cannot grow.**
+  `tests/Feature/Docs/HostRequirementsTest::documentedRows()` treated every
+  markdown line starting with `| ` in `docs/host-requirements.md` as a §1/§2
+  row and asserted it had 4 cells — so adding an unrelated 3-column table
+  (§0's per-package map) failed with `Row 'Package' does not have a 'Checked
+  by' cell`, an error naming the wrong section entirely. A table now opts
+  **in** by its own header ending in `Checked by`. Two things about the fix
+  that are easy to get wrong: the separator line `|---|` does **not** start
+  with `'| '`, so the "am I still inside a table" reset has to test `'|'`
+  alone or the state dies one line after the header; and skipping the header
+  earlier than before removes one `assertCount()` per table per calling test
+  — a real, attributable assertion-count drop (−4 here), not a regression.
+  Same failure family as the vacuous directory scans above, from the other
+  side: this one is coupled to *the whole file* rather than to what it
+  actually asserts about.
 
   **2026-08-10: `livewire/flux` went further, from `require-dev` to `require`,
   and stopped being `suggest` at all** — along with `internachi/modular`,
@@ -299,13 +341,13 @@ updated: 2026-08-29
 
 - **Known failing tests — don't attribute these to your change.**
 
-  **Current baseline, measured 2026-08-31 after collapsing the satellite
-  repos into `packages/*`: `php -d memory_limit=1G vendor/bin/pest --compact`
-  ⇒ 0 failed, 7 skipped, 641 passed (6333 assertions) in ~108s.** There is one
+  **Current baseline, measured 2026-08-31 at the end of the consolidation
+  plan: `php -d memory_limit=1G vendor/bin/pest --compact` ⇒ 0 failed,
+  7 skipped, 660 passed (6327 assertions) in ~119s.** There is one
   `stancl/tenancy` leg now, not two — the constraint is `^3.10`. The run
   covers **two** testsuites: `tests` and `packages/*/tests`
-  (`--testsuite=Packages` alone is 12 tests, and a useful way to check a
-  satellite's own wiring without paying for the tenancy harness).
+  (`--testsuite=Packages` alone is a useful way to check a satellite's own
+  wiring without paying for the tenancy harness).
 
   **The assertion count keeps moving, and every move so far has had a
   boring explanation that was only boring once measured.** 5540 → 4882 across
@@ -322,6 +364,16 @@ updated: 2026-08-29
   directory-scanning test goes vacuous, not red, when what it guards
   disappears. `--filter=ArchTest` alone against `git stash` is usually enough
   to attribute it.
+
+  **Attribute against a tree you measured, not against a number written in a
+  plan.** The docs/rules pass (section F) started from the 658 / 6325 its
+  predecessor section had recorded and came out at 660 / 6327 — reading as
+  +2/+2 from a change that added no test. Re-measuring the same tree with the
+  pass's own edits stashed gave **660 / 6331**, so the real delta was −4 and
+  the +2 tests were `SubscriptionOwnerTest`, written between the two
+  paragraphs and still untracked. A plan number is only as fresh as the
+  sentence it sits in; `git stash push -- <just your files>` plus one full run
+  is two minutes and turns a guess into arithmetic.
 
   **One open flake**: a single run once reported a second failure
   that did not recur across four further full runs and three targeted ones,

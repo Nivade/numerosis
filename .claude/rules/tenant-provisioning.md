@@ -58,6 +58,25 @@ updated: 2026-08-29
   accessors and were listed fillable, so mass-assigning them would write 3
   derived values into `data`. Never add accessor name to `Fillable`.
 
+  **The mirror image, found 2026-08-31: passing `data` itself is also wrong,
+  and silently drops everything inside it.** `Database\Factories\Central\TenantFactory`
+  set `'data' => ['name' => $company]`. VirtualColumn folds every *non-custom*
+  attribute into the `data` column on save — and `data` is not in
+  `getCustomColumns()`, so it was treated as one more virtual attribute rather
+  than as the blob. The written column came out
+  `{"user_id":…,"tenancy_db_name":…}` with **no `name` key at all**, so every
+  tenant the suite ever created had `$tenant->name === null`. Set virtual
+  attributes at the top level (`'name' => $company`); never assign `data`
+  directly on a `VirtualColumn` model.
+
+  It survived unnoticed because nothing reads a tenant's `name` in a way that
+  fails on null: accessors like `title` derive from `id`, and the only hard
+  requirement is Filament's own tenant layout
+  (`FilamentManager::getTenantName(): string`), which no test rendered until
+  `tests/Browser/PathModeTest` did. **A null that only a return-type
+  declaration in vendor code rejects is invisible to every test that stops
+  short of rendering that vendor code.**
+
 - All provisioning funnels through one queued action,
   `Nvade\Numerosis\Actions\Tenancy\ProvisionTenant`, reached only through
   `Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant::queue()` contract — never called

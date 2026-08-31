@@ -49,6 +49,19 @@ come.
   actually bound, so narrow with `instanceof` or PHPStan reports
   `method.notFound`.
 
+  **A third instance is still live, found 2026-08-31 and deliberately not
+  fixed** (it was outside the change that surfaced it — section C of
+  `.claude/plans/numerosis-consolidation.md`):
+  `DesignLanguageGuardTest::test_no_filament_resource_uses_a_raw_heroicon_string_for_empty_state_icon`
+  scans core `src/` for `emptyStateIcon('heroicon-…')`, and every Filament
+  resource moved to `packages/filament` in Phase 7. It asserts 317 times
+  against files that cannot contain the pattern. The tell is the one this
+  file already names — its assertion count tracks the size of `src/`, so it
+  went **up** by one when an unrelated `src/Concerns/` trait was added, which
+  is the opposite of what a guard over Filament resources should do. Fix is
+  to scan `src` **and** `packages/*/src`, the same widening
+  `PackageBoundariesTest` already applied to the cashier-key scan.
+
 - **"Which files belong in the leaf package" is answered by grep, not by the
   plan.** D4 assigned `layouts/` and `partials/` to `numerosis-ui`. They were
   moved, and moved straight back: they name
@@ -228,6 +241,25 @@ come.
   `HostConfig::numerosisConfig()`'s deep-fill is what makes the vivified
   namespace harmless rather than truncating, the same way
   `.claude/rules/package-host-bootstrap.md` describes for `tenancy.database`.
+
+  **Counter-example, found 2026-08-31 doing `packages/onboarding` (section D
+  of `.claude/plans/numerosis-consolidation.md`): "writes go in the register
+  phase" is only safe where the parent namespace is deep-filled.**
+  `numerosis-onboarding` wrote `numerosis.tenancy.registration.steps` from
+  `packageRegistered()`, exactly as auth-ui writes `numerosis.panels.tenant.login`
+  — and it destroyed core's config. `Arr::set()` vivified `numerosis.tenancy`
+  before core's `mergeConfigFrom()`, whose one-level `array_merge()` then kept
+  that one-key array wholesale, discarding `implementations`, `provisioning`
+  and `identification`. The symptom is nowhere near the cause:
+  `Target [Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant] is not
+  instantiable` thrown from a Filament billing page, ~40 failures.
+  `numerosis.panels` survives the identical treatment **only** because
+  `HostConfig::numerosisConfig()` deep-fills it; `numerosis.tenancy` is not
+  deep-filled. Fixed by deferring that single write to a `booting()` callback,
+  which still lands before core's `packageBooted()` feature-boot loop reads
+  the key. **Before writing a satellite default into a core namespace, check
+  whether `HostConfig` deep-fills that namespace — if it does not, the write
+  belongs in `booting()`.**
 
   This is reachable in ordinary use, not just in an odd harness: Larastan
   boots an application that discovers every *vendor* package but not the root

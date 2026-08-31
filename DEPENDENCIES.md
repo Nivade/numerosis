@@ -1,191 +1,222 @@
-# Dependency triage
+# Dependencies, per package
 
-Every package in saas-m's `composer.json` `require` block (as of
-saas-m commit `ddd7c35`), with a verdict for the package split. Produced by
-`.claude/plans/package-extraction.md` Phase 1.8 — no code changes here, this
-is the checklist Phase 4's copy and Phase 5's wiring follow.
+> **Rewritten 2026-08-31** (section F of `.claude/plans/numerosis-consolidation.md`).
+> The previous version of this file was the Phase-1.8 triage of **saas-m**'s
+> `require` block — the archived host app this package was extracted from —
+> patched fifteen times as verdicts changed. saas-m is gone and thin-app is one
+> host among several, so the audit's arithmetic ("31 entries split 17/4/7/3")
+> described nothing that still exists. What follows is the current map, one
+> section per package, plus the two rules that decide where the *next*
+> dependency goes. Every finding the old file carried that is still true is
+> preserved below; nothing was dropped for being inconvenient.
 
-> **Revision 2026-08-10 — eight packages moved suggest → require, three
-> dropped entirely.** The `suggest` bucket was carrying packages that
-> `config('numerosis.features')` ships **enabled by default**, so every host
-> installed them anyway — but had to list all eight in its *own*
-> `composer.json` and keep those constraints in sync by hand. thin-app's
-> `require` block went from 24 entries to 14 as a result; nothing about the
-> feature toggles changed, since those are code-level switches, not
-> install-level ones. `dompdf/dompdf`, `mallardduck/blade-lucide-icons` and
-> `openplain/filament-shadcn-theme` had zero references in either repo and
-> were removed from both. Details in "Install-time vs feature-time" below.
+Five units, one repo (`packages/*`), published as read-only splits. What a
+*host* gets by installing each is in `docs/host-requirements.md` §0; this file
+is about what each unit itself depends on, and why.
 
-Three verdicts:
+Three verdicts, unchanged in meaning:
 
-- **require** — numerosis's own `composer.json` `require` block. The package
-  cannot function without it; no guard needed, install is always run.
-- **suggest + `class_exists()` guard** — feature-gated. Goes in
-  `composer.json`'s `suggest` block only. The corresponding `App\Features\*`
-  class (or the code path it gates) must check `class_exists()` /
-  `interface_exists()` before touching the package's classes, so that
-  installing numerosis without the suggested package doesn't fatal on
-  autoload of a class that isn't there. **This guard must exist before that
-  feature's code is copied in Phase 4** — copying first and guarding later
-  means an intermediate commit that fatals for any consumer who hasn't also
-  installed the suggested package.
-- **thin-app only** — never appears in numerosis's `composer.json` at all.
-  Either it belongs to the deployable app by definition (dev tooling, the six
-  concrete modules) or numerosis deliberately doesn't know it exists.
+- **require** — the package cannot function without it. No guard, install is
+  always run.
+- **suggest** — feature-gated, and the entry is a *promise that the package
+  degrades cleanly without it*. That promise needs a real runtime guard:
+  `class_exists()` / `interface_exists()` / `trait_exists()` before touching a
+  class, `app()->bound()` before touching a binding.
+- **require-dev** — the package's own suite exercises it, but a consumer need
+  not. Every `suggest` that this repo's tests cover also appears here.
 
-## require
+---
+
+## `nvade/numerosis` (core)
+
+Tenancy, billing, provisioning, auth mechanics, the module system, all 85
+migrations and every seeder.
+
+### require
 
 | Package | Why it can't be optional |
 |---|---|
-| `stancl/tenancy` | The tenancy system itself — `TenancyServiceProvider`, every bootstrapper, the `tenant`/`central` connection split. Nothing in the package works without it. |
-| `laravel/cashier` | `BillingServiceProvider` binds Cashier's customer/subscription models directly; `Billable`, checkout, webhooks all assume Cashier's classes exist. |
-| `spatie/laravel-permission` | `AuthGuardBootstrapper`, every `UserPolicy`/`RolePolicy`, `guardName()` on both user models — permissions are load-bearing for every panel, not a feature. |
-| `spatie/laravel-data` | `TenantProvisionData`, `SubscriptionData`, and the rest of `App\Data\*` are typed on it; the provisioning and billing pipelines pass these objects between every action. |
-| `lorisleiva/laravel-actions` | Every `App\Actions\*` class (69 of them) is an `AsAction`. The provisioning chain, checkout, module purchase — all of it — is built on this package's calling conventions (see `.claude/rules/tenant-provisioning.md`'s `JobPipeline`-vs-`AsAction` bullet). |
-| `spatie/laravel-package-tools` | Already in numerosis's skeleton `composer.json` (not sourced from saas-m — saas-m is the app, not the package). `NumerosisServiceProvider` extends its `PackageServiceProvider`. Listed here only for completeness. |
-| `laravel/framework` (as `illuminate/*`) | Not itself installable by a package — numerosis already requires `illuminate/contracts` in the skeleton. As more of `app/` copies in (Phase 4), add the specific `illuminate/*` components actually used (`illuminate/database`, `illuminate/support`, etc.) rather than the `laravel/framework` meta-package. Not in the plan's original three-bucket list; added here because it has no meaningful "optional" state — every class in `src/` depends on some `illuminate/*` symbol. |
-| `livewire/livewire` | Also not in the plan's original list, also not optional: the registration wizard, the checkout component, the tenant panel — Livewire is how every one of the package's interactive surfaces is built, not a plugin bolted onto them. |
-| `nvade/numerosis-filament` | **`suggest`, added 2026-08-30.** Owns both panels and pulls `filament/filament` in with it. Without it no panel registers at all, and the row below stops mattering — core's own Filament references are all lazy (method type-hints and the `Support\Compat\Filament*` shims), never an `extends`. |
-| `filament/filament` | **Moved back to `suggest` 2026-08-28 — see the "Fixed" note below the table.** Reclassified from suggest during Phase 6 (2026-08-05) — the guard this row originally described does not exist.** `AdminPanelFeature`/`TenantPanelFeature` gate the *panel*, but `src/Models/User.php` (`implements FilamentUser`) and `src/Models/Central/CentralUser.php` compose Filament unconditionally — both are abstract base models every consumer's concrete `User`/`CentralUser` stub extends, regardless of whether either panel feature is enabled. `class_exists()` cannot guard an `implements` clause; the class fails to autoload at all without this package installed. Confirmed by the package's own test suite: `Trait/interface not found` on every model test until this moved to `require`. Making this genuinely optional needs the interface pulled off the base model (a real refactor, not a guard) — not attempted here; see the "Known gap" note below. |
-| `spatie/laravel-one-time-passwords` | **Moved back to `suggest` 2026-08-28.** Reclassified alongside `filament/filament`, same root cause. `src/Models/User.php` composes `HasOneTimePasswords` unconditionally (`use` inside the class body, not behind a feature check) — same "interface/trait on an always-loaded abstract model" trap, same fix. |
-| `spatie/laravel-activitylog` | **Moved back to `suggest` 2026-08-28.** Not in saas-m's own `require` block at all — found only via this package's abstract models, not via the plan's Phase 1.8 audit of saas-m's composer.json.** `src/Models/Tenant/User.php` and `src/Models/Tenant/Invitation.php` compose `LogsActivity` unconditionally; saas-m never listed it directly because `alizharb/filament-activity-log` pulled it in transitively as *that* package's own dependency, so the audit this file records never saw a top-level requirement to classify. Central migration `database/migrations/central/2026_01_19_151109_create_activity_log_table.php` also runs unconditionally (`loadMigrationsFrom` has no feature gate), reading `config('activitylog.table_name')` — a config key nothing in the package publishes, so a host without this installed gets a migration failure (`Incorrect table name ''`), not a clean autoload error. |
+| `illuminate/*` (15 components) + `laravel/framework` | Named per-component rather than as the meta-package, but `laravel/framework` is required too — Testbench, the console commands and the scheduler reach past the component list. Every class in `src/` depends on some `illuminate/*` symbol. |
+| `stancl/tenancy` `^3.10` | The tenancy system itself: `TenancyServiceProvider`, every bootstrapper, the `tenant`/`central` connection split. **v3 only, deliberately** — the dual-version layer was built, measured and deleted (`.claude/rules/stancl-tenancy-v4.md`). |
+| `laravel/cashier` | `BillingServiceProvider` binds Cashier's customer/subscription models directly; `Billable`, checkout and the webhook controller all assume its classes. |
+| `spatie/laravel-permission` | `AuthGuardBootstrapper`, every policy, `guardName()` on both user models. Load-bearing for every panel, not a feature. |
+| `spatie/laravel-data` | `TenantProvisionData`, `SubscriptionData` and the rest of `Data\*` are typed on it; the provisioning and checkout pipelines pass these objects between actions. |
+| `lorisleiva/laravel-actions` | Every `Actions\*` class is an `AsAction`. The provisioning chain's calling conventions are built on it (`.claude/rules/tenant-provisioning.md`'s `JobPipeline`-vs-`AsAction` bullet). |
+| `livewire/livewire` | Every interactive surface core still owns — checkout, invitations, the account pages — is a Livewire component. |
+| `spatie/laravel-package-tools` | `NumerosisServiceProvider extends PackageServiceProvider`. |
+| `ryangjchandler/laravel-cloudflare-turnstile` | `TurnstileFeature` imports the `Turnstile` rule at **file scope**, which resolves whenever the feature class loads to answer `isEnabled()` — i.e. before the switch can be read. Not guardable. |
+| `torann/geoip` | `ResolveCheckoutRegion` orders checkout's payment methods by region. `HostConfig` defaults `geoip.service`, because torann ships `null` there and `GeoIP::getService()` throws on that. The MaxMind `.mmdb` is a host obligation; a missing one costs the ordering, not the checkout. |
+| `nvade/numerosis-ui` | Core's own views render `<x-numerosis::ui.*>`. A Blade tag for an unregistered component renders as **literal text** and passes tests — that is not clean degradation, so it cannot be `suggest`. Same reason `livewire/flux` was never optional; the requirement moved into `-ui` with the views. |
 
-| `livewire/flux` | **Moved from suggest 2026-08-10.** 60 shipped views use `<flux:*>` components. Blade leaves an unregistered component as *literal text* rather than erroring (see `.claude/rules/testing.md`), so "optional" here means "silently renders markup as prose", not a guardable degradation — and no `class_exists()` can protect a Blade tag. |
-| `internachi/modular` | **Moved from suggest 2026-08-10.** `ModuleSystemFeature` ships enabled, and the whole `src/Actions/Modules/*` + `src/Console/Commands/*TenantModule*` surface talks to it. The `ModuleRegistry` contract abstracts *which* registry, not whether one exists. |
-| `laravel/socialite` + `socialiteproviders/discord` + `socialiteproviders/zoho` | **Moved from suggest 2026-08-10.** `SocialLoginFeature` ships enabled; `ConfiguredProviders` already gates the login *buttons* on credentials being present, which is the toggle that matters at runtime. The two providers register themselves against `SocialiteWasCalled` and are meaningless without the base package, so all three move together. |
-| `ryangjchandler/laravel-cloudflare-turnstile` | **Moved from suggest 2026-08-10.** `TurnstileFeature` imports `RyanChandler\LaravelCloudflareTurnstile\Rules\Turnstile` at file scope — that resolves whenever the feature class loads to answer `isEnabled()`, i.e. before the switch can be read. |
-| `spatie/laravel-livewire-wizard` | **Moved from suggest 2026-08-10.** The five registration components `extends StepComponent`/`WizardComponent`; an `extends` clause is not guardable, same shape as `filament/filament` above. `RegistrationWizardFeature` gates the *route*, not the autoload. |
-| `alizharb/filament-activity-log` | **No longer this package's concern as of 2026-08-30.** `ActivityLogFeature` and `ActivityResource` moved to `nvade/numerosis-filament`, so the `suggest` entry moved there with them (D3: recording stays in core, the UI goes to the panel package). Core keeps it in `require-dev` only, because core's suite still owns the panel tests. History: moved from suggest 2026-08-10, back 2026-08-28. |
+### suggest
 
-**Fixed 2026-08-28:** `filament/filament`, `spatie/laravel-one-time-passwords`,
-`spatie/laravel-activitylog` and `alizharb/filament-activity-log` moved
-`require` → `suggest` (with matching `require-dev` entries so the package's
-own test suite still exercises all four by default). The four abstract
-models that previously forced these on every consumer regardless of
-`config('numerosis.features')` — `implements FilamentUser`/`HasTenants` and
-`use HasOneTimePasswords` on `Nvade\Numerosis\Models\User`, `use
-LogsActivity` on `Tenant\User` and `Tenant\Invitation` — are what made this
-impossible before: `implements`/`use trait` resolve their target eagerly,
-at class-declaration time, unlike a method's own parameter/return type
-(resolved lazily, only when called). `Nvade\Numerosis\Support\Compat\*`
-now provides always-present interfaces/traits
-(`FilamentUserContract`, `FilamentHasTenantsContract`,
-`HasOneTimePasswordsIfInstalled`, `LogsActivityIfInstalled`) that
-conditionally extend/compose the real package's contract only when it's
-installed (`interface_exists()`/`trait_exists()` checked once, at file
-scope) — a consumer without one of these four installed gets a model that
-autoloads fine and simply has none of that feature's methods.
+| Package | Guard | Absence costs |
+|---|---|---|
+| `nvade/numerosis-filament` | — (nothing in core names it) | No panel registers, and `filament/filament` stops mattering. |
+| `nvade/numerosis-auth-ui` | — | No `/login`, `/register`, `/forgot-password`; the tenant panel falls back to Filament's own login page; no social login. Core keeps guards, `LogoutUser`, verification, `TurnstileFeature` and both `one_time_passwords` migrations. |
+| `nvade/numerosis-onboarding` | `Support\Tenancy\SelfServeRegistration::FEATURE` | No `/get-started`; core's five references to the wizard are hidden. |
+| `filament/filament` | `Support\Compat\Filament{UserContract,HasTenantsContract}` + `class_exists()` on the provider/asset registration | `Models\User` loses `FilamentUser`/`HasTenants` and still autoloads. |
+| `internachi/modular` | `ModuleSystemFeature::available()` — one seam, asked by all 10 consumers across core and `packages/filament` | Marketplace/detail/resource refuse access, purchasing throws `ModulesDisabled`, `SynchronizeModules` no-ops, the three `tenants:*-module` commands are not registered. |
+| `spatie/laravel-one-time-passwords` | `Support\Compat\HasOneTimePasswordsIfInstalled` | OTP login unreachable; the trait no-ops. |
+| `spatie/laravel-activitylog` | `Support\Compat\LogsActivityIfInstalled` | `Tenant\User`/`Invitation` stop logging. The 9 `activity_log` migrations still run and are fine — `HostConfig::activityLogTable()` defaults `activitylog.table_name` unconditionally, and the migrations contain zero `Spatie\*` class references. |
+| `sentry/sentry-laravel` | `app()->bound('sentry')` in `TagsSentryScopeWithTenant` | No tenant tag on job-failure reports. |
+| `laravel/telescope` | `class_exists()` on the scheduled `telescope:prune` entry | No prune schedule; `telescope/*` stays CSRF-exempt harmlessly. |
+| `laravel/reverb` / `pusher/pusher-php-server` | none needed — zero PHP references; core talks to whatever `config('broadcasting')` resolves | No broadcast server. Chosen and run by the host. |
 
-Two more eager-binding points needed the same fix, found while making this
-work rather than while just moving `composer.json` entries:
+### require-dev
 
-- `NumerosisServiceProvider::registerFilamentPanels()` unconditionally
-  registered `NumerosisAdminPanelProvider`/`NumerosisTenantPanelProvider` —
-  both `extends Filament\PanelProvider`, so autoloading either without
-  Filament installed fatals regardless of any feature flag or
-  `class_exists()` guard *inside* either class. Now skipped (for the
-  package's own default provider only — a host naming its own provider via
-  `numerosis.panels.*.provider` is trusted to have Filament) when
-  `class_exists(\Filament\PanelProvider::class)` is false.
-  `registerFilamentTheme()` (asset registration via `FilamentAsset`,
-  `Theme`/`Js`/`Css`) had the same problem and got the same guard.
-- `src/Filament/TenantAdmin/Resources/Activities/ActivityResource.php` is
-  autoloaded unconditionally by `NumerosisTenantPlugin`'s
-  `discoverResources()` directory scan the moment the tenant panel boots —
-  Filament is guaranteed present at that point, but
-  `alizharb/filament-activity-log` is a *separate*, independently optional
-  dependency, and `extends ActivityLogResource` would fatal for a host with
-  Filament but not that package. Same conditional-class-definition pattern
-  as the model traits, scoped to this one file.
+Toolchain (`pest` + arch/laravel/**browser** plugins, `pint`, `larastan`,
+`rector`, `collision`, `orchestra/testbench`, `laravel/boost`) plus every
+optional package whose real coverage lives in core's suite:
+`filament/filament`, `internachi/modular`, `alizharb/filament-activity-log`,
+`spatie/laravel-activitylog`, `spatie/laravel-one-time-passwords`,
+`sentry/sentry-laravel`, and all three satellite packages.
 
-`activitylog.table_name`/`activitylog.database_connection` needed no
-change: `HostConfig::activityLogTable()` already defaults the table name
-regardless of whether the package is installed, so the eight central/tenant
-activity-log migrations (pure `config()` reads, no `Spatie\*` class
-references) were never actually a problem — verified, not assumed.
+Two of those are load-bearing in a way that is easy to undo by accident:
 
-Full suite run against this change: 582 passed, 7 skipped, 1 failed (same
-`RegisterTenantTest` `livewire.js` asset failure reproduces identically on
-`git stash`, so it predates and is unrelated to this change) — no new
-failures, no new PHPStan errors (30 → 28, `git stash`-compared, both
-pre-existing baseline drift per `.claude/rules/static-analysis.md`).
+- **`pestphp/pest-plugin-browser` makes Playwright a prerequisite for the
+  whole suite**, not just the browser tests — `Plugin::terminate()` starts the
+  server on every Pest run, so without `npm install && npx playwright install
+  chromium` even a single-file `--filter` aborts with no output.
+- **Core `require-dev`s the satellites it `suggest`s.** That is what lets the
+  moved code's real coverage stay in core's tenancy/DB harness instead of
+  being duplicated four ways. `require-dev`, never `require` — a `require`
+  would be a genuine cycle in the graph a host resolves.
 
-## suggest + `class_exists()` guard
+---
 
-Four left, and all four are **deployment/observability choices a host owns**,
-not features the package turns on — which is what makes them genuinely
-optional in a way the eight moved rows were not.
+## `nvade/numerosis-ui`
 
-| Package | Gated by / guard location |
-|---|---|
-| `sentry/sentry-laravel` | `TagsSentryScopeWithTenant` already checks `app()->bound('sentry')` before touching it (`.claude/rules/exception-handling.md`) — same pattern, extend to every Sentry touchpoint. Stays in thin-app's own `require` because the DSN, sampling and release wiring are the host's. |
-| `laravel/telescope` | `TelescopeServiceProvider` is thin-app-only per Phase 4.2's provider split, so this is really "thin-app's optional dependency". Guarded here by `class_exists('Laravel\Telescope\Telescope')` in `NumerosisServiceProvider` (the scheduled `telescope:prune` entry) — the package's own code must not reference Telescope classes unguarded anywhere else. |
-| `laravel/reverb` | Broadcasting/presence-channel code (`broadcasting/auth`, chat presence). Zero PHP references in `src/` — the package talks to whatever `config('broadcasting')` resolves; Reverb is a server the host chooses to run. |
-| `pusher/pusher-php-server` | Alternative broadcast driver to Reverb — same broadcasting code paths, gated together. Installs transitively with `laravel/reverb`, so no host needs to name it. |
+The shared Blade layer. **The only leaf**: it requires no other unit here, and
+`tests/Feature/PackageBoundariesTest.php` enforces that it references no
+`Nvade\Numerosis`, no `tenancy()` and no `route()`.
 
-### Removed outright, 2026-08-10 — not suggest, not require
+**require**: `illuminate/{contracts,support,view}`, `livewire/livewire`,
+`livewire/flux`, `spatie/laravel-package-tools`.
 
-Audited across `src/`, `config/`, `routes/`, `resources/`, `database/` in this
-package *and* `app/`, `config/`, `routes/`, `resources/` in thin-app: zero
-references each. They were carried in thin-app's `require` on the strength of
-this file's Phase 1.8 guesses ("wherever invoice/PDF export lives", "confirm
-during Phase 4 whether any view hardcodes an icon") — call sites that were
-never found because they do not exist.
+`livewire/flux` lives here because the views that render it do. 60 shipped
+views use `<flux:*>`; see the literal-text argument above.
 
-| Package | Finding |
-|---|---|
-| `dompdf/dompdf` | No PDF/invoice-export code was ever copied into the package, and thin-app has none either. |
-| `mallardduck/blade-lucide-icons` | The four `resources/views/flux/icon/*.blade.php` files credit Lucide in a comment but **inline the SVG** and call `Flux::classes()`; nothing renders `<x-lucide-*>`. |
-| `openplain/filament-shadcn-theme` | No PHP reference, and no CSS `@import` from it — the panel theme is `resources/css/filament-theme.css`, built from filament/filament's own CSS plus the package's token bridge. thin-app's `shadcn` entry is an npm devDependency, unrelated to this composer package. |
+## `nvade/numerosis-filament`
 
-## thin-app only
+Both panels, every resource and page, the module marketplace UI, and
+`Concerns\Modules\PurchasesModules` — which returns `Filament\Actions\Action`
+objects and sat in core's `Concerns/` until it was recognised as UI glue.
 
-| Package | Why it never belongs to the package |
-|---|---|
-| `laravel/tinker` | Dev tooling for the deployable app, not something a package should impose on every consumer. |
-| `nvade/alerts` | Concrete app-module — Decision 1.2.6 keeps all six modules app-side; the package ships the module *system*, never a module. |
-| `nvade/announcements` | Same. |
-| `nvade/branding` | Same. |
-| `nvade/chat` | Same. |
-| `nvade/notes` | Same. |
-| `nvade/tasks` | Same. |
+**require**: `filament/filament`, `nvade/numerosis`, `nvade/numerosis-ui`,
+`illuminate/{contracts,support}`, `livewire/livewire`,
+`spatie/laravel-package-tools`.
+**suggest**: `alizharb/filament-activity-log` — the audit-log *UI*; core keeps
+the recording. `ActivityResource extends ActivityLogResource`, an eager
+clause, so it uses the same conditional-class-definition pattern as the model
+shims.
 
-## Coverage check
+## `nvade/numerosis-auth-ui`
 
-Every entry in saas-m's `require` block (excluding `php` itself) appears in
-exactly one table above: **7** in **require** — `laravel/cashier`,
-`lorisleiva/laravel-actions`, `spatie/laravel-data`,
-`spatie/laravel-permission`, `stancl/tenancy` (the plan's original five) plus
-`laravel/framework` and `livewire/livewire` (not in the plan's original list,
-added here as load-bearing) — **17** in **suggest**, **7** in **thin-app
-only**. 7 + 17 + 7 = 31, matching saas-m's 31-entry `require` block.
-`spatie/laravel-package-tools` is listed in the **require** table too but is
-not one of the 31 — it's already in numerosis's skeleton `composer.json` and
-was never in saas-m's, so it is not part of this count.
+The auth **screens** only.
 
-**After the 2026-08-10 revision** the same 31 split **17 / 4 / 7 / 3**
-(require / suggest / thin-app-only / removed). The counts above are kept as
-written because they describe the Phase 1.8 audit, which is what the rest of
-`.claude/plans/package-extraction.md` refers back to.
+**require**: `laravel/socialite` + `socialiteproviders/{discord,zoho}`,
+`nvade/numerosis`, `nvade/numerosis-ui`, `illuminate/{contracts,support}`,
+`livewire/livewire`, `spatie/laravel-package-tools`.
+**suggest**: `spatie/laravel-one-time-passwords` (also `require-dev`, since
+`PasswordlessLogin` is what its suite renders).
 
-## Install-time vs feature-time
+The two Socialite providers register themselves against `SocialiteWasCalled`
+and are meaningless without the base package, so all three moved together.
 
-The distinction this file originally blurred, and the rule to apply when the
-next dependency is added:
+## `nvade/numerosis-onboarding`
 
-- **`config('numerosis.features')` is a code-level switch, not an install-level
-  one.** Commenting a feature out stops routes, panels and listeners from
-  registering; it does not, and cannot, un-install a composer package. Putting
-  a package in `suggest` therefore buys a lean install only for a consumer who
-  *also* edits the features array — and every one of the eight moved packages
-  backs a feature that ships **on**.
-- **A `suggest` entry is a promise that the package degrades cleanly without
-  it.** That promise needs a real guard: `class_exists()` before touching a
-  class, `app()->bound()` before touching a binding. It cannot be kept for an
-  `extends`/`implements`/trait `use` clause (the class fails to autoload) or
-  for a Blade component tag (it renders as literal text and *passes* tests —
-  `.claude/rules/testing.md`).
-- **So: `suggest` only for packages whose absence a guard can detect at
-  runtime, and whose feature a host would plausibly turn off.** Everything else
-  goes in `require`, where the constraint lives once, in this package, instead
-  of being copied into every host's `composer.json`.
+The registration wizard.
+
+**require**: `spatie/laravel-livewire-wizard`, `nvade/numerosis`,
+`nvade/numerosis-ui`, `illuminate/{contracts,support}`, `livewire/livewire`,
+`spatie/laravel-package-tools`.
+
+`spatie/laravel-livewire-wizard` is a hard `require` here and cannot be
+anything else: the step classes `extends StepComponent` / `WizardComponent`,
+and an `extends` clause is not guardable. Core does not `require-dev` it
+either — the wizard's coverage runs in core's suite only because the whole
+satellite is require-dev'd.
+
+---
+
+## Deciding where the next dependency goes
+
+Two rules. The first is about *what a guard can do*; the second about *what
+`suggest` actually buys*.
+
+### Eager vs lazy resolution
+
+`extends` / `implements` / `use <Trait>` resolve their target **at
+class-declaration time** — the target must be loadable the moment the
+declaring class autoloads. A method's own parameter or return type does not;
+it only has to exist when the method is *called*. So:
+
+- A model can name `Filament\Panel` in a signature and stay loadable without
+  Filament. It cannot `implements FilamentUser`.
+- `class_exists()` **cannot** protect an `implements` clause. PHP never
+  consults it; the engine just tries to load the class.
+- **A class-constant fetch (`Foo::SOME_CONST`) autoloads too** — it looks like
+  a string and is not one. This is the trap that cost three core views when
+  `SocialLoginFeature` moved, and it is why `SelfServeRegistration::FEATURE`
+  lives in core with the satellite's `NAME` defined *as* that constant.
+
+The fix, where an eager clause is genuinely wanted, is to make the *target*
+conditional rather than remove the clause: `Support\Compat\*` declares one
+symbol per interface/trait, `if (interface_exists(Real::class))` extending the
+real one and otherwise empty. Composer's PSR-4 autoloader maps name→file and
+never parses contents, so this needs no autoloader configuration. Four exist;
+if a fifth is ever needed, consider generating them
+(`.claude/rules/optional-dependencies.md`).
+
+Two things no model-level shim protects, to check before moving any `require`
+to `suggest`:
+
+- an **unconditional call site** that instantiates one of the package's
+  classes (`new Theme(...)`, `Filament::registerPanel(...)`) — fatals
+  identically, and both of these really existed;
+- a **Blade component tag**, which renders as literal text and *passes* tests
+  (`.claude/rules/testing.md`).
+
+### Install-time vs feature-time
+
+- **`config('numerosis.features')` is a code-level switch, not an
+  install-level one.** Removing a feature stops routes, panels and listeners
+  from registering; it cannot un-install a Composer package. A `suggest` entry
+  therefore buys a lean install only for a consumer who *also* edits that
+  array.
+- **So: `suggest` only for a package whose absence a guard can detect at
+  runtime, and whose feature a host would plausibly turn off.** Everything
+  else goes in `require`, where the constraint lives once here instead of
+  being copied into every host's `composer.json`.
+- **Prove the degradation, don't assert it.** `class_exists()` answers `true`
+  for an already-declared class regardless of the autoloader, so absence is
+  only testable in a **fresh subprocess with Composer's loader wrapped** —
+  `tests/Support/module-registry-absence-probe.php` and
+  `tests/Feature/Features/ModuleRegistryAbsenceTest`. It needs a positive
+  control and a verified failure, or it passes by resolving nothing.
+
+## History worth keeping
+
+- **2026-08-10** — eight packages moved `suggest` → `require` on the reasoning
+  that they back features shipping *on*, so every host installed them anyway
+  while having to list them in its own `composer.json`. `dompdf/dompdf`,
+  `mallardduck/blade-lucide-icons` and `openplain/filament-shadcn-theme` were
+  removed outright: zero references in either repo. The four Lucide-crediting
+  view files **inline** their SVG; the panel theme is built from Filament's own
+  CSS plus this package's token bridge.
+- **2026-08-28** — `filament/filament`, `spatie/laravel-one-time-passwords`,
+  `spatie/laravel-activitylog` and `alizharb/filament-activity-log` moved back
+  to `suggest`, once `Support\Compat\*` existed. Making them optional needed
+  two further fixes found only by attempting it:
+  `registerFilamentPanels()`/`registerFilamentTheme()` were instantiating
+  Filament classes unconditionally, and `ActivityResource extends
+  ActivityLogResource` fatals for a host with Filament but not that package.
+- **2026-08-30/31** — the extractions. `livewire/flux` → `-ui`,
+  `laravel/socialite` + both providers → `-auth-ui`,
+  `alizharb/filament-activity-log` → `-filament`,
+  `spatie/laravel-livewire-wizard` → `-onboarding`. A dependency moving into a
+  satellite does not have to be re-declared in core; the requirement moves
+  *with* the code that renders it.
+- **2026-08-31** — `internachi/modular` back to `suggest` (decision D-C), with
+  the subprocess probe above as proof rather than assertion.

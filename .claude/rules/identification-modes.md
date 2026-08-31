@@ -11,6 +11,12 @@ against a real run, not from either project's docs. Read
 `.claude/rules/filament-tenancy.md` first — the two tenancy systems it
 describes are exactly what makes the non-subdomain modes fiddly.
 
+Where the branching code lives: the enum, both resolvers, `CreateTenantDomain`
+and `DefaultTenantDomainPolicy` are **core**; `NumerosisTenantPlugin`,
+`TenantResource` and `DomainsRelationManager` are **`packages/filament`**
+(`Nvade\NumerosisFilament\`); the wizard's two fields are
+**`packages/onboarding`** (`Nvade\NumerosisOnboarding\Livewire\Steps\TechnicalSetup`).
+
 ## The identifier and the domain are two different values, always
 
 **`tenants.id` is also the physical database name and the `domains.id`, so it
@@ -133,17 +139,27 @@ recoverable from that commit rather than needing rewriting.
 
 `tests/Feature/Providers/IdentificationModeTest` covers mode selection,
 middleware choice, domain-row creation, policy scoping, and route binding —
-all of it below the HTTP layer. **The full path-mode round trip (a real
-request whose `{tenant}` prefix reaches both stancl's resolver and Filament's
-`IdentifyTenant`) is not covered, and cannot be from Pest.**
-`.claude/rules/filament-tenancy.md` records why: `shouldRegisterPanel()`
-exempts console processes, so a console-dispatched HTTP request always sees
-the tenant panel registered and always resolves the wildcard, regardless of
-config. Proving path mode end to end needs a Pest **browser** test against a
-real web server. Treat `PreservingPathTenantResolver`'s necessity as
-source-derived (it is — read `IdentifyTenant`'s early return) rather than
-test-verified, and verify it by hand before shipping path mode to a real
-host.
+all of it below the HTTP layer.
+
+**The path-mode round trip is now covered, as of 2026-08-31**, by
+`tests/Browser/PathModeTest` (see `tests/Browser/README.md`).
+`PreservingPathTenantResolver` is no longer source-derived: with it, an
+authenticated request to `/{tenant}` renders the tenant panel including the
+tenant's own name — a value only reachable through `Filament::getTenant()`;
+with stancl's `PathTenantResolver` rebound in its place the same request is a
+500, `Filament\Panel::getTenantBillingUrl(): Argument #1 ($tenant) must be of
+type Illuminate\Database\Eloquent\Model, null given`. **The negative control
+is the test.** An earlier version asserted only against the *unauthenticated*
+page and passed under both resolvers — the panel's login page is not
+tenant-scoped, so it cannot tell them apart. If this test is ever rewritten,
+keep it on an authenticated panel page.
+
+**Subdomain mode's HTTP round trip is still not provable, and a browser test
+does not fix it.** `pestphp/pest-plugin-browser` serves the application
+*in-process*, so `PHP_SAPI` remains `cli` and `app()->runningInConsole()` is
+`true` inside a browser request — `shouldRegisterPanel()`'s console exemption
+applies exactly as `.claude/rules/filament-tenancy.md` describes. That needs a
+genuinely separate FPM or `php -S` server, which nothing here has.
 
 ## Suggested better approach
 

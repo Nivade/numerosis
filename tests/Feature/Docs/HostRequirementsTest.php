@@ -159,8 +159,20 @@ class HostRequirementsTest extends TestCase
         $doc = (string) file_get_contents(dirname(__DIR__, 3).'/docs/host-requirements.md');
         $rows = [];
 
+        // The file carries tables that are not §1/§2 rows — §0's per-package
+        // map, for one — so a table is opted *in* by its own header ending in
+        // "Checked by" rather than by every `| ` line being assumed to be one.
+        // Header row identified by its last cell, not its first: not every
+        // table's first column is called "Key" (the seeder section's is
+        // "Requirement"), and matching on the first cell made a
+        // differently-named header parse as a data row whose "Checked by" was
+        // the literal string "Checked by".
+        $inCheckedTable = false;
+
         foreach (explode("\n", $doc) as $line) {
-            if (! str_starts_with($line, '| ')) {
+            if (! str_starts_with($line, '|')) {
+                $inCheckedTable = false;
+
                 continue;
             }
             if (str_starts_with($line, '|---')) {
@@ -168,17 +180,18 @@ class HostRequirementsTest extends TestCase
             }
             $cells = array_map(trim(...), explode('|', trim($line, "| \t")));
 
-            // Key | Required value / shape | Why | Checked by
-            $this->assertCount(4, $cells, "Row '{$cells[0]}' does not have a 'Checked by' cell.");
+            if (end($cells) === 'Checked by') {
+                $inCheckedTable = true;
 
-            // Header row, identified by its last cell rather than its first:
-            // not every table's first column is called "Key" (the seeder
-            // section's is "Requirement"), and matching on the first cell made
-            // a differently-named header parse as a data row whose "Checked
-            // by" was the literal string "Checked by".
-            if ($cells[3] === 'Checked by') {
                 continue;
             }
+
+            if (! $inCheckedTable) {
+                continue;
+            }
+
+            // Key | Required value / shape | Why | Checked by
+            $this->assertCount(4, $cells, "Row '{$cells[0]}' does not have a 'Checked by' cell.");
 
             $rows[] = ['key' => $cells[0], 'checked_by' => $cells[3]];
         }

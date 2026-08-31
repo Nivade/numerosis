@@ -1,5 +1,41 @@
 # Inline Checkout
 
+- **`subscriptions.subscribable_id` holds the owner's *primary* key, never its
+  `global_id` — and getting that wrong is silent in one direction and
+  intermittent in the other.** `Subscription::subscribable()` is a plain
+  `morphTo()`, so its owner key is whatever each type's `getKeyName()` returns:
+  `users.id` for `CentralUser`, `tenants.id` for `Tenant`. That is also what
+  Cashier's own `newSubscription()` writes, since it goes through
+  `Billable::subscriptions()`'s `morphMany`. `global_id` is this package's
+  cross-database *identity* (what `ResolveSetupIntent` and
+  `TenantRegistrationData` carry); it is not this column's key, and the two are
+  easy to conflate because almost everything else about a `CentralUser`
+  crossing a database boundary uses `global_id`.
+
+  Put a `global_id` here and `$subscription->subscribable`,
+  `$subscription->owner` and `$user->subscriptions()` all resolve to
+  **nothing** — no error, because `Subscription::$with` eager-loads
+  `subscribable` and a miss is just a null. `tests/Feature/Actions/Billing/Subscriptions/LinkSubscriptionToTenantTest`
+  did exactly this for months and passed, because it only ever asserted the
+  row had been re-pointed at the tenant afterwards.
+
+  The loud half is rarer and looks unrelated: `subscribable_id` is a `string`
+  column, but `CentralUser::getKeyType()` is `'int'` (its key genuinely is),
+  so `Relation::whereInMethod()` picks **`whereIntegerInRaw`**, which casts
+  every value. Harmless for `"1"`; for a UUID shaped like
+  `3e106911-ec68-484d-95e1-7aabbb8a0766` — a valid PHP float-string, roughly 1
+  in 250 UUIDs — PHP 8.5 raises `The float-string "…" is not representable as
+  an int, cast occurred`, from `Query\Builder::whereIntegerInRaw()`, in
+  whichever test happened to draw that UUID. It reads as a random flake in an
+  unrelated billing test and disappears on re-run.
+
+  `tests/Feature/Models/Central/SubscriptionOwnerTest` now pins the round trip
+  for both billables and was verified to fail against the old fixture shape.
+  **`Tenant` is unaffected either way** — its key *is* `tenants.id` and its
+  `getKeyType()` is `'string'` (stancl's `GeneratesIds::getKeyType()` returns
+  `'string'` whenever a `UniqueIdentifierGenerator` is bound), which is why
+  only the central-user side was ever wrong.
+
 > **Naming note (2026-07-31):** registration wizard's `Payment` step no
 > longer owns `subscribe()`/`confirmed()`/`settle()`/`$pendingDomain` — only
 > resolves reserved domain, embeds `Nvade\Numerosis\Livewire\Billing\Checkout`, now

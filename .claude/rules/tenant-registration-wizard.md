@@ -1,5 +1,23 @@
 # Tenant Registration Wizard
 
+> **Moved 2026-08-31.** The wizard lives in `packages/onboarding`
+> (`nvade/numerosis-onboarding`) now:
+> `Nvade\Numerosis\Livewire\Tenant\Registration\Registration` is
+> `Nvade\NumerosisOnboarding\Livewire\Registration`, its steps are
+> `NumerosisOnboarding\Livewire\Steps\*` (no `Tenant\Registration` segment),
+> `Support\State\RegistrationState` is `NumerosisOnboarding\Support\RegistrationState`,
+> and `RegistrationWizardFeature` is `NumerosisOnboarding\Features\…`. The
+> views moved with them but keep their `numerosis::` view names, so every
+> claim below still holds — only the namespaces changed. Two things core
+> kept: `Support\Tenancy\SelfServeRegistration::{FEATURE,SESSION_KEY}` (core
+> gates six of its own surfaces on the feature name and must not autoload the
+> satellite's class), and `Contracts\Tenancy\ProvidesTenantIdentity`. The
+> `/get-started` route is contributed through `Numerosis::addCentralRoutes()`,
+> still behind the same feature gate. `RegisterTenant` (the Filament page that
+> hosts the wizard) is in `packages/filament` and reaches it by Livewire
+> *alias* via `numerosis.panels.admin.tenant_registration_component` — neither
+> package names the other's classes.
+
 - **A Filament page whose entire view is a single `@livewire()` directive
   can lose that child's own component boundary — Livewire flattens the two
   together, and the child silently stops being independently addressable.**
