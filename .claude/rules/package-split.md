@@ -49,18 +49,18 @@ come.
   actually bound, so narrow with `instanceof` or PHPStan reports
   `method.notFound`.
 
-  **A third instance is still live, found 2026-08-31 and deliberately not
-  fixed** (it was outside the change that surfaced it — section C of
-  `.claude/plans/numerosis-consolidation.md`):
+  **A third instance, found and fixed 2026-08-31** (outside the change that
+  surfaced it — section C of `.claude/plans/numerosis-consolidation.md`):
   `DesignLanguageGuardTest::test_no_filament_resource_uses_a_raw_heroicon_string_for_empty_state_icon`
-  scans core `src/` for `emptyStateIcon('heroicon-…')`, and every Filament
-  resource moved to `packages/filament` in Phase 7. It asserts 317 times
+  used to scan core `src/` for `emptyStateIcon('heroicon-…')`, and every Filament
+  resource moved to `packages/filament` in Phase 7. It asserted 317 times
   against files that cannot contain the pattern. The tell is the one this
   file already names — its assertion count tracks the size of `src/`, so it
   went **up** by one when an unrelated `src/Concerns/` trait was added, which
-  is the opposite of what a guard over Filament resources should do. Fix is
-  to scan `src` **and** `packages/*/src`, the same widening
-  `PackageBoundariesTest` already applied to the cashier-key scan.
+  is the opposite of what a guard over Filament resources should do. Now scans
+  `src` **and** `packages/*/src`, the same widening `PackageBoundariesTest`
+  already applied to the cashier-key scan; verified to fail on an injected
+  `'heroicon-o-key'` in a `packages/filament` resource before landing.
 
 - **"Which files belong in the leaf package" is answered by grep, not by the
   plan.** D4 assigned `layouts/` and `partials/` to `numerosis-ui`. They were

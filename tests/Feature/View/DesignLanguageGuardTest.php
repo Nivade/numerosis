@@ -201,16 +201,32 @@ class DesignLanguageGuardTest extends TestCase
      * vocabulary, the CLAUDE.md-documented convention
      * (`Filament\Support\Icons\Heroicon` enum), not two spellings of the
      * same icon.
+     *
+     * Scans `packages/{*}/src` as well as core's, and that is the whole
+     * point of the widening: every Filament resource moved to
+     * `packages/filament` during the split, so for a while this guarded
+     * nothing at all — it asserted 300-odd times against files that cannot
+     * contain the pattern, and there is no `emptyStateIcon(` call left under
+     * `src/`. A directory scan goes vacuous, not red, when what it guards
+     * moves (`.claude/rules/package-split.md`); the tell here was that its
+     * assertion count tracked the size of core `src/`, so it went *up* when
+     * an unrelated trait was added.
      */
     public function test_no_filament_resource_uses_a_raw_heroicon_string_for_empty_state_icon(): void
     {
-        $finder = (new Finder)->files()->in(dirname(__DIR__, 3).'/src')->name('*.php');
+        $root = dirname(__DIR__, 3);
+        $finder = (new Finder)
+            ->files()
+            ->in([$root.'/src', ...(glob($root.'/packages/*/src') ?: [])])
+            ->name('*.php');
 
         foreach ($finder as $file) {
+            $relative = str_replace($root.'/', '', $file->getPathname());
+
             $this->assertDoesNotMatchRegularExpression(
                 "/emptyStateIcon\\(\\s*['\"]heroicon-/",
                 $file->getContents(),
-                "{$file->getRelativePathname()} passes a raw 'heroicon-o-*' string to emptyStateIcon() — use the Heroicon enum instead.",
+                "{$relative} passes a raw 'heroicon-o-*' string to emptyStateIcon() — use the Heroicon enum instead.",
             );
         }
     }
