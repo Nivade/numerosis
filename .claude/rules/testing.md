@@ -299,10 +299,13 @@ updated: 2026-08-29
 
 - **Known failing tests — don't attribute these to your change.**
 
-  **Current baseline, measured 2026-08-31 after deleting the dual-version
-  tenancy layer: `php -d memory_limit=1G vendor/bin/pest --compact` ⇒ 0
-  failed, 7 skipped, 623 passed (4816 assertions) in ~112s.** There is one
-  `stancl/tenancy` leg now, not two — the constraint is `^3.10`.
+  **Current baseline, measured 2026-08-31 after collapsing the satellite
+  repos into `packages/*`: `php -d memory_limit=1G vendor/bin/pest --compact`
+  ⇒ 0 failed, 7 skipped, 641 passed (6333 assertions) in ~108s.** There is one
+  `stancl/tenancy` leg now, not two — the constraint is `^3.10`. The run
+  covers **two** testsuites: `tests` and `packages/*/tests`
+  (`--testsuite=Packages` alone is 12 tests, and a useful way to check a
+  satellite's own wiring without paying for the tenancy harness).
 
   **The assertion count keeps moving, and every move so far has had a
   boring explanation that was only boring once measured.** 5540 → 4882 across
@@ -310,7 +313,11 @@ updated: 2026-08-29
   that package's own `BoundaryTest`); 4882 → 4816 across the dual-version
   deletion (50 of the 66 are the same `ArchTest` scan losing the 10 deleted
   `src/` files — 5 arch rules × 10 files — and the rest is coverage for the
-  shims themselves). **Diff the assertion count, not just the pass count,
+  shims themselves); 4816 → 6333 across the monorepo collapse (+30 from the
+  three satellite suites joining the root run, +1487 from the new
+  `PackageBoundariesTest`, which absorbed those suites' boundary scans and
+  widened them to each package's `resources` as well as its `src`).
+  **Diff the assertion count, not just the pass count,
   after any move, and identify the delta rather than accepting it** — a
   directory-scanning test goes vacuous, not red, when what it guards
   disappears. `--filter=ArchTest` alone against `git stash` is usually enough

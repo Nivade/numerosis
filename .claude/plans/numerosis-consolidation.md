@@ -78,8 +78,11 @@ printf 'includes:\n  - %s/phpstan.neon.dist\nparameters:\n  tmpDir: /tmp/phpstan
 php -d memory_limit=2G vendor/bin/phpstan analyse -c /tmp/phpstan-audit.neon --no-progress
 ```
 
-Baseline to hold, as of section A: **0 failed / 7 skipped / 623 passed
-(4816 assertions)**, PHPStan 0 outside a 200-entry baseline. **Diff the
+Baseline to hold, as of section B: **0 failed / 7 skipped / 641 passed
+(6333 assertions)** — was 623 / 4816 after section A, before the satellite
+suites joined the root run. PHPStan does **not** currently hold at 0 outside
+its 200-entry baseline; see section B's "PHPStan" note for why that predates
+B. **Diff the
 assertion count as well as the pass count after any move, and attribute the
 delta** — a directory-scanning test goes vacuous, not red, when what it guards
 moves. It has moved twice for boring reasons (5540 → 4882 when `ArchTest`'s
@@ -197,7 +200,69 @@ Expect the baseline to shrink; quote the number.
 
 ---
 
-## B — collapse to a monorepo
+## B — collapse to a monorepo ✅ DONE (2026-08-31)
+
+**Verified: 0 failed / 7 skipped / 641 passed (6333 assertions) in ~108s;
+Pint clean. PHPStan is red, and was red on the pre-B commit too — see
+"PHPStan" below before reading anything into it.**
+
+The assertion delta from section A's baseline (623 / 4816) accounts for
+itself exactly: +12 tests / +30 assertions are the three satellite suites now
+running in the root suite, +6 / +1487 are the new `PackageBoundariesTest`.
+
+Five things worth carrying:
+
+- **The one test that had to change was `SatelliteViewNamespaceTest`**, which
+  matched view hints on `/{$package}/` using the Composer package name. PHP
+  resolves `__FILE__` through a symlink, so every hint a satellite registers
+  now names its real `packages/<dir>` path, never `vendor/nvade/<name>`. The
+  data provider takes the directory now.
+- **Boundaries collapsed into one root test rather than three per-package
+  ones.** `tests/Feature/PackageBoundariesTest.php` carries what the auth-ui
+  and filament `BoundaryTest`s and the ui suite's view scan each carried, and
+  widens each: `src` *and* `resources` per package, the cashier-key scan
+  across all three. Two mechanical findings: `arch()` cannot express "ui may
+  not reference core" at all, because `Nvade\NumerosisUi` is prefixed by
+  `Nvade\Numerosis` and a namespace matcher is prefix-based — the old
+  per-package tests had already worked around it with a `(?!Ui)` regex. And
+  the scan must strip comments (`token_get_all`, dropping `T_COMMENT`/
+  `T_DOC_COMMENT`) before matching, or a docblock *explaining* the rule trips
+  it: `NumerosisUiServiceProvider`'s class comment names the core classes
+  that got `layouts/` evicted from that package, and should keep doing so.
+  Verified to fail when a real violation is injected, not just to pass.
+- **Satellite test namespaces have to be mapped in the *root* `autoload-dev`.**
+  Composer loads only the root package's `autoload-dev`, so a path-installed
+  package's own is ignored and `packages/*/tests` would not autoload.
+- **The satellites' own `repositories` blocks were deleted**; they pointed at
+  `../numerosis` and `../numerosis-ui`, which no longer exist relative to
+  their new location. Composer ignores a non-root `repositories` anyway, so
+  they were already dead — but a split repo would inherit the wrong paths.
+- **The three sibling repos still exist on disk** (`../numerosis-{ui,auth-ui,
+  filament}`) and nothing points at them. Delete them by hand; leaving them
+  is a live drift hazard, since an edit there now changes nothing.
+
+### PHPStan: red before B, less red after, unattributed
+
+44 errors outside the baseline after B — 34 stale/miscounted baseline entries
+(`ignore.unmatched`, `ignore.count`) and 10 live ones. **Measured on the
+pre-B commit (`0b1e338`) in a throwaway worktree with the sibling repos
+symlinked back into place: 63 errors, same families.** So B did not cause it
+and in fact reduced it; the baseline documented as clean on 2026-08-31 does
+not reproduce in this environment at all.
+
+Every one of the 10 is the documented Larastan host-subclass family
+(`App\Models\Central\*` unioned with `Collection`, `Authenticatable` property
+access in tests) — the same false positives `.claude/rules/static-analysis.md`
+already records, in a different *shape* than the baselined text. The likely
+trigger is what state the Testbench package-discovery cache is in when the
+analysis app boots, which any `composer install`/`update` regenerates.
+
+**The baseline was deliberately left alone.** Regenerating would bury the
+delta rather than explain it, and would bake in one particular discovery-cache
+state that the next composer run can flip back. Chasing it is its own pass —
+F is the natural place.
+
+### Original brief, kept for reference
 
 `packages/filament` has **0 commits**, `ui` 1, `auth-ui` 2. Cheapest it will
 ever be; cost rises with each package. Confirm the parallel session has
@@ -353,7 +418,7 @@ misleads in a way a stale plan does not.
 
 ```
 A  delete dual-version layer   ── ✅ DONE 2026-08-31
-B  collapse to monorepo        ── cheapest now (filament has 0 commits)
+B  collapse to monorepo        ── ✅ DONE 2026-08-31
 C  modules stay in core        ── independent of A/B, may interleave
 E  browser tests               ── before D
 D  packages/onboarding         ── last extraction

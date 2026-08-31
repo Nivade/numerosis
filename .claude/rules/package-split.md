@@ -6,6 +6,17 @@ six-package map and the D1–D4 decisions live there; this file is what the
 first real extraction taught, and every bullet holds for the four still to
 come.
 
+> **Layout note, 2026-08-31.** The three extracted packages are no longer
+> sibling repos: `nvade/numerosis-{ui,auth-ui,filament}` live in this repo
+> under `packages/*`, path-installed from one `{"type":"path","url":"packages/*"}`
+> entry and published as read-only splits on tag
+> (`.github/workflows/split.yml`). **Every mechanism below is unchanged** —
+> the shared view namespace, the register-vs-`booting()` phase rule, the
+> constant-vs-`use` autoload asymmetry, the escaped-namespace-in-a-string
+> trap — because none of them depended on the packages being separate repos.
+> What changed is where the files sit and what enforces the boundaries; see
+> the monorepo bullets at the end of this file.
+
 - **Two packages can serve one view namespace, and that is what makes a split
   cost zero view edits.** `Illuminate\View\FileViewFinder::addNamespace()`
   *appends* to a namespace's path list (`array_merge($this->hints[$ns], $hints)`)
@@ -237,6 +248,47 @@ come.
   `Http\Controllers\Auth\VerifyEmailController`) and core's own layouts and
   notifications call `route()` on both names. The split line for a route is
   "who generates the URL", not "which file it currently sits in".
+
+## After the collapse into `packages/*` (2026-08-31)
+
+- **A path-installed package's own `autoload-dev` is never loaded — only the
+  root package's is.** So `packages/*/tests` do not autoload from their own
+  `composer.json`; every satellite's test namespace has to be mapped in the
+  **root** `autoload-dev` for the merged suite to see them. Nothing errors if
+  you forget: PHPUnit reports "no tests found" for that testsuite, which reads
+  like a glob problem.
+
+- **PHP resolves `__FILE__` through a symlink, so a path-installed package
+  registers its *real* path, not its `vendor/` one.** Every view hint, asset
+  path and `dirname(__DIR__)` from `packages/ui` names
+  `<repo>/packages/ui/...`, never `vendor/nvade/numerosis-ui/...`. Anything
+  matching on those paths has to match the `packages/<dir>` form — this is
+  what broke `SatelliteViewNamespaceTest`, which keyed on the Composer
+  package name (`/numerosis-ui/`) and found nothing.
+
+- **In one repo the filesystem enforces no boundary at all, so each rule the
+  separate repos got for free has to become a test.**
+  `tests/Feature/PackageBoundariesTest.php` is that file. Two things about
+  writing it that are not obvious:
+
+  - **`arch()` cannot express "ui may not reference core".** Pest's
+    namespace matchers are prefix-based and `Nvade\NumerosisUi` *is* prefixed
+    by `Nvade\Numerosis`, so the rule matches the package against itself.
+    A filesystem scan with `/Nvade\\Numerosis(?!Ui)/` is the honest tool, and
+    half the rules (`tenancy(`, `route(`) are about strings anyway.
+  - **Strip comments before matching, or the guard trips on its own
+    documentation.** `NumerosisUiServiceProvider`'s class docblock names the
+    core classes that got `layouts/` evicted from that package — correct, and
+    a textual scan cannot tell prose from a dependency. `token_get_all()`
+    minus `T_COMMENT`/`T_DOC_COMMENT` for `.php`; raw contents for
+    `.blade.php`, which is not tokenizable PHP.
+
+- **A non-root `repositories` block is ignored by Composer, so it rots
+  silently.** The satellites each carried `{"type":"path","url":"../numerosis"}`
+  entries that had never been read by anything since core started requiring
+  them. They were only wrong once the packages moved — and a split repo would
+  have inherited paths pointing outside itself. Delete a package's
+  `repositories` when it stops being a root package.
 
 ## Suggested better approach
 
