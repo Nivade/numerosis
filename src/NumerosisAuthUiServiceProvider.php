@@ -107,6 +107,17 @@ class NumerosisAuthUiServiceProvider extends PackageServiceProvider
      */
     protected function registerTenantPanelLogin(): void
     {
+        // Note for anyone reading `numerosis.panels` elsewhere: this write
+        // goes through `Arr::set()`, which auto-vivifies every missing
+        // segment. Provider *register* order between two discovered packages
+        // is not ours to choose, so this can run before core's
+        // `mergeConfigFrom()` and create a `numerosis.panels` array core
+        // never supplied. That is harmless here — core's merge preserves the
+        // existing sub-key — but it means the existence of that namespace is
+        // **not** evidence core registered. `numerosis.features` is, and is
+        // what nvade/numerosis-filament checks before registering a panel.
+        // See .claude/rules/package-host-bootstrap.md for the version of this
+        // hazard that truncated `tenancy.database`.
         if (Config::get('numerosis.panels.tenant.login') === null) {
             Config::set('numerosis.panels.tenant.login', PasswordlessLogin::class);
         }

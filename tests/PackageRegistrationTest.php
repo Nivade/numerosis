@@ -10,6 +10,7 @@ use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Social\ConfiguredProviders;
 use Nvade\NumerosisAuthUi\Features\SocialLoginFeature;
 use Nvade\NumerosisAuthUi\Livewire\PasswordlessLogin;
+use Nvade\NumerosisAuthUi\NumerosisAuthUiServiceProvider;
 
 /**
  * Everything this package does at boot, asserted here rather than in core.
@@ -79,7 +80,7 @@ class PackageRegistrationTest extends TestCase
 
         Config::set('numerosis.panels.tenant.login', 'App\\Livewire\\MyLogin');
 
-        $this->app?->register(\Nvade\NumerosisAuthUi\NumerosisAuthUiServiceProvider::class, force: true);
+        $this->app?->register(NumerosisAuthUiServiceProvider::class, force: true);
 
         $this->assertSame('App\\Livewire\\MyLogin', Config::get('numerosis.panels.tenant.login'));
     }

@@ -7,6 +7,7 @@ namespace Nvade\NumerosisAuthUi\Tests;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\Finder\SplFileInfo;
 
 /**
  * The property this package exists to have: it depends on `nvade/numerosis`
@@ -68,7 +69,7 @@ class BoundaryTest extends BaseTestCase
     }
 
     /**
-     * @return list<\Symfony\Component\Finder\SplFileInfo>
+     * @return list<SplFileInfo>
      */
     private function sourceFiles(): array
     {
