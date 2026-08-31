@@ -237,9 +237,15 @@ Five things worth carrying:
   `../numerosis` and `../numerosis-ui`, which no longer exist relative to
   their new location. Composer ignores a non-root `repositories` anyway, so
   they were already dead — but a split repo would inherit the wrong paths.
-- **The three sibling repos still exist on disk** (`../numerosis-{ui,auth-ui,
-  filament}`) and nothing points at them. Delete them by hand; leaving them
-  is a live drift hazard, since an edit there now changes nothing.
+- **The three sibling repos were deleted** once absorption was verified two
+  ways: every satellite commit (`17ae8eb`, `ef5e0dc`, `87b495d`, `fab3d98`)
+  is reachable from this repo's graph, and a `diff -rq` of each sibling
+  against its `packages/*` counterpart showed only the deliberate deletions
+  (`phpunit.xml.dist`, `pint.json`, `.gitignore`, the folded `BoundaryTest`s)
+  and the deliberate edits. Do both checks before deleting a source repo,
+  not just the first — `git subtree add` brings history across but says
+  nothing about uncommitted files, and `packages/filament` was a plain copy
+  of a repo whose entire contents were untracked.
 
 ### PHPStan: red before B, less red after, unattributed
 
