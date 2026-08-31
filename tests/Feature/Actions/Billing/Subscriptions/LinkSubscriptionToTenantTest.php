@@ -32,7 +32,14 @@ class LinkSubscriptionToTenantTest extends TestCase
         $plan = PaymentPlan::factory()->create(['slug' => 'pro']);
         $subscription = Subscription::factory()->create([
             'stripe_id' => 'sub_123',
-            'subscribable_id' => $user->global_id,
+            // The morph is keyed on the owner's primary key, which is what
+            // Cashier's own subscriptions()->create() writes. Using global_id
+            // here produced a row whose owner silently resolved to null, and
+            // intermittently an ErrorException: subscriptions.subscribable_id
+            // is a string column, but CentralUser::getKeyType() is 'int', so
+            // the eager load runs whereIntegerInRaw and casts every value —
+            // fine for "1", fatal for a UUID shaped like 3e106911-...
+            'subscribable_id' => $user->getKey(),
             'subscribable_type' => CentralUser::class,
             'payment_plan_id' => $plan->id,
         ]);
@@ -61,7 +68,14 @@ class LinkSubscriptionToTenantTest extends TestCase
         $plan = PaymentPlan::factory()->create(['slug' => 'pro']);
         $subscription = Subscription::factory()->create([
             'stripe_id' => 'sub_789',
-            'subscribable_id' => $user->global_id,
+            // The morph is keyed on the owner's primary key, which is what
+            // Cashier's own subscriptions()->create() writes. Using global_id
+            // here produced a row whose owner silently resolved to null, and
+            // intermittently an ErrorException: subscriptions.subscribable_id
+            // is a string column, but CentralUser::getKeyType() is 'int', so
+            // the eager load runs whereIntegerInRaw and casts every value —
+            // fine for "1", fatal for a UUID shaped like 3e106911-...
+            'subscribable_id' => $user->getKey(),
             'subscribable_type' => CentralUser::class,
             'payment_plan_id' => null,
         ]);
