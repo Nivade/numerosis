@@ -91,6 +91,9 @@
     "autoload-dev": {
         "psr-4": {
             "Nvade\\Numerosis\\Tests\\": "tests/",
+            "Nvade\\NumerosisUi\\Tests\\": "packages/ui/tests/",
+            "Nvade\\NumerosisAuthUi\\Tests\\": "packages/auth-ui/tests/",
+            "Nvade\\NumerosisFilament\\Tests\\": "packages/filament/tests/",
             "Workbench\\App\\": "workbench/app/",
             "Workbench\\Database\\Factories\\": "workbench/database/factories/",
             "Workbench\\Database\\Seeders\\": "workbench/database/seeders/",
@@ -137,21 +140,7 @@
     "repositories": [
         {
             "type": "path",
-            "url": "../numerosis-ui",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "../numerosis-auth-ui",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "../numerosis-filament",
+            "url": "packages/*",
             "options": {
                 "symlink": true
             }

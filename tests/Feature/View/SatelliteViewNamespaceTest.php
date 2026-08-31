@@ -26,14 +26,19 @@ use PHPUnit\Framework\Attributes\DataProvider;
 class SatelliteViewNamespaceTest extends TestCase
 {
     /**
+     * The first value is the package's directory under `packages/`, not its
+     * Composer name: the packages are path-installed and symlinked into
+     * `vendor/nvade/*`, but PHP resolves `__FILE__` through the symlink, so
+     * every hint a satellite registers names its real `packages/<dir>` path.
+     *
      * @return array<string, array{0: string, 1: string}>
      */
     public static function satellites(): array
     {
         return [
-            'numerosis-ui' => ['numerosis-ui', 'components/ui/card.blade.php'],
-            'numerosis-auth-ui' => ['numerosis-auth-ui', 'livewire/auth/register.blade.php'],
-            'numerosis-filament' => ['numerosis-filament', 'filament/admin/pages/register-tenant.blade.php'],
+            'numerosis-ui' => ['packages/ui', 'components/ui/card.blade.php'],
+            'numerosis-auth-ui' => ['packages/auth-ui', 'livewire/auth/register.blade.php'],
+            'numerosis-filament' => ['packages/filament', 'filament/admin/pages/register-tenant.blade.php'],
         ];
     }
 

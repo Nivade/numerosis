@@ -1,0 +1,64 @@
+name: split-packages
+
+# This repo is the monorepo; the four installable packages are published as
+# read-only mirrors. Nothing runs until a tag exists, so this workflow can sit
+# here inert until the first release.
+#
+# `main` pushes keep each mirror's default branch current for anyone tracking
+# `@dev`; a tag push copies that tag across, which is what Composer resolves.
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - local: packages/ui
+            split: numerosis-ui
+          - local: packages/auth-ui
+            split: numerosis-auth-ui
+          - local: packages/filament
+            split: numerosis-filament
+
+    name: ${{ matrix.split }}
+
+    steps:
+      # Full history: the split action replays it into the mirror, and a
+      # shallow clone silently produces a mirror with one commit.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - if: "!startsWith(github.ref, 'refs/tags/')"
+        uses: danharrin/monorepo-split-github-action@v2.3.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.SPLIT_TOKEN }}
+        with:
+          package_directory: ${{ matrix.local }}
+          repository_organization: Nivade
+          repository_name: ${{ matrix.split }}
+          user_name: ${{ github.actor }}
+          user_email: ${{ github.actor }}@users.noreply.github.com
+
+      - if: "startsWith(github.ref, 'refs/tags/')"
+        uses: danharrin/monorepo-split-github-action@v2.3.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.SPLIT_TOKEN }}
+        with:
+          tag: ${{ github.ref_name }}
+          package_directory: ${{ matrix.local }}
+          repository_organization: Nivade
+          repository_name: ${{ matrix.split }}
+          user_name: ${{ github.actor }}
+          user_email: ${{ github.actor }}@users.noreply.github.com

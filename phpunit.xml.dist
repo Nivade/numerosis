@@ -28,6 +28,13 @@
         <testsuite name="Nvade Test Suite">
             <directory>tests</directory>
         </testsuite>
+        <!-- One repo, one suite. Each package under packages/* keeps its own
+             tests, and they are autoloaded through the root composer.json's
+             autoload-dev — a path-installed dependency's own autoload-dev is
+             never loaded, so the namespaces have to be mapped here. -->
+        <testsuite name="Packages">
+            <directory>packages/*/tests</directory>
+        </testsuite>
     </testsuites>
     <logging>
         <junit outputFile="build/report.junit.xml"/>
@@ -35,6 +42,9 @@
     <source>
         <include>
             <directory suffix=".php">./src</directory>
+            <directory suffix=".php">./packages/ui/src</directory>
+            <directory suffix=".php">./packages/auth-ui/src</directory>
+            <directory suffix=".php">./packages/filament/src</directory>
         </include>
     </source>
 </phpunit>

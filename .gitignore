@@ -1,6 +1,10 @@
 # Composer Related
 composer.lock
 /vendor
+# packages/* are path-installed from the root; nothing under them is ever
+# `composer install`ed in place, but a stray run there must not be committed.
+/packages/*/vendor
+/packages/*/build
 
 # Frontend Assets
 /node_modules

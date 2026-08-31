@@ -41,44 +41,13 @@ class ViewRegistrationTest extends TestCase
         $this->blade('<flux:icon.layout-grid />')->assertSee('svg', false);
     }
 
-    /**
-     * The property that decides what may live here at all. `layouts/` and
-     * `partials/` were moved into this package and moved straight back out
-     * for failing exactly this: they name Nvade\Numerosis classes and call
-     * `tenancy()`, so shipping them here would invert the dependency.
+    /*
+     * The property that decides what may live here at all — no view or class
+     * here may name Nvade\Numerosis, call tenancy(), or generate a named route
+     * (`layouts/` and `partials/` were moved into this package and moved
+     * straight back out for failing exactly that) — is enforced in the root
+     * suite now, by Nvade\Numerosis\Tests\Feature\PackageBoundariesTest. It
+     * covers this package's `src/` as well as its views, and the two sibling
+     * packages besides. One repo, one place those rules live.
      */
-    public function test_no_view_here_references_the_core_package_or_tenancy(): void
-    {
-        $offenders = [];
-
-        foreach ($this->bladeFiles() as $file) {
-            $contents = (string) file_get_contents($file);
-
-            if (preg_match('/Nvade\\\\Numerosis(?!Ui)|tenancy\(|\broute\(/', $contents) === 1) {
-                $offenders[] = $file;
-            }
-        }
-
-        $this->assertSame([], $offenders);
-    }
-
-    /** @return list<string> */
-    private function bladeFiles(): array
-    {
-        $root = dirname(__DIR__).'/resources/views';
-
-        $files = [];
-
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root));
-
-        foreach ($iterator as $file) {
-            if ($file instanceof \SplFileInfo && str_ends_with($file->getFilename(), '.blade.php')) {
-                $files[] = $file->getPathname();
-            }
-        }
-
-        $this->assertNotEmpty($files, 'Scanned no view files — the resources/views path is wrong.');
-
-        return $files;
-    }
 }
