@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use InterNACHI\Modular\Support\Facades\Modules;
 use Livewire\Livewire;
 use Nvade\Numerosis\Actions\Auth\AuthenticateLoginCandidate;
 use Nvade\Numerosis\Actions\Auth\CreateRegisteredUser;
@@ -100,12 +101,36 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->runsMigrations()
             ->hasCommand(InstallNumerosisCommand::class)
             ->hasCommand(DeleteTenants::class)
-            ->hasCommand(MigrateTenantModule::class)
-            ->hasCommand(RollbackTenantModule::class)
-            ->hasCommand(SeedTenantModule::class)
+            ->hasCommands($this->moduleCommands())
             ->hasCommand(PruneOrphanedStripeCustomers::class)
             ->hasCommand(PruneOrphanedTenantDatabases::class)
             ->hasCommand(PruneStalledTenantProvisions::class);
+    }
+
+    /**
+     * The `tenants:*-module` commands, which exist only when the module
+     * registry does.
+     *
+     * Gated on `internachi/modular` being installed rather than on
+     * `ModuleSystemFeature`: configurePackage() runs before this package's own
+     * `mergeConfigFrom()`, so `numerosis.features` is not readable yet and a
+     * feature check here would drop the commands even for a host that wants
+     * them. The feature switch is enforced inside each command instead, via
+     * Concerns\ResolvesInstalledModules.
+     *
+     * @return list<class-string>
+     */
+    private function moduleCommands(): array
+    {
+        if (! class_exists(Modules::class)) {
+            return [];
+        }
+
+        return [
+            MigrateTenantModule::class,
+            RollbackTenantModule::class,
+            SeedTenantModule::class,
+        ];
     }
 
     public function packageRegistered(): void

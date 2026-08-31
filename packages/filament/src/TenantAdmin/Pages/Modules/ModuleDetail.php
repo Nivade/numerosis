@@ -17,6 +17,7 @@ use Nvade\Numerosis\Contracts\Billing\ModuleOffer;
 use Nvade\Numerosis\Enums\BillingCycle;
 use Nvade\Numerosis\Exceptions\Tenancy\TenantNotInitialized;
 use Nvade\Numerosis\Facades\Billing as BillingFacade;
+use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Support\Numerosis;
@@ -45,6 +46,19 @@ class ModuleDetail extends Page implements HasActions
     protected static ?string $slug = 'modules/{slug}';
 
     public string $moduleSlug;
+
+    /**
+     * Sibling of Marketplace::canAccess(). This page is registered by the
+     * same ->discoverPages() scan and has no navigation entry to hide, so
+     * without this override the module system being off — or
+     * `internachi/modular` never having been installed, since it is `suggest`
+     * — reaches isInstalledOnThisNode() below and fatals instead of 403ing.
+     */
+    #[Override]
+    public static function canAccess(): bool
+    {
+        return ModuleSystemFeature::available() && parent::canAccess();
+    }
 
     public function mount(string $slug): void
     {

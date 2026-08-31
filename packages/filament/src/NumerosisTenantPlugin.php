@@ -278,7 +278,7 @@ class NumerosisTenantPlugin implements Plugin
      */
     protected function enabledModulePlugins(): array
     {
-        if (! Features::enabled(ModuleSystemFeature::NAME)) {
+        if (! ModuleSystemFeature::available()) {
             return [];
         }
 

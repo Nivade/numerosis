@@ -8,6 +8,7 @@ use App\Models\Central\CentralUser;
 use App\Models\Central\Tenant;
 use App\Models\Tenant\Module;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Nvade\Numerosis\Actions\Modules\CancelModule;
 use Nvade\Numerosis\Actions\Modules\PurchaseModule;
 use Nvade\Numerosis\Exceptions\Modules\ModulesDisabled;
@@ -15,6 +16,7 @@ use Nvade\Numerosis\Models\Central\ModuleOffering;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Tests\TestCase;
 use Nvade\NumerosisFilament\TenantAdmin\Pages\Modules\Marketplace;
+use Nvade\NumerosisFilament\TenantAdmin\Pages\Modules\ModuleDetail;
 use Nvade\NumerosisFilament\TenantAdmin\Resources\Modules\ModuleResource;
 
 class ModuleFeatureSwitchesTest extends TestCase
@@ -50,6 +52,35 @@ class ModuleFeatureSwitchesTest extends TestCase
 
         $this->assertFalse(Marketplace::canAccess());
         $this->assertFalse(Marketplace::shouldRegisterNavigation());
+    }
+
+    /**
+     * ModuleDetail has no navigation entry to hide and, until modules became
+     * optional, no canAccess() override either — it relied on mount()'s 404,
+     * which only fires *after* isInstalledOnThisNode() has already asked the
+     * registry. That reads as a 500 rather than a 403 on a host without
+     * internachi/modular installed.
+     */
+    public function test_the_module_detail_page_is_inaccessible_when_modules_are_off(): void
+    {
+        Features::forceForTesting([]);
+
+        $this->assertFalse(ModuleDetail::canAccess());
+    }
+
+    /**
+     * The `tenants:*-module` commands are registered only when the registry is
+     * installed (NumerosisServiceProvider::moduleCommands()). Absence is
+     * covered by tests/Feature/Features/ModuleRegistryAbsenceTest; this is the
+     * present-and-registered half, so the gate cannot silently drop all three.
+     */
+    public function test_the_module_commands_are_registered_when_the_registry_is_installed(): void
+    {
+        $commands = array_keys(Artisan::all());
+
+        $this->assertContains('tenants:migrate-module', $commands);
+        $this->assertContains('tenants:rollback-module', $commands);
+        $this->assertContains('tenants:seed-module', $commands);
     }
 
     public function test_purchasing_refuses_when_modules_are_off(): void

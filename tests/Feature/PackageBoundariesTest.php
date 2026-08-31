@@ -65,20 +65,24 @@ class PackageBoundariesTest extends BaseTestCase
                 [
                     'filament' => '/Filament\\\\/',
                     'numerosis-onboarding' => '/Nvade\\\\NumerosisOnboarding\\\\/',
-                    'numerosis-modules' => '/Nvade\\\\NumerosisModules\\\\/',
                 ],
             ],
             // `Filament\` is of course allowed here — this package *is* the
             // Filament layer. What must not appear are the other satellites:
             // the tenant panel's login page and the registration wizard are
             // both named through core config keys, never as classes.
+            //
+            // The module marketplace and module resource live here for good:
+            // decision D-C (`.claude/plans/numerosis-consolidation.md`) kept
+            // the module system in core behind `class_exists()` guards rather
+            // than extracting it, so there is no numerosis-modules package for
+            // this UI to belong to and no cycle for it to create.
             'filament' => [
                 'filament',
                 ['src', 'resources'],
                 [
                     'numerosis-auth-ui' => '/Nvade\\\\NumerosisAuthUi\\\\/',
                     'numerosis-onboarding' => '/Nvade\\\\NumerosisOnboarding\\\\/',
-                    'numerosis-modules' => '/Nvade\\\\NumerosisModules\\\\/',
                 ],
             ],
         ];

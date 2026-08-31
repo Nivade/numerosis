@@ -8,7 +8,6 @@ use LogicException;
 use Nvade\Numerosis\Exceptions\Modules\ModulesDisabled;
 use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Support\Features;
 
 /**
  * The guards every module-billing action shares. Compose this into any new
@@ -34,12 +33,12 @@ trait GuardsModuleBilling
     }
 
     /**
-     * Asserts the module system is enabled. Guards purchasing only —
-     * cancelling stays available so a disabled module system cannot trap
-     * anyone in a subscription.
+     * Asserts the module system is enabled *and* `internachi/modular` is
+     * installed. Guards purchasing only — cancelling stays available so a
+     * disabled module system cannot trap anyone in a subscription.
      */
     protected function assertModulesAvailable(): void
     {
-        throw_unless(Features::enabled(ModuleSystemFeature::NAME), ModulesDisabled::class, 'The module marketplace is not available on this workspace.');
+        throw_unless(ModuleSystemFeature::available(), ModulesDisabled::class, 'The module marketplace is not available on this workspace.');
     }
 }

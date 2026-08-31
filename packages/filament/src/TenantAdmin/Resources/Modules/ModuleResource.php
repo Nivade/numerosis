@@ -24,7 +24,6 @@ use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Module;
-use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\NumerosisFilament\Concerns\NotifiesUser;
 use Nvade\NumerosisFilament\TenantAdmin\Resources\BaseResource;
@@ -48,13 +47,13 @@ class ModuleResource extends BaseResource
     #[Override]
     public static function canAccess(): bool
     {
-        return Features::enabled(ModuleSystemFeature::NAME) && parent::canAccess();
+        return ModuleSystemFeature::available() && parent::canAccess();
     }
 
     #[Override]
     public static function shouldRegisterNavigation(): bool
     {
-        return Features::enabled(ModuleSystemFeature::NAME) && parent::shouldRegisterNavigation();
+        return ModuleSystemFeature::available() && parent::shouldRegisterNavigation();
     }
 
     #[Override]

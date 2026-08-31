@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Artisan;
 use InterNACHI\Modular\Support\Facades\Modules;
 use InterNACHI\Modular\Support\ModuleConfig;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use RuntimeException;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 
@@ -32,10 +33,7 @@ class RollbackModules implements ShouldQueue
             $module = new Collection([$module]);
         }
 
-        /** @var Collection<int, ModuleConfig> $registered */
-        $registered = Modules::modules();
-
-        $modules = $module ?? $registered->map(fn (ModuleConfig $m): string => $m->name)->values();
+        $modules = $module ?? $this->registeredModuleNames();
 
         $modules->each(function (string $module) use ($tenant): void {
             $exitCode = Artisan::call('tenants:rollback-module', [
@@ -47,5 +45,25 @@ class RollbackModules implements ShouldQueue
                 throw new RuntimeException("tenants:rollback-module failed for module {$module} on tenant {$tenant->getTenantKey()}: ".Artisan::output());
             }
         });
+    }
+
+    /**
+     * Every module installed on this node, or none when there is no registry
+     * to ask. An explicit module list still rolls back either way — the
+     * migrations being reverted belong to the tenant's database, not to the
+     * registry.
+     *
+     * @return Collection<int, string>
+     */
+    private function registeredModuleNames(): Collection
+    {
+        if (! ModuleSystemFeature::available()) {
+            return new Collection;
+        }
+
+        /** @var Collection<int, ModuleConfig> $registered */
+        $registered = Modules::modules();
+
+        return $registered->map(fn (ModuleConfig $module): string => $module->name)->values();
     }
 }

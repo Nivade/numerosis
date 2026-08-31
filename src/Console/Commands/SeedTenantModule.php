@@ -8,7 +8,7 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
-use InterNACHI\Modular\Support\Facades\Modules;
+use Nvade\Numerosis\Concerns\ResolvesInstalledModules;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Stancl\Tenancy\Concerns\HasATenantsOption;
 
@@ -24,15 +24,13 @@ use Stancl\Tenancy\Concerns\HasATenantsOption;
 class SeedTenantModule extends Command
 {
     use HasATenantsOption;
+    use ResolvesInstalledModules;
 
     public function handle(): int
     {
         $name = (string) $this->argument('module');
-        $module = Modules::module($name);
 
-        if (! $module) {
-            $this->error("Module [{$name}] not found.");
-
+        if (! $this->installedModule($name)) {
             return self::FAILURE;
         }
 

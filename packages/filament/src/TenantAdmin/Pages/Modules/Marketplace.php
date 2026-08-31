@@ -21,7 +21,6 @@ use Nvade\Numerosis\Exceptions\Tenancy\TenantNotInitialized;
 use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Module;
-use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\NumerosisFilament\Concerns\Modules\PurchasesModules;
 use Override;
@@ -50,17 +49,22 @@ class Marketplace extends Page implements HasActions
      * registers it regardless. This override is the actual gate; see
      * Nvade\NumerosisFilament\TenantAdmin\Resources\Modules\ModuleResource::canAccess()
      * for the same trap on the resource side.
+     *
+     * It gates on `available()` rather than the feature switch alone because
+     * `internachi/modular` is `suggest`: getModules() below reaches the
+     * registry directly, so without this the page is a fatal rather than a
+     * 403 on a host that never installed it.
      */
     #[Override]
     public static function canAccess(): bool
     {
-        return Features::enabled(ModuleSystemFeature::NAME) && parent::canAccess();
+        return ModuleSystemFeature::available() && parent::canAccess();
     }
 
     #[Override]
     public static function shouldRegisterNavigation(): bool
     {
-        return Features::enabled(ModuleSystemFeature::NAME) && parent::shouldRegisterNavigation();
+        return ModuleSystemFeature::available() && parent::shouldRegisterNavigation();
     }
 
     #[Override]

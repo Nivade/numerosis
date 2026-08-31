@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Console\Commands;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
-use InterNACHI\Modular\Support\Facades\Modules;
+use Nvade\Numerosis\Concerns\ResolvesInstalledModules;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Stancl\Tenancy\Concerns\HasATenantsOption;
 
@@ -16,15 +16,13 @@ use Stancl\Tenancy\Concerns\HasATenantsOption;
 class RollbackTenantModule extends Command
 {
     use HasATenantsOption;
+    use ResolvesInstalledModules;
 
     public function handle(): int
     {
-        $name = (string) $this->argument('module');
-        $module = Modules::module($name);
+        $module = $this->installedModule((string) $this->argument('module'));
 
         if (! $module) {
-            $this->error("Module [{$name}] not found.");
-
             return self::FAILURE;
         }
 

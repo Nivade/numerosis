@@ -34,7 +34,6 @@
         "illuminate/support": "^13.0",
         "illuminate/validation": "^13.0",
         "illuminate/view": "^13.0",
-        "internachi/modular": "^3.0",
         "laravel/cashier": "^16.1",
         "laravel/framework": "^13.0",
         "livewire/livewire": "^4.2",
@@ -52,6 +51,7 @@
         "alizharb/filament-activity-log": "^1.5",
         "driftingly/rector-laravel": "^2.5",
         "filament/filament": "^5.7",
+        "internachi/modular": "^3.0",
         "larastan/larastan": "^3.0",
         "laravel/boost": "^2.4",
         "laravel/pint": "^1.14",
@@ -73,6 +73,7 @@
     "suggest": {
         "nvade/numerosis-auth-ui": "Login, registration, password-reset and OAuth screens. Without it there is no /login, /register or /forgot-password route, the tenant panel falls back to Filament's own login page, and social login is unavailable \u2014 core's auth mechanics (guards, LogoutUser, email verification, the social-account repository) still work.",
         "filament/filament": "Admin + tenant panels (both self-register when installed). Without it, App\\Models\\User loses Filament's FilamentUser/HasTenants contracts and neither panel registers \u2014 everything else still works.",
+        "internachi/modular": "The per-tenant module system: the marketplace, the module resource and the tenants:*-module commands. Without it those pages are hidden, purchasing refuses, and the commands are not registered \u2014 tenancy, billing and everything else still works.",
         "spatie/laravel-one-time-passwords": "Passwordless (OTP) login. Without it, User::HasOneTimePasswordsIfInstalled no-ops and nvade/numerosis-auth-ui's PasswordlessLogin is unreachable.",
         "spatie/laravel-activitylog": "Tenant\\User and Tenant\\Invitation activity logging. Without it, LogsActivityIfInstalled no-ops.",
         "sentry/sentry-laravel": "Enables TagsSentryScopeWithTenant; guarded by app()->bound('sentry') where used.",

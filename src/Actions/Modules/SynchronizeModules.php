@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use InterNACHI\Modular\Support\Facades\Modules;
 use InterNACHI\Modular\Support\ModuleConfig;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Support\Numerosis;
 
@@ -18,6 +19,12 @@ class SynchronizeModules
     public function handle(): void
     {
         if (! tenancy()->initialized) {
+            return;
+        }
+
+        // No registry installed means no modules exist to mirror into the
+        // tenant's `modules` table — nothing to do, not an error.
+        if (! ModuleSystemFeature::available()) {
             return;
         }
 
