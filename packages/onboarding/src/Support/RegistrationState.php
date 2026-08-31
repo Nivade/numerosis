@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Support\State;
+namespace Nvade\NumerosisOnboarding\Support;
 
 use Illuminate\Support\Fluent;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\TechnicalSetup;
+use Nvade\NumerosisOnboarding\Livewire\Steps\CompanyInfo;
+use Nvade\NumerosisOnboarding\Livewire\Steps\Plan;
+use Nvade\NumerosisOnboarding\Livewire\Steps\TechnicalSetup;
 use Override;
 use Spatie\LivewireWizard\Support\State;
 

@@ -41,7 +41,6 @@
         "nvade/numerosis-ui": "@dev",
         "ryangjchandler/laravel-cloudflare-turnstile": "^3.0",
         "spatie/laravel-data": "^4.18",
-        "spatie/laravel-livewire-wizard": "^3.1",
         "spatie/laravel-package-tools": "^1.16",
         "spatie/laravel-permission": "^7.2",
         "stancl/tenancy": "^3.10",
@@ -58,6 +57,7 @@
         "nunomaduro/collision": "^8.8",
         "nvade/numerosis-auth-ui": "@dev",
         "nvade/numerosis-filament": "@dev",
+        "nvade/numerosis-onboarding": "@dev",
         "orchestra/testbench": "^11.0",
         "pestphp/pest": "^4.0",
         "pestphp/pest-plugin-arch": "^4.0",
@@ -81,6 +81,7 @@
         "laravel/telescope": "Adds a scheduled telescope:prune entry and is why 'telescope/*' is CSRF-exempt; both are class_exists-guarded.",
         "laravel/reverb": "Broadcasting/presence-channel support for the tenant panel's realtime features.",
         "pusher/pusher-php-server": "Alternative broadcast driver to laravel/reverb, same broadcasting code paths.",
+        "nvade/numerosis-onboarding": "The self-serve tenant registration wizard at /get-started. Without it there is no signup route and core's four links to it are hidden \u2014 tenants can still be created from an admin screen, a job or a Stripe webhook.",
         "nvade/numerosis-filament": "The admin and tenant Filament panels. Without it this package registers no panels, and filament/filament is not needed at all."
     },
     "autoload": {
@@ -96,6 +97,7 @@
             "Nvade\\NumerosisUi\\Tests\\": "packages/ui/tests/",
             "Nvade\\NumerosisAuthUi\\Tests\\": "packages/auth-ui/tests/",
             "Nvade\\NumerosisFilament\\Tests\\": "packages/filament/tests/",
+            "Nvade\\NumerosisOnboarding\\Tests\\": "packages/onboarding/tests/",
             "Workbench\\App\\": "workbench/app/",
             "Workbench\\Database\\Factories\\": "workbench/database/factories/",
             "Workbench\\Database\\Seeders\\": "workbench/database/seeders/",

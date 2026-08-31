@@ -85,6 +85,19 @@ class PackageBoundariesTest extends BaseTestCase
                     'numerosis-onboarding' => '/Nvade\\\\NumerosisOnboarding\\\\/',
                 ],
             ],
+            // Depends on core and ui. It must not reach the Filament layer:
+            // the admin panel hosts the wizard through
+            // `numerosis.panels.admin.tenant_registration_component`, which
+            // names a Livewire *alias*, so the dependency runs one way even
+            // though a Filament page is what renders it.
+            'onboarding' => [
+                'onboarding',
+                ['src', 'routes', 'resources'],
+                [
+                    'filament' => '/Filament\\\\/',
+                    'numerosis-auth-ui' => '/Nvade\\\\NumerosisAuthUi\\\\/',
+                ],
+            ],
         ];
     }
 

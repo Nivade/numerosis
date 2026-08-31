@@ -9,11 +9,11 @@ use App\Models\Central\PendingTenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Registration;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\TechnicalSetup;
-use Nvade\Numerosis\Support\State\RegistrationState;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisOnboarding\Livewire\Registration;
+use Nvade\NumerosisOnboarding\Livewire\Steps\CompanyInfo;
+use Nvade\NumerosisOnboarding\Livewire\Steps\TechnicalSetup;
+use Nvade\NumerosisOnboarding\Support\RegistrationState;
 
 class TechnicalSetupTest extends TestCase
 {

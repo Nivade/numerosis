@@ -2,14 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Features\Tenancy;
+namespace Nvade\NumerosisOnboarding\Features;
 
 use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
 use LogicException;
 use Nvade\Numerosis\Contracts\NamedFeature;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
-use Nvade\Numerosis\Livewire\Tenant as Tenants;
+use Nvade\Numerosis\Support\Tenancy\SelfServeRegistration;
+use Nvade\NumerosisOnboarding\Livewire as Wizard;
 
 /**
  * The self-serve tenant registration wizard and its route.
@@ -20,7 +21,12 @@ use Nvade\Numerosis\Livewire\Tenant as Tenants;
  */
 class RegistrationWizardFeature implements NamedFeature
 {
-    public const NAME = 'registration_wizard';
+    /**
+     * Defined as core's constant, never as a literal: core has to gate six of
+     * its own surfaces on this name without autoloading this class, which may
+     * not be installed. See SelfServeRegistration's docblock.
+     */
+    public const NAME = SelfServeRegistration::FEATURE;
 
     /**
      * Alias each shipped step registers under, and the view file that alias
@@ -42,9 +48,9 @@ class RegistrationWizardFeature implements NamedFeature
      * @var array<class-string, string>
      */
     private const SHIPPED_STEP_ALIASES = [
-        Tenants\Registration\Steps\CompanyInfo::class => 'company-info',
-        Tenants\Registration\Steps\TechnicalSetup::class => 'technical-setup',
-        Tenants\Registration\Steps\Plan::class => 'plan',
+        Wizard\Steps\CompanyInfo::class => 'company-info',
+        Wizard\Steps\TechnicalSetup::class => 'technical-setup',
+        Wizard\Steps\Plan::class => 'plan',
     ];
 
     public static function featureName(): string
@@ -54,7 +60,12 @@ class RegistrationWizardFeature implements NamedFeature
 
     public function bootstrap(): void
     {
-        $viewsPath = Config::string('numerosis.views.path');
+        // This package's own views, not `numerosis.views.path`: the wizard's
+        // Blade files moved here with the components that render them. They
+        // still resolve under the shared `numerosis::` view namespace, but
+        // Livewire::addComponent() takes an absolute path, so it has to be
+        // built from this package's root.
+        $viewsPath = dirname(__DIR__, 2).'/resources/views';
 
         /** @var list<class-string> $steps */
         $steps = Config::array('numerosis.tenancy.registration.steps');
@@ -64,7 +75,7 @@ class RegistrationWizardFeature implements NamedFeature
         Livewire::addComponent(
             name: 'tenant-registration',
             viewPath: $viewsPath.'/livewire/tenant/registration/wizard/index.blade.php',
-            class: Tenants\Registration\Registration::class,
+            class: Wizard\Registration::class,
         );
 
         foreach ($steps as $step) {

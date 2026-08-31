@@ -23,7 +23,7 @@
                                 </flux:button>
                             @endif
                         @else
-                            @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
+                            @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Tenancy\SelfServeRegistration::FEATURE))
                                 <flux:button as="a" variant="primary" href="{{ route('tenants.create') }}" wire:navigate icon="rocket-launch">
                                     Get started — it's free
                                 </flux:button>
@@ -150,7 +150,7 @@
                 </x-numerosis::ui.card>
             </div>
 
-            @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
+            @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Tenancy\SelfServeRegistration::FEATURE))
                 <div class="mt-12 sm:mt-16 text-center">
                     <flux:button as="a" variant="primary" href="{{ route('tenants.create') }}" wire:navigate icon="rocket-launch">
                         Create your workspace

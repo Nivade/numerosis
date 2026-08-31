@@ -112,7 +112,7 @@ class extends Component
                 <x-numerosis::ui.badge variant="default">
                     {{ $readyTenants->count() }} total
                 </x-numerosis::ui.badge>
-                @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
+                @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Tenancy\SelfServeRegistration::FEATURE))
                     <flux:button href="{{ route('tenants.create') }}" wire:navigate icon="plus" variant="primary" size="sm">
                         New Tenant
                     </flux:button>
@@ -127,7 +127,7 @@ class extends Component
                     title="You're not a member of any tenants yet"
                     description="Create your first tenant to get started, or ask an owner to invite you."
                 >
-                    @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
+                    @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Tenancy\SelfServeRegistration::FEATURE))
                         <x-slot:action>
                             <flux:button href="{{ route('tenants.create') }}" wire:navigate variant="primary">
                                 Create Tenant
@@ -158,7 +158,7 @@ class extends Component
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0 justify-end">
                                     @if($pending->hasFailed())
-                                        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
+                                        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Tenancy\SelfServeRegistration::FEATURE))
                                             <flux:button href="{{ route('tenants.create') }}" wire:navigate variant="ghost" size="sm">
                                                 Try again
                                             </flux:button>

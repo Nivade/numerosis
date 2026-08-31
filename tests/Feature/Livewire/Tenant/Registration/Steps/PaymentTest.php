@@ -9,10 +9,10 @@ use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Registration;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
-use Nvade\Numerosis\Support\State\RegistrationState;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisOnboarding\Livewire\Registration;
+use Nvade\NumerosisOnboarding\Livewire\Steps\Payment;
+use Nvade\NumerosisOnboarding\Support\RegistrationState;
 
 class PaymentTest extends TestCase
 {

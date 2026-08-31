@@ -116,12 +116,14 @@ it('adds a registered tenant seeder to what TenantDatabaseSeeder::run() calls', 
 
 /*
  * Phase 6 (`.claude/plans/memoized-tinkering-meadow.md`) added the two
- * central-side seams below. The package map assigns the `modules` permission
- * context to numerosis-modules while `RoleAndPermissionSeeder` stays in core,
- * and a satellite cannot be asked to publish and edit that seeder — a missing
+ * central-side seams below. The motivating case was a satellite owning a
+ * permission context whose seeder (`RoleAndPermissionSeeder`) stays in core:
+ * a satellite cannot be asked to publish and edit that seeder, and a missing
  * permission context 500s *every* page in the panel, not just its own
- * (`.claude/rules/auth-guards.md`), so this is not a case where "the host can
- * wire it up" is an acceptable answer.
+ * (`.claude/rules/auth-guards.md`), so "the host can wire it up" is not an
+ * acceptable answer. That example was the `modules` context, which no longer
+ * moves anywhere (decision D-C, `.claude/plans/numerosis-consolidation.md`);
+ * the seams stand on their own for the next package that needs one.
  */
 
 it('adds a registered central seeder to what DatabaseSeeder::run() calls', function () {

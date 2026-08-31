@@ -22,7 +22,7 @@
                                 </a>
                             </li>
                         @endif
-                        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
+                        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Tenancy\SelfServeRegistration::FEATURE))
                             <li>
                                 <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('tenants.create') }}" wire:navigate aria-label="Create workspace">
                                     Create workspace

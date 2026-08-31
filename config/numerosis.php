@@ -40,14 +40,9 @@ use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Features\Tenancy\ImpersonationFeature;
 use Nvade\Numerosis\Features\Tenancy\MembershipsFeature;
-use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
 use Nvade\Numerosis\Features\Ui\MarketingPagesFeature;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\TechnicalSetup;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
@@ -127,7 +122,6 @@ return [
 
         // Self-serve tenant registration wizard (/get-started). Tenant
         // provisioning itself is unaffected — see the class docblock.
-        RegistrationWizardFeature::class,
 
         // Not a real toggle — see the class docblock. Registered
         // unconditionally; do not comment out.
@@ -864,14 +858,14 @@ return [
         |
         */
 
-        'registration' => [
-            'steps' => [
-                CompanyInfo::class,
-                TechnicalSetup::class,
-                Plan::class,
-                Payment::class,
-            ],
-        ],
+        // 'registration' => ['steps' => [...]] is intentionally absent.
+        // The four shipped steps belong to nvade/numerosis-onboarding, which
+        // fills this key from its own register() when nothing has set it.
+        // Core cannot carry the default: naming those classes here would put
+        // a package core does not depend on into core's own config file, and
+        // a host that declines the wizard would be reading a list of classes
+        // that do not exist. Override it in a published config to reorder or
+        // replace the steps; a value present here wins.
 
         /*
         |----------------------------------------------------------------------

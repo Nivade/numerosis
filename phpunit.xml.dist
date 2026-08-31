@@ -59,6 +59,7 @@
             <directory suffix=".php">./packages/ui/src</directory>
             <directory suffix=".php">./packages/auth-ui/src</directory>
             <directory suffix=".php">./packages/filament/src</directory>
+            <directory suffix=".php">./packages/onboarding/src</directory>
         </include>
     </source>
 </phpunit>

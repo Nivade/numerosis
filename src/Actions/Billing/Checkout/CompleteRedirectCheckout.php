@@ -11,11 +11,11 @@ use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
-use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Http\Requests\Billing\CheckoutReturnRequest;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Support\Tenancy\SelfServeRegistration;
 use Stripe\Exception\ApiErrorException;
 
 /**
@@ -77,7 +77,7 @@ class CompleteRedirectCheckout
             );
         }
 
-        session()->forget('registration.wizard_state');
+        session()->forget(SelfServeRegistration::SESSION_KEY);
 
         return to_route(RouteNames::tenantsMine())->with('success', __('numerosis::billing.checkout.setting_up'));
     }
@@ -93,7 +93,7 @@ class CompleteRedirectCheckout
      */
     private function registrationErrorRedirect(string $message): RedirectResponse
     {
-        $route = Features::enabled(RegistrationWizardFeature::NAME) ? 'tenants.create' : RouteNames::home();
+        $route = Features::enabled(SelfServeRegistration::FEATURE) ? 'tenants.create' : RouteNames::home();
 
         return to_route($route)->with('error', $message);
     }

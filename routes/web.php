@@ -8,7 +8,6 @@ use Nvade\Numerosis\Actions\Billing\Checkout\CompleteRedirectCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartLocalCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
-use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
 use Nvade\Numerosis\Features\Ui\MarketingPagesFeature;
 use Nvade\Numerosis\Http\Controllers\Auth\VerifyEmailController;
@@ -16,7 +15,6 @@ use Nvade\Numerosis\Http\Controllers\Billing\WebhookController;
 use Nvade\Numerosis\Livewire\Settings\Appearance;
 use Nvade\Numerosis\Livewire\Settings\Password;
 use Nvade\Numerosis\Livewire\Settings\Profile;
-use Nvade\Numerosis\Livewire\Tenant;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Routes\RouteNames;
@@ -62,10 +60,12 @@ Route::middleware(['auth:web'])->group(function () {
         Route::livewire('/tenants/mine', 'pages::tenant.mine')->name(RouteNames::tenantsMine());
     }
 
-    if (Features::enabled(RegistrationWizardFeature::NAME)) {
-        Route::livewire('/get-started', Tenant\Registration\Registration::class)->name('tenants.create');
-    }
-    //    Route::view('/registration-success', 'tenant.registration-success')->name('tenant.registration.success');
+    // `/get-started` (route name `tenants.create`) is contributed by
+    // nvade/numerosis-onboarding through Numerosis::addCentralRoutes(), so it
+    // lands in this same central-domain group without core naming that
+    // package. Core still *links* to the name from four views and from
+    // CompleteRedirectCheckout, each gated on
+    // Support\Tenancy\SelfServeRegistration::FEATURE.
 
     Route::get('checkout/subscription/new', StartSubscriptionCheckout::class)->name('checkout.subscription');
     Route::get('/checkout/subscription/return', CompleteRedirectCheckout::class)->name('checkout.subscription.return');

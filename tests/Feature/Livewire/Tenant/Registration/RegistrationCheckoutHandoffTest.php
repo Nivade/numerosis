@@ -9,11 +9,11 @@ use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Registration;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
-use Nvade\Numerosis\Support\State\RegistrationState;
 use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisOnboarding\Livewire\Registration;
+use Nvade\NumerosisOnboarding\Livewire\Steps\Plan;
+use Nvade\NumerosisOnboarding\Support\RegistrationState;
 
 class RegistrationCheckoutHandoffTest extends TestCase
 {

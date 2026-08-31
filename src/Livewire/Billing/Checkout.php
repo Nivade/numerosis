@@ -31,6 +31,7 @@ use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Support\Tenancy\SelfServeRegistration;
 
 /**
  * The inline checkout, used two ways: standalone at `/checkout/{domain}`,
@@ -343,7 +344,7 @@ class Checkout extends Component
         // Registration::showStep() in Part 2 of this plan) is only useful
         // while a registration is in progress. Clearing it here is a no-op
         // when Checkout was reached standalone (nothing set the key).
-        session()->forget('registration.wizard_state');
+        session()->forget(SelfServeRegistration::SESSION_KEY);
 
         $this->redirectRoute(Features::enabled(AccountPagesFeature::NAME) ? RouteNames::tenantsMine() : RouteNames::home());
     }

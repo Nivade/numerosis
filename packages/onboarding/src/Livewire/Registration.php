@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Livewire\Tenant\Registration;
+namespace Nvade\NumerosisOnboarding\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Config;
@@ -11,8 +11,8 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
-use Nvade\Numerosis\Support\State\RegistrationState;
+use Nvade\NumerosisOnboarding\Livewire\Steps\Plan;
+use Nvade\NumerosisOnboarding\Support\RegistrationState;
 use Override;
 use Spatie\LivewireWizard\Components\WizardComponent;
 

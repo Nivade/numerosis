@@ -1,6 +1,6 @@
 name: split-packages
 
-# This repo is the monorepo; the four installable packages are published as
+# This repo is the monorepo; the five installable packages are published as
 # read-only mirrors. Nothing runs until a tag exists, so this workflow can sit
 # here inert until the first release.
 #
@@ -30,6 +30,8 @@ jobs:
             split: numerosis-auth-ui
           - local: packages/filament
             split: numerosis-filament
+          - local: packages/onboarding
+            split: numerosis-onboarding
 
     name: ${{ matrix.split }}
 

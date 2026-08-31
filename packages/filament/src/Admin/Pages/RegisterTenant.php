@@ -16,7 +16,7 @@ class RegisterTenant extends Page
      * Was 'components.layouts.app.none', a view that doesn't exist —
      * throwing Livewire\Features\SupportPageComponents\MissingLayoutException
      * every time this page loaded. The wizard this page embeds
-     * (Nvade\Numerosis\Livewire\Tenant\Registration\Registration) uses the
+     * (Nvade\NumerosisOnboarding\Livewire\Registration) uses the
      * correct reference, 'layouts::app.none' — registered by
      * NumerosisServiceProvider against resources/views/layouts/app/none.blade.php.
      * Went unnoticed because this route had no traffic until ListTenants'

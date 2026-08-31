@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Livewire\Tenant\Registration\Steps;
+namespace Nvade\NumerosisOnboarding\Livewire\Steps;
 
 use Illuminate\View\View;
 use Nvade\Numerosis\Enums\BillingCycle;

@@ -8,8 +8,8 @@ use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisOnboarding\Livewire\Steps\Plan;
 
 class PlanTest extends TestCase
 {
