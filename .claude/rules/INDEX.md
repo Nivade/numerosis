@@ -20,7 +20,7 @@ One line per file, under ~150 chars. Update index when rules file add/rename/rem
 - [module-marketplace.md](module-marketplace.md) — system in core, UI in `packages/filament`, permanently; stale registry on long-running workers; `$tenant->run()` has no try/finally.
 - [package-split.md](package-split.md) — one shared view namespace; scanning tests go vacuous not red; constants autoload; satellite config writes can truncate a core namespace.
 - [package-boundaries.md](package-boundaries.md) — **the seam map**: what to contribute through (routes/features/migrations/seeders/permissions/panels) and the boundary facts that still bite.
-- [package-host-bootstrap.md](package-host-bootstrap.md) — `Domains.php` can't call facades; host `bootstrap/app.php`/`providers.php` staleness; `HostConfig::apply()` register-vs-booting race truncating `tenancy.database`.
+- [package-host-bootstrap.md](package-host-bootstrap.md) — `Domains.php` can't call facades; host `bootstrap/app.php`/`providers.php` staleness; `HostConfig::apply()` register-vs-booting race; `Numerosis::middleware()` fatal on a real (non-Testbench) boot.
 - [stancl-tenancy-v4.md](stancl-tenancy-v4.md) — **port map, not current code**: v3-only since 2026-08-31; 11 moved symbols (9 eager) + 4 moved config keys; v4 docs wrong on 3 points.
 - [static-analysis.md](static-analysis.md) — level 9, one config + baseline; warm result cache hides errors (compare cold-vs-cold); green doesn't survive `composer install`.
 - [tenant-caching.md](tenant-caching.md) — `global_cache()` un-prefixed; cross-tenant leaks of cached tenant models + shared session guard keys.

@@ -1,6 +1,6 @@
 ---
 topic: package-host-bootstrap
-updated: 2026-08-11
+updated: 2026-08-31
 ---
 
 # Package/Host Bootstrap Wiring
@@ -180,3 +180,54 @@ staleness" failure mode and worth the same caution.
   the `Arr::set()` auto-vivification hazard entirely regardless of phase,
   and is worth doing the next time this file is touched, rather than relying
   on phase ordering to keep saving it.
+
+- **`Numerosis::middleware()` fatally crashed every real (non-Testbench)
+  request and every `artisan` invocation, and no test in this repo could
+  have caught it — found 2026-08-31 scaffolding a genuinely fresh host
+  (`numerosis-thin-app`) and hitting it on the very first `curl`.**
+  `ApplicationBuilder::withMiddleware($callback)` registers `$callback`
+  through **two** `afterResolving()` hooks, not one:
+  `afterResolving(HttpKernel::class, ...)` for real requests, and
+  `afterResolving(ConsoleKernel::class, ...)` (a separate call, a few lines
+  later in the same method) so middleware aliases also resolve for Artisan.
+  Both fire the instant the container first builds that kernel object —
+  which happens *before* the kernel's own `bootstrap()` call, i.e. before
+  `RegisterFacades` has run. `Numerosis::middleware()` calls
+  `TenancyServiceProvider::identificationMiddleware()` /
+  `::tenancyRouteMiddleware()`, both of which call
+  `IdentificationMode::current()`, which reads `Config::string(...)` —
+  and `Config::__callStatic()` throws `RuntimeException: A facade root has
+  not been set` the instant it's asked to resolve with no app bound yet.
+  Every `php artisan migrate`, every real HTTP request, crash-looped
+  supervisor's `php` worker before the exception handler existed to report
+  it — the exact `Domains::appUrl()` class of bug this file already
+  documents, reached through a different door, and just as invisible to
+  Testbench: that harness boots the whole app, including `RegisterFacades`,
+  *before* running any command or dispatching any request, so neither
+  kernel's premature resolution can ever happen there. **This package has no
+  test that boots a real kernel from a cold, un-bootstrapped process** — the
+  browser suite (`.claude/rules/testing.md`) serves in-process, already
+  bootstrapped, same as every other test here.
+
+  Fixed in `IdentificationMode::current()`: falls back to `self::Subdomain`
+  when `Facade::getFacadeApplication() === null`, rather than reading
+  `Config`. Safe specifically because `NumerosisServiceProvider::registerMiddleware()`
+  **unconditionally** re-registers the real aliases later, from
+  `packageBooted()` (after `RegisterFacades`, after `LoadConfiguration`) —
+  the premature call's only job is to not crash the process before that
+  correction runs; whatever it computes in between is thrown away.
+
+  ## Suggested better approach
+
+  The only reason a fallback-to-default is safe here is that a second,
+  unconditional, correctly-timed registration already exists and this
+  package happened to have already built it (for a different reason — a
+  host that never calls `Numerosis::middleware()` at all). A future
+  `Numerosis::*()` callback registered through `ApplicationBuilder`
+  (`withRouting`, `withExceptions`, any future `with*()`) that reads config
+  and has **no** such `packageBooted()` self-heal would need the same
+  facade-root guard to avoid this exact crash, and would need the self-heal
+  built alongside it, not assumed. Grep this package for `Facade::getFacadeApplication`
+  before adding a fourth one by hand — worth turning into a shared helper
+  (`Numerosis::whenBootstrapped(fn () => ..., fallback: ...)` or similar) once
+  a third case shows up, rather than re-deriving the guard each time.
