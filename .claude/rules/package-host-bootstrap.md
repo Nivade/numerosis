@@ -174,12 +174,34 @@ staleness" failure mode and worth the same caution.
   normal auto-discovered package with nothing unusual about its own
   registration; a *third* package with an even later or conditional
   `register()` (deferred providers, in particular) could reopen the same
-  race one phase later. The structurally sound fix — read-modify-write the
-  whole parent array via `Config::array($parent, [])` plus one write of the
-  merged result, rather than a multi-segment dotted `Config::set()` — avoids
-  the `Arr::set()` auto-vivification hazard entirely regardless of phase,
-  and is worth doing the next time this file is touched, rather than relying
-  on phase ordering to keep saving it.
+  race one phase later.
+
+  **Corrected 2026-09-01. This section used to propose read-modify-write of
+  the whole parent array via `Config::array($parent, [])` plus one write, and
+  called it "structurally sound … avoids the hazard entirely regardless of
+  phase". It does not, and a session acting on it would ship a fix that
+  changes nothing.** The incident above is not "the parent was a scalar", it
+  is "the parent did not exist yet" — stancl's `mergeConfigFrom('tenancy')`
+  had not run, so `tenancy.database` was absent. Reading an absent parent
+  yields `[]`, merging into `[]` yields exactly the truncated array
+  `Arr::set()` produced, and writing it back loses `prefix`/`suffix`/
+  `managers` identically. Read-modify-write only protects the narrower case
+  where the parent exists as a *non-array* value.
+
+  What actually converts this failure from silent to loud is an **assertion,
+  not a different write**: have `HostConfig::set()` walk the key's
+  intermediate segments and throw naming the key when one is missing or not
+  an array, for any key outside `numerosis.*` (which this package's own
+  `mergeConfigFrom` populates before anything here runs). Nine of the twenty
+  `self::set()` calls in `HostConfig` are 3+ segments under a foreign
+  namespace — `tenancy.filesystem.root_override.local`,
+  `tenancy.database.central_connection`, `auth.providers.users.model`,
+  `queue.failed.database` and friends — so the guard has real surface. On a
+  correctly-ordered boot every one of them passes and behaviour is unchanged;
+  a fourth package reopening the race one phase later becomes an exception
+  naming the exact key instead of a truncated array that surfaces months
+  later on one route. Not built yet — recorded here so the next attempt
+  starts from the right diagnosis.
 
 - **`Numerosis::middleware()` fatally crashed every real (non-Testbench)
   request and every `artisan` invocation, and no test in this repo could

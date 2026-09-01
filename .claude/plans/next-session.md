@@ -3,70 +3,102 @@
 **Overwrite this file at the end of every session; don't append.** It's a
 dispatch note, not a plan — the actual plans live in their own files.
 
-## State at handoff, 2026-09-01
+## State at handoff, 2026-09-01 (third session that day)
 
-Both repos clean and committed. Nothing outstanding to land.
+Both repos have **uncommitted work**. Nothing is pushed. Nothing from the
+previous handoff was committed either, so this tree is two sessions deep.
 
-- `numerosis` — branch `package-scope-reduction`, two new commits:
-  - `f3e0297 refactor: split the product out of the framework, reclaim overloaded names`
-  - `63d216b perf: run the suite in parallel by default`
-  - Untracked and deliberately left alone: `.agents/` (a third copy of the
-    skills already in `.claude/skills/`).
-  - **Not pushed.**
-- `numerosis-thin-app` — branch `master`, one new commit:
-  `bddeff1 feat: own this product's marketing pages, install numerosis-account`.
+- `numerosis` — branch `package-scope-reduction`. Modified: `README.md`,
+  `config/numerosis.php`, `docs/{architecture,extending,features,host-requirements}.md`,
+  `src/NumerosisServiceProvider.php`, `src/Support/Numerosis.php`,
+  `phpstan.neon.dist`, `phpstan-baseline.neon`,
+  `.claude/rules/{auth-guards,package-boundaries,package-host-bootstrap,stancl-tenancy-v4}.md`,
+  `.claude/plans/{confusion-cleanup,numerosis-consolidation,next-session}.md`.
+  New: `config/numerosis/` (15 partials), `config/stubs/numerosis.php`,
+  `src/Support/{Contributions,Assets}.php`, `tests/Browser/AdminPanelTest.php`,
+  `tests/Browser/ModuleMarketplaceTest.php`.
+  **`.agents/` was deleted this session** (see below).
+- `numerosis-thin-app` — branch `master`. Modified: `config/numerosis.php`
+  (925 → 55 lines), `.claude/rules/{package-boundaries,package-host-bootstrap}.md`.
 
-Green as of this handoff: `composer test` (669 passed, 7 skipped, ~62s),
-`composer test-serial` (~175s), `composer test-browser` (10 passed),
-`composer analyse` (0 outside a 203-entry baseline).
+Green as of this handoff: `composer test` (**675 passed, 7 skipped, 7405
+assertions**), `composer analyse` (cold `[OK] No errors`, 0 outside the
+202-entry baseline), `vendor/bin/pint`. Host: `artisan test` green, and `/`,
+`/about`, `/terms`, `/privacy`, `/features`, `/login` all 200 with `/admin`
+302, over HTTPS against a real boot at
+`https://central.numerosisthinapp.nvade.dev`.
+
+Assertion delta from last handoff: **+6 tests / +16 assertions** —
+`tests/Browser/AdminPanelTest` (1/4) and `tests/Browser/ModuleMarketplaceTest`
+(5/12). Nothing else moved.
 
 ## What this session did
 
-**1. Finished `confusion-cleanup.md` step 7 and verified the whole thing.**
-That plan's step 7 was "done but NOT test-verified". It is now: the
-`ModelResolver` extraction broke nothing. Steps 1–6 unchanged.
+**1. Three stale rule sections corrected — they proposed fixes that do not
+work.** Each would have cost the next session real effort for no change:
 
-**2. PHPStan was not analysing `packages/` at all** — `paths` still listed only
-core's directories, so all six satellite packages went uncovered at level 9
-from the moment the split happened. Added, which surfaced 27 errors, including
-one real defect: `DeleteAccount` referenced its view without the `numerosis::`
-namespace — the only such reference in that package — so the panel would have
-thrown on render, with no test covering it. Blade templates are excluded, as
-core's own views always were. Three cross-package constant-contract assertions
-went to the baseline (203 entries now, was 200).
+- `package-boundaries.md` claimed there were no readers for contributed
+  routes, migration paths or seeders. Four of the five already existed.
+- `package-host-bootstrap.md` proposed read-modify-write via
+  `Config::array($parent, [])` for the `Arr::set()` truncation hazard. The
+  incident was an *absent* parent, not a scalar one, and read-modify-write of
+  an absent parent reproduces the truncation exactly. Replaced with the
+  assertion approach. `stancl-tenancy-v4.md` cited the same retracted fix.
+- `auth-guards.md` said `#[UsePolicy]` on a base class is inherited "through
+  the parent walk". It is not — see item 3.
 
-**3. Made `--parallel` the default.** Full mechanism in
-`.claude/rules/testing.md` under "How parallel was fixed"; the old "Why
-parallel was dropped" section is kept below it with a note saying which of its
-conclusions are now void. Short version: the deadlock those sessions died on
-had already been removed as a side effect of `keepDatabaseSchema()`, and
-nobody re-measured. The real problems were that only the *default* connection
-follows the parallel token (this suite defines three), that
-`tenancy.database.prefix` was shared across workers, and that
-`fake()->unique()->safeEmail()` does not stay unique across tests.
+**2. `confusion-cleanup.md` is complete.** Step 7's second half landed:
+`Support\Numerosis` split by audience into `Support\Contributions` (the
+`add*()` seams and both test-only resets) and `Support\Assets` (publish map,
+asset tags), joining `Support\ModelResolver`. 649 → 606 lines, every moved
+method kept as a delegate, so no call site or host config changed. `.agents/`
+deleted after checking: its five "unique" `source-command-*` skills are
+generated wrappers byte-identical to the tracked `.claude/commands/*.md`, and
+its diverging `codebase-learnings` is a Codex rewrite pointing at a `.Codex/`
+directory that does not exist here.
 
-**4. Host: verified against a real boot**, not Testbench — all five central
-pages 200 over HTTPS, and `/` serves the host's own `welcome` view through the
-new `numerosis.routes.home_view` seam.
+**3. `tests/Browser/AdminPanelTest` — and the defect it exposed.** The
+consolidation plan's open question is answered: **a second
+`Auth::guard()->login()` mid-test IS visible to the browser**, cookie from the
+first login notwithstanding. Verified by control, not assumed.
+
+Writing it surfaced something worse, and it is now the top item on the
+consolidation plan: **every host-subclassed central model silently resolves no
+policy, and Filament then defaults to allow.** A `CentralUser` with zero roles
+renders `/admin/tenants`. `Central\{Tenant,PaymentPlan,Subscription}` are
+affected; the `Tenant\*` models escape only because their workbench subclasses
+re-declare `#[UsePolicy]` by hand. Not fixed — it changes authorization
+behaviour and needs a decision.
+
+**4. `tests/Browser/ModuleMarketplaceTest`** — 5 tests covering
+`Marketplace::getModules()`, the catalogue ∩ installed-registry intersection
+nothing else touched, each direction with its own control. The registry is
+faked through `app()->instance(ModuleRegistry::class, …)` rather than
+scaffolding a module on disk.
+
+The **purchase** half is blocked and needs a decision rather than more tests.
+Filament's JS is not served in this harness, so no action modal opens;
+`vendor/bin/testbench filament:assets` was tried, **does not fix it**, and
+breaks `InstallNumerosisCommandTest` (which depends on the harness having no
+published theme) — the publish was reverted. Separately there is no
+module-purchase equivalent of `LocalCheckoutGateway`, so confirming would hit
+real Cashier/Stripe.
 
 ## Next-step menu
 
-1. **Push both repos.** Neither has been pushed; `numerosis` is on a feature
-   branch, so this probably wants a PR.
-2. **`confusion-cleanup.md`'s remaining loose ends**, none of them started:
-   - `docs/architecture.md` and `docs/features.md` predate steps 1–7 and still
-     describe the old layout (five-package table, now six;
-     `AccountPagesFeature`/`MarketingPagesFeature` as core features;
-     `Support\Numerosis` as 33 methods). `docs/host-requirements.md`'s §0
-     package table is a package short.
-   - Splitting `config/numerosis.php` (922 lines) — assessed as the riskiest
-     item and deliberately deferred; the reasoning is in that plan.
-   - The host still carries a full 922-line copy of `config/numerosis.php`; the
-     deep-fill means it only needs the keys it actually changes.
-   - The 23-of-32 single-implementation contracts. They are documented swap
-     points in `numerosis.{billing,tenancy}.implementations`, so deleting them
-     removes a real host feature — wants a decision, not a cleanup.
-3. **`build/phpstan/cache` is root-owned** and needs
-   `sudo rm -rf build/phpstan` to clear. Until then PHPStan needs the `tmpDir`
-   override recipe in `.claude/rules/static-analysis.md`. `build/` is
-   gitignored, so this is throwaway cache, not data.
+1. **Decide on the policy-resolution defect** —
+   `numerosis-consolidation.md` "Pick up here" item 4 has the measured table
+   and the proposed fix (`Gate::policy(Numerosis::model(X), XPolicy)` at boot,
+   rather than relying on the attribute). This is the highest-value item here
+   and it is security-relevant.
+2. **Commit both repos, then push.** `numerosis` is on a feature branch, so
+   this probably wants a PR. Three sessions of work are uncommitted.
+3. **Finish the module marketplace leg** — the render half landed this
+   session; the *purchase* half is blocked and needs a decision, not more
+   tests. Either serve Filament's JS in the browser harness (`filament:assets`
+   does **not** work — see consolidation item 1) or add a local module-billing
+   gateway alongside `LocalCheckoutGateway`.
+4. ~~`build/phpstan/cache` is root-owned~~ — **no longer true.** Both
+   directories are `nvade:nvade` now and `composer analyse` ran clean twice
+   this session with no `tmpDir` override. The recipe in
+   `.claude/rules/static-analysis.md` is still there if it recurs.

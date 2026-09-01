@@ -821,22 +821,74 @@ a `docker compose up -d` first; MySQL wasn't running.
    handoff" above. **Still not covered, in the order they should be picked
    up:**
 
-   - **The admin panel showing the new tenant.** Started and abandoned only
-     because the session ended, not because it looked hard. The open question
-     is whether a *second* `Auth::guard(…)->login()` mid-test (as a staff
-     user, after the wizard has run as a central user) is visible to the
-     browser, which holds a session cookie from the first login. Every
-     existing browser test logs in once, before its first `visit()`, so this
-     is untested either way. If it does not work, the fallback is a second
-     test that provisions via `StartLocalCheckout::run()` directly and only
-     browser-drives the panel. Note there is **no**
-     `tests/Feature/Filament/Admin/Resources/Central/Tenants/` directory to
-     copy an auth helper from — only `PaymentPlans` — so find how a staff
-     user is built elsewhere first.
-   - **A module marketplace purchase.** Not attempted at all. The UI is
-     `packages/filament/src/TenantAdmin/{Resources,Pages}/Modules/` and it
-     needs `internachi/modular` present plus a real module in the registry;
-     section C's `ModuleSystemFeature::available()` seam is the switch.
+   - ~~**The admin panel showing the new tenant.**~~ **✅ Done 2026-09-01,
+     uncommitted** — `tests/Browser/AdminPanelTest`. Wizard runs as a roleless
+     central user, then a staff user views `/admin/tenants` and sees the
+     provisioned tenant. Three things it settled:
+
+     - **The open question is answered: yes.** A second
+       `Auth::guard(…)->login()` mid-test *is* visible to the browser, even
+       though it already holds a session cookie from the first login. The
+       fallback (provision via `StartLocalCheckout::run()`, browser-drive only
+       the panel) is not needed. Verified by control: delete the second login
+       and the page renders as the first user.
+     - **The staff user needs no helper.** `CentralUserObserver::created()`
+       runs `PromoteFirstCentralUserToAdmin`, so the *first* `CentralUser`
+       created after `(new RoleAndPermissionSeeder)->run()` holds the
+       fully-permissioned `admin` role. Create staff first, the wizard's
+       customer second, and they are genuinely different principals.
+     - **"The tenants page rendered" turned out to be a vacuous assertion,
+       and finding out why surfaced a live security defect** — see the
+       new subsection below. The identity assertion is made against
+       `$page->content()`, not `assertSee()`: the signed-in user's name lives
+       in the panel's user-menu dropdown, which stays collapsed because
+       Filament's own JS is not built in this harness (`filamentDropdown is
+       not defined`), so it can never be *visible*.
+   - **A module marketplace purchase.** **Partly done 2026-09-01,
+     uncommitted** — `tests/Browser/ModuleMarketplaceTest`, 5 tests. The
+     *render* half is covered; the *purchase* half is blocked, twice over.
+
+     Covered: `Marketplace::getModules()` is an intersection of the catalogue
+     and the modules the registry reports installed, and nothing tested it.
+     Both directions now do, each with its control — offered-but-not-installed
+     is hidden (and shown once the registry reports it), retired-but-installed
+     is hidden, and the purchase affordance appears for a tenant owner and not
+     for a plain tenant user.
+
+     **No real module is scaffolded on disk.** `ModuleRegistry` takes its
+     loader as a constructor closure and `ModuleConfig` has a plain public
+     constructor, so `app()->instance(ModuleRegistry::class, …)` is enough —
+     no `workbench/app-modules/`, no autoload regeneration. It must be
+     `instance()`, since the `Modules` facade resolves `ModuleRegistry::class`
+     as a singleton. Test isolation holds by mechanism, not luck:
+     `ModuleOfferingObserver` forgets `CacheKeys::availableModules()` on save,
+     so each test's own offerings invalidate the previous one's cache.
+
+     **Why the purchase itself is out of reach:**
+
+     1. **Filament's JavaScript is not served in this harness**, so no action
+        modal can open. The page reports `filamentActionModals is not
+        defined`, `filamentDropdown is not defined` and repeated
+        `Cannot read properties of undefined (reading 'isOpen')`. Running
+        `vendor/bin/testbench filament:assets` was tried and **does not fix
+        it** — the files publish into
+        `vendor/orchestra/testbench-core/laravel/public/{css,js}` and the
+        errors are unchanged, so the in-process server does not serve them.
+        It also **breaks `InstallNumerosisCommandTest`**, whose
+        `verifyFilamentThemeAsset` case depends on the harness having no
+        published theme; the publish was reverted for that reason. Every
+        browser test that works here depends on Livewire and Flux only.
+     2. Even with a working modal, confirming calls `PurchaseModule`, which
+        needs a billing address, an active subscription or a Stripe one-time
+        charge, and real Cashier calls. **There is no module-purchase
+        equivalent of `LocalCheckoutGateway`** — that pre-existing stub is
+        precisely what made the wizard's end-to-end test cheap, and the
+        estimate for this leg assumed one existed here too.
+
+     So finishing this needs a decision first: either serve Filament's assets
+     in the browser harness (fixing the `InstallNumerosisCommandTest`
+     interaction at the same time), or add a local module-billing gateway
+     alongside `LocalCheckoutGateway`. Neither is a test-writing task.
    - Section E for what the plugin can and cannot reach — in particular that
      it does **not** escape `runningInConsole()`, so subdomain mode's
      "central route wins over the `{tenant}` wildcard" question stays out of
@@ -847,10 +899,55 @@ a `docker compose up -d` first; MySQL wasn't running.
    Explained in section B and `.claude/rules/static-analysis.md`; the baseline
    was **deliberately left un-regenerated**, because regenerating buries the
    delta and pins one particular cache state. Don't "fix" it by regenerating.
-3. **`.claude/rules/package-boundaries.md`'s own suggestion** — the seams have
-   writers (`addCentralRoutes`, `Features::register`, …) but no readers except
-   `Features::registered()`, so "which package added this route" is answerable
-   only by grep. Worth adding alongside a sixth package, not before one.
+3. ~~**`.claude/rules/package-boundaries.md`'s own suggestion**~~ — mostly
+   void as of 2026-09-01. `Numerosis::{tenantMigrationPaths,tenantSeeders,
+   centralSeeders,permissionContexts}()` already existed, and the
+   `Support\Contributions` split added `centralRouteCallbacks()` /
+   `tenantRouteCallbacks()`. What remains is *provenance*, not readers: the
+   route callbacks are bare closures, so "which package added this route"
+   needs a `?string $source` argument on the writer. Not done.
+
+4. **NEW, and the most important thing on this list: every host-subclassed
+   central model silently loses its policy, and Filament then defaults to
+   allow.** Found 2026-09-01 while writing `AdminPanelTest`, from the
+   assertion that would not fail.
+
+   PHP attributes are **not inherited**, and nothing in this package ever
+   calls `Gate::policy()` — policy resolution rests entirely on
+   `#[UsePolicy]`. Every admin resource points at
+   `Numerosis::model(SomeModel::class)`, which on any host that uses the
+   documented model-override seam is a *subclass*. Measured on workbench:
+
+   | Package model | Resolves to | Policy |
+   |---|---|---|
+   | `Central\Tenant` | `App\Models\Central\Tenant` | **NONE** |
+   | `Central\PaymentPlan` | `App\Models\Central\PaymentPlan` | **NONE** |
+   | `Central\Subscription` | `App\Models\Central\Subscription` | **NONE** |
+   | `Tenant\{User,Invitation,Module}` | `App\Models\Tenant\*` | resolved — the workbench subclasses **re-declare `#[UsePolicy]` by hand** |
+   | `Central\{PlanFeature,ModuleOffering}`, `Role`, `Permission` | not subclassed | resolved |
+
+   Filament's non-strict authorization allows when no policy resolves, so on
+   such a host **any authenticated central user can reach the Tenants,
+   PaymentPlans and Subscriptions resources**, including their write actions.
+   Confirmed empirically, not inferred: a `CentralUser` with zero roles
+   rendered `/admin/tenants` and saw the tenant.
+
+   `tests/Feature/Models/Central/CentralModelPolicyResolutionTest` was written
+   against exactly this mechanism — its docblock states both halves — but
+   asserts on `Nvade\Numerosis\Models\Central\*`, the classes the panel does
+   **not** use. It is one subclass away from what runs.
+
+   The structural fix is to stop relying on the attribute: register each
+   pairing explicitly at boot against the *resolved* class,
+   `Gate::policy(Numerosis::model(Tenant::class), TenantPolicy::class)`, which
+   follows the host's override automatically. Patching the three workbench
+   subclasses would only fix the fixture and leave every real host open.
+
+   Not fixed here — it changes authorization behaviour for any host currently
+   depending on the accidental allow, so it needs a decision, and
+   `.claude/rules/auth-guards.md` needs correcting alongside it (its
+   `#[UsePolicy]` suggestion says subclasses "inherit it through the parent
+   walk"; there is no parent walk, and this is the evidence).
 
 ## Done, not revisited
 

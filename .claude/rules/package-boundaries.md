@@ -107,20 +107,46 @@ for a host that genuinely wants none of the defaults.
   `Invitation` compose `LogsActivity`, both through
   `Support\Compat\*IfInstalled` shims that no-op without the package.
 
-- **`config/numerosis.php` is one 922-line file naming classes from every
-  feature area.** It is not split per package and does not need to be: a
-  satellite fills its own keys at register time and a host-published value
-  wins. Core's config deliberately does **not** name the onboarding wizard's
-  step classes — that would put a package core does not depend on into core's
-  own config.
+- **Core's config is split by *key*, not by package** (2026-09-01):
+  `config/numerosis/<key>.php`, fifteen partials that `config/numerosis.php`
+  `array_merge`s. Splitting per package would be wrong, not merely
+  unnecessary — a satellite fills its own keys at register time and a host's
+  override wins over both, so there is no package line to cut along. Core's
+  config deliberately does **not** name the onboarding wizard's step classes:
+  that would put a package core does not depend on into core's own config.
+
+  Two traps the split introduced. **The root file can never be published** —
+  its `require __DIR__` paths would resolve against the *host's* config
+  directory — which is why `NumerosisServiceProvider` no longer calls
+  `hasConfigFile('numerosis')` (that registers the real file for publishing)
+  and instead does `mergeConfigFrom()` in `packageRegistered()` plus a
+  `publishGroup()` of `config/stubs/numerosis.php`. And **a new partial is
+  invisible until it is listed in that root `array_merge`**, with nothing
+  failing: the key just defaults away through `HostConfig`'s deep-fill.
 
 ## Suggested better approach
 
 The seams are narrow on purpose — contribute-a-callback, not
 override-the-mechanism — and that is worth keeping as more get added. The one
-thing they lack is a way to *inspect* what has been contributed:
-`Features::registered()` exists, but there is no equivalent for routes,
-migration paths or seeders, so "which package added this route" is answerable
-only by grep. If a fifth package lands, add the readers alongside the writers
-rather than after — a boundary test that can enumerate contributions is
-strictly better than one that scans files for forbidden strings.
+thing they lack is a way to *inspect* what has been contributed.
+
+**Corrected 2026-09-01 — this section used to claim "there is no equivalent
+for routes, migration paths or seeders". Three of those four already have
+readers**, and a session acting on the old text would have rebuilt what
+exists: `Numerosis::tenantMigrationPaths()`, `::tenantSeeders()`,
+`::centralSeeders()` and `::permissionContexts()` all sit next to their
+`add*()` writers (`src/Support/Numerosis.php:385,413,439,474`), as does
+`Features::registered()`.
+
+**Routes are the one real gap, and it is not just a missing getter.**
+`self::$extraCentralRouteCallbacks` / `$extraTenantRouteCallbacks` hold bare
+`Closure`s, so a reader over them answers "how many" and can never answer
+"which package" — `resetRouteContributionsForTesting()` is their only public
+consumer today. Closing it means changing the *writer*
+(`addCentralRoutes(Closure $callback, ?string $source = null)`), not adding a
+sibling method. Worth doing when a route contribution first needs attributing,
+not speculatively; the other four readers show the shape.
+
+The general rule stands: add the reader alongside the writer rather than
+after — a boundary test that can enumerate contributions is strictly better
+than one that scans files for forbidden strings.

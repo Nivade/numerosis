@@ -141,9 +141,19 @@ also populates hits `Arr::set()`'s auto-vivification hazard and can truncate
 the parent array — that is exactly how `tenancy.database` lost its
 `prefix`/`suffix`/`managers`. v4 pushes these keys **one segment deeper**
 (`tenancy.identification.central_domains` is three segments under a namespace
-stancl still merges into). That rule's own "Suggested better approach" —
-read-modify-write the whole parent via `Config::array($parent, [])` plus one
-write — stops being optional the moment `HostConfig` targets v4 keys.
+stancl still merges into).
+
+**Corrected 2026-09-01.** This paragraph used to point at that rule's own
+"Suggested better approach" — read-modify-write the whole parent via
+`Config::array($parent, [])` — and say it "stops being optional the moment
+`HostConfig` targets v4 keys". That suggestion has since been retracted in
+`package-host-bootstrap.md`: the hazard is an *absent* parent, not a scalar
+one, and read-modify-write of an absent parent produces the identical
+truncated array. What v4 makes non-optional is the replacement guard recorded
+there — `HostConfig::set()` asserting every intermediate segment of a
+non-`numerosis.*` key already exists as an array, and throwing naming the key
+when it does not. One segment deeper means one more chance to truncate
+silently, so port the keys and add the assertion in the same change.
 
 ## Three things smaller than expected
 
