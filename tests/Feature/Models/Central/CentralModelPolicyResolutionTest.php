@@ -15,14 +15,22 @@ use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
+use Nvade\Numerosis\Models\Tenant\Invitation;
+use Nvade\Numerosis\Models\Tenant\Module;
+use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use Nvade\Numerosis\Policies\InvitationPolicy;
 use Nvade\Numerosis\Policies\ModuleOfferingPolicy;
+use Nvade\Numerosis\Policies\ModulePolicy;
 use Nvade\Numerosis\Policies\PaymentPlanPolicy;
 use Nvade\Numerosis\Policies\PermissionPolicy;
 use Nvade\Numerosis\Policies\PlanFeaturePolicy;
 use Nvade\Numerosis\Policies\RolePolicy;
 use Nvade\Numerosis\Policies\SubscriptionPolicy;
 use Nvade\Numerosis\Policies\TenantPolicy;
+use Nvade\Numerosis\Policies\UserPolicy;
+use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * PHP attributes are not inherited by subclasses, so #[UsePolicy] on
@@ -48,6 +56,61 @@ class CentralModelPolicyResolutionTest extends TestCase
     public function test_central_user_resolves_no_policy(): void
     {
         $this->assertNull(Gate::getPolicyFor(CentralUser::class));
+    }
+
+    /**
+     * The assertions in this file name the *package's* classes, and Filament's
+     * resources do not: they point at `Numerosis::model(...)`, which on any
+     * host using the documented model-override seam is a **subclass**. Since
+     * PHP attributes are not inherited, every one of those subclasses resolved
+     * no policy at all — and Filament's non-strict authorization allows when
+     * no policy resolves, so a central user with zero roles could reach the
+     * Tenants, PaymentPlans and Subscriptions resources and their write
+     * actions. Found 2026-09-01 from a browser assertion that would not fail;
+     * this test is one class above where the bug lived.
+     *
+     * `NumerosisServiceProvider::registerPolicies()` is the fix — an explicit
+     * `Gate::policy()` per pairing, registered against the package class so
+     * `getPolicyFor()`'s `is_subclass_of` sweep catches every subclass while a
+     * host's own `App\Policies\*` convention still wins ahead of it.
+     *
+     * Written as a loop over `Numerosis::model()` rather than one method per
+     * model on purpose: the defect was not that a particular pairing was
+     * missing, it was that *the resolved class was never the one asserted on*.
+     * A new model with a policy is covered here by construction.
+     *
+     * @return array<string, array{class-string<\Illuminate\Database\Eloquent\Model>, class-string}>
+     */
+    public static function policyResolutionProvider(): array
+    {
+        return [
+            'tenant' => [Tenant::class, TenantPolicy::class],
+            'payment plan' => [PaymentPlan::class, PaymentPlanPolicy::class],
+            'subscription' => [Subscription::class, SubscriptionPolicy::class],
+            'plan feature' => [PlanFeature::class, PlanFeaturePolicy::class],
+            'module offering' => [ModuleOffering::class, ModuleOfferingPolicy::class],
+            'role' => [Role::class, RolePolicy::class],
+            'permission' => [Permission::class, PermissionPolicy::class],
+            'tenant user' => [TenantUser::class, UserPolicy::class],
+            'invitation' => [Invitation::class, InvitationPolicy::class],
+            'module' => [Module::class, ModulePolicy::class],
+        ];
+    }
+
+    /**
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $model
+     * @param  class-string  $policy
+     */
+    #[DataProvider('policyResolutionProvider')]
+    public function test_the_resolved_model_class_resolves_its_policy(string $model, string $policy): void
+    {
+        $resolved = Numerosis::model($model);
+
+        $this->assertInstanceOf(
+            $policy,
+            Gate::getPolicyFor($resolved),
+            "[{$resolved}] resolves no policy. Filament allows when no policy resolves, so this is an open resource, not a hidden one.",
+        );
     }
 
     public function test_central_role_resolves_the_role_policy(): void

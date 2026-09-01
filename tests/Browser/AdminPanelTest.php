@@ -86,16 +86,16 @@ it('shows a wizard-provisioned tenant in the central admin panel', function (): 
     // is visible to the next request. Every other browser test here logs in
     // once, before its first visit().
     //
-    // It has to be asserted on something *identity*-specific, and "the tenants
-    // page rendered" is not. `TenantResource::getModel()` returns
-    // `Numerosis::model(Tenant::class)` — a host subclass that resolves **no
-    // policy**, because PHP attributes are not inherited and the subclass
-    // re-declares no `#[UsePolicy]`. Filament's non-strict authorization then
-    // defaults to allow, so that page renders for a central user with no roles
-    // at all. Confirmed by deleting these two lines: it still passed.
-    // `CentralModelPolicyResolutionTest` guards the package's own classes
-    // against precisely this and cannot see one level down. The panel's user
-    // menu is identity-specific; the tenant listing is not.
+    // Asserted on something *identity*-specific, which at the time this was
+    // written was the only option: `TenantResource::getModel()` returns
+    // `Numerosis::model(Tenant::class)`, a host subclass that resolved **no
+    // policy** (PHP attributes are not inherited), and Filament's non-strict
+    // authorization allows when no policy resolves — so the page rendered for
+    // a central user with no roles at all, and "the tenants page rendered"
+    // asserted nothing about who was looking. That hole is fixed by
+    // `NumerosisServiceProvider::registerPolicies()`, and the test below now
+    // pins the fix through a real request; the identity assertion stays
+    // because it is the stronger of the two.
     Auth::guard($guard)->logout();
     Auth::guard($guard)->login($staff);
 
@@ -113,4 +113,49 @@ it('shows a wizard-provisioned tenant in the central admin panel', function (): 
 
     expect($content)->toContain((string) $staff->name);
     expect($content)->not->toContain((string) $customer->name);
+});
+
+/**
+ * The policy fix, through a real request rather than a `Gate::getPolicyFor()`
+ * assertion.
+ *
+ * Before `NumerosisServiceProvider::registerPolicies()`, this page rendered
+ * the tenant listing to any authenticated central user, because
+ * `TenantResource::getModel()` resolves to a host **subclass** and PHP
+ * attributes are not inherited, so no policy resolved and Filament's
+ * non-strict authorization allowed. `CentralModelPolicyResolutionTest` pins
+ * the resolution itself; this pins what a browser actually gets, which is the
+ * half that made the defect invisible in the first place.
+ */
+it('denies the tenants resource to a central user with no roles', function (): void {
+    (new RoleAndPermissionSeeder)->run();
+
+    $guard = Config::string('numerosis.auth.guards.central');
+
+    // The first CentralUser takes the admin role via
+    // PromoteFirstCentralUserToAdmin, which is what makes the second one
+    // genuinely roleless.
+    $staff = CentralUser::factory()->create();
+    $nobody = CentralUser::factory()->create();
+
+    $tenant = Tenant::factory()->create();
+
+    Playwright::setHost('central.numerosistest.test');
+
+    // Both halves in one test, against the same page, on purpose. "The
+    // roleless user cannot see the tenant" is only a claim about authorization
+    // if the admin can — otherwise it passes just as well when the name never
+    // renders for anyone, or when the factory did not set the value being
+    // searched for. Asserting the positive first makes the negative mean
+    // something.
+    Auth::guard($guard)->login($staff);
+
+    expect((string) visit('/admin/tenants')->content())
+        ->toContain((string) $tenant->name);
+
+    Auth::guard($guard)->logout();
+    Auth::guard($guard)->login($nobody);
+
+    expect((string) visit('/admin/tenants')->content())
+        ->not->toContain((string) $tenant->name);
 });

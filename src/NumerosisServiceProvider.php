@@ -22,6 +22,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use InterNACHI\Modular\Support\Facades\Modules;
@@ -68,6 +69,20 @@ use Nvade\Numerosis\Listeners\Billing\SendTenantSuspendedNotification;
 use Nvade\Numerosis\Listeners\Invitations\SendInvitationNotification;
 use Nvade\Numerosis\Listeners\Modules\QueueModuleMigration;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
+use Nvade\Numerosis\Models\Central;
+use Nvade\Numerosis\Models\Permission;
+use Nvade\Numerosis\Models\Role;
+use Nvade\Numerosis\Models\Tenant as TenantModels;
+use Nvade\Numerosis\Policies\InvitationPolicy;
+use Nvade\Numerosis\Policies\ModuleOfferingPolicy;
+use Nvade\Numerosis\Policies\ModulePolicy;
+use Nvade\Numerosis\Policies\PaymentPlanPolicy;
+use Nvade\Numerosis\Policies\PermissionPolicy;
+use Nvade\Numerosis\Policies\PlanFeaturePolicy;
+use Nvade\Numerosis\Policies\RolePolicy;
+use Nvade\Numerosis\Policies\SubscriptionPolicy;
+use Nvade\Numerosis\Policies\TenantPolicy;
+use Nvade\Numerosis\Policies\UserPolicy;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Services\Auth\EloquentSocialAccountRepository;
@@ -253,6 +268,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
             $this->app->make($feature)->bootstrap();
         }
 
+        $this->registerPolicies();
+
         $this->registerRoutesFallback();
 
         $this->registerRequestMacros();
@@ -308,6 +325,55 @@ class NumerosisServiceProvider extends PackageServiceProvider
         ];
 
         $this->publishGroup($modelStubs, 'numerosis-models');
+    }
+
+    /**
+     * Binds each model to its policy explicitly, so a host's **subclass** of
+     * one of these models is covered too.
+     *
+     * Every model below also carries `#[UsePolicy]`, and that attribute alone
+     * is not enough: **PHP attributes are not inherited**, and
+     * `Gate::getPolicyFor()` reads them off the exact class it is handed.
+     * Filament resources point at `Numerosis::model(...)`, which on any host
+     * using the documented model-override seam is a subclass — so before this,
+     * `Central\{Tenant,PaymentPlan,Subscription}` resolved **no policy at
+     * all**, and Filament's non-strict authorization allows when no policy
+     * resolves. A central user with zero roles could reach those resources and
+     * their write actions. Measured on the Workbench host, not inferred; the
+     * `Tenant\*` models escaped it only because their subclasses re-declare the
+     * attribute by hand.
+     *
+     * **Registered against the package class, not `Numerosis::model()`'s
+     * resolved one**, which is what makes a host's own convention still win.
+     * `Gate::getPolicyFor()` tries, in order: an exact entry in the policy map,
+     * the attribute, the `App\Policies\*` name guess, and only then a
+     * `is_subclass_of` sweep of the map. Registering the resolved subclass
+     * would take that first branch and silently beat a host's own
+     * `App\Policies\Central\TenantPolicy`; registering the base leaves the
+     * guesser ahead of us and still catches every subclass.
+     *
+     * `CentralUser` is deliberately absent — see `.claude/rules/auth-guards.md`
+     * for why giving it a policy is a behaviour change that needs deciding
+     * rather than a gap to close here.
+     */
+    protected function registerPolicies(): void
+    {
+        $policies = [
+            Central\ModuleOffering::class => ModuleOfferingPolicy::class,
+            Central\PaymentPlan::class => PaymentPlanPolicy::class,
+            Central\PlanFeature::class => PlanFeaturePolicy::class,
+            Central\Subscription::class => SubscriptionPolicy::class,
+            Central\Tenant::class => TenantPolicy::class,
+            Permission::class => PermissionPolicy::class,
+            Role::class => RolePolicy::class,
+            TenantModels\Invitation::class => InvitationPolicy::class,
+            TenantModels\Module::class => ModulePolicy::class,
+            TenantModels\User::class => UserPolicy::class,
+        ];
+
+        foreach ($policies as $model => $policy) {
+            Gate::policy($model, $policy);
+        }
     }
 
     /**
