@@ -47,8 +47,12 @@ class CloneTenantSchema implements ShouldQueue
 
     /**
      * Tenant id of the template. The physical database name is this prefixed
-     * with `tenancy.database.prefix`, so under `--parallel` each process gets
-     * its own template without further wiring.
+     * with `tenancy.database.prefix`.
+     *
+     * Each parallel worker gets its own physical template because
+     * `tenancy.database.prefix` carries the worker's token (see
+     * `TestCase::parallelAwareTenantPrefix()`) — not because of anything here.
+     * This id is identical in every worker.
      */
     public const TEMPLATE_ID = 'phpunittemplate';
 

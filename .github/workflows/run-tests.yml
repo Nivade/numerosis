@@ -102,7 +102,7 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Execute tests
-        run: vendor/bin/pest --ci
+        run: vendor/bin/pest --ci --parallel
 
       # One PHP version only — the analysis does not vary by PHP patch.
       - name: Static analysis

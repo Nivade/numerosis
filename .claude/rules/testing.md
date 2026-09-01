@@ -34,7 +34,7 @@ rest of this file is read:
 - **This repo has no Sail, and `CLAUDE.md`'s `vendor/bin/sail …` instructions do not apply to it.** `laravel/sail` appears nowhere in `composer.lock` and there is no `vendor/bin/sail`; the guidelines block in `CLAUDE.md` is inherited from the saas-m host app this package was extracted from. Here it is Testbench plus a single `docker-compose.yml` MySQL service, and the commands are run on the host:
 
   - formatting — `vendor/bin/pint` (run **first**, see below)
-  - tests — `php -d memory_limit=1G vendor/bin/pest --compact` (or `composer test`)
+  - tests — `composer test` (`pest --parallel`, ~62s) or `composer test-serial` (~175s)
   - one file/filter — `vendor/bin/pest --compact --filter=SomeTest`
   - static analysis — see `.claude/rules/static-analysis.md` (needs a `tmpDir` override)
   - MySQL must be up: `docker compose ps` should show `numerosis-mysql-1` healthy
@@ -49,7 +49,21 @@ rest of this file is read:
 
   Anywhere below that still says `sail exec laravel.test …`, read it as "run this inside whatever gives you a shell next to MySQL" — the diagnostic SQL and the process-hunting are still right, the wrapper is not.
 
-- **Suite run serial. No add `--parallel`.** Tried two sessions, abandoned; see "Why parallel was dropped" below. Single files (~5s), subsets (~10s) right granularity for iterating.
+- **`--parallel` is the default now (2026-09-01), after two earlier sessions
+  abandoned it.** `composer test` passes it, as does CI; `composer test-serial`
+  is the escape hatch. 669 tests: **~62s on 8 workers vs ~175s serial.** What
+  changed is in "How parallel was fixed" below — the old "do not add
+  `--parallel`" advice is superseded, not still pending. Single files (~5s) and
+  subsets (~10s) are still the right granularity for iterating.
+
+- **Never run two suites at once, and rule that out before diagnosing
+  anything.** Token databases are keyed by worker slot, so a second concurrent
+  run collides on `testing_test_1..8` and on the tenant-database prefixes. This
+  still bites: a run during the session that fixed parallel reported 21 failures
+  — `Unknown database 'tenant6_test-…'`, `Unknown database
+  'testing_fresh_host'`, deadlocks — purely because a backgrounded loop from an
+  earlier command was still going. It reads exactly like a real isolation bug.
+  Confirm first: `ps -eo pid,cmd | grep '[p]est'`.
 
 - **Two teardown hooks do work `RefreshDatabase` cannot**, both registered
   from `Tests\TestCase::setUp()` via `beforeApplicationDestroyed()` so run
@@ -787,6 +801,58 @@ rest of this file is read:
   jobs (via `app()->call()`, since their `handle()` methods take injected
   dependencies) rather than hand-rolling migrate + seed.
 
+## How parallel was fixed (2026-09-01)
+
+**Superseding "Why parallel was dropped", kept below.** `--parallel` is the
+default now: 669 tests, ~62s on 8 workers against ~175s serial, seven
+consecutive clean runs before it was switched on. Three things were wrong, and
+only the first was ever the deadlock.
+
+- **The deadlock was already fixed, by work done for another reason.** The
+  earlier attempts died on a `migrate:fresh` firing mid-run and taking a pending
+  exclusive metadata lock. Its trigger is `RefreshDatabase`'s teardown check —
+  it sets `RefreshDatabaseState::$migrated = false` when `getPdo()` reports no
+  open transaction, which every tenancy test provokes because
+  `DatabaseTenancyBootstrapper` purges the default connection. `CleansUpTenancyDatabases::keepDatabaseSchema()`
+  pins that flag back to `true` in `tearDown()` and has done since the trait
+  shipped. So the first `--parallel` run of this session did not hang at all; it
+  failed 376 tests and exited in 16s. **Re-measure before trusting a "this was
+  tried and abandoned" note** — the blocker had been removed as a side effect
+  and nobody re-ran it.
+
+- **Only the *default* connection follows the parallel token.**
+  `Illuminate\Testing\Concerns\TestDatabases` switches one connection, and it
+  does so after `getEnvironmentSetUp()` has run. This suite defines three —
+  `mysql`, `central`, `tenant` — all hardcoding `'database' => 'testing'`, so
+  `central` and `tenant` stayed pointed at a database nothing migrated. That is
+  the whole 376: every one reading `Connection: central, Database: testing`.
+  Fixed by `TestCase::parallelAwareDatabase()`, which appends `_test_{token}`
+  the same way `TestDatabases::testDatabase()` does, so all three land in the
+  one database Laravel actually created for the worker. **Any connection this
+  suite defines by hand needs this; Laravel will not do it for you.**
+
+- **Tenant database names were shared across workers.**
+  `tenancy.database.prefix` was `tenant` in every worker and tenant ids come
+  from the faker, so two workers generating the same id got one physical
+  database and whichever finished first dropped it out from under the other
+  (`Unknown database 'tenantupton-parisian'`). The token belongs in the prefix —
+  `TestCase::parallelAwareTenantPrefix()` — because that is the single point
+  every tenant database name is built from, including `CloneTenantSchema`'s
+  template. That class's docblock used to claim each process got its own
+  template "without further wiring"; it did not, and now says so.
+
+- **Then a ~50% flake, and it was the factories, not isolation.** A
+  `users.users_email_unique` violation, a different test and address each run.
+  Not leftover rows — a probe at every test's `setUp` found the table empty
+  every time. `fake()->unique()->safeEmail()` *looks* like it prevents this and
+  does not: `unique()`'s memory belongs to the generator instance, which is
+  rebuilt per test, while `safeEmail()` draws from a pool of a few thousand.
+  `Database\Factories\Concerns\GeneratesUniqueEmails` replaces it with a
+  per-process counter plus a `uniqid()`. **A factory using `fake()->unique()`
+  across tests is not unique across tests.**
+
+Still true and still worth reading:
+
 ## Why parallel was dropped
 
 `--parallel` implemented, measured, removed. Don't reintroduce it
@@ -822,6 +888,12 @@ without reading this.
 
 Template clone below is where speed actually comes from, orthogonal
 to all this — single-process, no locking semantics.
+
+> **Two of the four bullets above are now wrong, and only in their conclusion.**
+> The metadata-lock deadlock is real but no longer reachable (`keepDatabaseSchema()`);
+> "global cleanup collides with sibling workers" assumed workers *share* a token
+> database, which they do not once every connection follows the token. The
+> two-runs-at-once hazard is unchanged and still the first thing to rule out.
 
 ## Possible next step
 

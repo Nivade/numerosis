@@ -10,6 +10,7 @@ use App\Models\Tenant\User;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\URL;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
@@ -142,11 +143,22 @@ abstract class TestCase extends Orchestra
             Mysql::ATTR_INIT_COMMAND => "SET SESSION lock_wait_timeout = {$lockWaitTimeout}, innodb_lock_wait_timeout = {$lockWaitTimeout}",
         ] : [];
 
+        // `central` and `tenant` have to follow the parallel token themselves.
+        // Laravel's own parallel wiring (Illuminate\Testing\Concerns\
+        // TestDatabases) switches exactly one connection — the default — and it
+        // does so *after* this method has run, so a hardcoded 'testing' here
+        // leaves every central-connection read pointed at the shared database
+        // while the default correctly moved to the worker's own. That is not a
+        // slow or flaky run: it is 376 failures reading
+        // `Connection: central, Database: testing`, because nothing ever
+        // migrated the database those queries land in.
+        $database = static::parallelAwareDatabase('testing');
+
         $mysql = [
             'driver' => 'mysql',
             'host' => '127.0.0.1',
             'port' => '3306',
-            'database' => 'testing',
+            'database' => $database,
             'username' => 'root',
             'password' => 'root',
             'unix_socket' => '',
@@ -203,7 +215,14 @@ abstract class TestCase extends Orchestra
             AuthGuardBootstrapper::class,
         ]);
         $app->make(Repository::class)->set('tenancy.database.central_connection', 'central');
-        $app->make(Repository::class)->set('tenancy.database.prefix', 'tenant');
+        // Tenant database names are derived from this prefix plus the tenant
+        // id, and tenant ids here come from the faker — so with one shared
+        // prefix, two workers that happen to generate the same id share one
+        // physical database, and whichever finishes first drops it out from
+        // under the other. The token belongs in the prefix rather than in each
+        // caller: it is the single point every tenant database name, including
+        // CloneTenantSchema's template, is built from.
+        $app->make(Repository::class)->set('tenancy.database.prefix', static::parallelAwareTenantPrefix());
         $app->make(Repository::class)->set('tenancy.database.suffix', '');
         $app->make(Repository::class)->set('tenancy.filesystem.suffix_base', 'tenant');
         $app->make(Repository::class)->set('tenancy.filesystem.disks', ['local', 'public']);
@@ -466,6 +485,37 @@ abstract class TestCase extends Orchestra
     protected function tenantDomain(string $id): string
     {
         return str_replace('{tenant}', $id, Config::string('numerosis.domains.tenant_pattern'));
+    }
+
+    /**
+     * A database name suffixed with this worker's parallel token, matching the
+     * `{name}_test_{token}` shape `TestDatabases::testDatabase()` uses for the
+     * default connection — so every connection in this suite lands in the one
+     * database Laravel actually created and migrated for this worker.
+     *
+     * Returns `$name` unchanged when not running in parallel.
+     */
+    public static function parallelAwareDatabase(string $name): string
+    {
+        $token = ParallelTesting::token();
+
+        return $token ? $name.'_test_'.$token : $name;
+    }
+
+    /**
+     * The `tenancy.database.prefix` this worker builds tenant database names
+     * from. `tenant` when serial, `tenant{token}_` under `--parallel`.
+     *
+     * Everything that drops tenant databases in this suite derives the names it
+     * drops from per-worker state — surviving `tenants` rows on the worker's own
+     * central connection, plus `CloneTenantSchema::takeCreatedDatabases()` —
+     * so a per-worker prefix does not need a matching change in teardown.
+     */
+    public static function parallelAwareTenantPrefix(): string
+    {
+        $token = ParallelTesting::token();
+
+        return $token ? 'tenant'.$token.'_' : 'tenant';
     }
 
     protected function setUp(): void

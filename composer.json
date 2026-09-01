@@ -120,7 +120,9 @@
             "@php vendor/bin/testbench serve --ansi"
         ],
         "analyse": "@php -d memory_limit=1G vendor/bin/phpstan analyse",
-        "test": "@php -d memory_limit=1G vendor/bin/pest",
+        "test": "@php -d memory_limit=1G vendor/bin/pest --parallel",
+        "test-serial": "@php -d memory_limit=1G vendor/bin/pest",
+        "test-browser": "@php -d memory_limit=1G vendor/bin/pest --testsuite=Browser",
         "test-coverage": "@php -d memory_limit=1G vendor/bin/pest --coverage",
         "format": "vendor/bin/pint",
         "lint": [
