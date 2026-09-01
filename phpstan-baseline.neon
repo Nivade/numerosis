@@ -1,12 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Called ''env'' outside of the config directory which returns null when the config is cached, use ''config''\.$#'
-			identifier: larastan.noEnvCallsOutsideOfConfig
-			count: 23
-			path: config/numerosis.php
-
-		-
 			message: '#^Method Nvade\\Numerosis\\Database\\Factories\\PaymentPlanFeatureFactory\:\:boolean\(\) should return \$this\(Nvade\\Numerosis\\Database\\Factories\\PaymentPlanFeatureFactory\) but returns static\(Nvade\\Numerosis\\Database\\Factories\\PaymentPlanFeatureFactory\)\.$#'
 			identifier: return.type
 			count: 1

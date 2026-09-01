@@ -20,11 +20,40 @@ monorepo the filesystem enforces nothing.
 | seed data | `Numerosis::addTenantSeeder()` / `addCentralSeeder()` | Run by the package's own `TenantDatabaseSeeder` / `DatabaseSeeder` |
 | permissions | `Numerosis::addPermissionContext(string)` | **A missing permission row is a 500, not a 403**, and Filament evaluates every resource's `viewAny` on every page render — one missing context breaks the whole panel |
 | views | `->hasViews('numerosis')` from your own provider | `FileViewFinder::addNamespace()` *appends*, so several packages can serve one namespace. Paths are searched in registration order, so a view must be **moved, never copied** |
+| single-file Livewire pages | your own key in `livewire.component_namespaces` | Unlike views, a prefix maps to exactly **one** directory — a satellite cannot join `pages`/`layouts`. `numerosis-account` takes `account-pages::`. Set the key from `register()`, and set *one key*, never the whole array: replacing it drops every other package's |
+| the `home` page | `numerosis.routes.home_view` | Core always registers the `home` route and declares it first, so a second route on `/` never matches. Point this at your own view instead |
 | tenant model columns | `Numerosis::addTenantColumns(array)` | |
 | the tenant panel's login page | `numerosis.panels.tenant.login` | A Livewire component **class**. `null` means Filament's own login page |
 | the registration wizard | `numerosis.panels.admin.tenant_registration_component` | A Livewire **alias**, not a class — that is what keeps core and `packages/filament` from naming `packages/onboarding`'s classes |
 | a panel wholesale | `numerosis.panels.{admin,tenant}.provider` | Core registers what you name and `numerosis-filament` stands down for that panel |
 | a model | publish `--tag numerosis-models`, or set `numerosis.models.<FQCN>` | Convention (`App\Models\<suffix>`) is found automatically; the config key is for a non-conventional location |
+
+### Swapping an implementation
+
+`numerosis.{billing,tenancy}.implementations` is a `contract => concrete` map;
+`BillingServiceProvider` and `TenancyServiceProvider` each loop theirs and
+`bind()` every pair. Name your own class against the contract to replace one —
+no provider edit, no subclassing.
+
+That map is why all 32 interfaces in `src/Contracts/` stay, even though each
+ships exactly one implementation (**decided 2026-09-01**; deleting the
+"redundant" ones was an open question from `.claude/plans/confusion-cleanup.md`
+step 4). They are not speculative abstraction:
+
+- **22 are the swap points themselves**, named in one of those two maps.
+  Deleting one removes a documented host capability and leaves nothing to
+  `bind()` against.
+- **10 are role interfaces, not service bindings**, and are load-bearing as
+  types: `CentralUserModel`/`TenantUserModel` are what `HostConfig` and
+  `UserModelResolver` `is_a()`-check a host's own model against,
+  `Feature`/`NamedFeature` are the feature registry's contract (14
+  implementers), `ModulePlugin` is how the tenant panel discovers a module's
+  Filament plugin, and `Subscribable`/`Plan`/`ModuleOffer`/`HasTenants`/
+  `ProvidesTenantIdentity` are the shapes core's own services accept so a host
+  subclass satisfies them without extending a package class.
+
+"One implementation" is the expected state for a framework whose whole point is
+that the *host* supplies the second one.
 
 ### Replacing rather than adding
 
@@ -81,5 +110,6 @@ tables have to exist wherever core does.
 
 There are writers for every seam but readers for only one. `Features::registered()`
 exists; nothing equivalent exists for routes, migration paths or seeders, so
-"which package added this route" is answerable only by grep. If a sixth package
-lands, add the readers alongside the writers.
+"which package added this route" is answerable only by grep. A sixth package
+(`numerosis-account`) has since landed without them; add the readers alongside
+the writers before a seventh does.

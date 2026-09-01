@@ -20,4 +20,13 @@ parameters:
     excludePaths:
         analyse:
             - packages/*/resources/views/*
+    # `larastan.noEnvCallsOutsideOfConfig` defaults to the *application's*
+    # config_path(), which under Testbench is the skeleton's, never this
+    # package's — so every `env()` in our own config files reported, and 23 of
+    # them sat in the baseline. Naming both directories is the honest fix:
+    # config/numerosis/ holds one partial per top-level key, and a config file
+    # is exactly where `env()` belongs.
+    configDirectories:
+        - config
+        - config/numerosis
     tmpDir: build/phpstan

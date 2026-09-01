@@ -21,9 +21,9 @@ publishing or seeding anything.
 
 ## 0. What you install
 
-`nvade/numerosis` is five Composer packages developed in one repository and
+`nvade/numerosis` is six Composer packages developed in one repository and
 published as read-only splits. Core is the only one you must have; the other
-four are UI layers you can decline, and declining one is a supported state,
+five are UI layers you can decline, and declining one is a supported state,
 not a degraded one.
 
 | Package | What it is | Declining it costs |
@@ -32,6 +32,7 @@ not a degraded one.
 | `nvade/numerosis-ui` | The shared Blade layer: `<x-numerosis::ui.*>`, the design tokens, `livewire/flux`. | Not declinable in practice — core `require`s it, because core's own views render its components and a missing Blade tag renders as literal text rather than failing. |
 | `nvade/numerosis-filament` | The admin and tenant Filament panels, every resource and page, the module marketplace UI. Pulls `filament/filament` in with it. | No panel registers at all, and `filament/filament` is then not needed either. Everything below the UI still works; `App\Models\User` loses `FilamentUser`/`HasTenants` and autoloads fine without them. |
 | `nvade/numerosis-auth-ui` | The login / register / password-reset / OAuth **screens**, and `laravel/socialite`. | No `/login`, `/register` or `/forgot-password` route; the tenant panel falls back to Filament's own login page; social login is unavailable. Core keeps the auth *mechanics* — guards, `LogoutUser`, email verification, the social-account repository, `TurnstileFeature`, both `one_time_passwords` migrations. |
+| `nvade/numerosis-account` | The account UI: the four settings screens (profile, password, appearance, delete account), the workspace list, the billing-portal and invoice-download routes, and `AccountPagesFeature`. | No `/settings/*`, no workspace list, no billing portal — build your own, or send users straight to the tenant panel. Core keeps the *name* of the feature as `Support\Ui\AccountPages::FEATURE`, because six core and satellite call sites gate a post-login redirect on it. Its views join the shared `numerosis::` namespace; its single-file Livewire pages use their own `account-pages::` prefix, since `livewire.component_namespaces` maps a prefix to exactly one directory. |
 | `nvade/numerosis-onboarding` | The self-serve registration wizard at `/get-started`. | No signup route, and core's own references to it — links in four views plus `CompleteRedirectCheckout`'s post-checkout redirect — are hidden. All of them gate on `Support\Tenancy\SelfServeRegistration::FEATURE`, a constant **core** owns for exactly this reason: a class-constant fetch autoloads the class, so gating on the satellite's own `NAME` would fatal a host that declined it. Tenants can still be created from an admin screen, a job or a Stripe webhook. |
 
 Two consequences worth knowing before you pick:
@@ -131,6 +132,7 @@ what stops the next normalization from shipping undocumented the way
 | `auth.passwords.<broker>` | a broker over the `users` provider, `password_reset_tokens` table, whenever `auth.defaults.passwords` names a broker with no entry | define the broker yourself | `verifyAuthPasswordBroker()` (narrowed) |
 | `numerosis.*` deep-fill (the mechanism, not any one key) | every key under `config/numerosis.php` is filled in at every depth from the package's own defaults, so a host override file only has to name what it's actually changing | publish `config/numerosis.php` (or write a smaller override file — any key you omit is filled in, at any depth, not just the top level) | — a mechanism, not a single checkable value; the individual keys it protects each have their own row and check below |
 | `numerosis.schema_version`, in a *published* `config/numerosis.php` | must match the package's own current value | bump it once you've confirmed your file still matches the package's current shape | `verifyConfigSchemaVersion()` |
+| `numerosis.routes.home_view` | `'numerosis::home'` — a placeholder. Core registers the `home` route unconditionally (OAuth redirects, checkout error paths and the tenant panel all fall back to it), but the page itself is the product's | point this at your own view. Do **not** register a second route named `home` or a second route on `/`: core declares its own first, so yours would never match | — no `verify*()`; a missing view fails as `View [x] not found` on the first request to `/`, which is loud enough |
 | `numerosis.domains.apex` / `.central` / `.tenant_pattern` | derived from `APP_URL` (see the conditional obligation above for the one case this derivation is wrong) | `NUMEROSIS_APEX_DOMAIN` / `NUMEROSIS_CENTRAL_DOMAIN` / `NUMEROSIS_TENANT_DOMAIN` | `verifyDomainConfig()` |
 | `numerosis.social.providers` | the package's 5-provider metadata block (used only for hosts running `SocialLoginFeature`; `[]` disables the buttons) | override in your own config file | `verifySocialProviders()` (narrowed) |
 | `numerosis.social.routes.{redirect,login}.name` | `'oauth'` / `'oauth.callback'` — the package's own route names | override if you rename either route | `verifySocialRoutes()` (narrowed) |

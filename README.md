@@ -21,9 +21,9 @@ authoritative about current behaviour.
 
 ## What you install
 
-Five Composer packages, developed in this one repository, published as
+Six Composer packages, developed in this one repository, published as
 read-only splits on tag. Core is the only one you must have; declining any of
-the other four is a supported state, not a degraded one.
+the other five is a supported state, not a degraded one.
 
 | Package | What it is |
 |---|---|
@@ -31,6 +31,7 @@ the other four is a supported state, not a degraded one.
 | `nvade/numerosis-ui` | Shared Blade layer (`<x-numerosis::ui.*>`), design tokens, `livewire/flux`. Core requires it |
 | `nvade/numerosis-filament` | Admin + tenant Filament panels, resources, module marketplace. Pulls in `filament/filament` |
 | `nvade/numerosis-auth-ui` | Login / register / password-reset / OAuth screens, `laravel/socialite` |
+| `nvade/numerosis-account` | Account UI: settings screens, workspace list, billing portal, invoice downloads |
 | `nvade/numerosis-onboarding` | Self-serve registration wizard at `/get-started` |
 
 What declining each one costs is listed per package in
@@ -82,8 +83,10 @@ seeding. It is the executable copy of `docs/host-requirements.md`.
 
 ```
 src/                    core: tenancy, billing, auth mechanics, modules
-packages/{ui,auth-ui,filament,onboarding}/   the four satellite splits
-config/numerosis.php    every knob, one file (map in docs/architecture.md)
+packages/{ui,auth-ui,filament,account,onboarding}/  the five satellite splits
+config/numerosis/       every knob, one file per top-level key
+config/numerosis.php    assembles those partials — never published
+config/stubs/           the small override file a host publishes instead
 routes/                 web.php (central) · tenant.php · channels.php
 database/migrations/{central,tenant}/
 resources/              views, translations, JS/CSS sources

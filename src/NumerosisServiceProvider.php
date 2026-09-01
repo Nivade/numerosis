@@ -93,7 +93,6 @@ class NumerosisServiceProvider extends PackageServiceProvider
     {
         $package
             ->name('numerosis')
-            ->hasConfigFile('numerosis')
             ->hasViews()
             ->hasTranslations()
             ->discoversMigrations(true, '/database/migrations/central')
@@ -134,6 +133,16 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
+        // Done here rather than through `hasConfigFile('numerosis')`, which
+        // would also register the package's own config file for publishing —
+        // and that file must never be published: it assembles the fifteen
+        // partials in config/numerosis/ by `require __DIR__`, which would
+        // resolve against a host's config directory. The publishable copy is
+        // the override stub registered in packageBooted(). Same phase
+        // package-tools would have merged in (register(), right before
+        // packageRegistered()), so nothing below sees a different config.
+        $this->mergeConfigFrom(__DIR__.'/../config/numerosis.php', 'numerosis');
+
         Numerosis::resetModelCache();
 
         // Deferred until every provider has registered, so config shipped by
@@ -265,6 +274,14 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // `settings.delete-user-form` is registered by nvade/numerosis-account,
         // which owns that component now.
         Livewire::addComponent(name: 'billing.checkout', class: Checkout::class);
+
+        // A small override file, not a copy of the package's own config: the
+        // deep-fill in HostConfig backfills every key it omits, and the
+        // package file itself cannot be published (it requires its partials
+        // by __DIR__). Same tag package-tools would have used.
+        $this->publishGroup([
+            __DIR__.'/../config/stubs/numerosis.php' => config_path('numerosis.php'),
+        ], 'numerosis-config');
 
         // Tenant migrations run per-tenant, never centrally. Publish them
         // only to customize one; tenancy config points at the package copy.
