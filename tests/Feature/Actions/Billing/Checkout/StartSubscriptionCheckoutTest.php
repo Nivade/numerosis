@@ -10,7 +10,7 @@ use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\Billing\TooManyUnpaidTenants;
 use Nvade\Numerosis\Tests\TestCase;
 

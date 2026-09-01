@@ -23,12 +23,13 @@ new class extends Component {
 <flux:header container class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
     <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left"/>
     <a wire:navigate
-       href="{{ \Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\AccountPagesFeature::NAME) ? route('tenants.mine') : route(\Nvade\Numerosis\Support\Routes\RouteNames::home()) }}"
+       href="{{ \Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Ui\AccountPages::FEATURE) ? route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine()) : route(\Nvade\Numerosis\Support\Routes\RouteNames::home()) }}"
        class="ms-2 me-5 flex items-center space-x-2 rtl:space-x-reverse lg:ms-0"
     >
         <x-numerosis::app-logo/>
     </a>
-    @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\MarketingPagesFeature::NAME))
+    {{-- Marketing pages belong to the host app; link only if it registered one. --}}
+    @if (Route::has('features'))
         <flux:navbar class="-mb-px max-lg:hidden">
             <flux:navbar.item icon="bolt" :href="route('features')" :current="request()->routeIs('features')"
                               wire:navigate>
@@ -95,7 +96,7 @@ new class extends Component {
                     </div>
                 </flux:menu.radio.group>
                 <flux:menu.separator/>
-                @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\AccountPagesFeature::NAME))
+                @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Ui\AccountPages::FEATURE))
                     <flux:menu.radio.group>
                         <flux:menu.item :href="route('settings.profile')" icon="cog"
                                         wire:navigate>{{ __('Settings') }}</flux:menu.item>
@@ -137,7 +138,7 @@ new class extends Component {
     <flux:sidebar stashable sticky
                   class="lg:hidden border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
         <flux:sidebar.toggle class="lg:hidden" icon="x-mark"/>
-        <a href="{{ \Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\AccountPagesFeature::NAME) ? route('tenants.mine') : route(\Nvade\Numerosis\Support\Routes\RouteNames::home()) }}" class="ms-1 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
+        <a href="{{ \Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Ui\AccountPages::FEATURE) ? route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine()) : route(\Nvade\Numerosis\Support\Routes\RouteNames::home()) }}" class="ms-1 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
             <x-numerosis::app-logo/>
         </a>
         <flux:navlist variant="outline">

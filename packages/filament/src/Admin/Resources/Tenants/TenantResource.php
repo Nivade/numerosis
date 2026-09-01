@@ -187,7 +187,7 @@ class TenantResource extends Resource
                     ->modalDescription('Opens a new browser session logged in as the tenant\'s owner, for support. The link expires in 60 seconds and can only be used once.')
                     ->action(fn (Tenant $record) => ImpersonateTenantUser::run($record)),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     // Custom copy, because the default modal would let an
                     // operator assume this is a full teardown. It deletes the

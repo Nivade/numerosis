@@ -51,7 +51,7 @@
                                 </x-filament::badge>
                             @else
                                 <x-filament::badge color="gray">
-                                    {{ $offer->billingMode() === \Nvade\Numerosis\Enums\ModuleBillingMode::OneTime ? 'One-time purchase' : 'Subscription' }}
+                                    {{ $offer->billingMode() === \Nvade\Numerosis\Enums\Billing\ModuleBillingMode::OneTime ? 'One-time purchase' : 'Subscription' }}
                                 </x-filament::badge>
                             @endif
                         </div>
@@ -73,7 +73,7 @@
                         </p>
                     </div>
                 @else
-                    @if($offer->billingMode() === \Nvade\Numerosis\Enums\ModuleBillingMode::OneTime)
+                    @if($offer->billingMode() === \Nvade\Numerosis\Enums\Billing\ModuleBillingMode::OneTime)
                         <div class="flex items-baseline gap-1.5">
                             <span class="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
                                 {{ $this->oneTimePrice() ?? '—' }}

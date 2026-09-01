@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Nvade\Numerosis\Database\Factories\Central\PendingTenantProvisionFactory;
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 

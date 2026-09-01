@@ -7,9 +7,9 @@ namespace Nvade\Numerosis\Actions\Auth;
 use Illuminate\Support\Facades\Session;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Auth\ResolvesPostLoginRedirectUrl;
-use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Support\Ui\AccountPages;
 
 /**
  * @method static string run()
@@ -27,7 +27,7 @@ class ResolvePostLoginRedirectUrl implements ResolvesPostLoginRedirectUrl
     {
         $default = match (true) {
             tenancy()->initialized => '/',
-            Features::enabled(AccountPagesFeature::NAME) => route(RouteNames::tenantsMine()),
+            Features::enabled(AccountPages::FEATURE) => route(RouteNames::tenantsMine()),
             default => route(RouteNames::home()),
         };
 

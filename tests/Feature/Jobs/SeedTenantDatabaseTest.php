@@ -7,7 +7,7 @@ use App\Models\Central\Tenant;
 use Illuminate\Database\Seeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Jobs\SeedTenantDatabase;
 use Nvade\Numerosis\Models\Role;
 

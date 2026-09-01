@@ -28,7 +28,7 @@ use InterNACHI\Modular\Support\Facades\Modules;
 use Livewire\Livewire;
 use Nvade\Numerosis\Actions\Auth\AuthenticateLoginCandidate;
 use Nvade\Numerosis\Actions\Auth\CreateRegisteredUser;
-use Nvade\Numerosis\Actions\Auth\FindLoginCandidate;
+use Nvade\Numerosis\Actions\Auth\ResolveLoginCandidate;
 use Nvade\Numerosis\Actions\Auth\ResolvePostLoginRedirectUrl;
 use Nvade\Numerosis\Actions\Auth\SendEmailVerificationNotification;
 use Nvade\Numerosis\Actions\Invitations\CreateInvitedUser;
@@ -68,12 +68,11 @@ use Nvade\Numerosis\Listeners\Billing\SendTenantSuspendedNotification;
 use Nvade\Numerosis\Listeners\Invitations\SendInvitationNotification;
 use Nvade\Numerosis\Listeners\Modules\QueueModuleMigration;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
-use Nvade\Numerosis\Livewire\Settings\DeleteUserForm;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
-use Nvade\Numerosis\Support\Defaults\EloquentInvitationRepository;
-use Nvade\Numerosis\Support\Defaults\EloquentSocialAccountRepository;
-use Nvade\Numerosis\Support\Defaults\NotifiesTenantOwnerDirectly;
+use Nvade\Numerosis\Services\Auth\EloquentSocialAccountRepository;
+use Nvade\Numerosis\Services\Invitations\EloquentInvitationRepository;
+use Nvade\Numerosis\Services\Notifications\NotifiesTenantOwnerDirectly;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
@@ -147,7 +146,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->app->register(TenancyServiceProvider::class);
         $this->app->register(BillingServiceProvider::class);
 
-        $this->app->bind(ResolvesLoginCandidate::class, FindLoginCandidate::class);
+        $this->app->bind(ResolvesLoginCandidate::class, ResolveLoginCandidate::class);
         $this->app->bind(AuthenticatesLoginCandidate::class, AuthenticateLoginCandidate::class);
         $this->app->bind(ResolvesPostLoginRedirectUrl::class, ResolvePostLoginRedirectUrl::class);
         $this->app->bind(CreatesRegisteredUser::class, CreateRegisteredUser::class);
@@ -263,8 +262,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         // Components addressed by dotted name from this package's own Blade
         // views. Livewire cannot discover package classes on its own.
+        // `settings.delete-user-form` is registered by nvade/numerosis-account,
+        // which owns that component now.
         Livewire::addComponent(name: 'billing.checkout', class: Checkout::class);
-        Livewire::addComponent(name: 'settings.delete-user-form', class: DeleteUserForm::class);
 
         // Tenant migrations run per-tenant, never centrally. Publish them
         // only to customize one; tenancy config points at the package copy.

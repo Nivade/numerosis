@@ -22,7 +22,7 @@ use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;

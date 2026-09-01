@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Contracts\Billing;
 
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 
 interface Plan
 {

@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Nvade\Numerosis\Models\Central\Role;
+use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\Tests\TestCase;
 use Nvade\NumerosisFilament\Admin\Resources\Users\Pages\EditUser;
 use Nvade\NumerosisFilament\Admin\Resources\Users\UserResource;

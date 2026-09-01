@@ -12,7 +12,7 @@ use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Support\Numerosis;

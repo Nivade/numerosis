@@ -14,7 +14,7 @@ use InterNACHI\Modular\Support\ModuleConfig;
 use Livewire\Attributes\Computed;
 use Nvade\Numerosis\Concerns\Billing\ConfirmsPayments;
 use Nvade\Numerosis\Contracts\Billing\ModuleOffer;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\Tenancy\TenantNotInitialized;
 use Nvade\Numerosis\Facades\Billing as BillingFacade;
 use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;

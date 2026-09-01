@@ -11,7 +11,7 @@ use Nvade\NumerosisFilament\TenantAdmin\Clusters\Team\Resources\Roles\Pages\List
 use Nvade\NumerosisFilament\TenantAdmin\Clusters\Team\TeamCluster;
 use Override;
 
-class RoleResource extends \Nvade\NumerosisFilament\App\Resources\Roles\RoleResource
+class RoleResource extends \Nvade\NumerosisFilament\Shared\Resources\Roles\RoleResource
 {
     protected static ?string $model = Role::class;
 

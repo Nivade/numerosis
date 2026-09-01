@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Support\Features;
@@ -17,7 +18,7 @@ if (Features::enabled(SocialLoginFeature::NAME)) {
         ->name('oauth.callback');
 
     Route::get('/oauth/{driver}', Social\Redirect::class)
-        ->domain(config('numerosis.domains.central'))
+        ->domain(Config::string('numerosis.domains.central'))
         ->name('oauth');
 }
 

@@ -9,7 +9,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Support\Numerosis;
 

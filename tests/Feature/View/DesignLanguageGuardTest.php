@@ -31,9 +31,12 @@ class DesignLanguageGuardTest extends TestCase
      * collapsed.
      */
     private const ROUNDED_2XL_ALLOWED_IN = [
-        'about.blade.php',
-        'features.blade.php',
-        'welcome.blade.php',
+        // Empty on purpose. The three files that held the media-panel
+        // exception (about/features/welcome) are the host app's now — they
+        // were the product's marketing pages, not the framework's — so no
+        // view this scan reaches is allowed to use `rounded-2xl` any more.
+        // Re-add a filename here, with a reason, if a genuine media/hero panel
+        // ever lands back in a package view.
     ];
 
     /**
@@ -66,7 +69,8 @@ class DesignLanguageGuardTest extends TestCase
         'components/registration/navigation.blade.php',
         'livewire/tenant/registration/wizard/index.blade.php',
         'pages/tenant/⚡suspended.blade.php',
-        'welcome.blade.php',
+        // `welcome.blade.php`'s entry (macOS-style window-chrome illustration)
+        // is gone with the file: marketing pages moved to the host app.
     ];
 
     /**
@@ -144,6 +148,12 @@ class DesignLanguageGuardTest extends TestCase
     public function test_rounded_2xl_only_survives_on_the_documented_media_panels(): void
     {
         $files = $this->viewFiles();
+
+        // Without this the test asserts nothing at all once no scanned file
+        // uses `rounded-2xl` — which is exactly what happened when the three
+        // allowlisted marketing views moved to the host app, and PHPUnit
+        // reported it as risky rather than as lost coverage.
+        $this->assertNotEmpty($files, 'Scanned no view files — the numerosis:: namespace resolved no readable path.');
 
         foreach ($files as $file) {
             $code = $this->stripComments($file->getContents());

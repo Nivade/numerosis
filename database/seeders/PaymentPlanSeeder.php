@@ -6,8 +6,8 @@ namespace Nvade\Numerosis\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
-use Nvade\Numerosis\Models\Central\Feature;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
+use Nvade\Numerosis\Models\Central\PlanFeature;
 use Nvade\Numerosis\Support\Numerosis;
 
 /**
@@ -99,16 +99,16 @@ class PaymentPlanSeeder extends Seeder
     }
 
     /**
-     * @return Collection<int, Feature> in the declared order, which is what
-     *                                  makes "the first N features" meaningful
+     * @return Collection<int, PlanFeature> in the declared order, which is what
+     *                                      makes "the first N features" meaningful
      */
     private function seedFeatures(): Collection
     {
-        /** @var class-string<Feature> $featureClass */
-        $featureClass = Numerosis::model(Feature::class);
+        /** @var class-string<PlanFeature> $featureClass */
+        $featureClass = Numerosis::model(PlanFeature::class);
 
         return collect(self::FEATURES)->map(
-            fn (array $feature): Feature => $featureClass::firstOrCreate(
+            fn (array $feature): PlanFeature => $featureClass::firstOrCreate(
                 ['slug' => $feature['slug']],
                 ['description' => $feature['description']],
             ),
@@ -117,7 +117,7 @@ class PaymentPlanSeeder extends Seeder
 
     /**
      * @param  array{name: string, slug: string, description: string, monthly_price: int, yearly_price: int, trial_days: int, features: int}  $attributes
-     * @param  Collection<int, Feature>  $features
+     * @param  Collection<int, PlanFeature>  $features
      * @param  array{monthly_id?: string|null, yearly_id?: string|null}  $configured
      */
     private function seedPlan(array $attributes, Collection $features, array $configured): void
@@ -144,7 +144,7 @@ class PaymentPlanSeeder extends Seeder
         // table renders from.
         $plan->features()->sync(
             $features
-                ->mapWithKeys(fn (Feature $feature, int $index): array => [
+                ->mapWithKeys(fn (PlanFeature $feature, int $index): array => [
                     $feature->id => ['available' => $index < $attributes['features']],
                 ])
                 ->all()

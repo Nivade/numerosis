@@ -7,7 +7,7 @@
 
 @php
     /** @var \Nvade\Numerosis\Models\Central\PaymentPlan $plan */
-    /** @var \Nvade\Numerosis\Enums\BillingCycle $billingCycle */
+    /** @var \Nvade\Numerosis\Enums\Billing\BillingCycle $billingCycle */
     $billing = resolve(\Nvade\Numerosis\Services\Billing\BillingService::class);
     $price = $billing->formatAmount($plan->getPrice($billingCycle));
     $trialDays = $plan->trialDays();

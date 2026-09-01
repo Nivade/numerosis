@@ -11,7 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Actions\Billing\Checkout\CreateInlineSubscription;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

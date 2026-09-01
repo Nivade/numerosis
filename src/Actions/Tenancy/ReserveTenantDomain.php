@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Exceptions\Tenancy\DomainAlreadyClaimed;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Support\Numerosis;

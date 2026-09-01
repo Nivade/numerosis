@@ -71,8 +71,10 @@ it('returns the exact csrf exceptions list', function () {
 it('binds a web-middleware route per central domain and a tenant group', function () {
     // routes() already ran once for the whole suite via TestCase::defineRoutes();
     // this asserts the outcome of that call, not a fresh invocation.
-    $central = Route::getRoutes()->getByName('terms');
-    throw_unless($central instanceof IlluminateRoute, RuntimeException::class, 'route [terms] not registered');
+    // `home`, not one of the old marketing routes: those moved to the host
+    // app. `home` is the one central route core always registers.
+    $central = Route::getRoutes()->getByName('home');
+    throw_unless($central instanceof IlluminateRoute, RuntimeException::class, 'route [home] not registered');
 
     expect($central->getDomain())->toBe(Config::array('tenancy.central_domains')[0]);
     expect($central->middleware())->toContain('web');

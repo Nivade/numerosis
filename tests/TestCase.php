@@ -329,10 +329,20 @@ abstract class TestCase extends Orchestra
         // and resources/views/layouts/app/header.blade.php's
         // `<livewire:layouts::header />`). See docs/host-requirements.md's
         // `config/livewire.php` row.
-        $app->make(Repository::class)->set('livewire.component_namespaces', [
-            'layouts' => dirname(__DIR__).'/resources/views/layouts',
-            'pages' => dirname(__DIR__).'/resources/views/pages',
-        ]);
+        //
+        // Set one key at a time, never the whole array: this method runs after
+        // every provider's register(), and a satellite contributes its own
+        // namespace there (nvade/numerosis-account's `account-pages`).
+        // Replacing the array wholesale dropped it silently, and the only
+        // symptom was `Unable to find component: [account-pages::tenant.mine]`.
+        $app->make(Repository::class)->set(
+            'livewire.component_namespaces.layouts',
+            dirname(__DIR__).'/resources/views/layouts',
+        );
+        $app->make(Repository::class)->set(
+            'livewire.component_namespaces.pages',
+            dirname(__DIR__).'/resources/views/pages',
+        );
 
         $app->make(Repository::class)->set('permission.models.permission', Permission::class);
         $app->make(Repository::class)->set('permission.models.role', Role::class);

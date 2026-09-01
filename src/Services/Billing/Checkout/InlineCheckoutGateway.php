@@ -11,7 +11,7 @@ use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\Billing\BillingCycleRequired;
 use Nvade\Numerosis\Exceptions\Billing\PaymentPlanNotFound;
 use Nvade\Numerosis\Exceptions\Billing\StripePriceNotConfigured;

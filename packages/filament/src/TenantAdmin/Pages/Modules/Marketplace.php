@@ -16,7 +16,7 @@ use Livewire\Attributes\Computed;
 use Nvade\Numerosis\Concerns\Billing\ConfirmsPayments;
 use Nvade\Numerosis\Contracts\Billing\ModuleCatalog;
 use Nvade\Numerosis\Contracts\Billing\ModuleOffer;
-use Nvade\Numerosis\Enums\ModuleBillingMode;
+use Nvade\Numerosis\Enums\Billing\ModuleBillingMode;
 use Nvade\Numerosis\Exceptions\Tenancy\TenantNotInitialized;
 use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Models\Central\Tenant;

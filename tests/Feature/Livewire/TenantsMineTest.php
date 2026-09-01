@@ -9,7 +9,7 @@ use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Tests\TestCase;
 
 class TenantsMineTest extends TestCase
@@ -23,7 +23,7 @@ class TenantsMineTest extends TestCase
         $this->attach($user, $tenant);
 
         Livewire::actingAs($user)
-            ->test('pages::tenant.mine')
+            ->test('account-pages::tenant.mine')
             ->assertSet('readyTenants', fn ($tenants) => $tenants->count() === 1)
             ->assertSet('provisioningTenants', fn ($tenants) => $tenants->isEmpty());
     }
@@ -39,7 +39,7 @@ class TenantsMineTest extends TestCase
         $this->attach($user, $tenant);
 
         Livewire::actingAs($user)
-            ->test('pages::tenant.mine')
+            ->test('account-pages::tenant.mine')
             ->assertSet('readyTenants', fn ($tenants) => $tenants->isEmpty())
             ->assertSet('provisioningTenants', fn ($tenants) => $tenants->count() === 1);
     }
@@ -56,7 +56,7 @@ class TenantsMineTest extends TestCase
         ]);
 
         Livewire::actingAs($user)
-            ->test('pages::tenant.mine')
+            ->test('account-pages::tenant.mine')
             ->assertSet('pendingTenants', fn ($pending) => $pending->count() === 1)
             ->assertSee('Waiting Co');
     }
@@ -75,7 +75,7 @@ class TenantsMineTest extends TestCase
         ]);
 
         Livewire::actingAs($user)
-            ->test('pages::tenant.mine')
+            ->test('account-pages::tenant.mine')
             ->assertSee('seeding blew up')
             ->assertSee('Try again');
     }
@@ -92,7 +92,7 @@ class TenantsMineTest extends TestCase
         ]);
 
         Livewire::actingAs($user)
-            ->test('pages::tenant.mine')
+            ->test('account-pages::tenant.mine')
             ->assertSee('Reserved Co')
             ->assertSee('Continue checkout')
             ->assertSeeHtml(route('checkout.resume', 'reservedone'));
@@ -111,7 +111,7 @@ class TenantsMineTest extends TestCase
         ]);
 
         Livewire::actingAs($user)
-            ->test('pages::tenant.mine')
+            ->test('account-pages::tenant.mine')
             ->assertSet('pendingTenants', fn ($pending) => $pending->isEmpty())
             ->assertDontSee('Someone Else Co');
     }
@@ -134,7 +134,7 @@ class TenantsMineTest extends TestCase
         ]);
 
         Livewire::actingAs($user)
-            ->test('pages::tenant.mine')
+            ->test('account-pages::tenant.mine')
             ->assertSet('pendingTenants', fn ($pending) => $pending->isEmpty())
             ->assertSet('provisioningTenants', fn ($tenants) => $tenants->count() === 1);
     }
@@ -151,7 +151,7 @@ class TenantsMineTest extends TestCase
         ]);
 
         Livewire::actingAs($user)
-            ->test('pages::tenant.mine')
+            ->test('account-pages::tenant.mine')
             ->call('cancelProvision', 'cancelme')
             ->assertSet('pendingTenants', fn ($pending) => $pending->isEmpty());
 
@@ -176,7 +176,7 @@ class TenantsMineTest extends TestCase
         ]);
 
         Livewire::actingAs($user)
-            ->test('pages::tenant.mine')
+            ->test('account-pages::tenant.mine')
             ->call('cancelProvision', 'notyours');
 
         $this->assertNotNull(PendingTenantProvision::find('notyours'));

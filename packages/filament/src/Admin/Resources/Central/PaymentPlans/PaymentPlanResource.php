@@ -17,7 +17,7 @@ use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\Pages\CreatePay
 use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\Pages\EditPaymentPlan;
 use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\Pages\ListPaymentPlans;
 use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\Pages\ViewPaymentPlan;
-use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\RelationManagers\FeaturesRelationManager;
+use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\RelationManagers\PlanFeaturesRelationManager;
 use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\Schemas\PaymentPlanForm;
 use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\Tables\PaymentPlansTable;
 use Override;
@@ -67,7 +67,7 @@ class PaymentPlanResource extends Resource
     public static function getRelations(): array
     {
         return [
-            FeaturesRelationManager::class,
+            PlanFeaturesRelationManager::class,
         ];
     }
 

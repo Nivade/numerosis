@@ -17,7 +17,7 @@ use Filament\Support\Enums\Width;
 use Illuminate\Support\Collection;
 use Laravel\Cashier\Cashier;
 use Laravel\Cashier\Invoice;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Subscription;

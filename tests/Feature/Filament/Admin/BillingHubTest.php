@@ -10,8 +10,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Nvade\Numerosis\Tests\TestCase;
 use Nvade\NumerosisFilament\Admin\Clusters\Billing\Pages\BillingDashboard;
-use Nvade\NumerosisFilament\Admin\Resources\Central\Features\FeatureResource;
 use Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\PaymentPlanResource;
+use Nvade\NumerosisFilament\Admin\Resources\Central\PlanFeatures\PlanFeatureResource;
 use Nvade\NumerosisFilament\Admin\Resources\Central\Subscriptions\SubscriptionResource;
 
 class BillingHubTest extends TestCase
@@ -53,7 +53,7 @@ class BillingHubTest extends TestCase
         $this->actingAs($user);
         Gate::before(fn () => true);
 
-        $this->get(FeatureResource::getUrl('index'))
+        $this->get(PlanFeatureResource::getUrl('index'))
             ->assertSuccessful();
     }
 

@@ -55,6 +55,7 @@
         "laravel/boost": "^2.4",
         "laravel/pint": "^1.14",
         "nunomaduro/collision": "^8.8",
+        "nvade/numerosis-account": "@dev",
         "nvade/numerosis-auth-ui": "@dev",
         "nvade/numerosis-filament": "@dev",
         "nvade/numerosis-onboarding": "@dev",
@@ -72,16 +73,16 @@
         "spatie/laravel-one-time-passwords": "^1.1"
     },
     "suggest": {
-        "nvade/numerosis-auth-ui": "Login, registration, password-reset and OAuth screens. Without it there is no /login, /register or /forgot-password route, the tenant panel falls back to Filament's own login page, and social login is unavailable \u2014 core's auth mechanics (guards, LogoutUser, email verification, the social-account repository) still work.",
-        "filament/filament": "Admin + tenant panels (both self-register when installed). Without it, App\\Models\\User loses Filament's FilamentUser/HasTenants contracts and neither panel registers \u2014 everything else still works.",
-        "internachi/modular": "The per-tenant module system: the marketplace, the module resource and the tenants:*-module commands. Without it those pages are hidden, purchasing refuses, and the commands are not registered \u2014 tenancy, billing and everything else still works.",
+        "nvade/numerosis-auth-ui": "Login, registration, password-reset and OAuth screens. Without it there is no /login, /register or /forgot-password route, the tenant panel falls back to Filament's own login page, and social login is unavailable — core's auth mechanics (guards, LogoutUser, email verification, the social-account repository) still work.",
+        "filament/filament": "Admin + tenant panels (both self-register when installed). Without it, App\\Models\\User loses Filament's FilamentUser/HasTenants contracts and neither panel registers — everything else still works.",
+        "internachi/modular": "The per-tenant module system: the marketplace, the module resource and the tenants:*-module commands. Without it those pages are hidden, purchasing refuses, and the commands are not registered — tenancy, billing and everything else still works.",
         "spatie/laravel-one-time-passwords": "Passwordless (OTP) login. Without it, User::HasOneTimePasswordsIfInstalled no-ops and nvade/numerosis-auth-ui's PasswordlessLogin is unreachable.",
         "spatie/laravel-activitylog": "Tenant\\User and Tenant\\Invitation activity logging. Without it, LogsActivityIfInstalled no-ops.",
         "sentry/sentry-laravel": "Enables TagsSentryScopeWithTenant; guarded by app()->bound('sentry') where used.",
         "laravel/telescope": "Adds a scheduled telescope:prune entry and is why 'telescope/*' is CSRF-exempt; both are class_exists-guarded.",
         "laravel/reverb": "Broadcasting/presence-channel support for the tenant panel's realtime features.",
         "pusher/pusher-php-server": "Alternative broadcast driver to laravel/reverb, same broadcasting code paths.",
-        "nvade/numerosis-onboarding": "The self-serve tenant registration wizard at /get-started. Without it there is no signup route and core's four links to it are hidden \u2014 tenants can still be created from an admin screen, a job or a Stripe webhook.",
+        "nvade/numerosis-onboarding": "The self-serve tenant registration wizard at /get-started. Without it there is no signup route and core's four links to it are hidden — tenants can still be created from an admin screen, a job or a Stripe webhook.",
         "nvade/numerosis-filament": "The admin and tenant Filament panels. Without it this package registers no panels, and filament/filament is not needed at all."
     },
     "autoload": {
@@ -96,6 +97,7 @@
             "Nvade\\Numerosis\\Tests\\": "tests/",
             "Nvade\\NumerosisUi\\Tests\\": "packages/ui/tests/",
             "Nvade\\NumerosisAuthUi\\Tests\\": "packages/auth-ui/tests/",
+            "Nvade\\NumerosisAccount\\Tests\\": "packages/account/tests/",
             "Nvade\\NumerosisFilament\\Tests\\": "packages/filament/tests/",
             "Nvade\\NumerosisOnboarding\\Tests\\": "packages/onboarding/tests/",
             "Workbench\\App\\": "workbench/app/",

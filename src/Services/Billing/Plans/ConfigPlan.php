@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Services\Billing\Plans;
 
 use Nvade\Numerosis\Contracts\Billing\Plan;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 
 class ConfigPlan implements Plan
 {

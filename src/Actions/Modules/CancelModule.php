@@ -9,7 +9,7 @@ use Laravel\Cashier\SubscriptionItem;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Modules\Concerns\GuardsModuleBilling;
 use Nvade\Numerosis\Contracts\Billing\ModuleCatalog;
-use Nvade\Numerosis\Enums\ModuleBillingMode;
+use Nvade\Numerosis\Enums\Billing\ModuleBillingMode;
 use Nvade\Numerosis\Exceptions\Billing\ModuleBillingNotAuthorized;
 use Nvade\Numerosis\Exceptions\Billing\ModuleNotFound;
 use Nvade\Numerosis\Models\Central\CentralUser;

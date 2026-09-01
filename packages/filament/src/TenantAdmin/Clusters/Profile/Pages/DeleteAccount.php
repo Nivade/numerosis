@@ -43,7 +43,7 @@ class DeleteAccount extends Page implements HasForms
                     ->icon('heroicon-o-exclamation-triangle')
                     ->schema([
                         ViewField::make('delete_account')
-                            ->view('filament.tenant-admin.components.delete-account-panel')
+                            ->view('numerosis::filament.tenant-admin.components.delete-account-panel')
                             ->dehydrated(false)
                             ->columnSpanFull(),
                     ]),

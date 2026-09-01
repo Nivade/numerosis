@@ -51,7 +51,7 @@
                                     </x-filament::badge>
                                 @else
                                     <x-filament::badge color="gray">
-                                        {{ $module['billing_mode'] === \Nvade\Numerosis\Enums\ModuleBillingMode::OneTime ? 'One-time' : 'Subscription' }}
+                                        {{ $module['billing_mode'] === \Nvade\Numerosis\Enums\Billing\ModuleBillingMode::OneTime ? 'One-time' : 'Subscription' }}
                                     </x-filament::badge>
                                 @endif
                             </div>

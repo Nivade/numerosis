@@ -6,8 +6,18 @@ parameters:
     treatPhpDocTypesAsCertain: false
     paths:
         - src
+        - packages
         - config
         - database
         - tests
         - workbench
+    # Blade templates are outside analysis scope, the same way core's own
+    # `resources/views` has always been: `@props()` and Livewire's single-file
+    # `new class extends Component` are directives PHPStan cannot see through,
+    # so every such file reports undefined variables and an unused `new`.
+    # Only `packages/*` needs saying out loud — `paths` above names core's PHP
+    # directories individually and never reaches its views.
+    excludePaths:
+        analyse:
+            - packages/*/resources/views/*
     tmpDir: build/phpstan

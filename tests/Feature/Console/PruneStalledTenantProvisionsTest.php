@@ -9,7 +9,7 @@ use App\Models\Central\PendingTenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Tests\TestCase;
 
 class PruneStalledTenantProvisionsTest extends TestCase

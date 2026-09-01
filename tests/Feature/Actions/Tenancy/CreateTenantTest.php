@@ -15,7 +15,7 @@ use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Tests\TestCase;
 
 class CreateTenantTest extends TestCase

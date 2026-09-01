@@ -10,7 +10,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 
 class StartCheckoutRequest extends FormRequest
 {

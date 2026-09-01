@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Livewire\Tenant\Registration\Steps;
 use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Tests\TestCase;
 use Nvade\NumerosisOnboarding\Livewire\Steps\Plan;
 

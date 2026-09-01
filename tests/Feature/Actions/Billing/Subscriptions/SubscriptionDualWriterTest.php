@@ -14,7 +14,7 @@ use Nvade\Numerosis\Actions\Billing\Subscriptions\LinkSubscriptionToTenant;
 use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

@@ -8,7 +8,7 @@ use App\Models\Central\Tenant;
 use App\Models\Tenant\Module;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Modules\RecordModulePurchase;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Models\Central\ModuleOffering;
 use Nvade\Numerosis\Tests\TestCase;
 

@@ -13,7 +13,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
-use Nvade\Numerosis\Enums\ModuleBillingMode;
+use Nvade\Numerosis\Enums\Billing\ModuleBillingMode;
 
 class ModuleForm
 {

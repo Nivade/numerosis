@@ -10,7 +10,7 @@ use App\Models\Central\PendingTenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Tests\TestCase;
 

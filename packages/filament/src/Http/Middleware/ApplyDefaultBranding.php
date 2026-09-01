@@ -8,6 +8,7 @@ use Closure;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
  * Applies a tenant's branding — primary colour, logo, favicon — to the panel
@@ -25,8 +26,13 @@ class ApplyDefaultBranding
     public function handle(Request $request, Closure $next): mixed
     {
         $panel = Filament::getCurrentPanel();
+        $tenant = tenancy()->tenant;
 
-        $panel?->brandName(Str::ucfirst(tenant()?->name));
+        // Guarded rather than null-safe: `Str::ucfirst()` is `string`-typed, so
+        // a central request that reached a panel used to be a TypeError here.
+        if ($panel !== null && $tenant instanceof Tenant) {
+            $panel->brandName(Str::ucfirst($tenant->name));
+        }
 
         return $next($request);
     }

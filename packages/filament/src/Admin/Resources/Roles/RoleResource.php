@@ -11,7 +11,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Nvade\Numerosis\Models\Central\Role;
+use Nvade\Numerosis\Models\Role;
 use Nvade\NumerosisFilament\Admin\Resources\Roles\Pages\CreateRole;
 use Nvade\NumerosisFilament\Admin\Resources\Roles\Pages\EditRole;
 use Nvade\NumerosisFilament\Admin\Resources\Roles\Pages\ListRoles;

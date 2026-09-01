@@ -8,9 +8,9 @@ use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
-use Nvade\Numerosis\Livewire\Settings\Appearance;
-use Nvade\Numerosis\Livewire\Settings\Password;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisAccount\Livewire\Settings\Appearance;
+use Nvade\NumerosisAccount\Livewire\Settings\Password;
 use Nvade\NumerosisAuthUi\Livewire\ConfirmPassword;
 use Nvade\NumerosisAuthUi\Livewire\VerifyEmail;
 

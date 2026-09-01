@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Actions\Modules;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\ModuleOffer;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Support\Numerosis;
 

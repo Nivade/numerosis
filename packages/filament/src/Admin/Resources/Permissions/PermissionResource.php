@@ -11,7 +11,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Nvade\Numerosis\Models\Central\Permission;
+use Nvade\Numerosis\Models\Permission;
 use Nvade\NumerosisFilament\Admin\Resources\Permissions\Pages\CreatePermission;
 use Nvade\NumerosisFilament\Admin\Resources\Permissions\Pages\EditPermission;
 use Nvade\NumerosisFilament\Admin\Resources\Permissions\Pages\ListPermissions;

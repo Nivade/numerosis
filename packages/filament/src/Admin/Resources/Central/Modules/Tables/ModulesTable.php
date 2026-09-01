@@ -12,7 +12,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Nvade\Numerosis\Enums\ModuleBillingMode;
+use Nvade\Numerosis\Enums\Billing\ModuleBillingMode;
 
 class ModulesTable
 {

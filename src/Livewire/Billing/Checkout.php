@@ -25,13 +25,13 @@ use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Concerns\Billing\ConfirmsPayments;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
-use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 use Nvade\Numerosis\Support\Tenancy\SelfServeRegistration;
+use Nvade\Numerosis\Support\Ui\AccountPages;
 
 /**
  * The inline checkout, used two ways: standalone at `/checkout/{domain}`,
@@ -346,7 +346,7 @@ class Checkout extends Component
         // when Checkout was reached standalone (nothing set the key).
         session()->forget(SelfServeRegistration::SESSION_KEY);
 
-        $this->redirectRoute(Features::enabled(AccountPagesFeature::NAME) ? RouteNames::tenantsMine() : RouteNames::home());
+        $this->redirectRoute(Features::enabled(AccountPages::FEATURE) ? RouteNames::tenantsMine() : RouteNames::home());
     }
 
     public function render(): View

@@ -1,5 +1,5 @@
 @php
-    use Nvade\Numerosis\Enums\BillingCycle;
+    use Nvade\Numerosis\Enums\Billing\BillingCycle;
 
     $subscription = $this->subscription;
 @endphp
@@ -203,7 +203,7 @@
                                         <p class="mt-1 text-sm font-semibold text-zinc-900 dark:text-white">
                                             {{ $plan->name }}
                                             <span class="text-xs font-normal text-zinc-500 dark:text-zinc-400">
-                                                ({{ $billingCycle === \Nvade\Numerosis\Enums\BillingCycle::Monthly ? 'Monthly' : 'Yearly' }})
+                                                ({{ $billingCycle === \Nvade\Numerosis\Enums\Billing\BillingCycle::Monthly ? 'Monthly' : 'Yearly' }})
                                             </span>
                                         </p>
                                         <p class="mt-1 text-lg font-bold text-primary">

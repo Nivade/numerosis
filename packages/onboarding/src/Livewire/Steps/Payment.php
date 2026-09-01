@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\NumerosisOnboarding\Livewire\Steps;
 
 use Illuminate\View\View;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Support\Numerosis;
 use Spatie\LivewireWizard\Components\StepComponent;

@@ -16,7 +16,7 @@ use Laravel\Cashier\Cashier;
 use Laravel\Cashier\SubscriptionItem;
 use LogicException;
 use Nvade\Numerosis\Actions\Modules\CancelModule;
-use Nvade\Numerosis\Enums\ModuleBillingMode;
+use Nvade\Numerosis\Enums\Billing\ModuleBillingMode;
 use Nvade\Numerosis\Exceptions\Billing\ModuleBillingNotAuthorized;
 use Nvade\Numerosis\Exceptions\Billing\ModuleNotFound;
 use Nvade\Numerosis\Models\Central\ModuleOffering;

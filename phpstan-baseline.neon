@@ -1199,3 +1199,25 @@ parameters:
 			identifier: assign.propertyType
 			count: 1
 			path: tests/Support/CloneTenantSchema.php
+
+	# Cross-package feature-name contracts: a satellite's NAME must equal the
+	# constant core owns. Both sides are compile-time constants, so PHPStan
+	# decides them statically — the assertion still earns its place, because it
+	# is what fails if a future edit desyncs the two.
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertSame\(\) with ''ui\.account'' and ''ui\.account'' will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: packages/account/tests/PackageRegistrationTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertSame\(\) with ''social'' and ''social'' will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: packages/auth-ui/tests/PackageRegistrationTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertSame\(\) with ''registration_wizard'' and ''registration_wizard'' will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: packages/onboarding/tests/PackageRegistrationTest.php

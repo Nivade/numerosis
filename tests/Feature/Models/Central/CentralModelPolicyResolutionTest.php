@@ -8,17 +8,17 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Feature;
 use Nvade\Numerosis\Models\Central\ModuleOffering;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Models\Central\Permission;
-use Nvade\Numerosis\Models\Central\Role;
+use Nvade\Numerosis\Models\Central\PlanFeature;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Policies\FeaturePolicy;
+use Nvade\Numerosis\Models\Permission;
+use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\Policies\ModuleOfferingPolicy;
 use Nvade\Numerosis\Policies\PaymentPlanPolicy;
 use Nvade\Numerosis\Policies\PermissionPolicy;
+use Nvade\Numerosis\Policies\PlanFeaturePolicy;
 use Nvade\Numerosis\Policies\RolePolicy;
 use Nvade\Numerosis\Policies\SubscriptionPolicy;
 use Nvade\Numerosis\Policies\TenantPolicy;
@@ -85,7 +85,7 @@ class CentralModelPolicyResolutionTest extends TestCase
 
     public function test_central_feature_resolves_the_feature_policy(): void
     {
-        $this->assertInstanceOf(FeaturePolicy::class, Gate::getPolicyFor(Feature::class));
+        $this->assertInstanceOf(PlanFeaturePolicy::class, Gate::getPolicyFor(PlanFeature::class));
     }
 
     public function test_central_module_offering_resolves_the_module_offering_policy(): void
@@ -123,7 +123,7 @@ class CentralModelPolicyResolutionTest extends TestCase
         $this->assertFalse($user->can('viewAny', Tenant::class));
         $this->assertFalse($user->can('viewAny', PaymentPlan::class));
         $this->assertFalse($user->can('viewAny', Subscription::class));
-        $this->assertFalse($user->can('viewAny', Feature::class));
+        $this->assertFalse($user->can('viewAny', PlanFeature::class));
         $this->assertFalse($user->can('viewAny', ModuleOffering::class));
     }
 
@@ -141,7 +141,7 @@ class CentralModelPolicyResolutionTest extends TestCase
         $this->assertTrue($user->can('viewAny', Tenant::class));
         $this->assertTrue($user->can('viewAny', PaymentPlan::class));
         $this->assertTrue($user->can('viewAny', Subscription::class));
-        $this->assertTrue($user->can('viewAny', Feature::class));
+        $this->assertTrue($user->can('viewAny', PlanFeature::class));
         $this->assertTrue($user->can('viewAny', ModuleOffering::class));
     }
 }

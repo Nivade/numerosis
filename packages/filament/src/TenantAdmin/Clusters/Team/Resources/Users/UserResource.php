@@ -249,7 +249,7 @@ class UserResource extends BaseResource
                     ->modalIcon(Heroicon::OutlinedEnvelope)
                     ->modalIconColor('info'),
             ])
-            ->bulkActions([])
+            ->toolbarActions([])
             ->emptyStateIcon(Heroicon::OutlinedUserGroup)
             ->emptyStateHeading('No team members yet')
             ->emptyStateDescription('Get started by adding your first team member.');

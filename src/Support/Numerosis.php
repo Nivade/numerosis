@@ -37,9 +37,6 @@ class Numerosis
     /** @var list<string> */
     private static array $tenantColumns = [];
 
-    /** @var array<class-string, class-string> */
-    private static array $modelCache = [];
-
     /**
      * Set through {@see self::registerRoutesUsing()},
      * {@see self::registerBroadcastingUsing()} and
@@ -324,69 +321,29 @@ class Numerosis
     }
 
     /**
-     * Resolve the factory for a model, keeping the namespace segment below
-     * `Models\` (`Central\Tenant` → `Central\TenantFactory`). Registered as
-     * Laravel's factory-name resolver, because every factory ships with this
-     * package even when the model is a subclass in your own app namespace.
+     * Registered as Laravel's factory-name resolver.
      *
-     * This replaces Laravel's *global* resolver, so it also answers for models
-     * of your own that have nothing to do with this package: any class under a
-     * `\Models\` namespace — `App\Models\User` included — resolves to
-     * `Nvade\Numerosis\Database\Factories\<suffix>Factory`. The failure that
-     * causes is not a wrong class but wrong *fields*: {@see
-     * self::modelNameFor()} still instantiates your model, so
-     * `App\Models\User::factory()` builds your model from the package
-     * factory's definition, silently missing whatever columns your own
-     * migrations added. Escape it per model with Laravel's own attribute,
-     * which `HasFactory::newFactory()` consults before any global resolver:
-     *
-     * ```php
-     * #[UseFactory(\Database\Factories\UserFactory::class)]
-     * class User extends Authenticatable {}
-     * ```
+     * Implementation, and the full caveat about it answering for your own
+     * App\Models\* classes too: {@see ModelResolver::factoryFor()}.
      *
      * @param  class-string<Model>  $modelName
      * @return class-string<Factory<Model>>
      */
     public static function factoryNameFor(string $modelName): string
     {
-        $suffix = str_contains($modelName, '\\Models\\')
-            ? substr($modelName, strpos($modelName, '\\Models\\') + strlen('\\Models\\'))
-            : class_basename($modelName);
-
-        /** @var class-string<Factory<Model>> $factoryName */
-        $factoryName = 'Nvade\\Numerosis\\Database\\Factories\\'.$suffix.'Factory';
-
-        return $factoryName;
+        return ModelResolver::factoryFor($modelName);
     }
 
     /**
-     * The reverse of {@see self::factoryNameFor()}. Prefers a subclass in
-     * your own app namespace when one exists, so factories build the model
-     * you actually extended, and falls back to the package's own class.
+     * Registered as Laravel's model-name resolver.
+     * {@see ModelResolver::modelFor()}.
      *
      * @param  class-string<Factory<Model>>  $factoryName
      * @return class-string<Model>
      */
     public static function modelNameFor(string $factoryName): string
     {
-        $suffix = str_contains($factoryName, '\\Database\\Factories\\')
-            ? substr($factoryName, strpos($factoryName, '\\Database\\Factories\\') + strlen('\\Database\\Factories\\'))
-            : class_basename($factoryName);
-
-        $suffix = preg_replace('/Factory$/', '', $suffix) ?? $suffix;
-
-        $hostModel = rtrim((string) app()->getNamespace(), '\\').'\\Models\\'.$suffix;
-
-        if (class_exists($hostModel)) {
-            /** @var class-string<Model> $hostModel */
-            return $hostModel;
-        }
-
-        /** @var class-string<Model> $packageModel */
-        $packageModel = 'Nvade\\Numerosis\\Models\\'.$suffix;
-
-        return $packageModel;
+        return ModelResolver::modelFor($factoryName);
     }
 
     /**
@@ -633,20 +590,11 @@ class Numerosis
     }
 
     /**
-     * Resolve which class the package should use for one of its models,
-     * so that your own subclass is used everywhere the package queries it.
+     * Which class the package should use for one of its models, so your own
+     * subclass is used everywhere the package queries it.
      *
-     * Resolution order:
-     *
-     * 1. `config('numerosis.models.{$model}')`, if set.
-     * 2. The same class name under your app namespace (`App\Models\Central\
-     *    Tenant` for `Nvade\Numerosis\Models\Central\Tenant`), if it exists
-     *    and extends the package model — so a conventionally-named subclass
-     *    needs no config at all. An unrelated class of that name is ignored.
-     * 3. The package's own class.
-     *
-     * Every model this covers is concrete, so overriding is optional.
-     * Results are memoized for the lifetime of the process.
+     * The three-step resolution order (config, convention, package class)
+     * lives on {@see ModelResolver::resolve()}.
      *
      * @template TModel of \Illuminate\Database\Eloquent\Model
      *
@@ -655,40 +603,17 @@ class Numerosis
      */
     public static function model(string $model): string
     {
-        if (isset(self::$modelCache[$model])) {
-            /** @var class-string<TModel> */
-            return self::$modelCache[$model];
-        }
-
-        $override = Config::get("numerosis.models.{$model}");
-
-        if (is_string($override) && $override !== '') {
-            /** @var class-string<TModel> $override */
-            return self::$modelCache[$model] = $override;
-        }
-
-        $suffix = str_contains($model, '\\Models\\')
-            ? substr($model, strpos($model, '\\Models\\') + strlen('\\Models\\'))
-            : class_basename($model);
-
-        $hostModel = rtrim((string) app()->getNamespace(), '\\').'\\Models\\'.$suffix;
-
-        if (class_exists($hostModel) && is_subclass_of($hostModel, $model)) {
-            /** @var class-string<TModel> $hostModel */
-            return self::$modelCache[$model] = $hostModel;
-        }
-
-        return self::$modelCache[$model] = $model;
+        return ModelResolver::resolve($model);
     }
 
     /**
      * Clear {@see self::model()}'s memoization. Runs on every boot, since the
      * cache is static and would otherwise outlive an application instance
-     * under Octane or in tests.
+     * under Octane or in tests. {@see ModelResolver::flush()}.
      */
     public static function resetModelCache(): void
     {
-        self::$modelCache = [];
+        ModelResolver::flush();
     }
 
     /**

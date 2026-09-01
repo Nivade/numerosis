@@ -20,7 +20,8 @@ use Livewire\Attributes\Computed;
 use Nvade\Numerosis\Actions\Billing\AddVatNumber;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartPlanChangeCheckout;
 use Nvade\Numerosis\Actions\Billing\Subscriptions\SwapSubscriptionPlan;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Exceptions\Tenancy\TenantNotInitialized;
 use Nvade\Numerosis\Facades\Billing as BillingFacade;
@@ -55,7 +56,7 @@ class Billing extends Page implements HasForms
     #[Override]
     public static function canAccess(): bool
     {
-        $user = auth()->user();
+        $user = GetAuthenticatedUser::run();
         $tenant = tenant();
 
         return $user !== null && $tenant instanceof Tenant && $tenant->owner()?->global_id === $user->global_id;

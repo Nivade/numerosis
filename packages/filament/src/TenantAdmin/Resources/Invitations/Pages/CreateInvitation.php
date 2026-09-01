@@ -8,7 +8,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Auth;
+use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Events\Invitations\InvitationIssued;
 use Nvade\Numerosis\Models\Tenant\Invitation;
 use Nvade\Numerosis\Models\Tenant\User;
@@ -23,7 +23,7 @@ class CreateInvitation extends CreateRecord
     #[Override]
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $authenticated = Auth::user();
+        $authenticated = GetAuthenticatedUser::run();
 
         throw_unless($authenticated, AuthenticationException::class);
 

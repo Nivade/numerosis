@@ -14,7 +14,7 @@ use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
 use Nvade\Numerosis\Data\Billing\SubscriptionItemData;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Tests\TestCase;
 use Spatie\LaravelData\DataCollection;
 

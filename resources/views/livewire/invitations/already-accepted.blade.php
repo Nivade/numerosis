@@ -7,8 +7,8 @@
     />
 
     <div class="mt-2">
-        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\AccountPagesFeature::NAME))
-            <flux:link :href="route('tenants.mine')">
+        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Ui\AccountPages::FEATURE))
+            <flux:link :href="route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine())">
                 {{ __('Go to my tenants') }} →
             </flux:link>
         @else

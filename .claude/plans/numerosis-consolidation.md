@@ -696,9 +696,80 @@ A before B is a preference (fewer moving parts per step), not a dependency.
 
 ---
 
-## Pick up here (session ended 2026-08-31)
+## Pick up here (session ended 2026-08-31, second session)
 
-### Where the tree is
+### State at handoff — read this first
+
+Two commits landed after the first session's list, and one file is
+**uncommitted and verified only under its own `--filter`**:
+
+```
+3545b83 fix: pin cross-package requires to self.version
+58b7b34 fix: don't crash a real boot before facades are registered
+761978b test: browser-cover subdomain and custom-domain tenant panel round trips
+```
+
+`58b7b34` is the `Numerosis::middleware()` facade-root crash. It was found
+from the `numerosis-thin-app` host, **not** from this suite, and is written up
+in that host's `.claude/rules/package-host-bootstrap.md`. Nothing here could
+have caught it — this repo still has no test that boots a real kernel from a
+cold process.
+
+**Untracked, not committed:** `tests/Browser/RegistrationWizardTest.php`
+(2 tests, 7 assertions). Green under `--filter=RegistrationWizardTest` in 31s;
+Pint clean. **Not** run inside the full suite, and PHPStan has not been run
+since it was written — so its assertion delta is unattributed. Do that before
+anything else:
+
+```bash
+docker compose up -d                    # MySQL is usually down
+vendor/bin/pint
+php -d memory_limit=1G vendor/bin/pest --compact > /tmp/suite.log 2>&1; tail -20 /tmp/suite.log
+pkill -f "playwright run-server"
+```
+
+Last recorded full-suite figure is **0 failed / 7 skipped / 664 passed,
+6468 assertions** (first session, after `761978b`). Expect exactly +2 tests /
++7 assertions and nothing else; anything more is a per-file scan that needs
+naming, per the assertion-delta discipline at the top of this plan.
+
+### What the new file covers, and the four traps it cost
+
+Closes most of open item 1: the registration wizard is now driven through a
+real browser, and the second test runs the whole path to a real provisioned
+tenant (`Tenant::find('acme')`, name asserted).
+
+- **`LocalCheckoutGateway` is the Stripe stub, and it already existed.** A
+  real `CheckoutGateway` this package ships (it backs the local-only dev
+  checkout route), queuing the same `ProvisionTenant` action the paid flow
+  does. The harness runs `queue.default` as `sync`, so a plain
+  `app()->bind(CheckoutGateway::class, LocalCheckoutGateway::class)` in the
+  test body skips *only* the payment leg and the tenant database is really
+  created inside the browser request. The binding carries because the plugin
+  serves Laravel in-process (section E). **No Stripe stub needs writing** —
+  the first session's estimate of this work was wrong in the expensive
+  direction.
+- **A wrong selector here hangs; it does not fail.** Playwright waits for
+  actionability with no deadline in this setup, so a bad locator produces
+  zero output for as long as you let it run. Two apparent multi-minute hangs
+  this session were exactly that (distinct from the orphaned
+  `playwright run-server` pipe problem section E records). Iterate with
+  `timeout 150 … > /tmp/x.log 2>&1` plus a
+  `file_put_contents(…, $page->content())` dump, **one interaction at a
+  time**. Exit 124 tells you nothing about *which* selector.
+- **`type()` alone never enables a Continue button.** Steps 1 and 2 bind
+  `wire:model.blur.live` and render the button `:disabled="!$field"`;
+  `type()` is a Playwright `fill()` and fires no blur, so the value never
+  reaches the server. Each field needs `keys($field, 'Tab')` after it.
+- **Two Flux controls are not what `check()` looks for.** The plan radio is
+  `sr-only` under a `<label>` that intercepts the pointer — click the plan's
+  *name* instead. `flux:checkbox` renders **no `<input>` at all**: it is a
+  `<ui-checkbox>` custom element with `role="checkbox"` and `tabindex="0"`,
+  so `check('terms')` matches nothing and `keys('[role="checkbox"]', 'Space')`
+  is what toggles it. `flux:input` is the easy case — it sets `name` from
+  `wire:model`, so `type('domain', …)` resolves by name.
+
+### Where the tree was after the first session
 
 A–F are committed on `package-scope-reduction`, five commits on top of
 `b58d19d`:
@@ -745,16 +816,31 @@ a `docker compose up -d` first; MySQL wasn't running.
    for both remaining identification modes (mirroring `PathModeTest`:
    authenticated dashboard render + unauthenticated login page, both asserted
    free of `Server Error`) — 0 failed / 7 skipped / 664 passed, 6468
-   assertions (+10, exactly the 4 new tests). **Still not covered**: driving
-   the registration wizard itself through a browser (rather than creating the
-   tenant via factory and asserting on the panel it produces), a module
-   marketplace purchase, and the admin panel showing the new tenant. Those
-   need `Playwright::setHost()` juggling per request across the wizard's
-   multi-step form and a Stripe checkout stub, and are substantially more
-   work than the panel round trip was — not attempted here. Section E for
-   what the plugin can and cannot reach — in particular that it does **not**
-   escape `runningInConsole()`, so subdomain mode's "central route wins over
-   the `{tenant}` wildcard" question stays out of reach of any test here.
+   assertions (+10, exactly the 4 new tests). The wizard leg is now covered
+   too — `tests/Browser/RegistrationWizardTest`, uncommitted, see "State at
+   handoff" above. **Still not covered, in the order they should be picked
+   up:**
+
+   - **The admin panel showing the new tenant.** Started and abandoned only
+     because the session ended, not because it looked hard. The open question
+     is whether a *second* `Auth::guard(…)->login()` mid-test (as a staff
+     user, after the wizard has run as a central user) is visible to the
+     browser, which holds a session cookie from the first login. Every
+     existing browser test logs in once, before its first `visit()`, so this
+     is untested either way. If it does not work, the fallback is a second
+     test that provisions via `StartLocalCheckout::run()` directly and only
+     browser-drives the panel. Note there is **no**
+     `tests/Feature/Filament/Admin/Resources/Central/Tenants/` directory to
+     copy an auth helper from — only `PaymentPlans` — so find how a staff
+     user is built elsewhere first.
+   - **A module marketplace purchase.** Not attempted at all. The UI is
+     `packages/filament/src/TenantAdmin/{Resources,Pages}/Modules/` and it
+     needs `internachi/modular` present plus a real module in the registry;
+     section C's `ModuleSystemFeature::available()` seam is the switch.
+   - Section E for what the plugin can and cannot reach — in particular that
+     it does **not** escape `runningInConsole()`, so subdomain mode's
+     "central route wins over the `{tenant}` wildcard" question stays out of
+     reach of any test here.
 2. **PHPStan baseline environment sensitivity** — the cold count has been
    observed at 0, 47, 48 and 58 on unchanged trees. Prime suspect is the
    Testbench package-discovery cache, regenerated by every composer run.

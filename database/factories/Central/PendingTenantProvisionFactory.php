@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Database\Factories\Central;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 
 // No `protected $model` override: PendingTenantProvision is abstract (see

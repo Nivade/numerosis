@@ -9,8 +9,8 @@ use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Subscription;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Billing\Checkout\SettleCheckout;
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Tests\TestCase;
 

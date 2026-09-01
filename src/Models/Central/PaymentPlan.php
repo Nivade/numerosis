@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Database\Factories\Central\PaymentPlanFactory;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Observers\PaymentPlanObserver;
 use Nvade\Numerosis\Policies\PaymentPlanPolicy;
@@ -91,12 +91,12 @@ class PaymentPlan extends Model implements Plan
     /**
      * Get all features for this payment plan through the pivot table.
      *
-     * @return BelongsToMany<Feature, $this, PaymentPlanFeature>
+     * @return BelongsToMany<PlanFeature, $this, PaymentPlanFeature>
      */
     public function features(): BelongsToMany
     {
         return $this->belongsToMany(
-            Feature::class,
+            PlanFeature::class,
             'payment_plan_features',
             'payment_plan_id',
             'feature_id'
@@ -114,7 +114,7 @@ class PaymentPlan extends Model implements Plan
     }
 
     /**
-     * @return BelongsToMany<Feature, $this, PaymentPlanFeature>
+     * @return BelongsToMany<PlanFeature, $this, PaymentPlanFeature>
      */
     public function availableFeatures(): BelongsToMany
     {

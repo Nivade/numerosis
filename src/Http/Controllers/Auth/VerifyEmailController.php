@@ -9,11 +9,11 @@ use Illuminate\Events\Dispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Redirector;
 use Illuminate\Routing\UrlGenerator;
-use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
 use Nvade\Numerosis\Http\Controllers\Controller;
 use Nvade\Numerosis\Http\Requests\EmailVerificationRequest;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Support\Ui\AccountPages;
 
 class VerifyEmailController extends Controller
 {
@@ -26,7 +26,7 @@ class VerifyEmailController extends Controller
 
     private function defaultRouteName(): string
     {
-        return Features::enabled(AccountPagesFeature::NAME) ? RouteNames::tenantsMine() : RouteNames::home();
+        return Features::enabled(AccountPages::FEATURE) ? RouteNames::tenantsMine() : RouteNames::home();
     }
 
     /**

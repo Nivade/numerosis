@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Nvade\NumerosisAuthUi\Livewire;
 
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
-use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
+use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Livewire\Actions\Logout;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Support\Ui\AccountPages;
 
 #[Layout('layouts::auth')]
 class VerifyEmail extends Component
@@ -22,10 +22,10 @@ class VerifyEmail extends Component
      */
     public function sendVerification(): void
     {
-        $user = Auth::user();
+        $user = GetAuthenticatedUser::run();
 
         if (! $user || $user->hasVerifiedEmail()) {
-            $default = Features::enabled(AccountPagesFeature::NAME) ? RouteNames::tenantsMine() : RouteNames::home();
+            $default = Features::enabled(AccountPages::FEATURE) ? RouteNames::tenantsMine() : RouteNames::home();
 
             $this->redirectIntended(default: route($default, absolute: false), navigate: true);
 

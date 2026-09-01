@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Database\Factories\Central;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Nvade\Numerosis\Enums\ModuleBillingMode;
+use Nvade\Numerosis\Enums\Billing\ModuleBillingMode;
 use Nvade\Numerosis\Models\Central\ModuleOffering;
 
 /** @extends \Illuminate\Database\Eloquent\Factories\Factory<\Nvade\Numerosis\Models\Central\ModuleOffering> */

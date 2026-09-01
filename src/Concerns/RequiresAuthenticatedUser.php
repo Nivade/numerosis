@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Concerns;
 
 use Illuminate\Auth\AuthenticationException;
-use Illuminate\Support\Facades\Auth;
+use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Contracts\Auth\TenantUserModel;
 use Nvade\Numerosis\Models\User;
@@ -20,7 +20,7 @@ trait RequiresAuthenticatedUser
      */
     protected function authenticatedUser(): (User&CentralUserModel)|(User&TenantUserModel)
     {
-        $user = Auth::user();
+        $user = GetAuthenticatedUser::run();
 
         throw_if(! $user instanceof CentralUserModel && ! $user instanceof TenantUserModel, AuthenticationException::class);
 

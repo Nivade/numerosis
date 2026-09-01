@@ -2,42 +2,33 @@
 
 declare(strict_types=1);
 
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Actions\Auth\LogoutUser;
 use Nvade\Numerosis\Actions\Billing\Checkout\CompleteRedirectCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartLocalCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
-use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
-use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
-use Nvade\Numerosis\Features\Ui\MarketingPagesFeature;
 use Nvade\Numerosis\Http\Controllers\Auth\VerifyEmailController;
 use Nvade\Numerosis\Http\Controllers\Billing\WebhookController;
-use Nvade\Numerosis\Livewire\Settings\Appearance;
-use Nvade\Numerosis\Livewire\Settings\Password;
-use Nvade\Numerosis\Livewire\Settings\Profile;
-use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 
+// 'home' is registered unconditionally, behind no feature flag.
+// Socialite\Login::tenantDashboardUrl() builds an OAuth tenant-redirect URL by
+// swapping this route's host (see its own docblock), CompleteRedirectCheckout
+// falls back to it on a checkout error, and the tenant panel documents 'home'
+// as the one route name guaranteed to exist on the central domain regardless
+// of panel registration. All three depend on this staying unconditional.
 //
-
-// 'home' is deliberately NOT gated behind MarketingPagesFeature, unlike the
-// other four marketing routes below. Socialite\Login::tenantDashboardUrl()
-// builds an OAuth tenant-redirect URL by swapping this route's host (see its
-// own docblock), CompleteRedirectCheckout falls back to it on a checkout
-// error, and TenantAdminPanelProvider::register() documents 'home' as the
-// one route name guaranteed to exist on the central domain regardless of
-// panel registration. All three depend on this staying unconditional.
-Route::get('/', function () {
-    return view('numerosis::welcome')->layout('numerosis::layouts.app');
-})->name(RouteNames::home());
-
-if (Features::enabled(MarketingPagesFeature::NAME)) {
-    Route::view('terms', 'numerosis::terms')->name('terms');
-    Route::view('privacy', 'numerosis::privacy')->name('privacy');
-    Route::view('about', 'numerosis::about')->name('about');
-    Route::view('features', 'numerosis::features')->name('features');
-}
+// The view it renders is a deliberate placeholder. Marketing pages — a
+// homepage worth showing, plus terms/privacy/about/features — are the
+// *product's*, not the framework's, and live in the host app; core shipping
+// them was what made "does this belong in core?" unanswerable.
+//
+// Point `numerosis.routes.home_view` at your own view to replace the page.
+// Registering a second route named `home` does not work: this one is declared
+// first, so it wins the path match.
+Route::get('/', fn () => view(Config::string('numerosis.routes.home_view')))
+    ->name(RouteNames::home());
 
 // Stripe Webhooks - No auth/CSRF protection needed
 Route::post(
@@ -46,19 +37,11 @@ Route::post(
 )->name('billing.webhook');
 
 Route::middleware(['auth:web'])->group(function () {
-    if (Features::enabled(AccountPagesFeature::NAME)) {
-        Route::redirect('settings', 'settings/profile');
-
-        Route::livewire('settings/profile', Profile::class)->name('settings.profile');
-
-        if (Features::enabled(PasswordResetFeature::NAME)) {
-            Route::livewire('settings/password', Password::class)->name('settings.password');
-        }
-
-        Route::livewire('settings/appearance', Appearance::class)->name('settings.appearance');
-
-        Route::livewire('/tenants/mine', 'pages::tenant.mine')->name(RouteNames::tenantsMine());
-    }
+    // The account UI (`settings/*`, `tenants.mine`, invoice downloads, the
+    // billing portal) is contributed by nvade/numerosis-account through
+    // Numerosis::addCentralRoutes(), so it lands in this same central-domain
+    // group without core naming that package. Core still *links* to
+    // `tenants.mine`, gated on Support\Ui\AccountPages::FEATURE.
 
     // `/get-started` (route name `tenants.create`) is contributed by
     // nvade/numerosis-onboarding through Numerosis::addCentralRoutes(), so it
@@ -74,15 +57,6 @@ Route::middleware(['auth:web'])->group(function () {
     // stay on the route itself, not merely on the link that reaches it.
     if (app()->isLocal()) {
         Route::get('/checkout/subscription/dev', StartLocalCheckout::class)->name('checkout.subscription.dev');
-    }
-
-    if (Features::enabled(AccountPagesFeature::NAME)) {
-        Route::get('/user/invoice/{invoice}', function (Request $request, string $invoiceId) {
-            return $request->user()->downloadInvoice($invoiceId);
-        });
-        Route::get('/billing-portal', function (Request $request) {
-            return $request->user()->redirectToBillingPortal();
-        })->name('billing-portal');
     }
 
 });

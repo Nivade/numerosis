@@ -7,10 +7,10 @@ namespace Nvade\NumerosisFilament\Admin\Resources\Central\PaymentPlans\Schemas;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\KeyValue;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
@@ -55,9 +55,9 @@ class PaymentPlanForm
                                                         Toggle::make('available')
                                                             ->label('Available for new customers')
                                                             ->default(true),
-                                                        Placeholder::make('is_popular_display')
+                                                        TextEntry::make('is_popular_display')
                                                             ->label('Performance Status')
-                                                            ->content(fn ($record) => ($record?->popular() ?? false) ? '🔥 Marked as Popular' : 'Standard Plan'),
+                                                            ->state(fn ($record) => ($record?->popular() ?? false) ? '🔥 Marked as Popular' : 'Standard Plan'),
                                                     ]),
 
                                                 Section::make('Configuration')

@@ -18,8 +18,8 @@
                     <x-numerosis::billing.plan-card
                         :plan="$paymentPlan"
                         :billing-cycle="$billingCycle"
-                        :price="resolve(\Nvade\Numerosis\Services\Billing\BillingService::class)->formatAmount($paymentPlan->getPrice($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle : \Nvade\Numerosis\Enums\BillingCycle::from($billingCycle)))"
-                        :incentive="$paymentPlan->getIncentive($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle : \Nvade\Numerosis\Enums\BillingCycle::from($billingCycle))"
+                        :price="resolve(\Nvade\Numerosis\Services\Billing\BillingService::class)->formatAmount($paymentPlan->getPrice($billingCycle instanceof \Nvade\Numerosis\Enums\Billing\BillingCycle ? $billingCycle : \Nvade\Numerosis\Enums\Billing\BillingCycle::from($billingCycle)))"
+                        :incentive="$paymentPlan->getIncentive($billingCycle instanceof \Nvade\Numerosis\Enums\Billing\BillingCycle ? $billingCycle : \Nvade\Numerosis\Enums\Billing\BillingCycle::from($billingCycle))"
                         type="selectable"
                     />
                 @endforeach
@@ -59,7 +59,7 @@
             <flux:button
                 tag="a"
                 href="{{ route('checkout.subscription.dev', [
-                    'billing_cycle' => $billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle->value : $billingCycle,
+                    'billing_cycle' => $billingCycle instanceof \Nvade\Numerosis\Enums\Billing\BillingCycle ? $billingCycle->value : $billingCycle,
                     'company_name' => $this->state()->get('company_name'),
                     'domain' => $this->state()->get('domain'),
                     'payment_plan' => $payment_plan,

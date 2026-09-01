@@ -8,6 +8,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
+use LogicException;
 use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesPostLoginRedirectUrl;
@@ -100,9 +101,15 @@ class PasswordlessLogin extends OneTimePasswordComponent
     #[Override]
     public function render(): View
     {
-        /** @var view-string $view */
-        $view = 'numerosis::livewire.auth.passwordless-login.'.$this->showViewName();
-
-        return view($view);
+        // Mapped rather than concatenated: a `match` over the upstream
+        // component's two states fails loudly if it ever grows a third,
+        // instead of building a view name that does not exist.
+        return view(match ($this->showViewName()) {
+            'email-form' => 'numerosis::livewire.auth.passwordless-login.email-form',
+            'one-time-password-form' => 'numerosis::livewire.auth.passwordless-login.one-time-password-form',
+            default => throw new LogicException(
+                "No passwordless-login view for upstream state [{$this->showViewName()}]."
+            ),
+        });
     }
 }

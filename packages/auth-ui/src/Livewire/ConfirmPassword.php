@@ -10,9 +10,10 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
-use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
+use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Support\Ui\AccountPages;
 
 #[Layout('layouts::auth')]
 class ConfirmPassword extends Component
@@ -29,7 +30,7 @@ class ConfirmPassword extends Component
             'password' => ['required', 'string'],
         ]);
 
-        $user = Auth::user();
+        $user = GetAuthenticatedUser::run();
 
         if (! $user) {
             throw ValidationException::withMessages([
@@ -48,7 +49,7 @@ class ConfirmPassword extends Component
 
         Session::put(['auth.password_confirmed_at' => time()]);
 
-        $default = Features::enabled(AccountPagesFeature::NAME) ? RouteNames::tenantsMine() : RouteNames::home();
+        $default = Features::enabled(AccountPages::FEATURE) ? RouteNames::tenantsMine() : RouteNames::home();
 
         $this->redirectIntended(default: route($default, absolute: false), navigate: true);
     }

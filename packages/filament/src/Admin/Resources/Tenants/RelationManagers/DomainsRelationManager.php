@@ -67,7 +67,7 @@ class DomainsRelationManager extends RelationManager
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),

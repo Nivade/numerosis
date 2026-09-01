@@ -15,7 +15,9 @@
                 <div>
                     <h3 class="text-sm font-semibold mb-3">Product</h3>
                     <ul class="space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
-                        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\MarketingPagesFeature::NAME))
+                        {{-- Marketing pages belong to the host app, so link to
+                             one only when the host actually registered it. --}}
+                        @if (Route::has('features'))
                             <li>
                                 <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('features') }}" wire:navigate aria-label="Features">
                                     Features
@@ -35,9 +37,9 @@
                             </a>
                         </li>
                         @auth
-                            @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\AccountPagesFeature::NAME))
+                            @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Ui\AccountPages::FEATURE))
                                 <li>
-                                    <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('tenants.mine') }}" wire:navigate aria-label="My Tenants">
+                                    <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine()) }}" wire:navigate aria-label="My Tenants">
                                         {{ __('My Tenants') }}
                                     </a>
                                 </li>
@@ -62,19 +64,25 @@
                     </ul>
                 </div>
 
-                @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\MarketingPagesFeature::NAME))
+                @if (Route::has('about') || Route::has('privacy') || Route::has('terms'))
                     <div>
                         <h3 class="text-sm font-semibold mb-3">Company</h3>
                         <ul class="space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
-                            <li>
-                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('about') }}" wire:navigate aria-label="About us">About</a>
-                            </li>
-                            <li>
-                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('privacy') }}" wire:navigate aria-label="Privacy policy">Privacy</a>
-                            </li>
-                            <li>
-                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('terms') }}" wire:navigate aria-label="Terms of service">Terms</a>
-                            </li>
+                            @if (Route::has('about'))
+                                <li>
+                                    <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('about') }}" wire:navigate aria-label="About us">About</a>
+                                </li>
+                            @endif
+                            @if (Route::has('privacy'))
+                                <li>
+                                    <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('privacy') }}" wire:navigate aria-label="Privacy policy">Privacy</a>
+                                </li>
+                            @endif
+                            @if (Route::has('terms'))
+                                <li>
+                                    <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('terms') }}" wire:navigate aria-label="Terms of service">Terms</a>
+                                </li>
+                            @endif
                         </ul>
                     </div>
                 @endif

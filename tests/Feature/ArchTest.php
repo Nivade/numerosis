@@ -70,3 +70,55 @@ test('nothing reads the old cashier appendix keys', function (): void {
         }
     }
 });
+
+/**
+ * One way to ask "who is signed in", not two.
+ *
+ * Both idioms were live until 2026-09-01: 16 call sites went through
+ * `GetAuthenticatedUser::run()` and 9 called `Auth::user()` / `auth()->user()`
+ * directly, so the answer to "how do I read the current user here?" depended
+ * on which file you had open. The action wins because it is typed: it returns
+ * `?Nvade\Numerosis\Models\User`, the package's own base model, where the
+ * facade returns `Authenticatable` — which matters in an app with two user
+ * models on two guards, and is what lets level-9 analysis see the real type
+ * without a `@var` annotation at every call site.
+ *
+ * `IsUserAuthenticated` was deleted rather than kept: it wrapped
+ * `Auth::check()` with no added type information, so it was pure vocabulary.
+ * Call `->check()` on the guard directly.
+ *
+ * `Auth::` is still fine for everything that is not "read the current user" —
+ * `Auth::guard(...)->check()`, `::login()`, `::logout()`, `::shouldUse()` —
+ * which is why this scans for the two accessor spellings, not the facade.
+ */
+test('nothing reads the current user through the Auth facade', function (): void {
+    $roots = array_map(
+        fn (string $directory): string => dirname(__DIR__, 2)."/{$directory}",
+        ['src', 'packages/account/src', 'packages/auth-ui/src', 'packages/filament/src', 'packages/onboarding/src'],
+    );
+
+    $files = (new Finder)
+        ->files()
+        ->in(array_filter($roots, 'is_dir'))
+        ->name('*.php');
+
+    expect(iterator_count($files))->toBeGreaterThan(0, 'Scanned no files — the paths above are wrong.');
+
+    foreach ($files as $file) {
+        // Numerosis::exceptions() is the one exemption: it builds Sentry's
+        // context callback, which runs during exception reporting, where the
+        // container may be mid-teardown and resolving an action is not safe.
+        if ($file->getFilename() === 'Numerosis.php') {
+            continue;
+        }
+
+        $contents = $file->getContents();
+
+        foreach (['Auth::user()', 'auth()->user()'] as $needle) {
+            expect($contents)->not->toContain(
+                $needle,
+                "{$file->getRelativePathname()} reads the current user through {$needle} — use GetAuthenticatedUser::run() instead.",
+            );
+        }
+    }
+});

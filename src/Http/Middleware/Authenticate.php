@@ -14,7 +14,6 @@ use Illuminate\Contracts\Auth\Factory;
 use Illuminate\Contracts\Config\Repository;
 use Nvade\Numerosis\Actions\Auth\LoginUser;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
-use Nvade\Numerosis\Actions\Queries\IsUserAuthenticated;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -60,7 +59,7 @@ class Authenticate extends Middleware
     public function authenticate($request, array $guards): void
     {
         // Are we on a tenant and is the current user authenticated on central?
-        if (tenancy()->initialized && IsUserAuthenticated::run(Context::Central->guard())) {
+        if (tenancy()->initialized && $this->authManager->guard(Context::Central->guard())->check()) {
             /** @var CentralUser $centralUser */
             $centralUser = GetAuthenticatedUser::run(Context::Central->guard());
 
@@ -68,7 +67,7 @@ class Authenticate extends Middleware
 
             if ($currentTenant instanceof Tenant && $centralUser->canAccessTenant($currentTenant)) {
                 /** @var User $tenantUser */
-                $tenantUser = IsUserAuthenticated::run(Context::Tenant->guard())
+                $tenantUser = $this->authManager->guard(Context::Tenant->guard())->check()
                     ? $this->authManager->guard(Context::Tenant->guard())->user()
                     : null;
 

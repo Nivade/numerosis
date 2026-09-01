@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Nvade\Numerosis\Actions\Auth\AuthenticateLoginCandidate;
 use Nvade\Numerosis\Actions\Auth\CreateRegisteredUser;
-use Nvade\Numerosis\Actions\Auth\FindLoginCandidate;
+use Nvade\Numerosis\Actions\Auth\ResolveLoginCandidate;
 use Nvade\Numerosis\Actions\Auth\ResolvePostLoginRedirectUrl;
 use Nvade\Numerosis\Actions\Auth\SendEmailVerificationNotification;
 use Nvade\Numerosis\Actions\Invitations\CreateInvitedUser;
@@ -41,8 +41,6 @@ use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Features\Tenancy\ImpersonationFeature;
 use Nvade\Numerosis\Features\Tenancy\MembershipsFeature;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
-use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
-use Nvade\Numerosis\Features\Ui\MarketingPagesFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
@@ -53,6 +51,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Invitation;
 use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use Nvade\Numerosis\Services\Auth\EloquentSocialAccountRepository;
 use Nvade\Numerosis\Services\Billing\Checkout\InlineCheckoutGateway;
 use Nvade\Numerosis\Services\Billing\Modules\EloquentModuleCatalog;
 use Nvade\Numerosis\Services\Billing\Plans\EloquentPaymentPlanRepository;
@@ -62,12 +61,11 @@ use Nvade\Numerosis\Services\Billing\Resolvers\PlanOrDefaultTrialResolver;
 use Nvade\Numerosis\Services\Billing\Resolvers\SeatLimitPlanPolicy;
 use Nvade\Numerosis\Services\Billing\Resolvers\TenantOrUserBillableResolver;
 use Nvade\Numerosis\Services\Billing\Subscriptions\EloquentSubscriptionRepository;
+use Nvade\Numerosis\Services\Invitations\EloquentInvitationRepository;
+use Nvade\Numerosis\Services\Modules\EloquentModuleRegistry;
+use Nvade\Numerosis\Services\Notifications\NotifiesTenantOwnerDirectly;
 use Nvade\Numerosis\Services\Tenancy\DefaultTenantDomainPolicy;
-use Nvade\Numerosis\Support\Defaults\EloquentInvitationRepository;
-use Nvade\Numerosis\Support\Defaults\EloquentModuleRegistry;
-use Nvade\Numerosis\Support\Defaults\EloquentSocialAccountRepository;
-use Nvade\Numerosis\Support\Defaults\NotifiesTenantOwnerDirectly;
-use Nvade\Numerosis\Support\Defaults\StanclTenantDatabaseManager;
+use Nvade\Numerosis\Services\Tenancy\StanclTenantDatabaseManager;
 
 return [
 
@@ -134,12 +132,15 @@ return [
         // password.confirm — see the class docblock.
         PasswordResetFeature::class,
 
-        // This product's marketing pages — a package consumer replaces
-        // these with their own. See the class docblock re: 'home'.
-        MarketingPagesFeature::class,
+        // Marketing pages (terms/privacy/about/features) are the *product's*,
+        // not the framework's, and live in the host app. Core keeps only the
+        // `home` route, which it must always register.
 
-        // This product's account UI. See the class docblock re: 'tenants.mine'.
-        AccountPagesFeature::class,
+        // The account UI (settings, workspace list, billing portal) ships in
+        // nvade/numerosis-account, which registers its own feature — the class
+        // is deliberately not named here, since core must not boot against a
+        // class that may not be installed. Core reads the name it needs
+        // through Support\Ui\AccountPages::FEATURE.
 
         // Tenant membership UI (Team cluster / Users resource). Does not
         // gate InvitationsFeature — see the class docblock.
@@ -198,6 +199,18 @@ return [
             'invitation_show' => 'invitation.show',
             'checkout_subscription' => 'checkout.subscription',
         ],
+
+        /*
+         * The view the `home` route renders.
+         *
+         * Core registers `home` unconditionally — OAuth tenant redirects,
+         * checkout error paths and the tenant panel all fall back to it — but
+         * the *page* is the product's, not the framework's. Point this at your
+         * own view rather than registering a second route named `home`: core's
+         * route is declared first, so a host route on the same path would
+         * never be matched.
+         */
+        'home_view' => 'numerosis::home',
     ],
 
     /*
@@ -909,7 +922,7 @@ return [
             // package's own PasswordlessLogin/Register/Accept Livewire
             // components, so an unbound default leaves the package broken
             // for any consumer until they re-derive this list by hand.
-            ResolvesLoginCandidate::class => FindLoginCandidate::class,
+            ResolvesLoginCandidate::class => ResolveLoginCandidate::class,
             AuthenticatesLoginCandidate::class => AuthenticateLoginCandidate::class,
             ResolvesPostLoginRedirectUrl::class => ResolvePostLoginRedirectUrl::class,
             CreatesRegisteredUser::class => CreateRegisteredUser::class,

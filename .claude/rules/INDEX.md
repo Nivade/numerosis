@@ -4,6 +4,12 @@ Gotcha/invariant/why-this-way/cross-file trap stuff, learned from codebase. Not 
 
 One line per file, under ~150 chars. Update index when rules file add/rename/remove.
 
+**These are traps, not orientation.** If you do not yet know how the package is
+laid out or how it boots, read `docs/architecture.md` first, then
+`docs/features.md` (what each feature toggles), `docs/extending.md` (the seams)
+and `docs/host-requirements.md` (what a host owns). `.claude/plans/` is
+historical — see `.claude/plans/README.md` before reading any plan.
+
 **This copy is the only copy (decided 2026-08-31, superseding D11).** The old rule — saas-m and thin-app carry byte-identical copies, change here then re-copy — is retired. saas-m is archived; thin-app is a host app on a different toolchain (Sail, plain Laravel `TestCase`, its own `bootstrap/`), and `testing.md`, `static-analysis.md`, `package-split.md`, `package-boundaries.md` and `stancl-tenancy-v4.md` are now written against *this* repo's Testbench-without-Sail monorepo. A byte-identical copy would actively mislead there. **Copy individual rules into a host deliberately if it wants them; never sync the directory.** `host-integration-quickstart.md` is the file written for a host's point of view.
 
 **Layout, since 2026-08-31:** one repo — core at the root, plus `packages/{ui,auth-ui,filament,onboarding}` (`nvade/numerosis-{ui,auth-ui,filament,onboarding}`), path-installed and published as read-only splits on tag. Rules describing moved code carry a header naming the package that holds it. `package-boundaries.md` is the seam map.
@@ -30,5 +36,5 @@ One line per file, under ~150 chars. Update index when rules file add/rename/rem
 - [tenant-filesystem.md](tenant-filesystem.md) — `local` disk root tenant-suffixed but Livewire upload route never tenant-identified; dedicated `livewire` disk fixes it.
 - [identification-modes.md](identification-modes.md) — subdomain/custom-domain/path; slug ≠ domain; `{tenant}` literal enables dots; all three modes now browser-tested.
 - [host-integration-quickstart.md](host-integration-quickstart.md) — 7 silent traps integrating into a pre-existing host app (tabellio); all 7 fixed 2026-08-13 — read for the mechanism to reach for now.
-- [subagents.md](subagents.md) — execution constraint, not a codebase fact: never spawn sub-agents; ask the user to split a task instead.
+- [subagents.md](subagents.md) — execution constraint, not a codebase fact: never spawn sub-agents; the `.claude/agents/`+`.codex/agents/` that contradicted it were deleted 2026-09-01.
 <!-- topic-index:end -->

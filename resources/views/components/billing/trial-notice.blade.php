@@ -27,7 +27,7 @@
         </div>
         <div class="flex items-center justify-between">
             <x-numerosis::ui.text variant="muted" size="sm">
-                Then, billed {{ $billingCycle === \Nvade\Numerosis\Enums\BillingCycle::Monthly ? 'monthly' : 'yearly' }}
+                Then, billed {{ $billingCycle === \Nvade\Numerosis\Enums\Billing\BillingCycle::Monthly ? 'monthly' : 'yearly' }}
             </x-numerosis::ui.text>
             <x-numerosis::ui.text variant="default" size="sm" class="font-medium">
                 {{ $price }}{{ $billingCycle->label() }}

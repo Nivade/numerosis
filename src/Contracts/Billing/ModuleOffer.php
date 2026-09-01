@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Contracts\Billing;
 
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Enums\ModuleBillingMode;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\ModuleBillingMode;
 
 interface ModuleOffer
 {
