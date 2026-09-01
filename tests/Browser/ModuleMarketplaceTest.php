@@ -41,8 +41,8 @@ function fakeModuleRegistryWith(string ...$slugs): void
 {
     app()->instance(ModuleRegistry::class, new ModuleRegistry(
         '/tmp/numerosis-test-modules',
-        fn (): Collection => collect($slugs)->map(
-            fn (string $slug): ModuleConfig => new ModuleConfig($slug, '/tmp/numerosis-test-modules/'.$slug),
+        fn (): Collection => collect($slugs)->mapWithKeys(
+            fn (string $slug): array => [$slug => new ModuleConfig($slug, '/tmp/numerosis-test-modules/'.$slug)],
         ),
     ));
 }
@@ -177,19 +177,32 @@ it('hides an unavailable offering even when the module is installed', function (
  * cannot open in this harness.** Filament's own JavaScript is not served
  * here — the page reports `filamentActionModals is not defined`,
  * `filamentDropdown is not defined` and repeated
- * `Cannot read properties of undefined (reading 'isOpen')`. Running
- * `vendor/bin/testbench filament:assets` was tried and **does not fix it**:
- * the files publish into `vendor/orchestra/testbench-core/laravel/public/`
- * and the errors are unchanged, so the problem is that the in-process server
- * does not serve them, not that they were missing. Every browser test here
- * that works (the wizard, the panel round trips) depends on Livewire and Flux
- * only.
+ * `Cannot read properties of undefined (reading 'isOpen')`. Two separate
+ * causes were measured, and only the first has a known fix:
  *
- * So a click-through purchase is out of reach twice over. Even with the modal
- * working, confirming calls `PurchaseModule`, which needs a billing address,
- * an active subscription or a Stripe one-time charge, and real Cashier calls —
- * there is no module-purchase equivalent of `LocalCheckoutGateway`, which is
- * what made the registration wizard's end-to-end test cheap.
+ * 1. **Filament's JS 404s.** `FilesystemTenancyBootstrapper` repoints the
+ *    `asset()` root at stancl's `stancl.tenancy.asset` route whenever tenancy
+ *    is initialized and `app.asset_url` is unset, so every Filament script is
+ *    requested as `/tenancy/assets/js/filament/...` — which
+ *    `TenantAssetController` serves from tenant storage, not `public/`.
+ *    Publishing assets alone changes nothing; publishing **and** setting
+ *    `tenancy.filesystem.asset_helper_tenancy` to false clears every JS error.
+ *    Not adopted here because publishing breaks
+ *    `InstallNumerosisCommandTest`, whose `verifyFilamentThemeAsset` case
+ *    depends on the harness having no published theme — and that test's own
+ *    teardown deletes `public_path('css'|'js')`, so the two are order-coupled
+ *    in both directions. Harness-only: a real host serves plain `/js/...`,
+ *    checked against numerosis-thin-app.
+ * 2. **With the JS clean, clicking Purchase still mounts no modal** — no
+ *    `fi-modal` in the DOM. Livewire/selector-level, unresolved.
+ *
+ * Every browser test here that works depends on Livewire and Flux only.
+ *
+ * And a click-through purchase would still be out of reach past the modal:
+ * confirming calls `PurchaseModule`, which needs a billing address, an active
+ * subscription or a Stripe one-time charge, and real Cashier calls — there is
+ * no module-purchase equivalent of `LocalCheckoutGateway`. Its guard clauses
+ * are covered offline instead, in `PurchaseModuleTest`.
  */
 it('offers the purchase affordance to a tenant owner', function (): void {
     $tenant = bootTenantWithSignedInOwner();
