@@ -5,32 +5,36 @@ dispatch note, not a plan — the actual plans live in their own files.
 
 ## State at handoff, 2026-09-01 (third session that day)
 
-Both repos have **uncommitted work**. Nothing is pushed. Nothing from the
-previous handoff was committed either, so this tree is two sessions deep.
+**Everything is committed. Nothing is pushed** — deliberately, at the
+maintainer's instruction.
 
-- `numerosis` — branch `package-scope-reduction`. Modified: `README.md`,
-  `config/numerosis.php`, `docs/{architecture,extending,features,host-requirements}.md`,
-  `src/NumerosisServiceProvider.php`, `src/Support/Numerosis.php`,
-  `phpstan.neon.dist`, `phpstan-baseline.neon`,
-  `.claude/rules/{auth-guards,package-boundaries,package-host-bootstrap,stancl-tenancy-v4}.md`,
-  `.claude/plans/{confusion-cleanup,numerosis-consolidation,next-session}.md`.
-  New: `config/numerosis/` (15 partials), `config/stubs/numerosis.php`,
-  `src/Support/{Contributions,Assets}.php`, `tests/Browser/AdminPanelTest.php`,
-  `tests/Browser/ModuleMarketplaceTest.php`.
-  **`.agents/` was deleted this session** (see below).
-- `numerosis-thin-app` — branch `master`. Modified: `config/numerosis.php`
-  (925 → 55 lines), `.claude/rules/{package-boundaries,package-host-bootstrap}.md`.
+Six commits on `numerosis` (`package-scope-reduction`), two on
+`numerosis-thin-app` (`master`):
 
-Green as of this handoff: `composer test` (**675 passed, 7 skipped, 7405
+```
+6950bb8 test: cover PurchaseModule's guard clauses, correct the Filament-JS finding
+083bde8 fix: register model policies explicitly, so host subclasses are covered
+e7eaa33 docs: retract three rule fixes that do not work, record the policy defect
+3c75a2b test: browser-cover the admin panel and the module marketplace
+313971a refactor: split Support\Numerosis by audience into Contributions and Assets
+2d933ca refactor: split the config by key, publish a stub instead of the root file
+```
+
+Only the final tree is verified. The six are thematic groupings, not
+independently green checkpoints — don't cherry-pick one and assume it stands
+alone.
+
+Green as of this handoff: `composer test` (**697 passed, 7 skipped, 7428
 assertions**), `composer analyse` (cold `[OK] No errors`, 0 outside the
 202-entry baseline), `vendor/bin/pint`. Host: `artisan test` green, and `/`,
 `/about`, `/terms`, `/privacy`, `/features`, `/login` all 200 with `/admin`
 302, over HTTPS against a real boot at
 `https://central.numerosisthinapp.nvade.dev`.
 
-Assertion delta from last handoff: **+6 tests / +16 assertions** —
-`tests/Browser/AdminPanelTest` (1/4) and `tests/Browser/ModuleMarketplaceTest`
-(5/12). Nothing else moved.
+Assertion delta across the whole session: **+28 tests / +39 assertions**,
+fully attributed — `AdminPanelTest` (2/6), `ModuleMarketplaceTest` (5/12),
+`PurchaseModuleTest` (11/11), `CentralModelPolicyResolutionTest`'s new data
+provider (10/10). Nothing else moved.
 
 ## What this session did
 
@@ -62,42 +66,61 @@ consolidation plan's open question is answered: **a second
 `Auth::guard()->login()` mid-test IS visible to the browser**, cookie from the
 first login notwithstanding. Verified by control, not assumed.
 
-Writing it surfaced something worse, and it is now the top item on the
-consolidation plan: **every host-subclassed central model silently resolves no
-policy, and Filament then defaults to allow.** A `CentralUser` with zero roles
-renders `/admin/tenants`. `Central\{Tenant,PaymentPlan,Subscription}` are
-affected; the `Tenant\*` models escape only because their workbench subclasses
-re-declare `#[UsePolicy]` by hand. Not fixed — it changes authorization
-behaviour and needs a decision.
+Writing it surfaced something worse, now **fixed**: every host-subclassed
+central model silently resolved no policy, and Filament defaults to allow when
+none resolves — a `CentralUser` with zero roles rendered `/admin/tenants`.
+`Central\{Tenant,PaymentPlan,Subscription}` were affected; the `Tenant\*`
+models escaped only because their workbench subclasses re-declare
+`#[UsePolicy]` by hand.
 
-**4. `tests/Browser/ModuleMarketplaceTest`** — 5 tests covering
+**4. `NumerosisServiceProvider::registerPolicies()`** binds each pairing at
+boot, against the **package** class rather than the resolved one — that
+ordering detail is what keeps a host's own `App\Policies\*` convention ahead
+of the package's registration while still catching every subclass. Guarded by
+a data-provider loop over `Numerosis::model()` and by a self-controlling
+request-level test; both verified to fail without it.
+
+**5. `tests/Browser/ModuleMarketplaceTest`** — 5 tests over
 `Marketplace::getModules()`, the catalogue ∩ installed-registry intersection
 nothing else touched, each direction with its own control. The registry is
 faked through `app()->instance(ModuleRegistry::class, …)` rather than
-scaffolding a module on disk.
+scaffolding a module on disk. **The collection must be keyed by module name**:
+`Modules::module()` is a key lookup, and a plain list passes every
+`count()`/`filter()`/`map()` while `module('alerts')` returns null.
 
-The **purchase** half is blocked and needs a decision rather than more tests.
-Filament's JS is not served in this harness, so no action modal opens;
-`vendor/bin/testbench filament:assets` was tried, **does not fix it**, and
-breaks `InstallNumerosisCommandTest` (which depends on the harness having no
-published theme) — the publish was reverted. Separately there is no
-module-purchase equivalent of `LocalCheckoutGateway`, so confirming would hit
-real Cashier/Stripe.
+**6. `tests/Feature/Actions/Modules/PurchaseModuleTest`** — 11 tests, the file
+`CancelModuleTest`'s docblock has referenced all along without it existing.
+`PurchaseModule` has seven guard clauses in front of a real charge and was
+reached by one incidental test. All eleven stop before Stripe, which is where
+the guards are.
+
+**7. The Filament-JS finding, corrected.** "Publishing assets does not fix it,
+the server does not serve them" was **wrong**. The plugin serves
+`public_path($path)`, and `public_path()` in tests is exactly where
+`filament:assets` writes — the scripts are never requested from there, because
+`FilesystemTenancyBootstrapper` repoints the `asset()` root at stancl's
+`tenancy.asset` route whenever tenancy is initialized and `app.asset_url` is
+unset. Publishing **plus** `tenancy.filesystem.asset_helper_tenancy=false`
+clears every JS error. Clicking Purchase still mounts no `fi-modal` — separate,
+unresolved. Not adopted: publishing breaks `InstallNumerosisCommandTest`, whose
+teardown then deletes the published assets, so the two are order-coupled both
+ways. Harness-only; a real host serves plain `/js/...`.
 
 ## Next-step menu
 
-1. **Decide on the policy-resolution defect** —
-   `numerosis-consolidation.md` "Pick up here" item 4 has the measured table
-   and the proposed fix (`Gate::policy(Numerosis::model(X), XPolicy)` at boot,
-   rather than relying on the attribute). This is the highest-value item here
-   and it is security-relevant.
-2. **Commit both repos, then push.** `numerosis` is on a feature branch, so
-   this probably wants a PR. Three sessions of work are uncommitted.
-3. **Finish the module marketplace leg** — the render half landed this
-   session; the *purchase* half is blocked and needs a decision, not more
-   tests. Either serve Filament's JS in the browser harness (`filament:assets`
-   does **not** work — see consolidation item 1) or add a local module-billing
-   gateway alongside `LocalCheckoutGateway`.
+1. **Push, and open a PR** for `package-scope-reduction`. Six commits are
+   sitting local; the maintainer asked for commits without a push, so this is
+   the first thing to confirm before anything else lands on top.
+2. **Decide whether to serve Filament's JS in the browser harness.** Judge it
+   on whether Filament panel interaction should ever be browser-testable —
+   dropdowns, table filters, bulk actions, action modals — not on the module
+   purchase alone. The asset half now has a known fix (item 7 above); the
+   `InstallNumerosisCommandTest` coupling and the unmounted `fi-modal` are the
+   two open pieces.
+3. **A local module-billing gateway**, the `LocalCheckoutGateway` equivalent
+   that does not exist, if an end-to-end purchase is ever wanted. The guard
+   clauses are already covered offline by `PurchaseModuleTest`, so this buys
+   the charge path and nothing else.
 4. ~~`build/phpstan/cache` is root-owned~~ — **no longer true.** Both
    directories are `nvade:nvade` now and `composer analyse` ran clean twice
    this session with no `tmpDir` override. The recipe in

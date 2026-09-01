@@ -866,18 +866,29 @@ a `docker compose up -d` first; MySQL wasn't running.
 
      **Why the purchase itself is out of reach:**
 
-     1. **Filament's JavaScript is not served in this harness**, so no action
-        modal can open. The page reports `filamentActionModals is not
-        defined`, `filamentDropdown is not defined` and repeated
-        `Cannot read properties of undefined (reading 'isOpen')`. Running
-        `vendor/bin/testbench filament:assets` was tried and **does not fix
-        it** — the files publish into
-        `vendor/orchestra/testbench-core/laravel/public/{css,js}` and the
-        errors are unchanged, so the in-process server does not serve them.
-        It also **breaks `InstallNumerosisCommandTest`**, whose
-        `verifyFilamentThemeAsset` case depends on the harness having no
-        published theme; the publish was reverted for that reason. Every
-        browser test that works here depends on Livewire and Flux only.
+     1. **No Filament action modal mounts in this harness.** Two measured
+        causes, and the first now has a known fix. **(a)** Filament's JS
+        404s: `FilesystemTenancyBootstrapper` repoints the `asset()` root at
+        stancl's `stancl.tenancy.asset` route whenever tenancy is initialized
+        and `app.asset_url` is unset, so every script is requested as
+        `/tenancy/assets/js/filament/...` and `TenantAssetController` serves
+        that from tenant storage rather than `public/`. The plugin's own
+        server *does* serve `public_path($path)`, and `public_path()` in tests
+        is exactly where `filament:assets` writes — so the earlier conclusion
+        that the files "are not served" was wrong; they are never requested.
+        Publishing assets **and** setting
+        `tenancy.filesystem.asset_helper_tenancy` to false clears every JS
+        error. **(b)** With the JS clean, clicking Purchase still mounts no
+        modal — no `fi-modal` in the DOM. Livewire/selector-level, unresolved.
+
+        Adopting (a) is not free: publishing breaks
+        `InstallNumerosisCommandTest`, whose `verifyFilamentThemeAsset` case
+        depends on the harness having *no* published theme, and that test's
+        own teardown deletes `public_path('css'|'js')` — so the two are
+        order-coupled in both directions and need reconciling together.
+
+        All of this is harness-only. A real host serves plain `/js/...`,
+        checked against numerosis-thin-app's central pages.
      2. Even with a working modal, confirming calls `PurchaseModule`, which
         needs a billing address, an active subscription or a Stripe one-time
         charge, and real Cashier calls. **There is no module-purchase
@@ -943,11 +954,19 @@ a `docker compose up -d` first; MySQL wasn't running.
    follows the host's override automatically. Patching the three workbench
    subclasses would only fix the fixture and leave every real host open.
 
-   Not fixed here — it changes authorization behaviour for any host currently
-   depending on the accidental allow, so it needs a decision, and
-   `.claude/rules/auth-guards.md` needs correcting alongside it (its
-   `#[UsePolicy]` suggestion says subclasses "inherit it through the parent
-   walk"; there is no parent walk, and this is the evidence).
+   **✅ Fixed 2026-09-01, committed.** `NumerosisServiceProvider::
+   registerPolicies()` binds each pairing at boot, against the **package**
+   class rather than `Numerosis::model()`'s resolved one — `getPolicyFor()`
+   tries an exact map entry, then the attribute, then the `App\Policies\*`
+   guess, and only then an `is_subclass_of` sweep, so registering the base
+   catches every subclass while leaving a host's own convention ahead of us.
+   `CentralUser` stays deliberately absent.
+
+   Guarded two ways, both verified to fail without the fix (exactly the three
+   affected models go red): a data-provider loop over `Numerosis::model()` in
+   `CentralModelPolicyResolutionTest`, and a self-controlling request-level
+   test in `AdminPanelTest` — the admin sees the tenant, the roleless user does
+   not. `.claude/rules/auth-guards.md` corrected alongside.
 
 ## Done, not revisited
 
