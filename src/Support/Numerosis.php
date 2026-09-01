@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Support;
 
 use Closure;
-use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -15,28 +14,36 @@ use Illuminate\Foundation\Configuration\ApplicationBuilder;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Foundation\Exceptions\Handler;
-use Illuminate\Foundation\Vite;
-use Illuminate\Foundation\ViteException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\HtmlString;
 use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Models\User as NumerosisUser;
-use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Stancl\Tenancy\Contracts\Tenant;
 use Throwable;
 use WeakMap;
 
+/**
+ * The package's entry point for a host's `bootstrap/app.php`, and the front
+ * door to every seam a host or satellite uses.
+ *
+ * Three audiences were split out of this class on 2026-09-01 —
+ * {@see ModelResolver} (model and factory resolution), {@see Contributions}
+ * (what other packages have added) and {@see Assets} (front-end publishing).
+ * What is left is application bootstrap: routing, middleware, broadcasting,
+ * exception handling, and the three `registerXUsing()` overrides that replace
+ * one of those wholesale.
+ *
+ * **Every moved method still exists here and delegates.** That is the point of
+ * the split: `Numerosis::` is the documented idiom in `docs/extending.md`,
+ * every host's `config/numerosis.php`, and ~200 call sites. The implementation
+ * moved; the seam did not.
+ */
 class Numerosis
 {
-    /** @var list<string> */
-    private static array $tenantColumns = [];
-
     /**
      * Set through {@see self::registerRoutesUsing()},
      * {@see self::registerBroadcastingUsing()} and
@@ -48,19 +55,6 @@ class Numerosis
     public static ?Closure $registerBroadcastingCallback = null;
 
     public static ?Closure $registerMiddlewareCallback = null;
-
-    /**
-     * Set through {@see self::addCentralRoutes()} / {@see self::addTenantRoutes()}.
-     * Each runs inside the same domain/middleware group {@see self::routes()}
-     * already opens for its own route files — a second package can register
-     * routes without reproducing that wiring.
-     *
-     * @var list<Closure(): void>
-     */
-    private static array $extraCentralRouteCallbacks = [];
-
-    /** @var list<Closure(): void> */
-    private static array $extraTenantRouteCallbacks = [];
 
     private static bool $routesRegistered = false;
 
@@ -80,19 +74,24 @@ class Numerosis
     private static ?WeakMap $exceptionsRegisteredFor = null;
 
     /**
+     * Add columns to the central `tenants` table's fillable/virtual set.
+     * {@see Contributions::addTenantColumns()}.
+     *
      * @param  list<string>  $columns
      */
     public static function addTenantColumns(array $columns): void
     {
-        self::$tenantColumns = array_values(array_merge(self::$tenantColumns, $columns));
+        Contributions::addTenantColumns($columns);
     }
 
     /**
+     * {@see Contributions::tenantColumns()}.
+     *
      * @return list<string>
      */
     public static function tenantColumns(): array
     {
-        return self::$tenantColumns;
+        return Contributions::tenantColumns();
     }
 
     /**
@@ -182,7 +181,7 @@ class Numerosis
                 ->group(function () use ($routes): void {
                     require $routes.'/web.php';
 
-                    foreach (self::$extraCentralRouteCallbacks as $callback) {
+                    foreach (Contributions::centralRouteCallbacks() as $callback) {
                         $callback();
                     }
                 });
@@ -191,7 +190,7 @@ class Numerosis
         Route::middleware('tenant')->group(function () use ($routes): void {
             require $routes.'/tenant.php';
 
-            foreach (self::$extraTenantRouteCallbacks as $callback) {
+            foreach (Contributions::tenantRouteCallbacks() as $callback) {
                 $callback();
             }
         });
@@ -210,7 +209,7 @@ class Numerosis
      */
     public static function addCentralRoutes(Closure $callback): void
     {
-        self::$extraCentralRouteCallbacks[] = $callback;
+        Contributions::addCentralRoutes($callback);
     }
 
     /**
@@ -219,7 +218,7 @@ class Numerosis
      */
     public static function addTenantRoutes(Closure $callback): void
     {
-        self::$extraTenantRouteCallbacks[] = $callback;
+        Contributions::addTenantRoutes($callback);
     }
 
     /**
@@ -227,11 +226,11 @@ class Numerosis
      * / {@see self::addTenantRoutes()}. For tests only — a real host registers
      * these once and they live for the application's lifetime, same as
      * {@see self::$registerRoutesCallback}.
+     * {@see Contributions::flushRouteContributions()}.
      */
     public static function resetRouteContributionsForTesting(): void
     {
-        self::$extraCentralRouteCallbacks = [];
-        self::$extraTenantRouteCallbacks = [];
+        Contributions::flushRouteContributions();
     }
 
     /**
@@ -358,95 +357,76 @@ class Numerosis
     }
 
     /**
-     * Additional tenant migration paths registered via
-     * {@see self::addTenantMigrationPath()}, kept separate from this
-     * package's own so {@see self::tenantMigrationPath()} keeps answering
-     * "where are the package's tenant migrations", not "all of them".
-     *
-     * @var list<string>
-     */
-    private static array $extraTenantMigrationPaths = [];
-
-    /**
      * Register a second tenant migration path — for a satellite package
      * shipping its own tenant-database tables. `HostConfig` appends every
      * registered path (this one plus {@see self::tenantMigrationPath()})
      * to `tenancy.migration_parameters['--path']`, the same array a host's
      * own path already lives in.
+     * {@see Contributions::addTenantMigrationPath()}.
      */
     public static function addTenantMigrationPath(string $path): void
     {
-        self::$extraTenantMigrationPaths[] = $path;
+        Contributions::addTenantMigrationPath($path);
     }
 
     /**
+     * Every path tenancy should migrate: this package's own
+     * ({@see self::tenantMigrationPath()}) plus each contributed one. This is
+     * what `HostConfig` wants; {@see Contributions::tenantMigrationPaths()}
+     * answers the narrower "what did other packages add".
+     *
      * @return list<string>
      */
     public static function tenantMigrationPaths(): array
     {
-        return [self::tenantMigrationPath(), ...self::$extraTenantMigrationPaths];
+        return [self::tenantMigrationPath(), ...Contributions::tenantMigrationPaths()];
     }
-
-    /**
-     * Extra tenant seeders registered via {@see self::addTenantSeeder()}.
-     *
-     * @var list<class-string<\Illuminate\Database\Seeder>>
-     */
-    private static array $extraTenantSeeders = [];
 
     /**
      * Register a seeder to run after `TenantDatabaseSeeder`'s own
      * `PermissionAndRoleSeeder`/`UserSeeder` calls, for a satellite package
      * seeding its own tenant tables — without a host needing to publish and
      * edit `TenantDatabaseSeeder` itself.
+     * {@see Contributions::addTenantSeeder()}.
      *
      * @param  class-string<\Illuminate\Database\Seeder>  $seeder
      */
     public static function addTenantSeeder(string $seeder): void
     {
-        self::$extraTenantSeeders[] = $seeder;
+        Contributions::addTenantSeeder($seeder);
     }
 
     /**
+     * {@see Contributions::tenantSeeders()}.
+     *
      * @return list<class-string<\Illuminate\Database\Seeder>>
      */
     public static function tenantSeeders(): array
     {
-        return self::$extraTenantSeeders;
+        return Contributions::tenantSeeders();
     }
-
-    /**
-     * Extra central seeders registered via {@see self::addCentralSeeder()}.
-     *
-     * @var list<class-string<\Illuminate\Database\Seeder>>
-     */
-    private static array $extraCentralSeeders = [];
 
     /**
      * The central-database counterpart of {@see self::addTenantSeeder()},
      * run after `DatabaseSeeder`'s own three.
+     * {@see Contributions::addCentralSeeder()}.
      *
      * @param  class-string<\Illuminate\Database\Seeder>  $seeder
      */
     public static function addCentralSeeder(string $seeder): void
     {
-        self::$extraCentralSeeders[] = $seeder;
+        Contributions::addCentralSeeder($seeder);
     }
 
     /**
+     * {@see Contributions::centralSeeders()}.
+     *
      * @return list<class-string<\Illuminate\Database\Seeder>>
      */
     public static function centralSeeders(): array
     {
-        return self::$extraCentralSeeders;
+        return Contributions::centralSeeders();
     }
-
-    /**
-     * Extra permission contexts registered via {@see self::addPermissionContext()}.
-     *
-     * @var list<string>
-     */
-    private static array $extraPermissionContexts = [];
 
     /**
      * Contribute a permission *context* — the noun half of a permission name,
@@ -462,75 +442,52 @@ class Numerosis
      * just its own screen (`.claude/rules/auth-guards.md`). A satellite
      * shipping a policy-guarded resource must contribute its context here,
      * from its own service provider, before the seeder runs.
+     * {@see Contributions::addPermissionContext()}.
      */
     public static function addPermissionContext(string $context): void
     {
-        self::$extraPermissionContexts[] = $context;
+        Contributions::addPermissionContext($context);
     }
 
     /**
+     * {@see Contributions::permissionContexts()}.
+     *
      * @return list<string>
      */
     public static function permissionContexts(): array
     {
-        return self::$extraPermissionContexts;
+        return Contributions::permissionContexts();
     }
 
     /**
      * Clears {@see self::addTenantMigrationPath()} / {@see self::addTenantSeeder()} /
      * {@see self::addCentralSeeder()} / {@see self::addPermissionContext()}
-     * contributions. For tests only — see {@see self::resetRouteContributionsForTesting()}.
+     * contributions. For tests only — see {@see self::resetRouteContributionsForTesting()}
+     * and {@see Contributions::flushMigrationAndSeederContributions()}.
      */
     public static function resetMigrationAndSeederContributionsForTesting(): void
     {
-        self::$extraTenantMigrationPaths = [];
-        self::$extraTenantSeeders = [];
-        self::$extraCentralSeeders = [];
-        self::$extraPermissionContexts = [];
+        Contributions::flushMigrationAndSeederContributions();
     }
 
     /**
      * The `numerosis-assets` publish group, as source => target directory.
-     * `numerosis:install` diffs published copies against the same map to
-     * report when yours has fallen behind the package's.
+     * {@see Assets::sourcePaths()}.
      *
      * @return array<string, string>
      */
     public static function assetSourcePaths(): array
     {
-        $base = dirname(__DIR__, 2);
-
-        return [
-            $base.'/resources/css' => resource_path('css'),
-            $base.'/resources/js' => resource_path('js'),
-        ];
+        return Assets::sourcePaths();
     }
 
     /**
      * The `<link>`/`<script>` tags for the package's non-panel CSS and JS.
-     * Both ship prebuilt and are served by `filament:assets`, so no build
-     * step is required.
-     *
-     * Publishing `numerosis-assets` gives you `resources/js/numerosis.js` to
-     * edit; once it is also an entry in your `vite.config.js`, your build is
-     * used instead of the prebuilt bundle. Override the CSS through the
-     * custom properties in `tokens.css` rather than by publishing it.
+     * {@see Assets::tags()}.
      */
     public static function assetTags(): Htmlable
     {
-        $css = '<link href="'.e(FilamentAsset::getStyleHref(NumerosisServiceProvider::ASSET_ID, 'nvade/numerosis')).'" rel="stylesheet" />';
-
-        if (File::exists(resource_path('js/numerosis.js'))) {
-            try {
-                return new HtmlString($css.app(Vite::class)(['resources/js/numerosis.js'])->toHtml());
-            } catch (ViteException) {
-                // Published, but not an entry in the host's Vite manifest yet.
-            }
-        }
-
-        $js = '<script src="'.e(FilamentAsset::getScriptSrc(NumerosisServiceProvider::ASSET_ID, 'nvade/numerosis')).'"></script>';
-
-        return new HtmlString($css.$js);
+        return Assets::tags();
     }
 
     /**

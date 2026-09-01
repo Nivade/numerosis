@@ -5,9 +5,9 @@ what a *host* must supply, see [`host-requirements.md`](host-requirements.md);
 for what to switch off, [`features.md`](features.md); for how to add your own
 code, [`extending.md`](extending.md).
 
-## The five packages
+## The six packages
 
-One repository, five Composer packages. Core is the root; the four satellites
+One repository, six Composer packages. Core is the root; the five satellites
 are path-installed from `packages/*` and published as read-only splits on tag.
 
 ```
@@ -16,8 +16,15 @@ nvade/numerosis  (src/)                core — tenancy, billing, auth mechanics
  ├── nvade/numerosis-ui                shared Blade + design tokens (required)
  ├── nvade/numerosis-filament          admin + tenant panels          (optional)
  ├── nvade/numerosis-auth-ui           auth screens + OAuth           (optional)
+ ├── nvade/numerosis-account           account UI: settings, workspace
+ │                                     list, billing portal           (optional)
  └── nvade/numerosis-onboarding        registration wizard            (optional)
 ```
+
+Core is a framework, not a product: it ships no marketing site and no account
+screens. The pages a *specific* SaaS wants live in the host app or in
+`numerosis-account`. Core keeps `home` alone, and only as a placeholder view
+behind `numerosis.routes.home_view`.
 
 **Direction of dependency is one-way and enforced.** Satellites know core;
 core never names a satellite's classes. Where core needs to reach into one, it
@@ -117,33 +124,73 @@ worker there, not just on `default`.
 
 ```
 src/
-  Actions/        71 files — lorisleiva/laravel-actions; the verbs of the system
+  Actions/        70 files — lorisleiva/laravel-actions; the verbs of the system
   Contracts/      32 — every swappable behaviour, bound in packageRegistered()
   Exceptions/     28
-  Services/       21
-  Models/         20 — Central/ and Tenant/
-  Support/        19 — Numerosis, HostConfig, Features, Domains, + subsystems
-  Http/           controllers (billing webhook) and middleware
-  Features/       10 feature classes — see docs/features.md
+  Services/       26 — default implementations, grouped by domain:
+                  Auth/ Invitations/ Modules/ Notifications/ Tenancy/
+  Models/         18 — Central/ and Tenant/
+  Support/        18 — Numerosis, ModelResolver, Contributions, Assets,
+                  HostConfig, Features, Domains, + Billing/ Cache/ Compat/
+                  Routes/ Social/ Tenancy/ Ui/
+  Http/           13 — controllers (billing webhook) and middleware
+  Features/        8 feature classes, grouped by domain (Auth/ Billing/
+                  Invitations/ Modules/ Tenancy/ Turnstile/ Ui/) — see
+                  docs/features.md
+  Enums/          every enum under a domain namespace: Billing/ Tenancy/
+                  Tenant/
   Policies/ Listeners/ Events/ Data/ Observers/ Concerns/ Livewire/
-  Console/ Enums/ Notifications/ Testing/ Rules/ Providers/ Resolvers/
+  Console/ Notifications/ Testing/ Rules/ Providers/ Resolvers/
   Jobs/ Facades/ Commands/
 ```
 
-Four `Support` classes carry most of the surface area:
+Two naming decisions worth knowing before grepping: `Feature` in PHP means a
+capability toggle and nothing else — a plan's selling point is
+`Models\Central\PlanFeature` (its table is still `features`, deliberately) —
+and there is no `Support\Defaults`; every default implementation lives in
+`Services\`.
+
+Seven `Support` classes carry most of the surface area. The first four were
+one class until 2026-09-01, split by audience — **every moved method still
+exists on `Numerosis` and delegates**, because `Numerosis::` is the idiom
+`docs/extending.md`, every host's `config/numerosis.php` and ~200 call sites
+already use. Read the delegate for the seam, the owner for the mechanism.
 
 | Class | Owns |
 |---|---|
-| `Support\Numerosis` | the host-facing static API: `configure()`, `routes()`, `middleware()`, `exceptions()`, the `add*()` contribution seams, model/factory name resolution, asset tags |
+| `Support\Numerosis` | application bootstrap and the front door to everything below: `configure()`, `routes()`, `middleware()`, `broadcasting()`, `exceptions()`, and the three `registerXUsing()` wholesale overrides |
+| `Support\ModelResolver` | model resolution, the model↔factory name mapping and its memoization cache. Behind `Numerosis::{model,factoryNameFor,modelNameFor,resetModelCache}()` |
+| `Support\Contributions` | what satellites and hosts have added — tenant columns, central/tenant routes, tenant migration paths, seeders, permission contexts — plus the readers `routes()` and the seeders consume. Behind every `Numerosis::add*()`. Note `Contributions::tenantMigrationPaths()` is contributions only, while `Numerosis::tenantMigrationPaths()` includes the package's own; `HostConfig` wants the latter |
+| `Support\Assets` | the `numerosis-assets` publish map and the `<link>`/`<script>` tags for the package's non-panel CSS/JS. Behind `Numerosis::{assetSourcePaths,assetTags}()`. The only one of these that reaches for `Filament\`, `Vite` and the filesystem |
 | `Support\HostConfig` | every config value normalized for a host at boot. One row per key in `host-requirements.md` |
 | `Support\Features` | the feature registry — merges `config('numerosis.features')` with satellite `Features::register()` calls |
 | `Support\Domains` | apex / central / tenant hostname derivation from `APP_URL`. **Nothing in it may call a facade** — it is invoked from `config/numerosis.php`, during `LoadConfiguration`, before `RegisterFacades` |
 
 ## Configuration
 
-`config/numerosis.php` is one file, ~920 lines, 15 top-level keys. It is not
-split per package on purpose: a satellite fills its own keys at register time,
-and a host-published value wins over both.
+One config namespace, 15 top-level keys, one file per key in
+`config/numerosis/`. `config/numerosis.php` only `array_merge`s the fifteen
+partials, each of which returns its own `['key' => value]` pair and carries
+that key's documentation.
+
+Split by *key*, not by package, on purpose: a satellite fills its own keys at
+register time and a host's override wins over both, so there is nothing to
+divide along package lines.
+
+Three consequences:
+
+- **The package's own config file is never published**, because its
+  `require __DIR__` paths would resolve against a host's config directory.
+  `vendor:publish --tag=numerosis-config` writes `config/stubs/numerosis.php`
+  — a short override file — and `NumerosisServiceProvider::packageRegistered()`
+  does the `mergeConfigFrom()` by hand rather than through
+  `hasConfigFile('numerosis')`, which would have registered the real file for
+  publishing.
+- A host that published the old full-file copy keeps working: a complete file
+  needs no backfill, and `schema_version` still guards its shape.
+- `env()` in a partial is analysed as config, not application code —
+  `configDirectories` in `phpstan.neon.dist` names `config/numerosis` as well
+  as `config`.
 
 | Key | What it controls |
 |---|---|
