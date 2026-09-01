@@ -3,73 +3,70 @@
 **Overwrite this file at the end of every session; don't append.** It's a
 dispatch note, not a plan — the actual plans live in their own files.
 
-## State at handoff, 2026-08-12
+## State at handoff, 2026-09-01
 
-- `numerosis` — dirty, uncommitted: `.claude/rules/filament-tenancy.md`
-  (new bullet) and `.claude/plans/post-extraction-review.md` (root-cause
-  writeup for the central-domain routing finding). Working tree otherwise
-  matches `main`, which is clean and pushed.
-- `thin-app` — dirty: `tests/Feature/ExampleTest.php`'s docblock rewritten
-  to match the same root cause (was speculating "worth a real fix later";
-  now correctly says it's by-design, not a bug). Also has unrelated,
-  not-mine changes from the user installing `laravel/boost` this session
-  (`composer.json`/`composer.lock`, `CLAUDE.md`, `.claude/skills/laravel-best-practices/rules/*`,
-  new `.mcp.json`/`boost.json`/`.claude/skills/infer-conventions/`) — don't
-  bundle those into any commit for the routing finding, they're the user's
-  own, separate work.
+Both repos clean and committed. Nothing outstanding to land.
+
+- `numerosis` — branch `package-scope-reduction`, two new commits:
+  - `f3e0297 refactor: split the product out of the framework, reclaim overloaded names`
+  - `63d216b perf: run the suite in parallel by default`
+  - Untracked and deliberately left alone: `.agents/` (a third copy of the
+    skills already in `.claude/skills/`).
+  - **Not pushed.**
+- `numerosis-thin-app` — branch `master`, one new commit:
+  `bddeff1 feat: own this product's marketing pages, install numerosis-account`.
+
+Green as of this handoff: `composer test` (669 passed, 7 skipped, ~62s),
+`composer test-serial` (~175s), `composer test-browser` (10 passed),
+`composer analyse` (0 outside a 203-entry baseline).
 
 ## What this session did
 
-Root-caused the open finding from the 2026-08-11 handoff: "central-domain
-HTTP routes unreachable from any console-dispatched request." **It is not a
-bug.** `NumerosisTenantPlugin::shouldRegisterPanel()`
-(`src/Filament/NumerosisTenantPlugin.php`) deliberately keeps the tenant
-panel registered on a central-domain request whenever
-`app()->runningInConsole()` is true — exempting every console entrypoint
-(artisan, Pest, tinker) so `route:list`/queue workers/tenant tests still see
-the panel. `runningInConsole()` is `PHP_SAPI === 'cli'`; real HTTP
-(`php-fpm`, and even PHP's built-in `php -S` server — confirmed both,
-`cli-server` SAPI) reports something else, so the plugin correctly skips
-itself there and central's own `/` resolves. Confirmed empirically: same
-`Request` object, dispatched through literal `public/index.php` code,
-resolves to the central route under `php -S` and to the tenant wildcard
-under plain `php`/`artisan tinker` — only `PHP_SAPI` differs between them.
+**1. Finished `confusion-cleanup.md` step 7 and verified the whole thing.**
+That plan's step 7 was "done but NOT test-verified". It is now: the
+`ModelResolver` extraction broke nothing. Steps 1–6 unchanged.
 
-Full writeup: `.claude/rules/filament-tenancy.md`'s new bullet. Plan file
-(`post-extraction-review.md`) and thin-app's `ExampleTest.php` docblock
-updated to match — previously both described this as an unsolved mystery
-("root cause not found", "worth a real fix later"); both were wrong about
-which side was buggy (assumed console was correct and HTTP was the
-anomaly — it's the reverse).
+**2. PHPStan was not analysing `packages/` at all** — `paths` still listed only
+core's directories, so all six satellite packages went uncovered at level 9
+from the moment the split happened. Added, which surfaced 27 errors, including
+one real defect: `DeleteAccount` referenced its view without the `numerosis::`
+namespace — the only such reference in that package — so the panel would have
+thrown on render, with no test covering it. Blade templates are excluded, as
+core's own views always were. Three cross-package constant-contract assertions
+went to the baseline (203 entries now, was 200).
 
-**Consequence for Phase 5.3**: its "central routes bound per
-`tenancy.central_domains`" assertion can never be a plain Pest
-HTTP-dispatch test — that will always see the tenant panel registered
-(console SAPI) and always resolve the wildcard, regardless of what
-`tenancy.central_domains` actually contains. Two ways forward, neither
-implemented yet:
-1. A Pest **browser** test (real request through the actual web server,
-   where `runningInConsole()` is genuinely false) — this also happens to be
-   exactly the mechanism Phase 5.4 already needs, so worth doing 5.3's
-   route assertion as part of that same browser-test investment rather than
-   a separate HTTP-dispatch attempt.
-2. A narrower unit test against `NumerosisTenantPlugin::shouldRegisterPanel()`
-   directly — stub `runningInConsole()` false (e.g. via a partial mock or
-   by extracting the console-check to something injectable), assert it
-   returns `false` for a central-domain request. Faster to write, doesn't
-   prove routing end-to-end the way a browser test would.
+**3. Made `--parallel` the default.** Full mechanism in
+`.claude/rules/testing.md` under "How parallel was fixed"; the old "Why
+parallel was dropped" section is kept below it with a note saying which of its
+conclusions are now void. Short version: the deadlock those sessions died on
+had already been removed as a side effect of `keepDatabaseSchema()`, and
+nobody re-measured. The real problems were that only the *default* connection
+follows the parallel token (this suite defines three), that
+`tenancy.database.prefix` was shared across workers, and that
+`fake()->unique()->safeEmail()` does not stay unique across tests.
+
+**4. Host: verified against a real boot**, not Testbench — all five central
+pages 200 over HTTPS, and `/` serves the host's own `welcome` view through the
+new `numerosis.routes.home_view` seam.
 
 ## Next-step menu
 
-1. **Write Phase 5.3** using one of the two approaches above — no longer
-   blocked, just needs the test written. Recommend browser-test route
-   (option 1) since it doubles as groundwork for 5.4.
-2. **Phase 5.4** — Pest browser test for the provisioning gate (register →
-   provisioning chain → `provisioned_at` set → tenant panel login). Needs a
-   live worker on the `provisioning` queue.
-3. **`design-system-unification.md` Phase 7`** — keyboard-nav + mobile-width,
-   needs a real browser pass. Independent of 1/2.
-
-Commit the two rules/plan-file updates from this session (numerosis) before
-starting new work — they're small, documentation-only, and unrelated to
-whatever's picked up next.
+1. **Push both repos.** Neither has been pushed; `numerosis` is on a feature
+   branch, so this probably wants a PR.
+2. **`confusion-cleanup.md`'s remaining loose ends**, none of them started:
+   - `docs/architecture.md` and `docs/features.md` predate steps 1–7 and still
+     describe the old layout (five-package table, now six;
+     `AccountPagesFeature`/`MarketingPagesFeature` as core features;
+     `Support\Numerosis` as 33 methods). `docs/host-requirements.md`'s §0
+     package table is a package short.
+   - Splitting `config/numerosis.php` (922 lines) — assessed as the riskiest
+     item and deliberately deferred; the reasoning is in that plan.
+   - The host still carries a full 922-line copy of `config/numerosis.php`; the
+     deep-fill means it only needs the keys it actually changes.
+   - The 23-of-32 single-implementation contracts. They are documented swap
+     points in `numerosis.{billing,tenancy}.implementations`, so deleting them
+     removes a real host feature — wants a decision, not a cleanup.
+3. **`build/phpstan/cache` is root-owned** and needs
+   `sudo rm -rf build/phpstan` to clear. Until then PHPStan needs the `tmpDir`
+   override recipe in `.claude/rules/static-analysis.md`. `build/` is
+   gitignored, so this is throwaway cache, not data.

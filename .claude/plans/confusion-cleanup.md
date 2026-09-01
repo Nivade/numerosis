@@ -1,7 +1,12 @@
 # Confusion cleanup — 2026-09-01
 
-**Status: ⚠️ Partially executed. Steps 1–6 done and test-verified. Step 7 is
-half-finished and NOT verified. Nothing is committed, in either repo.**
+**Status: ✅ Steps 1–7 done, verified and committed (2026-09-01,
+`numerosis@f3e0297` + `numerosis-thin-app@bddeff1`).** Step 7's `ModelResolver`
+extraction was verified by a full green suite; the "run `composer test` first"
+instruction below has been carried out and broke nothing. The *unstarted* parts
+of step 7 (splitting `config/numerosis.php`, splitting the rest of
+`Numerosis`'s surface) and the "Loose ends" section are still open — see
+`.claude/plans/next-session.md`.
 
 Driven by a code-level audit of why the package "felt extremely confusing".
 The audit's findings and the seven-step plan are reproduced below; what
@@ -115,9 +120,9 @@ so deleting them removes a real host feature. Worth a separate decision.
 `Enums\Tenant\DisplayStatus` stays put (it is a thing *inside* a tenant, mirroring
 `Models\Tenant\`), while `Enums\Tenancy\*` is tenancy mechanics.
 
-### 7. God-class and config split ⚠️ **INCOMPLETE — START HERE**
+### 7. God-class and config split — extraction ✅ verified, config split not started
 
-**Done but NOT test-verified** (the suite was not run after this edit):
+**Verified 2026-09-01** (669 passed, 7 skipped):
 
 - New `src/Support/ModelResolver.php` holds model resolution, the
   model↔factory name mapping and the memoization cache.
@@ -126,10 +131,7 @@ so deleting them removes a real host feature. Worth a separate decision.
   `config/numerosis.php` already uses, so the implementation moved and ~200
   call sites did not. `Numerosis.php` is 724 → 649 lines.
 
-**First action for whoever picks this up: run `composer test`.** Last green
-run was after step 6 (669 passed, 7 skipped). If the resolver extraction
-broke something it will be in model/factory resolution — `HostConfigTest`,
-`NumerosisServiceProviderDefaultsTest` and anything using factories.
+Done: the suite was run and is green, so the extraction is confirmed clean.
 
 **Not started:**
 
@@ -164,12 +166,14 @@ broke something it will be in model/factory resolution — `HostConfigTest`,
 
 ## Loose ends
 
-- **Nothing is committed.** ~185 changed paths in `numerosis`, 11 in
-  `numerosis-thin-app`. Two separate repos, two commits.
-- **`vendor/bin/pint` and `composer analyse` have not been run** since any of
-  this. Both are expected to have work to do — imports were rewritten by
-  script, and PHPStan has not seen `ModelResolver`, the moved namespaces, or
-  the account package.
+- ~~**Nothing is committed.**~~ Committed 2026-09-01: `numerosis@f3e0297`
+  (205 paths), `numerosis-thin-app@bddeff1` (11). Neither is pushed.
+- ~~**`vendor/bin/pint` and `composer analyse` have not been run.**~~ Both run
+  and green. Analysis turned out not to cover `packages/` at all — `paths` in
+  `phpstan.neon.dist` still listed only core's directories, so every satellite
+  had been unanalysed since the split. Adding it found a real defect
+  (`DeleteAccount`'s unnamespaced view reference) plus the deprecated Filament
+  table/form APIs, all fixed in the same commit.
 - `docs/architecture.md` and `docs/features.md` were written *before* steps
   1–7 and still describe the old layout in places: the five-package table
   (now six), `AccountPagesFeature`/`MarketingPagesFeature` as core features,
