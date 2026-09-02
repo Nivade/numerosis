@@ -7,8 +7,10 @@ use App\Models\Central\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\File;
 use InterNACHI\Modular\Support\ModuleConfig;
 use InterNACHI\Modular\Support\ModuleRegistry;
 use Nvade\Numerosis\Models\Central\ModuleOffering;
@@ -173,53 +175,76 @@ it('hides an unavailable offering even when the module is installed', function (
  * `purchaseAction()->visible(fn () => $this->canPurchaseModules())`, which for
  * an owner short-circuits through `ModulePolicy::purchase()`.
  *
- * **It stops at the button and does not open the modal, because the modal
- * cannot open in this harness.** Filament's own JavaScript is not served
- * here — the page reports `filamentActionModals is not defined`,
- * `filamentDropdown is not defined` and repeated
- * `Cannot read properties of undefined (reading 'isOpen')`. Two separate
- * causes were measured, and only the first has a known fix:
+ * **The confirmation modal now opens.** It didn't for a reason that had
+ * nothing to do with this page: `Nvade\Numerosis\Http\Middleware\
+ * InitializeLivewireTenancyByPath`'s docblock has the full story — path
+ * mode's Livewire commits were silently failing tenancy identification, so
+ * `mountAction` never ran, on *every* Livewire interaction under this
+ * identification mode, not just this one. Publishing Filament's assets and
+ * setting `tenancy.filesystem.asset_helper_tenancy` to false (see
+ * `FilesystemTenancyBootstrapper`) is the other half this test needs, and is
+ * done here rather than globally to avoid the order-coupling with
+ * `InstallNumerosisCommandTest::test_it_fails_when_filament_assets_ran_but_the_numerosis_theme_did_not_land`,
+ * whose teardown deletes `public_path('css'|'js')`.
  *
- * 1. **Filament's JS 404s.** `FilesystemTenancyBootstrapper` repoints the
- *    `asset()` root at stancl's `stancl.tenancy.asset` route whenever tenancy
- *    is initialized and `app.asset_url` is unset, so every Filament script is
- *    requested as `/tenancy/assets/js/filament/...` — which
- *    `TenantAssetController` serves from tenant storage, not `public/`.
- *    Publishing assets alone changes nothing; publishing **and** setting
- *    `tenancy.filesystem.asset_helper_tenancy` to false clears every JS error.
- *    Not adopted here because publishing breaks
- *    `InstallNumerosisCommandTest`, whose `verifyFilamentThemeAsset` case
- *    depends on the harness having no published theme — and that test's own
- *    teardown deletes `public_path('css'|'js')`, so the two are order-coupled
- *    in both directions. Harness-only: a real host serves plain `/js/...`,
- *    checked against numerosis-thin-app.
- * 2. **With the JS clean, clicking Purchase still mounts no modal** — no
- *    `fi-modal` in the DOM. Livewire/selector-level, unresolved.
- *
- * Every browser test here that works depends on Livewire and Flux only.
- *
- * And a click-through purchase would still be out of reach past the modal:
- * confirming calls `PurchaseModule`, which needs a billing address, an active
+ * A click-through purchase is still out of reach past the modal: confirming
+ * calls `PurchaseModule`, which needs a billing address, an active
  * subscription or a Stripe one-time charge, and real Cashier calls — there is
  * no module-purchase equivalent of `LocalCheckoutGateway`. Its guard clauses
  * are covered offline instead, in `PurchaseModuleTest`.
  */
-it('offers the purchase affordance to a tenant owner', function (): void {
-    $tenant = bootTenantWithSignedInOwner();
+it('offers the purchase affordance to a tenant owner, and its modal opens', function (): void {
+    // A private public_path(), not the shared one `InstallNumerosisCommandTest`
+    // asserts against — under `--parallel`, that test's file runs in a
+    // different worker process but the same physical filesystem, so
+    // publishing into the real `public/css`/`public/js` and deleting them in
+    // a `finally` races that test's own use of the same paths. See
+    // `Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath`'s
+    // docblock for why this test needs real assets at all.
+    $publicPath = sys_get_temp_dir().'/numerosis-marketplace-test-public-'.uniqid();
+    File::ensureDirectoryExists($publicPath);
+    $originalPublicPath = app()->publicPath();
 
-    ModuleOffering::factory()->create([
-        'slug' => 'alerts',
-        'name' => 'Alerts',
-        'available' => true,
-    ]);
+    // The harness's own `build/manifest.json` (the workbench app's Vite
+    // build) lives under the real public path — Numerosis::assetTags()
+    // reads it at render time regardless of which assets this test is
+    // publishing, so it has to exist under the private path too.
+    if (File::isDirectory($originalPublicPath.'/build')) {
+        File::copyDirectory($originalPublicPath.'/build', $publicPath.'/build');
+    }
 
-    fakeModuleRegistryWith('alerts');
+    app()->usePublicPath($publicPath);
 
-    $content = (string) visit("/{$tenant->id}/marketplace")->content();
+    Artisan::call('vendor:publish', ['--tag' => 'numerosis-assets', '--force' => true]);
+    Artisan::call('filament:assets');
+    Config::set('tenancy.filesystem.asset_helper_tenancy', false);
 
-    expect($content)->toContain('Alerts');
-    expect($content)->toContain('Purchase');
-    expect(str_contains($content, 'Server Error'))->toBeFalse();
+    try {
+        $tenant = bootTenantWithSignedInOwner();
+
+        ModuleOffering::factory()->create([
+            'slug' => 'alerts',
+            'name' => 'Alerts',
+            'available' => true,
+        ]);
+
+        fakeModuleRegistryWith('alerts');
+
+        $page = visit("/{$tenant->id}/marketplace");
+
+        $content = (string) $page->content();
+        expect($content)->toContain('Alerts');
+        expect($content)->toContain('Purchase');
+        expect(str_contains($content, 'Server Error'))->toBeFalse();
+
+        $page->click('Purchase');
+        $page->wait(2);
+
+        expect((string) $page->content())->toContain('Purchase Alerts?');
+    } finally {
+        app()->usePublicPath($originalPublicPath);
+        File::deleteDirectory($publicPath);
+    }
 });
 
 /**

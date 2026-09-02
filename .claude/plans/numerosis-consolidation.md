@@ -900,6 +900,47 @@ a `docker compose up -d` first; MySQL wasn't running.
      in the browser harness (fixing the `InstallNumerosisCommandTest`
      interaction at the same time), or add a local module-billing gateway
      alongside `LocalCheckoutGateway`. Neither is a test-writing task.
+
+     **✅ Fixed 2026-09-02, committed.** (a) alone didn't unblock it — the
+     initial scratch test still showed `fi-modal` never appearing even with
+     every Filament JS error cleared. Following the trail past "zero
+     client-side signal" (a `reportable()` exception hook, not a JS-level
+     one) found the real cause, and it's much bigger than this page:
+     **`Livewire::setUpdateRoute()` registers one global `/livewire/update`
+     route with no `{tenant}` parameter, and under path identification mode
+     `TenancyServiceProvider::boot()` applies `InitializeTenancyByPath` to
+     it** — which asserts `$route->parameterNames()[0] === 'tenant'` and
+     throws `Undefined array key 0` on a parameterless route. Every
+     `mountAction`/`wire:model`/form-submit commit under path mode was
+     silently failing tenancy identification (Livewire's JS swallows the
+     failed commit without a console error), so **no Livewire interaction
+     worked on any path-mode tenant panel**, in production, not just this
+     test — confirmed by rerunning the identical purchase-click test under
+     subdomain mode instead, where it worked immediately.
+
+     Fix: `Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath`,
+     applied only for the Livewire update route under path mode via a new
+     `TenancyServiceProvider::livewireUpdateIdentificationMiddleware()`. It
+     reads the tenant off the `Referer` header's first path segment instead
+     of a route parameter (the actual page that issued the commit), and
+     degrades to an uninitialized central context — never throws — when the
+     referer is missing or names no real tenant, matching how a genuine
+     central-page Livewire commit already behaves. Covered by
+     `InitializeLivewireTenancyByPathTest` (referer→tenant, unknown referer,
+     no referer) and `IdentificationModeTest`'s new middleware-selection
+     case. `ModuleMarketplaceTest`'s purchase-affordance test now asserts the
+     modal actually opens (`Purchase Alerts?` heading), inside a private
+     `usePublicPath()` temp directory (copying in the harness's own
+     `build/manifest.json` first) rather than the shared `public/css`+`js` —
+     doing it against the real path raced `InstallNumerosisCommandTest`
+     under `--parallel`, a second-order version of the order-coupling this
+     plan already flagged.
+
+     **Still open: item (2) above, the click-through purchase itself.** The
+     modal opens now; confirming it still calls `PurchaseModule`, which needs
+     a billing address, an active subscription, or a real Stripe one-time
+     charge — there is still no module-purchase equivalent of
+     `LocalCheckoutGateway`. See "Pick up here (session 2026-09-02)" below.
    - Section E for what the plugin can and cannot reach — in particular that
      it does **not** escape `runningInConsole()`, so subdomain mode's
      "central route wins over the `{tenant}` wildcard" question stays out of
@@ -976,3 +1017,58 @@ config-driven wizard steps, all three identification modes, the panel seams
 (`numerosis.panels.*`), the `jobs`-table and migration-basename repairs, and the
 ui / auth-ui / filament extractions. Mechanism for all of it is in
 `.claude/rules/`.
+
+---
+
+## Pick up here (session 2026-09-02)
+
+**Start with the module-billing gateway.** This is the only thing standing
+between `ModuleMarketplaceTest` and a real click-through module purchase.
+
+### What just landed (committed this session)
+
+- Real bug, not a test artifact: path identification mode broke every
+  Livewire interaction (`mountAction`, `wire:model`, form submits) on a
+  tenant panel — `Livewire::setUpdateRoute()`'s global `/livewire/update`
+  route carries no `{tenant}` parameter, and `InitializeTenancyByPath`
+  requires one. Fixed with
+  `Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath`
+  (Referer-based tenant lookup for that one route, path mode only). Covered
+  by `InitializeLivewireTenancyByPathTest` and an `IdentificationModeTest`
+  case. Full writeup is inline above, under item 1's "module marketplace
+  purchase" bullet.
+- `ModuleMarketplaceTest`'s purchase-affordance test now asserts the
+  confirmation modal actually opens (`Purchase Alerts?`), not just that the
+  button renders. It publishes Filament assets into a private
+  `usePublicPath()` temp directory rather than the shared `public/css`+`js` —
+  doing that against the real path raced `InstallNumerosisCommandTest` under
+  `composer test --parallel` (two workers, one physical filesystem). Verified
+  green twice under `--parallel` after the fix.
+
+### What's next: the module-purchase billing gateway
+
+Confirming the modal still calls `PurchaseModule::run($tenant, $actor, $slug)`
+(`packages/filament/src/Concerns/Modules/PurchasesModules.php:115`), which
+needs a billing address, an active subscription, or a real Stripe one-time
+charge — real Cashier calls, nothing stubbed. The wizard's own end-to-end
+browser test (`RegistrationWizardTest`) is cheap only because
+`Nvade\Numerosis\Services\Billing\Checkout\LocalCheckoutGateway` already
+exists and gets bound over `CheckoutGateway` for the duration of that test —
+**there is no equivalent for module purchases**, and building one is real
+work, not a test-writing task.
+
+Before writing it, read `PurchaseModule` itself and
+`Nvade\Numerosis\Contracts\Billing\CheckoutGateway` to see what the
+subscription-checkout path actually needs vs. what a one-time module charge
+needs (`ModuleBillingMode::OneTime` vs. the prorated-subscription branch in
+`PurchasesModules::purchaseDescription()`) — they are likely different
+enough that `LocalCheckoutGateway` is not a drop-in reuse, only a pattern to
+follow. `tests/Feature/Actions/Modules/PurchaseModuleTest` already covers
+`PurchaseModule`'s guard clauses offline; that test is the fastest way to see
+exactly which Cashier calls a local gateway would need to fake.
+
+Once a local gateway exists, extend `ModuleMarketplaceTest`'s
+purchase-affordance test (or add a sibling) to click through: confirm the
+modal, assert the module row's `purchased_at` gets set and the tenant sees
+"Installed" on a subsequent visit — the same shape `AdminPanelTest` and
+`RegistrationWizardTest` use for their own end-to-end assertions.

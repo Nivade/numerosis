@@ -91,6 +91,20 @@ class TenancyServiceProvider extends ServiceProvider
     }
 
     /**
+     * The Livewire update route carries no `{tenant}` parameter — see
+     * {@see \Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath}
+     * for why `InitializeTenancyByPath` itself can't be applied to it. Every
+     * other mode identifies by domain, which needs no route parameter, so
+     * {@see self::identificationMiddleware()} already works unmodified there.
+     */
+    public static function livewireUpdateIdentificationMiddleware(): string
+    {
+        return IdentificationMode::current() === IdentificationMode::Path
+            ? \Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath::class
+            : static::identificationMiddleware();
+    }
+
+    /**
      * The central-domain-block gate used inside the `tenant` middleware
      * group. Under `IdentificationMode::Path`, tenant routes deliberately
      * live on the central domain (path-prefixed), so the ordinary block
@@ -296,7 +310,7 @@ class TenancyServiceProvider extends ServiceProvider
             ->middleware(
                 'web',
                 'universal',
-                static::identificationMiddleware(),
+                static::livewireUpdateIdentificationMiddleware(),
                 EnsureSessionMatchesTenant::class,
             ));
     }

@@ -57,6 +57,26 @@ class IdentificationModeTest extends TestCase
         $this->assertSame(InitializeTenancyByPath::class, TenancyServiceProvider::identificationMiddleware());
     }
 
+    /**
+     * The Livewire update route carries no `{tenant}` parameter, so
+     * `InitializeTenancyByPath` (which asserts `parameterNames()[0] ===
+     * 'tenant'`) can't be applied to it under path mode — see
+     * `Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath`'s
+     * docblock. Every other mode identifies by domain, which needs no route
+     * parameter at all, so it reuses `identificationMiddleware()` unchanged.
+     */
+    public function test_livewire_update_route_uses_a_referer_based_middleware_only_under_path_mode(): void
+    {
+        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Subdomain->value);
+        $this->assertSame(InitializeTenancyByDomainOrSubdomain::class, TenancyServiceProvider::livewireUpdateIdentificationMiddleware());
+
+        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::CustomDomain->value);
+        $this->assertSame(InitializeTenancyByDomain::class, TenancyServiceProvider::livewireUpdateIdentificationMiddleware());
+
+        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Path->value);
+        $this->assertSame(\Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath::class, TenancyServiceProvider::livewireUpdateIdentificationMiddleware());
+    }
+
     public function test_path_mode_skips_the_central_domain_block_and_other_modes_dont(): void
     {
         Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Path->value);
