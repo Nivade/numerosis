@@ -124,10 +124,19 @@
         "test-serial": "@php -d memory_limit=1G vendor/bin/pest",
         "test-browser": "@php -d memory_limit=1G vendor/bin/pest --testsuite=Browser",
         "test-coverage": "@php -d memory_limit=1G vendor/bin/pest --coverage",
+        "test:impact": "@php -d memory_limit=1G vendor/bin/pest --dirty",
         "format": "vendor/bin/pint",
         "lint": [
             "@php -d memory_limit=1G vendor/bin/pint --ansi",
             "@php -d memory_limit=1G vendor/bin/phpstan analyse --verbose --ansi"
+        ],
+        "refactor": "vendor/bin/rector process",
+        "refactor:check": "vendor/bin/rector process --dry-run",
+        "ci:check": [
+            "Composer\\Config::disableProcessTimeout",
+            "@lint",
+            "@refactor:check",
+            "@test"
         ]
     },
     "config": {

@@ -21,7 +21,7 @@ touches nothing browser-related.
 So there is no "skip when unavailable" guard in these files. One was written
 and removed: the plugin aborts before any `beforeEach()` can run, so it was
 dead code that read as protection — the failure mode
-`.claude/rules/auth-login.md` records for `ensureIsNotRateLimited()`.
+`.ai/rules/auth-login.md` records for `ensureIsNotRateLimited()`.
 
 `.github/workflows/run-tests.yml` installs both.
 
@@ -49,7 +49,7 @@ here.
 `PHP_SAPI` is still `cli`, so `app()->runningInConsole()` is **true** inside a
 browser request. `NumerosisTenantPlugin::shouldRegisterPanel()`'s console
 exemption therefore still applies, and the "central route wins over the
-`{tenant}` wildcard" question `.claude/rules/filament-tenancy.md` describes
+`{tenant}` wildcard" question `.ai/rules/filament-tenancy.md` describes
 remains out of reach here — it needs a real FPM/`php -S` server, where
 `PHP_SAPI` differs. Path mode is unaffected: it registers no wildcard domain
 pattern, which is why it is what this suite covers.

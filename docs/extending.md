@@ -81,13 +81,13 @@ Four things that are easy to get wrong, each learned the hard way:
   because `HostConfig::numerosisConfig()` deep-fills it. `numerosis.tenancy`
   does not, and the identical write destroyed `implementations`,
   `provisioning` and `identification`. Mechanism and both symptoms in
-  `.claude/rules/package-split.md`.
+  `.ai/rules/package-split.md`.
 
 - **Never name a core-optional symbol eagerly.** `extends`, `implements` and
   `use <Trait>` resolve at class-declaration time; a method type hint does not.
   This is the whole reason `Support\Compat\*` exists, and why those four files
   stay in **core** — a satellite owning them would invert the dependency they
-  exist to prevent. See `.claude/rules/optional-dependencies.md`.
+  exist to prevent. See `.ai/rules/optional-dependencies.md`.
 
 - **One `class_exists()` seam per optional package, not one per call site.**
   `internachi/modular` has seven consumers; all of them ask

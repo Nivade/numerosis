@@ -38,14 +38,14 @@ Core does reference `Filament\` in a handful of files. Every one is lazy — a
 method type hint, or a `class_exists()`-guarded call — because PHP resolves
 `extends`/`implements`/`use <Trait>` eagerly but type hints only at call time.
 `Support\Compat\*` exists for the cases that needed an eager clause. See
-`.claude/rules/optional-dependencies.md` before adding a reference.
+`.ai/rules/optional-dependencies.md` before adding a reference.
 
 ## Boot sequence
 
 `NumerosisServiceProvider` extends `spatie/laravel-package-tools`'
 `PackageServiceProvider`, so the phases are its four, not Laravel's two. Phase
 matters more here than in most packages — three separate production bugs came
-from work done one phase too early or too late (`.claude/rules/package-host-bootstrap.md`).
+from work done one phase too early or too late (`.ai/rules/package-host-bootstrap.md`).
 
 | Phase | What runs | Why here |
 |---|---|---|
@@ -99,7 +99,7 @@ both sides). `TrustProxies::at('*')` and a prepended `TrustHosts` are applied
 unconditionally.
 
 Identification mode is a **deploy-time** choice — switching it does not migrate
-tenants already provisioned. See `.claude/rules/identification-modes.md`.
+tenants already provisioned. See `.ai/rules/identification-modes.md`.
 
 ## Data layout
 
@@ -205,7 +205,7 @@ Three consequences:
 | `panels` | `default`, and per panel: `provider`, `login`, `tenant_registration_component` |
 | `modules` | the module catalogue and Filament plugin map — host data |
 | `views` | view path, set at boot |
-| `cache` | the prefix for every key in `Support\Cache\CacheKeys`. Does **not** decide which keys are tenant-scoped — see `.claude/rules/tenant-caching.md` |
+| `cache` | the prefix for every key in `Support\Cache\CacheKeys`. Does **not** decide which keys are tenant-scoped — see `.ai/rules/tenant-caching.md` |
 | `models` | explicit model overrides (step one of `Numerosis::model()`) |
 | `billing` | Stripe, plans, payment-method ordering, checkout regions |
 | `tenancy` | identification mode, provisioning, implementations |
@@ -220,4 +220,4 @@ Pest through Orchestra Testbench; there is no application here. `tests/Feature`,
 `tests/Unit`, `tests/Browser` (Pest Browser + Playwright). Anything touching
 tenancy composes `Nvade\Numerosis\Testing\CleansUpTenancyDatabases` — `RefreshDatabase`
 transacts the default connection only, so central rows survive rollback and
-`CREATE DATABASE` is not transactional. See `.claude/rules/testing.md`.
+`CREATE DATABASE` is not transactional. See `.ai/rules/testing.md`.

@@ -5,7 +5,7 @@
 callback that `NumerosisServiceProvider::packageRegistered()` registers —
 deferred to that phase on purpose, so config another package's own
 `mergeConfigFrom()` still has to merge into is normalized after it lands
-rather than before; see `.claude/rules/package-host-bootstrap.md`) — a host
+rather than before; see `.ai/rules/package-host-bootstrap.md`) — a host
 that sets database credentials, Stripe keys and `APP_URL`, runs `migrate`
 and `filament:assets`, and writes a one-line `bootstrap/app.php` gets a
 working multi-tenant SaaS. Everything past that is an override, not a
@@ -50,7 +50,7 @@ Two consequences worth knowing before you pick:
   owning package is absent. If you replace a layer with your own, fill those
   keys rather than subclassing anything.
 
-`.claude/rules/package-boundaries.md` is the full seam map — routes,
+`.ai/rules/package-boundaries.md` is the full seam map — routes,
 features, migration paths, seeders, permission contexts, panels — for anyone
 writing a sixth package rather than a host.
 
@@ -66,7 +66,7 @@ framework hook that has to run before any package code can act.
 | `STRIPE_WEBHOOK_SECRET` | the signing secret Stripe's dashboard gives your webhook endpoint | secret, used to verify inbound Stripe webhooks | — not independently verifiable; a wrong value fails loudly the first time Stripe calls back, not silently, so nothing here would catch it earlier than that |
 | DB credentials + `php artisan migrate` | working MySQL credentials; migrations run against the `central` connection | MySQL — tenancy needs `CREATE DATABASE`, and the `central` connection has to exist before anything else in this list means anything | `verifyDatabaseConnections()` |
 | — same, `failed_jobs` table specifically | present on whichever connection `queue.failed.database` names | migrations create it; nothing else does | `verifyFailedJobsConnection()` |
-| One-line `bootstrap/app.php` | `Numerosis::configure(...)`, or `->withRouting()`/`->withMiddleware()` calling `Numerosis::routes()`/`Numerosis::middleware()` | `ApplicationBuilder::withRouting()`/`withMiddleware()` run at builder time, before any service provider — nothing inside `packageRegistered()`/`packageBooted()` can substitute for the framework hook itself | — `NumerosisServiceProvider::booted()` self-heals a missing call (registers routes/middleware itself if it detects neither ran) rather than failing the install command; see `.claude/rules/package-host-bootstrap.md` |
+| One-line `bootstrap/app.php` | `Numerosis::configure(...)`, or `->withRouting()`/`->withMiddleware()` calling `Numerosis::routes()`/`Numerosis::middleware()` | `ApplicationBuilder::withRouting()`/`withMiddleware()` run at builder time, before any service provider — nothing inside `packageRegistered()`/`packageBooted()` can substitute for the framework hook itself | — `NumerosisServiceProvider::booted()` self-heals a missing call (registers routes/middleware itself if it detects neither ran) rather than failing the install command; see `.ai/rules/package-host-bootstrap.md` |
 | `php artisan filament:assets` | run at least once | already required for Filament's own core CSS; also copies this package's prebuilt theme + app JS/CSS to `public/{css,js}/nvade/numerosis/` | `verifyFilamentThemeAsset()` |
 | DNS + a provisioning worker | depends on `numerosis.tenancy.identification.mode` — `subdomain`: `*.{tenant_pattern}` resolves; `custom_domain`: each tenant points their own domain here; `path`: no DNS change at all. Plus, in every mode, a queue worker on the `provisioning` queue | infrastructure — tenant provisioning is queued there, not on the default worker | — infrastructure, outside anything a boot-time check can observe; `numerosis:install`'s printed manual steps name the right one for your mode |
 
@@ -166,8 +166,8 @@ what stops the next normalization from shipping undocumented the way
   suite — the browser plugin serves Laravel in-process, so
   `runningInConsole()` stays true and the tenant panel's `{tenant}` wildcard
   is always registered; verify that one by hand against a real web server.
-  See `.claude/rules/identification-modes.md` and
-  `.claude/rules/filament-tenancy.md`.
+  See `.ai/rules/identification-modes.md` and
+  `.ai/rules/filament-tenancy.md`.
 - **`filament/filament`, `internachi/modular`,
   `spatie/laravel-one-time-passwords` and `spatie/laravel-activitylog` are
   all `suggest`, not `require`** — as are the three optional packages in §0

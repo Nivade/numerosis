@@ -1,11 +1,8 @@
 ---
 description: Resume work after a break - get up to speed on current state
-maintainer: Laravel Altitude
 ---
 
-# Catchup - Resume After Break
-
-Get up to speed on current work state.
+# Catchup — Resume After Break
 
 ## Usage
 
@@ -15,44 +12,29 @@ Get up to speed on current work state.
 
 ## Workflow
 
-1. **Git State**
+1. **Git state.**
    ```bash
-   git branch --show-current
-   git status
-   git log --oneline -5
-   git diff --stat
+   git branch --show-current && git status --short && git log --oneline -5
    ```
 
-2. **App State**
-   - Check `storage/logs/laravel.log` (last hour or 10 entries)
-   - Run `php artisan test`
+2. **App state.**
+   - Boost MCP `last-error` / `read-log-entries` (recent only), or
+     `workbench/storage/logs/laravel.log` — this is a package, no root
+     `storage/` at runtime; the workbench serves as the dev harness.
+   - `composer test:impact` (only tests touching uncommitted changes —
+     fast signal; use `composer test` for the full picture).
 
-3. **Issue Context**
-   - Parse branch for ID: `feature/LIN-123-*`, `fix/LIN-123-*`
-   - If Linear MCP: fetch issue
-   - If unavailable: show parsed ID
-
-4. **Summary**
+3. **Summary**
    ```
    ## Current State
 
    **Branch:** [name]
 
-   ### Recent Commits
-   - [summaries]
-
-   ### Uncommitted Changes
-   - [files]
-
-   ### Issue
-   - [details]
-
-   ### App Health
-   - [errors]
-   - [test results]
-
-   ### Next Steps
-   1. [action]
+   ### Recent commits
+   ### Uncommitted changes
+   ### App health — errors, test results
+   ### Next steps
    ```
 
-5. **Continue** - Suggest next action or agent
+4. **Continue** — suggest the next action. Do not spawn a subagent to do it
+   (`.ai/rules/subagents.md`).

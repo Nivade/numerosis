@@ -1,11 +1,8 @@
 ---
 description: Review current changes for code quality and issues
-maintainer: Laravel Altitude
 ---
 
-# Review - Code Quality Check
-
-Review changes for quality, security, and best practices.
+# Review — Code Quality Check
 
 ## Usage
 
@@ -13,65 +10,63 @@ Review changes for quality, security, and best practices.
 /review [path]
 ```
 
-## Path Handling
+No path → all uncommitted changes: `git diff && git status --short`.
 
-- No path: All uncommitted changes
-- Directory: All files in directory
-- File: Single file
-
-## Automated Checks
+## Automated checks
 
 ```bash
-vendor/bin/pint --test
-php artisan test
+composer lint          # Pint (fixes in place) + PHPStan level 9 + baseline
+composer refactor:check # Rector, dry-run only — never run plain `refactor` unsupervised
+composer test           # Pest, parallel
 ```
 
-## Security Checks
+`refactor:check` will flag real Rector debt (57 files as of 2026-09-02, tracked
+separately) — that is expected noise, not something to fix as part of this
+review. Only flag a refactor finding if it's directly relevant to the diff
+being reviewed. **`src/Support/Domains.php` is permanently excluded** —
+`rector.php` skips it because a past Rector pass rewrote its deliberate raw
+superglobal reads into a facade call and crash-looped the app at boot, before
+facades are registered (`.ai/rules/package-host-bootstrap.md`). If a diff
+touches that file, review it by hand — Rector has nothing useful to say there.
 
-### Credentials
-- `password\s*=\s*['"]` (hardcoded)
-- `api_key|secret|token.*=` (exposed)
+`composer lint`'s PHPStan step is **currently red for a pre-existing reason,
+not because of your diff**: as of 2026-09-02 it reports 57 errors — 34 are
+`ignore.unmatched`/`ignore.count` (stale baseline entries), the other 23 are
+the same `Cannot cast array|bool|float|int|string|null to string` message,
+which matches the documented Larastan nullable-narrowing false-positive
+family (`.ai/rules/static-analysis.md`) but was not confirmed as such (needs
+the worktree/previous-commit bisection that file describes). **Do not
+regenerate the baseline to make this pass** — the rule file is explicit that
+doing so buries whatever this actually is. Until triaged, treat a `composer
+lint`/`composer test` failure as inconclusive on its own — check whether the
+same 57 appear on a clean checkout before attributing any of it to the diff
+under review.
 
-### N+1 Detection
-- Loops with relationship access without `with()`
-- Missing `$with` property
+## Manual checks
 
-### Authorization
-- `authorize()` before mutations
-- Gate checks on sensitive routes
+**Placement first.** Is the change genuinely package-side, or should it live
+in a satellite package under `packages/*` (`.ai/rules/package-boundaries.md`)?
+
+- **Credentials** — hardcoded `password =`, `api_key`/`secret`/`token` literals.
+- **N+1** — relationship access inside a loop without `with()`.
+- **Authorization** — `authorize()` before mutations, gates on sensitive routes.
+- **Tenancy** — cross-tenant leakage via cached models or shared cache keys.
+- **Optional dependencies** — an eager `implements`/`use trait` against an
+  optional package breaks a host that lacks it
+  (`.ai/rules/optional-dependencies.md`).
 
 ## Severity
 
 | Level | Examples |
-|-------|----------|
-| Critical | SQL injection, missing auth |
-| High | N+1 in loop, no validation |
+|---|---|
+| Critical | SQL injection, missing auth, cross-tenant data leak |
+| High | N+1 in a loop, no validation, eager optional dependency |
 | Medium | Missing types, unclear naming |
-| Low | Style, documentation |
+| Low | Style, docs |
 
-## Pass/Fail
-
-- **Fail**: Any Critical or High
-- **Pass**: Medium/Low only
+**Fail** on any Critical or High.
 
 ## Output
 
-```
-## Review Summary
-
-**Status:** PASS | FAIL
-**Issues:** [critical]/[high]/[medium]/[low]
-
-### Critical/High
-- [CRITICAL] file:42 - SQL injection
-
-### Medium/Low
-- [MEDIUM] file:8 - Missing type
-```
-
-## Examples
-
-```
-/review
-/review app/Livewire/
-```
+One line per finding: `path:line — [SEVERITY] problem. Fix.`
+Skip formatting nits pint already handles.

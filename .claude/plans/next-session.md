@@ -124,4 +124,4 @@ ways. Harness-only; a real host serves plain `/js/...`.
 4. ~~`build/phpstan/cache` is root-owned~~ — **no longer true.** Both
    directories are `nvade:nvade` now and `composer analyse` ran clean twice
    this session with no `tmpDir` override. The recipe in
-   `.claude/rules/static-analysis.md` is still there if it recurs.
+   `.ai/rules/static-analysis.md` is still there if it recurs.

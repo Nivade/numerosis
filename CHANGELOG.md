@@ -15,7 +15,7 @@ untagged checkout.
 
 First tagged release. Extracted from the `saas-m` monolith
 (`.claude/plans/package-extraction.md`) and hardened against a second real
-consumer, `tabellio` (`.claude/rules/host-integration-quickstart.md`).
+consumer, `tabellio` (`.ai/rules/host-integration-quickstart.md`).
 Baseline for future entries in this file — not a reconstructed history of
 every change since extraction began; consult `git log` for that detail.
 

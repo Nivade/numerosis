@@ -15,8 +15,8 @@ the module system are opt-in.
 | [`docs/extending.md`](docs/extending.md) | How a host or a satellite package contributes routes, migrations, seeders, permissions, panels |
 | [`docs/host-requirements.md`](docs/host-requirements.md) | The things a host must provide, and every config key the package normalizes for you |
 
-`.claude/rules/` holds non-obvious traps and invariants by topic (start at
-`.claude/rules/INDEX.md`). `.claude/plans/` is historical — nothing there is
+`.ai/rules/` holds non-obvious traps and invariants by topic (start at
+`.ai/rules/INDEX.md`). `.claude/plans/` is historical — nothing there is
 authoritative about current behaviour.
 
 ## What you install
@@ -44,7 +44,7 @@ What declining each one costs is listed per package in
 - MySQL — tenancy needs `CREATE DATABASE`; SQLite cannot host it
 - A queue worker on the `provisioning` queue
 - Stripe keys, and DNS matching your identification mode (`subdomain` by
-  default — see `.claude/rules/identification-modes.md`)
+  default — see `.ai/rules/identification-modes.md`)
 
 ## Install
 

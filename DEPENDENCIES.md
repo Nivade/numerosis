@@ -37,11 +37,11 @@ migrations and every seeder.
 | Package | Why it can't be optional |
 |---|---|
 | `illuminate/*` (15 components) + `laravel/framework` | Named per-component rather than as the meta-package, but `laravel/framework` is required too — Testbench, the console commands and the scheduler reach past the component list. Every class in `src/` depends on some `illuminate/*` symbol. |
-| `stancl/tenancy` `^3.10` | The tenancy system itself: `TenancyServiceProvider`, every bootstrapper, the `tenant`/`central` connection split. **v3 only, deliberately** — the dual-version layer was built, measured and deleted (`.claude/rules/stancl-tenancy-v4.md`). |
+| `stancl/tenancy` `^3.10` | The tenancy system itself: `TenancyServiceProvider`, every bootstrapper, the `tenant`/`central` connection split. **v3 only, deliberately** — the dual-version layer was built, measured and deleted (`.ai/rules/stancl-tenancy-v4.md`). |
 | `laravel/cashier` | `BillingServiceProvider` binds Cashier's customer/subscription models directly; `Billable`, checkout and the webhook controller all assume its classes. |
 | `spatie/laravel-permission` | `AuthGuardBootstrapper`, every policy, `guardName()` on both user models. Load-bearing for every panel, not a feature. |
 | `spatie/laravel-data` | `TenantProvisionData`, `SubscriptionData` and the rest of `Data\*` are typed on it; the provisioning and checkout pipelines pass these objects between actions. |
-| `lorisleiva/laravel-actions` | Every `Actions\*` class is an `AsAction`. The provisioning chain's calling conventions are built on it (`.claude/rules/tenant-provisioning.md`'s `JobPipeline`-vs-`AsAction` bullet). |
+| `lorisleiva/laravel-actions` | Every `Actions\*` class is an `AsAction`. The provisioning chain's calling conventions are built on it (`.ai/rules/tenant-provisioning.md`'s `JobPipeline`-vs-`AsAction` bullet). |
 | `livewire/livewire` | Every interactive surface core still owns — checkout, invitations, the account pages — is a Livewire component. |
 | `spatie/laravel-package-tools` | `NumerosisServiceProvider extends PackageServiceProvider`. |
 | `ryangjchandler/laravel-cloudflare-turnstile` | `TurnstileFeature` imports the `Turnstile` rule at **file scope**, which resolves whenever the feature class loads to answer `isEnabled()` — i.e. before the switch can be read. Not guardable. |
@@ -167,7 +167,7 @@ symbol per interface/trait, `if (interface_exists(Real::class))` extending the
 real one and otherwise empty. Composer's PSR-4 autoloader maps name→file and
 never parses contents, so this needs no autoloader configuration. Four exist;
 if a fifth is ever needed, consider generating them
-(`.claude/rules/optional-dependencies.md`).
+(`.ai/rules/optional-dependencies.md`).
 
 Two things no model-level shim protects, to check before moving any `require`
 to `suggest`:
@@ -176,7 +176,7 @@ to `suggest`:
   classes (`new Theme(...)`, `Filament::registerPanel(...)`) — fatals
   identically, and both of these really existed;
 - a **Blade component tag**, which renders as literal text and *passes* tests
-  (`.claude/rules/testing.md`).
+  (`.ai/rules/testing.md`).
 
 ### Install-time vs feature-time
 
