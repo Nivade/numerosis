@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Contracts\Feature;
+use Nvade\Numerosis\Support\Contributions;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
@@ -58,6 +59,17 @@ it('runs an addTenantRoutes() callback inside the tenant middleware group', func
         ->sole(fn ($r) => $r->getName() === 'seam.tenant.probe');
 
     expect($route->gatherMiddleware())->toContain('tenant');
+});
+
+it('attributes a route contribution to the source that registered it', function () {
+    Numerosis::resetRouteContributionsForTesting();
+
+    Numerosis::addCentralRoutes(function (): void {}, source: 'nvade/numerosis-onboarding');
+    Numerosis::addCentralRoutes(function (): void {});
+    Numerosis::addTenantRoutes(function (): void {}, source: 'nvade/numerosis-auth-ui');
+
+    expect(Contributions::centralRouteSources())->toBe(['nvade/numerosis-onboarding', null])
+        ->and(Contributions::tenantRouteSources())->toBe(['nvade/numerosis-auth-ui']);
 });
 
 it('lets a second package register a Feature without editing config', function () {

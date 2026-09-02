@@ -128,6 +128,6 @@ class NumerosisOnboardingServiceProvider extends PackageServiceProvider
 
         Numerosis::addCentralRoutes(function () use ($routes): void {
             require $routes.'/onboarding.php';
-        });
+        }, source: 'nvade/numerosis-onboarding');
     }
 }

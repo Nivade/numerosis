@@ -206,19 +206,24 @@ class Numerosis
      *
      * {@see self::registerRoutesUsing()} bypasses this entirely, since it
      * replaces {@see self::routes()} wholesale.
+     *
+     * `$source` is attribution, not behavior — a package name by convention
+     * (e.g. `'nvade/numerosis-onboarding'`). It does nothing on its own;
+     * {@see Contributions::centralRouteSources()} is what makes "which
+     * package added this route" answerable instead of just "how many".
      */
-    public static function addCentralRoutes(Closure $callback): void
+    public static function addCentralRoutes(Closure $callback, ?string $source = null): void
     {
-        Contributions::addCentralRoutes($callback);
+        Contributions::addCentralRoutes($callback, $source);
     }
 
     /**
      * Register tenant routes alongside `routes/tenant.php`, inside the same
      * `Route::middleware('tenant')` group. See {@see self::addCentralRoutes()}.
      */
-    public static function addTenantRoutes(Closure $callback): void
+    public static function addTenantRoutes(Closure $callback, ?string $source = null): void
     {
-        Contributions::addTenantRoutes($callback);
+        Contributions::addTenantRoutes($callback, $source);
     }
 
     /**

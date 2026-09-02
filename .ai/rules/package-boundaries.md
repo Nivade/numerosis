@@ -138,14 +138,19 @@ exists: `Numerosis::tenantMigrationPaths()`, `::tenantSeeders()`,
 `add*()` writers (`src/Support/Numerosis.php:385,413,439,474`), as does
 `Features::registered()`.
 
-**Routes are the one real gap, and it is not just a missing getter.**
-`self::$extraCentralRouteCallbacks` / `$extraTenantRouteCallbacks` hold bare
-`Closure`s, so a reader over them answers "how many" and can never answer
-"which package" — `resetRouteContributionsForTesting()` is their only public
-consumer today. Closing it means changing the *writer*
-(`addCentralRoutes(Closure $callback, ?string $source = null)`), not adding a
-sibling method. Worth doing when a route contribution first needs attributing,
-not speculatively; the other four readers show the shape.
+**Routes had one real gap, closed 2026-09-02.** `Contributions::$centralRouteCallbacks`
+/ `$tenantRouteCallbacks` used to hold bare `Closure`s, so a reader over them
+could answer "how many" and never "which package". `addCentralRoutes()` /
+`addTenantRoutes()` now take an optional `?string $source` (both on
+`Numerosis` and on `Contributions`, the latter doing the actual storing as
+`array{callback, source}` pairs), and `Contributions::centralRouteSources()`
+/ `::tenantRouteSources()` read the `source` half back, in the same order as
+`::centralRouteCallbacks()` / `::tenantRouteCallbacks()` (which still return
+bare closures — `Numerosis::routes()` invokes them positionally and doesn't
+need the pairing). The three in-repo satellites that call `addCentralRoutes()`
+/ `addTenantRoutes()` (`nvade/numerosis-{onboarding,account,auth-ui}`) all
+pass their own package name; a caller that doesn't leaves `source` `null`,
+same as before this existed.
 
 The general rule stands: add the reader alongside the writer rather than
 after — a boundary test that can enumerate contributions is strictly better

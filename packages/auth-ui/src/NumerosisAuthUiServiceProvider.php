@@ -85,7 +85,7 @@ class NumerosisAuthUiServiceProvider extends PackageServiceProvider
             }
 
             require $routes.'/auth.php';
-        });
+        }, source: 'nvade/numerosis-auth-ui');
 
         Numerosis::addTenantRoutes(function (): void {
             Route::middleware(['universal', 'auth:tenant'])->group(function (): void {
@@ -95,7 +95,7 @@ class NumerosisAuthUiServiceProvider extends PackageServiceProvider
                 Route::get('confirm-password', ConfirmPassword::class)
                     ->name('password.confirm');
             });
-        });
+        }, source: 'nvade/numerosis-auth-ui');
     }
 
     /**

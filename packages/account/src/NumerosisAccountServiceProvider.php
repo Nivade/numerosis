@@ -108,6 +108,6 @@ class NumerosisAccountServiceProvider extends PackageServiceProvider
             }
 
             require $routes.'/account.php';
-        });
+        }, source: 'nvade/numerosis-account');
     }
 }

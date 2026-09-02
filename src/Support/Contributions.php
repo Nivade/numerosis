@@ -39,17 +39,21 @@ final class Contributions
     /**
      * Callbacks run inside the per-domain `Route::middleware('web')
      * ->domain($domain)` group {@see Numerosis::routes()} opens for
-     * `routes/web.php`, once per configured central domain.
+     * `routes/web.php`, once per configured central domain. `source` is
+     * whatever the caller of {@see self::addCentralRoutes()} passed — a
+     * package name by convention, `null` if they didn't say — kept alongside
+     * the closure so a contribution can be attributed, not just counted.
      *
-     * @var list<Closure(): void>
+     * @var list<array{callback: Closure(): void, source: ?string}>
      */
     private static array $centralRouteCallbacks = [];
 
     /**
      * Callbacks run inside the single `Route::middleware('tenant')` group
-     * {@see Numerosis::routes()} opens for `routes/tenant.php`.
+     * {@see Numerosis::routes()} opens for `routes/tenant.php`. Same shape
+     * as {@see self::$centralRouteCallbacks}.
      *
-     * @var list<Closure(): void>
+     * @var list<array{callback: Closure(): void, source: ?string}>
      */
     private static array $tenantRouteCallbacks = [];
 
@@ -81,30 +85,25 @@ final class Contributions
         return self::$tenantColumns;
     }
 
-    public static function addCentralRoutes(Closure $callback): void
+    public static function addCentralRoutes(Closure $callback, ?string $source = null): void
     {
-        self::$centralRouteCallbacks[] = $callback;
+        self::$centralRouteCallbacks[] = ['callback' => $callback, 'source' => $source];
     }
 
-    public static function addTenantRoutes(Closure $callback): void
+    public static function addTenantRoutes(Closure $callback, ?string $source = null): void
     {
-        self::$tenantRouteCallbacks[] = $callback;
+        self::$tenantRouteCallbacks[] = ['callback' => $callback, 'source' => $source];
     }
 
     /**
      * Read by {@see Numerosis::routes()}, which invokes each one inside the
      * group it belongs to.
      *
-     * These are bare closures, so this answers "how many contributions" and
-     * never "which package made them" — see the routes bullet in
-     * `.claude/rules/package-boundaries.md` for why attributing them means
-     * changing the writer's signature rather than adding a reader.
-     *
      * @return list<Closure(): void>
      */
     public static function centralRouteCallbacks(): array
     {
-        return self::$centralRouteCallbacks;
+        return array_column(self::$centralRouteCallbacks, 'callback');
     }
 
     /**
@@ -112,7 +111,28 @@ final class Contributions
      */
     public static function tenantRouteCallbacks(): array
     {
-        return self::$tenantRouteCallbacks;
+        return array_column(self::$tenantRouteCallbacks, 'callback');
+    }
+
+    /**
+     * "Which package added this route" — `source` is whatever the caller of
+     * {@see self::addCentralRoutes()} passed, in registration order,
+     * parallel to {@see self::centralRouteCallbacks()}. `null` where the
+     * caller didn't attribute itself.
+     *
+     * @return list<?string>
+     */
+    public static function centralRouteSources(): array
+    {
+        return array_column(self::$centralRouteCallbacks, 'source');
+    }
+
+    /**
+     * @return list<?string>
+     */
+    public static function tenantRouteSources(): array
+    {
+        return array_column(self::$tenantRouteCallbacks, 'source');
     }
 
     public static function addTenantMigrationPath(string $path): void
