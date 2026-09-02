@@ -394,7 +394,6 @@ class HostConfigTest extends TestCase
         $this->rebootPackage();
 
         $this->assertSame(['fake' => true], Config::get('numerosis.modules.catalogue'));
-        $this->assertSame([], Config::get('numerosis.modules.plugins'));
     }
 
     public function test_it_leaves_a_hosts_list_shaped_override_untouched(): void

@@ -91,4 +91,30 @@ class PackageRegistrationTest extends TestCase
 
         $this->assertSame([], NumerosisFilamentServiceProvider::panelProvidersToRegister());
     }
+
+    /**
+     * Core's config no longer declares this key — only NumerosisTenantPlugin
+     * reads it, so this package has to default it or an unconfigured host
+     * gets a null where NumerosisTenantPlugin expects an array.
+     */
+    public function test_it_fills_the_module_plugin_map_core_no_longer_carries(): void
+    {
+        $this->assertSame([], Config::get('numerosis.modules.plugins'));
+    }
+
+    /**
+     * A host that already configured its own map must win — this package
+     * fills the key, it does not own it.
+     */
+    public function test_it_leaves_a_hosts_module_plugin_map_alone(): void
+    {
+        Config::set('numerosis.modules.plugins', ['alerts' => 'App\\Filament\\AlertsPlugin']);
+
+        $this->app?->register(NumerosisFilamentServiceProvider::class, force: true);
+
+        $this->assertSame(
+            ['alerts' => 'App\\Filament\\AlertsPlugin'],
+            Config::get('numerosis.modules.plugins'),
+        );
+    }
 }

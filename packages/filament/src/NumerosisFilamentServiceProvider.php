@@ -40,6 +40,29 @@ class NumerosisFilamentServiceProvider extends PackageServiceProvider
         Features::register(ActivityLogFeature::class);
 
         $this->registerPanelProviders();
+        $this->registerDefaultModulePlugins();
+    }
+
+    /**
+     * `numerosis.modules.plugins` (slug => Filament plugin class) is read
+     * only by `NumerosisTenantPlugin` in this package — core's own module
+     * system never references it, only `numerosis.modules.catalogue` — so
+     * this package owns the default rather than core declaring an empty
+     * array for a key it never reads. Deferred to `booting()`, same
+     * reasoning as `registerPanelProviders()`: core's own `mergeConfigFrom()`
+     * has to have populated `numerosis.modules` first, or `Arr::set()`
+     * auto-vivifies a partial `modules` array that then wins over core's
+     * `catalogue` default when core's merge runs afterward. A host that
+     * configured its own map wins: its published config file is loaded
+     * before any provider runs.
+     */
+    protected function registerDefaultModulePlugins(): void
+    {
+        $this->app->booting(function (): void {
+            if (Config::get('numerosis.modules.plugins') === null) {
+                Config::set('numerosis.modules.plugins', []);
+            }
+        });
     }
 
     /**
