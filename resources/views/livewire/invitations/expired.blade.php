@@ -6,9 +6,11 @@
         :description="__('This invitation has expired. Please contact :name to request a new invitation.', ['name' => $invitation->inviter->name])"
     />
 
-    <div class="mt-2">
-        <flux:link :href="route('login')">
-            {{ __('Back to login') }} →
-        </flux:link>
-    </div>
+    @if (Route::has('login'))
+        <div class="mt-2">
+            <flux:link :href="route('login')">
+                {{ __('Back to login') }} →
+            </flux:link>
+        </div>
+    @endif
 </div>

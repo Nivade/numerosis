@@ -5,35 +5,46 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Auth;
 
 use Illuminate\Support\Facades\Hash;
+use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Nvade\Numerosis\Contracts\Auth\CreatesRegisteredUser;
+use Nvade\Numerosis\Data\Auth\RegistrationData;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Support\Numerosis;
 
 /**
- * @method static CentralUser run(array{name: string, email: string, password: string} $data)
+ * Fortify's `CreatesNewUsers` slot, bound via `Fortify::createUsersUsing()`
+ * in `NumerosisServiceProvider::packageBooted()`. `create()` must validate —
+ * `RegisteredUserController` performs none itself — which `RegistrationData`
+ * does on entry, converting the untyped `array $input` Fortify's contract
+ * requires into a typed object at the boundary.
+ *
+ * @method static CentralUser run(array<string, mixed> $input)
  */
-class CreateRegisteredUser implements CreatesRegisteredUser
+class CreateRegisteredUser implements CreatesNewUsers
 {
     use AsAction;
 
     /**
-     * @param  array{name: string, email: string, password: string}  $data
+     * @param  array<string, mixed>  $input
      */
-    public function handle(array $data): CentralUser
+    public function handle(array $input): CentralUser
     {
-        return $this->create($data);
+        return $this->create($input);
     }
 
     /**
-     * @param  array{name: string, email: string, password: string}  $data
+     * @param  array<string, mixed>  $input
      */
-    public function create(array $data): CentralUser
+    public function create(array $input): CentralUser
     {
-        $data['password'] = Hash::make($data['password']);
+        $data = RegistrationData::validateAndCreate($input);
 
         $centralUserClass = Numerosis::model(CentralUser::class);
 
-        return $centralUserClass::create($data);
+        return $centralUserClass::create([
+            'name' => $data->name,
+            'email' => $data->email,
+            'password' => Hash::make($data->password),
+        ]);
     }
 }

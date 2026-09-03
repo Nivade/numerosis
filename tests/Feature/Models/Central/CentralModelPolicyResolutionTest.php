@@ -8,7 +8,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\ModuleOffering;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\PlanFeature;
 use Nvade\Numerosis\Models\Central\Subscription;
@@ -16,11 +15,8 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\Models\Tenant\Invitation;
-use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Policies\InvitationPolicy;
-use Nvade\Numerosis\Policies\ModuleOfferingPolicy;
-use Nvade\Numerosis\Policies\ModulePolicy;
 use Nvade\Numerosis\Policies\PaymentPlanPolicy;
 use Nvade\Numerosis\Policies\PermissionPolicy;
 use Nvade\Numerosis\Policies\PlanFeaturePolicy;
@@ -36,8 +32,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
  * PHP attributes are not inherited by subclasses, so #[UsePolicy] on
  * Nvade\Numerosis\Models\User/Role/Permission does not cover the Nvade\Numerosis\Models\Central\*
  * subclasses the Admin panel's resources actually point at. With no policy
- * resolvable, Filament's non-strict authorization defaults to allow — see
- * Filament\get_authorization_response(). These assertions would fail against
+ * resolvable, `Gate::allows()` has nothing to deny with and every caller that
+ * treats "no policy" as "not forbidden" allows. These assertions would fail against
  * the pre-fix classes, which carried no #[UsePolicy] of their own.
  *
  * CentralUser is the documented exception, not a fourth instance of the same
@@ -59,11 +55,11 @@ class CentralModelPolicyResolutionTest extends TestCase
     }
 
     /**
-     * The assertions in this file name the *package's* classes, and Filament's
+     * The assertions in this file name the *package's* classes, and every
      * resources do not: they point at `Numerosis::model(...)`, which on any
      * host using the documented model-override seam is a **subclass**. Since
      * PHP attributes are not inherited, every one of those subclasses resolved
-     * no policy at all — and Filament's non-strict authorization allows when
+     * no policy at all — and a non-strict authorization layer allows when
      * no policy resolves, so a central user with zero roles could reach the
      * Tenants, PaymentPlans and Subscriptions resources and their write
      * actions. Found 2026-09-01 from a browser assertion that would not fail;
@@ -88,12 +84,10 @@ class CentralModelPolicyResolutionTest extends TestCase
             'payment plan' => [PaymentPlan::class, PaymentPlanPolicy::class],
             'subscription' => [Subscription::class, SubscriptionPolicy::class],
             'plan feature' => [PlanFeature::class, PlanFeaturePolicy::class],
-            'module offering' => [ModuleOffering::class, ModuleOfferingPolicy::class],
             'role' => [Role::class, RolePolicy::class],
             'permission' => [Permission::class, PermissionPolicy::class],
             'tenant user' => [TenantUser::class, UserPolicy::class],
             'invitation' => [Invitation::class, InvitationPolicy::class],
-            'module' => [Module::class, ModulePolicy::class],
         ];
     }
 
@@ -109,7 +103,7 @@ class CentralModelPolicyResolutionTest extends TestCase
         $this->assertInstanceOf(
             $policy,
             Gate::getPolicyFor($resolved),
-            "[{$resolved}] resolves no policy. Filament allows when no policy resolves, so this is an open resource, not a hidden one.",
+            "[{$resolved}] resolves no policy. A non-strict authorization layer allows when no policy resolves, so this is an open resource, not a hidden one.",
         );
     }
 
@@ -124,10 +118,10 @@ class CentralModelPolicyResolutionTest extends TestCase
     }
 
     /**
-     * Tenant/PaymentPlan/Subscription/Feature/ModuleOffering carried no
+     * Tenant/PaymentPlan/Subscription/Feature carried no
      * #[UsePolicy] at all until this test was written, so any authenticated
      * central user could reach every write action on every one of them
-     * through the admin panel — Filament's non-strict authorization defaults
+     * through an admin screen — a non-strict authorization layer defaults
      * to allow when no policy resolves, same mechanism the docblock above
      * describes for Role/Permission before their fix.
      */
@@ -149,11 +143,6 @@ class CentralModelPolicyResolutionTest extends TestCase
     public function test_central_feature_resolves_the_feature_policy(): void
     {
         $this->assertInstanceOf(PlanFeaturePolicy::class, Gate::getPolicyFor(PlanFeature::class));
-    }
-
-    public function test_central_module_offering_resolves_the_module_offering_policy(): void
-    {
-        $this->assertInstanceOf(ModuleOfferingPolicy::class, Gate::getPolicyFor(ModuleOffering::class));
     }
 
     public function test_a_central_user_without_permissions_cannot_manage_users_roles_or_permissions(): void
@@ -187,10 +176,9 @@ class CentralModelPolicyResolutionTest extends TestCase
         $this->assertFalse($user->can('viewAny', PaymentPlan::class));
         $this->assertFalse($user->can('viewAny', Subscription::class));
         $this->assertFalse($user->can('viewAny', PlanFeature::class));
-        $this->assertFalse($user->can('viewAny', ModuleOffering::class));
     }
 
-    public function test_a_seeded_admin_can_manage_tenants_plans_subscriptions_features_and_modules(): void
+    public function test_a_seeded_admin_can_manage_tenants_plans_subscriptions_and_features(): void
     {
         (new RoleAndPermissionSeeder)->run();
 
@@ -205,6 +193,5 @@ class CentralModelPolicyResolutionTest extends TestCase
         $this->assertTrue($user->can('viewAny', PaymentPlan::class));
         $this->assertTrue($user->can('viewAny', Subscription::class));
         $this->assertTrue($user->can('viewAny', PlanFeature::class));
-        $this->assertTrue($user->can('viewAny', ModuleOffering::class));
     }
 }

@@ -15,8 +15,8 @@ behaviour, not a choice made here: `Pest\Browser\Plugin::terminate()` calls
 `ServerManager::instance()->playwright()->stop()` unconditionally, and
 building that server object is what throws
 `PlaywrightNotInstalledException`. The run aborts with **no test output and a
-non-zero exit** — measured against `--filter=ModuleFeatureSwitchesTest`, which
-touches nothing browser-related.
+non-zero exit** — measured against a `--filter` that selected only a feature
+test touching nothing browser-related.
 
 So there is no "skip when unavailable" guard in these files. One was written
 and removed: the plugin aborts before any `beforeEach()` can run, so it was
@@ -47,12 +47,10 @@ here.
 ## What this suite cannot prove
 
 `PHP_SAPI` is still `cli`, so `app()->runningInConsole()` is **true** inside a
-browser request. `NumerosisTenantPlugin::shouldRegisterPanel()`'s console
-exemption therefore still applies, and the "central route wins over the
-`{tenant}` wildcard" question `.ai/rules/filament-tenancy.md` describes
-remains out of reach here — it needs a real FPM/`php -S` server, where
-`PHP_SAPI` differs. Path mode is unaffected: it registers no wildcard domain
-pattern, which is why it is what this suite covers.
+browser request. Anything whose behaviour branches on
+`app()->runningInConsole()` therefore behaves here as it does in a console
+test, not as it does under FPM — that class of question needs a real
+FPM/`php -S` server and stays out of reach in this suite.
 
 ## Leftover processes
 

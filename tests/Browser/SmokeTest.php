@@ -17,8 +17,14 @@ uses(TestCase::class, RefreshDatabase::class);
  * is global static state, so it is set explicitly in every test rather than
  * inherited from a previous one.
  */
+/**
+ * `login` belonged to nvade/numerosis-auth-ui's Livewire PasswordlessLogin,
+ * deleted (not moved) when that package folded into core in Phase 3 of
+ * `.claude/plans/humming-nibbling-flame.md`. Phase 4 rebuilds it on Fortify
+ * — reinstate this test then.
+ */
 it('serves the central login page over real HTTP', function (): void {
     Playwright::setHost('central.numerosistest.test');
 
-    visit('/login')->assertSee('Log in');
-});
+    visit('/')->assertSee('Numerosis');
+})->skip('login awaits the Fortify rebuild in Phase 4.');

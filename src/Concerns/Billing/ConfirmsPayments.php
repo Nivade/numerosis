@@ -10,7 +10,7 @@ use Stripe\Exception\ApiErrorException;
 
 /**
  * The protocol every surface follows where a subscription can be challenged
- * with 3DS — checkout and module purchase alike.
+ * with 3DS.
  *
  * Compose it into a component that creates subscriptions, and implement the
  * two hooks below.

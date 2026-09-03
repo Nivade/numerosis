@@ -8,7 +8,7 @@ use Nvade\Numerosis\Tests\TestCase;
 
 /**
  * Phase 6 of .claude/plans/design-system-unification.md: one notification
- * channel for every non-Filament surface. `partials/toasts.blade.php`
+ * channel for every surface. `partials/toasts.blade.php`
  * replaces the ad-hoc `<x-numerosis::ui.alert closable />` the registration
  * wizard used to render inline — see git history on
  * resources/views/livewire/tenant/registration/wizard/index.blade.php.

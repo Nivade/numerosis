@@ -1,3 +1,23 @@
+> **Header note, 2026-09-03 (Phase 2).** `internachi/modular` is **gone too** —
+> not `suggest`, not `require-dev`, not referenced anywhere. The whole module
+> system, `ModuleSystemFeature::available()`, the three
+> `tenants:*-module` commands, `tests/Support/module-registry-absence-probe.php`
+> and `tests/Feature/Features/ModuleRegistryAbsenceTest` were deleted in Phase 2
+> of `.claude/plans/humming-nibbling-flame.md`. The absence-probe recipe below
+> is kept because it is the **only** way to prove a dependency is genuinely
+> optional, and the two remaining optional packages
+> (`spatie/laravel-one-time-passwords`, `spatie/laravel-activitylog`) have no
+> such probe — write one from this recipe rather than re-deriving it.
+>
+> **Header note, 2026-09-03 (Phase 1).** `filament/filament` is **gone** — the package,
+> both panels and `Support\Compat\Filament{User,HasTenants}Contract` were all
+> deleted in Phase 1 of `.claude/plans/humming-nibbling-flame.md`. Everything
+> below about Filament is kept because the *mechanism* it documents (eager
+> `implements`/`use trait` vs lazy type hints, the conditional-definition
+> shim, one `class_exists()` seam per package) is still exactly how
+> `spatie/laravel-one-time-passwords` and `spatie/laravel-activitylog` stay
+> optional. Read the Filament examples as history, not as code you will find.
+
 # Optional Dependencies
 
 - **`implements`/`use trait` resolve their target eagerly, at class-declaration
@@ -102,11 +122,14 @@
   });
   ```
 
-  `tests/Support/module-registry-absence-probe.php` is that script and
-  `tests/Feature/Features/ModuleRegistryAbsenceTest` shells out to it
+  `tests/Support/module-registry-absence-probe.php` **was** that script and
+  `tests/Feature/Features/ModuleRegistryAbsenceTest` shelled out to it
   (2026-08-31, making `internachi/modular` `suggest` again — section C of
-  `.claude/plans/numerosis-consolidation.md`). Four things about it that are
-  not obvious and would be got wrong on a second one:
+  `.claude/plans/numerosis-consolidation.md`); both were deleted with the
+  module system on 2026-09-03, so read them out of git history rather than
+  looking for them on disk. No probe covers the two optional packages that
+  remain. Four things about it that are not obvious and would be got wrong on
+  a second one:
 
   - **It boots no Laravel application at all.** `Features::forceForTesting()`
     answers the feature switch with no config repository, so the only thing

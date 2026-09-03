@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Support;
 
-use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Foundation\Vite;
 use Illuminate\Foundation\ViteException;
@@ -19,8 +18,8 @@ use Nvade\Numerosis\NumerosisServiceProvider;
  * Split out of {@see Numerosis} on 2026-09-01, the third cut after
  * {@see ModelResolver} and {@see Contributions}. Small, but its own audience —
  * a host publishing and rebuilding front-end assets — and the only part of
- * that class that reached for `Filament\`, `Vite` and the filesystem, none of
- * which the bootstrap surface around it touches.
+ * that class that reached for `Vite` and the filesystem, neither of which the
+ * bootstrap surface around it touches.
  *
  * `Numerosis::assetSourcePaths()` / `::assetTags()` still exist and delegate
  * here; `resources/views/partials/styles.blade.php` and
@@ -46,9 +45,15 @@ final class Assets
     }
 
     /**
-     * The `<link>`/`<script>` tags for the package's non-panel CSS and JS.
-     * Both ship prebuilt and are served by `filament:assets`, so no build
-     * step is required.
+     * The `<link>`/`<script>` tags for the package's CSS and JS. Both ship
+     * prebuilt and are copied to `public/vendor/numerosis` by
+     * `vendor:publish --tag=numerosis-public-assets`, so no build step is
+     * required.
+     *
+     * The URLs are emitted whether or not that publish has happened — the same
+     * shape as the `FilamentAsset::getStyleHref()` pair this replaced when
+     * Filament was dropped, and the reason `numerosis:install` verifies the
+     * files exist rather than leaving a silent 404.
      *
      * Publishing `numerosis-assets` gives you `resources/js/numerosis.js` to
      * edit; once it is also an entry in your `vite.config.js`, your build is
@@ -57,7 +62,7 @@ final class Assets
      */
     public static function tags(): Htmlable
     {
-        $css = '<link href="'.e(FilamentAsset::getStyleHref(NumerosisServiceProvider::ASSET_ID, 'nvade/numerosis')).'" rel="stylesheet" />';
+        $css = '<link href="'.e(self::publishedUrl('css')).'" rel="stylesheet" />';
 
         if (File::exists(resource_path('js/numerosis.js'))) {
             try {
@@ -67,8 +72,30 @@ final class Assets
             }
         }
 
-        $js = '<script src="'.e(FilamentAsset::getScriptSrc(NumerosisServiceProvider::ASSET_ID, 'nvade/numerosis')).'"></script>';
+        $js = '<script src="'.e(self::publishedUrl('js')).'"></script>';
 
         return new HtmlString($css.$js);
+    }
+
+    /**
+     * The public URL of one of the prebuilt bundles, as published by the
+     * `numerosis-public-assets` group.
+     */
+    public static function publishedUrl(string $extension): string
+    {
+        return asset('vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.'.$extension);
+    }
+
+    /**
+     * The published locations of the prebuilt bundles, as absolute paths.
+     *
+     * @return array<string, string>
+     */
+    public static function publishedPaths(): array
+    {
+        return [
+            'css' => public_path('vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.css'),
+            'js' => public_path('vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js'),
+        ];
     }
 }

@@ -51,8 +51,7 @@ class PaymentPlanSeeder extends Seeder
     ];
 
     /**
-     * Prices are minor currency units (cents), matching
-     * `config('numerosis.modules.catalogue')` and Stripe itself.
+     * Prices are minor currency units (cents), matching Stripe itself.
      *
      * @var list<array{name: string, slug: string, description: string, monthly_price: int, yearly_price: int, trial_days: int, features: int}>
      */

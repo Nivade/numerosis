@@ -24,26 +24,26 @@
                                 </a>
                             </li>
                         @endif
-                        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Tenancy\SelfServeRegistration::FEATURE))
+                        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
                             <li>
                                 <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('tenants.create') }}" wire:navigate aria-label="Create workspace">
                                     Create workspace
                                 </a>
                             </li>
                         @endif
-                        <li>
-                            <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('login') }}" wire:navigate aria-label="Sign in">
-                                Sign in
-                            </a>
-                        </li>
+                        @if (Route::has('login'))
+                            <li>
+                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('login') }}" wire:navigate aria-label="Sign in">
+                                    Sign in
+                                </a>
+                            </li>
+                        @endif
                         @auth
-                            @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Ui\AccountPages::FEATURE))
-                                <li>
-                                    <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine()) }}" wire:navigate aria-label="My Tenants">
-                                        {{ __('My Tenants') }}
-                                    </a>
-                                </li>
-                            @endif
+                            <li>
+                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine()) }}" wire:navigate aria-label="My Tenants">
+                                    {{ __('My Tenants') }}
+                                </a>
+                            </li>
                         @endauth
                     </ul>
                 </div>

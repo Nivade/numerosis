@@ -2,14 +2,21 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
-use Nvade\Numerosis\Actions\Auth\LogoutUser;
 use Nvade\Numerosis\Actions\Billing\Checkout\CompleteRedirectCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartLocalCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
-use Nvade\Numerosis\Http\Controllers\Auth\VerifyEmailController;
+use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
+use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
+use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Http\Controllers\Billing\WebhookController;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Http\Controllers\Socialite\Login as SocialiteLogin;
+use Nvade\Numerosis\Http\Controllers\Socialite\Redirect as SocialiteRedirect;
+use Nvade\Numerosis\Livewire\Settings\Password as PasswordSettings;
+use Nvade\Numerosis\Livewire\Settings\Profile as ProfileSettings;
+use Nvade\Numerosis\Livewire\Tenant\Registration;
+use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 
 // 'home' is registered unconditionally, behind no feature flag.
@@ -36,19 +43,52 @@ Route::post(
     action: [WebhookController::class, 'handleWebhook']
 )->name('billing.webhook');
 
-Route::middleware(['auth:web'])->group(function () {
-    // The account UI (`settings/*`, `tenants.mine`, invoice downloads, the
-    // billing portal) is contributed by nvade/numerosis-account through
-    // Numerosis::addCentralRoutes(), so it lands in this same central-domain
-    // group without core naming that package. Core still *links* to
-    // `tenants.mine`, gated on Support\Ui\AccountPages::FEATURE.
+// Self-serve tenant registration wizard. Deliberately outside the `auth:web`
+// group below — signing up is how a user gets an account in the first place.
+if (Features::enabled(RegistrationWizardFeature::NAME)) {
+    Route::livewire('/get-started', Registration::class)->name('tenants.create');
+}
 
-    // `/get-started` (route name `tenants.create`) is contributed by
-    // nvade/numerosis-onboarding through Numerosis::addCentralRoutes(), so it
-    // lands in this same central-domain group without core naming that
-    // package. Core still *links* to the name from four views and from
-    // CompleteRedirectCheckout, each gated on
-    // Support\Tenancy\SelfServeRegistration::FEATURE.
+if (Features::enabled(SocialLoginFeature::NAME)) {
+    Route::get('/oauth/{driver}/callback', SocialiteLogin::class)
+        ->name('oauth.callback');
+
+    Route::get('/oauth/{driver}', SocialiteRedirect::class)
+        ->domain(Config::string('numerosis.domains.central'))
+        ->name('oauth');
+}
+
+Route::middleware(['auth:web'])->group(function () {
+    // The account UI: settings, the workspace list, invoice downloads and
+    // the billing portal. Formerly nvade/numerosis-account, contributed
+    // through Numerosis::addCentralRoutes() — folded into core in Phase 3 of
+    // `.claude/plans/humming-nibbling-flame.md`. No feature flag any more:
+    // it always ships with core now, so there is nothing left to toggle.
+    Route::redirect('settings', 'settings/profile');
+
+    Route::livewire('settings/profile', ProfileSettings::class)->name('settings.profile');
+
+    // The password page has nowhere to send a user who cannot set a password.
+    if (Features::enabled(PasswordResetFeature::NAME)) {
+        Route::livewire('settings/password', PasswordSettings::class)->name('settings.password');
+    }
+
+    // `pages::`, core's own Livewire full-page namespace.
+    Route::livewire('/tenants/mine', 'pages::tenant.mine')->name(RouteNames::tenantsMine());
+
+    Route::get('/user/invoice/{invoice}', function (Request $request, string $invoiceId) {
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        return $user->downloadInvoice($invoiceId);
+    });
+
+    Route::get('/billing-portal', function (Request $request) {
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        return $user->redirectToBillingPortal();
+    })->name('billing-portal');
 
     Route::get('checkout/subscription/new', StartSubscriptionCheckout::class)->name('checkout.subscription');
     Route::get('/checkout/subscription/return', CompleteRedirectCheckout::class)->name('checkout.subscription.return');
@@ -61,21 +101,10 @@ Route::middleware(['auth:web'])->group(function () {
 
 });
 
-// The auth screens (`login`, `register`, `forgot-password`, `reset-password`,
-// the OAuth redirect/callback) live in `nvade/numerosis-auth-ui`, which
-// contributes them through `Numerosis::addCentralRoutes()` — so they still
-// land inside this file's own per-central-domain group. That package honours
-// `Numerosis::authRoutesEnabled()` itself, which is why the flag stays public
-// here even though nothing in this file reads it any more.
-//
-// `logout` and `verification.verify` are the exception: their handlers
-// (`Actions\Auth\LogoutUser`, `Http\Controllers\Auth\VerifyEmailController`)
-// are core auth *mechanics*, not screens, and core's own flows generate both
-// names — so they stay here and remain subject to the same opt-out flag.
-if (Numerosis::authRoutesEnabled()) {
-    Route::post('logout', LogoutUser::class)->name('logout');
-
-    Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
-        ->middleware(['signed', 'throttle:6,1', 'auth'])
-        ->name('verification.verify');
-}
+// `login`, `register`, `logout`, `password.request`, `password.reset` and
+// `verification.verify` are Laravel Fortify's, loaded by
+// `Support\Numerosis::routes()` inside this same domain group (and again
+// inside the tenant group) — see `.claude/plans/humming-nibbling-flame.md`
+// Phase 4a. `Numerosis::authRoutesEnabled()` (the `withAuth` flag on
+// `Numerosis::routes()`) gates that load the same way it used to gate the
+// routes declared here directly.

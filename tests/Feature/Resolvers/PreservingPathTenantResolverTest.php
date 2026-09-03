@@ -12,11 +12,10 @@ use Nvade\Numerosis\Tests\TestCase;
 use Stancl\Tenancy\Resolvers\PathTenantResolver;
 
 /**
- * Path mode's full HTTP round trip is not testable from console — see
- * `.claude/rules/identification-modes.md` and `.claude/rules/filament-tenancy.md`
- * for why (`shouldRegisterPanel()`'s console exemption makes route-match
- * outcome unassertable). These tests deliberately drive the resolver
- * directly instead, which is enough to cover the part that actually broke.
+ * These tests drive the resolver directly rather than through a request:
+ * `tests/Browser/PathModeTest.php` covers the round trip, and the part that
+ * actually broke is a single property read this can reach without one. See
+ * `.ai/rules/identification-modes.md`.
  *
  * What broke: the override read `PathTenantResolver::$tenantParameterName`,
  * a v3 public static **property** that dev-master replaced with a static
@@ -41,7 +40,7 @@ class PreservingPathTenantResolverTest extends TestCase
 
     /**
      * The whole reason this subclass exists: stancl forgets the parameter,
-     * Filament's own `IdentifyTenant` reads it later in the same request.
+     * and everything ordered after identification still needs it.
      */
     public function test_it_leaves_the_tenant_route_parameter_in_place(): void
     {

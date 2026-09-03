@@ -29,20 +29,6 @@ arch('new tenancy contracts do not depend on app models')
     ->expect([ProvisionsTenant::class, TenantDomainPolicy::class])
     ->not->toUse('Nvade\Numerosis\Models');
 
-/**
- * Guards the Phase 10 fix (.claude/plans/opt-in-feature-classes.md):
- * Nvade\Numerosis\Models\Tenant\User used to import Nvade\Chat\Concerns\HasChatCapabilities
- * and Nvade\Chat\Enums\DisplayStatus directly, which meant removing
- * app-modules/chat was a fatal error rather than a disabled feature. Written
- * before the fix landed and confirmed to fail against the unfixed model —
- * a test that only ever ran green against fixed code proves nothing, same
- * discipline .claude/rules/auth-login.md records for the passwordless-login
- * regression tests.
- */
-arch('core does not depend on app-modules')
-    ->expect('App')
-    ->not->toUse('Nvade');
-
 test('nothing reads the old cashier appendix keys', function (): void {
     $needles = ['cashier.billables', 'cashier.stripe_price_ids', 'cashier.redirect', 'cashier.features', 'cashier.brand'];
 
@@ -94,7 +80,7 @@ test('nothing reads the old cashier appendix keys', function (): void {
 test('nothing reads the current user through the Auth facade', function (): void {
     $roots = array_map(
         fn (string $directory): string => dirname(__DIR__, 2)."/{$directory}",
-        ['src', 'packages/account/src', 'packages/auth-ui/src', 'packages/filament/src', 'packages/onboarding/src'],
+        ['src', 'packages/account/src', 'packages/auth-ui/src', 'packages/onboarding/src'],
     );
 
     $files = (new Finder)

@@ -7,7 +7,7 @@ declare(strict_types=1);
 | Numerosis
 |--------------------------------------------------------------------------
 |
-| One config namespace, fifteen top-level keys, one file per key in
+| One config namespace, thirteen top-level keys, one file per key in
 | `config/numerosis/`. Each partial returns its own `['key' => value]` pair
 | and carries that key's documentation; this file only assembles them.
 |
@@ -34,8 +34,6 @@ return array_merge(
     require __DIR__.'/numerosis/broadcasting.php',
     require __DIR__.'/numerosis/auth.php',
     require __DIR__.'/numerosis/social.php',
-    require __DIR__.'/numerosis/panels.php',
-    require __DIR__.'/numerosis/modules.php',
     require __DIR__.'/numerosis/views.php',
     require __DIR__.'/numerosis/cache.php',
     require __DIR__.'/numerosis/models.php',

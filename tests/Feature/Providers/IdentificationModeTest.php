@@ -24,10 +24,9 @@ use Stancl\Tenancy\Middleware\InitializeTenancyByPath;
 /**
  * Phase 5 of .claude/plans/memoized-tinkering-meadow.md. Covers the parts of
  * IdentificationMode that are provable without a real HTTP request — see
- * .claude/rules/identification-modes.md for what Path mode's Filament
- * routing needs that this harness cannot exercise (same limitation
- * .claude/rules/filament-tenancy.md already documents for console-dispatched
- * requests).
+ * .ai/rules/identification-modes.md for what Path mode's route-parameter
+ * routing needs that this harness cannot exercise; tests/Browser/PathModeTest
+ * is what covers it.
  */
 class IdentificationModeTest extends TestCase
 {
@@ -198,13 +197,24 @@ class IdentificationModeTest extends TestCase
         $this->assertSame($tenant->id, $resolved->id);
     }
 
-    public function test_tenant_resolves_route_binding_by_custom_domain_under_that_mode(): void
+    /**
+     * Under custom-domain mode a tenant is reached by its `domains.domain`
+     * row, not by a route binding on `tenants.id`.
+     *
+     * `Tenant::resolveRouteBinding()` used to carry an override that looked
+     * `$field === 'id'` up against `domains.domain`; it existed solely for
+     * Filament's panel tenancy and fired for *any* `{tenant:id}` binding,
+     * 404ing a valid tenant id with no opt-out. Deleted with
+     * `packages/filament`. This asserts the lookup the identification
+     * middleware actually performs still works.
+     */
+    public function test_a_custom_domain_resolves_to_its_tenant_under_that_mode(): void
     {
         Config::set('numerosis.tenancy.identification.mode', IdentificationMode::CustomDomain->value);
         $tenant = Tenant::factory()->create();
         CreateTenantDomain::run($tenant, (string) $tenant->id, 'app.acme.com');
 
-        $resolved = $tenant->resolveRouteBinding('app.acme.com', 'id');
+        $resolved = Domain::where('domain', 'app.acme.com')->first()?->tenant;
 
         $this->assertNotNull($resolved);
         $this->assertSame($tenant->id, $resolved->id);

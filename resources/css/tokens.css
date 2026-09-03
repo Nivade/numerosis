@@ -15,19 +15,14 @@
  * Layering rule, non-negotiable: every token gets its light value on bare
  * `:root`. The `.dark` block only *redefines* tokens that change — it must
  * never be the only place a token is declared, or that token breaks the
- * moment `prefers-color-scheme`/`.dark` is toggled off. Same rule applies to
- * `resources/theme-src/filament-theme.css` (compiled to
- * `dist/filament-theme.css`, registered as a Filament theme asset — not
- * published, a host never sees this file), which follows this file's shape
- * exactly.
+ * moment `prefers-color-scheme`/`.dark` is toggled off.
  *
  * Three tiers:
  *   1. Primitives  — raw color ramps. No component may reference these.
  *   2. Consumer inputs — a host overrides these in its own published CSS,
  *      after this file's `@import` (Phase 5); the values below are the
  *      package defaults.
- *   3. Semantic tokens — the only names a component or a Filament remap may
- *      use. Exposed to Tailwind utilities via `@theme inline` at the bottom
+ *   3. Semantic tokens — the only names a component may use. Exposed to Tailwind utilities via `@theme inline` at the bottom
  *      so `bg-surface`, `rounded-md`, `text-text-muted` etc. compile from the
  *      same variables the runtime overrides.
  *
@@ -158,10 +153,9 @@
      * Flux ships these as zinc-800 in light and *white* in dark
      * (vendor/livewire/flux/dist/flux.css), and nothing here used to
      * override them — so every `flux:button variant="primary"`, `flux:link`
-     * and checked control on a non-Filament page rendered zinc/white while
-     * Filament's own primary, remapped from this same --pref-accent-hue in
-     * theme-src/filament-theme.css, rendered blue. In dark mode that reads
-     * as a white ("light mode") button sitting on a dark page, which is the
+     * and checked control rendered zinc/white rather than the accent this
+     * file derives from --pref-accent-hue. In dark mode that reads as a
+     * white ("light mode") button sitting on a dark page, which is the
      * report this mapping fixes; the light/dark split was only the most
      * visible half of a palette that disagreed with itself in both modes.
      *
@@ -286,8 +280,7 @@
      * NOT flip — Flux's default flips its accent to white in dark mode, and
      * that flip is exactly what made primary buttons look light-mode on a
      * dark page. Everything mapped onto --color-primary above inherits this
-     * decision, so there is one accent colour across both modes and both
-     * Filament panels. */
+     * decision, so there is one accent colour across both modes. */
     --color-primary-text: oklch(70.7% 0.165 var(--pref-accent-hue));
 
     --color-border: color-mix(in oklab, white 10%, transparent); /* dark:border-white/10 */
@@ -346,8 +339,7 @@
 
 /*
  * 44px touch-target floor (Phase 7), coarse-pointer only — Flux's `xs`
- * (`h-6`, 24px) and `sm` (`h-8`, 32px) buttons, and Filament's equivalents,
- * are hardcoded sizes with no relationship to `--pref-density` (density
+ * (`h-6`, 24px) and `sm` (`h-8`, 32px) buttons are hardcoded sizes with no relationship to `--pref-density` (density
  * scales spacing tokens, not component height classes), so they sit below
  * the floor at every density, not just compact. `min-width`/`min-height`
  * are no-ops on plain inline elements per the CSS spec — this reaches real

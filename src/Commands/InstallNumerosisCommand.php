@@ -18,9 +18,9 @@ use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Invitation;
-use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\NumerosisServiceProvider;
+use Nvade\Numerosis\Support\Assets;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
 use ReflectionProperty;
@@ -39,7 +39,7 @@ class InstallNumerosisCommand extends Command
 {
     public $signature = 'numerosis:install
                         {--verify-only : Run the host-configuration checks without publishing anything or touching .env}
-                        {--no-seed : Skip the package\'s central seeders (roles/permissions, example plans, module catalogue) — run by default}';
+                        {--no-seed : Skip the package\'s central seeders (roles/permissions and example plans) — run by default}';
 
     public $description = 'Publish Numerosis config and model stubs, then verify the host is wired correctly';
 
@@ -79,7 +79,7 @@ class InstallNumerosisCommand extends Command
         $this->verifyCentralMigrationCollisions();
         $this->verifyTenantResolverCache();
         $this->verifyPublishedAssetsMatchSource();
-        $this->verifyFilamentThemeAsset();
+        $this->verifyPublicAssets();
         $this->verifyStripeKeys();
         $this->verifyModelOverrides();
         $this->verifyCentralDataSeeded();
@@ -162,8 +162,8 @@ class InstallNumerosisCommand extends Command
     }
 
     /**
-     * Seeds roles and permissions, example payment plans, and the module
-     * catalogue. Safe to re-run: every seeder keys on natural keys.
+     * Seeds roles and permissions and the example payment plans. Safe to
+     * re-run: every seeder keys on natural keys.
      *
      * Skip with `--no-seed`, but note that an empty `permissions` table is
      * not merely missing data — Spatie throws rather than denying, so the
@@ -445,7 +445,7 @@ class InstallNumerosisCommand extends Command
         $pattern = Config::get('numerosis.domains.tenant_pattern');
 
         if (! is_string($pattern) || ! str_contains($pattern, '{tenant}')) {
-            $this->failures[] = "config('numerosis.domains.tenant_pattern') must contain the literal '{tenant}' placeholder — Filament's ->tenantDomain() substitutes it, and a pattern without it routes every tenant to the same host.";
+            $this->failures[] = "config('numerosis.domains.tenant_pattern') must contain the literal '{tenant}' placeholder — the tenant's subdomain is substituted into it, and a pattern without it routes every tenant to the same host.";
         }
     }
 
@@ -635,28 +635,30 @@ class InstallNumerosisCommand extends Command
     }
 
     /**
-     * Confirms `filament:assets` published this package's assets alongside
-     * Filament's own. Skipped entirely until you have run that command.
+     * Confirms both prebuilt bundles reached the public path, once one of
+     * them has.
+     *
+     * Gated on `public/vendor/numerosis` existing at all — the signal that
+     * `vendor:publish --tag=numerosis-public-assets` has run at least once,
+     * the same shape the Filament-era check used against
+     * `public/css/filament`. Never publishing is a supported choice (a host
+     * building `resources/js/numerosis.js` through its own Vite does not need
+     * these), so the un-run case is a manual step below, not a failure here;
+     * a *half*-landed publish is the silent one worth catching, since
+     * `Assets::tags()` links both URLs whether or not the files exist.
      */
-    private function verifyFilamentThemeAsset(): void
+    private function verifyPublicAssets(): void
     {
-        $filamentAssetsDir = public_path('css/filament');
+        $paths = Assets::publishedPaths();
 
-        if (! File::isDirectory($filamentAssetsDir)) {
+        if (! File::isDirectory(dirname($paths['css']))) {
             return;
         }
 
-        $themePath = public_path('css/nvade/numerosis/'.NumerosisServiceProvider::THEME_ID.'.css');
-
-        if (! File::exists($themePath)) {
-            $this->failures[] = 'public/css/filament exists but public/css/nvade/numerosis/'.NumerosisServiceProvider::THEME_ID.'.css does not — run `php artisan filament:assets` again, or both Filament panels render with none of Numerosis\'s theming.';
-        }
-
-        $assetCssPath = public_path('css/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.css');
-        $assetJsPath = public_path('js/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js');
-
-        if (! File::exists($assetCssPath) || ! File::exists($assetJsPath)) {
-            $this->failures[] = 'public/css/filament exists but public/css/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.css and/or public/js/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js does not — run `php artisan filament:assets` again, or every page rendering resources/views/partials/styles.blade.php fails resolving Numerosis::assetTags().';
+        foreach ($paths as $extension => $path) {
+            if (! File::exists($path)) {
+                $this->failures[] = 'public/vendor/numerosis exists but public/vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.'.$extension.' does not — run `php artisan vendor:publish --tag=numerosis-public-assets --force` again, or every page rendering resources/views/partials/styles.blade.php links a 404 for it.';
+            }
         }
     }
 
@@ -773,7 +775,6 @@ class InstallNumerosisCommand extends Command
             PaymentPlan::class => 'Central/PaymentPlan',
             PendingTenantProvision::class => 'Central/PendingTenantProvision',
             Invitation::class => 'Tenant/Invitation',
-            Module::class => 'Tenant/Module',
             TenantUser::class => 'Tenant/User',
         ];
 
@@ -800,11 +801,11 @@ class InstallNumerosisCommand extends Command
             IdentificationMode::Path => 'No DNS changes needed — tenants are identified by URL path under this app\'s own domain.',
         });
         $this->line('  2. Run a queue worker on the dedicated "provisioning" queue (`php artisan queue:work --queue=provisioning`) — tenant provisioning is queued there, not on the default worker.');
-        $this->line('  3. Run `php artisan filament:assets` (you likely already run this for Filament itself) — it copies both Filament panels\' theming (colours, radius, Instrument Sans) plus this package\'s prebuilt dist/numerosis.js and dist/numerosis.css to public/{css,js}/nvade/numerosis/. No vite.config.js entry needed for any of it: none of it goes through your build unless you\'ve published and customised resources/js/numerosis.js yourself (Numerosis::assetTags() prefers your own Vite manifest entry for it when one exists).');
+        $this->line('  3. Run `php artisan vendor:publish --tag=numerosis-public-assets` — it copies this package\'s prebuilt dist/numerosis.js and dist/numerosis.css to public/vendor/numerosis/. No vite.config.js entry needed: neither goes through your build unless you\'ve published and customised resources/js/numerosis.js yourself (Numerosis::assetTags() prefers your own Vite manifest entry for it when one exists).');
         if (Config::string('geoip.service', '') === 'maxmind_database') {
             $this->line('  4. Optional, for checkout\'s region-specific payment-method order: set MAXMIND_LICENSE_KEY and run `php artisan geoip:update` once. The .mmdb database torann/geoip reads is licensed, so nothing here can fetch it for you; the weekly refresh afterwards is scheduled for you. Skipping this is supported — ResolveCheckoutRegion reports the driver\'s throw and falls back to numerosis.billing.payment_methods.default_order, at one reported exception per checkout page load.');
         }
 
-        $this->line('  5. To rebrand (accent colour, radius, fonts, density) for the *main app*, add a `:root { --pref-...: ...; }` block to your published resources/css/app.css AFTER its `@import \'.../vendor/nvade/numerosis/resources/css/tokens.css\';` line. See tokens.css for the full list of overridable custom properties. This does not reach either Filament panel — the panel theme from step 3 is a prebuilt file compiled once against the default `--pref-accent-hue` and does not read your app.css (a panel page loads only its own theme stylesheet, nothing else). Rebranding a panel\'s accent means building your own theme CSS (copy resources/theme-src/filament-theme.css from the package as a starting point, edit `--pref-accent-hue`, register it as your own Filament `Theme` asset or `->viteTheme()`) and pointing `->theme()`/`->viteTheme()` at it in your own panel providers instead of Numerosis\'s. This is a one-time, host-level choice either way — Numerosis has no per-user or per-tenant theme picker. A custom `--pref-accent-hue` is not contrast-verified for you — white text on `--color-primary` is only checked against the default hue; check your own hue\'s contrast (browser devtools\' contrast checker is enough) before shipping it.');
+        $this->line('  5. To rebrand (accent colour, radius, fonts, density), add a `:root { --pref-...: ...; }` block to your published resources/css/app.css AFTER its `@import \'.../vendor/nvade/numerosis/resources/css/tokens.css\';` line, and rebuild. See tokens.css for the full list of overridable custom properties. Note the prebuilt dist/numerosis.css from step 3 is compiled once against the default `--pref-accent-hue` and does not read your app.css, so rebranding means building your own CSS through Vite rather than relying on that bundle. This is a one-time, host-level choice — Numerosis has no per-user or per-tenant theme picker. A custom `--pref-accent-hue` is not contrast-verified for you — white text on `--color-primary` is only checked against the default hue; check your own hue\'s contrast (browser devtools\' contrast checker is enough) before shipping it.');
     }
 }

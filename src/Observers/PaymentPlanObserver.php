@@ -10,7 +10,7 @@ use Nvade\Numerosis\Support\Cache\CacheKeys;
 
 /**
  * Keeps {@see \Nvade\Numerosis\Services\Billing\Plans\EloquentPaymentPlanRepository::available()}'s
- * cached list from outliving a Filament edit — an admin toggling
+ * cached list from outliving an admin edit — an admin toggling
  * `available` or changing a price must be reflected immediately, not
  * after the TTL happens to expire.
  */

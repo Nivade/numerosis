@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
-use Nvade\Numerosis\Contracts\Billing\ModuleCatalog;
 use Nvade\Numerosis\Contracts\Billing\MoneyFormatter;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
@@ -15,7 +14,6 @@ use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\SubscriptionItem;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Services\Billing\Checkout\InlineCheckoutGateway;
-use Nvade\Numerosis\Services\Billing\Modules\EloquentModuleCatalog;
 use Nvade\Numerosis\Services\Billing\Plans\EloquentPaymentPlanRepository;
 use Nvade\Numerosis\Services\Billing\Resolvers\CashierMoneyFormatter;
 use Nvade\Numerosis\Services\Billing\Resolvers\DefaultUnpaidTenantQuota;
@@ -188,7 +186,6 @@ return [
         'implementations' => [
             CheckoutGateway::class => InlineCheckoutGateway::class,
             PaymentPlanRepository::class => EloquentPaymentPlanRepository::class,
-            ModuleCatalog::class => EloquentModuleCatalog::class,
             SubscriptionRepository::class => EloquentSubscriptionRepository::class,
             BillableResolver::class => TenantOrUserBillableResolver::class,
             PlanPolicy::class => SeatLimitPlanPolicy::class,

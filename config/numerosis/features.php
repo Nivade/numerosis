@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 use Nvade\Numerosis\Features\Auth\EmailVerificationFeature;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
+use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
-use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
-use Nvade\Numerosis\Features\Tenancy\ImpersonationFeature;
 use Nvade\Numerosis\Features\Tenancy\MembershipsFeature;
+use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Models\Central\Tenant;
 
@@ -25,16 +25,16 @@ return [
         // Requires TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY — see .env.example.
         TurnstileFeature::class,
 
-        // Some features are NOT listed here, because they ship in satellite
-        // packages whose providers register them through Features::register():
-        // OAuth login (nvade/numerosis-auth-ui), and the two panel toggles
-        // plus the audit-log UI (nvade/numerosis-filament). Naming a
-        // satellite's class in core's config would make core boot against a
-        // class that may not be installed.
+        // The account UI (settings, workspace list, billing portal) is
+        // unconditional core routing now — nvade/numerosis-account folded
+        // into core in Phase 3 of `.claude/plans/humming-nibbling-flame.md`
+        // with no feature flag of its own, so there is nothing to list here.
 
-        // The per-tenant module system, storefront included. Comment out to
-        // run no modules at all.
-        ModuleSystemFeature::class,
+        // OAuth login: provider buttons, connected-accounts, the callback
+        // route. Enabling a provider needs credentials in config/services.php
+        // plus an entry in numerosis.social.providers — see the class
+        // docblock.
+        SocialLoginFeature::class,
 
         // Team invitations. The invite/accept flow, InvitationResource, and
         // the invitation-sent notification.
@@ -42,6 +42,7 @@ return [
 
         // Self-serve tenant registration wizard (/get-started). Tenant
         // provisioning itself is unaffected — see the class docblock.
+        RegistrationWizardFeature::class,
 
         // Not a real toggle — see the class docblock. Registered
         // unconditionally; do not comment out.
@@ -58,20 +59,9 @@ return [
         // not the framework's, and live in the host app. Core keeps only the
         // `home` route, which it must always register.
 
-        // The account UI (settings, workspace list, billing portal) ships in
-        // nvade/numerosis-account, which registers its own feature — the class
-        // is deliberately not named here, since core must not boot against a
-        // class that may not be installed. Core reads the name it needs
-        // through Support\Ui\AccountPages::FEATURE.
-
         // Tenant membership UI (Team cluster / Users resource). Does not
         // gate InvitationsFeature — see the class docblock.
         MembershipsFeature::class,
-
-        // "Impersonate owner" on the central Tenants table — opens a real
-        // session as the tenant's owner, for support. Security-sensitive:
-        // remove this if central-panel staff should not be able to do that.
-        ImpersonationFeature::class,
 
     ],
 

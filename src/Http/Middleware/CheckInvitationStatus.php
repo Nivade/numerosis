@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Http\Middleware;
 
 use Closure;
-use Filament\Notifications\Notification;
 use Illuminate\Contracts\Routing\UrlGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Redirector;
@@ -45,20 +44,12 @@ class CheckInvitationStatus
     /**
      * Flash the reason and bounce to the root of the current host.
      *
-     * The invitation routes are core's and answer with or without
-     * nvade/numerosis-filament installed, so the Filament notification is
-     * guarded: `use Filament\Notifications\Notification` is lazy, but
-     * reaching `Notification::make()` autoloads it, and this line is reached
-     * on an ordinary expired-invitation link rather than from a panel.
-     * Without Filament the redirect still happens; only the toast is lost.
+     * `resources/views/partials/toasts.blade.php` renders the flashed key, so
+     * the reason still reaches the visitor on any page that includes it.
      */
     private function refuse(string $message): Response
     {
-        if (class_exists(Notification::class)) {
-            Notification::make()->danger()->title($message)->send();
-        } else {
-            session()->flash('error', $message);
-        }
+        session()->flash('error', $message);
 
         return $this->redirector->to($this->urlGenerator->to('/'));
     }

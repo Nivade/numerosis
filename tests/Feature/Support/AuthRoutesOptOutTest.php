@@ -21,12 +21,12 @@ use Override;
  * the previous answer was "skip Numerosis::routes() entirely and hand-roll a
  * replacement", i.e. duplicate the billing and checkout wiring.
  *
- * Two of those four names now come from `nvade/numerosis-auth-ui`, which owns
- * the auth *screens* and contributes them through `Numerosis::addCentralRoutes()`.
- * That is exactly why the opt-out is tested from here rather than there: the
- * flag lives on core, the callback that reads it lives in the satellite, and
- * a satellite that forgot to consult it would reintroduce the collision this
- * flag exists to prevent, with nothing in core failing.
+ * `login`/`register`/`password.request`/`password.reset` used to be two of
+ * those four names, contributed by `nvade/numerosis-auth-ui`. That package
+ * folded into core in Phase 3 of `.claude/plans/humming-nibbling-flame.md`,
+ * and its Livewire screens were deleted rather than moved — Phase 4 rebuilds
+ * them on Fortify. Until then, only `logout` and `verification.verify` are
+ * gated on this flag at all.
  */
 class AuthRoutesOptOutTest extends TestCase
 {
@@ -38,12 +38,7 @@ class AuthRoutesOptOutTest extends TestCase
 
     public function test_it_registers_none_of_the_auth_route_names(): void
     {
-        foreach ([
-            // core's own two
-            'logout', 'verification.verify',
-            // contributed by nvade/numerosis-auth-ui
-            'login', 'register', 'password.request', 'password.reset',
-        ] as $name) {
+        foreach (['logout', 'verification.verify'] as $name) {
             $this->assertFalse(Route::has($name), "Route [{$name}] was registered despite withAuth: false.");
         }
     }

@@ -38,7 +38,6 @@ class RoleAndPermissionSeeder extends Seeder
             'domains',
             'features',
             'memberships',
-            'modules',
             'permissions',
             'roles',
             'tenants',
@@ -70,10 +69,10 @@ class RoleAndPermissionSeeder extends Seeder
         // A host with a persistent permission cache store (Redis, database)
         // otherwise disagrees with the DB on what permissions exist for the
         // lifetime of every already-running worker after any reseed that
-        // adds or renames a permission — see .claude/rules/auth-guards.md's
+        // adds or renames a permission — see .ai/rules/auth-guards.md's
         // "Missing permission row = 500, not 403" bullet, which documents
-        // this biting a real host (`viewAny modules` 500ing the whole panel)
-        // because nothing here cleared the cache after writing new rows.
+        // this biting a real host (a navigation-wide `viewAny` 500ing every
+        // page) because nothing here cleared the cache after writing rows.
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

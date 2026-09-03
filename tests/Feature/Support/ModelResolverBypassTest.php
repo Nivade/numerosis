@@ -9,7 +9,6 @@ use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Invitation;
-use Nvade\Numerosis\Models\Tenant\Module;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use PhpParser\Node;
 use PhpParser\Node\Expr\New_;
@@ -24,7 +23,7 @@ use Symfony\Component\Finder\Finder;
 
 /**
  * D12's premise (.claude/plans/package-extraction.md, "Decisions taken"):
- * every one of the 9 config('numerosis.models') classes is resolved through
+ * every one of the 8 config('numerosis.models') classes is resolved through
  * Numerosis::model() at its call site, never referenced literally, so a
  * host's config override actually reaches every call site instead of just
  * the ~9 framework-integration ones. Nothing enforced this — models stopped
@@ -35,7 +34,7 @@ use Symfony\Component\Finder\Finder;
  *
  * Scans every file under src/ (excluding the models themselves and the
  * resolver) with nikic/php-parser for StaticCall / StaticPropertyFetch /
- * New nodes whose class name resolves, via NameResolver, to one of the 9
+ * New nodes whose class name resolves, via NameResolver, to one of the 8
  * watched FQCNs. `Tenant::class` is a ClassConstFetch, not a StaticCall —
  * used as Numerosis::model()'s argument, a relation definition, a factory
  * declaration, or a docblock, it is never flagged. `self::`/`static::`
@@ -43,7 +42,7 @@ use Symfony\Component\Finder\Finder;
  * "static", never to the FQCN, so a model calling its own statics would
  * not be flagged even if the exclusion below were removed.
  */
-test('every package call site resolves the 9 config-overridable models through Numerosis::model()', function (): void {
+test('every package call site resolves the 8 config-overridable models through Numerosis::model()', function (): void {
     $watched = [
         Tenant::class,
         Domain::class,
@@ -52,7 +51,6 @@ test('every package call site resolves the 9 config-overridable models through N
         PaymentPlan::class,
         PendingTenantProvision::class,
         Invitation::class,
-        Module::class,
         TenantUser::class,
     ];
 

@@ -92,7 +92,7 @@ class name chosen at the point of use.
 | `Database\Models\TenantPivot` | `ResourceSyncing\TenantPivot` | `Models\Central\Membership extends` | yes |
 | `Contracts\TenantWithDatabase` | `Database\Contracts\TenantWithDatabase` | `Models\Central\Tenant implements`, + 5 type-hints | yes |
 | `Listeners\UpdateSyncedResource` | `ResourceSyncing\Listeners\UpdateOrCreateSyncedResource` | `Listeners\Tenancy\UpdateSyncedResource extends` | yes |
-| `Concerns\HasATenantsOption` | `Concerns\HasTenantOptions` | `use` in 3 `Console\Commands\*TenantModule` | yes ×3 |
+| `Concerns\HasATenantsOption` | `Concerns\HasTenantOptions` | **none since 2026-09-03** — was `use` in 3 `Console\Commands\*TenantModule`, deleted with the module system | no |
 | `Events\SyncedResourceSaved` | `ResourceSyncing\Events\SyncedResourceSaved` | event map + listener param | no |
 | `Events\SyncedResourceChangedInForeignDatabase` | `ResourceSyncing\Events\SyncedResourceSavedInForeignDatabase` | event map + `Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase` | no |
 | `Middleware\PreventAccessFromCentralDomains` | `Middleware\PreventAccessFromUnwantedDomains` | 4× `::class` (`NumerosisServiceProvider:384`, `Numerosis:241`, `TenancyServiceProvider:275`, `NumerosisTenantPlugin:182`) | no |
@@ -204,11 +204,14 @@ silently, so port the keys and add the assertion in the same change.
 `Concerns\HasTenantOptions` is not a straight rename of `HasATenantsOption`:
 `getTenants()` becomes `getTenants(?array $tenantKeys = null)`, `__construct()`
 becomes `__construct(mixed ...$args)`, and it adds `--skip-tenants` /
-`--with-pending` options plus a `getTenantsQuery()` method. The three
-`src/Console/Commands/*TenantModule.php` commands declare no constructor and
-no `getTenants()` override, so they compose cleanly on both — **but a future
-command that overrides either member will compile against one version and
-fatal on the other.** Same trap class as the `WithRateLimiting` collision in
+`--with-pending` options plus a `getTenantsQuery()` method. Nothing composes
+it here any more — the three `src/Console/Commands/*TenantModule.php` commands
+that did were deleted with the module system on 2026-09-03, and they composed
+cleanly on both versions only because they declared no constructor and no
+`getTenants()` override. **The next command that composes this trait and
+overrides either member will compile against one version and fatal on the
+other**, and there is no longer an in-repo example to copy the safe shape
+from. Same trap class as the `WithRateLimiting` collision in
 `.ai/rules/auth-login.md`: check the trait's real signature on both
 versions before overriding a member, not just the name.
 

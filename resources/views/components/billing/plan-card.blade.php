@@ -156,7 +156,7 @@
         {{-- Active/Popular Badge --}}
         @if($isCurrentCycle)
             <div class="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-success-icon text-white text-xs font-bold rounded-full tracking-wider uppercase shadow-md flex items-center gap-1.5">
-                <x-filament::icon icon="heroicon-m-check-badge" class="size-3.5"/>
+                <flux:icon.check-badge class="size-3.5" variant="micro" />
                 Your Active Plan
             </div>
         @elseif($isPopular)

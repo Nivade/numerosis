@@ -17,15 +17,12 @@ uses(CustomDomainModeTestCase::class, RefreshDatabase::class);
  * Custom-domain mode's HTTP round trip — the second of the two non-path legs
  * `.claude/plans/numerosis-consolidation.md` left open after `PathModeTest`.
  *
- * `.claude/rules/identification-modes.md` records the mechanism this
- * exercises: `NumerosisTenantPlugin::tenantDomainPattern()` returns the
- * literal `{tenant}` for this mode (not `{tenant}.<apex>`), so Filament's
- * `{tenant}` route parameter *is* the whole custom domain, and
- * `Tenant::resolveRouteBinding()` looks it up by `domains.domain` rather than
- * `tenants.id`. `CreateTenantDomain::run()` is what writes that row with the
- * custom domain verbatim rather than a derived subdomain.
+ * `.ai/rules/identification-modes.md` records the mechanism this exercises:
+ * the tenant is identified from the *whole* host rather than a subdomain
+ * label, and `CreateTenantDomain::run()` is what writes that `domains` row
+ * with the custom domain verbatim rather than a derived subdomain.
  */
-it('renders the authenticated tenant panel under its custom domain', function (): void {
+it('renders the tenant landing page under its custom domain for a signed-in user', function (): void {
     $tenant = Tenant::factory()->create();
     CreateTenantDomain::run($tenant, $tenant->id, 'app.acmetest.test');
 
@@ -39,12 +36,11 @@ it('renders the authenticated tenant panel under its custom domain', function ()
 
     $content = (string) visit('/')->content();
 
-    expect($content)->toContain('Dashboard');
-    expect($content)->toContain((string) $tenant->name);
+    expect($content)->toContain(Config::string('app.name'));
     expect(str_contains($content, 'Server Error'))->toBeFalse();
 });
 
-it('serves the login page on the custom domain for an unauthenticated visitor', function (): void {
+it('serves the tenant landing page on the custom domain for an unauthenticated visitor', function (): void {
     $tenant = Tenant::factory()->create();
     CreateTenantDomain::run($tenant, $tenant->id, 'app.acmetest.test');
 
@@ -52,7 +48,7 @@ it('serves the login page on the custom domain for an unauthenticated visitor', 
 
     $page = visit('/');
 
-    $page->assertSee('Log in');
+    $page->assertSee(Config::string('app.name'));
 
     expect((string) $page->content())->not->toContain('Server Error');
 });

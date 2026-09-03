@@ -16,7 +16,6 @@ use Nvade\Numerosis\Actions\Billing\Checkout\FinalizeCheckoutSubscription;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveAttachedPaymentMethod;
 use Nvade\Numerosis\Actions\Billing\FindTenantByStripeCustomer;
 use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
-use Nvade\Numerosis\Actions\Modules\ReconcileModuleSubscriptionItems;
 use Nvade\Numerosis\Actions\Tenancy\RestoreTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
@@ -225,7 +224,7 @@ class WebhookController extends CashierWebhookController
      * `past_due` and `unpaid` are Stripe's grace-period states before it
      * gives up; `incomplete_expired` means the first payment never completed.
      *
-     * @param  array{data: array{object: array{id?: string, customer?: string, status?: string, items?: array{data?: list<array{id?: string}>}}}}  $payload
+     * @param  array{data: array{object: array{id?: string, customer?: string, status?: string}}}  $payload
      */
     #[Override]
     protected function handleCustomerSubscriptionUpdated(array $payload): Response
@@ -243,8 +242,6 @@ class WebhookController extends CashierWebhookController
                 'active', 'trialing' => RestoreTenant::run($tenant),
                 default => null,
             };
-
-            ReconcileModuleSubscriptionItems::run($tenant, $stripeSubscription);
         }
 
         Log::info('Subscription updated', [

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Support\Assets;
 use Nvade\Numerosis\Tests\TestCase;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 use stdClass;
@@ -512,26 +513,49 @@ class InstallNumerosisCommandTest extends TestCase
     }
 
     /**
-     * @verifies verifyFilamentThemeAsset
+     * @verifies verifyPublicAssets
      *
-     * `verifyFilamentThemeAsset()` gates its whole check on
-     * `public_path('css/filament')` existing at all — the signal that
-     * `filament:assets` has run at least once. Nothing in the Workbench
-     * harness creates that directory on its own, so this test creates (and
-     * removes) it by hand to reach the branch it's testing at all.
+     * `verifyPublicAssets()` gates its whole check on
+     * `public/vendor/numerosis` existing at all — the signal that
+     * `vendor:publish --tag=numerosis-public-assets` has run at least once.
+     * Nothing in the Workbench harness creates that directory, so this test
+     * creates it (with only one of the two bundles in it) to reach the
+     * branch it is testing.
      */
-    public function test_it_fails_when_filament_assets_ran_but_the_numerosis_theme_did_not_land(): void
+    public function test_it_fails_when_only_half_the_prebuilt_public_assets_landed(): void
     {
-        $filamentDir = public_path('css/filament');
-        File::ensureDirectoryExists($filamentDir);
+        $paths = Assets::publishedPaths();
 
         try {
+            File::ensureDirectoryExists(dirname($paths['css']));
+            File::put($paths['css'], '/* published */');
+
             $this->install()
-                ->expectsOutputToContain('does not — run `php artisan filament:assets` again')
+                ->expectsOutputToContain('public/vendor/numerosis/numerosis.js does not')
                 ->assertFailed();
         } finally {
-            File::deleteDirectory(public_path('css'));
-            File::deleteDirectory(public_path('js'));
+            File::deleteDirectory(public_path('vendor'));
+        }
+    }
+
+    /**
+     * @verifies verifyPublicAssets
+     *
+     * The other half: with both bundles present the check is silent.
+     * Asserting only the failing branch would pass just as well against a
+     * check that can never succeed.
+     */
+    public function test_it_passes_the_public_asset_check_once_both_bundles_are_published(): void
+    {
+        try {
+            foreach (Assets::publishedPaths() as $path) {
+                File::ensureDirectoryExists(dirname($path));
+                File::put($path, '/* published */');
+            }
+
+            $this->install()->doesntExpectOutputToContain('does not — run `php artisan vendor:publish --tag=numerosis-public-assets --force`');
+        } finally {
+            File::deleteDirectory(public_path('vendor'));
         }
     }
 

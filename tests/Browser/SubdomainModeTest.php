@@ -18,15 +18,11 @@ uses(TestCase::class, RefreshDatabase::class);
  * mode-switching base class the way `PathModeTest` does (`PathModeTestCase`
  * exists specifically because the mode has to be picked before boot).
  *
- * `.claude/rules/filament-tenancy.md` records that `PHP_SAPI` stays `cli`
- * inside a browser request, so `shouldRegisterPanel()`'s console exemption
- * still applies — a request to `central.numerosistest.test` here would still
- * see the tenant panel registered and could resolve the `{tenant}` wildcard
- * regardless of what's configured. That question stays out of reach; this
- * test only drives a real tenant subdomain, which is unaffected because it
- * was never a central-domain request in the first place.
+ * Drives a real tenant subdomain end to end: the tenant group carries no
+ * domain constraint of its own, so "the right group matched" is only
+ * observable from the response.
  */
-it('renders the authenticated tenant panel under its subdomain', function (): void {
+it('renders the tenant landing page under its subdomain for a signed-in user', function (): void {
     $tenant = Tenant::factory()->create();
     CreateTenantDomain::run($tenant, $tenant->id);
 
@@ -40,12 +36,11 @@ it('renders the authenticated tenant panel under its subdomain', function (): vo
 
     $content = (string) visit('/')->content();
 
-    expect($content)->toContain('Dashboard');
-    expect($content)->toContain((string) $tenant->name);
+    expect($content)->toContain(Config::string('app.name'));
     expect(str_contains($content, 'Server Error'))->toBeFalse();
 });
 
-it('serves the login page on the tenant subdomain for an unauthenticated visitor', function (): void {
+it('serves the tenant landing page on the subdomain for an unauthenticated visitor', function (): void {
     $tenant = Tenant::factory()->create();
     CreateTenantDomain::run($tenant, $tenant->id);
 
@@ -53,7 +48,7 @@ it('serves the login page on the tenant subdomain for an unauthenticated visitor
 
     $page = visit('/');
 
-    $page->assertSee('Log in');
+    $page->assertSee(Config::string('app.name'));
 
     expect((string) $page->content())->not->toContain('Server Error');
 });

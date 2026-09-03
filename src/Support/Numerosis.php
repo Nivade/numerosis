@@ -18,11 +18,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
+use Laravel\Fortify\Fortify as FortifyFacade;
+use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Models\User as NumerosisUser;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
+use ReflectionClass;
 use Stancl\Tenancy\Contracts\Tenant;
+use Stancl\Tenancy\Resolvers\PathTenantResolver;
 use Throwable;
 use WeakMap;
 
@@ -178,8 +182,12 @@ class Numerosis
 
             Route::middleware('web')
                 ->domain($domain)
-                ->group(function () use ($routes): void {
+                ->group(function () use ($routes, $withAuth): void {
                     require $routes.'/web.php';
+
+                    if ($withAuth) {
+                        self::loadFortifyRoutes(Config::string('numerosis.auth.guards.central'));
+                    }
 
                     foreach (Contributions::centralRouteCallbacks() as $callback) {
                         $callback();
@@ -187,13 +195,77 @@ class Numerosis
                 });
         }
 
-        Route::middleware('tenant')->group(function () use ($routes): void {
+        $tenantRoutes = Route::middleware('tenant');
+
+        // Path mode identifies the tenant from the first URL segment, so
+        // every tenant route has to carry it. The Filament tenant panel used
+        // to supply this prefix for its own routes and core's tenant group
+        // never had one — which meant `routes/tenant.php` was unreachable in
+        // this mode, silently, since a route that never matches 404s like any
+        // other unknown path. `PathTenantResolver::$tenantParameterName` is
+        // the same name stancl's own middleware reads back out.
+        if (IdentificationMode::current() === IdentificationMode::Path) {
+            $tenantRoutes = $tenantRoutes->prefix('{'.PathTenantResolver::$tenantParameterName.'}');
+        }
+
+        $tenantRoutes->group(function () use ($routes, $withAuth): void {
             require $routes.'/tenant.php';
+
+            if ($withAuth) {
+                self::loadFortifyRoutes(Config::string('numerosis.auth.guards.tenant'), passwordBroker: 'tenant');
+            }
 
             foreach (Contributions::tenantRouteCallbacks() as $callback) {
                 $callback();
             }
         });
+    }
+
+    /**
+     * Loads Fortify's own `routes/routes.php` inside whichever group is
+     * currently open (a central domain's, or the tenant group's), for the
+     * given guard. Fortify normally registers its routes once, inside a
+     * single domain/prefix group of its own
+     * (`FortifyServiceProvider::configureRoutes()`); `Fortify::ignoreRoutes()`
+     * (called in `NumerosisServiceProvider::packageRegistered()`) turns that
+     * off, and this is what replaces it — once per central domain, and once
+     * for the tenant group, matching every other route file this method
+     * requires.
+     *
+     * `routes/routes.php` bakes `'guest:'.config('fortify.guard')` into route
+     * middleware **at registration time**, so the guard has to be correct
+     * for whichever group is being built right now. Everything downstream
+     * (Fortify's `StatefulGuard` binding, `AuthGuardBootstrapper`) reads the
+     * guard at *request* time instead, off `Auth::getDefaultDriver()` — which
+     * is why `fortify.guard` is restored in a `finally` rather than left set:
+     * leaving it pointing at, say, the tenant guard would make every guard
+     * resolution process-wide read the wrong default until the next
+     * `loadFortifyRoutes()` call overwrote it, with no error surfaced.
+     *
+     * `fortify.middleware` is cleared for the same registration-time reason —
+     * the outer group already applied `web`/`tenant`, and leaving Fortify's
+     * own default (`['web']`) would double it inside the tenant group.
+     */
+    private static function loadFortifyRoutes(string $guard, ?string $passwordBroker = null): void
+    {
+        $original = Config::array('fortify');
+
+        Config::set('fortify.guard', $guard);
+        Config::set('fortify.middleware', []);
+        Config::set('fortify.passwords', $passwordBroker);
+
+        try {
+            require self::fortifyRoutesPath();
+        } finally {
+            Config::set('fortify', $original);
+        }
+    }
+
+    private static function fortifyRoutesPath(): string
+    {
+        $reflection = new ReflectionClass(FortifyFacade::class);
+
+        return dirname((string) $reflection->getFileName(), 2).'/routes/routes.php';
     }
 
     /**
@@ -322,6 +394,13 @@ class Numerosis
         // Laravel's default trusts config('app.url') and all its subdomains,
         // which already covers the central domain plus every tenant subdomain.
         $middleware->trustHosts();
+
+        // ApplicationBuilder::withMiddleware() always registers its own
+        // `redirectGuestsTo(fn () => route('login'))` before this callback
+        // runs. `NumerosisServiceProvider::registerGuestRedirect()` overrides
+        // it unconditionally on every boot (via `Authenticate::redirectUsing()`
+        // directly), which covers this path too, so there is nothing to
+        // duplicate here.
     }
 
     /**
@@ -435,16 +514,17 @@ class Numerosis
 
     /**
      * Contribute a permission *context* — the noun half of a permission name,
-     * e.g. `modules` in `viewAny modules` — to `RoleAndPermissionSeeder`,
+     * e.g. `invitations` in `viewAny invitations` — to `RoleAndPermissionSeeder`,
      * which creates one row per {@see \Nvade\Numerosis\Models\Permission::defaultActions()}
      * action for it under guard `web` and grants them all to `admin`.
      *
      * This exists rather than "register your own seeder" because the failure
-     * mode of getting it wrong is total, not local: Filament evaluates every
-     * registered resource's `viewAny` to decide nav visibility on *every*
-     * page render, and Spatie throws `PermissionDoesNotExist` rather than
-     * returning false — so one missing context 500s the entire panel, not
-     * just its own screen (`.claude/rules/auth-guards.md`). A satellite
+     * mode of getting it wrong is total, not local: any navigation that
+     * evaluates a resource's `viewAny` to decide its own visibility does so
+     * on *every* page render, and Spatie throws `PermissionDoesNotExist`
+     * rather than returning false — so one missing context 500s every page
+     * carrying that navigation, not just its own screen
+     * (`.ai/rules/auth-guards.md`). A satellite
      * shipping a policy-guarded resource must contribute its context here,
      * from its own service provider, before the seeder runs.
      * {@see Contributions::addPermissionContext()}.

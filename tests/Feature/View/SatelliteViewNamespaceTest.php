@@ -9,13 +9,18 @@ use Nvade\Numerosis\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
- * Pins the one mechanism the whole package split rests on: every Numerosis
- * package registers its views under the **same** `numerosis::` namespace, and
- * `FileViewFinder::addNamespace()` appends to a namespace's path list rather
- * than replacing it, so they compose.
+ * Pins the one mechanism the package split still rests on:
+ * `nvade/numerosis-ui` registers its views under the **same** `numerosis::`
+ * namespace core does, and `FileViewFinder::addNamespace()` appends to a
+ * namespace's path list rather than replacing it, so they compose.
+ *
+ * `auth-ui`, `onboarding` and `account` folded into core in Phase 3 of
+ * `.claude/plans/humming-nibbling-flame.md` — their views moved into core's
+ * own `resources/views/`, which core's own `hasViews()` call already covers,
+ * so there is nothing satellite-specific left to assert for them.
  *
  * Worth a test of its own because the failure is silent in both directions.
- * If a satellite's provider stops registering (a bad `extra.laravel.providers`
+ * If `ui`'s provider stops registering (a bad `extra.laravel.providers`
  * entry, a discovery cache, a renamed class), its views simply stop resolving
  * — and the scanning guards that would otherwise notice
  * (`DesignLanguageGuardTest`, `RegisteredComponentTagsTest`) read their roots
@@ -27,9 +32,9 @@ class SatelliteViewNamespaceTest extends TestCase
 {
     /**
      * The first value is the package's directory under `packages/`, not its
-     * Composer name: the packages are path-installed and symlinked into
+     * Composer name: the package is path-installed and symlinked into
      * `vendor/nvade/*`, but PHP resolves `__FILE__` through the symlink, so
-     * every hint a satellite registers names its real `packages/<dir>` path.
+     * the hint it registers names its real `packages/<dir>` path.
      *
      * @return array<string, array{0: string, 1: string}>
      */
@@ -37,9 +42,6 @@ class SatelliteViewNamespaceTest extends TestCase
     {
         return [
             'numerosis-ui' => ['packages/ui', 'components/ui/card.blade.php'],
-            'numerosis-auth-ui' => ['packages/auth-ui', 'livewire/auth/register.blade.php'],
-            'numerosis-filament' => ['packages/filament', 'filament/admin/pages/register-tenant.blade.php'],
-            'numerosis-onboarding' => ['packages/onboarding', 'livewire/tenant/registration/wizard/index.blade.php'],
         ];
     }
 

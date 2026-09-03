@@ -9,8 +9,16 @@ use Livewire\Component;
 
 new class extends Component {
     /**
-     * The header is a central-domain layout, so it always reads the central
-     * guard rather than whichever guard the current context defaults to.
+     * The header always reads the central guard rather than whichever guard
+     * the current context defaults to.
+     *
+     * Every `@auth`/`@guest` below was replaced with a test of *this* value
+     * for the same reason: those directives consult the **default** guard,
+     * which is the tenant one inside tenancy, so on a tenant domain they
+     * reported "signed in" while this returned null and the first
+     * `$this->user->initials()` was a 500. The layout now renders the guest
+     * header there, which is correct — the account menu it would otherwise
+     * show links only to central routes.
      */
     #[Computed]
     public function user(): ?CentralUser
@@ -23,7 +31,7 @@ new class extends Component {
 <flux:header container class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
     <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left"/>
     <a wire:navigate
-       href="{{ \Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Ui\AccountPages::FEATURE) ? route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine()) : route(\Nvade\Numerosis\Support\Routes\RouteNames::home()) }}"
+       href="{{ route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine()) }}"
        class="ms-2 me-5 flex items-center space-x-2 rtl:space-x-reverse lg:ms-0"
     >
         <x-numerosis::app-logo/>
@@ -39,16 +47,18 @@ new class extends Component {
     @endif
     <flux:spacer/>
     <flux:navbar class="me-1.5 space-x-0.5 rtl:space-x-reverse py-0!">
-        @guest
-            <flux:navbar.item
-                class="h-10 max-lg:hidden"
-                href="{{ route('login') }}"
-                icon="arrow-left-end-on-rectangle"
-                :label="__('Sign In')"
-            >
-                {{ __('Sign in') }}
-            </flux:navbar.item>
-        @endguest
+        @unless ($this->user)
+            @if (Route::has('login'))
+                <flux:navbar.item
+                    class="h-10 max-lg:hidden"
+                    href="{{ route('login') }}"
+                    icon="arrow-left-end-on-rectangle"
+                    :label="__('Sign In')"
+                >
+                    {{ __('Sign in') }}
+                </flux:navbar.item>
+            @endif
+        @endunless
         <flux:tooltip :content="__('Repository')" position="bottom">
             <flux:navbar.item
                 class="h-10 max-lg:hidden [&>div>svg]:size-5"
@@ -71,7 +81,7 @@ new class extends Component {
 
     @island('desktop-menu')
     <!-- Desktop User Menu -->
-    @auth
+    @if ($this->user)
         <flux:dropdown position="bottom" align="end">
             <flux:profile
                 class="cursor-pointer"
@@ -96,12 +106,10 @@ new class extends Component {
                     </div>
                 </flux:menu.radio.group>
                 <flux:menu.separator/>
-                @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Ui\AccountPages::FEATURE))
-                    <flux:menu.radio.group>
-                        <flux:menu.item :href="route('settings.profile')" icon="cog"
-                                        wire:navigate>{{ __('Settings') }}</flux:menu.item>
-                    </flux:menu.radio.group>
-                @endif
+                <flux:menu.radio.group>
+                    <flux:menu.item :href="route('settings.profile')" icon="cog"
+                                    wire:navigate>{{ __('Settings') }}</flux:menu.item>
+                </flux:menu.radio.group>
                 @if($this->user->tenants->isNotEmpty())
                     <x-numerosis::ui.accordion>
                         <x-numerosis::ui.accordion.item name="tenants">
@@ -130,7 +138,7 @@ new class extends Component {
                 </form>
             </flux:menu>
         </flux:dropdown>
-    @endauth
+    @endif
     @endisland
 
     @island('mobile-menu')
@@ -138,11 +146,11 @@ new class extends Component {
     <flux:sidebar stashable sticky
                   class="lg:hidden border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
         <flux:sidebar.toggle class="lg:hidden" icon="x-mark"/>
-        <a href="{{ \Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Ui\AccountPages::FEATURE) ? route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine()) : route(\Nvade\Numerosis\Support\Routes\RouteNames::home()) }}" class="ms-1 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
+        <a href="{{ route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine()) }}" class="ms-1 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
             <x-numerosis::app-logo/>
         </a>
         <flux:navlist variant="outline">
-            @auth
+            @if ($this->user)
                 @if($this->user->tenants->isNotEmpty())
                     <flux:navlist.group :heading="__('Tenants')">
                         @foreach ($this->user->tenants as /** @var \Nvade\Numerosis\Models\Central\Tenant */ $tenant)
@@ -153,7 +161,7 @@ new class extends Component {
                         @endforeach
                     </flux:navlist.group>
                 @endif
-            @endauth
+            @endif
         </flux:navlist>
         <flux:spacer/>
         <flux:navlist variant="outline">
@@ -164,13 +172,15 @@ new class extends Component {
                 {{ __('Documentation') }}
             </flux:navlist.item>
         </flux:navlist>
-        @guest
-            <flux:navlist variant="outline">
-                <flux:navlist.item :href="route('login')" icon="user" wire:navigate>
-                    {{ __('Sign In') }}
-                </flux:navlist.item>
-            </flux:navlist>
-        @endguest
+        @unless ($this->user)
+            @if (Route::has('login'))
+                <flux:navlist variant="outline">
+                    <flux:navlist.item :href="route('login')" icon="user" wire:navigate>
+                        {{ __('Sign In') }}
+                    </flux:navlist.item>
+                </flux:navlist>
+            @endif
+        @endunless
     </flux:sidebar>
     @endisland
 </flux:header>

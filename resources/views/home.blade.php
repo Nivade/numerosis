@@ -33,7 +33,7 @@
                     </flux:button>
                 @endif
 
-                @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Support\Tenancy\SelfServeRegistration::FEATURE))
+                @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
                     <flux:button :href="route('tenants.create')" wire:navigate>
                         {{ __('Get started') }}
                     </flux:button>

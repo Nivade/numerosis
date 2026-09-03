@@ -79,8 +79,13 @@ it('binds a web-middleware route per central domain and a tenant group', functio
     expect($central->getDomain())->toBe(Config::array('tenancy.central_domains')[0]);
     expect($central->middleware())->toContain('web');
 
-    $tenant = Route::getRoutes()->getByName('verification.notice');
-    throw_unless($tenant instanceof IlluminateRoute, RuntimeException::class, 'route [verification.notice] not registered');
+    // 'tenant.suspended', not 'verification.notice': that route belonged to
+    // nvade/numerosis-auth-ui, which folded into core in Phase 3 of
+    // .claude/plans/humming-nibbling-flame.md and had its Livewire screens
+    // deleted rather than moved (Phase 4 rebuilds them on Fortify), so it
+    // does not register right now.
+    $tenant = Route::getRoutes()->getByName('tenant.suspended');
+    throw_unless($tenant instanceof IlluminateRoute, RuntimeException::class, 'route [tenant.suspended] not registered');
 
     expect($tenant->middleware())->toContain('tenant');
 });
@@ -246,8 +251,8 @@ it('assetTags() renders the prebuilt CSS+JS tags when nothing is published', fun
     // Pest\Mixins\Expectation trait, not that outer class) loses visibility
     // of it. A fresh expect() call keeps ->not resolvable.
     expect($html)
-        ->toContain('css/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.css')
-        ->toContain('js/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js');
+        ->toContain('vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.css')
+        ->toContain('vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js');
 
     expect($html)->not->toContain('/build/assets/');
 });
@@ -258,7 +263,7 @@ it('assetTags() falls back to the prebuilt JS tag when published but absent from
 
     $html = Numerosis::assetTags()->toHtml();
 
-    expect($html)->toContain('js/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js');
+    expect($html)->toContain('vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js');
 });
 
 it('assetTags() prefers vite() when the host has published and built its own copy', function () {
@@ -289,7 +294,7 @@ it('assetTags() prefers vite() when the host has published and built its own cop
     $html = Numerosis::assetTags()->toHtml();
 
     expect($html)->toContain('assets/numerosis-hashed.js');
-    expect($html)->not->toContain('js/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js');
+    expect($html)->not->toContain('vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js');
 });
 
 afterEach(function () {
@@ -357,9 +362,9 @@ it('replaces broadcasting registration entirely when registerBroadcastingUsing i
 
 it('replaces route registration entirely when registerRoutesUsing is set', function () {
     // Same reasoning: routes() already ran once (with no callback) during
-    // the real boot, so 'terms'/'verification.notice' already exist —
-    // proving replacement means the override adds nothing further, not
-    // that the defaults are absent.
+    // the real boot, so 'home'/'tenant.suspended' already exist — proving
+    // replacement means the override adds nothing further, not that the
+    // defaults are absent.
     $routeCountBefore = count(Route::getRoutes()->getRoutes());
 
     $called = null;

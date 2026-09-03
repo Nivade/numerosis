@@ -10,7 +10,7 @@ namespace Nvade\Numerosis\Concerns;
  * `runningInConsole()` check — `NumerosisServiceProvider::packageBooted()`
  * is the first consumer. Saves nothing over calling `publishes()` directly
  * except the repeated console-check; exists so a second provider with its
- * own publish groups (a future Filament-plugin provider, say) doesn't have
+ * own publish groups (a future satellite provider, say) doesn't have
  * to repeat that guard by hand.
  */
 trait PublishesPackageAssets

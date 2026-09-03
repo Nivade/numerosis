@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Facade;
  * How a request is matched to a tenant. See config('numerosis.tenancy.identification.mode')'s
  * docblock in config/numerosis.php for what each mode means; see
  * .claude/rules/identification-modes.md for the mechanics each one relies
- * on and the one thing (Path mode's route-parameter conflict with Filament's
+ * on and the one thing (Path mode's route-parameter conflict with the
  * own tenant resolution) that isn't provable by this repo's test harness.
  */
 enum IdentificationMode: string

@@ -10,17 +10,17 @@ use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
 /**
- * The boundaries between the packages, now that a filesystem boundary no
- * longer exists to enforce them.
+ * The boundary between the two packages left after
+ * `.claude/plans/humming-nibbling-flame.md`'s Phase 3 folded `auth-ui`,
+ * `onboarding` and `account` into core: `nvade/numerosis` (core) and
+ * `nvade/numerosis-ui` (the reusable Flux component library core itself
+ * `require`s).
  *
- * While each package lived in its own repo, "does this file compile without
- * that package installed" was answered by the repo it sat in. In one repo
- * everything autoloads from everywhere, so the only thing left holding the
- * dependency graph in the shape a consumer actually installs is this file.
- * Each rule below was a per-package `BoundaryTest` before the collapse; they
- * are collected here rather than duplicated three ways, because three
- * near-identical scans in three directories is exactly how one of them
- * silently stops covering what it names.
+ * While each satellite lived in its own repo, "does this file compile
+ * without that package installed" was answered by the repo it sat in. In one
+ * repo everything autoloads from everywhere, so the only thing left holding
+ * the dependency graph in the shape a consumer actually installs is this
+ * file.
  *
  * Every violation here is silent at runtime, which is why it needs a test at
  * all: a bare `use` import is lazy and `Foo::class` on an imported name never
@@ -41,10 +41,10 @@ class PackageBoundariesTest extends BaseTestCase
     public static function packages(): array
     {
         return [
-            // The leaf. It exists to be installable with nothing else in the
-            // set, so it may not name core, tenancy, or a named route.
-            // `layouts/` and `partials/` were moved in here once and moved
-            // straight back out for failing exactly this.
+            // The only satellite left. It exists to be installable with
+            // nothing else in the set, so it may not name core, tenancy, or
+            // a named route. `layouts/` and `partials/` were moved in here
+            // once and moved straight back out for failing exactly this.
             'ui' => [
                 'ui',
                 ['src', 'resources'],
@@ -55,50 +55,52 @@ class PackageBoundariesTest extends BaseTestCase
                     'named routes' => '/\broute\(/',
                 ],
             ],
-            // Depends on core and ui, and on nothing else. The Filament edge
-            // is the one that matters: the tenant panel reaches this package's
-            // login component through `numerosis.panels.tenant.login`, a
-            // core-owned config key, precisely so the dependency runs one way.
-            'auth-ui' => [
-                'auth-ui',
-                ['src', 'routes', 'resources'],
-                [
-                    'filament' => '/Filament\\\\/',
-                    'numerosis-onboarding' => '/Nvade\\\\NumerosisOnboarding\\\\/',
-                ],
-            ],
-            // `Filament\` is of course allowed here — this package *is* the
-            // Filament layer. What must not appear are the other satellites:
-            // the tenant panel's login page and the registration wizard are
-            // both named through core config keys, never as classes.
-            //
-            // The module marketplace and module resource live here for good:
-            // decision D-C (`.claude/plans/numerosis-consolidation.md`) kept
-            // the module system in core behind `class_exists()` guards rather
-            // than extracting it, so there is no numerosis-modules package for
-            // this UI to belong to and no cycle for it to create.
-            'filament' => [
-                'filament',
-                ['src', 'resources'],
-                [
-                    'numerosis-auth-ui' => '/Nvade\\\\NumerosisAuthUi\\\\/',
-                    'numerosis-onboarding' => '/Nvade\\\\NumerosisOnboarding\\\\/',
-                ],
-            ],
-            // Depends on core and ui. It must not reach the Filament layer:
-            // the admin panel hosts the wizard through
-            // `numerosis.panels.admin.tenant_registration_component`, which
-            // names a Livewire *alias*, so the dependency runs one way even
-            // though a Filament page is what renders it.
-            'onboarding' => [
-                'onboarding',
-                ['src', 'routes', 'resources'],
-                [
-                    'filament' => '/Filament\\\\/',
-                    'numerosis-auth-ui' => '/Nvade\\\\NumerosisAuthUi\\\\/',
-                ],
-            ],
         ];
+    }
+
+    /**
+     * Phase 1 of `.claude/plans/humming-nibbling-flame.md` deleted
+     * `packages/filament` and `filament/filament` with it, so core naming a
+     * `Filament\` symbol is no longer a lazy reference to an optional
+     * package — it is a reference to a class that cannot be installed at all.
+     *
+     * Nothing enforced that until this test. The old guard was the *type* of
+     * reference (`class_exists()`-guarded and type hints allowed, `implements`
+     * and `use <Trait>` not — `.ai/rules/optional-dependencies.md`), which is
+     * now simply "none", and a stray `use Filament\...` autoloads nothing
+     * until the first request that reaches the line.
+     *
+     * Scans `workbench/` too: the dev harness boots the same providers a host
+     * does, so a Filament reference there fatals `composer serve` rather than
+     * the test suite, which is the slower way to find out.
+     */
+    public function test_core_names_no_filament_symbol(): void
+    {
+        $root = dirname(__DIR__, 2);
+
+        $roots = array_values(array_filter([
+            $root.'/src',
+            $root.'/config',
+            $root.'/routes',
+            $root.'/resources',
+            $root.'/database',
+            $root.'/workbench',
+        ], is_dir(...)));
+
+        $files = iterator_to_array(
+            (new Finder)->files()->in($roots)->name(['*.php', '*.blade.php']),
+            false
+        );
+
+        $this->assertNotEmpty($files, 'Scanned no core files — the path list above is wrong, so this guard is measuring nothing.');
+
+        foreach ($files as $file) {
+            $this->assertSame(
+                0,
+                preg_match('/Filament\\\\/', self::codeOf($file)),
+                self::path($file).' references Filament, which was deleted from this repo in Phase 1 and cannot be installed.'
+            );
+        }
     }
 
     /**

@@ -130,27 +130,15 @@ class CheckInvitationStatusTest extends TestCase
 
     /**
      * CheckInvitationStatus redirects to the tenant root via url('/') and
-     * reports the reason as a Filament notification, not a session `error`
-     * key or a named route — both of which the assertions here used to expect.
-     */
-    /**
+     * flashes the reason under `error`, not a named route — which the
+     * assertions here used to expect.
+     *
      * @param  TestResponse<Response>  $response
      */
     protected function assertRedirectsHomeWithNotice(TestResponse $response, string $message): void
     {
         $response->assertRedirect('http://'.$this->tenantDomain($this->tenant->id));
-
-        /** @var list<array<string, mixed>> $sessionNotifications */
-        $sessionNotifications = session('filament.notifications', []);
-
-        $notifications = collect($sessionNotifications)
-            ->pluck('title')
-            ->filter();
-
-        $this->assertTrue(
-            $notifications->contains($message),
-            "Expected a Filament notification titled \"{$message}\", got: {$notifications->implode(', ')}"
-        );
+        $response->assertSessionHas('error', $message);
     }
 
     /**

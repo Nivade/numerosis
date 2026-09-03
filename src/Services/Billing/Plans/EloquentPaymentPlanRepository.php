@@ -40,7 +40,7 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
     }
 
     /**
-     * The plan catalogue changes only when an operator edits it in Filament
+     * The plan catalogue changes only when an operator edits it in an admin UI
      * (see {@see PaymentPlan::booted()} and
      * {@see \Nvade\Numerosis\Models\Central\PaymentPlanFeature::booted()}), so this is
      * cached with a bounded TTL as a backstop behind that invalidation.

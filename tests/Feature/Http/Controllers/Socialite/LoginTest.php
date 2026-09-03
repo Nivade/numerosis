@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use Nvade\Numerosis\Contracts\Auth\SocialAccountRepository;
+use Nvade\Numerosis\Support\Routes\RouteNames;
 use Nvade\Numerosis\Tests\TestCase;
 
 class LoginTest extends TestCase
@@ -41,7 +42,7 @@ class LoginTest extends TestCase
 
         $this->withSession(['socialite_context' => ['tenant' => $tenant->id]])
             ->get(route('oauth.callback', ['driver' => 'google']))
-            ->assertRedirect(tenant_route((string) $tenant->id, 'filament.tenantAdmin.pages.dashboard', ['tenant' => $tenant]));
+            ->assertRedirect(tenant_route((string) $tenant->id, RouteNames::home()));
     }
 
     public function test_accepting_an_invitation_via_social_login_provisions_a_working_tenant_account(): void
@@ -73,7 +74,7 @@ class LoginTest extends TestCase
             'token' => $invitation->token,
         ]])
             ->get(route('oauth.callback', ['driver' => 'google']))
-            ->assertRedirect(tenant_route((string) $tenant->id, 'filament.tenantAdmin.pages.dashboard', ['tenant' => $tenant]));
+            ->assertRedirect(tenant_route((string) $tenant->id, RouteNames::home()));
 
         $tenantUserExists = $tenant->run(
             fn (): bool => TenantUser::where('global_id', $centralUser->global_id)->exists()

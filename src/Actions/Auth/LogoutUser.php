@@ -7,19 +7,24 @@ namespace Nvade\Numerosis\Actions\Auth;
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\StatefulGuard;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Session;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Lorisleiva\Actions\Concerns\AsController;
-use Nvade\Numerosis\Support\Routes\RouteNames;
 
+/**
+ * Logs a user out of both guards directly — used by callers outside HTTP's
+ * `POST /logout` (`Livewire\Actions\Logout`, tests). The HTTP route is now
+ * Fortify's own `AuthenticatedSessionController::destroy()`, which logs out
+ * only `config('fortify.guard')`; `Listeners\Auth\EndOtherGuardSession`
+ * covers the other guard for that path instead of this class, since
+ * `destroy()` also owns session invalidation and calling `handle()` there
+ * too would invalidate it twice.
+ */
 class LogoutUser
 {
     use AsAction;
-    use AsController;
 
     public function handle(): void
     {
@@ -60,18 +65,6 @@ class LogoutUser
             Session::forget($guard->getName());
             Cookie::queue(Cookie::forget($guard->getRecallerName()));
         }
-    }
-
-    public function asController(): RedirectResponse
-    {
-        $this->handle();
-
-        return to_route(RouteNames::home());
-    }
-
-    public function htmlResponse(): RedirectResponse
-    {
-        return to_route(RouteNames::home());
     }
 
     public function tenant(): Guard|StatefulGuard

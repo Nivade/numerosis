@@ -10,9 +10,11 @@ use Nvade\Numerosis\Contracts\NamedFeature;
  * Password reset: the forgot- and reset-password routes and the password
  * settings page.
  *
- * Login is passwordless, so this is a secondary surface — turn it off and
- * there is no way to set or recover a password. Password *confirmation* for
- * sensitive actions is separate and stays available.
+ * Login is password-based (Laravel Fortify, since Phase 4 of
+ * `.claude/plans/humming-nibbling-flame.md`) — turn this off and there is no
+ * way to recover a forgotten password, only set one from the settings page
+ * while already logged in. Password *confirmation* for sensitive actions is
+ * separate and stays available regardless.
  */
 class PasswordResetFeature implements NamedFeature
 {

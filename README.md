@@ -1,8 +1,7 @@
 # Numerosis
 
 Multi-tenant SaaS foundation for Laravel. Tenancy and billing are the required
-core; auth screens, invitations, Filament panels, the registration wizard and
-the module system are opt-in.
+core; auth screens, invitations and the registration wizard are opt-in.
 
 **Proprietary — not published to Packagist.** Install from a path or VCS repo.
 
@@ -12,7 +11,7 @@ the module system are opt-in.
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | How the package boots, what happens on a central vs. tenant request, where code lives |
 | [`docs/features.md`](docs/features.md) | Every feature class, which package owns it, what turning it off costs |
-| [`docs/extending.md`](docs/extending.md) | How a host or a satellite package contributes routes, migrations, seeders, permissions, panels |
+| [`docs/extending.md`](docs/extending.md) | How a host or a satellite package contributes routes, migrations, seeders, permissions |
 | [`docs/host-requirements.md`](docs/host-requirements.md) | The things a host must provide, and every config key the package normalizes for you |
 
 `.ai/rules/` holds non-obvious traps and invariants by topic (start at
@@ -21,18 +20,23 @@ authoritative about current behaviour.
 
 ## What you install
 
-Six Composer packages, developed in this one repository, published as
+Five Composer packages, developed in this one repository, published as
 read-only splits on tag. Core is the only one you must have; declining any of
-the other five is a supported state, not a degraded one.
+the other four is a supported state, not a degraded one.
 
 | Package | What it is |
 |---|---|
-| `nvade/numerosis` | Tenancy, billing, provisioning, auth mechanics, the module system, every migration and seeder |
+| `nvade/numerosis` | Tenancy, billing, provisioning, auth mechanics, every migration and seeder |
 | `nvade/numerosis-ui` | Shared Blade layer (`<x-numerosis::ui.*>`), design tokens, `livewire/flux`. Core requires it |
-| `nvade/numerosis-filament` | Admin + tenant Filament panels, resources, module marketplace. Pulls in `filament/filament` |
 | `nvade/numerosis-auth-ui` | Login / register / password-reset / OAuth screens, `laravel/socialite` |
 | `nvade/numerosis-account` | Account UI: settings screens, workspace list, billing portal, invoice downloads |
 | `nvade/numerosis-onboarding` | Self-serve registration wizard at `/get-started` |
+
+`nvade/numerosis-filament` — admin and tenant Filament panels — was **deleted
+on 2026-09-03**. Neither panel exists, and `filament/filament` is not a
+dependency of anything here. Core ships the tenant landing page and the
+account screens; a host wanting an admin UI builds its own against the
+package's models and policies.
 
 What declining each one costs is listed per package in
 [`docs/host-requirements.md`](docs/host-requirements.md) §0.
@@ -72,7 +76,7 @@ MySQL credentials in `.env`, then:
 
 ```bash
 php artisan migrate
-php artisan filament:assets     # only if you kept nvade/numerosis-filament
+php artisan vendor:publish --tag=numerosis-public-assets   # prebuilt CSS/JS
 php artisan numerosis:install   # publishes stubs, seeds central data, verifies the rest
 ```
 
@@ -82,8 +86,8 @@ seeding. It is the executable copy of `docs/host-requirements.md`.
 ## Repo layout
 
 ```
-src/                    core: tenancy, billing, auth mechanics, modules
-packages/{ui,auth-ui,filament,account,onboarding}/  the five satellite splits
+src/                    core: tenancy, billing, auth mechanics
+packages/{ui,auth-ui,account,onboarding}/  the four satellite splits
 config/numerosis/       every knob, one file per top-level key
 config/numerosis.php    assembles those partials — never published
 config/stubs/           the small override file a host publishes instead

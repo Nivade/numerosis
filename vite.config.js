@@ -1,7 +1,7 @@
 // Maintainer-only build for dist/numerosis.js — see package.json's
 // description and resources/js/numerosis.js's own docblock. Library mode
-// with a single IIFE entry: this ships as a plain <script> tag
-// (FilamentAsset::register(Js::make(...))), not as an importable module a
+// with a single IIFE entry: this ships as a plain <script> tag pointing at
+// public/vendor/numerosis/numerosis.js, not as an importable module a
 // consumer's own bundler resolves, so there is nothing here for
 // laravel-vite-plugin (manifest generation, hot-reload) to do.
 import { defineConfig } from 'vite';
@@ -22,9 +22,9 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    // dist/filament-theme.css and dist/numerosis.css are built by separate
-    // npm scripts (see package.json) and must survive this build running
-    // after or before them in any order.
+    // dist/numerosis.css is built by a separate npm script (see
+    // package.json) and must survive this build running after or before it
+    // in either order.
     emptyOutDir: false,
     lib: {
       entry: resolve(__dirname, 'resources/js/numerosis.js'),

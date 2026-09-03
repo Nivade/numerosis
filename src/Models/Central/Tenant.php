@@ -18,7 +18,6 @@ use Laravel\Cashier\Invoice;
 use Nvade\Numerosis\Concerns\Billing\Billable;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Database\Factories\Central\TenantFactory;
-use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Models\Tenant\User;
 use Nvade\Numerosis\Observers\TenantObserver;
 use Nvade\Numerosis\Policies\TenantPolicy;
@@ -176,28 +175,6 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
             ->first();
 
         return $membership;
-    }
-
-    /**
-     * Under `IdentificationMode::CustomDomain`, Filament's tenant panel
-     * matches `Route::domain('{tenant}')` against the *entire* host —
-     * `$value` here is the tenant's own custom domain (e.g. "app.acme.com"),
-     * not a value `tenants.id` ever holds. `$field` is always the literal
-     * string 'id' regardless of mode (`Filament\Panel\Concerns\HasTenancy::
-     * getTenant()` passes `$this->getTenantSlugAttribute()`, fixed by
-     * `->tenant(Tenant::class, 'id')` at panel registration), so this can't
-     * be told apart from a normal id lookup by `$field` alone — it has to
-     * check the identification mode itself. Other modes fall through to the
-     * default behaviour unchanged.
-     */
-    #[Override]
-    public function resolveRouteBinding($value, $field = null): ?Model
-    {
-        if ($field === 'id' && IdentificationMode::current() === IdentificationMode::CustomDomain) {
-            return Numerosis::model(Domain::class)::where('domain', $value)->first()?->tenant;
-        }
-
-        return parent::resolveRouteBinding($value, $field);
     }
 
     public function primaryDomain(): ?Domain

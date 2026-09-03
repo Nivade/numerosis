@@ -206,48 +206,12 @@ class DesignLanguageGuardTest extends TestCase
     }
 
     /**
-     * Phase 6: `->emptyStateIcon()` took a mix of raw `'heroicon-o-*'`
-     * strings and the `Heroicon` enum across the Filament resources — one
-     * vocabulary, the CLAUDE.md-documented convention
-     * (`Filament\Support\Icons\Heroicon` enum), not two spellings of the
-     * same icon.
-     *
-     * Scans `packages/{*}/src` as well as core's, and that is the whole
-     * point of the widening: every Filament resource moved to
-     * `packages/filament` during the split, so for a while this guarded
-     * nothing at all — it asserted 300-odd times against files that cannot
-     * contain the pattern, and there is no `emptyStateIcon(` call left under
-     * `src/`. A directory scan goes vacuous, not red, when what it guards
-     * moves (`.claude/rules/package-split.md`); the tell here was that its
-     * assertion count tracked the size of core `src/`, so it went *up* when
-     * an unrelated trait was added.
-     */
-    public function test_no_filament_resource_uses_a_raw_heroicon_string_for_empty_state_icon(): void
-    {
-        $root = dirname(__DIR__, 3);
-        $finder = (new Finder)
-            ->files()
-            ->in([$root.'/src', ...(glob($root.'/packages/*/src') ?: [])])
-            ->name('*.php');
-
-        foreach ($finder as $file) {
-            $relative = str_replace($root.'/', '', $file->getPathname());
-
-            $this->assertDoesNotMatchRegularExpression(
-                "/emptyStateIcon\\(\\s*['\"]heroicon-/",
-                $file->getContents(),
-                "{$relative} passes a raw 'heroicon-o-*' string to emptyStateIcon() — use the Heroicon enum instead.",
-            );
-        }
-    }
-
-    /**
      * Phase 7: `focus-ring` (tokens.css's `@utility focus-ring`) is the one
      * focus-visible treatment resources/views uses — two files had their
      * own hand-rolled `focus-visible:ring-*` before this (a subtle
      * black/white ring on the OAuth buttons, a raw `--primary-500` ring on
-     * a Filament-panel view), same drift class Phase 0 already fixed once
-     * for `ui/alert`'s own focus ring.
+     * a panel view), same drift class Phase 0 already fixed once for
+     * `ui/alert`'s own focus ring.
      */
     public function test_no_view_hand_rolls_its_own_focus_visible_ring(): void
     {
@@ -261,38 +225,6 @@ class DesignLanguageGuardTest extends TestCase
                 $code,
                 "{$file->getRelativePathname()} hand-rolls a focus ring instead of using the shared `focus-ring` utility.",
             );
-        }
-    }
-
-    /**
-     * Phase 6: `<x-filament::button>` already derives `wire:target` from its
-     * own `wire:click` and renders `wire:loading.attr="disabled"` plus a
-     * real spinner (`Filament\Support\generate_loading_indicator_html()`) —
-     * `vendor/filament/support/resources/views/components/button/index.blade.php`.
-     * A manual `wire:loading.attr="disabled"` on the same tag is not just
-     * redundant, it's *worse*: it disables the button with no spinner,
-     * which is exactly the "no shared spinner" divergence this phase
-     * closes. Two Numerosis-owned pages had this before the fix
-     * (marketplace, module-detail); this stops a third.
-     */
-    public function test_no_filament_button_manually_duplicates_its_own_loading_indicator(): void
-    {
-        $files = $this->viewFiles();
-
-        foreach ($files as $file) {
-            $code = $this->stripComments($file->getContents());
-
-            if (! preg_match_all('/<x-filament::button\b.*?>/s', $code, $matches)) {
-                continue;
-            }
-
-            foreach ($matches[0] as $tag) {
-                $this->assertStringNotContainsString(
-                    'wire:loading',
-                    $tag,
-                    "{$file->getRelativePathname()} sets wire:loading manually on an <x-filament::button> — the component already handles it (and renders a spinner the manual version doesn't). Remove the manual attribute.",
-                );
-            }
         }
     }
 }

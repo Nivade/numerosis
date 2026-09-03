@@ -33,10 +33,8 @@ class TenantFactory extends Factory
             // itself makes it just another virtual attribute — the written
             // column came out as {"user_id":…,"tenancy_db_name":…} with no
             // `name` in it at all, and every tenant the suite has ever built
-            // had a null name. Nothing failed: the only thing that requires
-            // one is Filament's own tenant layout
-            // (`FilamentManager::getTenantName(): string`), which no test
-            // rendered until the browser suite did.
+            // had a null name. Nothing failed until the browser suite
+            // started rendering a tenant's name on screen.
             'name' => $company,
             'user_id' => \Nvade\Numerosis\Models\Central\CentralUser::factory(),
         ];

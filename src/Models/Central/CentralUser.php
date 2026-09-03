@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -15,7 +14,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Subscription;
 use Nvade\Numerosis\Concerns\Billing\Billable;
@@ -38,7 +36,6 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
  * @property string $email
  * @property string $password
  * @property string $global_id
- * @property Carbon|null $last_seen_at
  * @property Carbon|null $email_verified_at
  * @property string|null $remember_token
  * @property Carbon|null $deleted_at
@@ -62,7 +59,6 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
     'email',
     'password',
     'global_id',
-    'last_seen_at',
     'email_verified_at',
     'display_status',
     'stripe_id',
@@ -165,15 +161,6 @@ class CentralUser extends User implements CentralUserModel, HasTenants, Subscrib
     public function guardName(): string|array
     {
         return 'web';
-    }
-
-    /**
-     * @return array<int, Tenant>|Collection<int, Tenant>
-     */
-    #[Override]
-    public function getTenants(Panel $panel): array|Collection
-    {
-        return $this->tenants;
     }
 
     #[Override]

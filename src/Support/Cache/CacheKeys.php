@@ -69,26 +69,9 @@ final class CacheKeys
         return self::prefix().':billing:popular_plan_id';
     }
 
-    public static function availableModules(): string
-    {
-        return self::prefix().':billing:available_modules';
-    }
-
-    /**
-     * Tenant-scoped throttle marker, not a value cache — see
-     * {@see \Nvade\Numerosis\Http\Middleware\UpdateUserLastSeenMiddleware}. The guard is
-     * part of the key because tenant and central user ids are unrelated
-     * sequences that would otherwise collide on small integers.
-     */
-    public static function lastSeenThrottle(string $guard, int|string $userId): string
-    {
-        return self::prefix().":last-seen:{$guard}:{$userId}";
-    }
-
     /*
-     * Module-owned keys deliberately do not live here. The branding module
-     * keeps its own (Nvade\Branding\Support\BrandingCache) so core carries no
-     * reference to an optional app-modules package — the same discipline, one
-     * registry per owner.
+     * Keys owned by something other than core deliberately do not live here:
+     * one registry per owner, so core carries no reference to a class it does
+     * not ship.
      */
 }

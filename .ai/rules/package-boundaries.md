@@ -1,5 +1,25 @@
 # Package Boundaries
 
+> **Header note, 2026-09-03 (Phase 2).** The **module system is deleted** —
+> `Actions/Modules`, `Contracts/{Modules,Billing/Module*}`, both Eloquent
+> models, the 4 module migrations, `ModuleSystemFeature`,
+> `config/numerosis/modules.php`, the three `tenants:*-module` commands and
+> the `modules` permission context are all gone, and `internachi/modular` is
+> no longer even a `suggest`. `ImpersonationFeature`,
+> `Actions/Tenancy/ImpersonateTenantUser` and the `impersonate/{token}` route
+> went with it. Every module paragraph below is history; the *mechanisms*
+> they illustrate (one seam per optional package, migrations stay in core)
+> still hold.
+>
+> **Header note, 2026-09-03 (Phase 1).** `packages/filament` is deleted (Phase 1 of
+> `.claude/plans/humming-nibbling-flame.md`). The four panel-related rows in
+> the seam table below (`panels.tenant.login`,
+> `panels.admin.tenant_registration_component`, `panels.{admin,tenant}.provider`)
+> describe config keys that **no longer exist** — `config/numerosis/panels.php`
+> went with the package. The "Core still names `Filament\`, in 11 files"
+> paragraph is also void: it names none. Phase 3 rewrites this file for a
+> two-package world; until then, read those parts as history.
+>
 > **Rewritten 2026-08-31 (section F of `.claude/plans/numerosis-consolidation.md`).**
 > The original version of this file argued that the split could not happen
 > because this package had exactly one extension point per concern, each of
@@ -83,23 +103,15 @@ for a host that genuinely wants none of the defaults.
   reachable with no panel anywhere, calling `Notification::make()`; it is
   `class_exists()`-guarded with a session-flash fallback.
 
-- **The module system stays in core, deliberately** (decision D-C). It threads
-  ~30 files through 13 top-level `src/` directories, owns two Eloquent models
-  whose migrations are core's, and its Filament UI already sits in
-  `packages/filament` — the "temporarily, until a modules package exists" note
-  there is **permanent and correct**, not debt. `internachi/modular` is
-  `suggest`, behind one seam: `ModuleSystemFeature::available()` (feature
-  enabled ∧ registry installed). One seam per optional package, not one
-  `class_exists()` per call site.
+- **One seam per optional package, not one `class_exists()` per call site.**
+  The module system was the worked example — seven consumers, all asking
+  `ModuleSystemFeature::available()` — and it is deleted. The rule is what
+  survives: give an optional dependency exactly one `available()` predicate.
+  `spatie/laravel-one-time-passwords` and `spatie/laravel-activitylog` are the
+  remaining cases.
 
-- **Module Filament UI lives in two places on purpose.**
-  `packages/filament/src/Admin/Resources/Central/Modules/` is the staff-facing
-  catalogue; `packages/filament/src/TenantAdmin/{Resources,Pages}/Modules/` is
-  the customer-facing marketplace. Any rule of the form "all module UI goes
-  together" claims the same files twice.
-
-- **85 migrations live in core** (64 central, 21 tenant), including 4 for
-  modules, 9 for `activity_log` (4 central, 5 tenant — **not** symmetrical;
+- **80 migrations live in core** (63 central, 17 tenant), including
+  9 for `activity_log` (4 central, 5 tenant — **not** symmetrical;
   the tenant side carries an `upgrade_activitylog` migration with no central
   counterpart) and 2 for `one_time_passwords`. They stay in core even where
   the code that reads them moved, because the tables have to exist wherever
@@ -108,7 +120,7 @@ for a host that genuinely wants none of the defaults.
   `Support\Compat\*IfInstalled` shims that no-op without the package.
 
 - **Core's config is split by *key*, not by package** (2026-09-01):
-  `config/numerosis/<key>.php`, fifteen partials that `config/numerosis.php`
+  `config/numerosis/<key>.php`, thirteen partials that `config/numerosis.php`
   `array_merge`s. Splitting per package would be wrong, not merely
   unnecessary — a satellite fills its own keys at register time and a host's
   override wins over both, so there is no package line to cut along. Core's

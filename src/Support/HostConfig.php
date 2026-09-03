@@ -55,6 +55,7 @@ final class HostConfig
         self::tenantAuthProvider();
         self::centralAuthProviderModel();
         self::authPasswordBroker();
+        self::tenantPasswordBroker();
         self::activityLogTable();
         self::geoipService();
         self::numerosisConfig();
@@ -438,6 +439,30 @@ final class HostConfig
     }
 
     /**
+     * Fortify's password-reset routes load inside the tenant group too
+     * (`Support\Numerosis::loadFortifyRoutes()`), and `Password::broker()`
+     * resolves a model through `auth.passwords.*`, not `auth.guards.*` — the
+     * central broker {@see self::authPasswordBroker()} defines points at the
+     * `users` provider (`CentralUser`), which would resolve the wrong model
+     * for a tenant subdomain's reset request. A dedicated `tenant` broker
+     * against the `tenant` provider is what `fortify.passwords` is swapped
+     * to for that group.
+     */
+    private static function tenantPasswordBroker(): void
+    {
+        if (Config::get('auth.passwords.tenant') !== null) {
+            return;
+        }
+
+        self::set('auth.passwords.tenant', [
+            'provider' => 'tenant',
+            'table' => 'password_reset_tokens',
+            'expire' => 60,
+            'throttle' => 60,
+        ]);
+    }
+
+    /**
      * Names the activity-log table. Current spatie/laravel-activitylog
      * ships no default for it, and the activity-log migrations read the key
      * directly — unset, they fail with `Incorrect table name ''`.
@@ -467,8 +492,8 @@ final class HostConfig
     /**
      * Backfills `config/numerosis.php` defaults at every depth. Laravel
      * merges published config only one level deep, so overriding a single
-     * nested key such as `modules.catalogue` would otherwise drop every
-     * sibling under `modules`.
+     * nested key such as `billing.trial_days` would otherwise drop every
+     * sibling under `billing`.
      *
      * Only keyed arrays are filled. Lists such as `features` are left
      * exactly as you set them, including empty, since a list's meaning is

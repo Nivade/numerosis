@@ -1,28 +1,22 @@
 /**
- * Build source for `dist/numerosis.css` — NOT shipped to hosts, NOT
- * published. Compile with `npm run build:app` (see package.json); the
- * compiled output is committed at `dist/numerosis.css` and registered as a
- * Filament `Css` asset in `NumerosisServiceProvider::registerFilamentTheme()`,
- * same mechanism as `dist/filament-theme.css` — `php artisan filament:assets`
- * copies it to `public/css/nvade/numerosis/numerosis.css`.
+ * Build source for `dist/numerosis.css` — NOT shipped to hosts as source,
+ * NOT published. Compile with `npm run build:app-css` (see package.json);
+ * the compiled output is committed at `dist/numerosis.css` and copied to
+ * `public/vendor/numerosis/numerosis.css` by
+ * `vendor:publish --tag=numerosis-public-assets`.
  *
- * Distinct from `filament-theme.css`: that file styles *inside* either
- * Filament panel, where `getTheme()` swaps the whole stylesheet and nothing
- * else loads alongside it. This one styles this package's *other* views —
- * auth pages, the registration wizard, account pages, the marketing pages —
- * which render inside the host's own layout and load next to the host's own
- * `resources/css/app.css`. That means Tailwind's preflight resets ship in
- * both files; harmless (ordering-stable, same reset either way) but real —
- * a host that wants exactly one copy of preflight can `@import
- * 'tailwindcss/utilities'` only in their own CSS instead of `@import
- * 'tailwindcss'`.
+ * It styles this package's own views — auth pages, the registration wizard,
+ * account pages — which render inside the host's own layout and load next to
+ * the host's own `resources/css/app.css`. That means Tailwind's preflight
+ * resets ship in both files; harmless (ordering-stable, same reset either
+ * way) but real — a host that wants exactly one copy of preflight can
+ * `@import 'tailwindcss/utilities'` only in their own CSS instead of
+ * `@import 'tailwindcss'`.
  *
- * `@source` below scans this package's own `resources/views/**` (including
- * the Filament ones — harmless duplication with filament-theme.css's own
- * scan, not a conflict, and simpler than excluding them), not a host's
- * `resources/**`. A host Blade view that reaches for a Tailwind utility
- * class not already emitted here or by their own app.css renders unstyled
- * for that class, same trade-off filament-theme.css documents.
+ * `@source` below scans this package's own `resources/views/**`, not a
+ * host's `resources/**`. A host Blade view that reaches for a Tailwind
+ * utility class not already emitted here or by their own app.css renders
+ * unstyled for that class.
  */
 
 @import 'tailwindcss';

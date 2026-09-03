@@ -10,22 +10,14 @@ use Nvade\Numerosis\Tests\TestCase;
  * Guards Phase 2 of .claude/plans/design-system-unification.md: the token
  * layer. These are raw-file assertions, not rendered-view ones — tokens.css
  * is never fetched through Blade/Vite in the Workbench harness (see
- * TestCase::stubViteManifest()'s docblock), and filament-theme.css is a
- * package-maintainer build source that is never published or fetched by a
- * host at all (see resources/theme-src/filament-theme.css's own docblock),
- * so the only honest thing to assert against for either is the CSS source
- * itself.
+ * TestCase::stubViteManifest()'s docblock), so the only honest thing to
+ * assert against is the CSS source itself.
  */
 class DesignTokensTest extends TestCase
 {
     private function tokensCss(): string
     {
         return (string) file_get_contents(dirname(__DIR__, 3).'/resources/css/tokens.css');
-    }
-
-    private function filamentThemeCss(): string
-    {
-        return (string) file_get_contents(dirname(__DIR__, 3).'/resources/theme-src/filament-theme.css');
     }
 
     private function appCss(): string
@@ -124,68 +116,6 @@ class DesignTokensTest extends TestCase
         $this->assertStringContainsString('--radius-lg: var(--radius-lg);', $themeBlock);
     }
 
-    public function test_filament_theme_css_is_a_standalone_bundle_that_imports_tokens_from_the_package(): void
-    {
-        $css = $this->filamentThemeCss();
-
-        // ->theme() replaces the panel's *entire* CSS bundle — unlike
-        // tokens.css, this file has to stand alone.
-        $this->assertStringContainsString("@import 'tailwindcss';", $css);
-        $this->assertStringContainsString(
-            "@import '../../vendor/filament/filament/resources/css/index.css';",
-            $css,
-        );
-
-        // Unlike app.css (published into a host, so it must import the
-        // vendor copy to follow composer update), this file is compiled
-        // *inside* the package's own repo — a relative import of the
-        // package's own tokens.css is correct here, not a drift risk.
-        $this->assertStringContainsString(
-            "@import '../css/tokens.css';",
-            $css,
-        );
-
-        // Filament's own component CSS reads these raw ramp vars — see
-        // vendor/filament/support/resources/css/index.css's @theme inline
-        // block. Remapping them directly is what lets this file sidestep
-        // FilamentColor::register()'s per-container memoisation.
-        foreach (['--primary-500', '--gray-500', '--danger-500', '--warning-500', '--success-500', '--info-500'] as $var) {
-            $this->assertStringContainsString("{$var}:", $css);
-        }
-    }
-
-    public function test_filament_theme_loads_instrument_sans(): void
-    {
-        $this->assertStringContainsString("--font-family: 'Instrument Sans' !important;", $this->filamentThemeCss());
-    }
-
-    public function test_filament_theme_gray_ramp_is_zinc_and_primary_ramp_is_hue_parameterized(): void
-    {
-        $css = $this->filamentThemeCss();
-
-        $this->assertStringContainsString('--gray-500: var(--zinc-500) !important;', $css);
-
-        // Every shade parameterized by --pref-accent-hue (Phase 7), not a
-        // fixed reference to a static blue ramp — otherwise a host's hue
-        // override reaches the main app but never either Filament panel.
-        //
-        // `!important` (Phase 9): Filament's own `ColorManager::DEFAULT_COLORS`
-        // seeds `primary => Amber` unconditionally, regardless of whether a
-        // panel calls `->colors()`, and re-emits it as a `<style>:root{...}</style>`
-        // block on every request (`AssetManager::renderStyles()`). Whichever
-        // `:root` block lands later in the DOM wins at equal specificity —
-        // this file must not depend on winning that race by injection-order
-        // luck, since Filament's checked-checkbox fill and `.fi-color` filled
-        // buttons both key off this same --primary-* var.
-        foreach (['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'] as $shade) {
-            $this->assertMatchesRegularExpression(
-                "/--primary-{$shade}: oklch\\([^)]*var\\(--pref-accent-hue\\)\\) !important;/",
-                $css,
-                "--primary-{$shade} does not derive from --pref-accent-hue, or is missing !important.",
-            );
-        }
-    }
-
     /**
      * Phase 7: `--pref-accent-hue` used to be declared and never consumed
      * — `--color-primary` referenced a fixed `var(--accent-500)` instead,
@@ -247,43 +177,5 @@ class DesignTokensTest extends TestCase
 
         $this->assertStringContainsString('min-height: 44px;', $touchTargetBlock);
         $this->assertStringContainsString('min-width: 44px;', $touchTargetBlock);
-    }
-
-    /**
-     * Phase 9: `Filament\Support\Colors\ColorManager::DEFAULT_COLORS`
-     * (primary => Amber, gray => Zinc, danger => Red, info => Blue,
-     * success => Green, warning => Amber) is unshifted unconditionally in
-     * the manager's constructor — no panel has to call `->colors()` for it
-     * to apply. `AssetManager::renderStyles()` re-emits it as a
-     * `<style>:root{--primary-*:...}</style>` block on every request
-     * regardless. Observed live against app.thinapp.dev/admin/login: that
-     * block loads *before* this file's own `:root`, so cascade order alone
-     * happened to make ours win — but nothing pins that order across every
-     * panel page or render hook, and Filament's checked-checkbox fill
-     * (`checked:bg-primary-600`) and `.fi-color` filled-button background
-     * both key off this same var. A flip reads as an invisible/low-contrast
-     * checkbox or button, not a visibly-wrong color, which is what made it
-     * hard to spot. Every color-ramp declaration in this file's `:root`
-     * must carry `!important` so it wins unconditionally instead of by
-     * injection-order luck.
-     */
-    public function test_filament_theme_color_ramp_wins_regardless_of_default_color_injection_order(): void
-    {
-        $css = $this->filamentThemeCss();
-
-        [, $rootBlock] = explode(":root {\n", $css, 2);
-        [$rootBlock] = explode("\n}\n", $rootBlock, 2);
-
-        preg_match_all('/^\s*(--[a-z]+-\d+):\s*[^;]+;/m', $rootBlock, $declarations);
-
-        $this->assertNotEmpty($declarations[1], 'Expected to find color-ramp declarations in filament-theme.css\'s :root block.');
-
-        foreach ($declarations[0] as $declaration) {
-            $this->assertStringContainsString(
-                '!important;',
-                $declaration,
-                "{$declaration} must carry !important — see this test's docblock.",
-            );
-        }
     }
 }

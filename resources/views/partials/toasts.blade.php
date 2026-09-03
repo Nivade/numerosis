@@ -1,7 +1,7 @@
 @php
     /**
      * The one notification channel (design-system-unification Phase 6):
-     * every surface that isn't a Filament panel pushes through this same
+     * every surface pushes through this same
      * `notify` browser event instead of each page rolling its own inline
      * flash box the way the registration wizard used to
      * (`<x-numerosis::ui.alert closable />`, read directly off session()).

@@ -22,7 +22,7 @@ uses(TestCase::class, RefreshDatabase::class);
  * `SubdomainModeTest` and `CustomDomainModeTest` do).
  *
  * The failure this exists for is documented on
- * `Nvade\NumerosisOnboarding\Livewire\Registration::getCurrentStepState()`:
+ * `Nvade\Numerosis\Livewire\Tenant\Registration::getCurrentStepState()`:
  * a `nextStep()` whose dispatched event targets a component name nothing is
  * embedded under is a **silent no-op** — no exception, no validation error,
  * the request round-trips successfully and `currentStepName` simply never

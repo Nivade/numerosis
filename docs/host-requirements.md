@@ -7,7 +7,7 @@ deferred to that phase on purpose, so config another package's own
 `mergeConfigFrom()` still has to merge into is normalized after it lands
 rather than before; see `.ai/rules/package-host-bootstrap.md`) — a host
 that sets database credentials, Stripe keys and `APP_URL`, runs `migrate`
-and `filament:assets`, and writes a one-line `bootstrap/app.php` gets a
+and asset publishing, and writes a one-line `bootstrap/app.php` gets a
 working multi-tenant SaaS. Everything past that is an override, not a
 requirement.
 
@@ -21,18 +21,17 @@ publishing or seeding anything.
 
 ## 0. What you install
 
-`nvade/numerosis` is six Composer packages developed in one repository and
+`nvade/numerosis` is five Composer packages developed in one repository and
 published as read-only splits. Core is the only one you must have; the other
-five are UI layers you can decline, and declining one is a supported state,
+four are UI layers you can decline, and declining one is a supported state,
 not a degraded one.
 
 | Package | What it is | Declining it costs |
 |---|---|---|
-| `nvade/numerosis` | Tenancy, billing, provisioning, auth mechanics, the module system, every migration and seeder. | — it is the package. |
+| `nvade/numerosis` | Tenancy, billing, provisioning, auth mechanics, every migration and seeder. | — it is the package. |
 | `nvade/numerosis-ui` | The shared Blade layer: `<x-numerosis::ui.*>`, the design tokens, `livewire/flux`. | Not declinable in practice — core `require`s it, because core's own views render its components and a missing Blade tag renders as literal text rather than failing. |
-| `nvade/numerosis-filament` | The admin and tenant Filament panels, every resource and page, the module marketplace UI. Pulls `filament/filament` in with it. | No panel registers at all, and `filament/filament` is then not needed either. Everything below the UI still works; `App\Models\User` loses `FilamentUser`/`HasTenants` and autoloads fine without them. |
-| `nvade/numerosis-auth-ui` | The login / register / password-reset / OAuth **screens**, and `laravel/socialite`. | No `/login`, `/register` or `/forgot-password` route; the tenant panel falls back to Filament's own login page; social login is unavailable. Core keeps the auth *mechanics* — guards, `LogoutUser`, email verification, the social-account repository, `TurnstileFeature`, both `one_time_passwords` migrations. |
-| `nvade/numerosis-account` | The account UI: the four settings screens (profile, password, appearance, delete account), the workspace list, the billing-portal and invoice-download routes, and `AccountPagesFeature`. | No `/settings/*`, no workspace list, no billing portal — build your own, or send users straight to the tenant panel. Core keeps the *name* of the feature as `Support\Ui\AccountPages::FEATURE`, because six core and satellite call sites gate a post-login redirect on it. Its views join the shared `numerosis::` namespace; its single-file Livewire pages use their own `account-pages::` prefix, since `livewire.component_namespaces` maps a prefix to exactly one directory. |
+| `nvade/numerosis-auth-ui` | The login / register / password-reset / OAuth **screens**, and `laravel/socialite`. | No `/login`, `/register` or `/forgot-password` route, and social login is unavailable. Core keeps the auth *mechanics* — guards, `LogoutUser`, email verification, the social-account repository, `TurnstileFeature`, both `one_time_passwords` migrations. |
+| `nvade/numerosis-account` | The account UI: the four settings screens (profile, password, appearance, delete account), the workspace list, the billing-portal and invoice-download routes, and `AccountPagesFeature`. | No `/settings/*`, no workspace list, no billing portal — build your own. Core keeps the *name* of the feature as `Support\Ui\AccountPages::FEATURE`, because six core and satellite call sites gate a post-login redirect on it. Its views join the shared `numerosis::` namespace; its single-file Livewire pages use their own `account-pages::` prefix, since `livewire.component_namespaces` maps a prefix to exactly one directory. |
 | `nvade/numerosis-onboarding` | The self-serve registration wizard at `/get-started`. | No signup route, and core's own references to it — links in four views plus `CompleteRedirectCheckout`'s post-checkout redirect — are hidden. All of them gate on `Support\Tenancy\SelfServeRegistration::FEATURE`, a constant **core** owns for exactly this reason: a class-constant fetch autoloads the class, so gating on the satellite's own `NAME` would fatal a host that declined it. Tenants can still be created from an admin screen, a job or a Stripe webhook. |
 
 Two consequences worth knowing before you pick:
@@ -67,7 +66,7 @@ framework hook that has to run before any package code can act.
 | DB credentials + `php artisan migrate` | working MySQL credentials; migrations run against the `central` connection | MySQL — tenancy needs `CREATE DATABASE`, and the `central` connection has to exist before anything else in this list means anything | `verifyDatabaseConnections()` |
 | — same, `failed_jobs` table specifically | present on whichever connection `queue.failed.database` names | migrations create it; nothing else does | `verifyFailedJobsConnection()` |
 | One-line `bootstrap/app.php` | `Numerosis::configure(...)`, or `->withRouting()`/`->withMiddleware()` calling `Numerosis::routes()`/`Numerosis::middleware()` | `ApplicationBuilder::withRouting()`/`withMiddleware()` run at builder time, before any service provider — nothing inside `packageRegistered()`/`packageBooted()` can substitute for the framework hook itself | — `NumerosisServiceProvider::booted()` self-heals a missing call (registers routes/middleware itself if it detects neither ran) rather than failing the install command; see `.ai/rules/package-host-bootstrap.md` |
-| `php artisan filament:assets` | run at least once | already required for Filament's own core CSS; also copies this package's prebuilt theme + app JS/CSS to `public/{css,js}/nvade/numerosis/` | `verifyFilamentThemeAsset()` |
+| `php artisan vendor:publish --tag=numerosis-public-assets` | run at least once, unless you build `resources/js/numerosis.js` through your own Vite | copies this package's prebuilt JS/CSS to `public/vendor/numerosis/`; `Assets::tags()` links both URLs whether or not they are there, so a missing publish is a 404, not an exception | `verifyPublicAssets()` |
 | DNS + a provisioning worker | depends on `numerosis.tenancy.identification.mode` — `subdomain`: `*.{tenant_pattern}` resolves; `custom_domain`: each tenant points their own domain here; `path`: no DNS change at all. Plus, in every mode, a queue worker on the `provisioning` queue | infrastructure — tenant provisioning is queued there, not on the default worker | — infrastructure, outside anything a boot-time check can observe; `numerosis:install`'s printed manual steps name the right one for your mode |
 
 **Plus two conditionals**:
@@ -90,7 +89,7 @@ framework hook that has to run before any package code can act.
   reported exception per checkout page load, which is worth knowing before
   it shows up in Sentry.
 
-Central data (roles, permissions, example plans, module catalogue) needs
+Central data (roles, permissions and the example plans) needs
 seeding too, but as of the seeding-by-convention work below that's now a
 side effect of a command you already run (`numerosis:install`, or a fresh
 host's own `db:seed`), not a separate obligation.
@@ -146,8 +145,6 @@ what stops the next normalization from shipping undocumented the way
 | `resources/{css,js}` (published `numerosis-assets`) | not required — `Numerosis::assetTags()` renders the prebuilt `dist/numerosis.js`/`dist/numerosis.css` whenever `resources/js/numerosis.js` hasn't been published | publish + customise (`numerosis.js` imports `stripe-checkout.js`/`stripe-confirm.js` by relative path, both load-bearing for payment — keep the directory together) | `verifyPublishedAssetsMatchSource()` (warns on drift between a published copy and the vendor original; doesn't fail the install) |
 | `activitylog.table_name` | `'activity_log'`, whenever unset | set it yourself | — no `verify*()`; a wrong value here surfaces as `Incorrect table name ''` from `migrate`, not at install-check time |
 | `geoip.service` | `'maxmind_database'`, whenever unset — torann/geoip ships `null` there and its own `GeoIP::getService()` throws on that, so every checkout page load would fatal | choose another service (`maxmind_api`, `ipapi`, …), or keep this one and repoint `geoip.services.maxmind_database.database_path` | — no `verify*()`: the sole caller (`ResolveCheckoutRegion`) catches, reports and returns null, so even a missing `.mmdb` costs the region-specific payment-method order rather than the checkout. See §1's MaxMind conditional |
-| `numerosis.panels.{admin,tenant}.provider`, `numerosis.panels.default` | both providers unset — `nvade/numerosis-filament` registers `NumerosisAdminPanelProvider` / `NumerosisTenantPanelProvider` itself when installed, so a host's `bootstrap/providers.php` lists neither, and without that package no panel registers at all (`filament/filament` is then not needed either); `default` is `'admin'`, the panel a bare `/` resolves into | name your own provider class in either key to replace that panel wholesale — core registers what you name and numerosis-filament stands down for that panel — or set `default` to `'tenant'`/`null` (`null` only if your own provider supplies a default panel — Filament has nowhere to route an unscoped request otherwise) | — a class Filament cannot register already fails by name, from Filament, at boot; whether a panel registers at all stays each plugin's `shouldRegisterPanel()` call, which is request-shaped and not observable at install time |
-| `numerosis.panels.tenant.login`, `numerosis.panels.admin.tenant_registration_component` | `login` is **`null`** — `nvade/numerosis-auth-ui` fills it with its own `PasswordlessLogin` at register time when installed, and Filament falls back to its own login page when it is not; `tenant_registration_component` is the `tenant-registration` wizard alias | name your own Livewire login component, or your own wizard's registered alias; set either to `null` to switch that piece off | — read defensively rather than verified: a `null`, an empty string, or a login class that isn't installed all mean "skip that wiring", never a fatal. That is the point of these two keys — `->login(Foo::class)` takes a compile-time string, so an uninstalled login component would otherwise register fine and only fatal at the first `/login` on a tenant subdomain |
 
 ### Notes worth keeping in mind
 
@@ -166,26 +163,20 @@ what stops the next normalization from shipping undocumented the way
   suite — the browser plugin serves Laravel in-process, so
   `runningInConsole()` stays true and the tenant panel's `{tenant}` wildcard
   is always registered; verify that one by hand against a real web server.
-  See `.ai/rules/identification-modes.md` and
-  `.ai/rules/filament-tenancy.md`.
-- **`filament/filament`, `internachi/modular`,
-  `spatie/laravel-one-time-passwords` and `spatie/laravel-activitylog` are
-  all `suggest`, not `require`** — as are the three optional packages in §0
-  (`nvade/numerosis-{filament,auth-ui,onboarding}`).
-  `nvade/numerosis-filament` owns both panels and pulls `filament/filament`
-  in with it (`alizharb/filament-activity-log` is that package's `suggest`,
-  not this one's). Skip them and you get a working
-  multi-tenant SaaS with no admin/tenant panel, no module marketplace, no
-  passwordless (OTP)
-  login, and no activity logging — `App\Models\User` (or your own subclass)
-  still autoloads and works, it just doesn't `implements FilamentUser` or
+  See `.ai/rules/identification-modes.md`.
+- **`spatie/laravel-one-time-passwords` and `spatie/laravel-activitylog` are
+  both `suggest`, not `require`** — as are the optional packages in §0
+  (`nvade/numerosis-{auth-ui,onboarding}`).
+  Skip them and you get a working
+  multi-tenant SaaS with no passwordless (OTP)
+  login and no activity logging — `App\Models\User` (or your own subclass)
+  still autoloads and works, it just doesn't
   compose `HasOneTimePasswords`/`LogsActivity`. This works because
-  `Nvade\Numerosis\Support\Compat\*` (`FilamentUserContract`,
-  `FilamentHasTenantsContract`, `HasOneTimePasswordsIfInstalled`,
+  `Nvade\Numerosis\Support\Compat\*` (`HasOneTimePasswordsIfInstalled`,
   `LogsActivityIfInstalled`) conditionally define themselves against the
   real package's interface/trait only when it's installed
   (`interface_exists()`/`trait_exists()`, checked once at file scope) —
-  install one of these four later and the corresponding behaviour turns on
+  install one of these two later and the corresponding behaviour turns on
   with no code change on your side, since the base models already
   reference the compat symbol, not the real one directly.
 - **Don't name a guard literally `central` alongside `web`.** Two session
@@ -264,11 +255,10 @@ what stops the next normalization from shipping undocumented the way
   before 2026-08-12 predates that line; `verifyPublishedAssetsMatchSource()`
   reports the drift, but only as a warning, since editing these files is
   the point of publishing them.
-- **`config/cashier.php`, `config/permission.php`, `config/broadcasting.php`,
-  `config/queue.php`, `config/numerosis.php`'s `modules` block** are
-  published as-is by their own packages, or are pure host *data* (the
-  module catalogue, Filament plugin map) rather than package invariants —
-  nothing to normalize or verify beyond what's already listed above.
+- **`config/cashier.php`, `config/permission.php`, `config/broadcasting.php`
+  and `config/queue.php`** are published as-is by their own packages rather
+  than being package invariants — nothing to normalize or verify beyond
+  what's already listed above.
 - **The deep-fill has one blind spot: a key your file still names, in an
   outdated shape.** It only ever backfills a key that's entirely *missing*
   from your file — a top-level key renamed or restructured since you last

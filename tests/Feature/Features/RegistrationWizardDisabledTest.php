@@ -9,18 +9,13 @@ use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Nvade\Numerosis\Features\Auth\EmailVerificationFeature;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
+use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
-use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
 use Nvade\Numerosis\Features\Tenancy\MembershipsFeature;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Tests\TestCase;
-use Nvade\NumerosisAccount\Features\AccountPagesFeature;
-use Nvade\NumerosisAuthUi\Features\SocialLoginFeature;
-use Nvade\NumerosisFilament\Features\ActivityLogFeature;
-use Nvade\NumerosisFilament\Features\AdminPanelFeature;
-use Nvade\NumerosisFilament\Features\TenantPanelFeature;
 
 class RegistrationWizardDisabledTest extends TestCase
 {
@@ -30,15 +25,10 @@ class RegistrationWizardDisabledTest extends TestCase
         Features::forceForTesting([
             TurnstileFeature::class,
             SocialLoginFeature::class,
-            ModuleSystemFeature::class,
             InvitationsFeature::class,
             EmailVerificationFeature::class,
             BillingNotificationsFeature::class,
             PasswordResetFeature::class,
-            ActivityLogFeature::class,
-            AccountPagesFeature::class,
-            AdminPanelFeature::class,
-            TenantPanelFeature::class,
             MembershipsFeature::class,
         ]);
 

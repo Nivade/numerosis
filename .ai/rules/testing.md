@@ -462,7 +462,7 @@ rest of this file is read:
 
   Older measurements, kept for the fixed-list they carry, not as current
   fact: 2026-07-28 full run **149 passed, 28 failed, 1 skipped in ~546s**,
-  then 14 of those 28 fixed (see `.ai/rules/filament-tenancy.md`); a
+  then 14 of those 28 fixed (in the since-deleted `filament-tenancy.md`); a
   2026-07-31 pass fixed the rest except lock-wait contention, landing at
   **9 failed, 1 skipped, 313 passed in ~307s**. Baseline a suspicious
   failure against `git stash` before investigating; the list moves.

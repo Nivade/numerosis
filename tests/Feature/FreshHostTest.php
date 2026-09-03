@@ -24,7 +24,7 @@ use Stancl\Tenancy\Jobs\MigrateDatabase;
 /**
  * Proves docs/host-requirements.md §1's own claim: a host supplying only the
  * six irreducible obligations (`APP_URL`, Stripe keys, DB credentials +
- * `migrate`, the `bootstrap/app.php` routing/middleware hook, `filament:assets`,
+ * `migrate`, the `bootstrap/app.php` routing/middleware hook, asset publishing,
  * a provisioning worker) gets a fully working multi-tenant SaaS with zero
  * `numerosis.*`/`tenancy.*`/`auth.*` config of its own — this is the test
  * `.claude/plans/better-dx.md`'s "Verification" section calls for and the
@@ -115,7 +115,7 @@ class FreshHostTest extends Orchestra
      * (`APP_URL`, Stripe keys, DB credentials) as real process environment
      * variables — see the class docblock for why `putenv()` here, before
      * `parent::setUp()`, rather than `Config::set()` in
-     * `getEnvironmentSetUp()`. `filament:assets`/migrate/the routing hook/
+     * `getEnvironmentSetUp()`. Asset publishing/migrate/the routing hook/
      * DNS+worker obligations are satisfied by this method's other lines
      * (migrate below), `defineRoutes()`, and `QUEUE_CONNECTION=sync`
      * respectively.
@@ -278,6 +278,13 @@ class FreshHostTest extends Orchestra
      *
      * @vite() needs a stub manifest — a harness need, not something
      * HostConfig is responsible for.
+     *
+     * Duplicated from `Tests\TestCase::stubViteManifest()` rather than
+     * inherited, because this class extends Orchestra directly. Written
+     * through a temp file plus `rename()` for the same reason as that copy:
+     * under `--parallel`, every worker targets this one path, and a plain
+     * `file_put_contents()` lets a concurrent reader see truncated JSON.
+     * See that method's docblock for how the failure presents.
      */
     private function stubViteManifest(): void
     {
@@ -297,15 +304,23 @@ class FreshHostTest extends Orchestra
             ];
         }
 
-        file_put_contents($buildDir.'/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+        $path = $buildDir.'/manifest.json';
+        $temporary = $path.'.'.getmypid().'.tmp';
+
+        file_put_contents($temporary, json_encode($manifest, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+        rename($temporary, $path);
     }
 
+    /**
+     * `login` belonged to nvade/numerosis-auth-ui's Livewire
+     * PasswordlessLogin, deleted (not moved) when that package folded into
+     * core in Phase 3 of `.claude/plans/humming-nibbling-flame.md`. Phase 4
+     * rebuilds it on Fortify — reinstate this assertion then.
+     */
     public function test_login_renders_with_zero_explicit_numerosis_tenancy_or_auth_config(): void
     {
-        $response = $this->get(self::APP_URL.'/login');
-
-        $response->assertOk();
-        $response->assertSeeText('Log in');
+        $this->markTestSkipped('login awaits the Fortify rebuild in Phase 4.');
     }
 
     public function test_tenancy_bootstrappers_carry_both_package_bootstrappers(): void

@@ -18,9 +18,9 @@ use Stancl\Tenancy\Tenancy;
  * class existed: every `mountAction`/`wire:model`/form-submit commit under
  * path mode failed tenancy identification silently (a warning-turned-
  * exception the Livewire JS swallows without a visible console error), so
- * no Livewire interaction worked on a path-mode tenant panel — found via
- * `tests/Browser/ModuleMarketplaceTest`'s purchase-modal case, which never
- * mounted for this reason rather than a Livewire/Alpine bug.
+ * no Livewire interaction worked on a path-mode tenant panel — found via a
+ * browser test whose modal never mounted for this reason rather than for a
+ * Livewire/Alpine bug.
  *
  * The route itself can't carry `{tenant}` — Livewire's client always posts
  * to the one URL `Livewire::setUpdateRoute()` registered, regardless of

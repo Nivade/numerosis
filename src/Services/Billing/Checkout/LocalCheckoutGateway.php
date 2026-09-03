@@ -12,9 +12,7 @@ use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Routes\RouteNames;
-use Nvade\Numerosis\Support\Ui\AccountPages;
 
 /**
  * Provisions a tenant without touching Stripe.
@@ -41,8 +39,6 @@ class LocalCheckoutGateway implements CheckoutGateway
             centralUserId: $userId !== null ? (string) $userId : null,
         ));
 
-        $route = Features::enabled(AccountPages::FEATURE) ? RouteNames::tenantsMine() : RouteNames::home();
-
-        return new RedirectCheckout(route($route));
+        return new RedirectCheckout(route(RouteNames::tenantsMine()));
     }
 }

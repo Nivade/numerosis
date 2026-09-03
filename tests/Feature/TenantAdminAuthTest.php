@@ -9,22 +9,31 @@ use App\Models\Central\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Schema;
 use Nvade\Numerosis\Tests\TestCase;
 
+/**
+ * The `tenancy.auth` middleware's reason for existing: a central user who
+ * belongs to a tenant is signed in on the *tenant* guard on the way through,
+ * rather than bounced to a login screen for an account they already hold.
+ *
+ * Drives `/account-suspended` because it is the one core route inside the
+ * authenticated tenant group; the tenant root is deliberately public.
+ */
 class TenantAdminAuthTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_central_user_can_access_tenant_admin_panel_as_tenant_user(): void
+    private const AUTHENTICATED_TENANT_PATH = '/account-suspended';
+
+    public function test_central_user_reaching_an_authenticated_tenant_route_is_signed_in_on_the_tenant_guard(): void
     {
         $id = 'test-'.uniqid();
         $domain = $this->tenantDomain($id);
 
         // 1. Create a tenant. forceCreate, as production does: `id` is not
         // fillable, so Tenant::create() drops it and UUIDGenerator assigns a
-        // uuid instead — the subdomain then no longer matches the panel's
-        // {tenant} route parameter and Filament answers 404.
+        // uuid instead — the subdomain then no longer matches the tenant and
+        // identification 404s.
         $tenant = Tenant::forceCreate(['id' => $id, 'name' => 'Test Tenant']);
         $tenant->domains()->create([
             'id' => $id,
@@ -46,20 +55,10 @@ class TenantAdminAuthTest extends TestCase
         ]);
 
         // 4. Create the corresponding tenant user in the tenant's database.
-        // The global_id must match the central user's: Filament resolves the
-        // panel tenant through User::canAccessTenant(), which looks the
-        // membership up by global_id, and answers 404 when it finds none.
+        // The global_id must match the central user's: the promotion goes
+        // through User::canAccessTenant(), which looks the membership up by
+        // global_id and refuses when it finds none.
         $tenant->run(function () use ($centralUser) {
-            // Create modules table if it doesn't exist
-            Schema::dropIfExists('modules');
-            Schema::create('modules', function ($table) {
-                $table->id();
-                $table->string('name');
-                $table->string('description')->nullable();
-                $table->boolean('enabled')->default(true);
-                $table->timestamps();
-            });
-
             TenantUser::create([
                 'global_id' => $centralUser->global_id,
                 'name' => 'Test User',
@@ -70,9 +69,10 @@ class TenantAdminAuthTest extends TestCase
         // 5. Authenticate central user on 'web' guard
         Auth::guard('web')->login($centralUser);
 
-        // 6. Access the tenant admin panel (this should trigger the SSO in Authenticate middleware)
+        // 6. Reach an authenticated tenant route (this triggers the SSO in
+        // the tenancy.auth middleware)
         $response = $this->actingAs($centralUser, 'web')
-            ->get('http://'.$domain.'/');
+            ->get('http://'.$domain.self::AUTHENTICATED_TENANT_PATH);
 
         // 7. Assertions
         $response->assertOk();
@@ -86,11 +86,11 @@ class TenantAdminAuthTest extends TestCase
 
         // 8. Second request should NOT re-trigger login (we can check this by spying on Auth guard if needed, but for now we just check it still works)
         $response2 = $this->actingAs($centralUser, 'web')
-            ->get('http://'.$domain.'/');
+            ->get('http://'.$domain.self::AUTHENTICATED_TENANT_PATH);
         $response2->assertOk();
     }
 
-    public function test_central_user_without_access_to_tenant_cannot_access_panel(): void
+    public function test_central_user_without_access_to_tenant_is_not_promoted_onto_the_tenant_guard(): void
     {
         $id = 'test-'.uniqid();
         $domain = $this->tenantDomain($id);
@@ -110,12 +110,16 @@ class TenantAdminAuthTest extends TestCase
             'password' => 'password',
         ]);
 
-        // 3. Try to access the tenant admin panel
+        // 3. Try to reach an authenticated tenant route
         $response = $this->actingAs($centralUser, 'web')
-            ->get('http://'.$domain.'/');
+            ->get('http://'.$domain.self::AUTHENTICATED_TENANT_PATH);
 
-        // 4. Assertion (should be redirected or 403, depending on Authenticate middleware)
-        // Authenticate middleware throws AuthenticationException which redirects to login by default
+        // 4. No promotion happened, so the tenant guard is still empty and
+        // the middleware throws AuthenticationException, which redirects.
         $response->assertRedirect();
+
+        $tenant->run(function (): void {
+            $this->assertFalse(Auth::guard('tenant')->check());
+        });
     }
 }

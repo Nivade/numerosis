@@ -1,3 +1,11 @@
+> **Header note, 2026-09-03.** Every reference below to
+> `.ai/rules/filament-tenancy.md`, to a panel, or to Filament's own tenancy is
+> **void**: `packages/filament` and that rule file were deleted in Phase 1 of
+> `.claude/plans/humming-nibbling-flame.md`. The three identification modes,
+> the slug-vs-domain distinction and `PreservingPathTenantResolver` are all
+> unchanged and still current — only the second tenancy system they used to
+> have to coexist with is gone.
+
 # Tenant Identification Modes
 
 `config('numerosis.tenancy.identification.mode')` selects one of

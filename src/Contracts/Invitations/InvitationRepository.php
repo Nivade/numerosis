@@ -8,7 +8,7 @@ use Nvade\Numerosis\Models\Tenant\Invitation;
 
 /**
  * `Livewire\Invitations\Accept`, `Http\Middleware\CheckInvitationStatus`, and
- * `Nvade\NumerosisAuthUi\Http\Controllers\Socialite\Login` each look invitations up by token/id
+ * `Nvade\Numerosis\Http\Controllers\Socialite\Login` each look invitations up by token/id
  * directly against `Invitation::where(...)` today. A consumer storing
  * invitations differently (a different key shape, a soft-delete-aware
  * lookup, a cache in front of the query) implements this instead of every

@@ -11,18 +11,16 @@ class SocialLoginButtonsTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * The `login` screen this rendered through belonged to
+     * nvade/numerosis-auth-ui's Livewire PasswordlessLogin, deleted (not
+     * moved) when that package folded into core in Phase 3 of
+     * `.claude/plans/humming-nibbling-flame.md`. Phase 4 rebuilds it on
+     * Fortify — reinstate this assertion, against whatever screen renders
+     * `<x-numerosis::auth.buttons.grid>` then.
+     */
     public function test_it_only_renders_buttons_for_providers_configured_in_services(): void
     {
-        // config/services.php only defines 'google' and 'discord' — github,
-        // facebook and gitlab have no config block at all, so the grid must
-        // not render a button for them (see grid.blade.php's filter).
-        $response = $this->get(route('login'));
-
-        $response->assertOk();
-        $response->assertSee(route('oauth', ['driver' => 'google']), false);
-        $response->assertSee(route('oauth', ['driver' => 'discord']), false);
-        $response->assertDontSee(route('oauth', ['driver' => 'github']), false);
-        $response->assertDontSee(route('oauth', ['driver' => 'facebook']), false);
-        $response->assertDontSee(route('oauth', ['driver' => 'gitlab']), false);
+        $this->markTestSkipped('The login screen awaits the Fortify rebuild in Phase 4.');
     }
 }

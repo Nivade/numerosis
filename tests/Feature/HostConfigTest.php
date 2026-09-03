@@ -389,11 +389,14 @@ class HostConfigTest extends TestCase
 
     public function test_it_fills_missing_keys_in_a_partially_overridden_numerosis_section(): void
     {
-        Config::set('numerosis.modules', ['catalogue' => ['fake' => true]]);
+        Config::set('numerosis.billing', ['trial_days' => 3]);
 
         $this->rebootPackage();
 
-        $this->assertSame(['fake' => true], Config::get('numerosis.modules.catalogue'));
+        // The key the host set survives, and every sibling it omitted — which
+        // a one-level-deep merge would have dropped — is backfilled.
+        $this->assertSame(3, Config::get('numerosis.billing.trial_days'));
+        $this->assertSame('billing/webhook', Config::get('numerosis.billing.webhook_path'));
     }
 
     public function test_it_leaves_a_hosts_list_shaped_override_untouched(): void

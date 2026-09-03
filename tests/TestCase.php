@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests;
 use App\Models\Central\CentralUser;
 use App\Models\Central\Domain;
 use App\Models\Tenant\User;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Config;
@@ -23,7 +24,6 @@ use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Testing\CleansUpTenancyDatabases;
 use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
-use Nvade\NumerosisFilament\Testing\InteractsWithTenantPanel;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Pdo\Mysql;
 use Spatie\Activitylog\Models\Activity;
@@ -36,22 +36,26 @@ use Stancl\Tenancy\UUIDGenerator;
 abstract class TestCase extends Orchestra
 {
     use CleansUpTenancyDatabases;
-    use InteractsWithTenantPanel;
 
-    /**
-     * `NumerosisServiceProvider::registerFilamentPanels()` registers both
-     * panels itself now (Phase 2, package-host-bootstrap) — Workbench used
-     * to carry its own stand-in copies of `AdminPanelProvider`/
-     * `TenantAdminPanelProvider` for exactly what the package now supplies
-     * by default, and registering both would have silently double-registered
-     * the same panel ids (Filament's `PanelRegistry` keys by id and the
-     * second registration just overwrites the first — no error, no signal).
-     */
     protected function getPackageProviders($app): array
     {
         return [
             NumerosisServiceProvider::class,
         ];
+    }
+
+    /**
+     * Authenticate on the tenant guard, the way a request inside a tenant
+     * route group would.
+     *
+     * `actingAs()`'s default guard is the central one, so a bare call leaves
+     * every tenant-guard check false and the failure surfaces as an
+     * unrelated 403/redirect. Replaces the panel-aware helper the deleted
+     * Filament package used to supply.
+     */
+    protected function actingAsTenantUser(Authenticatable $user): void
+    {
+        $this->actingAs($user, Config::string('numerosis.auth.guards.tenant'));
     }
 
     /**
@@ -61,7 +65,7 @@ abstract class TestCase extends Orchestra
      * vendor package's discovered providers *and* aliases, silently, no
      * error at boot. Every vendor dependency this package relies on
      * (`livewire/livewire`'s `Livewire` facade alias and `livewire.finder`
-     * binding, `filament/filament`'s facades, …) is reached through Laravel's
+     * binding, …) is reached through Laravel's
      * own auto-discovery, exactly like a real consuming app — nothing here
      * hand-registers a provider or alias that discovery already supplies, so
      * this one override is the fix, not a per-package alias list.
@@ -349,11 +353,12 @@ abstract class TestCase extends Orchestra
         // `<livewire:layouts::header />`). See docs/host-requirements.md's
         // `config/livewire.php` row.
         //
-        // Set one key at a time, never the whole array: this method runs after
-        // every provider's register(), and a satellite contributes its own
-        // namespace there (nvade/numerosis-account's `account-pages`).
-        // Replacing the array wholesale dropped it silently, and the only
-        // symptom was `Unable to find component: [account-pages::tenant.mine]`.
+        // Set one key at a time, never the whole array: a satellite provider
+        // used to contribute its own namespace here (nvade/numerosis-account's
+        // `account-pages`, folded into core's own `pages::` in Phase 3 of
+        // `.claude/plans/humming-nibbling-flame.md`). Replacing the array
+        // wholesale dropped it silently, and the only symptom was
+        // `Unable to find component: [account-pages::tenant.mine]`.
         $app->make(Repository::class)->set(
             'livewire.component_namespaces.layouts',
             dirname(__DIR__).'/resources/views/layouts',
@@ -403,8 +408,7 @@ abstract class TestCase extends Orchestra
         // there so it isn't forced on every consumer — see
         // Nvade\Numerosis\Support\Compat\LogsActivityIfInstalled), but the
         // package's own require-dev pulls it in for the test suite, so this
-        // config/migration must exist here regardless of ActivityLogFeature
-        // (which only gates the Filament UI on top of it).
+        // config/migration must exist here regardless.
         $app->make(Repository::class)->set('activitylog.database_connection', null);
         $app->make(Repository::class)->set('activitylog.table_name', 'activity_log');
         $app->make(Repository::class)->set('activitylog.activity_model', Activity::class);
@@ -426,6 +430,17 @@ abstract class TestCase extends Orchestra
      * assets — they render server-side HTML and assert against that, so a
      * manifest entry only needs to resolve to *some* file path, never a real
      * built one.
+     *
+     * **Written atomically, and that is not tidiness.** This runs on every
+     * test's application boot, and `--parallel` gives eight worker processes
+     * that all target this one path under `workbench/public`. A plain
+     * `file_put_contents()` truncates before it writes, so a worker reading
+     * the file during another worker's write gets partial JSON;
+     * `json_decode()` returns null and `Illuminate\Foundation\Vite` reports
+     * it as `Unable to locate file in Vite manifest: resources/css/app.css`
+     * — pointing at whichever view happened to render, never at this method.
+     * A `rename()` on the same filesystem is atomic, so a reader sees either
+     * the old complete file or the new one.
      */
     private function stubViteManifest(Application $app): void
     {
@@ -449,7 +464,22 @@ abstract class TestCase extends Orchestra
             ];
         }
 
-        file_put_contents($buildDir.'/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+        self::writeManifestAtomically($buildDir.'/manifest.json', $manifest);
+    }
+
+    /**
+     * Temp name carries the pid: two workers renaming the *same* temp file
+     * would reintroduce the race this exists to remove.
+     *
+     * @param  array<string, array{file: string, src: string, isEntry: bool}>  $manifest
+     */
+    protected static function writeManifestAtomically(string $path, array $manifest): void
+    {
+        $temporary = $path.'.'.getmypid().'.tmp';
+
+        file_put_contents($temporary, json_encode($manifest, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+        rename($temporary, $path);
     }
 
     /**

@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Http\Middleware;
 
 use Closure;
-use Filament\Exceptions\NoDefaultPanelSetException;
-use Filament\Facades\Filament;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\AuthManager;
 use Illuminate\Auth\Middleware\Authenticate as Middleware;
 use Illuminate\Contracts\Auth\Factory;
-use Illuminate\Contracts\Config\Repository;
 use Nvade\Numerosis\Actions\Auth\LoginUser;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Enums\Tenancy\Context;
@@ -28,7 +25,6 @@ class Authenticate extends Middleware
     public function __construct(
         Factory $auth,
         private readonly AuthManager $authManager,
-        private readonly Repository $repository
     ) {
         parent::__construct($auth);
     }
@@ -39,7 +35,7 @@ class Authenticate extends Middleware
      *
      * @param  string  ...$guards
      *
-     * @throws AuthenticationException|NoDefaultPanelSetException
+     * @throws AuthenticationException
      */
     #[Override]
     public function handle($request, Closure $next, ...$guards): mixed
@@ -50,9 +46,11 @@ class Authenticate extends Middleware
     }
 
     /**
+     * Authenticates the request, first promoting a central session into the
+     * tenant guard where the central user may access the current tenant.
+     *
      * @param  array<int, string|null>  $guards
      *
-     * @throws NoDefaultPanelSetException
      * @throws AuthenticationException
      */
     #[Override]
@@ -80,26 +78,6 @@ class Authenticate extends Middleware
         if (! $this->auth->guard($this->authManager->getDefaultDriver())->check()) {
             $this->unauthenticated($request, $guards);
         }
-
-        /** @var User $user */
-        $user = $request->user();
-
-        $panel = Filament::getCurrentOrDefaultPanel();
-
-        abort_if(
-            $panel !== null
-                ?
-                (! $user->canAccessPanel($panel))
-                :
-                ($this->repository->get('app.env') !== 'local'),
-            403,
-        );
-    }
-
-    #[Override]
-    protected function redirectTo($request): ?string
-    {
-        return Filament::getLoginUrl();
     }
 
     /**

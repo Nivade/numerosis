@@ -19,8 +19,8 @@ use Stancl\Tenancy\Tenancy;
  * it asserts `$route->parameterNames()[0] === 'tenant'`, and index 0 doesn't
  * exist on a parameterless route. This class reads the tenant off the
  * `Referer` header instead, since that's the page the commit actually came
- * from. Found via `tests/Browser/ModuleMarketplaceTest`'s purchase-modal
- * case, which never mounted under path mode for exactly this reason.
+ * from. Found via a browser test whose modal never mounted under path mode
+ * for exactly this reason.
  */
 class InitializeLivewireTenancyByPathTest extends TestCase
 {
