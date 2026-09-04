@@ -24,14 +24,13 @@ use Spatie\OneTimePasswords\Rules\OneTimePasswordRule;
  * being logged into — same reasoning `ResolvesLoginCandidate` already
  * encodes for the deleted `PasswordlessLogin` component.
  *
- * **The address is read from the session and from nowhere else.** Reaching
- * this endpoint proves nothing about which step ran before it
- * (`.ai/rules/auth-login.md`), so accepting a request-supplied address here
- * would let a caller name any victim and skip the send step entirely — the
- * shape of the account takeover that rule records. `OneTimePasswordRule`
- * would still refuse, but a control that only holds because a second one
- * happens to sit behind it is the drift that produced that bug in the first
- * place. `OneTimePasswordLoginTest` mutation-tests this specific line.
+ * The address is read from the session and from nowhere else. Reaching
+ * this endpoint proves nothing about which step ran before it, so accepting
+ * a request-supplied address here would let a caller name any victim and
+ * skip the send step entirely. `OneTimePasswordRule` would still refuse,
+ * but a control that only holds because a second one happens to sit behind
+ * it is the drift that produced that bug in the first place.
+ * `OneTimePasswordLoginTest` mutation-tests this specific line.
  *
  * No `#[\SensitiveParameter]` appears here on purpose: the submitted code
  * never becomes a named parameter on this side — it stays inside `$request`

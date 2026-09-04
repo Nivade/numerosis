@@ -34,13 +34,12 @@ class RegistrationWizardFeature implements NamedFeature
      * Alias each shipped step registers under, and the view file that alias
      * resolves to. `Steps\Payment` is deliberately absent: its natural alias
      * (`payment`) collides with Cashier's own published
-     * `resources/views/vendor/cashier/payment.blade.php`
-     * (`.ai/rules/billing-checkout.md`), so it keeps resolving by its
-     * full FQCN instead — Livewire supports that with no `addComponent()`
-     * call at all. Deriving every alias as `Str::kebab(class_basename($step))`
-     * in a naive loop is exactly what would reintroduce that collision
-     * (`.claude/plans/archive/memoized-tinkering-meadow.md`'s Phase 4.2) — this map
-     * is the fix, not an oversight to "complete" later.
+     * `resources/views/vendor/cashier/payment.blade.php`, so it keeps
+     * resolving by its full FQCN instead. Livewire supports that with no
+     * `addComponent()` call at all. Deriving every alias as
+     * `Str::kebab(class_basename($step))` in a naive loop would reintroduce
+     * that collision; this map is the fix, not an oversight to "complete"
+     * later.
      *
      * A host-supplied step (added to `numerosis.tenancy.registration.steps`
      * but not in this map) is not auto-registered here — the package only
