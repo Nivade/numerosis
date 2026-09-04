@@ -187,10 +187,13 @@ Baseline the day the cap landed, from the two checks in `general.md`:
 | Over-budget docblocks | 112 |
 | Prose lines in them | 1,089 |
 | Files holding at least one | 76 |
-| `//` runs over three lines | 10 |
+| `//` runs over three lines | 23 |
 
 That is more than half the docblock prose in the package. The counts before
-the fenced-example concession were 114 and 1,147.
+the fenced-example concession were 114 and 1,147. The `//` figure was first
+recorded as 10, which was a `head -10` truncation and not a count; 23 is the
+real one, holding 114 lines, and the longest is 15 lines in `Models/User.php`.
+Take a number off a pipe that ends in `head` as a sample, never a total.
 
 Cadence work on a paragraph that the cap will delete is wasted. Batch 1 proved
 it: `registerAuthRateLimiters()`'s docblock was restyled line by line, then cut
