@@ -5,18 +5,12 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Support;
 
 /**
- * Derives this package's domain defaults from `APP_URL`, so a host that
- * configures nothing still boots with correct values.
- *
- * These are only defaults. Set `NUMEROSIS_APEX_DOMAIN` or
- * `NUMEROSIS_CENTRAL_DOMAIN` and none of this is consulted.
+ * Derives this package's domain defaults from `APP_URL`, for a host that sets
+ * neither `NUMEROSIS_APEX_DOMAIN` nor `NUMEROSIS_CENTRAL_DOMAIN`.
  *
  * Called from `config/numerosis.php` while the config repository is still
- * being built, which constrains everything here: no facades, no `config()`,
- * no `env()`, and nothing may throw — an exception at that point takes the
- * application down before any handler exists, reported against the config
- * file rather than the missing value. The environment is read through the
- * superglobals for the same reason.
+ * being built, so nothing here may use a facade, `config()`, `env()`, or
+ * throw: an exception at that point has no handler to reach.
  */
 final class Domains
 {

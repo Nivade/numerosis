@@ -38,16 +38,11 @@ class OneTimePasswordFeature implements NamedFeature
 
     /**
      * The single `trait_exists()` seam for `spatie/laravel-one-time-passwords`,
-     * a `composer.json` `suggest`, so it may be absent. Three call sites ask
-     * this and none probe the package directly: the route registration in
-     * {@see \Nvade\Numerosis\Support\Numerosis::routes()}, the pipeline step
-     * in `NumerosisServiceProvider::registerFortify()`, and
-     * {@see self::bootstrap()}.
-     *
-     * Without it, `User` composes the empty
-     * {@see \Nvade\Numerosis\Support\Compat\HasOneTimePasswordsIfInstalled}
-     * and `sendOneTimePassword()` does not exist, so the challenge route
-     * would fatal on `new OneTimePasswordRule` rather than degrade.
+     * a `composer.json` `suggest`. Nothing else probes that package: without
+     * it `User` composes the empty
+     * {@see \Nvade\Numerosis\Support\Compat\HasOneTimePasswordsIfInstalled},
+     * `sendOneTimePassword()` does not exist, and the challenge route would
+     * fatal on `new OneTimePasswordRule` rather than degrade.
      */
     public static function available(): bool
     {
@@ -56,10 +51,10 @@ class OneTimePasswordFeature implements NamedFeature
 
     /**
      * Only runs when the feature is listed in `numerosis.features`, which
-     * makes this the one place a host learns it asked for OTP without
-     * installing the package — loudly, at boot, rather than as a
-     * "class not found" on somebody's login attempt. {@see self::available()}
-     * is then free to be a silent gate everywhere else.
+     * makes this the one place a host learns at boot that it asked for OTP
+     * without installing the package, before somebody's login attempt hits a
+     * "class not found". {@see self::available()} is then free to be a silent
+     * gate everywhere else.
      */
     public function bootstrap(): void
     {

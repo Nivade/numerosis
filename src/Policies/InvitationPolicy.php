@@ -13,10 +13,8 @@ use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Contracts\Tenant as TenancyTenant;
 
 /**
- * Typed against the tenant `User` — issuing happens in tenant context, where
- * `hasPermissionTo()` resolves. Acceptance is not a policy check: the
- * invitee has no tenant user yet, and identity matching happens inside
- * `AcceptInvitation`.
+ * Typed against the tenant `User`, because issuing happens in tenant context
+ * where `hasPermissionTo()` resolves. Acceptance is not a policy check.
  */
 class InvitationPolicy
 {
@@ -30,16 +28,9 @@ class InvitationPolicy
 
     /**
      * `tenant_invitations` is a central table, so route-model binding on the
-     * tenant domain resolves any ULID regardless of which tenant owns it. The
-     * seeder grants every context's actions to the `admin` role in every
-     * tenant, so without this check an admin of one tenant could revoke
-     * another tenant's invitation given its ULID, which every invitee already
-     * holds from their emailed link.
-     *
-     * Without `deleteAny invitations`, a user may only revoke an invitation
-     * they sent themselves. `invited_by_user_id` is the central user's primary
-     * key while the acting `$user` is the tenant twin, so the two are joined
-     * through `global_id` and never compared directly.
+     * tenant domain resolves any ULID regardless of which tenant owns it, and
+     * every tenant's `admin` holds `deleteAny invitations`. The tenant check
+     * below is what stops one tenant's admin revoking another's invitation.
      */
     public function delete(User $user, Invitation $invitation): bool
     {

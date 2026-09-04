@@ -18,7 +18,7 @@ CentralUser::tenants() and Tenant::users() are both ->using(Membership::class), 
 ## The membership -> tenant-user-row invariant, and why AddTenantOwner writes it itself
 Three paths create the tenant-side users row, all through Actions\Tenancy\EnsureTenantUserExists, which is firstOrCreate-idempotent on global_id and wraps the create in withoutEvents() to stop the tenant User's own ResourceSyncing from firing a SyncedResourceSaved back at central — the same guard stancl's UpdateSyncedResource::updateResourceInTenantDatabases() uses:
 
-1. MembershipObserver::created() -> SyncTenantUserForMembership, synchronous, but **only when Tenant::isProvisioned()** — before provisioned_at is set the tenant database may not exist.
+1. MembershipObserver::created() -> SyncTenantUserForMembership, synchronous, but **only when Tenant::isProvisioned()** — before provisioned_at is set the tenant database may not exist. It hangs off the observer rather than a listener on Events\Tenancy\MemberJoined on purpose: the row is a data invariant this package depends on, not a reaction a host should be able to unregister.
 2. AddTenantOwner and AcceptInvitation call it directly, synchronously, because a login follows immediately in both.
 3. Listeners\Tenancy\BackfillTenantUsers, queued, on TenantProvisioned — the sweep for anything attached during the provisioning window.
 

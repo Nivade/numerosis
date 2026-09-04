@@ -11,16 +11,10 @@ use Override;
 
 /**
  * Bound over Fortify's own `LoginRequest` in
- * `NumerosisServiceProvider::registerFortify()` — `AuthenticatedSessionController::store()`
- * type-hints the concrete class, so a subclass binding still resolves.
- *
- * Fortify's own `rules()` makes `password` unconditionally `required`, which
- * runs as a `FormRequest` *before* `authenticateThrough()`'s pipeline even
- * starts — so `RedirectIfOneTimePasswordAuthenticatable` never gets a chance
- * to redirect an email-only submission, it 422s first.
- * `OneTimePasswordFeature::enabled()` replaces the password step with the
- * challenge screen rather than adding to it (see that class's docblock), so
- * `password` has to become optional at the same seam.
+ * `NumerosisServiceProvider::registerFortify()`. Fortify makes `password`
+ * unconditionally `required`, and a `FormRequest` validates before
+ * `authenticateThrough()`'s pipeline starts, so an email-only submission would
+ * 422 before `RedirectIfOneTimePasswordAuthenticatable` could redirect it.
  */
 class NumerosisLoginRequest extends LoginRequest
 {

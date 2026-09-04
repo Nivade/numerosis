@@ -128,7 +128,9 @@ any of it.
   `one-time-password.login` — it never calls `$next()`, so
   `AttemptToAuthenticate` does not run for a request this step already
   handled. `Http\Requests\Auth\NumerosisLoginRequest` (bound over Fortify's
-  own `LoginRequest`) is what makes `password` optional when OTP is on —
+  own `LoginRequest`, which `AuthenticatedSessionController::store()`
+  type-hints as a concrete class, so a subclass binding still resolves) is
+  what makes `password` optional when OTP is on —
   Fortify's stock `rules()` makes it unconditionally required, and that
   `FormRequest` validates *before* the pipeline even starts, so a password-less
   submission would 422 before this step got a chance to redirect it.

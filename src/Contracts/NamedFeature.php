@@ -5,18 +5,11 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Contracts;
 
 /**
- * A Feature that other code can ask about by name.
- *
- * The toggle is still presence of the class in config('numerosis.features') —
- * this interface only gives that presence a stable name so route files,
- * providers and Blade can check it without importing the class everywhere.
- * Implementers declare `public const NAME = '…'` and return it here.
- *
- * Features::enabled() takes a plain string, so nothing *forces* a call site to
- * pass SomeFeature::NAME — passing a literal that no feature declares is a
- * silently-false check, not an error. Convention only: always pass the
- * constant. The one thing that is enforced is that two features cannot share
- * a name (Features::names() throws on a collision).
+ * A Feature route files, providers and Blade can ask about by name without
+ * importing its class. Implementers declare `public const NAME = '…'` and
+ * return it here; always pass that constant to `Features::enabled()`, which
+ * takes a plain string and reads an undeclared literal as a silently-false
+ * check. Two features sharing a name is the one case `Features::names()` throws on.
  */
 interface NamedFeature extends Feature
 {

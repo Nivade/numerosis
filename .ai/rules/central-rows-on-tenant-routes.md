@@ -37,6 +37,14 @@ if (! $tenant instanceof TenancyTenant || $invitation->tenant_id !== (string) $t
 }
 ```
 
+Without `deleteAny invitations` a user may only revoke an invitation they sent
+themselves, and that comparison is not a direct one either:
+`invitations.invited_by_user_id` holds the *central* user's primary key while
+the acting `$user` is the tenant twin, so `InvitationPolicy::delete()` joins
+the two through `global_id`. Acceptance is not a policy check at all — the
+invitee has no tenant user yet, and identity matching happens inside
+`AcceptInvitation`.
+
 `tenant()` returns `mixed` to PHPStan, so the `instanceof` is load-bearing at
 level 9 as well as at runtime. `getTenantKey()` returns `int|string` while the
 column is a `varchar`, hence the cast.

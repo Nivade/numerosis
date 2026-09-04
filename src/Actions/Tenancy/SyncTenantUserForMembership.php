@@ -11,17 +11,11 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
 
 /**
- * The tenant-side `User` row is a data invariant this package depends on,
- * not a reaction a host should have to provide. Called from
- * {@see \Nvade\Numerosis\Observers\MembershipObserver::created()} for that
- * reason, rather than from a listener on `Events\Tenancy\MemberJoined`.
+ * Creates the tenant-side `User` row for a new membership, but only once the
+ * tenant is provisioned, since before that its database may not exist.
+ * `AddTenantOwner` and `Listeners\Tenancy\BackfillTenantUsers` cover that gap.
  *
- * Only creates the row once the tenant is provisioned, since before that the
- * tenant database may not exist. Two things cover the gap: `AddTenantOwner`
- * calls `EnsureTenantUserExists` itself, because `PromoteFirstUserToAdmin`
- * needs the owner's row before provisioning is marked finished, and
- * `Listeners\Tenancy\BackfillTenantUsers` sweeps any other membership
- * attached during that window.
+ * @see \Nvade\Numerosis\Observers\MembershipObserver::created()
  */
 class SyncTenantUserForMembership
 {
