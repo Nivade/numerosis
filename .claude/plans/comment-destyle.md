@@ -3,7 +3,7 @@
 Bring every comment and docblock in `src/` up to `.ai/rules/general.md`. Read
 that rule first. It is the standard; this plan is only the execution order.
 
-## Session handoff — 2026-09-04, after batch 8 of 4a
+## Session handoff — 2026-09-04, after batch 11 of 4a
 
 Read `.ai/rules/general.md`'s "How long a comment may be" first. It is the
 standard this phase enforces and it changed mid-sweep.
@@ -12,30 +12,27 @@ standard this phase enforces and it changed mid-sweep.
 
 | Metric | At cap | Now |
 | --- | --- | --- |
-| Over-budget docblocks | 112 blocks / 1,089 lines | 69 blocks / 572 lines, 65 files |
+| Over-budget docblocks | 112 blocks / 1,089 lines | 55 blocks / 380 lines, 52 files |
 | `//` runs over 3 lines | 23 / 114 lines | 22 / 110 lines |
-| Cadence hits (grep `A`) | 379 | 284 |
+| Cadence hits (grep `A`) | 379 | 234 |
 
 Commits, oldest first: `db150ba` `832cac6` `1ca9f1d` `4b1e764` (batch 5, no
-hash recorded) `b476951` `47c794c` `de2bdff` `1a15799`. Eleven files are fully
-in budget: `Support/{Numerosis,HostConfig,Contributions,ModelResolver}`,
+hash recorded) `b476951` `47c794c` `de2bdff` `1a15799` `1d4fc38`, plus batches
+10 and 11. Files fully in budget now include
+`Support/{Numerosis,HostConfig,Contributions,ModelResolver,Assets,Domains,Cache/GlobalCache}`,
 `Testing/CleansUpTenancyDatabases`, `Commands/InstallNumerosisCommand`,
 `Livewire/Tenant/Registration`, `NumerosisServiceProvider`,
-`Providers/TenancyServiceProvider`, plus the four auth/tenancy classes of
-`1a15799`.
+`Providers/TenancyServiceProvider`, and the auth/tenancy classes of `1a15799`,
+`1d4fc38` and the two batches after it.
 
 ### Next, in order
 
-1. `src/Support/Cache/GlobalCache.php:33` — 18 lines
-2. `src/Http/Controllers/Auth/OneTimePasswordChallengeController.php:38` — 17
-3. `src/Enums/Tenancy/IdentificationMode.php:38` — 17
-4. `src/Models/Permission.php:86` — 16
-5. `src/Actions/Tenancy/EnsureTenantUserExists.php:29` — 13
-6. `src/Support/Assets.php:56`, `src/Features/Tenancy/RegistrationWizardFeature.php:49`,
-   `src/Data/Auth/SocialUserData.php:27` — 12 each
-
-Regenerate the worst-first list with the docblock check in `general.md`; the
-tail after those is ~57 files holding one block of 6–11 lines each.
+No block is over 10 lines any more. Regenerate the worst-first list with the
+docblock check in `general.md` and take it from the top; as of this handoff
+that is `Actions/Tenancy/{FinalizeTenantProvisioning,AddTenantOwner}` (10
+each), then `Models/Central/Tenant.php:114`,
+`Http/Middleware/{RequirePasswordIfSet,EnsureSessionMatchesTenant}` (9 each),
+then ~48 files holding one block of 6–8 lines.
 
 Then the `//` runs, worst first: `Models/User.php:36` (15 lines),
 `Services/Billing/Resolvers/DefaultUnpaidTenantQuota.php:21` and
