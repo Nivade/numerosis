@@ -38,6 +38,32 @@ paths:
   driver, which `AuthGuardBootstrapper` already switches per context, so
   `config('fortify.guard') === ''` is the thread to pull.
 
+- **What `Support\Numerosis::loadFortifyRoutes()` swaps, and why each one.**
+  It runs once per central domain and once for the tenant group, with
+  `Fortify::ignoreRoutes()` in `packageRegistered()` having disabled Fortify's
+  own single-group `configureRoutes()`. Two keys are set for the duration:
+  - `fortify.guard`, because `'guest:'.config('fortify.guard')` is baked into
+    route middleware at registration time. Everything downstream (Fortify's
+    `StatefulGuard` binding, `AuthGuardBootstrapper`) instead reads the guard
+    at request time off `Auth::getDefaultDriver()`. The `finally` restores the
+    whole `fortify` array, because a leftover `guard` silently changes the
+    process-wide default until the next `loadFortifyRoutes()` overwrites it.
+  - `fortify.middleware`, emptied. The outer group has already applied
+    `web`/`tenant`, and Fortify's default `['web']` would double it inside the
+    tenant group.
+
+  `fortify.passwords` is deliberately *not* swapped here — see the next
+  entry for why swapping it at this phase is a no-op.
+
+- **`loadOneTimePasswordRoutes()` registers in the open group for the same
+  registration-time reason**, and its paths go through Fortify's own
+  `RoutePath::for()`, so `config('fortify.paths')` overrides them like every
+  neighbouring auth URL. Its verify leg carries `OneTimePasswordFeature::LIMITER`
+  because that request has no `email` field: `fortify.limiters.login`'s
+  `tenant|email|ip` key would collapse to `tenant||ip` and bucket every OTP
+  verification from one IP together. Fortify draws the same distinction for
+  its own 2FA challenge (`fortify.limiters.two-factor`).
+
 - **(audit) A config key Fortify reads at request time cannot be swapped at
   route-registration time.** `fortify.passwords` was swapped inside
   `loadFortifyRoutes()`, by symmetry with `fortify.guard`, and restored in a

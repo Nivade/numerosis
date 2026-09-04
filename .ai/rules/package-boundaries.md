@@ -39,6 +39,16 @@ for a host that genuinely wants none of the defaults.
 
 ## Boundary facts that still bite
 
+- **A satellite that seeds its own permissions instead of calling
+  `Numerosis::addPermissionContext()` 500s every page carrying a
+  policy-guarded navigation item.** Navigation evaluates that resource's
+  `viewAny` on every render to decide its own visibility, and Spatie throws
+  `PermissionDoesNotExist` where a `false` return would degrade gracefully, so
+  one missed context takes out every page rather than hiding one link. The
+  seam creates a row per `Models\Permission::defaultActions()` action under
+  guard `web` and grants them all to `admin`. Contribute the context from the
+  satellite's own service provider, before `RoleAndPermissionSeeder` runs.
+
 - **A feature class listed in config but not installed disappears silently,
   from two places, and neither raises anything you will see.**
   `Features::names()`'s `is_a($class, NamedFeature::class, true)`

@@ -177,9 +177,20 @@ One `docs:` commit.
 **Length runs first, and it changed what Phase 4 is.** `.ai/rules/general.md`
 gained a hard cap on 2026-09-04 (`66920f1`): 5 prose lines per docblock, 3 per
 inline comment or `//` run, no exemption for `public` members, class docblocks
-or documented seams. 114 docblocks in `src/` are over it, holding 1,147 prose
-lines — more than half the docblock prose in the package — across 76 files,
-plus 10 `//` runs.
+or documented seams. Tags do not count, and one fenced example of up to 5 lines
+is allowed per docblock.
+
+Baseline the day the cap landed, from the two checks in `general.md`:
+
+| Metric | Count (2026-09-04) |
+| --- | --- |
+| Over-budget docblocks | 112 |
+| Prose lines in them | 1,089 |
+| Files holding at least one | 76 |
+| `//` runs over three lines | 10 |
+
+That is more than half the docblock prose in the package. The counts before
+the fenced-example concession were 114 and 1,147.
 
 Cadence work on a paragraph that the cap will delete is wasted. Batch 1 proved
 it: `registerAuthRateLimiters()`'s docblock was restyled line by line, then cut

@@ -35,16 +35,13 @@ use WeakMap;
 
 /**
  * The package's entry point for a host's `bootstrap/app.php`, and the front
- * door to every seam a host or satellite uses.
+ * door to every seam a host or satellite uses. Implements routing, middleware,
+ * broadcasting and exception handling itself; the rest of its methods delegate
+ * to the classes below, so that `Numerosis::` stays the one idiom a host needs.
  *
- * Implements application bootstrap itself: routing, middleware, broadcasting,
- * exception handling, and the three `registerXUsing()` overrides that replace
- * one of those wholesale. Model and factory resolution lives on
- * {@see ModelResolver}, contributed routes/columns/seeders on
- * {@see Contributions} and front-end publishing on {@see Assets}; the methods
- * here delegate to them, and `Numerosis::` stays the documented idiom in
- * `docs/extending.md`, every host's `config/numerosis.php`, and ~200 call
- * sites.
+ * @see ModelResolver model and factory resolution
+ * @see Contributions routes, columns and seeders other packages added
+ * @see Assets front-end publishing
  */
 class Numerosis
 {
@@ -114,10 +111,8 @@ class Numerosis
      * ```
      *
      * Applies {@see self::routes()}, {@see self::middleware()} and
-     * {@see self::exceptions()} to a standard `Application::configure()`
-     * builder. To use `configure()`'s other options (`then:`, `api:`, …),
-     * skip this method and wire those three up yourself; they are public and
-     * independently callable.
+     * {@see self::exceptions()}. Wire those three up yourself to reach
+     * `configure()`'s other options (`then:`, `api:`, …).
      */
     public static function configure(?string $basePath = null): ApplicationBuilder
     {
@@ -129,33 +124,18 @@ class Numerosis
 
     /**
      * Route registration for `bootstrap/app.php`'s `withRouting(using: ...)`.
-     * Central routes are bound to each hostname in `tenancy.central_domains`
+     * Central routes bind to each hostname in `tenancy.central_domains`
      * separately, because tenant identification never runs for those domains.
-     *
-     * Pass `withAuth: false` if you keep an auth system of your own.
-     * `routes/auth.php` is then skipped, and everything else in `routes/web.php`
-     * (billing webhook, checkout, registration wizard, account pages) still
-     * registers:
+     * `withAuth: false` skips Fortify's route file in both groups, handing you
+     * `login`, `register`, `logout` and `verification.verify`.
      *
      * ```php
      * ->withRouting(using: fn () => Numerosis::routes(withAuth: false))
      * ```
      *
-     * That flag exists because four route names, `login`, `register`,
-     * `logout` and `verification.verify`, are otherwise registered
-     * unconditionally, behind no feature flag, so a host with its own
-     * Fortify/Breeze routes gets a silent name collision: Laravel keeps
-     * whichever was registered last, so which system serves `/login` follows
-     * provider order. Everything the package generates from those names (the
-     * login redirect, the email verification link) becomes yours to provide
-     * under the same names.
-     *
-     * To add routes while keeping these, use
-     * {@see self::addCentralRoutes()} / {@see self::addTenantRoutes()}; they
-     * run inside the groups built below, so a contributed central route is
-     * bound to the same hostnames the package's own are.
-     * {@see self::registerRoutesUsing()} replaces this wholesale, and bypasses
-     * both.
+     * @see self::addCentralRoutes()
+     * @see self::addTenantRoutes()
+     * @see self::registerRoutesUsing()
      */
     public static function routes(bool $withAuth = true): void
     {
@@ -195,12 +175,9 @@ class Numerosis
 
         $tenantRoutes = Route::middleware('tenant');
 
-        // Path mode identifies the tenant from the first URL segment, so
-        // every tenant route has to carry it. Without this prefix
-        // `routes/tenant.php` is unreachable in this mode and says nothing
-        // about it, since a route that never matches 404s like any other
-        // unknown path. `PathTenantResolver::$tenantParameterName` is the
-        // same name stancl's own middleware reads back out.
+        // Without this prefix every route in `routes/tenant.php` is
+        // unreachable in path mode, 404ing like any unknown path. The
+        // parameter name is the one stancl's own middleware reads back out.
         if (IdentificationMode::current() === IdentificationMode::Path) {
             $tenantRoutes = $tenantRoutes->prefix('{'.PathTenantResolver::$tenantParameterName.'}');
         }
@@ -222,31 +199,11 @@ class Numerosis
     }
 
     /**
-     * Loads Fortify's own `routes/routes.php` inside whichever group is
-     * currently open (a central domain's, or the tenant group's), for the
-     * given guard. `Fortify::ignoreRoutes()` in
-     * `NumerosisServiceProvider::packageRegistered()` disables Fortify's own
-     * single-group registration (`FortifyServiceProvider::configureRoutes()`).
-     * This replaces it, running once per central domain and once for the
-     * tenant group.
-     *
-     * `routes/routes.php` bakes `'guest:'.config('fortify.guard')` into route
-     * middleware at registration time, so the guard has to be correct for the
-     * group being built. Everything downstream (Fortify's `StatefulGuard`
-     * binding, `AuthGuardBootstrapper`) reads the guard at request time off
-     * `Auth::getDefaultDriver()`. The `finally` restores `fortify.guard`
-     * because a leftover value silently changes the process-wide default until
-     * the next `loadFortifyRoutes()` call overwrites it.
-     *
-     * `fortify.middleware` is cleared for the same registration-time reason.
-     * The outer group already applied `web`/`tenant`, and Fortify's default
-     * `['web']` would double it inside the tenant group.
-     *
-     * `fortify.passwords` is deliberately left alone. Nothing bakes the broker
-     * into a route, and Fortify's three password controllers read the key when
-     * the request arrives, after the `finally` restores it.
-     * {@see \Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper}
-     * applies the tenant broker at request time.
+     * Loads Fortify's own `routes/routes.php` into whichever group is open,
+     * once per central domain and once for the tenant group. Both keys set
+     * here are baked into route middleware at registration time; the
+     * `finally` restores them because a leftover `fortify.guard` changes the
+     * process-wide default.
      */
     private static function loadFortifyRoutes(string $guard): void
     {
@@ -270,22 +227,11 @@ class Numerosis
     }
 
     /**
-     * Registers the `OneTimePasswordFeature` challenge routes inside whichever
-     * group is currently open, matching {@see self::loadFortifyRoutes()}. A
-     * route name baked with the wrong `guest:` guard at registration time
-     * stays wrong for the rest of the process. Only registered when
-     * {@see OneTimePasswordFeature::available()}, which also requires
-     * `spatie/laravel-one-time-passwords` to be installed.
-     *
-     * The paths go through Fortify's own `RoutePath::for()`, so
-     * `config('fortify.paths')` overrides them like every neighbouring auth
-     * URL.
-     *
-     * The verify leg carries its own limiter. This request has no `email`
-     * field (the address lives in the session), so `fortify.limiters.login`'s
-     * `tenant|email|ip` key would collapse to `tenant||ip` and put every OTP
-     * verification from one IP in a single bucket. Fortify draws the same
-     * distinction for its 2FA challenge (`fortify.limiters.two-factor`).
+     * Registers the `OneTimePasswordFeature` challenge routes into the open
+     * group, matching {@see self::loadFortifyRoutes()}. Paths go through
+     * `RoutePath::for()`, so `config('fortify.paths')` overrides them like
+     * every neighbouring auth URL, and the verify leg carries its own limiter
+     * because its request has no `email` field to key on.
      */
     private static function loadOneTimePasswordRoutes(string $guard): void
     {
@@ -308,20 +254,13 @@ class Numerosis
     }
 
     /**
-     * Register central-domain routes alongside `routes/web.php`, without
-     * reproducing {@see self::routes()}'s per-domain loop. The callback runs
-     * once per configured central domain, inside that domain's own
-     * `Route::middleware('web')->domain($domain)` group, so a route added here
-     * is bound to the same hostnames the package's own central routes are,
-     * automatically.
+     * Register central-domain routes alongside `routes/web.php`. The callback
+     * runs once per configured central domain, inside that domain's own
+     * `Route::middleware('web')->domain($domain)` group. `$source` changes no
+     * behavior; it is a package name by convention, read back by
+     * {@see Contributions::centralRouteSources()} for attribution.
      *
-     * {@see self::registerRoutesUsing()} bypasses this entirely, since it
-     * replaces {@see self::routes()} wholesale.
-     *
-     * `$source` changes no behavior. It is a package name by convention
-     * (e.g. `'nvade/numerosis-onboarding'`), read back by
-     * {@see Contributions::centralRouteSources()} so that "which package added
-     * this route" is answerable and not only "how many".
+     * @see self::registerRoutesUsing() bypasses this, replacing routes() whole
      */
     public static function addCentralRoutes(Closure $callback, ?string $source = null): void
     {
@@ -381,11 +320,10 @@ class Numerosis
     /**
      * Middleware stack for `withBroadcasting()`.
      *
-     * The guard is always the tenant one. Broadcasting auth runs inside tenant
-     * context, and authenticating it against the central guard leaks presence
-     * channels across tenants. Which guard that is stays
-     * `numerosis.auth.guards.tenant`'s answer, so a host that renames it keeps
-     * working; only the choice of tenant over central is fixed here.
+     * The guard is always the tenant one, read from
+     * `numerosis.auth.guards.tenant` so a host that renames it keeps working.
+     * Broadcasting auth runs inside tenant context, and authenticating it
+     * against the central guard leaks presence channels across tenants.
      *
      * @return list<string>
      */
@@ -442,12 +380,9 @@ class Numerosis
         // which already covers the central domain plus every tenant subdomain.
         $middleware->trustHosts();
 
-        // ApplicationBuilder::withMiddleware() always registers its own
-        // `redirectGuestsTo(fn () => route('login'))` before this callback
-        // runs. `NumerosisServiceProvider::registerGuestRedirect()` overrides
-        // it unconditionally on every boot (via `Authenticate::redirectUsing()`
-        // directly), which covers this path too, so there is nothing to
-        // duplicate here.
+        // No `redirectGuestsTo()` here: `registerGuestRedirect()` calls
+        // `Authenticate::redirectUsing()` on every boot, which overrides what
+        // `ApplicationBuilder::withMiddleware()` set before this callback ran.
     }
 
     /**
@@ -490,10 +425,9 @@ class Numerosis
     /**
      * Register a second tenant migration path, for a satellite package
      * shipping its own tenant-database tables. `HostConfig` appends every
-     * registered path (this one plus {@see self::tenantMigrationPath()})
-     * to `tenancy.migration_parameters['--path']`, the same array a host's
-     * own path already lives in.
-     * {@see Contributions::addTenantMigrationPath()}.
+     * registered path to `tenancy.migration_parameters['--path']`.
+     *
+     * @see Contributions::addTenantMigrationPath()
      */
     public static function addTenantMigrationPath(string $path): void
     {
@@ -561,19 +495,13 @@ class Numerosis
 
     /**
      * Contribute a permission context, the noun half of a permission name
-     * such as `invitations` in `viewAny invitations`, to `RoleAndPermissionSeeder`,
-     * which creates one row per {@see \Nvade\Numerosis\Models\Permission::defaultActions()}
-     * action for it under guard `web` and grants them all to `admin`.
+     * such as `invitations` in `viewAny invitations`. Call it from a service
+     * provider, before `RoleAndPermissionSeeder` runs: a policy-guarded
+     * resource whose context never reaches the seeder throws
+     * `PermissionDoesNotExist` from every page that renders a link to it.
      *
-     * This exists because a satellite left to seed its own permissions can
-     * miss a context, and one missing context 500s every page carrying a
-     * policy-guarded navigation item. Navigation evaluates that resource's
-     * `viewAny` to decide its own visibility on every page render, and
-     * Spatie throws `PermissionDoesNotExist` where a `false` return would
-     * degrade gracefully. A satellite
-     * shipping a policy-guarded resource must contribute its context here,
-     * from its own service provider, before the seeder runs.
-     * {@see Contributions::addPermissionContext()}.
+     * @see Contributions::addPermissionContext()
+     * @see \Nvade\Numerosis\Models\Permission::defaultActions()
      */
     public static function addPermissionContext(string $context): void
     {
@@ -624,22 +552,9 @@ class Numerosis
     /**
      * Exception context and throttling for `bootstrap/app.php`'s
      * `withExceptions()`. Adds the current tenant, guard and user to every
-     * report.
-     *
-     * Tenancy is read when the exception is reported, which is too late for
-     * a queued job that failed inside `$tenant->run()`, since tenancy has
-     * already reverted by then. Compose
-     * {@see \Nvade\Numerosis\Concerns\TagsSentryScopeWithTenant} into such
-     * jobs to tag them correctly.
-     *
-     * Idempotent per `Handler` instance: `NumerosisServiceProvider::
-     * registerExceptionHandling()` always calls this from `packageBooted()`,
-     * so an app that also calls it from its own `bootstrap/app.php` would
-     * otherwise register the context callback and throttle twice onto the
-     * same real handler. The second call for a given `$exceptions->handler`
-     * is a no-op regardless of which one runs first; a different `Handler`
-     * instance (a fresh one built for a test, or for a new application under
-     * Octane) always registers.
+     * report, and no-ops on a `Handler` it has already registered against. A
+     * job that failed inside `$tenant->run()` needs
+     * {@see \Nvade\Numerosis\Concerns\TagsSentryScopeWithTenant} to be tagged.
      */
     public static function exceptions(Exceptions $exceptions): void
     {
