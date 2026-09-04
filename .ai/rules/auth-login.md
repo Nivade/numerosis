@@ -48,9 +48,14 @@ paths:
   user provider from `auth.passwords.*`, a key `auth.guards.*` has no bearing
   on, so switching the guard alone never moves a reset off the central
   provider. The fix is
-  `Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper`. **Ask which
-  phase reads a key before deciding where to set it:** baked into a route =
-  registration time, read by a controller = request time.
+  `Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper`, which swaps
+  the key on tenancy initialization; the broker it swaps to,
+  `auth.passwords.tenant`, is defaulted by
+  `Support\HostConfig::tenantPasswordBroker()`, and its tokens live in the
+  tenant database's own `password_reset_tokens` table, created by
+  `database/migrations/tenant/0001_01_01_000000_create_users_table.php`.
+  **Ask which phase reads a key before deciding where to set it:** baked into
+  a route = registration time, read by a controller = request time.
 
 - **(audit) A `TenancyBootstrapper` must be a container singleton if it
   remembers anything.** `Tenancy::getBootstrappers()` is
