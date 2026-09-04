@@ -5,66 +5,78 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Invitations;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Nvade\Numerosis\Actions\Tenancy\EnsureTenantUserExists;
-use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
+use Nvade\Numerosis\Actions\Tenancy\AddTenantMember;
+use Nvade\Numerosis\Events\Invitations\InvitationAccepted;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationAlreadyAccepted;
+use Nvade\Numerosis\Exceptions\Invitations\InvitationEmailMismatch;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationExpired;
-use Nvade\Numerosis\Exceptions\Invitations\InvitationTenantMismatch;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Invitation;
-use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Support\Numerosis;
 
+/**
+ * Runs entirely on the central connection.
+ *
+ * Acceptance is claimed with a conditional `UPDATE ... WHERE accepted_at IS
+ * NULL` before the membership is attached, so two concurrent POSTs cannot both
+ * reach `AddTenantMember`. The loser matches zero rows and throws
+ * `InvitationAlreadyAccepted`, rolling back inside this transaction. Reading
+ * `isAccepted()` and stamping afterwards left a window where both passed and
+ * the second attach died on `memberships.unique(tenant_id, global_user_id)`
+ * with an uncaught `QueryException`.
+ *
+ * @method static Invitation run(Invitation $invitation, CentralUser $user)
+ */
 class AcceptInvitation
 {
     use AsAction;
 
-    /**
-     * Accept the given invitation for the specified user.
-     *
-     * @throws InvitationAlreadyAccepted
-     * @throws InvitationExpired
-     * @throws InvitationTenantMismatch
-     */
-    public function handle(Invitation $invitation, User&CentralUserModel $user): void
+    public function handle(Invitation $invitation, CentralUser $user): Invitation
     {
-        if ($invitation->isAccepted()) {
-            throw new InvitationAlreadyAccepted(__('This invitation has already been accepted.'));
-        }
+        return DB::transaction(function () use ($invitation, $user): Invitation {
+            throw_if($invitation->isAccepted(), InvitationAlreadyAccepted::class, 'This invitation has already been accepted.');
+            throw_if($invitation->isExpired(), InvitationExpired::class, 'This invitation has expired.');
+            throw_unless(
+                Str::lower($user->email) === Str::lower($invitation->email),
+                InvitationEmailMismatch::class,
+                'This invitation was sent to a different email address.',
+            );
 
-        if ($invitation->isExpired()) {
-            throw new InvitationExpired(__('This invitation has expired.'));
-        }
+            $invitationClass = Numerosis::model(Invitation::class);
 
-        $tenantClass = Numerosis::model(Tenant::class);
+            $claimed = $invitationClass::query()
+                ->whereKey($invitation->getKey())
+                ->whereNull('accepted_at')
+                ->update([
+                    'accepted_at' => now(),
+                    'accepted_by_user_id' => $user->getKey(),
+                ]);
 
-        /** @var Tenant|null $tenant */
-        $tenant = $invitation->tenant ?? $tenantClass::find($invitation->tenant_id);
+            throw_if($claimed === 0, InvitationAlreadyAccepted::class, 'This invitation has already been accepted.');
 
-        if ($tenant === null) {
-            throw new InvitationTenantMismatch(__('Invalid tenant for invitation.'));
-        }
+            $invitation->refresh();
 
-        $user->tenants()->syncWithoutDetaching([
-            $tenant->id => [
-                'role' => $invitation->role,
-                'joined_at' => now(),
-            ],
-        ]);
+            $tenantClass = Numerosis::model(Tenant::class);
+            $tenant = $tenantClass::findOrFail($invitation->tenant_id);
 
-        // Synchronously, not through MembershipObserver::created(): login only
-        // reads the tenant-side row (FindUserByGlobalId), never creates it, and
-        // the redirect out of here goes straight to a login. Without it,
-        // accepting via social login throws in LoginUser, and accepting via the
-        // password form silently fails the same way when the CentralUser
-        // already exists elsewhere.
-        $tenant->run(function () use ($tenant, $user, $invitation): void {
-            DB::transaction(function () use ($tenant, $user, $invitation): void {
-                EnsureTenantUserExists::run($tenant, $user);
+            $centralUserClass = Numerosis::model(CentralUser::class);
+            $inviterGlobalId = $invitation->invited_by_user_id !== null
+                ? $centralUserClass::find($invitation->invited_by_user_id)?->global_id
+                : null;
 
-                $invitation->update(['accepted_at' => now()]);
-            });
+            AddTenantMember::run($tenant, $user, $invitation->role, $inviterGlobalId);
+
+            event(new InvitationAccepted(
+                $invitation,
+                $invitation->id,
+                $invitation->invited_by_user_id,
+                (int) $invitation->created_at?->diffInSeconds(now()),
+            ));
+
+            return $invitation;
         });
     }
 }

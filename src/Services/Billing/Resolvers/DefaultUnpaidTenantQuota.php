@@ -8,6 +8,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Contracts\Billing\UnpaidTenantQuota;
 use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Exceptions\Billing\TooManyUnpaidTenants;
 use Nvade\Numerosis\Models\Central\Tenant;
 
@@ -26,7 +27,7 @@ class DefaultUnpaidTenantQuota implements UnpaidTenantQuota
         // would have returned.
         /** @var Collection<int, Tenant> $owned */
         $owned = $user->tenants()
-            ->wherePivot('role', 'owner')
+            ->wherePivot('role', MembershipRole::Owner->value)
             ->with('subscriptions')
             ->get();
 

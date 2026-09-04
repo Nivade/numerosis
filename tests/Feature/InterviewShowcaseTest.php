@@ -16,6 +16,7 @@ use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\Tests\TestCase;
 use Spatie\Permission\PermissionRegistrar;
@@ -114,7 +115,7 @@ class InterviewShowcaseTest extends TestCase
         });
 
         // 6. Verify Ownership
-        $this->assertEquals('owner', $user->tenants()->first()->pivot->role);
+        $this->assertSame(MembershipRole::Owner, $user->tenants()->first()->pivot->role);
         $this->assertEquals($tenant->id, $user->tenants()->first()->id);
     }
 }

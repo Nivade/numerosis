@@ -268,18 +268,8 @@ class InstallNumerosisCommandTest extends TestCase
             ->assertFailed();
     }
 
-    /** @verifies verifySocialProviders */
-    public function test_it_fails_when_social_providers_is_not_an_array(): void
-    {
-        config()->set('numerosis.social.providers', 'google');
-
-        $this->install()
-            ->expectsOutputToContain("config('numerosis.social.providers') must be an array")
-            ->assertFailed();
-    }
-
     /** @verifies verifySocialRoutes */
-    public function test_it_fails_when_a_social_route_name_is_empty_and_providers_are_configured(): void
+    public function test_it_fails_when_a_social_route_name_is_empty(): void
     {
         config()->set('numerosis.social.routes.redirect.name', '');
 

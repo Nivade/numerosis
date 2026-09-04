@@ -46,7 +46,6 @@ use Nvade\Numerosis\Actions\Auth\ResolveLoginCandidate;
 use Nvade\Numerosis\Actions\Auth\SendEmailVerificationNotification;
 use Nvade\Numerosis\Actions\Auth\UpdateUserPassword;
 use Nvade\Numerosis\Actions\Auth\UpdateUserProfile;
-use Nvade\Numerosis\Actions\Invitations\CreateInvitedUser;
 use Nvade\Numerosis\Commands\InstallNumerosisCommand;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
 use Nvade\Numerosis\Console\Commands\DeleteTenants;
@@ -56,32 +55,29 @@ use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
 use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
-use Nvade\Numerosis\Contracts\Auth\SocialAccountRepository;
-use Nvade\Numerosis\Contracts\Invitations\CreatesInvitedUser;
-use Nvade\Numerosis\Contracts\Invitations\InvitationRepository;
 use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder as PackageDatabaseSeeder;
-use Nvade\Numerosis\Events\Auth\SocialAccountConnected;
-use Nvade\Numerosis\Events\Auth\SocialAccountDisconnected;
+use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
+use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\TenantSuspended;
-use Nvade\Numerosis\Events\Invitations\InvitationIssued;
+use Nvade\Numerosis\Events\Invitations\InvitationCreated;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
 use Nvade\Numerosis\Events\Tenancy\TenantRestored;
 use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
-use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
+use Nvade\Numerosis\Http\Middleware\RequirePasswordIfSet;
 use Nvade\Numerosis\Http\Requests\Auth\NumerosisLoginRequest;
 use Nvade\Numerosis\Http\Requests\Auth\NumerosisVerifyEmailRequest;
 use Nvade\Numerosis\Http\Responses\Auth\NumerosisLoginResponse;
 use Nvade\Numerosis\Http\Responses\Auth\NumerosisLogoutResponse;
 use Nvade\Numerosis\Http\Responses\Auth\NumerosisVerifyEmailResponse;
 use Nvade\Numerosis\Listeners\Auth\EndOtherGuardSession;
-use Nvade\Numerosis\Listeners\Auth\LogSocialAccountConnected;
-use Nvade\Numerosis\Listeners\Auth\LogSocialAccountDisconnected;
+use Nvade\Numerosis\Listeners\Auth\LogSocialAccountLinked;
+use Nvade\Numerosis\Listeners\Auth\LogSocialAccountUnlinked;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentConfirmedNotification;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentFailedNotification;
 use Nvade\Numerosis\Listeners\Billing\SendTenantSuspendedNotification;
@@ -89,6 +85,7 @@ use Nvade\Numerosis\Listeners\Invitations\SendInvitationNotification;
 use Nvade\Numerosis\Listeners\Tenancy\BackfillTenantUsers;
 use Nvade\Numerosis\Listeners\Tenancy\SendTenantRestoredNotification;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
+use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
 use Nvade\Numerosis\Livewire\Settings\DeleteUserForm;
 use Nvade\Numerosis\Models\Central;
 use Nvade\Numerosis\Models\Permission;
@@ -99,13 +96,12 @@ use Nvade\Numerosis\Policies\PaymentPlanPolicy;
 use Nvade\Numerosis\Policies\PermissionPolicy;
 use Nvade\Numerosis\Policies\PlanFeaturePolicy;
 use Nvade\Numerosis\Policies\RolePolicy;
+use Nvade\Numerosis\Policies\SocialAccountPolicy;
 use Nvade\Numerosis\Policies\SubscriptionPolicy;
 use Nvade\Numerosis\Policies\TenantPolicy;
 use Nvade\Numerosis\Policies\UserPolicy;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
-use Nvade\Numerosis\Services\Auth\EloquentSocialAccountRepository;
-use Nvade\Numerosis\Services\Invitations\EloquentInvitationRepository;
 use Nvade\Numerosis\Services\Notifications\NotifiesTenantOwnerDirectly;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Support\Features;
@@ -178,15 +174,12 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->app->bind(ResolvesLoginCandidate::class, ResolveLoginCandidate::class);
         $this->app->bind(AuthenticatesLoginCandidate::class, AuthenticateLoginCandidate::class);
         $this->app->bind(SendsEmailVerificationNotification::class, SendEmailVerificationNotification::class);
-        $this->app->bind(CreatesInvitedUser::class, CreateInvitedUser::class);
 
         // Interface-to-concrete mappings, exactly like Fortify's own — a
         // host's `AppServiceProvider` registers after package providers, so
         // overriding either is free, with no opt-in seam to build.
         $this->app->singleton(FortifyLoginResponse::class, NumerosisLoginResponse::class);
         $this->app->singleton(FortifyLogoutResponse::class, NumerosisLogoutResponse::class);
-        $this->app->bind(InvitationRepository::class, EloquentInvitationRepository::class);
-        $this->app->bind(SocialAccountRepository::class, EloquentSocialAccountRepository::class);
         $this->app->bind(NotifiesTenantOwner::class, NotifiesTenantOwnerDirectly::class);
 
         // `db:seed` resolves this class by name, so an app without one of its
@@ -274,6 +267,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // views. Livewire cannot discover package classes on its own.
         Livewire::addComponent(name: 'billing.checkout', class: Checkout::class);
         Livewire::addComponent(name: 'settings.delete-user-form', class: DeleteUserForm::class);
+        Livewire::addComponent(name: 'settings.connected-accounts', class: ConnectedAccounts::class);
 
         // A small override file, not a copy of the package's own config: the
         // deep-fill in HostConfig backfills every key it omits, and the
@@ -312,8 +306,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
             __DIR__.'/../stubs/Models/Central/Subscription.stub' => app_path('Models/Central/Subscription.php'),
             __DIR__.'/../stubs/Models/Central/PaymentPlan.stub' => app_path('Models/Central/PaymentPlan.php'),
             __DIR__.'/../stubs/Models/Central/PendingTenantProvision.stub' => app_path('Models/Central/PendingTenantProvision.php'),
+            __DIR__.'/../stubs/Models/Central/Invitation.stub' => app_path('Models/Central/Invitation.php'),
+            __DIR__.'/../stubs/Models/Central/SocialAccount.stub' => app_path('Models/Central/SocialAccount.php'),
             __DIR__.'/../stubs/Models/Tenant/User.stub' => app_path('Models/Tenant/User.php'),
-            __DIR__.'/../stubs/Models/Tenant/Invitation.stub' => app_path('Models/Tenant/Invitation.php'),
         ];
 
         $this->publishGroup($modelStubs, 'numerosis-models');
@@ -351,13 +346,14 @@ class NumerosisServiceProvider extends PackageServiceProvider
     protected function registerPolicies(): void
     {
         $policies = [
+            Central\Invitation::class => InvitationPolicy::class,
             Central\PaymentPlan::class => PaymentPlanPolicy::class,
             Central\PlanFeature::class => PlanFeaturePolicy::class,
+            Central\SocialAccount::class => SocialAccountPolicy::class,
             Central\Subscription::class => SubscriptionPolicy::class,
             Central\Tenant::class => TenantPolicy::class,
             Permission::class => PermissionPolicy::class,
             Role::class => RolePolicy::class,
-            TenantModels\Invitation::class => InvitationPolicy::class,
             TenantModels\User::class => UserPolicy::class,
         ];
 
@@ -415,6 +411,15 @@ class NumerosisServiceProvider extends PackageServiceProvider
             if (Config::boolean('numerosis.schedule.prune_stalled_provisions')) {
                 $schedule->command('tenancy:prune-stalled-provisions')->hourly();
             }
+
+            // Resolved through Numerosis::model() so a host that subclassed
+            // Invitation prunes its own class. Invitation::prunable() keeps
+            // accepted and expired rows for 30 days.
+            if (Config::boolean('numerosis.schedule.prune_invitations')) {
+                $schedule->command('model:prune', [
+                    '--model' => [Numerosis::model(Central\Invitation::class)],
+                ])->daily();
+            }
         });
     }
 
@@ -428,14 +433,14 @@ class NumerosisServiceProvider extends PackageServiceProvider
     protected function registerEventListeners(): void
     {
         $listeners = [
-            SocialAccountConnected::class => LogSocialAccountConnected::class,
-            SocialAccountDisconnected::class => LogSocialAccountDisconnected::class,
+            SocialAccountLinked::class => LogSocialAccountLinked::class,
+            SocialAccountUnlinked::class => LogSocialAccountUnlinked::class,
+            InvitationCreated::class => SendInvitationNotification::class,
             PaymentSettled::class => SendPaymentConfirmedNotification::class,
             PaymentFailed::class => SendPaymentFailedNotification::class,
             TenantSuspended::class => SendTenantSuspendedNotification::class,
             TenantRestored::class => SendTenantRestoredNotification::class,
             TenantProvisioned::class => BackfillTenantUsers::class,
-            InvitationIssued::class => SendInvitationNotification::class,
             // Laravel's listener auto-discovery only scans a host app's
             // `app/Listeners`, never a package's `src/` — an explicit
             // `Event::listen()` is the only way this ever fires. See
@@ -464,12 +469,15 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         $this->seedMiddlewareBaselineIfMissing();
 
-        Route::aliasMiddleware('invitation.status', CheckInvitationStatus::class);
-
         // Laravel's `auth`, plus the central→tenant session promotion. Not
         // registered as `auth` itself: that alias is the host's, and every
         // central route that uses it must keep Laravel's own behaviour.
         Route::aliasMiddleware('tenancy.auth', Authenticate::class);
+
+        // Kept in step with the same alias in `Support\Numerosis::middleware()`.
+        // Those two registries are the pair `.ai/rules/middleware-registration.md`
+        // records as drifting silently.
+        Route::aliasMiddleware('password.confirm.if-set', RequirePasswordIfSet::class);
 
         // The suspension gate, applied per-group rather than to the `tenant`
         // group as a whole: it redirects to `tenant.suspended`, which is
@@ -613,6 +621,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
         RateLimiter::for(OneTimePasswordFeature::LIMITER, fn (Request $request): Limit => Limit::perMinute(5)->by(
             $this->authThrottleKey($request, $this->pendingLoginAddress($request))
         ));
+
+        RateLimiter::for('social', fn (Request $request): Limit => Limit::perMinute(10)->by($request->ip()));
     }
 
     /**

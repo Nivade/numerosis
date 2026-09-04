@@ -269,12 +269,10 @@ abstract class TestCase extends Orchestra
             'driver' => 'eloquent',
             'model' => User::class,
         ]);
-        // numerosis.social.providers/routes (config/numerosis.php) already
-        // carry this same five-provider metadata and the oauth/oauth.callback
-        // route names — nothing to override here. `Support\Social\
-        // ConfiguredProviders` intersects that list against config('services')
-        // credentials, so SocialLoginButtonsTest's "no client id, no button"
-        // assertion still depends only on the services.* block below.
+        // `Enums\Auth\SocialProvider::isConfigured()` tests
+        // `services.{provider}.client_id` directly — the block below is what
+        // makes google/discord "configured" in tests, everything else stays
+        // unconfigured on purpose.
         foreach (['google', 'discord'] as $driver) {
             $app->make(Repository::class)->set("services.{$driver}", [
                 'client_id' => "{$driver}-test-client-id",

@@ -24,7 +24,8 @@ return [
         'names' => [
             'home' => 'home',
             'tenants_mine' => 'tenants.mine',
-            'invitation_show' => 'invitation.show',
+            'invitation_show' => 'invitations.show',
+            'invitation_accept' => 'invitations.accept',
             'checkout_subscription' => 'checkout.subscription',
         ],
 

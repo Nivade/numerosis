@@ -7,24 +7,34 @@ use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Actions\Billing\Checkout\CompleteRedirectCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartLocalCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
+use Nvade\Numerosis\Enums\Auth\SocialProvider;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
+use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
+use Nvade\Numerosis\Http\Controllers\Auth\Social\DestroySocialAccountController;
+use Nvade\Numerosis\Http\Controllers\Auth\Social\HandleProviderCallbackController;
+use Nvade\Numerosis\Http\Controllers\Auth\Social\RedirectToProviderController;
 use Nvade\Numerosis\Http\Controllers\Billing\WebhookController;
-use Nvade\Numerosis\Http\Controllers\Socialite\Login as SocialiteLogin;
-use Nvade\Numerosis\Http\Controllers\Socialite\Redirect as SocialiteRedirect;
+use Nvade\Numerosis\Http\Controllers\Invitations\AcceptInvitationController;
+use Nvade\Numerosis\Http\Controllers\Invitations\ShowInvitationController;
+use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
 use Nvade\Numerosis\Livewire\Settings\Password as PasswordSettings;
 use Nvade\Numerosis\Livewire\Settings\Profile as ProfileSettings;
 use Nvade\Numerosis\Livewire\Tenant\Registration;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 
+// The central guard's name is a host-overridable config key, so it is read
+// once here instead of spelled `auth:web` at each call site. Registration-time
+// read, which is correct: routes are built once per boot and the guard cannot
+// change per request.
+$centralAuth = 'auth:'.Config::string('numerosis.auth.guards.central');
+
 // 'home' is registered unconditionally, behind no feature flag.
-// Socialite\Login::tenantDashboardUrl() builds an OAuth tenant-redirect URL by
-// swapping this route's host (see its own docblock), CompleteRedirectCheckout
-// falls back to it on a checkout error, and the tenant panel documents 'home'
-// as the one route name guaranteed to exist on the central domain regardless
-// of panel registration. All three depend on this staying unconditional.
+// CompleteRedirectCheckout falls back to it on a checkout error, and the
+// tenant panel documents 'home' as the one route name guaranteed to exist on
+// the central domain regardless of panel registration.
 //
 // The view it renders is a deliberate placeholder. Marketing pages — a
 // homepage worth showing, plus terms/privacy/about/features — are the
@@ -50,15 +60,35 @@ if (Features::enabled(RegistrationWizardFeature::NAME)) {
 }
 
 if (Features::enabled(SocialLoginFeature::NAME)) {
-    Route::get('/oauth/{driver}/callback', SocialiteLogin::class)
-        ->name('oauth.callback');
+    // An unconfigured provider 404s at routing rather than exploding inside
+    // a Socialite driver. With zero providers configured, `whereIn` would
+    // otherwise receive an empty list and build an empty (invalid) regex —
+    // an impossible pattern keeps both routes registered but unreachable.
+    $configuredProviders = SocialProvider::configuredValues();
+    $providerPattern = $configuredProviders === [] ? '(?!)' : implode('|', $configuredProviders);
 
-    Route::get('/oauth/{driver}', SocialiteRedirect::class)
-        ->domain(Config::string('numerosis.domains.central'))
-        ->name('oauth');
+    Route::middleware(['throttle:social'])->group(function () use ($providerPattern): void {
+        Route::get('/auth/{provider}/redirect', RedirectToProviderController::class)
+            ->where('provider', $providerPattern)
+            ->name(Config::string('numerosis.social.routes.redirect.name'));
+
+        Route::get('/auth/{provider}/callback', HandleProviderCallbackController::class)
+            ->where('provider', $providerPattern)
+            ->name(Config::string('numerosis.social.routes.callback.name'));
+    });
 }
 
-Route::middleware(['auth:web'])->group(function () {
+if (Features::enabled(InvitationsFeature::NAME)) {
+    Route::middleware(['signed', 'throttle:6,1'])->group(function () use ($centralAuth): void {
+        Route::get('/invitations/{invitation}', ShowInvitationController::class)
+            ->name(RouteNames::invitationShow());
+
+        Route::middleware($centralAuth)->post('/invitations/{invitation}', AcceptInvitationController::class)
+            ->name(RouteNames::invitationAccept());
+    });
+}
+
+Route::middleware([$centralAuth])->group(function () {
     // The account UI: settings, the workspace list, invoice downloads and
     // the billing portal. Formerly nvade/numerosis-account, contributed
     // through Numerosis::addCentralRoutes() — folded into core in Phase 3 of
@@ -71,6 +101,18 @@ Route::middleware(['auth:web'])->group(function () {
     // The password page has nowhere to send a user who cannot set a password.
     if (Features::enabled(PasswordResetFeature::NAME)) {
         Route::livewire('settings/password', PasswordSettings::class)->name('settings.password');
+    }
+
+    if (Features::enabled(SocialLoginFeature::NAME)) {
+        Route::livewire('settings/connected-accounts', ConnectedAccounts::class)
+            ->name('settings.connected-accounts');
+
+        // Not plain `password.confirm`: a user who registered through OAuth
+        // has no password to confirm with, and `SocialAccountPolicy::delete()`
+        // is what protects them. See `Http\Middleware\RequirePasswordIfSet`.
+        Route::delete('/settings/social/{socialAccount}', DestroySocialAccountController::class)
+            ->middleware('password.confirm.if-set')
+            ->name('social.destroy');
     }
 
     // `pages::`, core's own Livewire full-page namespace.

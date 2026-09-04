@@ -10,9 +10,8 @@ namespace Nvade\Numerosis\Support\Compat;
  * package cannot even autoload without it. Making the *trait itself*
  * conditional is what keeps the package optional — see
  * `.ai/rules/optional-dependencies.md`. Here, for `spatie/laravel-activitylog`. Without that
- * package installed, {@see \Nvade\Numerosis\Models\Tenant\User} and
- * {@see \Nvade\Numerosis\Models\Tenant\Invitation} simply stop logging
- * activity; `getActivitylogOptions()` on either model becomes dead code,
+ * package installed, {@see \Nvade\Numerosis\Models\Tenant\User} simply stops
+ * logging activity; `getActivitylogOptions()` on it becomes dead code,
  * never called by anything that isn't the trait itself.
  */
 if (trait_exists(\Spatie\Activitylog\Models\Concerns\LogsActivity::class)) {

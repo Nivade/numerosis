@@ -23,8 +23,8 @@ use Laravel\Fortify\RoutePath;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
 use Nvade\Numerosis\Http\Controllers\Auth\OneTimePasswordChallengeController;
-use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
+use Nvade\Numerosis\Http\Middleware\RequirePasswordIfSet;
 use Nvade\Numerosis\Models\User as NumerosisUser;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use ReflectionClass;
@@ -389,16 +389,26 @@ class Numerosis
     }
 
     /**
-     * Middleware stack for `withBroadcasting()`. The `auth:tenant` guard is
-     * fixed, not configurable: broadcasting auth always runs inside tenant
-     * context, and authenticating it against any other guard leaks presence
-     * channels across tenants.
+     * Middleware stack for `withBroadcasting()`.
+     *
+     * The guard is always the *tenant* one. Broadcasting auth runs inside
+     * tenant context, and authenticating it against the central guard leaks
+     * presence channels across tenants. Which guard that is stays
+     * `numerosis.auth.guards.tenant`'s answer, so a host that renames it keeps
+     * working; what is fixed is the choice of tenant over central, not the
+     * name.
      *
      * @return list<string>
      */
     public static function broadcasting(): array
     {
-        return ['web', 'tenancy.identification', 'tenancy.session', 'auth:tenant', 'universal'];
+        return [
+            'web',
+            'tenancy.identification',
+            'tenancy.session',
+            'auth:'.Config::string('numerosis.auth.guards.tenant'),
+            'universal',
+        ];
     }
 
     /**
@@ -422,7 +432,7 @@ class Numerosis
     public static function middleware(Middleware $middleware): void
     {
         $middleware->alias([
-            'invitation.status' => CheckInvitationStatus::class,
+            'password.confirm.if-set' => RequirePasswordIfSet::class,
             'tenancy.identification' => TenancyServiceProvider::identificationMiddleware(),
             'tenancy.route' => TenancyServiceProvider::tenancyRouteMiddleware(),
             'tenancy.session' => EnsureSessionMatchesTenant::class,

@@ -43,12 +43,6 @@ parameters:
 			path: database/factories/PaymentPlanFeatureFactory.php
 
 		-
-			message: '#^Cannot call method getTenantKey\(\) on mixed\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: database/factories/Tenant/InvitationFactory.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Schema\\ForeignKeyDefinition\:\:nullable\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -550,7 +544,13 @@ parameters:
 			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/Livewire/Invitations/Accept.php
+			path: src/Http/Controllers/Invitations/ShowInvitationController.php
+
+		-
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Livewire/Settings/ConnectedAccounts.php
 
 		-
 			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
@@ -799,40 +799,16 @@ parameters:
 			path: tests/Feature/Console/PruneStalledTenantProvisionsTest.php
 
 		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 1
-			path: tests/Feature/Events/Auth/SocialAccountDisconnectedTest.php
-
-		-
 			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: tests/Feature/Features/RegistrationWizardDisabledTest.php
 
 		-
-			message: '#^Cannot call method instance\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Http/Controllers/Socialite/LoginTest.php
-
-		-
 			message: '#^Cannot access property \$id on Nvade\\Numerosis\\Models\\Role\|null\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: tests/Feature/InterviewShowcaseTest.php
-
-		-
-			message: '#^Cannot call method instance\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Invitations/CheckInvitationStatusTest.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Tests\\Feature\\Invitations\\CheckInvitationStatusTest\:\:getTenantRoute\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: tests/Feature/Invitations/CheckInvitationStatusTest.php
 
 		-
 			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:fail\(\)\.$#'
@@ -852,11 +828,6 @@ parameters:
 			count: 1
 			path: tests/Feature/Listeners/Tenancy/LogSyncedResourceChangedInForeignDatabaseTest.php
 
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Livewire/Invitations/AcceptTest.php
 
 		-
 			message: '#^Method Nvade\\Numerosis\\Tests\\Feature\\Livewire\\Tenant\\Registration\\RegistrationCheckoutHandoffTest\:\:planStep\(\) return type with generic class Livewire\\Features\\SupportTesting\\Testable does not specify its types\: TComponent$#'

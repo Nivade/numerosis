@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Events\Tenancy;
 
 use Illuminate\Foundation\Events\Dispatchable;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 
 class MemberRemoved
 {
@@ -13,6 +14,6 @@ class MemberRemoved
     public function __construct(
         public readonly string $tenantId,
         public readonly string $globalUserId,
-        public readonly string $role,
+        public readonly MembershipRole $role,
     ) {}
 }

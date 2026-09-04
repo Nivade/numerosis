@@ -97,6 +97,28 @@ numerosis's actions back for Fortify's, the Livewire views' `@error('name')`
 needs to become `@error('name', 'updateProfileInformation')` to match, or
 errors render nowhere.
 
+### Invitation roles
+
+An invitation's `role` is `Enums\Tenancy\MembershipRole`, the vocabulary of the
+`memberships.role` database enum. `MembershipRole::assignable()` omits `Owner`,
+and both `Http\Requests\Invitations\StoreInvitationRequest` and any caller
+using `Data\Invitations\InvitationData::validateAndCreate()` enforce that
+through one shared `rules()`. Ownership is granted by
+`Actions\Tenancy\AddTenantOwner` during provisioning.
+
+### Adding a social login provider
+
+Provider metadata (label, icon, whether it is configured) is code, not
+config — there is no `numerosis.social.providers` array to edit any more.
+Add a provider by adding a case to `Enums\Auth\SocialProvider` (label, icon,
+and — if the case matches a Socialite driver name Socialite does not ship
+itself, the way `discord` doesn't — a community driver registered the same
+way `SocialLoginFeature::bootstrap()` registers Discord's) and setting its
+`client_id`/`client_secret`/`redirect` under `config('services.<provider>')`.
+`isConfigured()` reads `client_id` directly, so a provider with credentials
+set is usable immediately; `configured()`/`configuredValues()` are what the
+button list and the OAuth routes' `->where('provider', …)` constraint read.
+
 ### Replacing rather than adding
 
 | Call | Replaces |
@@ -130,8 +152,8 @@ touching core.
 
 | Event | When it fires | Payload | Typical use |
 |---|---|---|---|
-| `Auth\SocialAccountConnected` | A social provider is linked to a `CentralUser` | `user`, `socialLogin` | Audit, welcome email for a new provider |
-| `Auth\SocialAccountDisconnected` | A social provider is unlinked | `user`, `provider` | Audit |
+| `Auth\SocialAccountLinked` | A `SocialAccount` is created or an OAuth login resolves to an existing one (`Actions\Auth\Social\LoginWithSocialAccount`/`LinkSocialAccount`) | `globalUserId`, `provider` (scalars), `socialAccount` | Audit, welcome email for a new provider |
+| `Auth\SocialAccountUnlinked` | `Http\Controllers\Auth\Social\DestroySocialAccountController` deletes a `SocialAccount` | `globalUserId`, `provider` (scalars only — the row is gone by dispatch time) | Audit |
 | `Auth\UserAccountDeleting` | Before `Actions\Auth\DeleteUserAccount` deletes the row | `user`, `globalId`. Listen synchronously — a queued listener unserializes `user` after the delete committed and gets a `ModelNotFoundException` | A host purging or exporting its own rows before the account is gone |
 | `Auth\UserAccountDeleted` | After the row is deleted | `globalId`, `email` (scalars only, the model no longer exists) | Cleanup that only needs the identifiers |
 | `Auth\AdminGranted` | `Actions\Auth\PromoteFirstCentralUserToAdmin` or `Actions\Tenancy\PromoteFirstUserToAdmin` grants the admin role | `globalId`, `grantedBy` (always `null` today — both dispatch sites are automatic first-user promotion), `tenantId` (`null` for the central role) | Privilege-escalation audit |
@@ -142,14 +164,15 @@ touching core.
 | `Billing\SubscriptionCancelled` | `customer.subscription.deleted` webhook | `tenant`, `gracePeriodEndsAt`, `tenantId` | A retention flow — distinct from `TenantSuspended`, which is enforcement and can land days later |
 | `Billing\CheckoutStarted` | `Actions\Billing\Checkout\StartSubscriptionCheckout`, once the domain is reserved | `domain`, `planId` | Funnel analytics |
 | `Billing\CheckoutCompleted` | `Actions\Billing\Checkout\SettleCheckout` — the one point the card/Link path, the redirect return route and the `payment_method.attached` webhook all funnel through | `domain`, `planId`, `stripeSubscriptionId`. Fires whether or not the subscription settled immediately (a trial collects nothing upfront) | Funnel analytics; do not infer settlement from this alone |
-| `Invitations\InvitationIssued` | An invitation is created | `invitation` | The invitation email |
+| `Invitations\InvitationCreated` | `Actions\Invitations\SendInvitation`, which reuses the row for `(tenant_id, email)` | `invitation`, `invitationId` | The invitation email (`Listeners\Invitations\SendInvitationNotification`) |
+| `Invitations\InvitationAccepted` | `Actions\Invitations\AcceptInvitation`, after the membership is attached | `invitation`, `invitationId`, `invitedByUserId`, `secondsUnaccepted`. Carries only what `Tenancy\MemberJoined` does not. That event fires automatically from `MembershipObserver::created()`, since acceptance attaches through the `tenants()` relation instead of dispatching it itself | Analytics on invite-to-accept latency; anything that needs the inviter, not just the joiner |
 | `Tenancy\TenantProvisioned` | `Actions\Tenancy\MarkTenantProvisioned` | `tenant`, `ownerId`. Broadcasts on `user.{ownerId}` | The registration wizard's own poll for "ready" |
 | `Tenancy\TenantProvisioningStarted` | `Actions\Tenancy\MarkProvisionInProgress` | `domain`, `globalId` | Progress UI, timing metrics. Not broadcast — nothing client-side listens for it |
 | `Tenancy\TenantProvisioningFailed` | A provisioning step exhausts its retries | `domain`, `globalId`. Broadcasts on `user.{ownerId}` | Surfacing the failure to the user waiting on it |
 | `Tenancy\TenantProvisioningCancelled` | A pending provision is cancelled | `globalId`. Broadcasts on `user.{ownerId}` | Same |
 | `Tenancy\TenantRestored` | `Actions\Tenancy\RestoreTenant` clears a suspension | `tenant`, `ownerId`, `tenantId` | The "access restored" notification |
-| `Tenancy\MemberJoined` | `Observers\MembershipObserver::created()` | `tenantId`, `globalUserId`, `role`, `invitedBy` | Seat-based billing, audit |
-| `Tenancy\MemberRemoved` | `Observers\MembershipObserver::deleted()` | `tenantId`, `globalUserId`, `role` | Seat-based billing, offboarding |
+| `Tenancy\MemberJoined` | `Observers\MembershipObserver::created()` | `tenantId`, `globalUserId`, `role` (an `Enums\Tenancy\MembershipRole`), `invitedBy` | Seat-based billing, audit. Match `MembershipRole::Owner` instead of the string `'owner'` |
+| `Tenancy\MemberRemoved` | `Observers\MembershipObserver::deleted()` | `tenantId`, `globalUserId`, `role` (an `Enums\Tenancy\MembershipRole`) | Seat-based billing, offboarding |
 | `Tenancy\TenantDomainReserved` | `Actions\Tenancy\CreateTenantDomain` creates a `domains` row (only under `IdentificationMode::Subdomain`/`CustomDomain` — `Path` mode creates no row) | `tenantId`, `domain`, `mode` | DNS automation and certificate issuance under `CustomDomain` mode |
 
 ## Optional dependencies core still leans on

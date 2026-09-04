@@ -13,11 +13,12 @@ use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
+use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\SocialAccount;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\Invitation;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Support\Assets;
@@ -69,7 +70,6 @@ class InstallNumerosisCommand extends Command
         $this->verifySessionDomain();
         $this->verifyAuthGuards();
         $this->verifyAuthPasswordBroker();
-        $this->verifySocialProviders();
         $this->verifySocialRoutes();
         $this->verifyFailedJobsConnection();
         $this->verifyLivewireUploadDisk();
@@ -354,21 +354,9 @@ class InstallNumerosisCommand extends Command
         }
     }
 
-    /** An empty array is correct when social login is off; a missing key is not. */
-    private function verifySocialProviders(): void
-    {
-        if (! is_array(Config::get('numerosis.social.providers'))) {
-            $this->failures[] = "config('numerosis.social.providers') must be an array (use [] when SocialLoginFeature is off) — a missing key throws InvalidArgumentException from whichever view renders the social-login buttons.";
-        }
-    }
-
     private function verifySocialRoutes(): void
     {
-        if (! is_array(Config::get('numerosis.social.providers')) || Config::get('numerosis.social.providers') === []) {
-            return;
-        }
-
-        foreach (['redirect', 'login'] as $route) {
+        foreach (['redirect', 'callback'] as $route) {
             $name = Config::get("numerosis.social.routes.{$route}.name");
 
             if (! is_string($name) || $name === '') {
@@ -774,7 +762,8 @@ class InstallNumerosisCommand extends Command
             Subscription::class => 'Central/Subscription',
             PaymentPlan::class => 'Central/PaymentPlan',
             PendingTenantProvision::class => 'Central/PendingTenantProvision',
-            Invitation::class => 'Tenant/Invitation',
+            Invitation::class => 'Central/Invitation',
+            SocialAccount::class => 'Central/SocialAccount',
             TenantUser::class => 'Tenant/User',
         ];
 

@@ -5,24 +5,18 @@ declare(strict_types=1);
 use Nvade\Numerosis\Actions\Auth\AuthenticateLoginCandidate;
 use Nvade\Numerosis\Actions\Auth\ResolveLoginCandidate;
 use Nvade\Numerosis\Actions\Auth\SendEmailVerificationNotification;
-use Nvade\Numerosis\Actions\Invitations\CreateInvitedUser;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant as CreateTenantAction;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
-use Nvade\Numerosis\Contracts\Auth\SocialAccountRepository;
-use Nvade\Numerosis\Contracts\Invitations\CreatesInvitedUser;
-use Nvade\Numerosis\Contracts\Invitations\InvitationRepository;
 use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Services\Auth\EloquentSocialAccountRepository;
-use Nvade\Numerosis\Services\Invitations\EloquentInvitationRepository;
 use Nvade\Numerosis\Services\Notifications\NotifiesTenantOwnerDirectly;
 use Nvade\Numerosis\Services\Tenancy\DefaultTenantDomainPolicy;
 use Nvade\Numerosis\Services\Tenancy\StanclTenantDatabaseManager;
@@ -160,24 +154,20 @@ return [
             TenantDomainPolicy::class => DefaultTenantDomainPolicy::class,
             ProvisionsTenant::class => ProvisionTenant::class,
             TenantDatabaseManager::class => StanclTenantDatabaseManager::class,
-            InvitationRepository::class => EloquentInvitationRepository::class,
-            SocialAccountRepository::class => EloquentSocialAccountRepository::class,
             NotifiesTenantOwner::class => NotifiesTenantOwnerDirectly::class,
-            // Auth/invitation contracts: previously bound only in saas-m's
+            // Auth contracts: previously bound only in saas-m's
             // AppServiceProvider, which stays in thin-app per the extraction
-            // plan's "app-specific bindings" table — but these back the
-            // package's own Accept-invitation Livewire component and OTP
-            // login candidate resolution, so an unbound default leaves the
-            // package broken for any consumer until they re-derive this list
-            // by hand. Registration, post-login redirect and password reset
-            // are Laravel Fortify's own seams since Phase 4 of
+            // plan's "app-specific bindings" table — but these back OTP login
+            // candidate resolution, so an unbound default leaves the package
+            // broken for any consumer until they re-derive this list by hand.
+            // Registration, post-login redirect and password reset are
+            // Laravel Fortify's own seams since Phase 4 of
             // `.claude/plans/archive/humming-nibbling-flame.md` — see
             // `Fortify::createUsersUsing()` etc. in
             // `NumerosisServiceProvider::registerFortify()`, not here.
             ResolvesLoginCandidate::class => ResolveLoginCandidate::class,
             AuthenticatesLoginCandidate::class => AuthenticateLoginCandidate::class,
             SendsEmailVerificationNotification::class => SendEmailVerificationNotification::class,
-            CreatesInvitedUser::class => CreateInvitedUser::class,
         ],
 
     ],

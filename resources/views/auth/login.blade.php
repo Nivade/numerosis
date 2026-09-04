@@ -19,9 +19,8 @@
 
         <x-numerosis::ui.auth-session-status class="text-center" :status="session('status')" />
 
-        <x-numerosis::auth.buttons.grid />
-
         @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Auth\SocialLoginFeature::NAME))
+            <x-numerosis::auth.social-buttons />
             <x-numerosis::auth.social-divider />
         @endif
 

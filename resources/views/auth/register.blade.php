@@ -4,6 +4,18 @@
 
         <x-numerosis::ui.auth-session-status class="text-center" :status="session('status')" />
 
+        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Auth\SocialLoginFeature::NAME))
+            <x-numerosis::auth.social-buttons />
+            <x-numerosis::auth.social-divider />
+        @endif
+
+        {{-- An invitee arriving through `invitations.show` gets the
+             invitation's address prefilled. `ShowInvitationController` stashes
+             it, so there is no query here. The field is `readonly`, which is a
+             hint and not a control; `AcceptInvitation` re-checks the address
+             and throws `InvitationEmailMismatch`. --}}
+        @php($invitedEmail = session('pending_invitation.email'))
+
         <form method="POST" action="{{ route('register.store') }}" class="flex flex-col gap-6">
             @csrf
 
@@ -20,10 +32,11 @@
 
             <flux:input
                 name="email"
-                :value="old('email')"
+                :value="old('email', $invitedEmail)"
                 :label="__('Email address')"
                 type="email"
                 required
+                :readonly="$invitedEmail !== null"
                 autocomplete="email"
                 placeholder="email@example.com"
             />

@@ -14,6 +14,10 @@ class InvitationsFeatureTest extends TestCase
 
     public function test_it_registers_the_invitation_route_when_enabled(): void
     {
-        $this->assertTrue(Route::has('invitation.show'));
+        $this->assertTrue(Route::has('invitations.show'));
+        $this->assertTrue(Route::has('invitations.accept'));
+        $this->assertTrue(Route::has('team.invitations.index'));
+        $this->assertTrue(Route::has('team.invitations.store'));
+        $this->assertTrue(Route::has('team.invitations.destroy'));
     }
 }

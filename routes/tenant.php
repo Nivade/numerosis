@@ -5,7 +5,8 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
-use Nvade\Numerosis\Livewire\Invitations\Accept;
+use Nvade\Numerosis\Http\Controllers\Invitations\DestroyInvitationController;
+use Nvade\Numerosis\Http\Controllers\Invitations\StoreInvitationController;
 use Nvade\Numerosis\Support\Features;
 
 /*
@@ -34,13 +35,6 @@ use Nvade\Numerosis\Support\Features;
 Route::get('/', fn () => view(Config::string('numerosis.routes.home_view')))
     ->name('tenant.home');
 
-// Invitation routes (Livewire)
-if (Features::enabled(InvitationsFeature::NAME)) {
-    Route::get('invitation/{token}', Accept::class)
-        ->name('invitation.show')
-        ->middleware('invitation.status');
-}
-
 // `verification.notice` and `password.confirm` used to be contributed by
 // nvade/numerosis-auth-ui through Numerosis::addTenantRoutes(). That package
 // folded into core in Phase 3 of `.claude/plans/archive/humming-nibbling-flame.md`
@@ -53,7 +47,7 @@ if (Features::enabled(InvitationsFeature::NAME)) {
 // central→tenant session promotion, so a central user who may access this
 // tenant is signed in on the tenant guard on the way through instead of being
 // bounced to a login screen they do not need.
-Route::middleware(['universal', 'tenancy.auth:tenant'])->group(function () {
+Route::middleware(['universal', 'tenancy.auth:'.Config::string('numerosis.auth.guards.tenant')])->group(function () {
     // Deliberately outside the `tenancy.subscription` group below, and the
     // reason that gate is a nested group rather than a fourth entry in the
     // `tenant` middleware group: this is where EnsureTenantSubscriptionActive
@@ -78,6 +72,10 @@ Route::middleware(['universal', 'tenancy.auth:tenant'])->group(function () {
     // for the same reason: a suspended tenant's user still has to be able to
     // verify an address and confirm a password.
     Route::middleware('tenancy.subscription')->group(function () {
-        //
+        if (Features::enabled(InvitationsFeature::NAME)) {
+            Route::livewire('team/invitations', 'pages::tenant.invitations')->name('team.invitations.index');
+            Route::post('team/invitations', StoreInvitationController::class)->name('team.invitations.store');
+            Route::delete('team/invitations/{invitation}', DestroyInvitationController::class)->name('team.invitations.destroy');
+        }
     });
 });

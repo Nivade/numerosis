@@ -21,7 +21,6 @@ use Nvade\Numerosis\Concerns\HasGlobalIdentity;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
-use Nvade\Numerosis\Models\SocialiteLogin;
 use Nvade\Numerosis\Models\Tenant as Workspace;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Observers\CentralUserObserver;
@@ -43,12 +42,12 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
  * @property string|null $pm_type
  * @property string|null $pm_last_four
  * @property Carbon|null $trial_ends_at
- * @property-read \Illuminate\Database\Eloquent\Collection<int, SocialiteLogin> $socialiteLogins
- * @property-read int|null $socialite_logins_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, Tenant> $tenants
  * @property-read int|null $tenants_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, Subscription> $subscriptions
  * @property-read int|null $subscriptions_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, SocialAccount> $socialAccounts
+ * @property-read int|null $social_accounts_count
  *
  * @mixin Model
  */
@@ -86,11 +85,11 @@ class CentralUser extends User implements CentralUserModel, HasTenants, Subscrib
     ];
 
     /**
-     * @return HasMany<SocialiteLogin, $this>
+     * @return HasMany<SocialAccount, $this>
      */
-    public function socialiteLogins(): HasMany
+    public function socialAccounts(): HasMany
     {
-        return $this->hasMany(SocialiteLogin::class);
+        return $this->hasMany(Numerosis::model(SocialAccount::class));
     }
 
     /**

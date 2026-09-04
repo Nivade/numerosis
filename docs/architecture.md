@@ -112,8 +112,8 @@ Two connections, two migration sets, never mixed:
 | | Central | Tenant |
 |---|---|---|
 | Connection | `central` (cloned from `database.default` if absent) | the default connection, repointed per request by stancl's bootstrappers |
-| Migrations | `database/migrations/central/` — 63 files, run by `php artisan migrate` | `database/migrations/tenant/` — 17 files, run per tenant at provision time |
-| Models | `src/Models/Central/` — `Tenant`, `Domain`, `CentralUser`, `Subscription`, `PaymentPlan`, `PendingTenantProvision` | `src/Models/Tenant/` — `User`, `Invitation` |
+| Migrations | `database/migrations/central/` — 63 files, run by `php artisan migrate` | `database/migrations/tenant/` — 16 files, run per tenant at provision time |
+| Models | `src/Models/Central/` — `Tenant`, `Domain`, `CentralUser`, `Subscription`, `PaymentPlan`, `PendingTenantProvision`, `Invitation`, `SocialAccount` | `src/Models/Tenant/` — `User` only |
 
 Every package model is concrete and usable as-is. `Numerosis::model()` resolves
 each in three steps: an explicit `numerosis.models.<FQCN>` entry, then a

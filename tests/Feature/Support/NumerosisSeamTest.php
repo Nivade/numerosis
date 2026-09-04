@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
-use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Models\Central\Tenant as PackageTenant;
 use Nvade\Numerosis\NumerosisServiceProvider;
@@ -38,7 +37,6 @@ it('registers the 4 middleware aliases and both groups, tenant group in order', 
     Numerosis::middleware($middleware);
 
     expect($middleware->getMiddlewareAliases())->toMatchArray([
-        'invitation.status' => CheckInvitationStatus::class,
         'tenancy.identification' => TenancyServiceProvider::identificationMiddleware(),
         'tenancy.route' => TenancyServiceProvider::tenancyRouteMiddleware(),
         'tenancy.session' => EnsureSessionMatchesTenant::class,
@@ -173,7 +171,6 @@ it('registers the middleware aliases/groups against the real router with no host
     $router = resolve(Router::class);
 
     expect($router->getMiddleware())->toMatchArray([
-        'invitation.status' => CheckInvitationStatus::class,
         'tenancy.identification' => TenancyServiceProvider::identificationMiddleware(),
         'tenancy.route' => TenancyServiceProvider::tenancyRouteMiddleware(),
         'tenancy.session' => EnsureSessionMatchesTenant::class,

@@ -32,6 +32,11 @@ final class RouteNames
         return Config::string('numerosis.routes.names.invitation_show');
     }
 
+    public static function invitationAccept(): string
+    {
+        return Config::string('numerosis.routes.names.invitation_accept');
+    }
+
     public static function checkoutSubscription(): string
     {
         return Config::string('numerosis.routes.names.checkout_subscription');

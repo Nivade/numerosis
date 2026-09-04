@@ -4,25 +4,28 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Listeners\Invitations;
 
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Queue\Attributes\Backoff;
+use Illuminate\Queue\Attributes\DeleteWhenMissingModels;
+use Illuminate\Queue\Attributes\Queue;
+use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Support\Facades\Notification;
-use Nvade\Numerosis\Events\Invitations\InvitationIssued;
-use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
-use Nvade\Numerosis\Notifications\InvitationSent;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Events\Invitations\InvitationCreated;
+use Nvade\Numerosis\Notifications\InvitationNotification;
 
 /**
- * Sends the invitation email. Always registered, and checks the invitations
- * feature itself before sending.
+ * Always registered — always fires, invitations are not behind their own
+ * gate the way social login is.
  */
-class SendInvitationNotification
+#[Queue('mail')]
+#[Tries(3)]
+#[Backoff([10, 60, 300])]
+#[DeleteWhenMissingModels]
+class SendInvitationNotification implements ShouldQueue
 {
-    public function handle(InvitationIssued $event): void
+    public function handle(InvitationCreated $event): void
     {
-        if (! Features::enabled(InvitationsFeature::NAME)) {
-            return;
-        }
-
         Notification::route('mail', $event->invitation->email)
-            ->notify(new InvitationSent($event->invitation));
+            ->notify(new InvitationNotification($event->invitation));
     }
 }

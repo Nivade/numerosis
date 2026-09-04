@@ -8,6 +8,8 @@ paths:
 ## Domain event conventions
 Every event under src/Events carries scalars (ids) alongside any model — SerializesModels re-queries on unserialize, which fails for a deleted model and resolves against the wrong connection for a tenant-scoped one. Anything dispatched from inside a transaction needs ShouldDispatchAfterCommit; event() fires immediately otherwise and a queued listener can read a row that hasn't committed. Listeners are unordered — never encode a sequence across two of them; work core must do stays in an action the code path calls directly, events are for reactions only. Core registers its own listeners with an explicit Event::listen() map in NumerosisServiceProvider::registerEventListeners() (plus one in BillingServiceProvider) since Laravel's auto-discovery never scans a package's src/.
 
+"Scalars" includes backed enums. `MemberJoined`/`MemberRemoved` carry `Enums\Tenancy\MembershipRole` and `InvitationCreated`/`InvitationAccepted` carry an `int` id beside the model. An enum round-trips a queued payload by value with no re-query, so it carries none of the risk a model does, and it stops each listener from repeating the string `'owner'`. The rule is against *models* without an accompanying id, not against value objects.
+
 Events\Auth\UserAccountDeleting is the exception that proves the scalars rule: it carries the CentralUser deliberately so a listener can read $user->tenants before the delete, which only works synchronously. A queued listener on it unserializes after the delete committed and gets ModelNotFoundException.
 
 ## Pivot events fire only from the Syncable side

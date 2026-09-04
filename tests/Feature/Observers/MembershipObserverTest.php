@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Nvade\Numerosis\Actions\Tenancy\MarkTenantProvisioned;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Events\Tenancy\MemberJoined;
 use Nvade\Numerosis\Events\Tenancy\MemberRemoved;
 use Nvade\Numerosis\Tests\TestCase;
@@ -84,13 +85,13 @@ class MembershipObserverTest extends TestCase
 
         Event::assertDispatched(fn (MemberJoined $e): bool => $e->tenantId === $tenant->id
             && $e->globalUserId === $user->global_id
-            && $e->role === 'member'
+            && $e->role === MembershipRole::Member
             && $e->invitedBy === $inviter->global_id);
 
         $tenant->users()->detach($user->global_id);
 
         Event::assertDispatched(fn (MemberRemoved $e): bool => $e->tenantId === $tenant->id
             && $e->globalUserId === $user->global_id
-            && $e->role === 'member');
+            && $e->role === MembershipRole::Member);
     }
 }

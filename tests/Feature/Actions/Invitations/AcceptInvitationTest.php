@@ -6,95 +6,154 @@ namespace Nvade\Numerosis\Tests\Feature\Actions\Invitations;
 
 use App\Models\Central\CentralUser;
 use App\Models\Central\Tenant;
-use App\Models\Tenant\Invitation;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Queue;
 use Nvade\Numerosis\Actions\Invitations\AcceptInvitation;
+use Nvade\Numerosis\Events\Invitations\InvitationAccepted;
+use Nvade\Numerosis\Events\Tenancy\MemberJoined;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationAlreadyAccepted;
+use Nvade\Numerosis\Exceptions\Invitations\InvitationEmailMismatch;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationExpired;
+use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Tests\TestCase;
 
 class AcceptInvitationTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected Tenant $tenant;
-
-    protected function setUp(): void
+    public function test_happy_path_creates_a_membership_and_a_tenant_user_row_without_running_the_queue(): void
     {
-        parent::setUp();
+        Event::fake([MemberJoined::class, InvitationAccepted::class]);
 
-        // forceCreate: `id` is not fillable, so create() lets UUIDGenerator
-        // assign a uuid instead of the id this test addresses by domain.
-        $this->tenant = Tenant::forceCreate(['id' => 'test-'.uniqid()]);
-        $this->tenant->domains()->create([
-            'id' => $this->tenant->id,
-            'domain' => $this->tenant->id.'.localhost',
-        ]);
-    }
+        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
+        Queue::fake();
 
-    public function test_it_throws_a_typed_exception_for_an_already_accepted_invitation(): void
-    {
         $user = CentralUser::factory()->create();
-
-        $invitation = $this->invitation([
-            'expires_at' => now()->addDays(1),
-            'accepted_at' => now(),
-        ]);
-
-        $this->expectException(InvitationAlreadyAccepted::class);
-        $this->expectExceptionMessage(__('This invitation has already been accepted.'));
-
-        $this->tenant->run(fn () => AcceptInvitation::run($invitation, $user));
-    }
-
-    public function test_it_throws_a_typed_exception_for_an_expired_invitation(): void
-    {
-        $user = CentralUser::factory()->create();
-
-        $invitation = $this->invitation([
-            'expires_at' => now()->subDays(1),
-            'accepted_at' => null,
-        ]);
-
-        $this->expectException(InvitationExpired::class);
-        $this->expectExceptionMessage(__('This invitation has expired.'));
-
-        $this->tenant->run(fn () => AcceptInvitation::run($invitation, $user));
-    }
-
-    public function test_it_creates_the_tenant_side_user_for_the_invited_member(): void
-    {
-        $user = CentralUser::factory()->create();
-
-        $invitation = $this->invitation([
+        $invitation = Invitation::factory()->for($tenant, 'tenant')->create([
+            'email' => $user->email,
             'role' => 'member',
-            'expires_at' => now()->addDays(1),
-            'accepted_at' => null,
         ]);
 
-        $this->tenant->run(fn () => AcceptInvitation::run($invitation, $user));
+        $accepted = AcceptInvitation::run($invitation, $user);
 
-        /** @var TenantUser|null $tenantUser */
-        $tenantUser = $this->tenant->run(
-            fn (): ?TenantUser => TenantUser::where('global_id', $user->global_id)->first()
-        );
+        $this->assertTrue($accepted->isAccepted());
+        $this->assertTrue($user->tenants()->where('tenants.id', $tenant->getKey())->exists());
 
-        $this->assertNotNull($tenantUser);
-        $this->assertSame($user->name, $tenantUser->name);
-        $this->assertSame($user->email, $tenantUser->email);
+        $tenant->run(function () use ($user): void {
+            $this->assertNotNull(TenantUser::where('global_id', $user->global_id)->first());
+        });
+
+        Event::assertDispatched(MemberJoined::class);
+        Event::assertDispatched(InvitationAccepted::class);
+    }
+
+    public function test_double_accept_is_idempotent(): void
+    {
+        Event::fake([MemberJoined::class]);
+
+        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
+        Queue::fake();
+
+        $user = CentralUser::factory()->create();
+        $invitation = Invitation::factory()->for($tenant, 'tenant')->create([
+            'email' => $user->email,
+            'role' => 'member',
+        ]);
+
+        AcceptInvitation::run($invitation, $user);
+
+        try {
+            AcceptInvitation::run($invitation->fresh(), $user);
+            $this->fail('Expected InvitationAlreadyAccepted to be thrown.');
+        } catch (InvitationAlreadyAccepted) {
+            // expected
+        }
+
+        $this->assertSame(1, $user->tenants()->where('tenants.id', $tenant->getKey())->count());
+        Event::assertDispatched(MemberJoined::class, 1);
     }
 
     /**
-     * @param  array<string, mixed>  $attributes
+     * The interleaving two concurrent POSTs produce, reproduced without
+     * threads: request A has already loaded the row and holds a stale
+     * `accepted_at` of null, and request B commits its acceptance before A
+     * reaches its own write.
+     *
+     * Reading `isAccepted()` off that stale model and stamping afterwards let
+     * both through, and the second attach died on
+     * `memberships.unique(tenant_id, global_user_id)` with a raw
+     * `QueryException`. The conditional `UPDATE ... WHERE accepted_at IS NULL`
+     * matches zero rows for the loser instead.
      */
-    protected function invitation(array $attributes): Invitation
+    public function test_a_concurrent_accept_that_lost_the_race_refuses_cleanly(): void
     {
-        /** @var Invitation $invitation */
-        $invitation = $this->tenant->run(
-            fn (): Invitation => Invitation::factory()->create($attributes)
-        );
+        Event::fake([MemberJoined::class, InvitationAccepted::class]);
 
-        return $invitation;
+        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
+        Queue::fake();
+
+        $user = CentralUser::factory()->create();
+        $invitation = Invitation::factory()->for($tenant, 'tenant')->create([
+            'email' => $user->email,
+            'role' => 'member',
+        ]);
+
+        // Request A's copy, loaded before anyone accepted.
+        $stale = $invitation->fresh();
+        $this->assertNotNull($stale);
+        $this->assertFalse($stale->isAccepted());
+
+        // Request B commits in between.
+        AcceptInvitation::run($invitation->fresh(), $user);
+
+        $this->expectException(InvitationAlreadyAccepted::class);
+
+        try {
+            AcceptInvitation::run($stale, $user);
+        } finally {
+            $this->assertSame(1, $user->tenants()->where('tenants.id', $tenant->getKey())->count());
+            Event::assertDispatched(MemberJoined::class, 1);
+            Event::assertDispatched(InvitationAccepted::class, 1);
+        }
+    }
+
+    public function test_an_expired_invitation_refuses_without_creating_a_membership(): void
+    {
+        $tenant = Tenant::factory()->create();
+        Queue::fake();
+
+        $user = CentralUser::factory()->create();
+        $invitation = Invitation::factory()->for($tenant, 'tenant')->expired()->create([
+            'email' => $user->email,
+        ]);
+
+        $this->expectException(InvitationExpired::class);
+
+        try {
+            AcceptInvitation::run($invitation, $user);
+        } finally {
+            $this->assertFalse($user->tenants()->where('tenants.id', $tenant->getKey())->exists());
+        }
+    }
+
+    public function test_a_mismatched_email_is_refused_without_creating_a_membership(): void
+    {
+        $tenant = Tenant::factory()->create();
+        Queue::fake();
+
+        $user = CentralUser::factory()->create(['email' => 'actual-owner@example.com']);
+        $invitation = Invitation::factory()->for($tenant, 'tenant')->create([
+            'email' => 'someone-else@example.com',
+        ]);
+
+        $this->expectException(InvitationEmailMismatch::class);
+
+        try {
+            AcceptInvitation::run($invitation, $user);
+        } finally {
+            $this->assertFalse($user->tenants()->where('tenants.id', $tenant->getKey())->exists());
+        }
     }
 }

@@ -138,6 +138,51 @@ any of it.
   single-tenant test passes whether or not the limiter is tenant-keyed, so it
   proves nothing.
 
+## OAuth identity matching (`Actions\Auth\Social\**`)
+
+- **Identity is `(provider, provider_id)` only — never email alone.**
+  `LoginWithSocialAccount::handle()` looks up an existing `SocialAccount` by
+  that pair before it ever reads `$data->email`. Matching by email alone lets
+  anyone who can claim a victim's address on *some* provider — one that
+  issues unverified addresses, or simply lies — log in as them.
+- **Linking to an existing account by email is conditional on both sides
+  being verified.** `findVerifiedMatch()` only runs when
+  `SocialUserData::$emailVerified` is true *and* the local `CentralUser` has
+  a non-null `email_verified_at`. When the email matches an existing account
+  but either side is unverified, `handle()` returns `null` rather than
+  linking, and `HandleProviderCallbackController` sends the visitor to
+  `login` with a "sign in first, then connect this account" message instead
+  of authenticating them. Regression test:
+  `tests/Feature/Auth/Social/SocialLoginTest::test_an_unverified_provider_email_refuses_to_link_and_redirects_to_login`.
+- **`$emailVerified` is per-provider, decided in `ResolveSocialUser`, and
+  defaults to `false`.** Only Google and GitHub expose whether the address
+  was verified in their raw payload (`isEmailVerified()`); every other
+  provider — including Discord and Facebook — cannot prove it, so this stays
+  `false` for them. Adding a provider does not get free "verified" status
+  just because the provider *has* a verified-email field; wire the specific
+  raw-payload key `isEmailVerified()` reads before trusting it.
+- **Never `->stateless()` on the redirect/callback routes.** These are web
+  routes; Socialite's `state` parameter is the CSRF defence for the callback,
+  and stateless mode drops it.
+- **`Policies\SocialAccountPolicy::delete()` refuses unlinking a user's last
+  credential when they have no password**, so a user cannot lock themselves
+  out of their own account by disconnecting their only way in.
+- **`social.destroy` carries `password.confirm.if-set`, never plain
+  `password.confirm`.** A user who registered through OAuth has
+  `users.password` null, and Fortify's confirm-password screen ends in
+  `Hash::check($password, null)`, which cannot return true. Plain
+  `password.confirm` therefore locked those users out of disconnecting
+  anything at all, while the policy above was busy allowing it.
+  `Http\Middleware\RequirePasswordIfSet` passes a passwordless user through
+  and behaves as Laravel's `RequirePassword` for everyone else. Its alias is
+  registered in **both** `NumerosisServiceProvider::registerMiddleware()` and
+  `Support\Numerosis::middleware()` (see `middleware-registration.md`). The
+  same trap is why `routes/web.php` gates `settings/password` on
+  `PasswordResetFeature`; reach for this middleware before adding
+  `password.confirm` to any other route a passwordless account can hit.
+  Tests: `SocialLoginTest::test_a_passwordless_user_can_unlink_a_spare_account_without_confirming`
+  and `::test_a_user_with_a_password_must_still_confirm_before_unlinking`.
+
 ## Two lessons from the deleted `PasswordlessLogin`, still load-bearing
 
 Both are why Phase 5's OTP challenge is a Fortify pipeline step + a plain

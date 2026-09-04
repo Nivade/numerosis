@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
@@ -37,7 +38,7 @@ class AddTenantOwner
 
         if (! $user->tenants()->where('tenants.id', $tenant->id)->exists()) {
             $user->tenants()->attach($tenant, [
-                'role' => 'owner',
+                'role' => MembershipRole::Owner,
                 'joined_at' => now(),
             ]);
         }

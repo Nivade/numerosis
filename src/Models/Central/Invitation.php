@@ -1,0 +1,137 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Nvade\Numerosis\Models\Central;
+
+use Illuminate\Database\Eloquent\Attributes\Boot;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\RouteKey;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Attributes\Table;
+use Illuminate\Database\Eloquent\Attributes\UseFactory;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\MassPrunable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
+use Nvade\Numerosis\Database\Factories\Central\InvitationFactory;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
+use Nvade\Numerosis\Policies\InvitationPolicy;
+use Nvade\Numerosis\Support\Numerosis;
+use Override;
+use Stancl\Tenancy\Database\Concerns\CentralConnection;
+
+/**
+ * @property int $id
+ * @property string $ulid
+ * @property string $tenant_id
+ * @property string $email
+ * @property MembershipRole $role
+ * @property int|null $invited_by_user_id
+ * @property int|null $accepted_by_user_id
+ * @property Carbon $expires_at
+ * @property Carbon|null $accepted_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read Tenant $tenant
+ * @property-read CentralUser|null $invitedBy
+ * @property-read CentralUser|null $acceptedBy
+ *
+ * @mixin Model
+ */
+#[Table('tenant_invitations')]
+#[Fillable(['tenant_id', 'email', 'role', 'invited_by_user_id', 'expires_at'])]
+#[UsePolicy(InvitationPolicy::class)]
+#[UseFactory(InvitationFactory::class)]
+#[RouteKey('ulid')]
+class Invitation extends Model
+{
+    use CentralConnection;
+
+    /** @use HasFactory<InvitationFactory> */
+    use HasFactory;
+
+    use MassPrunable;
+
+    #[Boot]
+    protected static function ulids(): void
+    {
+        static::creating(function (self $invitation): void {
+            $invitation->ulid ??= (string) Str::ulid();
+        });
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    #[Override]
+    protected function casts(): array
+    {
+        return [
+            'role' => MembershipRole::class,
+            'expires_at' => 'datetime',
+            'accepted_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * @return BelongsTo<Tenant, $this>
+     */
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Numerosis::model(Tenant::class));
+    }
+
+    /**
+     * @return BelongsTo<CentralUser, $this>
+     */
+    public function invitedBy(): BelongsTo
+    {
+        return $this->belongsTo(Numerosis::model(CentralUser::class), 'invited_by_user_id');
+    }
+
+    /**
+     * @return BelongsTo<CentralUser, $this>
+     */
+    public function acceptedBy(): BelongsTo
+    {
+        return $this->belongsTo(Numerosis::model(CentralUser::class), 'accepted_by_user_id');
+    }
+
+    /**
+     * @param  Builder<static>  $query
+     */
+    #[Scope]
+    protected function pending(Builder $query): void
+    {
+        $query->whereNull('accepted_at')->where('expires_at', '>', now());
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->expires_at->isPast();
+    }
+
+    public function isAccepted(): bool
+    {
+        return $this->accepted_at !== null;
+    }
+
+    /**
+     * @return Builder<static>
+     */
+    public function prunable(): Builder
+    {
+        return static::query()
+            ->where(function (Builder $query): void {
+                $query->whereNotNull('accepted_at')->where('accepted_at', '<', now()->subDays(30));
+            })
+            ->orWhere(function (Builder $query): void {
+                $query->whereNull('accepted_at')->where('expires_at', '<', now()->subDays(30));
+            });
+    }
+}

@@ -18,6 +18,7 @@ use Laravel\Cashier\Invoice;
 use Nvade\Numerosis\Concerns\Billing\Billable;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Database\Factories\Central\TenantFactory;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Tenant\User;
 use Nvade\Numerosis\Observers\TenantObserver;
 use Nvade\Numerosis\Policies\TenantPolicy;
@@ -176,7 +177,7 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
     public function owner(): ?CentralUser
     {
         $membership = $this->users()
-            ->wherePivot('role', 'owner')
+            ->wherePivot('role', MembershipRole::Owner->value)
             ->first();
 
         return $membership;

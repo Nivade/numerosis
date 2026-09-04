@@ -107,6 +107,11 @@ class extends Component
 <section class=" docsearch-content overflow-hidden mx-auto max-w-prose w-full h-full content-center">
     <x-slot:title>Your Tenants</x-slot:title>
     <div class="flex w-full flex-1 flex-col gap-4 ">
+        {{-- Where the invitation controllers land an authenticated visitor
+             carrying a domain-exception message, since Fortify's `login`
+             would bounce them off `guest` and drop the flash. --}}
+        <x-numerosis::ui.auth-session-status :status="session('status')" />
+
         <div class="flex items-start justify-between">
             <div>
                 <x-numerosis::ui.heading :level="1">Your Tenants</x-numerosis::ui.heading>

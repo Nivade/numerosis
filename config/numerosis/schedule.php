@@ -25,6 +25,7 @@ return [
     'schedule' => [
         'prune_orphaned_customers' => (bool) env('SCHEDULE_PRUNE_ORPHANED_CUSTOMERS', true),
         'prune_stalled_provisions' => (bool) env('SCHEDULE_PRUNE_STALLED_PROVISIONS', true),
+        'prune_invitations' => (bool) env('SCHEDULE_PRUNE_INVITATIONS', true),
     ],
 
 ];

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Auth;
 
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Events\Auth\UserAccountDeleted;
 use Nvade\Numerosis\Events\Auth\UserAccountDeleting;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -16,7 +17,7 @@ class DeleteUserAccount
     public function handle(CentralUser $user): bool
     {
         $isOwner = $user->tenants()
-            ->wherePivot('role', 'owner')
+            ->wherePivot('role', MembershipRole::Owner->value)
             ->exists();
 
         if ($isOwner) {

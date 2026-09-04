@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Observers\MembershipObserver;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
@@ -22,7 +23,7 @@ use Stancl\Tenancy\Database\Models\TenantPivot;
  * @property int $id
  * @property string $tenant_id
  * @property string $global_user_id
- * @property string $role
+ * @property MembershipRole $role
  * @property string|null $invited_by
  * @property Carbon|null $invited_at
  * @property Carbon|null $joined_at
@@ -55,6 +56,7 @@ class Membership extends TenantPivot
     protected function casts(): array
     {
         return [
+            'role' => MembershipRole::class,
             'invited_at' => 'datetime',
             'joined_at' => 'datetime',
         ];
@@ -86,11 +88,11 @@ class Membership extends TenantPivot
 
     public function isOwner(): bool
     {
-        return $this->role === 'owner';
+        return $this->role === MembershipRole::Owner;
     }
 
     public function isAdmin(): bool
     {
-        return in_array($this->role, ['owner', 'admin'], true);
+        return in_array($this->role, [MembershipRole::Owner, MembershipRole::Admin], true);
     }
 }

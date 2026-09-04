@@ -8,19 +8,21 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder;
 use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\PlanFeature;
+use Nvade\Numerosis\Models\Central\SocialAccount;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
-use Nvade\Numerosis\Models\Tenant\Invitation;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Policies\InvitationPolicy;
 use Nvade\Numerosis\Policies\PaymentPlanPolicy;
 use Nvade\Numerosis\Policies\PermissionPolicy;
 use Nvade\Numerosis\Policies\PlanFeaturePolicy;
 use Nvade\Numerosis\Policies\RolePolicy;
+use Nvade\Numerosis\Policies\SocialAccountPolicy;
 use Nvade\Numerosis\Policies\SubscriptionPolicy;
 use Nvade\Numerosis\Policies\TenantPolicy;
 use Nvade\Numerosis\Policies\UserPolicy;
@@ -88,6 +90,7 @@ class CentralModelPolicyResolutionTest extends TestCase
             'permission' => [Permission::class, PermissionPolicy::class],
             'tenant user' => [TenantUser::class, UserPolicy::class],
             'invitation' => [Invitation::class, InvitationPolicy::class],
+            'social account' => [SocialAccount::class, SocialAccountPolicy::class],
         ];
     }
 

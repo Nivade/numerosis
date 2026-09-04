@@ -16,6 +16,7 @@ use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Tests\TestCase;
 
 class CreateTenantTest extends TestCase
@@ -111,7 +112,7 @@ class CreateTenantTest extends TestCase
         ]);
 
         $this->assertTrue($user->refresh()->tenants->contains($tenant));
-        $this->assertEquals('owner', $user->tenants()->firstOrFail()->pivot->role);
+        $this->assertSame(MembershipRole::Owner, $user->tenants()->firstOrFail()->pivot->role);
 
         $this->assertDatabaseHas('subscriptions', [
             'subscribable_id' => $tenantId,

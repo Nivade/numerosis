@@ -19,6 +19,10 @@ class InvitationsDisabledTest extends TestCase
 
     public function test_it_registers_no_invitation_route_when_disabled(): void
     {
-        $this->assertFalse(Route::has('invitation.show'));
+        $this->assertFalse(Route::has('invitations.show'));
+        $this->assertFalse(Route::has('invitations.accept'));
+        $this->assertFalse(Route::has('team.invitations.index'));
+        $this->assertFalse(Route::has('team.invitations.store'));
+        $this->assertFalse(Route::has('team.invitations.destroy'));
     }
 }

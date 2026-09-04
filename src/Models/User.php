@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -14,7 +15,6 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Nvade\Numerosis\Actions\Queries\GetTenantsByGlobalId;
 use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
-use Nvade\Numerosis\Database\Factories\UserFactory;
 use Nvade\Numerosis\Support\Compat\HasOneTimePasswordsIfInstalled;
 use Override;
 use Spatie\Permission\Traits\HasRoles;
@@ -50,7 +50,7 @@ use Stancl\Tenancy\Contracts\Syncable;
 // #[WithoutTimestamps]
 abstract class User extends Authenticatable implements MustVerifyEmail, Syncable
 {
-    /** @use HasFactory<UserFactory> */
+    /** @use HasFactory<Factory<static>> */
     use HasFactory;
 
     use HasOneTimePasswordsIfInstalled;

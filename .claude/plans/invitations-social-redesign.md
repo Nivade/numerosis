@@ -1,6 +1,8 @@
 # Plan: rebuild invitations + social login from scratch
 
-**Status:** approved 2026-09-04, not yet executed.
+**Status:** executed 2026-09-04. See `invitations-social-redesign-HANDOFF.md`
+for what shipped, the bugs fixed along the way, and what test coverage is
+still thin.
 **Depends on:** `.claude/plans/domain-events-expansion.md`, which **executes
 first**. It creates `Actions\Tenancy\EnsureTenantUserExists`,
 `MembershipObserver::created()`, the `TenantProvisioned` backfill listener, and
