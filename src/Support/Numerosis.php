@@ -116,8 +116,8 @@ class Numerosis
      * Applies {@see self::routes()}, {@see self::middleware()} and
      * {@see self::exceptions()} to a standard `Application::configure()`
      * builder. To use `configure()`'s other options (`then:`, `api:`, …),
-     * skip this method and wire those three up yourself — they are public
-     * and independently callable.
+     * skip this method and wire those three up yourself; they are public and
+     * independently callable.
      */
     public static function configure(?string $basePath = null): ApplicationBuilder
     {
@@ -132,8 +132,8 @@ class Numerosis
      * Central routes are bound to each hostname in `tenancy.central_domains`
      * separately, because tenant identification never runs for those domains.
      *
-     * Pass `withAuth: false` if you keep an auth system of your own —
-     * `routes/auth.php` is skipped, and everything else in `routes/web.php`
+     * Pass `withAuth: false` if you keep an auth system of your own.
+     * `routes/auth.php` is then skipped, and everything else in `routes/web.php`
      * (billing webhook, checkout, registration wizard, account pages) still
      * registers:
      *
@@ -141,17 +141,17 @@ class Numerosis
      * ->withRouting(using: fn () => Numerosis::routes(withAuth: false))
      * ```
      *
-     * That flag exists because those four route *names* — `login`,
-     * `register`, `logout`, `verification.verify` — are registered
-     * unconditionally otherwise, behind no feature flag, so a host with its
-     * own Fortify/Breeze routes gets a silent name collision: Laravel keeps
-     * whichever was registered last, making "which system serves /login" an
-     * artifact of provider order rather than a decision. Everything the
-     * package generates from those names (the login redirect, the email
-     * verification link) becomes yours to provide under the same names.
+     * That flag exists because four route names, `login`, `register`,
+     * `logout` and `verification.verify`, are otherwise registered
+     * unconditionally, behind no feature flag, so a host with its own
+     * Fortify/Breeze routes gets a silent name collision: Laravel keeps
+     * whichever was registered last, so which system serves `/login` follows
+     * provider order. Everything the package generates from those names (the
+     * login redirect, the email verification link) becomes yours to provide
+     * under the same names.
      *
-     * To *add* routes rather than replace these, use
-     * {@see self::addCentralRoutes()} / {@see self::addTenantRoutes()} — they
+     * To add routes while keeping these, use
+     * {@see self::addCentralRoutes()} / {@see self::addTenantRoutes()}; they
      * run inside the groups built below, so a contributed central route is
      * bound to the same hostnames the package's own are.
      * {@see self::registerRoutesUsing()} replaces this wholesale, and bypasses
@@ -196,12 +196,11 @@ class Numerosis
         $tenantRoutes = Route::middleware('tenant');
 
         // Path mode identifies the tenant from the first URL segment, so
-        // every tenant route has to carry it. The Filament tenant panel used
-        // to supply this prefix for its own routes and core's tenant group
-        // never had one — which meant `routes/tenant.php` was unreachable in
-        // this mode, silently, since a route that never matches 404s like any
-        // other unknown path. `PathTenantResolver::$tenantParameterName` is
-        // the same name stancl's own middleware reads back out.
+        // every tenant route has to carry it. Without this prefix
+        // `routes/tenant.php` is unreachable in this mode and says nothing
+        // about it, since a route that never matches 404s like any other
+        // unknown path. `PathTenantResolver::$tenantParameterName` is the
+        // same name stancl's own middleware reads back out.
         if (IdentificationMode::current() === IdentificationMode::Path) {
             $tenantRoutes = $tenantRoutes->prefix('{'.PathTenantResolver::$tenantParameterName.'}');
         }
@@ -312,17 +311,17 @@ class Numerosis
      * Register central-domain routes alongside `routes/web.php`, without
      * reproducing {@see self::routes()}'s per-domain loop. The callback runs
      * once per configured central domain, inside that domain's own
-     * `Route::middleware('web')->domain($domain)` group — so a route added
-     * here is bound to the same hostnames the package's own central routes
-     * are, automatically.
+     * `Route::middleware('web')->domain($domain)` group, so a route added here
+     * is bound to the same hostnames the package's own central routes are,
+     * automatically.
      *
      * {@see self::registerRoutesUsing()} bypasses this entirely, since it
      * replaces {@see self::routes()} wholesale.
      *
-     * `$source` is attribution, not behavior — a package name by convention
-     * (e.g. `'nvade/numerosis-onboarding'`). It does nothing on its own;
-     * {@see Contributions::centralRouteSources()} is what makes "which
-     * package added this route" answerable instead of just "how many".
+     * `$source` changes no behavior. It is a package name by convention
+     * (e.g. `'nvade/numerosis-onboarding'`), read back by
+     * {@see Contributions::centralRouteSources()} so that "which package added
+     * this route" is answerable and not only "how many".
      */
     public static function addCentralRoutes(Closure $callback, ?string $source = null): void
     {
@@ -340,7 +339,7 @@ class Numerosis
 
     /**
      * Clears route contributions registered via {@see self::addCentralRoutes()}
-     * / {@see self::addTenantRoutes()}. For tests only — a real host registers
+     * / {@see self::addTenantRoutes()}. For tests only; a real host registers
      * these once and they live for the application's lifetime, same as
      * {@see self::$registerRoutesCallback}.
      * {@see Contributions::flushRouteContributions()}.
@@ -351,11 +350,10 @@ class Numerosis
     }
 
     /**
-     * Whether {@see self::routes()} has run yet. If it has not by the time
-     * the application finishes booting — meaning `bootstrap/app.php` never
-     * called `withRouting(using: Numerosis::routes(...))` — the service
-     * provider calls it, so the omission costs nothing rather than 404ing
-     * every URL.
+     * Whether {@see self::routes()} has run yet. If it has not by the time the
+     * application finishes booting, meaning `bootstrap/app.php` never called
+     * `withRouting(using: Numerosis::routes(...))`, the service provider calls
+     * it, so the omission costs nothing and every URL still resolves.
      */
     public static function routesRegistered(): bool
     {
@@ -383,12 +381,11 @@ class Numerosis
     /**
      * Middleware stack for `withBroadcasting()`.
      *
-     * The guard is always the *tenant* one. Broadcasting auth runs inside
-     * tenant context, and authenticating it against the central guard leaks
-     * presence channels across tenants. Which guard that is stays
+     * The guard is always the tenant one. Broadcasting auth runs inside tenant
+     * context, and authenticating it against the central guard leaks presence
+     * channels across tenants. Which guard that is stays
      * `numerosis.auth.guards.tenant`'s answer, so a host that renames it keeps
-     * working; what is fixed is the choice of tenant over central, not the
-     * name.
+     * working; only the choice of tenant over central is fixed here.
      *
      * @return list<string>
      */
@@ -482,8 +479,8 @@ class Numerosis
     /**
      * Absolute path to the package's tenant migrations, for
      * `config('tenancy.migration_parameters')['--path']`. Point tenancy at
-     * this rather than a published copy; publish the migrations only when you
-     * need to customise one.
+     * this path directly; publish the migrations only when you need to
+     * customise one.
      */
     public static function tenantMigrationPath(): string
     {
@@ -491,7 +488,7 @@ class Numerosis
     }
 
     /**
-     * Register a second tenant migration path — for a satellite package
+     * Register a second tenant migration path, for a satellite package
      * shipping its own tenant-database tables. `HostConfig` appends every
      * registered path (this one plus {@see self::tenantMigrationPath()})
      * to `tenancy.migration_parameters['--path']`, the same array a host's
@@ -519,7 +516,7 @@ class Numerosis
     /**
      * Register a seeder to run after `TenantDatabaseSeeder`'s own
      * `PermissionAndRoleSeeder`/`UserSeeder` calls, for a satellite package
-     * seeding its own tenant tables — without a host needing to publish and
+     * seeding its own tenant tables without a host needing to publish and
      * edit `TenantDatabaseSeeder` itself.
      * {@see Contributions::addTenantSeeder()}.
      *
@@ -563,8 +560,8 @@ class Numerosis
     }
 
     /**
-     * Contribute a permission *context* — the noun half of a permission name,
-     * e.g. `invitations` in `viewAny invitations` — to `RoleAndPermissionSeeder`,
+     * Contribute a permission context, the noun half of a permission name
+     * such as `invitations` in `viewAny invitations`, to `RoleAndPermissionSeeder`,
      * which creates one row per {@see \Nvade\Numerosis\Models\Permission::defaultActions()}
      * action for it under guard `web` and grants them all to `admin`.
      *
@@ -596,7 +593,7 @@ class Numerosis
     /**
      * Clears {@see self::addTenantMigrationPath()} / {@see self::addTenantSeeder()} /
      * {@see self::addCentralSeeder()} / {@see self::addPermissionContext()}
-     * contributions. For tests only — see {@see self::resetRouteContributionsForTesting()}
+     * contributions. For tests only; see {@see self::resetRouteContributionsForTesting()}
      * and {@see Contributions::flushMigrationAndSeederContributions()}.
      */
     public static function resetMigrationAndSeederContributionsForTesting(): void
@@ -629,8 +626,8 @@ class Numerosis
      * `withExceptions()`. Adds the current tenant, guard and user to every
      * report.
      *
-     * Tenancy is read when the exception is *reported*, which is too late
-     * for a queued job that failed inside `$tenant->run()` — tenancy has
+     * Tenancy is read when the exception is reported, which is too late for
+     * a queued job that failed inside `$tenant->run()`, since tenancy has
      * already reverted by then. Compose
      * {@see \Nvade\Numerosis\Concerns\TagsSentryScopeWithTenant} into such
      * jobs to tag them correctly.
@@ -708,7 +705,7 @@ class Numerosis
     }
 
     /**
-     * Register routes yourself instead of {@see self::routes()}. The
+     * Register routes yourself, in place of {@see self::routes()}. The
      * package's central-domain and `tenant` route groups are skipped
      * entirely; re-register any you still want inside `$callback`, which
      * receives the `Application` instance.
