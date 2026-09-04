@@ -10,6 +10,7 @@ use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
+use Nvade\Numerosis\Events\Billing\CheckoutCompleted;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 
 /**
@@ -33,9 +34,10 @@ class SettleCheckout
         ?string $centralUserId,
     ): void {
         $settled = in_array($subscription->stripe_status, ['active', 'trialing'], true);
+        $stripeSubscriptionId = $subscription->stripe_id;
 
         $pending->update([
-            'stripe_subscription_id' => $subscription->stripe_id,
+            'stripe_subscription_id' => $stripeSubscriptionId,
             'status' => $settled ? TenantProvisionStatus::Provisioning : TenantProvisionStatus::AwaitingPayment,
         ]);
 
@@ -51,8 +53,10 @@ class SettleCheckout
         $this->provisioning->queue(new TenantProvisionData(
             registration: $registration,
             stripeCustomerId: $stripeCustomerId,
-            stripeSubscriptionId: $subscription->stripe_id,
+            stripeSubscriptionId: $stripeSubscriptionId,
             centralUserId: $centralUserId,
         ));
+
+        event(new CheckoutCompleted($pending->domain, (string) $pending->payment_plan, $stripeSubscriptionId));
     }
 }

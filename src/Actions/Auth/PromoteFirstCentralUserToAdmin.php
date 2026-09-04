@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Auth;
 
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Events\Auth\AdminGranted;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Role;
 
@@ -34,5 +35,7 @@ class PromoteFirstCentralUserToAdmin
         }
 
         $user->assignRole($role);
+
+        event(new AdminGranted($user->global_id, null));
     }
 }

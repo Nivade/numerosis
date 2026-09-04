@@ -8,9 +8,11 @@ use App\Models\Central\CentralUser;
 use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Subscription;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Actions\Billing\Checkout\SettleCheckout;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
+use Nvade\Numerosis\Events\Billing\CheckoutCompleted;
 use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -20,6 +22,7 @@ class SettleCheckoutTest extends TestCase
 
     public function test_it_provisions_immediately_when_the_subscription_is_active(): void
     {
+        Event::fake([CheckoutCompleted::class]);
         $fake = Billing::fake();
 
         $user = CentralUser::factory()->create();
@@ -41,6 +44,10 @@ class SettleCheckoutTest extends TestCase
         $this->assertSame('sub_active', $pending->stripe_subscription_id);
 
         $fake->assertTenantProvisioned('settle-active');
+
+        Event::assertDispatched(fn (CheckoutCompleted $e): bool => $e->domain === 'settle-active'
+            && $e->planId === 'starter'
+            && $e->stripeSubscriptionId === 'sub_active');
     }
 
     /**

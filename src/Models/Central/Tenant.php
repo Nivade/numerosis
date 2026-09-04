@@ -141,6 +141,11 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
         return $this->suspended_at !== null;
     }
 
+    public function isProvisioned(): bool
+    {
+        return $this->provisioned_at !== null;
+    }
+
     /**
      * @return BelongsToMany<CentralUser, $this, Membership>
      */

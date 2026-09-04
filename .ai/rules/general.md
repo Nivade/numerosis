@@ -2,7 +2,6 @@
 paths:
   - '**/*.php'
 ---
-
 # General
 
 ## Comment style
@@ -22,7 +21,7 @@ For the prose itself, use the `no-ai-slop` skill (`~/.claude/skills/no-ai-slop`)
 | Colon reveal | 58 | `Zero-migration plan source: reads billing.plans` |
 | Decorative bold | 36 | `bakes it in **at registration time**` |
 
-Two repo-specific additions to that catalog. Name a consequence with the symbol it throws, so `throws TenantDatabaseAlreadyExistsException` rather than "would race it". Keep identifiers in backticks; stripping them loses the signal that a word is code.
+Three repo-specific additions to that catalog. Name a consequence with the symbol it throws, so `throws TenantDatabaseAlreadyExistsException` rather than "would race it". Keep identifiers in backticks; stripping them loses the signal that a word is code. Never cite a `.claude/plans/*` file, or say "this plan"/"the plan", inside a code comment — plans are not docs: `.claude/plans/README.md` calls them historical the moment they're executed, so a comment anchored to one goes stale the day it merges. If the fact is worth keeping, put it in the docblock itself or in `.ai/rules/`; if it's only "why we built this", it belongs in the commit message or PR description, not the code.
 
 ## Shortening a comment drops facts silently
 

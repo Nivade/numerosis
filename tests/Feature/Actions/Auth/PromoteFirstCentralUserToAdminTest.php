@@ -6,6 +6,8 @@ namespace Nvade\Numerosis\Tests\Feature\Actions\Auth;
 
 use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
+use Nvade\Numerosis\Events\Auth\AdminGranted;
 use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -20,6 +22,19 @@ class PromoteFirstCentralUserToAdminTest extends TestCase
         $user = CentralUser::factory()->create();
 
         $this->assertTrue(CentralUser::findOrFail($user->id)->hasRole('admin'));
+    }
+
+    public function test_it_dispatches_admin_granted_for_the_first_user(): void
+    {
+        Role::on('central')->create(['name' => 'admin', 'guard_name' => 'web']);
+
+        Event::fake([AdminGranted::class]);
+
+        $user = CentralUser::factory()->create();
+
+        Event::assertDispatched(fn (AdminGranted $e): bool => $e->globalId === $user->global_id
+            && $e->grantedBy === null
+            && $e->tenantId === null);
     }
 
     public function test_a_later_central_user_is_not_promoted(): void

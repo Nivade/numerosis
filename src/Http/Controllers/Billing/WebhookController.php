@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Http\Controllers\Billing;
 
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -21,10 +22,16 @@ use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\PlanChangeDirection;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
+use Nvade\Numerosis\Events\Billing\SubscriptionCancelled;
+use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
+use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\Subscription as CentralSubscription;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Stripe\Exception\ApiErrorException;
@@ -203,14 +210,27 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * @param  array{data: array{object: array{id?: string, customer?: string}}}  $payload
+     * @param  array{data: array{object: array{id?: string, customer?: string, current_period_end?: int}}}  $payload
      */
     #[Override]
     protected function handleCustomerSubscriptionDeleted(array $payload): Response
     {
         $response = parent::handleCustomerSubscriptionDeleted($payload);
 
-        $this->suspendBillableFor($payload['data']['object']['customer'] ?? null);
+        $customerId = $payload['data']['object']['customer'] ?? null;
+
+        $this->suspendBillableFor($customerId);
+
+        $tenant = FindTenantByStripeCustomer::run($customerId);
+        $periodEnd = $payload['data']['object']['current_period_end'] ?? null;
+
+        if ($tenant !== null) {
+            event(new SubscriptionCancelled(
+                $tenant,
+                is_int($periodEnd) ? Carbon::createFromTimestamp($periodEnd) : null,
+                (string) $tenant->getTenantKey(),
+            ));
+        }
 
         Log::info('Subscription deleted', [
             'subscription_id' => $payload['data']['object']['id'] ?? null,
@@ -220,18 +240,30 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * Suspends and restores tenants as their subscription status moves.
+     * Suspends and restores tenants as their subscription status moves, and
+     * reports a price change as `Events\Billing\SubscriptionPlanChanged`.
      * `past_due` and `unpaid` are Stripe's grace-period states before it
      * gives up; `incomplete_expired` means the first payment never completed.
      *
-     * @param  array{data: array{object: array{id?: string, customer?: string, status?: string}}}  $payload
+     * This is the only place a plan change is dispatched from. Stripe raises
+     * `customer.subscription.updated` for every price change whoever made it
+     * — a host calling `SwapSubscriptionPlan`, or an edit in the dashboard —
+     * so one site covers all of them and none of them fires twice.
+     *
+     * @param  array{data: array{object: array{id?: string, customer?: string, status?: string, items?: array{data: list<array{price?: array{id?: string}}>}}}}  $payload
      */
     #[Override]
     protected function handleCustomerSubscriptionUpdated(array $payload): Response
     {
+        $stripeSubscription = $payload['data']['object'];
+        $subscriptionId = $stripeSubscription['id'] ?? null;
+
+        // Read before Cashier's handler, which overwrites `stripe_price` with
+        // the payload's own value.
+        $previousPriceId = $this->localPriceIdFor($subscriptionId);
+
         $response = parent::handleCustomerSubscriptionUpdated($payload) ?? $this->successMethod();
 
-        $stripeSubscription = $payload['data']['object'];
         $customerId = $stripeSubscription['customer'] ?? null;
         $status = $stripeSubscription['status'] ?? null;
         $tenant = FindTenantByStripeCustomer::run(is_string($customerId) ? $customerId : null);
@@ -244,12 +276,64 @@ class WebhookController extends CashierWebhookController
             };
         }
 
+        $items = $stripeSubscription['items']['data'] ?? [];
+        $newPriceId = count($items) === 1 ? ($items[0]['price']['id'] ?? null) : null;
+
+        // A null previous price means this row was created by this very
+        // webhook, which is a subscription appearing, not a plan changing.
+        if ($tenant !== null && is_string($newPriceId) && is_string($previousPriceId) && $newPriceId !== $previousPriceId) {
+            event(new SubscriptionPlanChanged(
+                $tenant,
+                $previousPriceId,
+                $newPriceId,
+                $this->planChangeDirection($previousPriceId, $newPriceId),
+                (string) $tenant->getTenantKey(),
+            ));
+        }
+
         Log::info('Subscription updated', [
             'subscription_id' => $payload['data']['object']['id'] ?? null,
             'status' => $status,
         ]);
 
         return $response;
+    }
+
+    private function localPriceIdFor(mixed $stripeSubscriptionId): ?string
+    {
+        if (! is_string($stripeSubscriptionId)) {
+            return null;
+        }
+
+        $price = Numerosis::model(CentralSubscription::class)::query()
+            ->where('stripe_id', $stripeSubscriptionId)
+            ->value('stripe_price');
+
+        return is_string($price) ? $price : null;
+    }
+
+    /**
+     * Compared within whichever billing cycle the new price belongs to, so a
+     * monthly figure is never weighed against a yearly one. Falls back to
+     * `Upgrade` when either price resolves to no configured plan — a
+     * directionless plan-change event is less useful than an optimistic one,
+     * and every consumer of this is copy or a heuristic.
+     */
+    private function planChangeDirection(string $fromPriceId, string $toPriceId): PlanChangeDirection
+    {
+        $from = Billing::planForPrice($fromPriceId);
+        $to = Billing::planForPrice($toPriceId);
+
+        $cycle = $to?->priceId(BillingCycle::Yearly) === $toPriceId
+            ? BillingCycle::Yearly
+            : BillingCycle::Monthly;
+
+        $fromPrice = $from?->price($cycle);
+        $toPrice = $to?->price($cycle);
+
+        return $fromPrice !== null && $toPrice !== null && $toPrice < $fromPrice
+            ? PlanChangeDirection::Downgrade
+            : PlanChangeDirection::Upgrade;
     }
 
     /**

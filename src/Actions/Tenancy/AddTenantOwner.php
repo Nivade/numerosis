@@ -8,7 +8,6 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Support\Numerosis;
 
 /**
@@ -16,6 +15,14 @@ use Nvade\Numerosis\Support\Numerosis;
  * their counterpart row inside the tenant database.
  *
  * A provisioning step, idempotent so a retried provision is harmless.
+ *
+ * The tenant-side row is written here rather than left to
+ * `MembershipObserver::created()`, which skips a tenant that has no
+ * `provisioned_at` yet — every membership attached during provisioning is in
+ * that state. `Listeners\Tenancy\BackfillTenantUsers` does not cover it
+ * either: it runs off `TenantProvisioned`, which `MarkTenantProvisioned`
+ * dispatches *after* `PromoteFirstUserToAdmin` has already read the tenant's
+ * users (see `FinalizeTenantProvisioning::handle()`).
  */
 class AddTenantOwner
 {
@@ -28,31 +35,15 @@ class AddTenantOwner
         /** @var CentralUser $user */
         $user = $centralUserClass::where('global_id', $data->registration->global_id)->firstOrFail();
 
-        if ($user->tenants()->where('tenants.id', $tenant->id)->exists()) {
-            return;
+        if (! $user->tenants()->where('tenants.id', $tenant->id)->exists()) {
+            $user->tenants()->attach($tenant, [
+                'role' => 'owner',
+                'joined_at' => now(),
+            ]);
         }
 
-        $user->tenants()->attach($tenant, [
-            'role' => 'owner',
-            'joined_at' => now(),
-        ]);
-
-        // The only place the owner's tenant-side row is created — login reads
-        // it, never creates it. Safe to run unguarded here because the tenant
-        // database is created earlier in the provisioning chain.
-        $tenantUserClass = Numerosis::model(TenantUser::class);
-
-        $tenant->run(function () use ($user, $tenantUserClass): void {
-            $tenantUserClass::firstOrCreate(
-                ['global_id' => $user->global_id],
-                [
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'password' => $user->password,
-                    'email_verified_at' => $user->email_verified_at,
-                    'is_bot' => false,
-                ],
-            );
-        });
+        // Outside the guard above: a retried provision can find the pivot
+        // already written and the tenant-side row still missing.
+        EnsureTenantUserExists::run($tenant, $user);
     }
 }

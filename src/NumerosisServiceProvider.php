@@ -67,6 +67,8 @@ use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\TenantSuspended;
 use Nvade\Numerosis\Events\Invitations\InvitationIssued;
+use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
+use Nvade\Numerosis\Events\Tenancy\TenantRestored;
 use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
 use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
@@ -84,6 +86,8 @@ use Nvade\Numerosis\Listeners\Billing\SendPaymentConfirmedNotification;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentFailedNotification;
 use Nvade\Numerosis\Listeners\Billing\SendTenantSuspendedNotification;
 use Nvade\Numerosis\Listeners\Invitations\SendInvitationNotification;
+use Nvade\Numerosis\Listeners\Tenancy\BackfillTenantUsers;
+use Nvade\Numerosis\Listeners\Tenancy\SendTenantRestoredNotification;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
 use Nvade\Numerosis\Livewire\Settings\DeleteUserForm;
 use Nvade\Numerosis\Models\Central;
@@ -429,6 +433,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
             PaymentSettled::class => SendPaymentConfirmedNotification::class,
             PaymentFailed::class => SendPaymentFailedNotification::class,
             TenantSuspended::class => SendTenantSuspendedNotification::class,
+            TenantRestored::class => SendTenantRestoredNotification::class,
+            TenantProvisioned::class => BackfillTenantUsers::class,
             InvitationIssued::class => SendInvitationNotification::class,
             // Laravel's listener auto-discovery only scans a host app's
             // `app/Listeners`, never a package's `src/` — an explicit

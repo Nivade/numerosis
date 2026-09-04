@@ -15,6 +15,7 @@ use Nvade\Numerosis\Contracts\Billing\UnpaidTenantQuota;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Events\Billing\CheckoutStarted;
 use Nvade\Numerosis\Exceptions\Billing\PaymentPlanNotFound;
 use Nvade\Numerosis\Http\Requests\Billing\StartCheckoutRequest;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -51,6 +52,8 @@ class StartSubscriptionCheckout
         }
 
         ReserveTenantDomain::run($registration);
+
+        event(new CheckoutStarted($registration->domain, (string) $registration->payment_plan));
 
         return $this->gateway->begin($registration);
     }

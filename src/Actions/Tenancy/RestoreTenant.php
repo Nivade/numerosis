@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
-use Nvade\Numerosis\Events\Billing\PaymentSettled;
+use Nvade\Numerosis\Events\Tenancy\TenantRestored;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 class RestoreTenant
@@ -23,7 +23,7 @@ class RestoreTenant
         $owner = $tenant->owner();
 
         if ($owner) {
-            event(new PaymentSettled($tenant, $owner->id));
+            event(new TenantRestored($tenant, $owner->id, (string) $tenant->getTenantKey()));
         }
     }
 }

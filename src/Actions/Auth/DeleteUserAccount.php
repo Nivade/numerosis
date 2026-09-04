@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Auth;
 
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Events\Auth\UserAccountDeleted;
+use Nvade\Numerosis\Events\Auth\UserAccountDeleting;
 use Nvade\Numerosis\Models\Central\CentralUser;
 
 class DeleteUserAccount
@@ -21,6 +23,17 @@ class DeleteUserAccount
             return false;
         }
 
-        return (bool) $user->delete();
+        $globalId = $user->global_id;
+        $email = $user->email;
+
+        event(new UserAccountDeleting($user, $globalId));
+
+        $deleted = (bool) $user->delete();
+
+        if ($deleted) {
+            event(new UserAccountDeleted($globalId, $email));
+        }
+
+        return $deleted;
     }
 }

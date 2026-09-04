@@ -6,13 +6,13 @@ namespace Nvade\Numerosis\Actions\Invitations;
 
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Actions\Tenancy\EnsureTenantUserExists;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationAlreadyAccepted;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationExpired;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationTenantMismatch;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\Invitation;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Support\Numerosis;
 
@@ -53,25 +53,15 @@ class AcceptInvitation
             ],
         ]);
 
-        // The only creation site for an invited member's tenant-side row.
-        // AddTenantOwner covers owners, and login only reads (FindUserByGlobalId).
-        // Without this, accepting via social login throws in LoginUser, and
-        // accepting via the password form silently fails the same way when the
-        // CentralUser already exists elsewhere.
-        $tenantUserClass = Numerosis::model(TenantUser::class);
-
-        $tenant->run(function () use ($user, $invitation, $tenantUserClass): void {
-            DB::transaction(function () use ($user, $invitation, $tenantUserClass): void {
-                $tenantUserClass::firstOrCreate(
-                    ['global_id' => $user->global_id],
-                    [
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'password' => $user->password,
-                        'email_verified_at' => $user->email_verified_at,
-                        'is_bot' => false,
-                    ],
-                );
+        // Synchronously, not through MembershipObserver::created(): login only
+        // reads the tenant-side row (FindUserByGlobalId), never creates it, and
+        // the redirect out of here goes straight to a login. Without it,
+        // accepting via social login throws in LoginUser, and accepting via the
+        // password form silently fails the same way when the CentralUser
+        // already exists elsewhere.
+        $tenant->run(function () use ($tenant, $user, $invitation): void {
+            DB::transaction(function () use ($tenant, $user, $invitation): void {
+                EnsureTenantUserExists::run($tenant, $user);
 
                 $invitation->update(['accepted_at' => now()]);
             });

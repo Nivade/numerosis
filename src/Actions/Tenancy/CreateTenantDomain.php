@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 use Illuminate\Support\Facades\Config;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
+use Nvade\Numerosis\Events\Tenancy\TenantDomainReserved;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
 use RuntimeException;
@@ -33,7 +34,7 @@ class CreateTenantDomain
             return null;
         }
 
-        return $tenant->domains()->firstOrCreate(
+        $domain = $tenant->domains()->firstOrCreate(
             ['id' => $subdomain],
             ['domain' => match ($mode) {
                 IdentificationMode::Subdomain => $subdomain.'.'.Config::string('numerosis.domains.apex'),
@@ -43,5 +44,11 @@ class CreateTenantDomain
                 IdentificationMode::Path => $subdomain,
             }],
         );
+
+        if ($domain->wasRecentlyCreated) {
+            event(new TenantDomainReserved((string) $tenant->getTenantKey(), $domain->domain, $mode));
+        }
+
+        return $domain;
     }
 }

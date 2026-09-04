@@ -33,6 +33,10 @@ class SwapSubscriptionPlan
         $subscription->swapAndInvoice($priceId);
         $subscription->update(['payment_plan_id' => $to->id]);
 
+        // No `Events\Billing\SubscriptionPlanChanged` here: the swap produces a
+        // `customer.subscription.updated` webhook, and dispatching in both
+        // places would fire it twice for one change. See
+        // `Http\Controllers\Billing\WebhookController`.
         return $subscription;
     }
 }

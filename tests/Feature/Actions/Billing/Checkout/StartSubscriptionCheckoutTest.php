@@ -8,9 +8,13 @@ use App\Models\Central\CentralUser;
 use App\Models\Central\PaymentPlan;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
+use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
+use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Events\Billing\CheckoutStarted;
 use Nvade\Numerosis\Exceptions\Billing\TooManyUnpaidTenants;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -137,5 +141,41 @@ class StartSubscriptionCheckoutTest extends TestCase
             payment_plan: 'basic',
             billing_cycle: BillingCycle::Monthly,
         ));
+    }
+
+    public function test_it_dispatches_checkout_started_once_the_domain_is_reserved(): void
+    {
+        Event::fake([CheckoutStarted::class]);
+
+        app()->bind(CheckoutGateway::class, fn () => new class implements CheckoutGateway
+        {
+            public function begin(TenantRegistrationData $registration): RedirectCheckout
+            {
+                return new RedirectCheckout('https://example.test/checkout');
+            }
+        });
+
+        $user = CentralUser::factory()->create();
+
+        PaymentPlan::create([
+            'name' => 'Basic',
+            'slug' => 'basic',
+            'description' => 'Basic Plan',
+            'monthly_id' => 'price_basic_monthly',
+            'yearly_id' => 'price_basic_yearly',
+            'monthly_price' => 1000,
+            'yearly_price' => 10000,
+            'available' => true,
+        ]);
+
+        StartSubscriptionCheckout::run(new TenantRegistrationData(
+            company_name: 'Checkout Events Co',
+            domain: 'checkout-events-co',
+            global_id: $user->global_id,
+            payment_plan: 'basic',
+            billing_cycle: BillingCycle::Monthly,
+        ));
+
+        Event::assertDispatched(fn (CheckoutStarted $e): bool => $e->domain === 'checkout-events-co' && $e->planId === 'basic');
     }
 }

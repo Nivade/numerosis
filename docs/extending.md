@@ -106,6 +106,52 @@ errors render nowhere.
 | `Numerosis::registerBroadcastingUsing(Closure)` | channel registration |
 | `Numerosis::routes(withAuth: false)` | narrower: still registers `routes/web.php` and `routes/tenant.php`, but skips loading Fortify's own route file into either group. Use this if you keep your own auth system — `login`, `register`, `logout` and `verification.verify` are otherwise Fortify's, registered behind no feature flag, so a host running its own auth gets a silent route-name collision resolved by provider order |
 
+## Events
+
+Events are public API the moment a host listens to one. Core dispatches
+these with `event()`, and registers its own listeners with an explicit
+`Event::listen()` map in `NumerosisServiceProvider::registerEventListeners()`
+(plus a small one in `BillingServiceProvider`) — **Laravel's listener
+auto-discovery never scans a package's `src/`**, only a host's own
+`app/Listeners`, so a host adding its own listener for one of these gets
+auto-discovery for free while core cannot rely on it for its own. And since
+dispatch goes through plain `event()`, a host listener that throws takes down
+the request that dispatched it, unless that listener is queued.
+
+Any event below that carries a model carries its id as a scalar too. Prefer
+the scalar in a queued listener: `SerializesModels` re-queries on unserialize,
+which throws for a row that has since been deleted.
+
+`Providers\TenancyServiceProvider::events()` is the separate map for stancl's
+own tenancy lifecycle (`CreatingTenant`, `TenantCreated`, `DomainCreated`,
+the `Database*` events, `TenancyInitialized`, `TenancyEnded`, …) — most wired
+to an empty listener array today, so a host can hook any of them without
+touching core.
+
+| Event | When it fires | Payload | Typical use |
+|---|---|---|---|
+| `Auth\SocialAccountConnected` | A social provider is linked to a `CentralUser` | `user`, `socialLogin` | Audit, welcome email for a new provider |
+| `Auth\SocialAccountDisconnected` | A social provider is unlinked | `user`, `provider` | Audit |
+| `Auth\UserAccountDeleting` | Before `Actions\Auth\DeleteUserAccount` deletes the row | `user`, `globalId`. Listen synchronously — a queued listener unserializes `user` after the delete committed and gets a `ModelNotFoundException` | A host purging or exporting its own rows before the account is gone |
+| `Auth\UserAccountDeleted` | After the row is deleted | `globalId`, `email` (scalars only, the model no longer exists) | Cleanup that only needs the identifiers |
+| `Auth\AdminGranted` | `Actions\Auth\PromoteFirstCentralUserToAdmin` or `Actions\Tenancy\PromoteFirstUserToAdmin` grants the admin role | `globalId`, `grantedBy` (always `null` today — both dispatch sites are automatic first-user promotion), `tenantId` (`null` for the central role) | Privilege-escalation audit |
+| `Billing\PaymentSettled` | A payment settles after having previously failed or the tenant was suspended | `tenant`, `ownerId`. Broadcasts on `user.{ownerId}` | Clearing a payment-status banner |
+| `Billing\PaymentFailed` | `invoice.payment_failed` webhook | `tenant` | The dunning notice |
+| `Billing\TenantSuspended` | `Actions\Tenancy\SuspendTenant` | `tenant` | Access-revoked notification |
+| `Billing\SubscriptionPlanChanged` | The `customer.subscription.updated` webhook, when the price actually changed. The only site — a host calling `SwapSubscriptionPlan` and an edit made in the Stripe dashboard both surface here, so neither fires twice | `tenant`, `tenantId`, `fromPriceId`, `toPriceId`, `direction` (`PlanChangeDirection::Upgrade`/`Downgrade`, falling back to `Upgrade` when a price matches no configured plan) | Entitlement recomputation, upgrade/downgrade emails |
+| `Billing\SubscriptionCancelled` | `customer.subscription.deleted` webhook | `tenant`, `gracePeriodEndsAt`, `tenantId` | A retention flow — distinct from `TenantSuspended`, which is enforcement and can land days later |
+| `Billing\CheckoutStarted` | `Actions\Billing\Checkout\StartSubscriptionCheckout`, once the domain is reserved | `domain`, `planId` | Funnel analytics |
+| `Billing\CheckoutCompleted` | `Actions\Billing\Checkout\SettleCheckout` — the one point the card/Link path, the redirect return route and the `payment_method.attached` webhook all funnel through | `domain`, `planId`, `stripeSubscriptionId`. Fires whether or not the subscription settled immediately (a trial collects nothing upfront) | Funnel analytics; do not infer settlement from this alone |
+| `Invitations\InvitationIssued` | An invitation is created | `invitation` | The invitation email |
+| `Tenancy\TenantProvisioned` | `Actions\Tenancy\MarkTenantProvisioned` | `tenant`, `ownerId`. Broadcasts on `user.{ownerId}` | The registration wizard's own poll for "ready" |
+| `Tenancy\TenantProvisioningStarted` | `Actions\Tenancy\MarkProvisionInProgress` | `domain`, `globalId` | Progress UI, timing metrics. Not broadcast — nothing client-side listens for it |
+| `Tenancy\TenantProvisioningFailed` | A provisioning step exhausts its retries | `domain`, `globalId`. Broadcasts on `user.{ownerId}` | Surfacing the failure to the user waiting on it |
+| `Tenancy\TenantProvisioningCancelled` | A pending provision is cancelled | `globalId`. Broadcasts on `user.{ownerId}` | Same |
+| `Tenancy\TenantRestored` | `Actions\Tenancy\RestoreTenant` clears a suspension | `tenant`, `ownerId`, `tenantId` | The "access restored" notification |
+| `Tenancy\MemberJoined` | `Observers\MembershipObserver::created()` | `tenantId`, `globalUserId`, `role`, `invitedBy` | Seat-based billing, audit |
+| `Tenancy\MemberRemoved` | `Observers\MembershipObserver::deleted()` | `tenantId`, `globalUserId`, `role` | Seat-based billing, offboarding |
+| `Tenancy\TenantDomainReserved` | `Actions\Tenancy\CreateTenantDomain` creates a `domains` row (only under `IdentificationMode::Subdomain`/`CustomDomain` — `Path` mode creates no row) | `tenantId`, `domain`, `mode` | DNS automation and certificate issuance under `CustomDomain` mode |
+
 ## Optional dependencies core still leans on
 
 Core keeps `class_exists()`/`trait_exists()` seams for the packages it
