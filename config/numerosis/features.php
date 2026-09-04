@@ -25,11 +25,6 @@ return [
         // Requires TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY — see .env.example.
         TurnstileFeature::class,
 
-        // The account UI (settings, workspace list, billing portal) is
-        // unconditional core routing now — nvade/numerosis-account folded
-        // into core in Phase 3 of `.claude/plans/archive/humming-nibbling-flame.md`
-        // with no feature flag of its own, so there is nothing to list here.
-
         // OAuth login: provider buttons, connected-accounts, the callback
         // route. Enabling a provider needs credentials in config/services.php
         // plus an entry in numerosis.social.providers — see the class

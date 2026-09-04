@@ -9,10 +9,9 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Only set under IdentificationMode::CustomDomain, where the wizard's
-     * `domain` field stays the tenant's safe id/slug and this column carries
-     * the actual fully-qualified domain instead. See
-     * .claude/rules/identification-modes.md.
+     * Only set under IdentificationMode::CustomDomain. The wizard's `domain`
+     * field stays the tenant's safe id/slug; this column carries the
+     * fully-qualified domain.
      */
     public function up(): void
     {

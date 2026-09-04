@@ -12,7 +12,11 @@ Obligations, in RFC 2119 terms:
 
 - Explanatory comments and docblock prose MUST NOT be added unless asked for.
 - A comment MUST NOT narrate what the code does.
-- A comment MUST NOT reference a `.ai/rules/` file, a skill, or a `.claude/plans/` file. A reader of the source cannot see those, and they go stale independently of it. If the fact is worth keeping, state it here or keep it only in the rule file.
+- A comment MUST NOT reference a `.ai/rules/` file, a skill, or a `.claude/plans/` file. A reader of the source cannot see those, and they go stale independently of it. If the fact is worth keeping, state it here or keep it only in the rule file. **`tests/` is exempt**, and only `tests/`: a test that exists to hold a rule down is allowed to name the rule it enforces, because the citation is the test's subject rather than background for something else. `src/`, `config/`, `routes/`, `database/` and `resources/` carried none as of 2026-09-04 — check with the grep below before assuming a survivor is deliberate.
+
+  ```bash
+  grep -rnE '^\s*(\*|//).*(\.ai/rules|\.claude)' --include='*.php' src/ config/ routes/ database/ workbench/ packages/
+  ```
 - `@param`, `@return`, `@var`, `@template`, `@throws` and array shape annotations MUST stay exactly as they are. PHPStan runs at level 9 and reads them.
 - A comment MAY carry a fact the code cannot: how an external system behaves, a race, a rejected alternative, an invariant spanning several files, a performance rationale.
 - Sentences SHOULD be short.

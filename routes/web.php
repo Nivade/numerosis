@@ -89,11 +89,8 @@ if (Features::enabled(InvitationsFeature::NAME)) {
 }
 
 Route::middleware([$centralAuth])->group(function () {
-    // The account UI: settings, the workspace list, invoice downloads and
-    // the billing portal. Formerly nvade/numerosis-account, contributed
-    // through Numerosis::addCentralRoutes() — folded into core in Phase 3 of
-    // `.claude/plans/archive/humming-nibbling-flame.md`. No feature flag any more:
-    // it always ships with core now, so there is nothing left to toggle.
+    // The account UI ships with core unconditionally; there is no feature
+    // flag to toggle it.
     Route::redirect('settings', 'settings/profile');
 
     Route::livewire('settings/profile', ProfileSettings::class)->name('settings.profile');
@@ -144,9 +141,7 @@ Route::middleware([$centralAuth])->group(function () {
 });
 
 // `login`, `register`, `logout`, `password.request`, `password.reset` and
-// `verification.verify` are Laravel Fortify's, loaded by
-// `Support\Numerosis::routes()` inside this same domain group (and again
-// inside the tenant group) — see `.claude/plans/archive/humming-nibbling-flame.md`
-// Phase 4a. `Numerosis::authRoutesEnabled()` (the `withAuth` flag on
-// `Numerosis::routes()`) gates that load the same way it used to gate the
-// routes declared here directly.
+// `verification.verify` are Fortify's, loaded by `Support\Numerosis::routes()`
+// into this same domain group, and again into the tenant group.
+// `Numerosis::authRoutesEnabled()` (the `withAuth` flag on
+// `Numerosis::routes()`) gates that load.

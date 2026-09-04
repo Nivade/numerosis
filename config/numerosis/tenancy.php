@@ -155,16 +155,11 @@ return [
             ProvisionsTenant::class => ProvisionTenant::class,
             TenantDatabaseManager::class => StanclTenantDatabaseManager::class,
             NotifiesTenantOwner::class => NotifiesTenantOwnerDirectly::class,
-            // Auth contracts: previously bound only in saas-m's
-            // AppServiceProvider, which stays in thin-app per the extraction
-            // plan's "app-specific bindings" table — but these back OTP login
-            // candidate resolution, so an unbound default leaves the package
-            // broken for any consumer until they re-derive this list by hand.
-            // Registration, post-login redirect and password reset are
-            // Laravel Fortify's own seams since Phase 4 of
-            // `.claude/plans/archive/humming-nibbling-flame.md` — see
-            // `Fortify::createUsersUsing()` etc. in
-            // `NumerosisServiceProvider::registerFortify()`, not here.
+            // Registration, post-login redirect and password reset are not
+            // here: they are Fortify's seams, set with
+            // `Fortify::createUsersUsing()` and friends in
+            // `NumerosisServiceProvider::registerFortify()`. What is left
+            // backs OTP login candidate resolution.
             ResolvesLoginCandidate::class => ResolveLoginCandidate::class,
             AuthenticatesLoginCandidate::class => AuthenticateLoginCandidate::class,
             SendsEmailVerificationNotification::class => SendEmailVerificationNotification::class,

@@ -7,12 +7,10 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Backs Laravel's own `database` notification channel, which reads and
- * writes this table for the notifiable model — here `CentralUser`, on the
- * central connection. Central-only: nothing notifies a tenant-connection
- * model through this channel today. If something does later, it needs its
- * own copy of this migration under `database/migrations/tenant/` — same trap
- * as the `one_time_passwords` table documented in `.ai/rules/auth-login.md`.
+ * Backs Laravel's `database` notification channel for `CentralUser`, on the
+ * central connection. Nothing notifies a tenant-connection model through
+ * this channel today. Anything that starts to needs its own copy of this
+ * migration under `database/migrations/tenant/`.
  */
 return new class extends Migration
 {

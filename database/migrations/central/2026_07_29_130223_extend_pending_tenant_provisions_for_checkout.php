@@ -8,10 +8,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Makes the pending row the checkout aggregate rather than just a
-     * reservation flag — see .claude/plans/archive/custom-checkout.md, "Data model".
-     */
     public function up(): void
     {
         Schema::table('pending_tenant_provisions', function (Blueprint $table) {

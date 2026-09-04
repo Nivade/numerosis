@@ -13,22 +13,17 @@ use Nvade\Numerosis\Support\Numerosis;
 /**
  * Example plans, shipped so a fresh install has something purchasable. A
  * consumer is expected to replace the prices and Stripe ids; the shape is the
- * point, not the numbers.
+ * point.
  *
- * Re-runnable. `numerosis:install --seed` calls this, and an install command
- * that cannot be run twice is not one anybody will run at all — so every write
- * below is keyed on a natural key (`features.slug`, `payment_plans.slug`)
- * rather than created unconditionally.
+ * Re-runnable, because `numerosis:install --seed` calls it: every write below
+ * is keyed on a natural key (`features.slug`, `payment_plans.slug`).
  *
- * It also no longer builds plans through `PaymentPlan::factory()`. That gave
- * every seeded plan a **faker** slug and a lorem-ipsum description, which is
- * worse than untidy: `.claude/rules/billing-checkout.md` records that
- * `PaymentPlanRepository::findBySlug()` is the single choke point every
- * checkout path shares, and `StartCheckoutRequest` validates the submitted
- * plan with `exists:central.payment_plans,slug`. A random slug means no
- * checkout URL for the plan can be written down, and the config keys below
- * (`numerosis.billing.plans.starter`, …) had no row they could ever line up
- * with. Factories belong in tests, where a random slug is a feature.
+ * Slugs are written out here for the same reason. `PaymentPlanRepository::findBySlug()`
+ * is the single choke point every checkout path shares, and
+ * `StartCheckoutRequest` validates the submitted plan with
+ * `exists:central.payment_plans,slug`, so a faker slug leaves no checkout URL
+ * anybody can write down and no row for the config keys below
+ * (`numerosis.billing.plans.starter`, …) to line up with.
  */
 class PaymentPlanSeeder extends Seeder
 {

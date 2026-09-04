@@ -35,13 +35,9 @@ use Nvade\Numerosis\Support\Features;
 Route::get('/', fn () => view(Config::string('numerosis.routes.home_view')))
     ->name('tenant.home');
 
-// `verification.notice` and `password.confirm` used to be contributed by
-// nvade/numerosis-auth-ui through Numerosis::addTenantRoutes(). That package
-// folded into core in Phase 3 of `.claude/plans/archive/humming-nibbling-flame.md`
-// and its Livewire screens were deleted rather than moved; both are Laravel
-// Fortify's since Phase 4, loaded by `Support\Numerosis::routes()` inside
-// this same tenant group (after this file, not inside it — see
-// `loadFortifyRoutes()`), not declared here.
+// `verification.notice` and `password.confirm` are Fortify's, loaded by
+// `Support\Numerosis::routes()` into this same tenant group. That load runs
+// after this file; see `loadFortifyRoutes()`.
 //
 // `tenancy.auth` rather than `auth`: it is Laravel's Authenticate plus the
 // central→tenant session promotion, so a central user who may access this
@@ -59,13 +55,11 @@ Route::middleware(['universal', 'tenancy.auth:'.Config::string('numerosis.auth.g
     // The subscription gate: every authenticated tenant screen that is the
     // product itself, as opposed to the auth plumbing needed to reach it.
     //
-    // Empty today, deliberately. `packages/filament`'s tenant panel was the
-    // whole authenticated tenant surface and it was deleted in Phase 1 of
-    // `.claude/plans/archive/humming-nibbling-flame.md`; Phase 3 moves real screens
-    // in here. The group exists now so the gate is wired and tested rather
-    // than rediscovered later — the panel owned the only registration of
-    // EnsureTenantSubscriptionActive, so deleting it silently switched
-    // suspension enforcement off with every unit test still green.
+    // Empty deliberately: the group exists so the gate stays wired and
+    // tested before the first screen lands in it. The deleted tenant panel
+    // owned the only registration of EnsureTenantSubscriptionActive, and
+    // removing it switched suspension enforcement off with every unit test
+    // still green.
     //
     // `verification.notice` and `password.confirm`, loaded by
     // `loadFortifyRoutes()` after this group closes, are outside this gate
