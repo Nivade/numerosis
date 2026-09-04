@@ -13,19 +13,13 @@ use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * The one place a tenant-side `User` row is created for a central user who
- * has a membership on that tenant. Called from
- * {@see \Nvade\Numerosis\Observers\MembershipObserver} (the normal path),
- * {@see AddTenantOwner} and
- * {@see \Nvade\Numerosis\Actions\Invitations\AcceptInvitation} (both
- * synchronous, because a login follows immediately), and
- * {@see \Nvade\Numerosis\Listeners\Tenancy\BackfillTenantUsers} (the
- * provisioning-race net).
+ * has a membership on that tenant. `firstOrCreate` on `global_id` makes a
+ * re-run a no-op, and `withoutEvents` stops the tenant `User`'s own
+ * `ResourceSyncing` trait from firing a `SyncedResourceSaved` back at the
+ * central database.
  *
- * `firstOrCreate` on `global_id` makes a re-run (retried queue job, the
- * backfill listener racing the observer) a no-op. `withoutEvents` stops the
- * tenant `User`'s own `ResourceSyncing` trait from firing a
- * `SyncedResourceSaved` back at the central database, the same guard
- * stancl's `UpdateSyncedResource::updateResourceInTenantDatabases()` uses.
+ * @see \Nvade\Numerosis\Observers\MembershipObserver
+ * @see \Nvade\Numerosis\Listeners\Tenancy\BackfillTenantUsers
  */
 class EnsureTenantUserExists
 {

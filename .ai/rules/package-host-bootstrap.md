@@ -3,6 +3,7 @@ paths:
   - 'src/NumerosisServiceProvider.php'
   - 'src/Support/HostConfig.php'
   - 'src/Support/Domains.php'
+  - 'src/Enums/Tenancy/IdentificationMode.php'
 ---
 # Package/Host Bootstrap Wiring
 

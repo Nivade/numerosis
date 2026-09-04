@@ -66,21 +66,13 @@ class Permission extends \Spatie\Permission\Models\Permission
      *
      * Empty in core: every context it ships wants exactly
      * {@see self::defaultActions()}. The seam exists for a context whose verbs
-     * are not CRUD, and is read through {@see self::actionsFor()}.
+     * are not CRUD. Only the tenant seeder reads it, and a subclass's override
+     * only takes effect through a seeder of your own, since both package
+     * seeders name this class literally.
      *
-     * **Overriding it reaches the tenant guard only.** Only
-     * {@see \Nvade\Numerosis\Database\Seeders\Tenant\PermissionAndRoleSeeder}
-     * calls `actionsFor()`; the central
-     * {@see \Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder} calls
-     * {@see self::defaultActions()} directly, so a `web`-guard context gets
-     * CRUD and nothing else however this is overridden.
-     *
-     * **Overriding it also needs a seeder of your own.** This model is not
-     * in `numerosis.models` — there is no `Numerosis::model()` indirection to
-     * resolve a subclass, and both seeders name this class literally.
-     * `actionsFor()` binds late, so a subclass's override applies when *you*
-     * call `YourPermission::actionsFor()`, from a seeder registered through
-     * {@see \Nvade\Numerosis\Support\Numerosis::addTenantSeeder()}.
+     * @see self::actionsFor()
+     * @see \Nvade\Numerosis\Database\Seeders\Tenant\PermissionAndRoleSeeder
+     * @see \Nvade\Numerosis\Support\Numerosis::addTenantSeeder()
      *
      * @return array<string, list<string>>
      */
@@ -92,9 +84,9 @@ class Permission extends \Spatie\Permission\Models\Permission
     /**
      * Every action that exists for a context, in permission-name order.
      *
-     * `static::`, not `self::`: called as `YourPermission::actionsFor()` this
-     * has to reach a subclass's {@see self::additionalActions()}, which is
-     * the only way that seam is reachable at all — see its docblock.
+     * Resolves `static::additionalActions()` late, so calling this as
+     * `YourPermission::actionsFor()` reaches a subclass's override. That is
+     * the only way that seam is reachable at all.
      *
      * @return list<string>
      */

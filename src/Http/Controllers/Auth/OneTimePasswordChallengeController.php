@@ -16,25 +16,13 @@ use Nvade\Numerosis\Models\User;
 use Spatie\OneTimePasswords\Rules\OneTimePasswordRule;
 
 /**
- * Mirrors Fortify's own `TwoFactorAuthenticatedSessionController`, for the
- * `OneTimePasswordFeature` challenge screen. The candidate identified by
- * `RedirectIfOneTimePasswordAuthenticatable` is re-resolved here by the
- * email stashed in the session rather than a guard-scoped ID, so this
- * controller stays agnostic to which guard (central or tenant) is currently
- * being logged into — same reasoning `ResolvesLoginCandidate` already
- * encodes for the deleted `PasswordlessLogin` component.
+ * The `OneTimePasswordFeature` challenge screen. The candidate
+ * `RedirectIfOneTimePasswordAuthenticatable` identified is re-resolved by the
+ * address stashed in the session and from nowhere else: reaching this endpoint
+ * proves nothing about which step ran before it, so a request-supplied address
+ * would let a caller name any victim and skip the send step entirely.
  *
- * The address is read from the session and from nowhere else. Reaching
- * this endpoint proves nothing about which step ran before it, so accepting
- * a request-supplied address here would let a caller name any victim and
- * skip the send step entirely. `OneTimePasswordRule` would still refuse,
- * but a control that only holds because a second one happens to sit behind
- * it is the drift that produced that bug in the first place.
- * `OneTimePasswordLoginTest` mutation-tests this specific line.
- *
- * No `#[\SensitiveParameter]` appears here on purpose: the submitted code
- * never becomes a named parameter on this side — it stays inside `$request`
- * and the validator, which Sentry scrubs by key rather than by attribute.
+ * @see \Laravel\Fortify\Http\Controllers\TwoFactorAuthenticatedSessionController
  */
 class OneTimePasswordChallengeController extends Controller
 {

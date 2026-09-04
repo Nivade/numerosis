@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * How a request is matched to a tenant. See config('numerosis.tenancy.identification.mode')'s
- * docblock in config/numerosis.php for what each mode means.
+ * How a request is matched to a tenant, selected by
+ * `numerosis.tenancy.identification.mode`.
  */
 enum IdentificationMode: string
 {
@@ -18,23 +18,11 @@ enum IdentificationMode: string
     case Path = 'path';
 
     /**
-     * `Numerosis::middleware()` calls `TenancyServiceProvider::identificationMiddleware()`,
-     * which calls this, from `bootstrap/app.php`'s `withMiddleware(...)` —
-     * and `ApplicationBuilder::withMiddleware()` registers that callback via
-     * `afterResolving(HttpKernel::class, ...)` *and*
-     * `afterResolving(ConsoleKernel::class, ...)`. Both fire the instant
-     * either kernel is first resolved from the container, which happens
-     * before that kernel's own `bootstrap()` call — i.e. before
-     * `RegisterFacades` has run, on every real request and every `artisan`
-     * invocation (not under Testbench, which boots the whole app first).
-     * `Config::string()` would otherwise throw `A facade root has not been
-     * set`, fatally, before the exception handler even exists to catch it —
-     * same class of bug as `Domains::appUrl()`'s, reached through a
-     * different door. Falling back to the default here is safe because
-     * `NumerosisServiceProvider::registerMiddleware()` unconditionally
-     * re-registers the real value later, from `packageBooted()`, once
-     * config is actually loaded — this only has to survive long enough not
-     * to crash the process before that runs.
+     * Reached from `bootstrap/app.php`'s `withMiddleware(...)` before
+     * `RegisterFacades` has run, so `Config::string()` would throw `A facade
+     * root has not been set` fatally. The default is safe to fall back to,
+     * because `NumerosisServiceProvider::registerMiddleware()` re-registers
+     * the real value from `packageBooted()` once config is loaded.
      */
     public static function current(): self
     {

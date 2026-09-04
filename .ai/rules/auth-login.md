@@ -152,6 +152,18 @@ any of it.
   the `login` rate limiter (`NumerosisServiceProvider::registerAuthRateLimiters()`,
   keyed tenant + address + IP) is what bounds them.
 
+- **`OneTimePasswordChallengeController` re-resolves the candidate by the
+  session's address, never a guard-scoped id or a request field.** Reading it
+  from the request would let a caller name any victim and skip the send step;
+  `OneTimePasswordRule` would still refuse, but a control that only holds
+  because a second one sits behind it is what produced that bug the first time.
+  `OneTimePasswordLoginTest` mutation-tests that line. Resolving by address
+  rather than id is also what keeps the controller agnostic about which guard
+  is being logged into, the same reasoning `ResolvesLoginCandidate` encodes.
+  No `#[\SensitiveParameter]` appears there on purpose: the submitted code
+  never becomes a named parameter on that side — it stays inside `$request`
+  and the validator, which Sentry scrubs by key rather than by attribute.
+
 - **Logout is a listener, not a controller, because Fortify's controller
   actively fights dual-guard logout.** `AuthenticatedSessionController::destroy()`
   logs out only `config('fortify.guard')` and then invalidates the session.

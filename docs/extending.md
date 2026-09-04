@@ -24,11 +24,27 @@ named `route()` — it has to stay installable on its own.
 | tenant migrations | `Numerosis::addTenantMigrationPath(string)` | `tenancy.migration_parameters['--path']` is an array; this is the supported way in |
 | seed data | `Numerosis::addTenantSeeder()` / `addCentralSeeder()` | Run by the package's own `TenantDatabaseSeeder` / `DatabaseSeeder` |
 | permissions | `Numerosis::addPermissionContext(string)` | **A missing permission row is a 500, not a 403** — Spatie throws `PermissionDoesNotExist` rather than returning false, so any navigation that gates its own visibility on a check breaks every page carrying it, not just its own screen |
+| non-CRUD permission verbs | override `Permission::additionalActions()` on a subclass | Empty in core, read through `Permission::actionsFor()`. See the two caveats below |
 | views | `->hasViews('numerosis')` from your own provider | `FileViewFinder::addNamespace()` *appends*, so several packages can serve one namespace. Paths are searched in registration order, so a view must be **moved, never copied** |
 | single-file Livewire pages | your own key in `livewire.component_namespaces` | Unlike views, a prefix maps to exactly **one** directory — two packages cannot join the same key. Set the key from `register()`, and set *one key*, never the whole array: replacing it drops every other package's |
 | the `home` page | `numerosis.routes.home_view` | Core always registers the `home` route and declares it first, so a second route on `/` never matches. Point this at your own view instead |
 | tenant model columns | `Numerosis::addTenantColumns(array)` | |
 | a model | publish `--tag numerosis-models`, or set `numerosis.models.<FQCN>` | Convention (`App\Models\<suffix>`) is found automatically; the config key is for a non-conventional location |
+
+### Overriding `Permission::additionalActions()`
+
+Two things about that seam are easy to get wrong, and both fail silently:
+
+- **It reaches the tenant guard only.** `Database\Seeders\Tenant\PermissionAndRoleSeeder`
+  is the only caller of `actionsFor()`; the central `Database\Seeders\RoleAndPermissionSeeder`
+  calls `defaultActions()` directly, so a `web`-guard context gets CRUD and
+  nothing else however you override it.
+- **It needs a seeder of your own.** `Permission` is not in `numerosis.models`,
+  so there is no `Numerosis::model()` indirection resolving your subclass, and
+  both seeders name the package class literally. `actionsFor()` binds late
+  (`static::`, not `self::`), so an override applies when *you* call
+  `YourPermission::actionsFor()` — from a seeder registered through
+  `Numerosis::addTenantSeeder()`.
 
 ### Swapping an implementation
 
