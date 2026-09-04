@@ -37,9 +37,8 @@ class InlineCheckoutGateway implements CheckoutGateway
             throw new PaymentPlanNotFound("Payment plan not found: {$registration->payment_plan}");
         }
 
-        // Resolved but unused: the subscription is priced later, from the
-        // pending row rather than from the client. Checked here so a
-        // misconfigured plan fails before the customer enters a card.
+        // The subscription is priced later from the pending row. Checked here
+        // so a misconfigured plan fails before the customer enters a card.
         if (! $plan->priceId($registration->billing_cycle)) {
             throw new StripePriceNotConfigured("Stripe Price ID not found for plan: {$registration->payment_plan}");
         }
@@ -50,16 +49,15 @@ class InlineCheckoutGateway implements CheckoutGateway
 
         $billable->createOrGetStripeCustomer();
 
-        // Never pin payment_method_types: automatic methods mean enabling a
-        // new one in the Stripe dashboard needs no code change here.
+        // Never pin payment_method_types. Automatic methods let a new method
+        // be enabled in the Stripe dashboard with no code change here.
         $setupIntent = $billable->createSetupIntent([
             'automatic_payment_methods' => ['enabled' => true],
             'metadata' => ['domain' => $registration->domain],
         ]);
 
-        // Scoped to the owner as well as the domain. Callers are expected to
-        // have reserved the domain first, but an unscoped write here would
-        // overwrite a stranger's SetupIntent and lock them out of their own
+        // Scoped to the owner as well as the domain. An unscoped write would
+        // overwrite a stranger's SetupIntent and lock them out of their
         // reservation.
         Numerosis::model(PendingTenantProvision::class)::where('domain', $registration->domain)
             ->where('global_id', $registration->global_id)

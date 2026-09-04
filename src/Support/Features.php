@@ -46,14 +46,10 @@ final class Features
             return self::$forcedForTesting;
         }
 
-        // Defaulted, not `Config::array('numerosis.features')` bare: a
-        // satellite package can reach this while core's `mergeConfigFrom()`
-        // has not run — a discovered satellite provider whose host has not
-        // registered core (or, concretely, Larastan's own bootstrapped
-        // application, which discovers vendor packages but not the root one).
-        // "Core's config is not merged" means "nothing is configured", not a
-        // hard boot failure; the registered list is still honoured, which is
-        // exactly what a satellite contributing its own feature needs.
+        // Defaulted because a satellite provider can reach this before core's
+        // `mergeConfigFrom()` runs. Larastan boots an application that
+        // discovers vendor packages without the root one. `self::$registered`
+        // is still honoured in that state.
         /** @var list<class-string<Feature>> $features */
         $features = Config::array('numerosis.features', []);
 

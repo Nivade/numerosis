@@ -17,6 +17,27 @@ Rules for `//` and PHPDoc prose:
 - No restating code ("// Loop through users"), no section banner comments.
 - Consequences get named concretely: "throws TenantDatabaseAlreadyExistsException", not "would race it".
 - PHPDoc: keep `@param`/`@return`/array shapes. Prose in a docblock follows the same rules.
-- Any comment prose that survives the bullets above gets a pass through the `unslop` skill before the edit lands. Read `references/core-contract.md`, apply it to the comment text, keep every technical fact. The `crisp` preset is the register to aim for.
 
-`unslop` is installed per-machine at `~/.claude/skills/unslop`, not in this repo. An agent without it applies the bullets above by hand; they encode the tells that matter here. Its `banned_phrase_scan.py` scores this repo's comments clean — the catalog targets marketing slop, and code comments fail on cadence instead. Use the skill's judgment pass, not its scanner.
+Docblocks are the bulk of the problem, not `//` comments: 2,145 prose lines against 366, carrying 270 of the em-dashes and 96 of the "rather than"/"instead of".
+
+## Shortening a comment drops facts silently
+
+Run `validate_preservation.py` from the `unslop` skill (`~/.claude/skills/unslop/scripts/`) on the old comment text against the new, before the edit lands. Strip the `//` and `*` markers first and feed it two plain-text files.
+
+It caught four losses across `Numerosis.php`, `Features.php` and `AcceptInvitation.php` that a careful hand-edit had already reviewed and called finished: `FortifyServiceProvider::configureRoutes()`, `spatie/laravel-one-time-passwords`, backticks stripped off `mergeConfigFrom()`, and a second failure path in the invitation flow. Its "negation count dropped" warning is worth reading; a comment shrinking from 14 negations to 9 may have inverted a claim.
+
+Diffing the backticked identifiers is the sharper check, since the tool reports rewrapped prose between backticks as a missing "code" constraint and buries the real losses:
+
+```bash
+grep -o '`[^`]*`' old.txt | tr -d '`' | sort -u > /tmp/o.txt
+grep -o '`[^`]*`' new.txt | tr -d '`' | sort -u > /tmp/n.txt
+comm -23 /tmp/o.txt /tmp/n.txt
+```
+
+## Do not run `unslop` itself on this code
+
+Its detection layer returns zero findings here. `suggest.py` on the five worst files, including 267 lines of `Numerosis.php`, reported `hard: 0, soft: 0` on every one, and the core contract's rule is then "with no findings, return the source exactly". Followed properly the skill authorizes none of this cleanup; followed loosely it is theater over an edit already made by hand.
+
+The catalog hunts marketing slop (empty abstraction, inflated claims, stock praise) and this repo's comments have none of it. They are dense, accurate and too long. The contract states outright that "soft cadence and document-shape scores never authorize edits alone", and cadence is the whole defect here. Its one structure flag, `conclusion_coda`, fires identically before and after a rewrite, from treating a PHP file as an essay with a closing paragraph. `banned_phrase_scan.py` scores the comments clean.
+
+The bullets above are the standard. `validate_preservation.py` is the safety net. Nothing else from that skill applies.

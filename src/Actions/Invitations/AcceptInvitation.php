@@ -46,7 +46,6 @@ class AcceptInvitation
             throw new InvitationTenantMismatch(__('Invalid tenant for invitation.'));
         }
 
-        // Attach the user to the tenant via the central memberships table.
         $user->tenants()->syncWithoutDetaching([
             $tenant->id => [
                 'role' => $invitation->role,
@@ -54,13 +53,11 @@ class AcceptInvitation
             ],
         ]);
 
-        // Nothing else creates the tenant-side row for an invited member:
-        // provisioning only ever does this for owners (Nvade\Numerosis\Actions\Tenancy\
-        // AddTenantOwner), and login only ever reads (FindUserByGlobalId),
-        // never creates. Without this, accepting via social login throws in
-        // LoginUser (no Tenant\User to resolve), and accepting via the
-        // password form for someone whose CentralUser already exists
-        // elsewhere silently fails the same way.
+        // The only creation site for an invited member's tenant-side row.
+        // AddTenantOwner covers owners, and login only reads (FindUserByGlobalId).
+        // Without this, accepting via social login throws in LoginUser, and
+        // accepting via the password form silently fails the same way when the
+        // CentralUser already exists elsewhere.
         $tenantUserClass = Numerosis::model(TenantUser::class);
 
         $tenant->run(function () use ($user, $invitation, $tenantUserClass): void {

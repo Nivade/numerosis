@@ -77,5 +77,5 @@ short `note`); it writes here.
 | `config/filesystems.php`, `src/**` | [tenant-filesystem.md](tenant-filesystem.md) — `local` disk root tenant-suffixed but Livewire upload route never tenant-identified; dedicated `livewire` disk fixes it. |
 | `src/Resolvers/**`, `config/tenancy.php` | [identification-modes.md](identification-modes.md) — subdomain/custom-domain/path; slug ≠ domain; `{tenant}` literal enables dots; all three modes now browser-tested. |
 | `bootstrap/**`, `config/**` | [host-integration-quickstart.md](host-integration-quickstart.md) — 7 silent traps integrating into a pre-existing host app (tabellio); all 7 fixed 2026-08-13 — read for the mechanism to reach for now. |
-| `**/*.php` | [general.md](general.md) — comment style: state the constraint; no em-dash asides, no "rather than"/"X, not Y" essay cadence. Boost's area file for repo-wide PHP rules. |
+| `**/*.php` | [general.md](general.md) — comment style: default to zero, no em-dash/"rather than" cadence; docblocks are the bulk. Validate preservation when shortening; `unslop` itself is a no-op here. |
 | `**` (execution constraint) | [subagents.md](subagents.md) — execution constraint, not a codebase fact: never spawn sub-agents; the `.claude/agents/`+`.codex/agents/` that contradicted it were deleted 2026-09-01. |

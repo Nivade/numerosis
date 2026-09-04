@@ -56,7 +56,6 @@ class Authenticate extends Middleware
     #[Override]
     public function authenticate($request, array $guards): void
     {
-        // Are we on a tenant and is the current user authenticated on central?
         if (tenancy()->initialized && $this->authManager->guard(Context::Central->guard())->check()) {
             /** @var CentralUser $centralUser */
             $centralUser = GetAuthenticatedUser::run(Context::Central->guard());

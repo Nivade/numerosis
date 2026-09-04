@@ -28,15 +28,13 @@ class CreateTenant
     {
         $tenantClass = Numerosis::model(Tenant::class);
 
-        // Locked and re-entrant: a run that died halfway is finished by the
-        // next attempt rather than failing on what it already created.
+        // Re-entrant: a run that died halfway is finished by the next attempt.
         $tenant = Cache::lock("tenant-provision:{$registration->domain}", 10)->block(5, function () use ($registration, $tenantClass) {
-            // Events are suppressed because the provisioning chain creates the
-            // database itself; letting tenancy's own pipeline fire too would
-            // race it into TenantDatabaseAlreadyExistsException.
             /** @var Tenant|null $existing */
             $existing = $tenantClass::find($registration->domain);
 
+            // The provisioning chain creates the database. Letting tenancy's
+            // pipeline fire too throws TenantDatabaseAlreadyExistsException.
             $tenant = $existing ?? $tenantClass::withoutEvents(function () use ($tenantClass, $registration): Tenant {
                 /** @var Tenant */
                 return $tenantClass::create([

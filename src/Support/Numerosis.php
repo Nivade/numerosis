@@ -233,34 +233,29 @@ class Numerosis
     /**
      * Loads Fortify's own `routes/routes.php` inside whichever group is
      * currently open (a central domain's, or the tenant group's), for the
-     * given guard. Fortify normally registers its routes once, inside a
-     * single domain/prefix group of its own
-     * (`FortifyServiceProvider::configureRoutes()`); `Fortify::ignoreRoutes()`
-     * (called in `NumerosisServiceProvider::packageRegistered()`) turns that
-     * off, and this is what replaces it — once per central domain, and once
-     * for the tenant group, matching every other route file this method
-     * requires.
+     * given guard. `Fortify::ignoreRoutes()` in
+     * `NumerosisServiceProvider::packageRegistered()` disables Fortify's own
+     * single-group registration (`FortifyServiceProvider::configureRoutes()`),
+     * and this replaces it: once per central domain, once for the tenant
+     * group.
      *
      * `routes/routes.php` bakes `'guest:'.config('fortify.guard')` into route
-     * middleware **at registration time**, so the guard has to be correct
-     * for whichever group is being built right now. Everything downstream
-     * (Fortify's `StatefulGuard` binding, `AuthGuardBootstrapper`) reads the
-     * guard at *request* time instead, off `Auth::getDefaultDriver()` — which
-     * is why `fortify.guard` is restored in a `finally` rather than left set:
-     * leaving it pointing at, say, the tenant guard would make every guard
-     * resolution process-wide read the wrong default until the next
-     * `loadFortifyRoutes()` call overwrote it, with no error surfaced.
+     * middleware **at registration time**, so the guard has to be correct for
+     * the group being built. Everything downstream (Fortify's `StatefulGuard`
+     * binding, `AuthGuardBootstrapper`) reads the guard at request time off
+     * `Auth::getDefaultDriver()`. The `finally` restores `fortify.guard`
+     * because a leftover value silently changes the process-wide default until
+     * the next `loadFortifyRoutes()` call overwrites it.
      *
-     * `fortify.middleware` is cleared for the same registration-time reason —
-     * the outer group already applied `web`/`tenant`, and leaving Fortify's
-     * own default (`['web']`) would double it inside the tenant group.
+     * `fortify.middleware` is cleared for the same registration-time reason.
+     * The outer group already applied `web`/`tenant`, and Fortify's default
+     * `['web']` would double it inside the tenant group.
      *
-     * **`fortify.passwords` is deliberately not swapped here.** It used to
-     * be, by symmetry with the guard, and it was a no-op: nothing bakes the
-     * broker into a route, and Fortify's three password controllers read the
-     * key when the request arrives — long after the `finally` below restored
-     * it. The tenant broker is applied at request time instead, by
-     * {@see \Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper}.
+     * **`fortify.passwords` is deliberately not swapped here.** Nothing bakes
+     * the broker into a route, and Fortify's three password controllers read
+     * the key when the request arrives, after the `finally` restores it.
+     * {@see \Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper}
+     * applies the tenant broker at request time.
      */
     private static function loadFortifyRoutes(string $guard): void
     {
@@ -284,24 +279,22 @@ class Numerosis
     }
 
     /**
-     * Registers the `OneTimePasswordFeature` challenge routes inside
-     * whichever group is currently open, matching {@see self::loadFortifyRoutes()}
-     * — same reasoning: a route name baked with the wrong `guest:` guard at
-     * registration time is wrong for the rest of the process. Only
-     * registered when {@see OneTimePasswordFeature::available()}, so a host
-     * that never enables it (or enabled it without
-     * `spatie/laravel-one-time-passwords`) gets no extra routes at all.
+     * Registers the `OneTimePasswordFeature` challenge routes inside whichever
+     * group is currently open, matching {@see self::loadFortifyRoutes()}: a
+     * route name baked with the wrong `guest:` guard at registration time
+     * stays wrong for the rest of the process. Only registered when
+     * {@see OneTimePasswordFeature::available()}, which also requires
+     * `spatie/laravel-one-time-passwords` to be installed.
      *
-     * The paths go through Fortify's own `RoutePath::for()` so they are
-     * overridable from `config('fortify.paths')` like every neighbouring auth
-     * URL, rather than being the one hardcoded exception.
+     * The paths go through Fortify's own `RoutePath::for()`, so
+     * `config('fortify.paths')` overrides them like every neighbouring auth
+     * URL.
      *
-     * The verify leg carries its **own** limiter, not `fortify.limiters.login`:
-     * this request has no `email` field (the address lives in the session),
-     * so the login limiter's `tenant|email|ip` key would collapse to
-     * `tenant||ip` and put every OTP verification from one IP in a single
-     * bucket. Fortify draws the same distinction for its 2FA challenge
-     * (`fortify.limiters.two-factor`).
+     * The verify leg carries its **own** limiter. This request has no `email`
+     * field (the address lives in the session), so `fortify.limiters.login`'s
+     * `tenant|email|ip` key would collapse to `tenant||ip` and put every OTP
+     * verification from one IP in a single bucket. Fortify draws the same
+     * distinction for its 2FA challenge (`fortify.limiters.two-factor`).
      */
     private static function loadOneTimePasswordRoutes(string $guard): void
     {
