@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Enums\Tenancy;
 
 /**
- * The `memberships.role` column's vocabulary. That column is a real database
- * enum, declared in `2025_06_17_134918_create_tenant_users_table.php`. It has
- * nothing to do with the tenant-side `roles` table
- * `spatie/laravel-permission` owns.
+ * The `memberships.role` column's vocabulary, a real database enum declared in
+ * `2025_06_17_134918_create_tenant_users_table.php`. Unrelated to the
+ * tenant-side `roles` table `spatie/laravel-permission` owns.
  *
- * {@see self::assignable()} omits `Owner`. `Actions\Tenancy\AddTenantOwner`
- * grants ownership during provisioning. An invitation carrying `owner` would
- * write a second owner row, which `Tenant::owner()` and
- * `DefaultUnpaidTenantQuota` both read as the billing subject.
+ * {@see self::assignable()} omits `Owner`, which `AddTenantOwner` grants during
+ * provisioning; a second owner row is what `Tenant::owner()` bills.
  */
 enum MembershipRole: string
 {

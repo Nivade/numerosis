@@ -116,16 +116,11 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * Finishes a redirect checkout (iDEAL, Bancontact and similar) once
-     * Stripe attaches the reusable payment method it generated — which the
-     * customer's return from their bank cannot wait for.
-     *
-     * Deliberately not `setup_intent.succeeded`, which fires before that
-     * attach and never comes to reference the generated payment method.
-     *
-     * Matched by customer, because Stripe offers no way to look a setup
-     * attempt up directly: this finds that customer's still-open checkouts
-     * and asks which one the payment method belongs to.
+     * Finishes a redirect checkout (iDEAL, Bancontact and similar) once Stripe
+     * attaches the reusable payment method it generated. Matched by customer,
+     * since Stripe offers no way to look a setup attempt up directly: this
+     * finds that customer's still-open checkouts and asks which one the
+     * payment method belongs to.
      *
      * @param  array{data: array{object: array{id?: string, customer?: string, sepa_debit?: array{generated_from?: array{setup_attempt?: string}}}}}  $payload
      */
@@ -245,10 +240,9 @@ class WebhookController extends CashierWebhookController
      * `past_due` and `unpaid` are Stripe's grace-period states before it
      * gives up; `incomplete_expired` means the first payment never completed.
      *
-     * This is the only place a plan change is dispatched from. Stripe raises
-     * `customer.subscription.updated` for every price change whoever made it
-     * — a host calling `SwapSubscriptionPlan`, or an edit in the dashboard —
-     * so one site covers all of them and none of them fires twice.
+     * This is the only place a plan change is dispatched from, because Stripe
+     * raises `customer.subscription.updated` for every price change whoever
+     * made it, so one site covers all of them and none fires twice.
      *
      * @param  array{data: array{object: array{id?: string, customer?: string, status?: string, items?: array{data: list<array{price?: array{id?: string}}>}}}}  $payload
      */

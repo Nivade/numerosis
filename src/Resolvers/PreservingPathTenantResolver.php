@@ -12,13 +12,10 @@ use Stancl\Tenancy\Resolvers\PathTenantResolver;
 /**
  * Keeps the `{tenant}` route parameter in place after identification.
  *
- * Stancl's own `PathTenantResolver` removes it the moment it resolves the
- * tenant (`Route::forgetParameter()`), so anything reading it later in the
- * same request — a controller signature, `route()` regeneration of the
- * current URL, any middleware ordered after tenancy identification — sees
- * `$request->route()->hasParameter('tenant')` as false and silently takes
- * its no-tenant branch rather than 404ing. Nothing in this package's
- * path-mode support relies on stancl's removal of it.
+ * Stancl's own `PathTenantResolver` calls `Route::forgetParameter()` the moment
+ * it resolves the tenant, so anything reading the parameter later in the same
+ * request sees `hasParameter('tenant')` as false and silently takes its
+ * no-tenant branch. Nothing here relies on stancl's removal of it.
  */
 class PreservingPathTenantResolver extends PathTenantResolver
 {

@@ -85,6 +85,18 @@ paths:
   `CreateInlineSubscription` sole writer of `stripe_subscription_id`
   this early, so missing row means "created but not yet synced," not "safe
   to recreate."
+- **A second `owner` membership row corrupts billing, which is why
+  `MembershipRole::assignable()` omits `Owner`.** `Actions\Tenancy\AddTenantOwner`
+  grants ownership during provisioning, and both `Tenant::owner()` and
+  `Services\Billing\Resolvers\DefaultUnpaidTenantQuota` read that row as the
+  billing subject. An invitation carrying `owner` would write a competing one.
+- **The redirect-checkout completion hangs off `payment_method.attached`, not
+  `setup_intent.succeeded`.** That event fires before Stripe attaches the
+  reusable payment method it generated and never comes to reference it, and
+  the customer's return from their bank cannot wait for the attach either.
+  `handlePaymentMethodAttached` matches by *customer*, since Stripe offers no
+  way to look a setup attempt up directly: it finds that customer's still-open
+  checkouts and asks which one the payment method belongs to.
 - **`EloquentSubscriptionRepository::record()` catches
   `UniqueConstraintViolationException` and updates instead.** Its
   `updateOrCreate()` is a select-then-insert, not an atomic upsert, and it is

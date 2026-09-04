@@ -18,13 +18,10 @@ use Nvade\Numerosis\Support\Numerosis;
  * The guest path: resolve-or-create the {@see CentralUser}, create the
  * {@see SocialAccount}, then delegate to {@see LoginUser}.
  *
- * Identity match is `(provider, provider_id)` only, never email alone — an
- * unconditional email match would let anyone claiming a victim's address on
- * a provider that issues unverified addresses take over their account.
- * Linking to an *existing* account found by email is only attempted when
- * both the provider verified the address and the local account is itself
- * verified; otherwise this returns `null`, and the caller sends the visitor
- * to `login` to sign in first and connect the account from settings.
+ * Identity match is `(provider, provider_id)` only, never email alone, which
+ * would let anyone claiming a victim's address on a provider that issues
+ * unverified addresses take over their account. Linking to an existing account
+ * found by email needs both sides verified; otherwise this returns `null`.
  *
  * @method static ?CentralUser run(SocialUserData $data)
  */
