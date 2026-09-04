@@ -33,7 +33,9 @@ regenerates and discards. The facts are the same; only the home changed.
   `routes/tenant.php` (~line 80), with `account-suspended` and the routes a
   suspended user still needs (billing, logout) left outside it. Adding a route
   that a suspended tenant must reach means adding it *outside* that inner
-  group, not adding an exclusion.
+  group, not adding an exclusion. It reads `tenant()` and never the user, so
+  auth is not a precondition; it sits inside the authenticated group because
+  that is the surface worth gating, not because it needs a guard.
 
 - **There are two alias registries and they must not drift.**
   `NumerosisServiceProvider::registerMiddlewareAliases()`

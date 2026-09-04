@@ -21,17 +21,11 @@ class EloquentSubscriptionRepository implements SubscriptionRepository
     }
 
     /**
-     * `updateOrCreate()` is a plain select-then-insert, not an atomic
-     * upsert, and this is one of two writers of a `subscriptions` row for a
-     * given `stripe_id`: `CreateInlineSubscription` also inserts one,
-     * synchronously and unlocked, from the checkout web request — via
-     * Cashier's own `SubscriptionBuilder::create()`, not this repository.
-     * The two can't share a lock keyed by `stripe_id`, because Stripe hasn't
-     * generated that id yet at the point `CreateInlineSubscription` starts.
-     * A live `UniqueConstraintViolationException` here (both inserts firing
-     * within the same select-then-insert window) means the row now exists —
-     * fall back to the update this call would have taken had it lost the
-     * race by a few milliseconds more, instead of surfacing a 500.
+     * `updateOrCreate()` is a select-then-insert, and `CreateInlineSubscription`
+     * writes the same `stripe_id` row unlocked from the checkout request, so a
+     * `UniqueConstraintViolationException` here means the row landed inside
+     * that window. Updating it is what this call would have done had it lost
+     * the race by a few more milliseconds.
      */
     public function record(SubscriptionData $data): Subscription
     {

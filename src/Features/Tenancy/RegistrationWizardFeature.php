@@ -32,18 +32,10 @@ class RegistrationWizardFeature implements NamedFeature
 
     /**
      * Alias each shipped step registers under, and the view file that alias
-     * resolves to. `Steps\Payment` is deliberately absent: its natural alias
-     * (`payment`) collides with Cashier's own published
-     * `resources/views/vendor/cashier/payment.blade.php`, so it keeps
-     * resolving by its full FQCN instead. Livewire supports that with no
-     * `addComponent()` call at all. Deriving every alias as
-     * `Str::kebab(class_basename($step))` in a naive loop would reintroduce
-     * that collision, which is why this map is written out by hand.
-     *
-     * A host-supplied step (added to `numerosis.tenancy.registration.steps`
-     * but not in this map) is not auto-registered here — the package only
-     * knows the view path for steps it ships. Register your own component
-     * for it before adding it to that config key.
+     * resolves to. Written out by hand, not derived: `Steps\Payment` is
+     * absent because its natural alias collides with Cashier's published
+     * `payment.blade.php`, so it resolves by FQCN. A host-supplied step is not
+     * auto-registered here; register your own component for it.
      *
      * @var array<class-string, string>
      */

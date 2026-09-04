@@ -248,6 +248,14 @@ any of it.
   `false` for them. Adding a provider does not get free "verified" status
   just because the provider *has* a verified-email field; wire the specific
   raw-payload key `isEmailVerified()` reads before trusting it.
+- **`SocialUserData` is the only shape anything downstream of
+  `ResolveSocialUser` sees**; Socialite's own
+  `Laravel\Socialite\Contracts\User` must not leak past that action. Its
+  `$token`/`$refreshToken` are the provider's live credentials, plaintext
+  until `SocialAccount`'s `encrypted` cast, and carry `#[SensitiveParameter]`
+  so they stay out of stack traces. Sentry is wired here
+  (`Concerns\TagsSentryScopeWithTenant`), so an unmarked argument leaves the
+  machine on the next throw.
 - **Never `->stateless()` on the redirect/callback routes.** These are web
   routes; Socialite's `state` parameter is the CSRF defence for the callback,
   and stateless mode drops it.

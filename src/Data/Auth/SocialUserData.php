@@ -10,20 +10,13 @@ use SensitiveParameter;
 use Spatie\LaravelData\Data;
 
 /**
- * The only shape anything downstream of {@see \Nvade\Numerosis\Actions\Auth\Social\ResolveSocialUser}
- * sees — Socialite's own `Laravel\Socialite\Contracts\User` must not leak
- * past that action.
+ * The only shape anything downstream of `ResolveSocialUser` sees. Socialite's
+ * own `Laravel\Socialite\Contracts\User` must not leak past that action.
+ * `$emailVerified` is `false` for any provider that cannot prove the address,
+ * which is the account-takeover vector `LoginWithSocialAccount` guards.
  *
- * `$emailVerified` is per-provider: GitHub and Google expose it, others do
- * not, and where it is not knowable this is `false`. Getting this wrong is
- * the account-takeover vector documented on
- * {@see \Nvade\Numerosis\Actions\Auth\Social\LoginWithSocialAccount}.
- *
- * `$token`/`$refreshToken` are the provider's live credentials, plaintext
- * until `SocialAccount`'s `encrypted` cast. Both carry
- * `#[SensitiveParameter]` so they stay out of stack traces. Sentry is wired
- * here (`Concerns\TagsSentryScopeWithTenant`), so an unmarked argument leaves
- * the machine on the next throw.
+ * @see \Nvade\Numerosis\Actions\Auth\Social\ResolveSocialUser
+ * @see \Nvade\Numerosis\Actions\Auth\Social\LoginWithSocialAccount
  */
 class SocialUserData extends Data
 {

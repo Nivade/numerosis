@@ -10,19 +10,11 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Refuses access to a suspended tenant — the gate that stops a tenant whose
- * trial ended and whose card failed from working indefinitely.
- *
- * Aliased as `tenancy.subscription` and applied to the nested authenticated
- * group in `routes/tenant.php`, after tenancy identification and auth so
- * `tenant()` is resolved. **Never register it on the `tenant` middleware
- * group itself**: it redirects to `tenant.suspended`, which is a tenant route
- * too, so a group-wide registration re-gates its own redirect target into an
- * infinite loop.
- *
- * It reads the tenant, not the user, so auth is not a precondition — the
- * authenticated group is where it sits because that is the surface worth
- * gating, not because it needs a guard.
+ * Refuses access to a suspended tenant, so a tenant whose trial ended and
+ * whose card failed cannot keep working indefinitely. Aliased as
+ * `tenancy.subscription` and applied to the authenticated group in
+ * `routes/tenant.php`. Never register it on the `tenant` group itself: it
+ * redirects to `tenant.suspended`, which that group would re-gate into a loop.
  */
 class EnsureTenantSubscriptionActive
 {

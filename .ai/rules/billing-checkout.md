@@ -85,6 +85,17 @@ paths:
   `CreateInlineSubscription` sole writer of `stripe_subscription_id`
   this early, so missing row means "created but not yet synced," not "safe
   to recreate."
+- **`EloquentSubscriptionRepository::record()` catches
+  `UniqueConstraintViolationException` and updates instead.** Its
+  `updateOrCreate()` is a select-then-insert, not an atomic upsert, and it is
+  one of two writers of a `subscriptions` row for a given `stripe_id`:
+  `CreateInlineSubscription` inserts one synchronously and unlocked from the
+  checkout web request, through Cashier's `SubscriptionBuilder::create()`
+  rather than this repository. The two cannot share a lock keyed by
+  `stripe_id`, because Stripe has not generated that id yet when
+  `CreateInlineSubscription` starts. A live violation therefore means the row
+  now exists, so the catch takes the update this call would have taken had it
+  lost the race by a few more milliseconds, instead of surfacing a 500.
 - **`CreateInlineSubscription` takes explicit `$billable` override since
   `WebhookController::handlePaymentMethodAttached` runs with no session at
   all** — `BillableResolver::resolve()` reads current auth context, finds

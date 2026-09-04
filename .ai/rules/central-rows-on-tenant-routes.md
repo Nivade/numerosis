@@ -96,3 +96,17 @@ The accept route shares the show route's URI, and `ValidateSignature` ignores
 the HTTP method, so one signature covers both. `resources/views/invitations/show.blade.php`
 posts to `url()->full()` for that reason. Changing either URI breaks the accept
 form silently.
+
+## Policies resolve permissions against the model's guard, not the ambient one
+
+`Policies\Concerns\ChecksContextPermissions` checks each permission against the
+guard of the `User` it was handed, never `Auth::getDefaultDriver()`. The two
+agree on every ordinary path and diverge exactly where it matters: a central
+user evaluated inside tenant context would otherwise be checked against tenant
+roles they could never hold, and spatie throws `PermissionDoesNotExist` for a
+name that exists under the other guard — a 500, not a denial.
+
+The trait also short-circuits `updateAny`/`deleteAny` ahead of the per-record
+check, so an admin holding the blanket permission is never refused a single
+record. Both behaviours are in the trait rather than in each policy on purpose;
+a policy with real domain logic of its own should not build on it.

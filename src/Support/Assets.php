@@ -41,18 +41,9 @@ final class Assets
     /**
      * The `<link>`/`<script>` tags for the package's CSS and JS. Both ship
      * prebuilt and are copied to `public/vendor/numerosis` by
-     * `vendor:publish --tag=numerosis-public-assets`, so no build step is
-     * required.
-     *
-     * The URLs are emitted whether or not that publish has happened — the same
-     * shape as the `FilamentAsset::getStyleHref()` pair this replaced when
-     * Filament was dropped, and the reason `numerosis:install` verifies the
-     * files exist rather than leaving a silent 404.
-     *
-     * Publishing `numerosis-assets` gives you `resources/js/numerosis.js` to
-     * edit; once it is also an entry in your `vite.config.js`, your build is
-     * used instead of the prebuilt bundle. Override the CSS through the
-     * custom properties in `tokens.css` rather than by publishing it.
+     * `vendor:publish --tag=numerosis-public-assets`. The URLs are emitted
+     * whether or not that publish has happened, so a missing one is a 404;
+     * `numerosis:install` verifies the files exist for that reason.
      */
     public static function tags(): Htmlable
     {
