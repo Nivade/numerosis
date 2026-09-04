@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Listeners\Tenancy;
 
 use Illuminate\Support\Facades\Log;
+use Stancl\Tenancy\Events\SyncedResourceChangedInForeignDatabase;
 
 class LogSyncedResourceChangedInForeignDatabase
 {
-    /** @param \Stancl\Tenancy\Events\SyncedResourceChangedInForeignDatabase $event */
-    public function handle(object $event): void
+    public function handle(SyncedResourceChangedInForeignDatabase $event): void
     {
         Log::warning('Synced resource changed in foreign database', [
             'central_model' => $event->model->getCentralModelName(),
