@@ -338,11 +338,14 @@ them.
 
 ```bash
 vendor/bin/pint --dirty --format agent
-vendor/bin/pest
+composer test
 composer analyse
 ```
 
 Pint before Pest, so Pest does not run against files Pint is about to rewrite.
+`composer test` is `pest --parallel`: 64s against 124s for a bare
+`vendor/bin/pest`, same result. Keep `vendor/bin/pest --filter=…` for a single
+test.
 `composer analyse` matters because docblock edits can move annotations; compare
 cold-to-cold if the result cache looks suspicious
 (`.ai/rules/static-analysis.md`). A `refactor:` commit needs both green before

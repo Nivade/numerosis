@@ -912,6 +912,15 @@ to all this — single-process, no locking semantics.
   Provisioning tests (`CreateTenantTest`, `ProvisionTenantTest`,
   `MakeFirstUserAdminTest`, `TenantProvisioningSignalTest`) must keep creating
   own tenants — testing pipeline itself.
+- **`CleansUpTenancyDatabases::cleanUpTenancyDatabases()` gives each step its own `finally`, and reads tenant database names before the central deletes.** Both are load-bearing. The exception the guards exist for is a lock-wait timeout on the central deletes, thrown by an early step, so one shared `try` would skip exactly the cleanup that matters and leak a physical database per occurrence. And `deleteCentralWrites()` empties `tenants` along with every other table on that connection, so a name lookup afterwards finds nothing and silently drops none of them. It is `protected` rather than `private` so a suite with its own teardown ordering can call it directly; re-running it is harmless.
+
+- **`keepDatabaseSchema()` exists because every tenancy test loses its transaction by teardown.** stancl's `DatabaseTenancyBootstrapper` purges the default connection when it switches to a tenant database, so `getPdo()` hands back a session that was never in the transaction, and `RefreshDatabase` clears its migrated flag and schedules a `migrate:fresh` for the next test — seconds per test, restoring a central schema no normal suite issues DDL against. Rows a lost transaction committed are the real risk, and `deleteCentralWrites()` is what handles those.
+
+- **Three MySQL facts `CleansUpTenancyDatabases` is built around.**
+  - `releaseTestTransactions()` rolls every connection back to level 0 first, because the central deletes otherwise block for the full `innodb_lock_wait_timeout` against row locks the test's own transaction still holds (`central` and the default connection usually point at one physical database). `RefreshDatabase`'s rollback does this only for connections it transacts, and only if it happens to run first; rolling back to 0 makes its later `rollBack()` a no-op rather than a conflict.
+  - `dropTenantDatabases()` issues `DROP` on a dedicated maintenance connection, never the default one: MySQL implicitly commits on DDL, so a drop on the default connection ends `RefreshDatabase`'s transaction and commits everything the test wrote. It also bypasses stancl's `TenantDeleted` -> `DeleteDatabase` listener, because `Tenant::unsetEventDispatcher()` is static — one test calling it silences model events for every later test in the process, whose databases would then never be dropped.
+  - `disconnectDatabaseConnections()` drops the last PHP reference to each PDO object. `DatabaseTenancyBootstrapper` purges the default connection's PDO mid-test with no COMMIT or ROLLBACK, so an abandoned session inside `RefreshDatabase`'s transaction sits idle holding its locks for the rest of the process; closing the socket is what lets MySQL roll back and free them.
+
 ## A deleted tenant migration is invisible to this harness (2026-09-03)
 
 Tenant databases here are cloned from a cached schema source, not re-migrated

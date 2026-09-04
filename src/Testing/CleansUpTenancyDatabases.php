@@ -14,53 +14,11 @@ use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Throwable;
 
 /**
- * Undoes the two kinds of write `RefreshDatabase` cannot roll back in a
- * tenancy test suite: rows written through the `central` connection, and
- * physical tenant databases.
- *
- * `RefreshDatabase` transacts the default connection only. Every model using
- * stancl's `CentralConnection` trait (`Tenant`, `Domain`, `CentralUser`, and
- * any subclass of them) writes on a session it never opened a transaction on,
- * so those rows survive into the next test and collide on unique keys —
- * `users.email`, `tenants.id`, `subscriptions.stripe_id`. Creating a `Tenant`
- * with `QUEUE_CONNECTION=sync` also runs the `TenantCreated` pipeline inline,
- * which issues a real `CREATE DATABASE`; DDL is not transactional, so that
- * database outlives the rollback too.
- *
- * Compose this into your base test case and call
- * {@see self::setUpCleansUpTenancyDatabases()} from `setUp()`:
- *
- * ```php
- * protected function setUp(): void
- * {
- *     $this->setUpCleansUpTenancyDatabases();
- *
- *     parent::setUp();
- * }
- *
- * protected function tearDown(): void
- * {
- *     parent::tearDown();
- *
- *     $this->keepDatabaseSchema();
- * }
- * ```
- *
- * Under Orchestra Testbench the `setUp…()` call is optional — Testbench calls
- * `setUp{TraitName}` for every composed trait itself — and calling it anyway
- * is a no-op, so one base class can be copied between a Testbench harness and
- * a plain-Laravel host.
- *
- * **Cleanup does not depend on running after `RefreshDatabase`'s rollback**,
- * which is the part hosts get wrong: `beforeApplicationDestroyed()` appends on
- * `Illuminate\Foundation\Testing\TestCase` (last-registered runs last) and
- * `array_unshift`es on Testbench's `ApplicationTestingHooks` (last-registered
- * runs *first*), so the same registration lands on opposite sides of that
- * rollback depending on the base class. Instead of guessing, this trait ends
- * tenancy and releases the test's own transactions itself before deleting
- * anything — the two things being after the rollback would otherwise buy
- * (locks released, and the default connection no longer pointed at a tenant
- * database that is about to be dropped).
+ * Undoes the two kinds of write `RefreshDatabase` cannot roll back: rows on
+ * the `central` connection, and the physical tenant databases an inline
+ * `TenantCreated` pipeline creates. Ends tenancy and releases the test's own
+ * transactions before deleting anything, so it works on either side of
+ * `RefreshDatabase`'s rollback.
  */
 trait CleansUpTenancyDatabases
 {
@@ -104,19 +62,11 @@ trait CleansUpTenancyDatabases
     }
 
     /**
-     * Stops `RefreshDatabase` from scheduling a `migrate:fresh` before the
-     * next test. Call after `parent::tearDown()`.
+     * Stops `RefreshDatabase` from scheduling a `migrate:fresh` before the next
+     * test, which every tenancy test would otherwise trigger by losing its
+     * transaction. Call after `parent::tearDown()`.
      *
-     * `RefreshDatabase` clears its migrated flag whenever a test's transaction
-     * is gone by teardown, and every tenancy test trips that: stancl's
-     * `DatabaseTenancyBootstrapper` purges the default connection when it
-     * switches to a tenant database, so `getPdo()` hands back a fresh session
-     * that was never in the transaction. Nothing in a normal suite issues DDL
-     * against the central schema, so the rebuild only ever restores what is
-     * already there — at seconds per test. Rows a lost transaction committed
-     * are the real risk, and {@see self::deleteCentralWrites()} handles those.
-     *
-     * Override {@see self::shouldKeepDatabaseSchema()} to opt out.
+     * @see self::shouldKeepDatabaseSchema() to opt out
      */
     protected function keepDatabaseSchema(): void
     {
@@ -156,20 +106,10 @@ trait CleansUpTenancyDatabases
     }
 
     /**
-     * Each step gets its own `finally`, because the exception these guards
-     * exist for (a lock-wait timeout on the central deletes) is thrown by an
-     * early step — sharing one `try` would skip exactly the cleanup that
-     * matters most, leaking a physical database per occurrence.
-     *
-     * Tenant database *names* are read before the central deletes rather than
-     * after: `deleteCentralWrites()` empties `tenants` along with every other
-     * table written on that connection, so a lookup afterwards finds nothing
-     * and silently drops none of them.
-     *
-     * Protected rather than private so a test can invoke it deliberately, and
-     * so a suite with its own teardown ordering can call it from there instead
-     * of through {@see self::setUpCleansUpTenancyDatabases()}. Re-running it is
-     * harmless.
+     * Deletes central rows and drops tenant databases. Safe to call directly
+     * from a suite with its own teardown ordering, and safe to re-run. Each
+     * step keeps its own `finally`, and tenant database names are read before
+     * the central deletes empty the `tenants` table.
      */
     protected function cleanUpTenancyDatabases(): void
     {
@@ -222,15 +162,8 @@ trait CleansUpTenancyDatabases
     }
 
     /**
-     * Rolls back and closes every open transaction this test left behind.
-     *
-     * The central deletes below block for the full `innodb_lock_wait_timeout`
-     * while the test's own transaction still holds row locks on the same
-     * tables — `central` and the default connection usually point at one
-     * physical database. `RefreshDatabase`'s rollback does this too, but only
-     * for the connections it transacts, and only if it happens to run first.
-     * Rolling back to level 0 makes its own later `rollBack()` a no-op (it
-     * returns early once the transaction level is 0) rather than a conflict.
+     * Rolls every connection back to level 0, so the central deletes below do
+     * not block on row locks this test's own transaction still holds.
      */
     private function releaseTestTransactions(): void
     {
@@ -358,14 +291,8 @@ trait CleansUpTenancyDatabases
     }
 
     /**
-     * The `DROP` must not go through the default connection: MySQL implicitly
-     * commits on DDL, so it would end the `RefreshDatabase` transaction and
-     * commit everything the test wrote.
-     *
-     * Issued directly rather than through stancl's `TenantDeleted` ->
-     * `DeleteDatabase` listener, because `Tenant::unsetEventDispatcher()` is
-     * static: one test calling it silences model events for every later test
-     * in the process, and their databases would then never be dropped.
+     * Drops on the maintenance connection, never the default one, and without
+     * stancl's `TenantDeleted` listener.
      *
      * @param  list<string>  $databases
      */
@@ -389,17 +316,8 @@ trait CleansUpTenancyDatabases
     }
 
     /**
-     * Closes every named connection's PDO object at the end of each test.
-     *
-     * `DatabaseTenancyBootstrapper` purges the default connection's PDO object
-     * whenever tenancy switches context, mid-test, with no COMMIT/ROLLBACK on
-     * the connection being replaced. If that connection was inside
-     * `RefreshDatabase`'s open transaction, the abandoned PDO object's MySQL
-     * session is never closed by Laravel, so it never triggers the
-     * server-side rollback a clean disconnect would — it sits idle holding
-     * whatever locks its last statement took, for the rest of the process.
-     * Dropping the last PHP reference to each PDO object closes the socket and
-     * lets MySQL roll back and free those locks itself.
+     * Closes every named connection's PDO object, so MySQL rolls back and
+     * frees the locks held by sessions tenancy abandoned mid-test.
      */
     private function disconnectDatabaseConnections(): void
     {

@@ -235,7 +235,29 @@ what stops the next normalization from shipping undocumented.
   database a test provisioned outlives the rollback because `CREATE DATABASE`
   is not transactional. Compose the trait into your base test case, call
   `setUpCleansUpTenancyDatabases()` from `setUp()` and `keepDatabaseSchema()`
-  after `parent::tearDown()`. Ordering is handled inside the trait on purpose:
+  after `parent::tearDown()`:
+
+  ```php
+  protected function setUp(): void
+  {
+      $this->setUpCleansUpTenancyDatabases();
+
+      parent::setUp();
+  }
+
+  protected function tearDown(): void
+  {
+      parent::tearDown();
+
+      $this->keepDatabaseSchema();
+  }
+  ```
+
+  Under Orchestra Testbench the `setUp…()` call is optional, since Testbench
+  calls `setUp{TraitName}` for every composed trait itself, and calling it
+  anyway is a no-op — so one base class copies between a Testbench harness
+  and a plain-Laravel host unchanged. Ordering is handled inside the trait on
+  purpose:
   `beforeApplicationDestroyed()` *appends* on
   `Illuminate\Foundation\Testing\TestCase` and `array_unshift`es on
   Testbench's, so the same registration lands on opposite sides of
