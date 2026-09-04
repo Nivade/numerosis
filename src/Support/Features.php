@@ -10,15 +10,12 @@ use Nvade\Numerosis\Contracts\Feature;
 use Nvade\Numerosis\Contracts\NamedFeature;
 
 /**
- * Answers "is this feature enabled?" from `config('numerosis.features')` —
- * the single place features are switched on and off.
- *
- * Route files, service providers and Blade views all need that answer at
- * points where the feature-boot loop has not run or has already finished,
- * which is why it is asked here rather than tracked as boot state.
- *
- * In tests, {@see self::forceForTesting()} overrides the config, and must be
- * called before the application boots — routes are registered during boot.
+ * Answers "is this feature enabled?" from `config('numerosis.features')`, the
+ * single place features are switched on and off. Route files, providers and
+ * Blade views need that answer where the feature-boot loop has not run or has
+ * already finished, so it is read from config and never tracked as boot state.
+ * {@see self::forceForTesting()} must be called before the application boots,
+ * since routes are registered during boot.
  */
 final class Features
 {

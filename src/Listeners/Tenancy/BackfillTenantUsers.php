@@ -10,12 +10,10 @@ use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
 
 /**
  * Closes the window where a member was attached before the tenant's database
- * existed: `MembershipObserver::created()` skips row creation for an
- * unprovisioned tenant, so this runs the same action for every existing
- * membership once provisioning finishes. Idempotent via
- * `EnsureTenantUserExists`'s own `firstOrCreate`, so it is harmless to run
- * alongside the observer's own synchronous path or stancl's queued
- * `UpdateSyncedResource` sync.
+ * existed, since `MembershipObserver::created()` skips an unprovisioned
+ * tenant. Runs the same action for every existing membership once
+ * provisioning finishes, and `EnsureTenantUserExists`'s own `firstOrCreate`
+ * makes overlapping with any other path harmless.
  */
 class BackfillTenantUsers implements ShouldQueue
 {

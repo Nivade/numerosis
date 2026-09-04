@@ -10,14 +10,11 @@ use Nvade\Numerosis\Enums\Billing\PlanChangeDirection;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * A subscription's price actually changed, observed where every change is
- * visible regardless of who made it: the `customer.subscription.updated`
- * webhook. A host calling `Actions\Billing\Subscriptions\SwapSubscriptionPlan`
- * itself, or an edit made in the Stripe dashboard, both arrive here.
- *
- * `$direction` falls back to `Upgrade` when neither price resolves to a known
- * plan — it is a hint for copy and entitlement heuristics, not an
- * authoritative comparison.
+ * A subscription's price changed, observed at the
+ * `customer.subscription.updated` webhook, where every change is visible
+ * whoever made it. `$direction` falls back to `Upgrade` when neither price
+ * resolves to a known plan, being a hint for copy and entitlement heuristics
+ * and never an authoritative comparison.
  */
 class SubscriptionPlanChanged
 {

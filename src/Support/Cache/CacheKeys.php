@@ -9,14 +9,11 @@ use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * Single source of truth for every cache key used by the app. Every reader and
- * every invalidator must go through here — a key shape (e.g. the tenant suffix
- * on a tenant-context user model) is easy to redrive by hand in a second file
- * and get subtly wrong.
- *
- * Most of these are read through `global_cache()`, which is not tenant-scoped;
- * the ones documented as tenant-scoped go through the `Cache` facade, which
- * inside tenant context is Stancl's tenant-prefixing manager.
+ * Single source of truth for every cache key. Every reader and every
+ * invalidator goes through here, since a key shape rebuilt by hand in a second
+ * file is easy to get subtly wrong. Most are read through `global_cache()`,
+ * which is not tenant-scoped; the ones documented as tenant-scoped go through
+ * the `Cache` facade, which inside tenant context is stancl's prefixing manager.
  */
 final class CacheKeys
 {

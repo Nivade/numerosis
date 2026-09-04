@@ -237,12 +237,10 @@ class WebhookController extends CashierWebhookController
     /**
      * Suspends and restores tenants as their subscription status moves, and
      * reports a price change as `Events\Billing\SubscriptionPlanChanged`.
-     * `past_due` and `unpaid` are Stripe's grace-period states before it
-     * gives up; `incomplete_expired` means the first payment never completed.
-     *
-     * This is the only place a plan change is dispatched from, because Stripe
-     * raises `customer.subscription.updated` for every price change whoever
-     * made it, so one site covers all of them and none fires twice.
+     * `past_due` and `unpaid` are Stripe's grace-period states before it gives
+     * up; `incomplete_expired` means the first payment never completed. The
+     * only place a plan change is dispatched from, since Stripe raises
+     * `customer.subscription.updated` for every price change whoever made it.
      *
      * @param  array{data: array{object: array{id?: string, customer?: string, status?: string, items?: array{data: list<array{price?: array{id?: string}}>}}}}  $payload
      */

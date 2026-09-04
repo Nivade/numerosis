@@ -8,15 +8,10 @@ use RuntimeException;
 use Stripe\HttpClient\ClientInterface;
 
 /**
- * A small, stateful, in-memory Stripe API for tests.
- *
- * Stateful rather than a fixture player because these flows read back what an
- * earlier call in the same test wrote — create a customer, update its
- * address, attach a tax id, list them.
- *
- * Only the operations the package's own tests exercise are implemented. An
- * unhandled request throws, naming the method and path, so reaching a new
- * endpoint fails loudly instead of returning nothing.
+ * A small, stateful, in-memory Stripe API for tests. Stateful because these
+ * flows read back what an earlier call in the same test wrote. Only the
+ * operations the package's own tests exercise are implemented; an unhandled
+ * request throws, naming the method and path.
  */
 class FakeStripeHttpClient implements ClientInterface
 {

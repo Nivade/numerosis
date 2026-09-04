@@ -10,14 +10,11 @@ use RuntimeException;
 use Spatie\OneTimePasswords\Models\Concerns\HasOneTimePasswords;
 
 /**
- * Passwordless email OTP, layered on Fortify. When enabled,
- * `Nvade\Numerosis\Actions\Auth\RedirectIfOneTimePasswordAuthenticatable`
- * intercepts Fortify's `authenticateThrough()` pipeline before
- * `AttemptToAuthenticate`: it identifies the candidate by email, sends a
- * code and redirects to the challenge screen instead of checking a password.
- *
- * Off by default, since Fortify's password login is the default login
- * method once this feature is not enabled.
+ * Passwordless email OTP, layered on Fortify and off by default. When enabled,
+ * {@see \Nvade\Numerosis\Actions\Auth\RedirectIfOneTimePasswordAuthenticatable}
+ * intercepts `authenticateThrough()`'s pipeline before `AttemptToAuthenticate`,
+ * sending a code and redirecting to the challenge screen in place of the
+ * password check.
  */
 class OneTimePasswordFeature implements NamedFeature
 {

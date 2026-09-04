@@ -50,13 +50,11 @@ class BillingServiceProvider extends ServiceProvider
     }
 
     /**
-     * `numerosis.billing.models.*` default to this package's own *abstract*
-     * model classes, so they must be resolved to the host's concrete stubs
-     * before Cashier is told about them: Cashier's `findBillable()` and
-     * `newSubscription()` do `new $model`, so an abstract class here throws
-     * `Cannot instantiate abstract class` far away from this line, from inside
-     * vendor code. A host that has already pointed these keys at a concrete
-     * class of its own passes through `Numerosis::model()` unchanged.
+     * `numerosis.billing.models.*` default to this package's own abstract model
+     * classes, so they must resolve to a concrete one before Cashier is told
+     * about them: `findBillable()` and `newSubscription()` do `new $model`, and
+     * an abstract class there throws `Cannot instantiate abstract class` from
+     * inside vendor code, far from this line.
      *
      * @return class-string<Model>
      */
