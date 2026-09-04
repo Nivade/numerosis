@@ -72,6 +72,17 @@ numerosis-specific auth API to learn on top of it:
 | URLs | `config('fortify.paths.*')` |
 | routes entirely | `Fortify::ignoreRoutes()` (core already calls this — expose it through `Numerosis::routes(withAuth: false)`) |
 
+`fortify.features` is defaulted by `HostConfig::fortifyFeatures()`, and only
+while the key still holds Fortify's own shipped list — the signal that you have
+not chosen. Two entries differ from that list: two-factor authentication and
+passkeys are dropped, since neither has a view under `numerosis::auth.` nor the
+columns its controllers write, so leaving them on registers screens that fail
+only once somebody reaches them; and password reset follows
+`PasswordResetFeature` so the two configs cannot disagree about whether it
+exists. Publish `config/fortify.php` and edit the list and you own it outright
+from then on, including turning 2FA back on — adding the missing views and
+columns with it.
+
 `numerosis.features` and `fortify.features` stay separate on purpose:
 numerosis's gates tenancy/billing surfaces (invitations, the registration
 wizard, OTP login), Fortify's gates auth screens (registration, password

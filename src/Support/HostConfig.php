@@ -23,17 +23,10 @@ use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
 
 /**
  * Fills in the config this package needs, so an app only has to supply
- * ordinary Laravel database credentials to get a working install.
- *
- * Nothing here overrides a deliberate choice. Each key is only written when
- * it is unset or still holds the stock value shipped by Laravel or
- * stancl/tenancy — several of those never resolve to null, so "untouched"
- * has to be judged against the stock value rather than against null.
- * Anything you set yourself is left alone.
- *
- * Every key actually written is recorded and reported by `numerosis:install`,
- * so you can see what was configured for you without diffing defaults by
- * hand. Running twice changes nothing the second time.
+ * ordinary Laravel database credentials to get a working install. A key is
+ * written only while unset or still holding the stock value Laravel or
+ * stancl/tenancy shipped, several of which never resolve to null. Every write
+ * is recorded and reported by `numerosis:install`, and running twice is inert.
  */
 final class HostConfig
 {
@@ -102,10 +95,8 @@ final class HostConfig
             }
         }
 
-        // This package's own keys, in no stancl config stub.
-        // No "stock value" to compare against here (unlike tenant_model/
-        // domain_model above, which start out pointed at stancl's own
-        // classes) — unset is the only signal.
+        // These two are in no stancl config stub, so there is no stock value
+        // to compare against and unset is the only signal.
         $ownKeys = [
             'tenancy.central_user_model' => Numerosis::model(CentralUser::class),
             'tenancy.tenant_user_model' => Numerosis::model(TenantUser::class),
@@ -143,12 +134,9 @@ final class HostConfig
     }
 
     /**
-     * Appends the three bootstrappers this package relies on:
-     * `AuthGuardBootstrapper` switches the default guard to match the
-     * current context, `SpatiePermissionsBootstrapper` keeps role and
-     * permission lookups pointed at the right database, and
-     * `PasswordBrokerBootstrapper` points Fortify's password broker at the
-     * tenant one. Your own bootstrappers are kept.
+     * Appends the three bootstrappers this package relies on, for the default
+     * guard, spatie's permission lookups and Fortify's password broker. A
+     * host's own bootstrappers are kept.
      */
     private static function tenancyBootstrappers(): void
     {
@@ -441,14 +429,10 @@ final class HostConfig
     }
 
     /**
-     * Fortify's password-reset routes load inside the tenant group too
-     * (`Support\Numerosis::loadFortifyRoutes()`), and `Password::broker()`
-     * resolves a model through `auth.passwords.*`, not `auth.guards.*` — the
-     * central broker {@see self::authPasswordBroker()} defines points at the
-     * `users` provider (`CentralUser`), which would resolve the wrong model
-     * for a tenant subdomain's reset request. A dedicated `tenant` broker
-     * against the `tenant` provider is what `fortify.passwords` is swapped
-     * to for that group.
+     * Defines the `tenant` password broker that `PasswordBrokerBootstrapper`
+     * swaps `fortify.passwords` to. A broker resolves its model through
+     * `auth.passwords.*`, so a tenant reset left on
+     * {@see self::authPasswordBroker()}'s central broker finds a `CentralUser`.
      */
     private static function tenantPasswordBroker(): void
     {
@@ -477,22 +461,10 @@ final class HostConfig
     }
 
     /**
-     * The auth screens Fortify should register, while `fortify.features`
-     * still holds Fortify's own shipped list — i.e. while the host has not
-     * chosen. Two differences from that shipped list:
-     *
-     * - two-factor authentication and passkeys are dropped. Neither has a
-     *   view under `numerosis::auth.` and neither has the columns their
-     *   controllers write, so leaving them on registers screens that fail
-     *   only once somebody reaches them.
-     * - password reset follows `PasswordResetFeature`, this package's own
-     *   toggle, so the two configs cannot disagree about whether the
-     *   feature exists.
-     *
-     * A host that publishes `config/fortify.php` and edits the list owns it
-     * outright from then on, including turning 2FA back on, which is what
-     * `docs/extending.md` promises. Hence the stock-list guard below: setting
-     * this key unconditionally would silently overwrite that host's choice.
+     * The auth screens Fortify registers, dropping two-factor and passkeys,
+     * which have neither views nor columns here. Written only while
+     * `fortify.features` still holds Fortify's own shipped list, since a host
+     * that edited it owns the key outright from then on.
      */
     private static function fortifyFeatures(): void
     {
@@ -510,10 +482,9 @@ final class HostConfig
     }
 
     /**
-     * Fortify's own shipped `features` list, read from the package rather
-     * than restated here — restating it would go stale the first time
-     * Fortify added a feature, and "the host has not chosen" would silently
-     * become "the host has chosen" for every install.
+     * Fortify's own shipped `features` list, read from the package. A restated
+     * copy would go stale the first time Fortify adds a feature, turning "the
+     * host has not chosen" into "the host has chosen" on every install.
      *
      * @return list<mixed>
      */
@@ -534,14 +505,11 @@ final class HostConfig
     }
 
     /**
-     * Backfills `config/numerosis.php` defaults at every depth. Laravel
-     * merges published config only one level deep, so overriding a single
-     * nested key such as `billing.trial_days` would otherwise drop every
-     * sibling under `billing`.
-     *
-     * Only keyed arrays are filled. Lists such as `features` are left
-     * exactly as you set them, including empty, since a list's meaning is
-     * its contents and order rather than which keys are present.
+     * Backfills `config/numerosis.php` defaults at every depth, because
+     * Laravel merges published config one level deep only: overriding
+     * `billing.trial_days` alone would drop every sibling under `billing`.
+     * Only keyed arrays are filled, so a list such as `features` is left
+     * exactly as the host set it, including empty.
      */
     private static function numerosisConfig(): void
     {
