@@ -11,11 +11,9 @@ use Illuminate\Support\Collection;
 use Override;
 
 /**
- * Lets a central domain through untouched instead of trying to identify a
- * tenant from it.
- *
- * On `stancl/tenancy` v3 the parent declares no constructor: it is a
- * standalone dispatcher that resolves
+ * Lets a central domain through untouched, identifying no tenant from it. On
+ * `stancl/tenancy` v3 the parent declares no constructor: it is a standalone
+ * dispatcher that resolves
  * `InitializeTenancyByDomain`/`InitializeTenancyBySubdomain` from the
  * container inside `handle()`.
  */
