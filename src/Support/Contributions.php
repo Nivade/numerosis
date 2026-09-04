@@ -24,12 +24,10 @@ use Illuminate\Database\Seeder;
  * entry point (`docs/extending.md`). Moving the implementation is the point,
  * renaming the seam is not.
  *
- * **Readers return contributions only, never the package's own.** The one
- * place that distinction bites is migration paths:
- * {@see self::tenantMigrationPaths()} answers "what did other packages add",
- * while {@see Numerosis::tenantMigrationPaths()} answers "every path tenancy
- * should migrate", the package's own {@see Numerosis::tenantMigrationPath()}
- * included. `HostConfig` wants the second one.
+ * {@see self::tenantMigrationPaths()} returns only contributed paths.
+ * {@see Numerosis::tenantMigrationPaths()} adds this package's own path on
+ * top of that — use that one when you need every path tenancy should
+ * migrate. `HostConfig` wants the second one.
  */
 final class Contributions
 {

@@ -338,10 +338,6 @@ class NumerosisServiceProvider extends PackageServiceProvider
      * would take that first branch and silently beat a host's own
      * `App\Policies\Central\TenantPolicy`; registering the base leaves the
      * guesser ahead of us and still catches every subclass.
-     *
-     * `CentralUser` is deliberately absent — see `.ai/rules/auth-guards.md`
-     * for why giving it a policy is a behaviour change that needs deciding
-     * rather than a gap to close here.
      */
     protected function registerPolicies(): void
     {
@@ -474,9 +470,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // central route that uses it must keep Laravel's own behaviour.
         Route::aliasMiddleware('tenancy.auth', Authenticate::class);
 
-        // Kept in step with the same alias in `Support\Numerosis::middleware()`.
-        // Those two registries are the pair `.ai/rules/middleware-registration.md`
-        // records as drifting silently.
+        // Must be kept in step by hand with the same alias in
+        // `Support\Numerosis::middleware()` — no test enforces it.
         Route::aliasMiddleware('password.confirm.if-set', RequirePasswordIfSet::class);
 
         // The suspension gate, applied per-group rather than to the `tenant`

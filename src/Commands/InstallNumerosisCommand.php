@@ -423,9 +423,8 @@ class InstallNumerosisCommand extends Command
             }
         }
 
-        // Only meaningful under IdentificationMode::Subdomain — CustomDomain
-        // mode uses a fixed '{tenant}' pattern internally, and Path mode uses
-        // no domain pattern at all. See .ai/rules/identification-modes.md.
+        // Only meaningful under IdentificationMode::Subdomain: CustomDomain
+        // uses a fixed '{tenant}' pattern internally, Path uses none at all.
         if (IdentificationMode::current() !== IdentificationMode::Subdomain) {
             return;
         }

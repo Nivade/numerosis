@@ -120,16 +120,16 @@ has to redo it.
 
 | # | Site | Remedy | Verdict | What it settled |
 | --- | --- | --- | --- | --- |
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
-| 4 | | | | |
-| 5 | | | | |
-| 6 | | | | |
-| 7 | | | | |
-| 8 | | | | |
-| 9 | | | | |
-| 10 | | | | |
+| 1 | `Support/ModelResolver.php:15-20` | delete-changelog | Approved | Pure why-it-was-split narrative deletes outright; git has it. |
+| 2 | `Support/Cache/GlobalCache.php:19-20` | delete-crossref | Approved | Rule file already carried the fact verbatim; citation drops with no addition needed. |
+| 3 | `NumerosisServiceProvider.php:342-344` | delete-changelog (not restyle) | Rejected initial restyle, approved full delete on retry | "Why X is absent" is decision-rationale, not an active invariant the code enforces — treat it as changelog even when phrased as a docblock. Belongs in the commit message, not a restyled-and-kept comment. Method name (`registerPolicies`) is self-explanatory; only add a code comment back if something later needs to *guard against* `CentralUser` gaining a policy, not to explain why it doesn't have one. |
+| 4 | `NumerosisServiceProvider.php:477-479` | delete-crossref | Approved, reworded | "Kept in step with" overstated the guarantee — no test enforces the two-registries sync `.ai/rules/middleware-registration.md` warns about. Reworded to state the sync is manual and unenforced, not just "kept in step", so the DX gap stays visible in the code, not just in the rule file. |
+| 5 | `Commands/InstallNumerosisCommand.php:426-428` | delete-crossref + rule addition | Approved | Rule file was missing that `tenant_pattern` config is Subdomain-only; add it there first, then trim source. |
+| 6 | `Providers/TenancyServiceProvider.php:77-82` | delete-changelog | Approved full delete | Const-to-method history is git's; the "why a method not a constant" fact doesn't need restating either — the method's own shape (`public static function`, returns dynamically) already answers it. |
+| 7 | `Support/Numerosis.php:71-77` | restyle → delete (downgraded) | Approved, cut to one sentence | **Key calibration finding**: design-rationale prose ("why WeakMap not a plain bool") is not caller-facing and should be deleted, not restyled-and-kept, even though remedy 4 would technically allow keeping it as "a fact the code cannot carry". Raises the bar for remedy 4 above what the plan text implies: keep only facts that actively bite a caller (external system behavior, races, footguns), not implementation-choice justification. Push design rationale to commit messages / rule files instead. |
+| 8 | `Support/Contributions.php:27-32` | restyle | Approved, rewritten (not just restyled) | Distinguishes from #7: this is a caller-facing footgun (two similarly-named methods answering different questions), not design rationale, so it survives under the site-7 bar — but the original prose was confusing independent of cadence, so restyling alone wasn't enough; it needed an actual rewrite for clarity. |
+| 9 | `Livewire/Tenant/Registration.php:168-182,205-209` | extract | Approved | Duplicate `stepNames()->search()` narration-comment sites collapse into one private `currentStepIndex()`; all three comments were pure narration and drop with no fact lost. |
+| 10 | `Livewire/Tenant/Registration.php:178-181,197-202` | extract | Approved, comments partially kept | Extracted duplicate `ucwords(str_replace('-', ' ', ...))` into `humanize()`. Unlike #7/#8, the two comments here (1-based step numbering, slug mirrors Livewire Wizard's own naming) are facts about an external convention/library, not design rationale — kept as-is per the site-7 bar rather than deleted. |
 
 After round 10, re-read the log end to end and treat the accumulated verdicts
 as binding for every phase below. Where a verdict contradicts this plan, the

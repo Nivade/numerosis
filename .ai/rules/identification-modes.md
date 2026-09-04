@@ -63,6 +63,15 @@ way to infer it from the arguments. That is why the check reads
 `$field === 'id' && IdentificationMode::current() === CustomDomain` rather
 than something that looks at the value's shape.
 
+## `numerosis.domains.tenant_pattern` only means anything under Subdomain mode
+
+`config('numerosis.domains.tenant_pattern')` is read only when
+`IdentificationMode::current() === IdentificationMode::Subdomain`.
+Custom-domain mode uses a fixed `{tenant}` pattern internally (see the
+`->tenantDomain('{tenant}')` section below), and path mode uses no domain
+pattern at all — `InstallNumerosisCommand::verifyDomainConfig()` skips the
+pattern check for both.
+
 ## `->tenantDomain('{tenant}')` is load-bearing punctuation
 
 `Filament\Panel::register()` does:

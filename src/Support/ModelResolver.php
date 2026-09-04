@@ -12,13 +12,6 @@ use Illuminate\Support\Facades\Config;
  * Which concrete class the package uses for each of its models, and the
  * model↔factory name mapping that follows from it.
  *
- * Split out of {@see Numerosis} on 2026-09-01. That class had grown to 33
- * static methods spanning five unrelated audiences — application bootstrap,
- * contribution seams, model resolution, assets, and test-only resets — so
- * "what is this class for?" had no answer. Model resolution is the piece with
- * the most self-contained state (one memoization cache) and the widest reach
- * (every package query goes through it), which made it the natural first cut.
- *
  * `Numerosis::model()`, `::factoryNameFor()`, `::modelNameFor()` and
  * `::resetModelCache()` still exist and delegate here. They are the idiom this
  * codebase and every host's `config/numerosis.php` already use; moving the

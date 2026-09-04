@@ -69,12 +69,7 @@ class Numerosis
 
     /**
      * Tracks which `Handler` instances {@see self::exceptions()} has already
-     * registered against, so calling it twice for the *same* singleton
-     * (host's own `withExceptions()` closure plus `NumerosisServiceProvider::
-     * registerExceptionHandling()`'s fallback) is a no-op the second time.
-     * Keyed by instance rather than a plain bool so a fresh `Handler` built
-     * for a test, or for a new application under Octane, is never blocked by
-     * a previous one's registration.
+     * registered against.
      *
      * @var WeakMap<Handler, true>|null
      */
