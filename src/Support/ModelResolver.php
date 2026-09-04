@@ -73,8 +73,8 @@ final class ModelResolver
      * Replaces Laravel's *global* factory-name resolver, since every factory
      * ships from this package even when the model is a subclass in your app
      * namespace, so any class under a `\Models\` namespace resolves to
-     * `Nvade\Numerosis\Database\Factories\<suffix>Factory`. Annotate a model of
-     * your own with `#[UseFactory]` to short-circuit that.
+     * `Nvade\Numerosis\Database\Factories\<suffix>Factory`. `#[UseFactory]` on
+     * a model of your own short-circuits that.
      *
      * @param  class-string<Model>  $modelName
      * @return class-string<Factory<Model>>

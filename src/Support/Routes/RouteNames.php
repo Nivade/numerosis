@@ -8,12 +8,10 @@ use Illuminate\Support\Facades\Config;
 
 /**
  * The route names the package links to from outside the route files that
- * declare them. Rename any of them through `numerosis.routes.names.*` and
- * every caller follows.
- *
- * Deliberately narrow: only routes whose feature can be switched off, or
- * that a host is likely to want to own, are indirected this way. Every other
- * route is referenced by its literal name.
+ * declare them; rename one through `numerosis.routes.names.*` and every caller
+ * follows. Only routes whose feature can be switched off, or that a host is
+ * likely to want to own, are indirected this way. Every other route is
+ * referenced by its literal name.
  */
 final class RouteNames
 {

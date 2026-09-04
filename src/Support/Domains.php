@@ -52,13 +52,11 @@ final class Domains
     }
 
     /**
-     * The domain tenant subdomains hang off.
-     *
-     * Three or more labels are read as an apex plus a central subdomain
-     * (`app.example.com` gives `example.com`); two labels are already the
-     * apex. Counting labels cannot recognise a multi-part suffix, so
-     * `example.co.uk` would wrongly reduce to `co.uk` — set
-     * `NUMEROSIS_APEX_DOMAIN` explicitly on such a domain.
+     * The domain tenant subdomains hang off. Three or more labels are read as
+     * an apex plus a central subdomain (`app.example.com` gives
+     * `example.com`); two labels are already the apex. Counting labels cannot
+     * recognise a multi-part suffix, so `example.co.uk` wrongly reduces to
+     * `co.uk`; set `NUMEROSIS_APEX_DOMAIN` explicitly there.
      */
     public static function apexFromAppUrl(): string
     {

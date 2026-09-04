@@ -15,9 +15,9 @@ use Nvade\Numerosis\Models\Central\Tenant;
  * relation (never `Membership::create()` or a raw insert) is what makes that
  * fire.
  *
- * `$invitedBy` is the inviter's `global_id` — the pivot's `invited_by`
- * column is a foreign key onto `users.global_id`, not the numeric primary
- * key `Invitation::invited_by_user_id` carries.
+ * `$invitedBy` is the inviter's `global_id`: the pivot's `invited_by` column
+ * is a foreign key onto `users.global_id`, never the numeric primary key
+ * `Invitation::invited_by_user_id` carries.
  *
  * @method static void run(Tenant $tenant, CentralUser $user, MembershipRole $role, ?string $invitedBy)
  */

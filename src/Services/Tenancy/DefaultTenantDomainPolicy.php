@@ -14,12 +14,10 @@ use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * Checks a requested identifier's format, reserved words, and whether a live
- * tenant already holds it — plus, under IdentificationMode::CustomDomain, a
- * second check for the actual custom domain.
- *
- * Does not consider domains merely reserved during checkout — that rule has
- * to let the same user retry their own reservation, and lives with the
- * reservation itself.
+ * tenant already holds it, plus a second check for the custom domain under
+ * `IdentificationMode::CustomDomain`. Domains merely reserved during checkout
+ * are not considered here: that rule must let the same user retry their own
+ * reservation, so it lives with the reservation.
  */
 class DefaultTenantDomainPolicy implements TenantDomainPolicy
 {
@@ -69,11 +67,10 @@ class DefaultTenantDomainPolicy implements TenantDomainPolicy
 
     /**
      * `assertAvailable()`'s $domain is `tenants.id` under every mode except
-     * Subdomain, where it is instead the label a `domains` row is keyed by
-     * (`domains.id`, concatenated with the apex to form `domains.domain`) —
-     * see CreateTenantDomain. Checking against the wrong table for the
-     * current mode would let a taken identifier through, or reject a free
-     * one.
+     * Subdomain, where it is the label a `domains` row is keyed by
+     * (`domains.id`, concatenated with the apex to form `domains.domain`).
+     * Checking the wrong table for the current mode lets a taken identifier
+     * through, or rejects a free one.
      */
     private function alreadyTaken(string $domain): bool
     {
