@@ -23,9 +23,10 @@ use Stancl\Tenancy\Resolvers\PathTenantResolver;
 class PreservingPathTenantResolver extends PathTenantResolver
 {
     /**
-     * `stancl/tenancy` calls `$route->forgetParameter()` inside
-     * `resolveWithoutCache()` as well as in `resolved()`, so the body has to
-     * be replaced rather than delegated to.
+     * `stancl/tenancy` v3 calls `$route->forgetParameter()` inside
+     * `resolveWithoutCache()` as well as in `resolved()`, so this override
+     * replaces the body; delegating to the parent would forget the parameter
+     * again.
      */
     #[Override]
     public function resolveWithoutCache(mixed ...$args): Tenant

@@ -38,8 +38,7 @@ class RegistrationWizardFeature implements NamedFeature
      * resolving by its full FQCN instead. Livewire supports that with no
      * `addComponent()` call at all. Deriving every alias as
      * `Str::kebab(class_basename($step))` in a naive loop would reintroduce
-     * that collision; this map is the fix, not an oversight to "complete"
-     * later.
+     * that collision, which is why this map is written out by hand.
      *
      * A host-supplied step (added to `numerosis.tenancy.registration.steps`
      * but not in this map) is not auto-registered here — the package only

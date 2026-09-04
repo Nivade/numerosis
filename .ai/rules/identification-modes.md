@@ -91,7 +91,7 @@ customer whose domain has more than one label — i.e. all of them. Hence
 custom-domain mode, and `null` for path mode (which makes Filament fall back
 to its own `{tenant}`-prefixed path routing).
 
-## Path mode: stancl forgets the route parameter Filament still needs
+## Path mode: stancl forgets the route parameter later middleware still reads
 
 `Stancl\Tenancy\Resolvers\PathTenantResolver` calls
 `$route->forgetParameter('tenant')` in **both** `resolveWithoutCache()` and

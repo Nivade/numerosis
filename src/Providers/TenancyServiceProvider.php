@@ -227,9 +227,9 @@ class TenancyServiceProvider extends ServiceProvider
      * domain change would appear not to take effect. Bound as a singleton so
      * the resolver and its invalidators share one store.
      *
-     * `CachedTenantResolver::__construct()` takes `Contracts\Cache\Factory`,
-     * which is why this package builds its own `new CacheManager($app)`
-     * rather than resolving `globalCache` itself.
+     * `CachedTenantResolver::__construct()` takes `Contracts\Cache\Factory`
+     * on `stancl/tenancy` v3, which never resolves `globalCache` itself, so
+     * this package builds its own `new CacheManager($app)`.
      */
     protected function registerCachedDomainResolver(): void
     {

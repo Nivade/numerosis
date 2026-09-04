@@ -10,8 +10,8 @@ use Illuminate\Http\Request;
 /**
  * Stands in for `Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains`
  * under `IdentificationMode::Path`, where tenant routes deliberately live on
- * the central domain (path-prefixed) instead of a distinct one. The
- * central-domain block would otherwise 404 every tenant-panel request.
+ * the central domain under a path prefix. The central-domain block would
+ * otherwise 404 every tenant-panel request.
  */
 class NullMiddleware
 {

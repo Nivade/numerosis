@@ -469,8 +469,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // central route that uses it must keep Laravel's own behaviour.
         Route::aliasMiddleware('tenancy.auth', Authenticate::class);
 
-        // Must be kept in step by hand with the same alias in
-        // `Support\Numerosis::middleware()` — no test enforces it.
+        // Kept in step by hand with the same alias in
+        // `Support\Numerosis::middleware()`; no test enforces it.
         Route::aliasMiddleware('password.confirm.if-set', RequirePasswordIfSet::class);
 
         // The suspension gate, applied per-group rather than to the `tenant`
@@ -501,8 +501,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
      * before running a host's own callback: plain Laravel skeleton
      * behaviour, unconditional whether or not a host passes one. Until
      * Fortify registers `login`, the stock default throws
-     * `RouteNotFoundException` on every guest request to a protected route
-     * instead of redirecting one. Set directly here (not through {@see Numerosis::middleware()}'s
+     * `RouteNotFoundException` on every guest request to a protected route.
+     * Set directly here (not through {@see Numerosis::middleware()}'s
      * `$middleware->redirectGuestsTo()`) because that object only reaches
      * `Authenticate` when a host's `bootstrap/app.php` passes it to
      * `withMiddleware()`; Testbench, and any host that never calls

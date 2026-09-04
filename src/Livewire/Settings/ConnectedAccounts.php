@@ -12,10 +12,10 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\SocialAccount;
 
 /**
- * Lists the user's connected identities. Unlinking is a plain `<form>`
- * posting the DELETE route from the view, instead of a Livewire method:
- * every public method on a component is client-invokable regardless of
- * prior state, and `throttle:` middleware never covers `/livewire/update`.
+ * Lists the user's connected identities. Unlinking posts the DELETE route
+ * from a plain `<form>` in the view: every public method on a Livewire
+ * component is client-invokable regardless of prior state, and `throttle:`
+ * middleware never covers `/livewire/update`.
  */
 class ConnectedAccounts extends Component
 {

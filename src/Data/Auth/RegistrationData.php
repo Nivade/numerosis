@@ -12,8 +12,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * Crosses Fortify's `array $input` boundary for
- * `Actions\Auth\CreateRegisteredUser::create()`. Validation lives on the
- * action, not on a Form Request or on this class.
+ * `Actions\Auth\CreateRegisteredUser::create()`. That action owns the
+ * validation; this class carries shape only.
  */
 class RegistrationData extends Data
 {

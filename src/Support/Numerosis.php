@@ -571,12 +571,12 @@ class Numerosis
      * which creates one row per {@see \Nvade\Numerosis\Models\Permission::defaultActions()}
      * action for it under guard `web` and grants them all to `admin`.
      *
-     * This exists instead of "register your own seeder" because the failure
-     * mode of getting it wrong is total, not local: any navigation that
-     * evaluates a resource's `viewAny` to decide its own visibility does so
-     * on every page render, and Spatie throws `PermissionDoesNotExist`
-     * instead of returning false, so one missing context 500s every page
-     * carrying that navigation, not just its own screen. A satellite
+     * This exists because a satellite left to seed its own permissions can
+     * miss a context, and one missing context 500s every page carrying a
+     * policy-guarded navigation item. Navigation evaluates that resource's
+     * `viewAny` to decide its own visibility on every page render, and
+     * Spatie throws `PermissionDoesNotExist` where a `false` return would
+     * degrade gracefully. A satellite
      * shipping a policy-guarded resource must contribute its context here,
      * from its own service provider, before the seeder runs.
      * {@see Contributions::addPermissionContext()}.

@@ -16,7 +16,8 @@ use Nvade\Numerosis\Contracts\NamedFeature;
  * on `Nvade\Numerosis\Enums\Auth\SocialProvider`. Google, GitHub, GitLab and
  * Facebook need nothing more; Discord's driver is registered here, since
  * Socialite does not ship one. `socialiteproviders/discord` is a `suggest`,
- * so the class names are referenced as strings rather than `use` imports.
+ * so its class names appear here as strings; a `use` import would fatal on a
+ * host that has not installed it.
  */
 class SocialLoginFeature implements NamedFeature
 {

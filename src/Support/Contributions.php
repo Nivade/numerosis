@@ -26,8 +26,8 @@ use Illuminate\Database\Seeder;
  *
  * {@see self::tenantMigrationPaths()} returns only contributed paths.
  * {@see Numerosis::tenantMigrationPaths()} adds this package's own path on
- * top of that — use that one when you need every path tenancy should
- * migrate. `HostConfig` wants the second one.
+ * top of that. Use the second one when you need every path tenancy should
+ * migrate; `HostConfig` does.
  */
 final class Contributions
 {

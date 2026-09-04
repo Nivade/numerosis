@@ -10,8 +10,8 @@ use RuntimeException;
 use Spatie\OneTimePasswords\Models\Concerns\HasOneTimePasswords;
 
 /**
- * Passwordless email OTP, layered on Fortify instead of replacing it. When
- * enabled, `Nvade\Numerosis\Actions\Auth\RedirectIfOneTimePasswordAuthenticatable`
+ * Passwordless email OTP, layered on Fortify. When enabled,
+ * `Nvade\Numerosis\Actions\Auth\RedirectIfOneTimePasswordAuthenticatable`
  * intercepts Fortify's `authenticateThrough()` pipeline before
  * `AttemptToAuthenticate`: it identifies the candidate by email, sends a
  * code and redirects to the challenge screen instead of checking a password.
@@ -38,11 +38,11 @@ class OneTimePasswordFeature implements NamedFeature
 
     /**
      * The single `trait_exists()` seam for `spatie/laravel-one-time-passwords`,
-     * a `suggest`, not a `require`. Every call site asks this rather than
-     * probing the package itself: the route registration in {@see
-     * \Nvade\Numerosis\Support\Numerosis::routes()}, the pipeline step in
-     * `NumerosisServiceProvider::registerFortify()` and {@see self::bootstrap()}
-     * are the three.
+     * a `composer.json` `suggest`, so it may be absent. Three call sites ask
+     * this and none probe the package directly: the route registration in
+     * {@see \Nvade\Numerosis\Support\Numerosis::routes()}, the pipeline step
+     * in `NumerosisServiceProvider::registerFortify()`, and
+     * {@see self::bootstrap()}.
      *
      * Without it, `User` composes the empty
      * {@see \Nvade\Numerosis\Support\Compat\HasOneTimePasswordsIfInstalled}

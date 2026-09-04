@@ -14,9 +14,10 @@ use Override;
  * Lets a central domain through untouched instead of trying to identify a
  * tenant from it.
  *
- * The parent declares no constructor — it is a standalone dispatcher that
- * resolves `InitializeTenancyByDomain`/`InitializeTenancyBySubdomain` from
- * the container inside `handle()`.
+ * On `stancl/tenancy` v3 the parent declares no constructor: it is a
+ * standalone dispatcher that resolves
+ * `InitializeTenancyByDomain`/`InitializeTenancyBySubdomain` from the
+ * container inside `handle()`.
  */
 class InitializeTenancyByDomainOrSubdomain extends \Stancl\Tenancy\Middleware\InitializeTenancyByDomainOrSubdomain
 {
