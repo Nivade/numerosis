@@ -235,13 +235,13 @@ class Numerosis
      * currently open (a central domain's, or the tenant group's), for the
      * given guard. `Fortify::ignoreRoutes()` in
      * `NumerosisServiceProvider::packageRegistered()` disables Fortify's own
-     * single-group registration (`FortifyServiceProvider::configureRoutes()`),
-     * and this replaces it: once per central domain, once for the tenant
-     * group.
+     * single-group registration (`FortifyServiceProvider::configureRoutes()`).
+     * This replaces it, running once per central domain and once for the
+     * tenant group.
      *
      * `routes/routes.php` bakes `'guest:'.config('fortify.guard')` into route
-     * middleware **at registration time**, so the guard has to be correct for
-     * the group being built. Everything downstream (Fortify's `StatefulGuard`
+     * middleware at registration time, so the guard has to be correct for the
+     * group being built. Everything downstream (Fortify's `StatefulGuard`
      * binding, `AuthGuardBootstrapper`) reads the guard at request time off
      * `Auth::getDefaultDriver()`. The `finally` restores `fortify.guard`
      * because a leftover value silently changes the process-wide default until
@@ -251,9 +251,9 @@ class Numerosis
      * The outer group already applied `web`/`tenant`, and Fortify's default
      * `['web']` would double it inside the tenant group.
      *
-     * **`fortify.passwords` is deliberately not swapped here.** Nothing bakes
-     * the broker into a route, and Fortify's three password controllers read
-     * the key when the request arrives, after the `finally` restores it.
+     * `fortify.passwords` is deliberately left alone. Nothing bakes the broker
+     * into a route, and Fortify's three password controllers read the key when
+     * the request arrives, after the `finally` restores it.
      * {@see \Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper}
      * applies the tenant broker at request time.
      */
@@ -280,7 +280,7 @@ class Numerosis
 
     /**
      * Registers the `OneTimePasswordFeature` challenge routes inside whichever
-     * group is currently open, matching {@see self::loadFortifyRoutes()}: a
+     * group is currently open, matching {@see self::loadFortifyRoutes()}. A
      * route name baked with the wrong `guest:` guard at registration time
      * stays wrong for the rest of the process. Only registered when
      * {@see OneTimePasswordFeature::available()}, which also requires
@@ -290,7 +290,7 @@ class Numerosis
      * `config('fortify.paths')` overrides them like every neighbouring auth
      * URL.
      *
-     * The verify leg carries its **own** limiter. This request has no `email`
+     * The verify leg carries its own limiter. This request has no `email`
      * field (the address lives in the session), so `fortify.limiters.login`'s
      * `tenant|email|ip` key would collapse to `tenant||ip` and put every OTP
      * verification from one IP in a single bucket. Fortify draws the same

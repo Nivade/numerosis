@@ -28,7 +28,7 @@ class CreateTenant
     {
         $tenantClass = Numerosis::model(Tenant::class);
 
-        // Re-entrant: a run that died halfway is finished by the next attempt.
+        // A run that died halfway is finished by the next attempt.
         $tenant = Cache::lock("tenant-provision:{$registration->domain}", 10)->block(5, function () use ($registration, $tenantClass) {
             /** @var Tenant|null $existing */
             $existing = $tenantClass::find($registration->domain);
