@@ -65,19 +65,15 @@ class Permission extends \Spatie\Permission\Models\Permission
      * Actions that only make sense for one context, keyed by context.
      *
      * Empty in core: every context it ships wants exactly
-     * {@see self::defaultActions()}. The seam is kept for a context whose
-     * verbs are not CRUD — the module system's `purchase`/`cancel modules`
-     * were the original case, deleted 2026-09-03 — and is read through
-     * {@see self::actionsFor()}.
+     * {@see self::defaultActions()}. The seam exists for a context whose verbs
+     * are not CRUD, and is read through {@see self::actionsFor()}.
      *
      * **Overriding it reaches the tenant guard only.** Only
      * {@see \Nvade\Numerosis\Database\Seeders\Tenant\PermissionAndRoleSeeder}
      * calls `actionsFor()`; the central
      * {@see \Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder} calls
      * {@see self::defaultActions()} directly, so a `web`-guard context gets
-     * CRUD and nothing else however this is overridden. The asymmetry
-     * predates the deletion: `purchase modules` existed on the tenant guard
-     * and was never seeded on the central one.
+     * CRUD and nothing else however this is overridden.
      *
      * **Overriding it also needs a seeder of your own.** This model is not
      * in `numerosis.models` — there is no `Numerosis::model()` indirection to

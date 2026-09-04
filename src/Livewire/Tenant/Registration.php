@@ -74,8 +74,7 @@ class Registration extends WizardComponent
 
     /**
      * Mirrors `numerosis.tenancy.provisioning.steps`'s nesting deliberately —
-     * see that key's docblock in `config/numerosis.php`. Default is the
-     * same four steps this method used to hardcode.
+     * see that key's docblock in `config/numerosis.php`.
      *
      * @return list<class-string<Component>>
      */

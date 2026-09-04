@@ -490,9 +490,9 @@ final class HostConfig
      *   feature exists.
      *
      * A host that publishes `config/fortify.php` and edits the list owns it
-     * outright from then on, including turning 2FA back on — which is what
-     * `docs/extending.md` promises and what setting this key unconditionally
-     * in `registerFortify()` used to quietly break.
+     * outright from then on, including turning 2FA back on, which is what
+     * `docs/extending.md` promises. Hence the stock-list guard below: setting
+     * this key unconditionally would silently overwrite that host's choice.
      */
     private static function fortifyFeatures(): void
     {

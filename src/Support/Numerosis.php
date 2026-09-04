@@ -37,17 +37,14 @@ use WeakMap;
  * The package's entry point for a host's `bootstrap/app.php`, and the front
  * door to every seam a host or satellite uses.
  *
- * Three audiences were split out of this class on 2026-09-01 —
- * {@see ModelResolver} (model and factory resolution), {@see Contributions}
- * (what other packages have added) and {@see Assets} (front-end publishing).
- * What is left is application bootstrap: routing, middleware, broadcasting,
+ * Implements application bootstrap itself: routing, middleware, broadcasting,
  * exception handling, and the three `registerXUsing()` overrides that replace
- * one of those wholesale.
- *
- * **Every moved method still exists here and delegates.** That is the point of
- * the split: `Numerosis::` is the documented idiom in `docs/extending.md`,
- * every host's `config/numerosis.php`, and ~200 call sites. The implementation
- * moved; the seam did not.
+ * one of those wholesale. Model and factory resolution lives on
+ * {@see ModelResolver}, contributed routes/columns/seeders on
+ * {@see Contributions} and front-end publishing on {@see Assets}; the methods
+ * here delegate to them, and `Numerosis::` stays the documented idiom in
+ * `docs/extending.md`, every host's `config/numerosis.php`, and ~200 call
+ * sites.
  */
 class Numerosis
 {

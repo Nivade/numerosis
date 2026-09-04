@@ -15,15 +15,9 @@ use Nvade\Numerosis\NumerosisServiceProvider;
  * The package's non-panel CSS and JS: where they are published from, and the
  * tags that load them.
  *
- * Split out of {@see Numerosis} on 2026-09-01, the third cut after
- * {@see ModelResolver} and {@see Contributions}. Small, but its own audience —
- * a host publishing and rebuilding front-end assets — and the only part of
- * that class that reached for `Vite` and the filesystem, neither of which the
- * bootstrap surface around it touches.
- *
- * `Numerosis::assetSourcePaths()` / `::assetTags()` still exist and delegate
- * here; `resources/views/partials/styles.blade.php` and
- * `numerosis:install` call them under those names.
+ * `Numerosis::assetSourcePaths()` / `::assetTags()` delegate here, and
+ * `resources/views/partials/styles.blade.php` and `numerosis:install` call
+ * them under those names.
  */
 final class Assets
 {

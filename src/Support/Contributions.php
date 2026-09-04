@@ -11,18 +11,12 @@ use Illuminate\Database\Seeder;
  * What a satellite package or a host has contributed to this one: routes,
  * tenant columns, tenant migration paths, seeders and permission contexts.
  *
- * Split out of {@see Numerosis} on 2026-09-01, the second cut after
- * {@see ModelResolver} and for the same reason — that class spanned five
- * unrelated audiences. This is the *contribution seam* audience, and it is the
- * one with a shared shape: every entry here is `add*()` writes, a reader
- * returns, and nothing consults config. `Features::register()`/`::registered()`
- * is the same seam for feature classes and deliberately stays on
- * {@see Features}, next to the config-backed list it merges with.
+ * Every entry here is an `add*()` write and a reader; nothing consults config.
+ * `Features::register()`/`::registered()` is the same seam for feature classes
+ * and stays on {@see Features}, next to the config-backed list it merges with.
  *
- * Every `Numerosis::add*()` and its reader still exists and delegates here;
- * satellites and hosts keep calling `Numerosis::`, which is the documented
- * entry point (`docs/extending.md`). Moving the implementation is the point,
- * renaming the seam is not.
+ * Call these through `Numerosis::add*()` and its readers, which delegate here.
+ * That is the entry point `docs/extending.md` documents.
  *
  * {@see self::tenantMigrationPaths()} returns only contributed paths.
  * {@see Numerosis::tenantMigrationPaths()} adds this package's own path on

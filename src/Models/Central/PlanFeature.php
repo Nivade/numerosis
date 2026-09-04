@@ -25,9 +25,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * **Not** a `Nvade\Numerosis\Contracts\Feature`, and nothing to do with
  * `config('numerosis.features')`. Those are code-level capability switches
  * that decide which routes and services register; this is plan copy in the
- * database. It was called `Feature` until 2026-09-01, which meant the word
- * named three unrelated things at once and the admin panel's "Features"
- * screen looked like it edited the feature flags.
+ * database.
  *
  * @property int $id
  * @property string $slug
