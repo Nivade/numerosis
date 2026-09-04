@@ -3,6 +3,70 @@
 Bring every comment and docblock in `src/` up to `.ai/rules/general.md`. Read
 that rule first. It is the standard; this plan is only the execution order.
 
+## Session handoff — 2026-09-04, after batch 6 of 4a
+
+Read `.ai/rules/general.md`'s "How long a comment may be" first. It is the
+standard this phase enforces and it changed mid-sweep.
+
+### Where it stands
+
+| Metric | At cap | Now |
+| --- | --- | --- |
+| Over-budget docblocks | 112 blocks / 1,089 lines | 77 blocks / 707 lines, 69 files |
+| `//` runs over 3 lines | 23 / 114 lines | 23 / 114 lines |
+| Cadence hits (grep `A`) | 379 | 309 |
+
+Commits, oldest first: `db150ba` `832cac6` `1ca9f1d` `4b1e764` (batch 5, no
+hash recorded) `b476951` `47c794c`. Seven files are fully in budget:
+`Support/{Numerosis,HostConfig,Contributions}`,
+`Testing/CleansUpTenancyDatabases`, `Commands/InstallNumerosisCommand`,
+`Livewire/Tenant/Registration`, `NumerosisServiceProvider`.
+
+### Next, in order
+
+1. `src/Support/ModelResolver.php` — 3 blocks, 30 lines
+2. `src/Providers/TenancyServiceProvider.php` — 2 blocks, 28 lines
+3. `src/Actions/Auth/RedirectIfOneTimePasswordAuthenticatable.php` — 24 lines
+4. `src/Http/Middleware/InitializeLivewireTenancyByPath.php` — 23 lines
+5. `src/Actions/Auth/LogoutUser.php` — 2 blocks, 22 lines
+6. `src/Listeners/Auth/EndOtherGuardSession.php` — 20 lines
+
+Then the `//` runs, worst first: `Models/User.php:36` (15 lines),
+`Services/Billing/Resolvers/DefaultUnpaidTenantQuota.php:21` and
+`Livewire/Billing/Checkout.php:175` (7 each). After that, the tail: ~60 files
+holding one block of 6–12 lines each.
+
+### Four things that already went wrong here
+
+- **`\s` in `awk` matches nothing.** The default `awk` is mawk. A check written
+  with `\s` reported 0 over-budget blocks against 114 real ones, silently. Use
+  POSIX classes, and distrust a zero.
+- **A pipe ending in `head` is a sample, not a count.** The `//` run figure was
+  recorded as 10 that way; it is 23.
+- **The inline cap is 3, and a 4-line run reads as fine.** Seven were left at
+  four lines in one batch after being "fixed". Re-run the check after editing.
+- **`composer test` is `pest --parallel`,** 64s against 124s for a bare
+  `vendor/bin/pest`. Use it for a full pass.
+
+### Working tree
+
+`src/Http/Middleware/InitializeTenancyByDomainOrSubdomain.php` and
+`src/Services/Tenancy/Bootstrappers/AuthGuardBootstrapper.php` are modified and
+**belong to another session**. Leave them; stage by explicit path only. The
+`AuthGuardBootstrapper` edit is a docblock rewrite that splices
+`@see \Illuminate\Contracts\Auth\Authenticatable` into the middle of a
+sentence — worth resolving with whoever owns it before that file's own batch.
+
+### Per-file loop that has been working
+
+Rule text first, then source. For each over-budget block: decide whether the
+fact is a codebase trap (`.ai/rules/`) or something a host acts on (`docs/`),
+write it there in full, then cut the source to the one sentence a reader of
+that code needs, with no pointer back. Then the preservation checks in
+`general.md`, `vendor/bin/pint --dirty`, `composer analyse`, `composer test`,
+and a `git diff -U0` scoped **to the files you touched** confirming no code
+line moved. Commit per destination so source and its new home land together.
+
 ## Execution constraints
 
 - **No sub-agents.** `CLAUDE.md` forbids spawning them under any
