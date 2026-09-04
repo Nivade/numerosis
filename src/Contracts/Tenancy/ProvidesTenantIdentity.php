@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Contracts\Tenancy;
 
 /**
- * A registration wizard step that contributes part of the tenant's identity
- * — its display name, its subdomain/domain, or both — into the wizard's
- * shared state.
- *
- * `RegistrationWizardFeature::bootstrap()` asserts at least one step in
- * `numerosis.tenancy.registration.steps` implements this, and fails loudly
- * at boot if none do — a step list with no identity source still lets the
- * wizard render, and would otherwise surface as a missing/blank tenant name
- * or domain deep inside the queued `ProvisionTenant` chain instead.
+ * A registration wizard step contributing part of the tenant's identity, its
+ * display name or its domain, into the wizard's shared state.
+ * `RegistrationWizardFeature::bootstrap()` fails at boot when no step in
+ * `numerosis.tenancy.registration.steps` implements this, since such a list
+ * still renders and surfaces as a blank name or domain inside the queued
+ * `ProvisionTenant` chain.
  */
 interface ProvidesTenantIdentity
 {

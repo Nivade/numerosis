@@ -15,14 +15,10 @@ use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * Re-inviting an address reuses its row, which `unique(tenant_id, email)`
- * requires.
- *
- * `accepted_at`/`accepted_by_user_id` are cleared through `forceFill` because
- * they are deliberately absent from the model's `#[Fillable]`, being state
- * rather than input. An earlier `updateOrCreate` passing them among its values
- * dropped both silently, so re-inviting someone whose first invitation had
- * been accepted minted a link that `AcceptInvitation` then refused with
- * `InvitationAlreadyAccepted`.
+ * requires. `accepted_at`/`accepted_by_user_id` are cleared through
+ * `forceFill` because both are deliberately absent from the model's
+ * `#[Fillable]`, being state and not input, so passing them to a mass
+ * assignment drops them silently.
  *
  * @method static Invitation run(Tenant $tenant, InvitationData $data, User $inviter)
  */

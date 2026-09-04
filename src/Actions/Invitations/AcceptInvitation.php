@@ -18,15 +18,11 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
 
 /**
- * Runs entirely on the central connection.
- *
- * Acceptance is claimed with a conditional `UPDATE ... WHERE accepted_at IS
- * NULL` before the membership is attached, so two concurrent POSTs cannot both
- * reach `AddTenantMember`. The loser matches zero rows and throws
- * `InvitationAlreadyAccepted`, rolling back inside this transaction. Reading
- * `isAccepted()` and stamping afterwards left a window where both passed and
- * the second attach died on `memberships.unique(tenant_id, global_user_id)`
- * with an uncaught `QueryException`.
+ * Runs entirely on the central connection. Acceptance is claimed with a
+ * conditional `UPDATE ... WHERE accepted_at IS NULL` before the membership is
+ * attached, so of two concurrent POSTs the loser matches zero rows and throws
+ * `InvitationAlreadyAccepted`, rolling back inside this transaction rather
+ * than reaching `AddTenantMember`.
  *
  * @method static Invitation run(Invitation $invitation, CentralUser $user)
  */

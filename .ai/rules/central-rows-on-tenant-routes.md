@@ -2,6 +2,7 @@
 paths:
   - 'src/Policies/**'
   - 'src/Http/Controllers/**'
+  - 'src/Actions/Invitations/**'
   - 'routes/tenant.php'
 ---
 # Central rows reached from tenant routes
@@ -118,3 +119,21 @@ The trait also short-circuits `updateAny`/`deleteAny` ahead of the per-record
 check, so an admin holding the blanket permission is never refused a single
 record. Both behaviours are in the trait rather than in each policy on purpose;
 a policy with real domain logic of its own should not build on it.
+
+## Two invitation-row traps, both silent
+
+**Re-inviting an address reuses its row**, because `tenant_invitations` is
+`unique(tenant_id, email)`. `SendInvitation` clears `accepted_at` and
+`accepted_by_user_id` through `forceFill()`, since both are deliberately absent
+from the model's `#[Fillable]` — they are state, not input. An earlier
+`updateOrCreate()` passed them among its values and they were dropped silently,
+so re-inviting someone whose first invitation had been accepted minted a link
+`AcceptInvitation` then refused with `InvitationAlreadyAccepted`.
+
+**Acceptance is claimed with a conditional `UPDATE … WHERE accepted_at IS
+NULL`,** inside `AcceptInvitation`'s transaction and before the membership is
+attached, so two concurrent POSTs cannot both reach `AddTenantMember`: the
+loser matches zero rows and throws `InvitationAlreadyAccepted`, rolling back.
+Reading `isAccepted()` and stamping afterwards left a window where both passed
+and the second attach died on `memberships.unique(tenant_id, global_user_id)`
+with an uncaught `QueryException`.

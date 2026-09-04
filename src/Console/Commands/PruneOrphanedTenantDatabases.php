@@ -89,15 +89,11 @@ class PruneOrphanedTenantDatabases extends Command
     }
 
     /**
-     * Suspension keeps the data because dunning is the customer's chance to
-     * recover; this long past that, it is not. `Tenant::delete()` cascades
-     * the database drop through the same `TenantDeleted` -> `DeleteDatabase`
-     * listener as any other tenant deletion — see TenancyServiceProvider.
-     *
-     * Eligibility is just "still suspended after the cutoff": RestoreTenant
-     * clears `suspended_at` the moment a subscription recovers, so a tenant
-     * that stayed suspended this long never paid, by construction — no
-     * separate "did they ever pay" check is needed.
+     * Eligibility is only "still suspended after the cutoff", because
+     * `RestoreTenant` clears `suspended_at` the moment a subscription
+     * recovers, so a tenant suspended this long never paid by construction.
+     * `Tenant::delete()` drops the database through the same
+     * `TenantDeleted` -> `DeleteDatabase` listener as any other deletion.
      */
     private function pruneSuspendedTenants(): int
     {

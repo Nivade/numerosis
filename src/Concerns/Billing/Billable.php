@@ -10,16 +10,11 @@ use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Support\Numerosis;
 
 /**
- * Cashier's billable behaviour with a polymorphic subscription relation.
- *
- * Both central users and tenants can be billed here, so `subscriptions()`
- * returns a `MorphMany` where Cashier assumes a single billable table and
- * returns `HasMany`.
- *
- * That override has to be declared in this trait's own body. `insteadof`
- * cannot name it — Cashier inserts the method through a trait of its own —
- * and resolving the conflict any other way leaves the return type ambiguous
- * to static analysis.
+ * Cashier's billable behaviour with a polymorphic subscription relation, since
+ * both central users and tenants can be billed: `subscriptions()` returns a
+ * `MorphMany` where Cashier assumes one billable table and returns `HasMany`.
+ * That override must be declared in this trait's own body, because `insteadof`
+ * cannot name a method Cashier inserts through a trait of its own.
  */
 trait Billable
 {
