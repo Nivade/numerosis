@@ -6,11 +6,18 @@ paths:
 
 ## Comment style
 
-Default to zero comments. If code needs explaining, the names are wrong. Fix the name, extract the method, delete the comment.
+Write self-documenting code. Names carry the meaning. If code needs explaining, the name is wrong: fix the name, extract the method, delete the comment.
 
-A comment earns its place when it carries a fact the code cannot. Why an alternative was rejected, how an external system behaves, a race, an invariant spanning several files.
+Obligations, in RFC 2119 terms:
 
-Docblocks are where the volume is, not `//` lines. Keep `@param`, `@return` and array shapes exactly as they are. Prose inside a docblock follows the same rules as a `//` comment.
+- Explanatory comments and docblock prose MUST NOT be added unless asked for.
+- A comment MUST NOT narrate what the code does.
+- A comment MUST NOT reference a `.ai/rules/` file, a skill, or a `.claude/plans/` file. A reader of the source cannot see those, and they go stale independently of it. If the fact is worth keeping, state it here or keep it only in the rule file.
+- `@param`, `@return`, `@var`, `@template`, `@throws` and array shape annotations MUST stay exactly as they are. PHPStan runs at level 9 and reads them.
+- A comment MAY carry a fact the code cannot: how an external system behaves, a race, a rejected alternative, an invariant spanning several files, a performance rationale.
+- Sentences SHOULD be short.
+
+Docblocks are where the volume is, not `//` lines. Prose inside a docblock follows the same rules as a `//` comment.
 
 For the prose itself, use the `no-ai-slop` skill (`~/.claude/skills/no-ai-slop`). Its pattern catalog is the standard here, and it covers more than a hand-rolled list will. The four patterns this repo keeps failing on:
 
@@ -21,9 +28,11 @@ For the prose itself, use the `no-ai-slop` skill (`~/.claude/skills/no-ai-slop`)
 | Colon reveal | `Zero-migration plan source: reads billing.plans` |
 | Decorative bold | `bakes it in **at registration time**` |
 
-Three repo-specific additions to that catalog. Name a consequence with the symbol it throws, so `throws TenantDatabaseAlreadyExistsException` rather than "would race it". Keep identifiers in backticks; stripping them loses the signal that a word is code. Never cite a `.claude/plans/*` file, or say "this plan"/"the plan", inside a code comment — plans are not docs: `.claude/plans/README.md` calls them historical the moment they're executed, so a comment anchored to one goes stale the day it merges. If the fact is worth keeping, put it in the docblock itself or in `.ai/rules/`; if it's only "why we built this", it belongs in the commit message or PR description, not the code.
+Two repo-specific additions to that catalog. Name a consequence with the symbol it throws, so `throws TenantDatabaseAlreadyExistsException` rather than "would race it". Keep identifiers in backticks; stripping them loses the signal that a word is code.
 
-`.claude/plans/comment-destyle.md` sweeps `src/` for these, and holds the dated counts and the greps that produce them. Counts do not live in this file: they were wrong within three commits last time they did.
+Why the code came to be this shape is not a comment. It belongs in the commit message or the PR description. Dated moves, old class names and superseded designs are already in git.
+
+Counts do not live in this file. They were wrong within three commits last time they did, and a stale count invites trusting a rule that has moved underneath it.
 
 ## Shortening a comment drops facts silently
 
