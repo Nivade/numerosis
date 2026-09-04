@@ -7,7 +7,6 @@ namespace Nvade\Numerosis\Http\Middleware;
 use Closure;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Override;
 
 /**
@@ -33,9 +32,6 @@ class InitializeTenancyByDomainOrSubdomain extends \Stancl\Tenancy\Middleware\In
 
     public function shouldSkip(Request $request): bool
     {
-        /** @var array<int, string> $centralDomains */
-        $centralDomains = $this->repository->get('tenancy.central_domains', []);
-
-        return new Collection($centralDomains)->contains($request->getHost());
+        return in_array($request->getHost(), (array) $this->repository->get('tenancy.central_domains', []), true);
     }
 }
