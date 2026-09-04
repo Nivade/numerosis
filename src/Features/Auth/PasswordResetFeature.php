@@ -10,10 +10,9 @@ use Nvade\Numerosis\Contracts\NamedFeature;
  * Password reset: the forgot- and reset-password routes and the password
  * settings page.
  *
- * Login is password-based (Laravel Fortify, since Phase 4 of
- * `.claude/plans/archive/humming-nibbling-flame.md`) — turn this off and there is no
+ * Login is password-based (Laravel Fortify). Turn this off and there is no
  * way to recover a forgotten password, only set one from the settings page
- * while already logged in. Password *confirmation* for sensitive actions is
+ * while already logged in. Password confirmation for sensitive actions is
  * separate and stays available regardless.
  */
 class PasswordResetFeature implements NamedFeature

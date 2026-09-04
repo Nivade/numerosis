@@ -9,12 +9,11 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * ISO country code for a checkout request's IP, used to order Stripe's
- * Payment Element and pre-fill the Address Element — never to restrict
+ * Payment Element and pre-fill the Address Element, never to restrict
  * eligibility, which stays Stripe's call.
  *
- * No region lookup is wired in (torann/geoip was dropped — see Phase 6 of
- * `.claude/plans/archive/humming-nibbling-flame.md`), so this always returns null.
- * Callers must treat null as "use the default order", never as an error.
+ * No region lookup is wired in, so this always returns null. Callers must
+ * treat null as "use the default order", never as an error.
  *
  * @method static ?string run(Request $request)
  */

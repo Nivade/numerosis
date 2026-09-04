@@ -159,10 +159,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->app->register(BillingServiceProvider::class);
 
         // Fortify registers its own routes on one domain/prefix group; this
-        // package needs them on every central domain *and* inside the tenant
-        // group instead, so `Numerosis::routes()` loads `routes/routes.php`
-        // itself, per group. See `.claude/plans/archive/humming-nibbling-flame.md`
-        // Phase 4a.
+        // package needs them on every central domain and inside the tenant
+        // group too, so `Numerosis::routes()` loads `routes/routes.php`
+        // itself, per group.
         Fortify::ignoreRoutes();
 
         // Singleton, not a bind: `Tenancy::getBootstrappers()` resolves the
@@ -499,14 +498,11 @@ class NumerosisServiceProvider extends PackageServiceProvider
     /**
      * `Illuminate\Foundation\Configuration\ApplicationBuilder::withMiddleware()`
      * always registers `Authenticate::redirectUsing(fn () => route('login'))`
-     * before running a host's own callback — plain Laravel skeleton
-     * behaviour, unconditional whether or not a host passes one. `login`
-     * belonged to nvade/numerosis-auth-ui until that package folded into
-     * core in Phase 3 of `.claude/plans/archive/humming-nibbling-flame.md`, and its
-     * Livewire screens were deleted rather than moved (Phase 4 rebuilds them
-     * on Fortify) — so the stock default now throws RouteNotFoundException
-     * on every guest request to a protected route instead of redirecting
-     * one. Set directly here (not through {@see Numerosis::middleware()}'s
+     * before running a host's own callback: plain Laravel skeleton
+     * behaviour, unconditional whether or not a host passes one. Until
+     * Fortify registers `login`, the stock default throws
+     * `RouteNotFoundException` on every guest request to a protected route
+     * instead of redirecting one. Set directly here (not through {@see Numerosis::middleware()}'s
      * `$middleware->redirectGuestsTo()`) because that object only reaches
      * `Authenticate` when a host's `bootstrap/app.php` passes it to
      * `withMiddleware()`; Testbench, and any host that never calls
@@ -522,8 +518,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
     /**
      * Wires this package's own actions into Fortify's published seams,
-     * customized the way Fortify's own docs describe — see
-     * `.claude/plans/archive/humming-nibbling-flame.md` Phase 4e. `numerosis.features`
+     * customized the way Fortify's own docs describe. `numerosis.features`
      * and `fortify.features` stay separate: numerosis's gates
      * tenancy/billing surfaces, Fortify's gates auth screens.
      */
