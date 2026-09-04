@@ -3,46 +3,75 @@
 Bring every comment and docblock in `src/` up to `.ai/rules/general.md`. Read
 that rule first; it is the standard and this plan is only the execution order.
 
-Two commits already landed (`5bc10e4`, `c4b84f8`) covering nine sites in six
-files. Everything else is untouched.
+Three commits have landed against this goal: `5bc10e4` and `c4b84f8` (nine
+sites in six files), plus this plan itself in `dda8ee2`. Everything else is
+untouched.
+
+**Audited 2026-09-04**, after `d65c2c3`. Three feature commits landed on `src/`
+between the original baseline and this audit (`1502308`, `b391c39`, `d65c2c3`),
+touching 97 files and adding 48, which is why the counts below are higher than
+the plan originally recorded and why the batch list was re-cut.
+
+## Execution constraints
+
+- **No sub-agents.** `CLAUDE.md` forbids spawning them under any
+  circumstances. One session does the whole sweep. If it will not fit, stop
+  after a batch and hand the next batch back to the user.
+- One commit per batch. A batch is finished only when its files return zero
+  from the ranked grep below.
+- Run Pint before Pest, always. Pint rewrites files, and Pest run first would
+  be testing the pre-Pint tree.
 
 ## Scope
 
 `src/` only. `tests/`, `database/`, `config/`, `routes/`, `workbench/`,
 `packages/` and `resources/` are explicitly out of scope and unmeasured.
 
-Baseline as of 2026-09-04, after the two commits above:
+## Baseline
 
-| Metric | Count |
-| --- | --- |
-| Docblock prose lines | 2,138 |
-| Inline `//` lines | 354 |
-| Em-dashes in comments | 294 |
-| `rather than` / `instead of` | 117 |
-| `, not ` | 50 |
-| Colon reveals | 57 |
-| Decorative bold | 33 |
-| Offending lines total | 468 |
-| Files with at least one | 137 |
-| Files with five or more | 26 |
+Every number here is reproducible with the command beside it. Regenerate the
+whole table before starting; other sessions commit to this repo.
 
-Regenerate these before starting; other sessions commit to this repo.
+| Metric | Count (2026-09-04) | Command |
+| --- | --- | --- |
+| Offending lines total | 490 | `A` below |
+| Files with at least one | 155 | `A` with `-l` |
+| Files with five or more | 25 | `B` below |
+| Docblock prose lines | 2,301 | `C` below |
+| Inline `//` lines | 389 | `grep -rE '^\s*//' --include='*.php' src/ \| wc -l` |
+| Em-dashes in comments | 311 | `A` with `(—)` |
+| `rather than` / `instead of` | 116 | `A` with `(rather than\|instead of)` |
+| `, not ` | 57 | `A` with `(, not )` |
+| Decorative bold | 33 | `A` with `(\*\*)` |
 
 ```bash
+# A — the ranked grep. This is the definition of "offending line".
 grep -rnE '^\s*(\*|//).*(—|rather than|instead of|, not |\*\*)' --include='*.php' src/ | wc -l
+
+# B — ranked by file, worst first. Drives batch ordering and batch completion.
 grep -rnE '^\s*(\*|//).*(—|rather than|instead of|, not |\*\*)' --include='*.php' src/ \
   | awk -F: '{print $1}' | sort | uniq -c | sort -rn
+
+# C — docblock prose: star-prefixed lines that are not `*/`, not an @tag, not blank.
+grep -rE '^\s*\*' --include='*.php' src/ \
+  | grep -vE ':\s*\*/' | grep -vE ':\s*\*\s*@' | grep -vE ':\s*\*\s*$' | wc -l
 ```
+
+Two metrics from the original baseline are gone. "Colon reveals: 57" was
+recorded without a regex and reproduces under none — four candidate patterns
+give 19, 10, 18 and 159 at `dda8ee2`. Do not chase the number; colon reveals
+are still a defect, just caught by reading rather than by grep. "Docblock
+prose: 2,138" was likewise unpublished; command `C` above reconstructs it
+(2,139 at `dda8ee2`, off by one) and is now the definition.
 
 ## Before writing anything
 
 Read `.ai/rules/general.md`, then read the `no-ai-slop` skill at
 `~/.claude/skills/no-ai-slop/SKILL.md` and its `eval.md`. The skill's pattern
-catalog is the standard. The grep patterns above find four of its patterns;
-the skill names roughly fifteen, and the others (faux-insight setups,
-importance puffery, interpretive metadiscourse, fake-strong verbs, synonym
-cycling) will not show up in any grep. Read the whole docblock, not the
-matched line.
+catalog is the standard. Grep `A` finds four of its patterns; the skill names
+roughly fifteen, and the others (faux-insight setups, importance puffery,
+interpretive metadiscourse, fake-strong verbs, synonym cycling) will not show
+up in any grep. Read the whole docblock, not the matched line.
 
 Do not run the `unslop` skill. Its detection layer returns zero findings on
 this code and its contract then requires returning the source unchanged.
@@ -51,8 +80,8 @@ part of it that applies.
 
 ## Batches
 
-One commit per batch. Twelve batches, largest offenders first, so an
-abandoned sweep still leaves the worst files fixed.
+Sixteen batches, largest offenders first, so an abandoned sweep still leaves
+the worst files fixed. Counts sum to 490.
 
 | # | Files | Offending lines |
 | --- | --- | --- |
@@ -61,16 +90,29 @@ abandoned sweep still leaves the worst files fixed.
 | 3 | `src/Testing/CleansUpTenancyDatabases.php`, `src/Testing/FakeStripeHttpClient.php` | 28 |
 | 4 | `src/Support/HostConfig.php` | 18 |
 | 5 | `src/Commands/InstallNumerosisCommand.php` | 15 |
-| 6 | `src/Providers/TenancyServiceProvider.php`, `src/Resolvers/PreservingPathTenantResolver.php` | 20 |
-| 7 | `src/Livewire/Tenant/Registration.php`, `src/Livewire/Billing/Checkout.php` | 19 |
-| 8 | `src/Support/Contributions.php`, `src/Support/Cache/GlobalCache.php`, `src/Support/Assets.php`, `src/Support/Features.php` | 31 |
-| 9 | `src/Http/**` (controllers and middleware) | ~30 |
-| 10 | `src/Features/**` | ~21 |
-| 11 | `src/Models/**`, `src/Services/**` | ~25 |
-| 12 | Everything remaining under `src/` | remainder |
+| 6 | `src/Http/Controllers/Billing/WebhookController.php` | 14 |
+| 7 | `src/Providers/TenancyServiceProvider.php`, `src/Resolvers/PreservingPathTenantResolver.php` | 20 |
+| 8 | `src/Livewire/Tenant/Registration.php`, `src/Livewire/Billing/Checkout.php` | 19 |
+| 9 | `src/Support/Contributions.php`, `src/Support/Cache/GlobalCache.php`, `src/Support/Assets.php`, `src/Support/Features.php` | 34 |
+| 10 | `src/Http/**` minus batch 6 | 35 |
+| 11 | `src/Features/**` | 23 |
+| 12 | `src/Models/**`, `src/Services/**` | 47 |
+| 13 | `src/Actions/**` | 53 |
+| 14 | `src/Contracts/**`, `src/Concerns/**`, `src/Enums/**`, `src/Data/**` | 45 |
+| 15 | `src/Listeners/**`, `src/Events/**`, `src/Observers/**`, `src/Notifications/**`, `src/Policies/**` | 31 |
+| 16 | Remainder: `src/Support/**` not yet done, `src/Livewire/**` not yet done, `src/Console/**`, `src/Exceptions/**`, `src/Rules/**`, `src/Testing/**` not yet done, `src/Jobs/**` | 36 |
 
-Batch 9 onward covers many small files. Work the ranked list within each
-batch and stop when the batch's files are clean.
+Batch 6 is new to this audit. `WebhookController.php` was inside the original
+plan's "`src/Http/**`, ~30" bucket; it is now the sixth-worst file in `src/`
+on its own and is worth its own commit.
+
+Batches 10 onward cover many small files. Work the ranked list from grep `B`
+within each batch and stop when every file in the batch's paths returns zero.
+Batches 13 to 16 are dominated by files with one or two offending lines each
+(74 files in `src/` have exactly one), most of them from the invitations,
+social-login and domain-events work in `1502308` and `d65c2c3`. Those are
+usually a single em-dash in an otherwise fine docblock. Do not restructure a
+docblock that has one defect.
 
 ## Per-file procedure
 
@@ -93,7 +135,11 @@ batch and stop when the batch's files are clean.
    python3 ~/.claude/skills/unslop/scripts/validate_preservation.py /tmp/old.txt /tmp/new.txt
    ```
 
-   The identifier diff must come back empty. Restore anything it lists.
+   The identifier diff must come back empty. If it lists anything, put that
+   identifier back into the new comment text before moving on; do not accept
+   it as reworded. The only exception is an identifier that was deleted along
+   with a whole sentence you deliberately dropped, which the commit body must
+   then name.
 
    `validate_preservation.py` will report missing "code" constraints that are
    really rewrapped prose between backticks; those are a known false positive.
@@ -136,10 +182,20 @@ rewrite. `composer analyse` matters here because docblock edits can move
 annotations; compare cold-to-cold if the result cache looks suspicious
 (`.ai/rules/static-analysis.md`).
 
+Then confirm the batch is actually finished:
+
+```bash
+grep -rnE '^\s*(\*|//).*(—|rather than|instead of|, not |\*\*)' --include='*.php' <BATCH PATHS>
+```
+
+Empty output, or nothing but lines you consciously kept, means commit.
+
 ## Committing
 
-The working tree carries roughly 150 modified files from other sessions.
-**Stage by explicit path. Never `git add -A` or `git add src/`.**
+Check `git status --porcelain` first. The tree was clean at this audit, but
+other sessions commit to this repo and it has previously carried ~150
+unrelated modified files. **Stage by explicit path. Never `git add -A` or
+`git add src/`.**
 
 Branch: `package-scope-reduction` unless told otherwise.
 
@@ -166,8 +222,21 @@ Ask the user instead of deciding alone when:
 - The whole docblock looks deletable because the method name already says it.
   Deleting a public API docblock is a larger call than restyling one.
 
+Escalating means stopping and asking in the session. Do not delegate the
+question.
+
 ## Expected outcome
 
 Inline comments compressed roughly 50%, docblocks roughly 20%. The docblock
 prose is mostly facts, so a large reduction there means facts were lost.
 Treat a batch that halves a docblock as a signal to re-read it, not a win.
+
+## Note for whoever audits this next
+
+This file is the only place counts live. `.ai/rules/general.md` used to carry
+its own table (2,145 docblock prose lines, 366 inline, 300 em-dashes, 58 colon
+reveals, 36 decorative bold, 95 `rather than`, 53 `, not `), undated and with
+no regex; it was wrong within three commits and was removed on 2026-09-04. The
+rule now states the standard and points here. Keep it that way — if the sweep
+finishes and this plan is archived, the counts go with it rather than moving
+back into the rule.
