@@ -254,3 +254,24 @@ staleness" failure mode and worth the same caution.
   before adding a fourth one by hand — worth turning into a shared helper
   (`Numerosis::whenBootstrapped(fn () => ..., fallback: ...)` or similar) once
   a third case shows up, rather than re-deriving the guard each time.
+
+## Two self-heals for an app that never called the builder method
+
+`ApplicationBuilder::withMiddleware()` always registers
+`Authenticate::redirectUsing(fn () => route('login'))` before it runs a host's
+own callback, unconditionally, as plain skeleton behaviour. Until Fortify
+registers a `login` route that default throws `RouteNotFoundException` on every
+guest request to a protected route. `registerGuestRedirect()` overrides it by
+calling `Authenticate::redirectUsing()` directly rather than through
+`Numerosis::middleware()`'s `$middleware->redirectGuestsTo()`, because that
+object only reaches `Authenticate` when a host passes it to `withMiddleware()`
+— which Testbench, and any host that never calls `Numerosis::middleware()`,
+does not. It falls back to `home` until the route exists, and is inert once
+Fortify registers `login`.
+
+`registerExceptionHandling()` covers the matching gap: an app that never calls
+`->withExceptions()` has no `ExceptionHandler::class` binding at all, since that
+binding is normally made by `ApplicationBuilder::withExceptions()` itself. It
+binds one, skips a host that replaced Laravel's handler with its own, and runs
+unconditionally because `Numerosis::exceptions()` is idempotent per handler
+instance.

@@ -136,14 +136,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
-        // `hasConfigFile('numerosis')` would also register the package's own
-        // config file for publishing, and that file must never be published:
-        // it assembles the thirteen partials in config/numerosis/ by
-        // `require __DIR__`, which would resolve against a host's config
-        // directory. The publishable copy is the override stub registered in
-        // packageBooted(). This is the phase package-tools would have merged
-        // in (register(), right before packageRegistered()), so nothing below
-        // sees a different config.
+        // Not `hasConfigFile()`: that offers this file for publishing, and a
+        // published copy would resolve its `require __DIR__` partials against
+        // the host's config directory. packageBooted() publishes a stub.
         $this->mergeConfigFrom(__DIR__.'/../config/numerosis.php', 'numerosis');
 
         Numerosis::resetModelCache();
@@ -157,16 +152,14 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->app->register(TenancyServiceProvider::class);
         $this->app->register(BillingServiceProvider::class);
 
-        // Fortify registers its own routes on one domain/prefix group; this
-        // package needs them on every central domain and inside the tenant
-        // group too, so `Numerosis::routes()` loads `routes/routes.php`
-        // itself, per group.
+        // Fortify registers its routes on one domain/prefix group. This
+        // package needs them per central domain and in the tenant group, so
+        // `Numerosis::routes()` loads `routes/routes.php` itself.
         Fortify::ignoreRoutes();
 
-        // A singleton because `Tenancy::getBootstrappers()` resolves the
-        // configured bootstrappers through `app()` on both initialize and
-        // end, so anything remembering state between `bootstrap()` and
-        // `revert()` needs one shared instance.
+        // `Tenancy::getBootstrappers()` resolves through `app()` on both
+        // initialize and end, so a bootstrapper that remembers anything
+        // between `bootstrap()` and `revert()` needs one shared instance.
         $this->app->singleton(PasswordBrokerBootstrapper::class);
 
         $this->app->bind(ResolvesLoginCandidate::class, ResolveLoginCandidate::class);
@@ -187,15 +180,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
             $this->app->bind('Database\Seeders\DatabaseSeeder', PackageDatabaseSeeder::class);
         }
 
-        // Points the `layouts::` and `pages::` Livewire namespaces at the
-        // views this package ships. Set either yourself to use your own, from
-        // your own provider's register() phase: Livewire reads this config
-        // once in its own boot() and bakes the result into the view finder's
-        // hints, so a config change made after that is accepted and has no
-        // effect on how views actually resolve. App providers register after
-        // package providers, so a register()-phase override wins here (this
-        // loop only writes an unset or still-stock value) while a boot()-phase
-        // one silently loses. See docs/host-requirements.md.
+        // Points `layouts::` and `pages::` at this package's views, leaving
+        // anything a host already set. Livewire bakes these into the view
+        // finder during its boot(), so a host has to set them in register().
         foreach (['layouts', 'pages'] as $namespace) {
             $current = Config::get("livewire.component_namespaces.{$namespace}");
 
@@ -267,10 +254,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
         Livewire::addComponent(name: 'settings.delete-user-form', class: DeleteUserForm::class);
         Livewire::addComponent(name: 'settings.connected-accounts', class: ConnectedAccounts::class);
 
-        // A small override file: the deep-fill in HostConfig backfills every
-        // key it omits, and the package's own config file cannot be published
-        // at all, since it requires its partials by __DIR__. Same tag
-        // package-tools would have used.
+        // A small override file, since HostConfig's deep-fill backfills every
+        // key it omits and the package's own config file cannot be published.
+        // Same tag package-tools would have used.
         $this->publishGroup([
             __DIR__.'/../config/stubs/numerosis.php' => config_path('numerosis.php'),
         ], 'numerosis-config');
@@ -311,27 +297,10 @@ class NumerosisServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Binds each model to its policy explicitly, so a host's subclass of one
-     * of these models is covered too.
-     *
-     * Every model below also carries `#[UsePolicy]`, and that attribute alone
-     * is not enough: PHP attributes are not inherited, and
-     * `Gate::getPolicyFor()` reads them off the exact class it is handed. On a
-     * host using the documented model-override seam, any caller resolving a
-     * model through `Numerosis::model(...)` gets a subclass, which without
-     * this map resolves no policy at all, and a `Gate::allows()` against a
-     * model with no policy falls through to whatever the caller does with an
-     * unauthorized answer. The `Tenant\*` models escape it only because their
-     * subclasses re-declare the attribute by hand.
-     *
-     * Each entry registers the package class, leaving `Numerosis::model()`'s
-     * resolved subclass unregistered, which is what makes a host's own
-     * convention still win. `Gate::getPolicyFor()` tries, in order: an exact
-     * entry in the policy map, the attribute, the `App\Policies\*` name guess,
-     * and only then a `is_subclass_of` sweep of the map. Registering the
-     * resolved subclass would take that first branch and silently beat a
-     * host's own `App\Policies\Central\TenantPolicy`; registering the base
-     * leaves the guesser ahead of us and still catches every subclass.
+     * Binds each model to its policy explicitly, because the `#[UsePolicy]`
+     * each one carries does not reach a host's subclass. Registers the package
+     * class, never `Numerosis::model()`'s resolved one, so a host's own
+     * `App\Policies\*` convention still wins.
      */
     protected function registerPolicies(): void
     {
@@ -431,10 +400,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
             TenantSuspended::class => SendTenantSuspendedNotification::class,
             TenantRestored::class => SendTenantRestoredNotification::class,
             TenantProvisioned::class => BackfillTenantUsers::class,
-            // Laravel's listener auto-discovery only scans a host app's
-            // `app/Listeners`, never a package's `src/`, so an explicit
-            // `Event::listen()` is the only way this ever fires. See
-            // `EndOtherGuardSession`'s own docblock.
+            // Auto-discovery only scans a host's `app/Listeners`, never a
+            // package's `src/`, so this explicit registration is the only
+            // thing that makes {@see EndOtherGuardSession} fire.
             Logout::class => EndOtherGuardSession::class,
         ];
 
@@ -491,18 +459,10 @@ class NumerosisServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * `Illuminate\Foundation\Configuration\ApplicationBuilder::withMiddleware()`
-     * always registers `Authenticate::redirectUsing(fn () => route('login'))`
-     * before running a host's own callback: plain Laravel skeleton
-     * behaviour, unconditional whether or not a host passes one. Until
-     * Fortify registers `login`, the stock default throws
-     * `RouteNotFoundException` on every guest request to a protected route.
-     * Set directly here (not through {@see Numerosis::middleware()}'s
-     * `$middleware->redirectGuestsTo()`) because that object only reaches
-     * `Authenticate` when a host's `bootstrap/app.php` passes it to
-     * `withMiddleware()`; Testbench, and any host that never calls
-     * {@see Numerosis::middleware()}, do not. Falls back to `home` until the
-     * route exists again; once Fortify registers it, this override is inert.
+     * Replaces the `redirectUsing(fn () => route('login'))` that
+     * `ApplicationBuilder::withMiddleware()` always registers, which throws
+     * `RouteNotFoundException` until Fortify registers `login`. Falls back to
+     * `home` until then, and is inert once that route exists.
      */
     protected function registerGuestRedirect(): void
     {
@@ -521,13 +481,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
     {
         Fortify::viewPrefix('numerosis::auth.');
 
-        // `fortify.features` is a default this package supplies, set in
-        // `HostConfig::fortifyFeatures()` under the same "only while the key
-        // still holds the stock value" rule every other backfill here
-        // follows. Setting it from this method would discard a host's
-        // published `config/fortify.php` on every boot, while
-        // `docs/extending.md` goes on naming that key as the seam for
-        // choosing which auth screens exist.
+        // `fortify.features` is defaulted by `HostConfig::fortifyFeatures()`,
+        // under the stock-value rule every backfill follows. Setting it here
+        // would discard a host's published `config/fortify.php` on every boot.
         $this->app->bind(FortifyLoginRequest::class, NumerosisLoginRequest::class);
 
         Fortify::createUsersUsing(CreateRegisteredUser::class);
@@ -535,20 +491,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
 
-        // `LoginUser`'s dual-guard login runs last, once Fortify's own two
-        // steps have logged the request's own (central or tenant) guard in.
-        //
-        // `CanonicalizeUsername` is carried over from Fortify's own default
-        // pipeline; dropping it while replacing the pipeline wholesale is what
-        // silently turns `fortify.lowercase_usernames` into a dead config key.
-        // It has to stay ahead of the OTP step, whose candidate lookup is an
-        // exact-match `firstWhere('email', …)`, so that the address the
-        // limiter keys on and the address the lookup uses are the same string.
-        //
-        // `RedirectIfOneTimePasswordAuthenticatable` then runs before
-        // `AttemptToAuthenticate` and, when `OneTimePasswordFeature` is on,
-        // never calls `$next()`. It replaces the password check, so
-        // `AttemptToAuthenticate` never runs for a request it has handled.
+        // Order is load-bearing: `CanonicalizeUsername` has to precede the
+        // OTP step, which looks its candidate up by exact email match, and
+        // `LogInToCentralGuard` has to run last.
         Fortify::authenticateThrough(fn (Request $request): array => array_filter([
             Config::get('fortify.limiters.login') ? null : EnsureLoginIsNotThrottled::class,
             Config::get('fortify.lowercase_usernames') ? CanonicalizeUsername::class : null,
@@ -560,10 +505,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         $this->registerAuthRateLimiters();
 
-        // `VerifyEmailController` type-hints Fortify's own concrete
-        // `VerifyEmailRequest`; binding a subclass still resolves for a
-        // concrete type-hint, and it is the only way to compare against
-        // `getGlobalIdentifierKey()` in place of the primary key.
+        // `VerifyEmailController` type-hints Fortify's concrete
+        // `VerifyEmailRequest`, and binding a subclass to it is the only way
+        // to compare against `getGlobalIdentifierKey()`.
         $this->app->bind(FortifyVerifyEmailRequest::class, NumerosisVerifyEmailRequest::class);
         $this->app->singleton(FortifyVerifyEmailResponse::class, NumerosisVerifyEmailResponse::class);
     }
@@ -667,15 +611,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Applies {@see Numerosis::exceptions()} for an app that never calls it
-     * from `bootstrap/app.php`, including one that never calls
-     * `->withExceptions()` at all, which leaves `ExceptionHandler::class`
-     * unbound (that binding is normally made by `ApplicationBuilder::
-     * withExceptions()` itself, the one framework call this self-heal can't
-     * assume happened). Skipped if you have replaced Laravel's exception
-     * handler with one of your own. {@see Numerosis::exceptions()} is
-     * idempotent, so this runs unconditionally without double-registering
-     * against a host that also calls it from its own bootstrap file.
+     * Applies {@see Numerosis::exceptions()} for an app that never called it,
+     * binding `ExceptionHandler::class` first if `->withExceptions()` never
+     * ran either. Skipped for a host that replaced Laravel's handler.
      */
     protected function registerExceptionHandling(): void
     {

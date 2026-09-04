@@ -49,6 +49,8 @@ for a host that genuinely wants none of the defaults.
   guard `web` and grants them all to `admin`. Contribute the context from the
   satellite's own service provider, before `RoleAndPermissionSeeder` runs.
 
+- **`#[UsePolicy]` alone does not survive the model-override seam, so every policy is also registered explicitly.** PHP attributes are not inherited, and `Gate::getPolicyFor()` reads them off the exact class it is handed — so a host whose `Numerosis::model()` override returns a subclass resolves no policy at all, and `Gate::allows()` against a model with no policy falls through to whatever the caller does with an unauthorized answer. `NumerosisServiceProvider::registerPolicies()` binds each pair, and binds the **package** class rather than the resolved subclass on purpose: `getPolicyFor()` tries an exact map entry, then the attribute, then the `App\Policies\*` name guess, then an `is_subclass_of` sweep. Registering the resolved subclass would take the first branch and silently beat a host's own `App\Policies\Central\TenantPolicy`; registering the base leaves the name guess ahead of us and still catches every subclass.
+
 - **A feature class listed in config but not installed disappears silently,
   from two places, and neither raises anything you will see.**
   `Features::names()`'s `is_a($class, NamedFeature::class, true)`
@@ -130,3 +132,24 @@ is what exercises it (renamed from `SatelliteRouteContributionTest`).
 The general rule stands: add the reader alongside the writer rather than
 after — a boundary test that can enumerate contributions is strictly better
 than one that scans files for forbidden strings.
+
+## `Contributions`' lists are static, and only some of them deduplicate
+
+Every list on `Support\Contributions` is `static`, so it lives as long as the
+process. A provider that registers more than once — Octane's per-worker boot, a
+host provider re-registered by a test harness — would grow them without bound
+and hand `tenancy.migration_parameters` the same path several times.
+
+- Migration paths, seeders and permission contexts go through `appendOnce()`,
+  which appends what is not already present and preserves registration order.
+- The two route-callback lists cannot. Two `Closure`s built from the same
+  `function () { … }` on two boots are distinct objects with nothing comparable
+  about them, and collapsing by `source` would drop a package's second,
+  legitimately different contribution. They stay bounded only by there being
+  one registration site per package.
+- `$tenantColumns` has no reset at all, deliberately: its only writer is
+  `Models\Central\Tenant`'s own declaration, so there is no per-test
+  registration to undo. `flushRouteContributions()` and
+  `flushMigrationAndSeederContributions()` stay two methods rather than one
+  `flush()` so each caller clears only what it meant to; `PackageContributionSeamsTest`
+  calls them separately.

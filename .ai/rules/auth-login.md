@@ -133,6 +133,8 @@ any of it.
   `FormRequest` validates *before* the pipeline even starts, so a password-less
   submission would 422 before this step got a chance to redirect it.
 
+- **`CanonicalizeUsername` is carried over from Fortify's default pipeline, and has to stay ahead of the OTP step.** `Fortify::authenticateThrough()` replaces the pipeline wholesale, so a step left out is simply gone: dropping this one turns `fortify.lowercase_usernames` into a dead config key with nothing to notice. Its position matters too, because `RedirectIfOneTimePasswordAuthenticatable`'s candidate lookup is an exact-match `firstWhere('email', …)` — canonicalize after it and the address the limiter keys on is not the address the lookup uses.
+
 - **`OneTimePasswordChallengeController::store()` and
   `RedirectIfOneTimePasswordAuthenticatable::handle()` both answer identically
   whether or not the address belongs to a user.** No password exists to check

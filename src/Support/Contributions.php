@@ -10,18 +10,11 @@ use Illuminate\Database\Seeder;
 /**
  * What a satellite package or a host has contributed to this one: routes,
  * tenant columns, tenant migration paths, seeders and permission contexts.
- *
- * Every entry here is an `add*()` write and a reader; nothing consults config.
- * `Features::register()`/`::registered()` is the same seam for feature classes
- * and stays on {@see Features}, next to the config-backed list it merges with.
- *
  * Call these through `Numerosis::add*()` and its readers, which delegate here.
- * That is the entry point `docs/extending.md` documents.
+ * {@see self::tenantMigrationPaths()} returns only contributed paths, where
+ * {@see Numerosis::tenantMigrationPaths()} adds this package's own as well.
  *
- * {@see self::tenantMigrationPaths()} returns only contributed paths.
- * {@see Numerosis::tenantMigrationPaths()} adds this package's own path on
- * top of that. Use the second one when you need every path tenancy should
- * migrate; `HostConfig` does.
+ * @see Features::register() the same seam for feature classes
  */
 final class Contributions
 {
@@ -31,10 +24,9 @@ final class Contributions
     /**
      * Callbacks run inside the per-domain `Route::middleware('web')
      * ->domain($domain)` group {@see Numerosis::routes()} opens for
-     * `routes/web.php`, once per configured central domain. `source` is
-     * whatever the caller of {@see self::addCentralRoutes()} passed — a
-     * package name by convention, `null` if they didn't say — kept alongside
-     * the closure so a contribution can be attributed, not just counted.
+     * `routes/web.php`, once per configured central domain. `source` is what
+     * the caller of {@see self::addCentralRoutes()} passed, kept alongside the
+     * closure so a contribution can be attributed.
      *
      * @var list<array{callback: Closure(): void, source: ?string}>
      */
@@ -188,19 +180,10 @@ final class Contributions
     }
 
     /**
-     * Appends whatever is not already present, preserving registration
-     * order. Every list here is static and therefore lives as long as the
-     * process does, so a provider that registers more than once — Octane's
-     * per-worker boot, a host provider re-registered by a test harness —
-     * would otherwise grow them without bound and hand `tenancy.migration_parameters`
-     * the same path several times over.
-     *
-     * The route-callback lists cannot be deduplicated the same way: two
-     * `Closure`s built from the same `function () { … }` on two boots are
-     * distinct objects with nothing comparable about them, and collapsing by
-     * `source` alone would drop a package's second, legitimately different
-     * contribution. They are bounded in practice by there being one
-     * registration site per package.
+     * Appends whatever is not already present, preserving registration order.
+     * These lists are static, so a provider registering twice would otherwise
+     * grow them without bound. The route-callback lists cannot use this, since
+     * two `Closure`s from the same source are distinct objects.
      *
      * @param  list<string>  $existing
      * @return list<string>
@@ -225,18 +208,9 @@ final class Contributions
     }
 
     /**
-     * For tests only — a real host or satellite registers contributions once,
-     * from a service provider, and they live for the application's lifetime.
-     *
-     * Kept as two methods rather than one `flush()`, mirroring
-     * `Numerosis::resetRouteContributionsForTesting()` and
-     * `::resetMigrationAndSeederContributionsForTesting()` exactly. Collapsing
-     * them would widen what each caller clears, and `PackageContributionSeamsTest`
-     * calls them separately.
-     *
-     * **Neither clears {@see self::$tenantColumns}**, which has no reset at
-     * all and never did: the only writer is `Models\Central\Tenant`'s own
-     * declaration, so there is no per-test registration to undo.
+     * For tests only; a real host registers contributions once and they live
+     * for the application's lifetime. Neither flush clears
+     * {@see self::$tenantColumns}, whose only writer is a class declaration.
      */
     public static function flushRouteContributions(): void
     {
