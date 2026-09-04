@@ -3,7 +3,7 @@
 Bring every comment and docblock in `src/` up to `.ai/rules/general.md`. Read
 that rule first. It is the standard; this plan is only the execution order.
 
-## Session handoff — 2026-09-04, after batch 14 of 4a
+## Session handoff — 2026-09-05, phase 4a and the `//` runs complete
 
 Read `.ai/rules/general.md`'s "How long a comment may be" first. It is the
 standard this phase enforces and it changed mid-sweep.
@@ -12,39 +12,30 @@ standard this phase enforces and it changed mid-sweep.
 
 | Metric | At cap | Now |
 | --- | --- | --- |
-| Over-budget docblocks | 112 blocks / 1,089 lines | 45 blocks / 281 lines, 43 files |
-| `//` runs over 3 lines | 23 / 114 lines | 22 / 110 lines |
-| Cadence hits (grep `A`) | 379 | ~220 |
+| Over-budget docblocks | 112 blocks / 1,089 lines | 1 block |
+| `//` runs over 3 lines | 23 / 114 lines | 0 |
+| Cadence hits (grep `A`) | 379 | 162 |
 
-Commits, oldest first: `db150ba` `832cac6` `1ca9f1d` `4b1e764` (batch 5, no
-hash recorded) `b476951` `47c794c` `de2bdff` `1a15799` `1d4fc38`, plus batches
-10 and 11. Files fully in budget now include
-`Support/{Numerosis,HostConfig,Contributions,ModelResolver,Assets,Domains,Cache/GlobalCache}`,
-`Testing/CleansUpTenancyDatabases`, `Commands/InstallNumerosisCommand`,
-`Livewire/Tenant/Registration`, `NumerosisServiceProvider`,
-`Providers/TenancyServiceProvider`, and the auth/tenancy classes of `1a15799`,
-`1d4fc38` and the two batches after it.
-
-### Next, in order
-
-The tail is uniform now: 45 blocks of 6–7 lines across 43 files, one block
-each. Regenerate the worst-first list with the docblock check in `general.md`
-and work it in batches of five or six. Most of these need one or two sentences
-cut, not a new rule-file home — the facts that needed one have mostly landed.
-
-Then the `//` runs, which this sweep has not touched at all: 22 runs holding
-110 lines, worst `Models/User.php:36` (15), then
-`Services/Billing/Resolvers/DefaultUnpaidTenantQuota.php:21` and
-`Livewire/Billing/Checkout.php:175` (7 each).
+**Phase 4a is done, and so are the `//` runs.** The single remaining
+over-budget docblock is
+`src/Http/Middleware/InitializeTenancyByDomainOrSubdomain.php:20`, which has
+been modified in another session's working tree throughout this sweep and was
+left untouched for that reason. It is six prose lines and needs one cut once
+that session lands or drops its change.
 
 `src/Services/Tenancy/Bootstrappers/AuthGuardBootstrapper.php` was reverted on
-2026-09-04 at the user's instruction; the other session's docblock rewrite there
-(which spliced `@see \Illuminate\Contracts\Auth\Authenticatable` mid-sentence)
-is gone and the file is at `HEAD`, already in budget at 4 prose lines.
+2026-09-05 at the user's instruction; the other session's docblock rewrite
+there (which spliced `@see \Illuminate\Contracts\Auth\Authenticatable`
+mid-sentence) is gone and the file is at `HEAD`, in budget at 4 prose lines.
 
-Then the `//` runs, worst first: `Models/User.php:36` (15 lines),
-`Services/Billing/Resolvers/DefaultUnpaidTenantQuota.php:21` and
-`Livewire/Billing/Checkout.php:175` (7 each).
+### Next: phase 4b, cadence
+
+162 hits from grep `A` remain, against 379 at baseline. The batch table below
+is ordering only and is stale where 4a has been — re-run grep `B` first. Most
+of what is left is a lone em-dash in an otherwise fine docblock; fix the line,
+do not restructure the block. Every fact that needed a rule-file or `docs/`
+home has already moved, so 4b should be prose-only and should touch no
+`.ai/rules/` file.
 
 ### Four things that already went wrong here
 
