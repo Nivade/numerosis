@@ -33,21 +33,6 @@ use Stancl\Tenancy\Contracts\Syncable;
  *
  * @mixin Model
  */
-// #[Fillable([
-//    'name',
-//    'email',
-//    'password',
-//    'global_id',
-//    'email_verified_at',
-// ])]
-// #[Guarded([
-//    'id',
-// ])]
-// #[Hidden([
-//    'password',
-//    'remember_token',
-// ])]
-// #[WithoutTimestamps]
 abstract class User extends Authenticatable implements MustVerifyEmail, Syncable
 {
     /** @use HasFactory<Factory<static>> */

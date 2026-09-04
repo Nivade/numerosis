@@ -66,10 +66,9 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
                 'required',
                 'string',
                 new DomainIsAvailable,
-                // Excludes the current user's own reservation so re-submitting
-                // this step (e.g. Back then Continue again) doesn't self-block
-                // on the row this same action creates below. See
-                // Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain.
+                // Excludes the current user's own reservation, so
+                // re-submitting this step does not self-block on the row
+                // ReserveTenantDomain creates below.
                 Rule::unique('pending_tenant_provisions', 'domain')
                     ->where(fn ($query) => $query->where('global_id', '!=', $user?->global_id)),
             ],

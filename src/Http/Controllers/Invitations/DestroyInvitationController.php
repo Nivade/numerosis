@@ -17,10 +17,9 @@ class DestroyInvitationController extends Controller
 
         $invitation->delete();
 
-        // `back()` rather than the named route. Path identification mode
-        // prefixes the tenant group `{tenant}`, and with no URL default
-        // registered for that parameter `route('team.invitations.index')`
-        // throws UrlGenerationException.
+        // `back()`, not the named route: path mode prefixes the tenant group
+        // `{tenant}`, and with no URL default for that parameter
+        // `route('team.invitations.index')` throws UrlGenerationException.
         return back()->with('status', __('Invitation revoked.'));
     }
 }

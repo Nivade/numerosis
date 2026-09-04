@@ -279,7 +279,9 @@ paths:
   already counted or not by definition. `UnpaidTenantQuota` exists at all
   because provisioning happens before settlement (14-day trial collects
   zero money upfront, same as authorised-but-still-settling payment) —
-  without cap that's free tenant-database faucet.
+  without cap that's free tenant-database faucet. "Unpaid" there means
+  anything short of a confirmed active subscription, trials included, since a
+  trial collects nothing upfront.
 
 ## Known gap — fixed
 

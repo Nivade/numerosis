@@ -160,9 +160,8 @@ class Checkout extends Component
             $resolved = ResolveSetupIntent::run($setupIntentId);
         } catch (CheckoutAlreadyCompleted) {
             // Replayed subscribe() for a SetupIntent already turned into a
-            // subscription — a double-click, or a retry after the browser
-            // never saw the first response. Settle from what already exists
-            // instead of surfacing a refusal for something that succeeded.
+            // subscription: a double-click, or a retry the browser never saw
+            // answered. Settle from what exists rather than refusing.
             $this->settleFromPendingSubscription();
 
             return;
@@ -172,13 +171,9 @@ class Checkout extends Component
             return;
         }
 
-        // ResolveSetupIntent proves the row belongs to whoever is asking, but
-        // not that it is the row *this component was mounted for* — and
-        // $setupIntentId is client input, while settle() below re-reads by
-        // $pendingDomain. A user holding two reservations could otherwise
-        // confirm domain-a's SetupIntent here and have domain-b provisioned
-        // from it, leaving domain-a still resumable off the same
-        // subscription: two tenants, one payment.
+        // ResolveSetupIntent proves the row belongs to the caller, not that it
+        // is the row this component mounted for. Without this, one user holding
+        // two reservations gets two tenants for one payment.
         if ($resolved->pending->domain !== $this->pendingDomain) {
             $this->paymentError = __('numerosis::billing.checkout.session_expired');
 
@@ -338,10 +333,9 @@ class Checkout extends Component
 
         SettleCheckout::run($pending, $subscription, $billable->stripe_id, (string) $billable->id);
 
-        // The registration wizard's session-persisted step state (see
-        // Registration::showStep() in Part 2 of this plan) is only useful
-        // while a registration is in progress. Clearing it here is a no-op
-        // when Checkout was reached standalone (nothing set the key).
+        // The wizard's session-persisted step state is only useful while a
+        // registration is in progress. A no-op when Checkout was reached
+        // standalone, since nothing set the key.
         session()->forget(RegistrationWizardFeature::SESSION_KEY);
 
         $this->redirectRoute(RouteNames::tenantsMine());

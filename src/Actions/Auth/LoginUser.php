@@ -45,11 +45,9 @@ class LoginUser
     {
         $provider = Auth::guard($guardName)->getProvider();
 
-        // Narrowed to the Eloquent provider rather than null-checked: only
-        // that one exposes getModel(), which is the whole reason the provider
-        // is resolved here. A guard backed by anything else cannot answer
-        // "which model does this guard expect", so it is a configuration
-        // error, not a null.
+        // Narrowed to the Eloquent provider, not null-checked: only that one
+        // exposes getModel(), so a guard backed by anything else is a
+        // configuration error.
         throw_unless(
             $provider instanceof EloquentUserProvider,
             RuntimeException::class,

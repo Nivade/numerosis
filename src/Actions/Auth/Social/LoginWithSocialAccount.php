@@ -53,9 +53,8 @@ class LoginWithSocialAccount
 
         if ($user === null && $data->email !== null) {
             // An email exists locally but does not qualify for the
-            // conditional link above (unverified on either side) — refuse
-            // rather than silently creating a second account for the same
-            // address.
+            // conditional link above, so refuse instead of creating a second
+            // account for the same address.
             $hasLocalAccount = $centralUserClass::query()
                 ->whereRaw('lower(email) = ?', [Str::lower($data->email)])
                 ->exists();
@@ -65,10 +64,9 @@ class LoginWithSocialAccount
             }
         }
 
-        // One transaction for both writes. Split, a failure on the second
-        // left a passwordless `CentralUser` with no credential attached, and
-        // the `$hasLocalAccount` branch above then refused that same identity
-        // on every retry.
+        // One transaction for both writes. Split, a failure on the second left
+        // a passwordless `CentralUser` with no credential, which the
+        // `$hasLocalAccount` branch then refused on every retry.
         $user = DB::transaction(function () use ($centralUserClass, $socialAccountClass, $user, $data): CentralUser {
             $user ??= $this->createUser($centralUserClass, $data);
 

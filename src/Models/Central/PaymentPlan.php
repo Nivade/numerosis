@@ -202,12 +202,9 @@ class PaymentPlan extends Model implements Plan
                 ->first()?->payment_plan_id
         );
 
-        // The cache round-trip does not preserve the int type the query
-        // itself returns — this store's driver hands back a string on
-        // read, so a strict `===` against `$this->id` (always int, cast by
-        // Eloquent) was silently always false. "Popular" has never actually
-        // matched a real plan through this path; only a loose comparison
-        // makes the cached value and the live id comparable again.
+        // The cache round-trip loses the int type the query returns: the
+        // driver hands back a string, so a strict `===` against the
+        // Eloquent-cast `$this->id` was silently always false.
         return $popularPlanId !== null && (int) $popularPlanId === $this->id;
     }
 

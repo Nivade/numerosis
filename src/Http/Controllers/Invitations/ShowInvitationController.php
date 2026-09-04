@@ -26,9 +26,8 @@ class ShowInvitationController extends Controller
             throw_if($invitation->isExpired(), InvitationExpired::class, 'This invitation has expired.');
         } catch (ShowsMessageToUser $e) {
             // Fortify's `login` carries `guest`, which bounces an
-            // authenticated visitor to `home` and drops the flash with it, so
-            // the message would be invisible to exactly the people who are
-            // signed in.
+            // authenticated visitor to `home` and drops the flash with it,
+            // hiding the message from exactly the people who are signed in.
             return $authenticated
                 ? redirect()->route(RouteNames::tenantsMine())->with('status', $e->getMessage())
                 : redirect()->route('login')->with('status', $e->getMessage());

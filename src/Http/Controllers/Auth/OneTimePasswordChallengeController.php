@@ -45,10 +45,9 @@ class OneTimePasswordChallengeController extends Controller
 
         $user = $resolver->find($email);
 
-        // A session naming an address with no account fails exactly as a
-        // wrong code does, rather than redirecting: a distinguishable outcome
-        // here would re-open on this endpoint the account-existence oracle
-        // that `RedirectIfOneTimePasswordAuthenticatable` closes on /login.
+        // A session naming an address with no account fails exactly as a wrong
+        // code does. A distinguishable outcome would re-open here the
+        // account-existence oracle /login closes.
         if (! $user instanceof User) {
             throw ValidationException::withMessages([
                 'code' => [trans('auth.failed')],

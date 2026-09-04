@@ -66,10 +66,9 @@ class LinkSubscriptionToTenant
                     'subscribable_type' => Numerosis::model(Tenant::class),
                 ];
 
-                // `payment_plan_id` is a column this package adds, so it only
-                // exists on this package's own subscription model — which is
-                // what the repository returns, but not what its contract can
-                // promise (see SubscriptionRepository's docblock).
+                // `payment_plan_id` is a column this package adds, so it
+                // exists only on this package's subscription model, which the
+                // repository returns but its contract cannot promise.
                 if ($subscription instanceof Subscription && $subscription->payment_plan_id === null) {
                     $update['payment_plan_id'] = Numerosis::model(PaymentPlan::class)::firstWhere('slug', $data->registration->payment_plan)?->id;
                 }

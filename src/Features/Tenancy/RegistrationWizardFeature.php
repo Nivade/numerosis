@@ -52,11 +52,9 @@ class RegistrationWizardFeature implements NamedFeature
 
     public function bootstrap(): void
     {
-        // Default step list. A host that already configured its own steps
-        // wins: this only fills an unset key, and every feature's
-        // bootstrap() runs well after config publishing and a host
-        // provider's register() phase, so there is no register-order race
-        // to protect against here.
+        // Fills an unset key only, so a host's own step list wins. Every
+        // feature's bootstrap() runs after config publishing and a host
+        // provider's register(), so there is no order race to guard.
         if (Config::get('numerosis.tenancy.registration.steps') === null) {
             Config::set('numerosis.tenancy.registration.steps', [
                 Wizard\CompanyInfo::class,

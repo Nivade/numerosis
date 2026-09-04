@@ -18,13 +18,9 @@ class DefaultUnpaidTenantQuota implements UnpaidTenantQuota
     {
         $max = Config::integer('numerosis.billing.unpaid_tenant_cap', 2);
 
-        // "Unpaid" is anything short of a confirmed active subscription,
-        // trials included — a trial collects nothing upfront.
-        // Eager-loaded because latestSubscription() is a query, not a
-        // relation, and would otherwise fire once per owned tenant on the
-        // checkout hot path. subscriptions() is already ordered latest-first,
-        // so the loaded collection's first element is the same row it
-        // would have returned.
+        // Eager-loaded because latestSubscription() is a query and would fire
+        // once per owned tenant on the checkout hot path. subscriptions() is
+        // ordered latest-first, so the first element is the row it returns.
         /** @var Collection<int, Tenant> $owned */
         $owned = $user->tenants()
             ->wherePivot('role', MembershipRole::Owner->value)

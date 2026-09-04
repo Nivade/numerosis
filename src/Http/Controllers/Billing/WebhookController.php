@@ -55,9 +55,8 @@ class WebhookController extends CashierWebhookController
         $stripeSubscriptionId = $stripeSubscription['id'] ?? null;
 
         // Locked against the provisioning path, which writes the same
-        // subscription. The checkout request itself is not covered — a
-        // webhook can arrive before it commits — so a duplicate here means
-        // already synced, not failed.
+        // subscription. The checkout request is not covered, since a webhook
+        // can arrive before it commits, so a duplicate here means synced.
         $handle = function () use ($payload): Response {
             try {
                 return parent::handleCustomerSubscriptionCreated($payload);
@@ -71,10 +70,9 @@ class WebhookController extends CashierWebhookController
             ? Cache::lock("reconcile-subscription:{$stripeSubscriptionId}", 10)->block(5, $handle)
             : $handle();
 
-        // The inline checkout only puts the domain in Stripe metadata — the
-        // rest of the registration lives on the pending row. A subscription
-        // created directly in the Stripe Dashboard carries none. No-op if
-        // CompleteRedirectCheckout already consumed the pending row.
+        // Inline checkout puts only the domain in Stripe metadata; the rest of
+        // the registration is on the pending row, and a subscription made in
+        // the Stripe Dashboard carries neither.
         $domain = $metadata['domain'] ?? null;
         $pendingClass = Numerosis::model(PendingTenantProvision::class);
 
@@ -96,10 +94,9 @@ class WebhookController extends CashierWebhookController
             /** @var int|null $userId */
             $userId = $centralUserClass::where('global_id', $registration->global_id)->value('id');
 
-            // Queued, not provisioned inline: Stripe retries a webhook
-            // that doesn't respond fast, and creating/migrating/seeding a
-            // tenant database exceeds that budget. Unique per domain, so
-            // a no-op when the redirect path already dispatched it.
+            // Queued, not inline: Stripe retries a webhook that answers
+            // slowly, and building a tenant database exceeds that budget.
+            // Unique per domain, so the redirect path cannot double-dispatch.
             $this->provisioning->queue(new TenantProvisionData(
                 registration: $registration,
                 stripeCustomerId: $stripeSubscription['customer'] ?? null,

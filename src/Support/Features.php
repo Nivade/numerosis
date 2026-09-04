@@ -43,9 +43,8 @@ final class Features
         }
 
         // Defaulted because a satellite provider can reach this before core's
-        // `mergeConfigFrom()` runs. Larastan boots an application that
-        // discovers vendor packages without the root one. `self::$registered`
-        // is still honoured in that state.
+        // `mergeConfigFrom()` runs, as under Larastan. `self::$registered` is
+        // still honoured in that state.
         /** @var list<class-string<Feature>> $features */
         $features = Config::array('numerosis.features', []);
 

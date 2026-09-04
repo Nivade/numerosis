@@ -26,11 +26,9 @@ class DeleteUserForm extends Component
 
         $user = GetAuthenticatedUser::run();
 
-        // Deleting a central account is a central-guard operation, and this
-        // form is only ever reached from the central account pages. Anything
-        // else resolving here (a tenant user, or no user at all once the
-        // session has expired mid-form) must not reach the delete action —
-        // it would either target the wrong table or fatal on null.
+        // A tenant user, or none at all once the session expired mid-form,
+        // must not reach the delete action: it would target the wrong table
+        // or fatal on null.
         if (! $user instanceof CentralUser) {
             $this->addError('password', __('numerosis::auth.failed'));
 
