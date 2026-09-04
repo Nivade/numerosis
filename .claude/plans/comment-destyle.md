@@ -3,39 +3,41 @@
 Bring every comment and docblock in `src/` up to `.ai/rules/general.md`. Read
 that rule first. It is the standard; this plan is only the execution order.
 
-## Session handoff — 2026-09-05, phase 4a and the `//` runs complete
+## Status — 2026-09-05: the sweep is done
 
-Read `.ai/rules/general.md`'s "How long a comment may be" first. It is the
-standard this phase enforces and it changed mid-sweep.
-
-### Where it stands
+Every phase of this plan has run. `.ai/rules/general.md` is the standard; this
+file is now a record of how it was enforced.
 
 | Metric | At cap | Now |
 | --- | --- | --- |
-| Over-budget docblocks | 112 blocks / 1,089 lines | 1 block |
+| Over-budget docblocks | 112 blocks / 1,089 lines | 1 |
 | `//` runs over 3 lines | 23 / 114 lines | 0 |
-| Cadence hits (grep `A`) | 379 | 162 |
+| Cadence hits (grep `A`) | 379 | 1 |
+| Comments citing `.ai/rules` or `.claude` | 38 across 28 files | 0 |
 
-**Phase 4a is done, and so are the `//` runs.** The single remaining
-over-budget docblock is
-`src/Http/Middleware/InitializeTenancyByDomainOrSubdomain.php:20`, which has
-been modified in another session's working tree throughout this sweep and was
-left untouched for that reason. It is six prose lines and needs one cut once
-that session lands or drops its change.
+**The single remaining hit in each row is the same file**,
+`src/Http/Middleware/InitializeTenancyByDomainOrSubdomain.php`: a six-line
+docblock whose opening line reads "instead of". It has been modified in another
+session's working tree for the whole sweep and was left alone deliberately.
+Finish it once that session lands or drops its change, and this plan can be
+archived.
 
 `src/Services/Tenancy/Bootstrappers/AuthGuardBootstrapper.php` was reverted on
 2026-09-05 at the user's instruction; the other session's docblock rewrite
 there (which spliced `@see \Illuminate\Contracts\Auth\Authenticatable`
 mid-sentence) is gone and the file is at `HEAD`, in budget at 4 prose lines.
 
-### Next: phase 4b, cadence
+### What the phases actually cost
 
-162 hits from grep `A` remain, against 379 at baseline. The batch table below
-is ordering only and is stale where 4a has been — re-run grep `B` first. Most
-of what is left is a lone em-dash in an otherwise fine docblock; fix the line,
-do not restructure the block. Every fact that needed a rule-file or `docs/`
-home has already moved, so 4b should be prose-only and should touch no
-`.ai/rules/` file.
+Phase 4a was the large one and behaved as predicted: most of the reduction came
+from deleting paragraphs that duplicated a rule file, and the rest from moving
+facts into `.ai/rules/` or `docs/` before cutting the source. Phase 4b was
+prose-only and touched no rule file, which is the signal that 4a had already
+found every fact worth relocating.
+
+Two files absorbed most of the displaced material: `.ai/rules/auth-login.md`
+and `.ai/rules/billing-checkout.md`. `docs/extending.md` and
+`docs/host-requirements.md` took everything host-facing.
 
 ### Four things that already went wrong here
 
