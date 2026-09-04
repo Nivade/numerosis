@@ -19,12 +19,8 @@ use Spatie\LivewireWizard\Components\WizardComponent;
 class Registration extends WizardComponent
 {
     /**
-     * Redeclared here (not just inherited from WizardComponent) so #[Url]
-     * can be attached to it: Livewire hydrates #[Url] properties from the
-     * query string during property hydration, before mountMountsWizard()
-     * (in the vendor MountsWizard trait) resolves which step to show — so a
-     * hard refresh lands back on the step the URL already names, with no
-     * dependency on trait-vs-class mount() call ordering.
+     * Redeclared from `WizardComponent` so `#[Url]` can attach to it, which
+     * is what makes a hard refresh land on the step the query string names.
      */
     #[Url(as: 'step', history: false)]
     public ?string $currentStepName = null;
@@ -42,24 +38,10 @@ class Registration extends WizardComponent
     public function register(): void {}
 
     /**
-     * `WizardComponent::getCurrentStepState()` hands each step component a
-     * `wizardClassName` of `static::class` — the raw FQCN — which every
-     * `StepComponent::nextStep()`/`previousStep()`/`showStep()` call then
-     * uses as `->to($this->wizardClassName)` to target the dispatched
-     * Livewire event back at this component. That only works if the wizard
-     * is discoverable under its own class name; `RegistrationWizardFeature`
-     * registers it under the short alias `tenant-registration` instead (via
-     * `Livewire::addComponent`), same as `company-info`/`technical-setup`/
-     * `plan`. Left uncorrected, `.to()` targets a component name nothing is
-     * embedded under, so the dispatched event has nowhere to land —
-     * `nextStep`/`previousStep`/`showStep` become silent no-ops: no
-     * exception, no validation error, the request round-trips successfully,
-     * and the wizard simply never advances. Confirmed live, 2026-08-12:
-     * clicking "Continue" (and calling `$wire.continue()` directly) on the
-     * first step never changed `currentStepName`, with nothing in the logs.
-     * Same fix shape `stateToPersist()` below already uses for `Plan`'s own
-     * alias (`livewire.finder`, not a hardcoded string) — resolved here
-     * rather than reintroducing the exact class-name assumption that broke.
+     * Resolves `wizardClassName` to the alias this component is registered
+     * under. The parent sets it to `static::class`, which every step's
+     * `->to($this->wizardClassName)` then targets, so leaving it makes each
+     * transition a silent no-op.
      *
      * @return array<string, mixed>
      */
@@ -93,12 +75,8 @@ class Registration extends WizardComponent
     }
 
     /**
-     * Session-backed so a hard refresh restores everything filled in on
-     * steps already left via showStep()/nextStep()/previousStep() — see the
-     * matching write in showStep() below, which is the only place that
-     * writes this key. Does not cover the step currently open and not yet
-     * submitted — a refresh before clicking Continue on the open step still
-     * loses that step's edits, same as before this change.
+     * Restores the steps already left behind, which {@see self::showStep()}
+     * wrote. The open step is not in there until it is submitted.
      *
      * @return array<string, array<string, mixed>>|null
      */
@@ -111,19 +89,10 @@ class Registration extends WizardComponent
     }
 
     /**
-     * The single choke point every step transition passes through
-     * (nextStep(), previousStep(), and the 'showStep' Livewire event Plan
-     * uses for its validation redirects) — so persisting here, once, covers
-     * all of them with no change to any individual step component.
-     *
-     * #[On('showStep')] has to be repeated on this override: PHP attributes
-     * on a method are not inherited when a child class overrides that
-     * method, and StepComponent::showStep() (called from Plan/Payment)
-     * reaches this via a dispatched 'showStep' Livewire event, not a direct
-     * method call — see vendor/spatie/laravel-livewire-wizard/src/Components/StepComponent.php.
-     * Without the attribute here, that event stops being handled and
-     * Plan's showStep('company-info') / showStep('technical-setup')
-     * validation redirects silently break.
+     * The one choke point every step transition passes through, so wizard
+     * state is persisted here rather than in each step component. Keep
+     * `#[On('showStep')]` on this override; attributes do not inherit, and
+     * the event is how `StepComponent::showStep()` reaches it.
      *
      * @param  string  $toStepName
      * @param  array<string, mixed>  $currentStepState

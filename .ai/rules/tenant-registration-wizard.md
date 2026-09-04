@@ -142,3 +142,27 @@ rather than accept `SomeClass::class` at the call site, the same way this
 codebase already does for every step alias. If a second multi-step wizard
 is ever added, wire it through the same `getCurrentStepState()` override
 pattern from the start rather than rediscovering this.
+
+## Three inheritance traps in `Registration`, all silent
+
+- **`#[On('showStep')]` has to be repeated on the override.** PHP attributes on
+  a method are not inherited when a child overrides it, and
+  `StepComponent::showStep()` reaches the wizard through a dispatched
+  `showStep` Livewire event rather than a direct call. Drop the attribute from
+  the override and `Plan`'s `showStep('company-info')` /
+  `showStep('technical-setup')` validation redirects stop being handled, with
+  no error. That override is also the single choke point every transition
+  passes through (`nextStep()`, `previousStep()`, and the event), which is why
+  wizard state is persisted there once rather than per step component.
+
+- **`$currentStepName` is redeclared on the class so `#[Url]` can attach to
+  it.** Livewire hydrates `#[Url]` properties before `mountMountsWizard()` (in
+  the vendor `MountsWizard` trait) resolves which step to show, so a hard
+  refresh lands on the step the query string names without depending on
+  trait-versus-class `mount()` ordering. Inheriting the property from
+  `WizardComponent` gives it no attribute and loses that.
+
+- **`initialState()` restores steps already left, never the open one.** It
+  reads `registration.wizard_state`, written only by the `showStep` override
+  above, so a refresh before the open step is submitted still loses that step's
+  edits.
