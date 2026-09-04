@@ -9,13 +9,11 @@ use Sentry\State\Scope;
 use function Sentry\configureScope;
 
 /**
- * Records the tenant on Sentry's scope from a queued job's `failed()`
- * handler.
- *
- * Compose this into any tenant-aware job whose failures are worth debugging.
- * Exception context alone cannot recover the tenant: by the time the queue
- * worker reports the failure, tenancy has already reverted — but the job's
- * own `failed()` runs first, which is what this relies on.
+ * Records the tenant on Sentry's scope from a queued job's `failed()` handler.
+ * Compose it into any tenant-aware job whose failures are worth debugging.
+ * Exception context alone cannot recover the tenant, because tenancy has
+ * reverted by the time the worker reports the failure; the job's own
+ * `failed()` runs before that, which is what this relies on.
  */
 trait TagsSentryScopeWithTenant
 {

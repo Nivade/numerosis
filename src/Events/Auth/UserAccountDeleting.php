@@ -9,13 +9,11 @@ use Illuminate\Queue\SerializesModels;
 use Nvade\Numerosis\Models\Central\CentralUser;
 
 /**
- * Dispatched before the row is deleted, so a listener can still read
- * `$user->tenants` and everything else that belongs to it.
- *
- * That only works for a synchronous listener. A queued one unserializes
- * `$user` through `SerializesModels` after the delete has already committed
- * and gets a `ModelNotFoundException`; read what you need here and hand it to
- * the queue yourself, or listen for `UserAccountDeleted` instead.
+ * Dispatched before the row is deleted, so a synchronous listener can still
+ * read `$user->tenants`. A queued one cannot: `SerializesModels` unserializes
+ * `$user` after the delete has committed and throws `ModelNotFoundException`.
+ * Read what you need here and hand it to the queue yourself, or listen for
+ * `UserAccountDeleted`.
  */
 class UserAccountDeleting
 {

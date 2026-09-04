@@ -19,12 +19,10 @@ use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
- * A selling point attached to a payment plan — "Up to 5 team members",
- * "Priority support" — rendered on pricing tables and editable by staff.
- *
- * **Not** a `Nvade\Numerosis\Contracts\Feature`, and nothing to do with
- * `config('numerosis.features')`. Those are code-level capability switches
- * that decide which routes and services register; this is plan copy in the
+ * A selling point attached to a payment plan, rendered on pricing tables and
+ * editable by staff. Not a `Nvade\Numerosis\Contracts\Feature` and unrelated
+ * to `config('numerosis.features')`: those are code-level capability switches
+ * deciding which routes and services register, this is plan copy in the
  * database.
  *
  * @property int $id

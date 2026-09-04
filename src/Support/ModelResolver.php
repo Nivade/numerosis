@@ -68,13 +68,11 @@ final class ModelResolver
     }
 
     /**
-     * The factory that builds a given model.
-     *
-     * Replaces Laravel's *global* factory-name resolver, since every factory
-     * ships from this package even when the model is a subclass in your app
-     * namespace, so any class under a `\Models\` namespace resolves to
-     * `Nvade\Numerosis\Database\Factories\<suffix>Factory`. `#[UseFactory]` on
-     * a model of your own short-circuits that.
+     * The factory that builds a given model. Replaces Laravel's *global*
+     * factory-name resolver, since every factory ships from this package even
+     * for a model subclassed in your app namespace: any class under a
+     * `\Models\` namespace resolves to
+     * `Nvade\Numerosis\Database\Factories\<suffix>Factory`, bar `#[UseFactory]`.
      *
      * @param  class-string<Model>  $modelName
      * @return class-string<Factory<Model>>

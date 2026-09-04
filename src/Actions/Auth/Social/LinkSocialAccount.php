@@ -17,9 +17,8 @@ use Nvade\Numerosis\Support\Numerosis;
  *
  * An identity already held by a different account throws
  * `SocialAccountAlreadyLinked`. The table's `unique(provider, provider_id)`
- * still backstops the concurrent case, but reaching it through the happy path
- * surfaced as an uncaught `QueryException`, so connecting a provider account
- * someone else had already connected was a 500 rather than a message.
+ * still backstops the concurrent case, but reaching that through the happy
+ * path surfaced as an uncaught `QueryException`, making the collision a 500.
  *
  * @method static SocialAccount run(CentralUser $user, SocialUserData $data)
  */

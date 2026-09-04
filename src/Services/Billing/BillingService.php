@@ -24,12 +24,11 @@ use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Testing\FakeCheckoutGateway;
 
 /**
- * Thin manager delegating to the billing contracts — the one class a
- * consumer of this package types when they want something from it. Every
- * method here is a one-liner over a swappable contract; the swapping itself
- * happens in config('numerosis.billing.implementations') or via the closure hooks
- * below, checked before the container binding, mirroring Cashier's own
- * Cashier::useCustomerModel()-style API.
+ * Thin manager delegating to the billing contracts, and the one class a
+ * consumer of this package types. Every method is a one-liner over a swappable
+ * contract; swap through config('numerosis.billing.implementations') or the
+ * closure hooks below, which are checked before the container binding and
+ * mirror Cashier::useCustomerModel().
  */
 class BillingService
 {

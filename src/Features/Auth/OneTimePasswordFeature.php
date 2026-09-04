@@ -35,11 +35,11 @@ class OneTimePasswordFeature implements NamedFeature
 
     /**
      * The single `trait_exists()` seam for `spatie/laravel-one-time-passwords`,
-     * a `composer.json` `suggest`. Nothing else probes that package: without
-     * it `User` composes the empty
-     * {@see \Nvade\Numerosis\Support\Compat\HasOneTimePasswordsIfInstalled},
-     * `sendOneTimePassword()` does not exist, and the challenge route would
-     * fatal on `new OneTimePasswordRule` rather than degrade.
+     * a `composer.json` `suggest`. Nothing else probes that package: without it
+     * `User` composes an empty compat trait, `sendOneTimePassword()` does not
+     * exist, and the challenge route fatals on `new OneTimePasswordRule`.
+     *
+     * @see \Nvade\Numerosis\Support\Compat\HasOneTimePasswordsIfInstalled
      */
     public static function available(): bool
     {

@@ -239,11 +239,9 @@ class TenancyServiceProvider extends ServiceProvider
     }
 
     /**
-     * Whether the resolver's tenant cache can be trusted on this host.
-     *
      * `DomainTenantResolver` caches a whole tenant model, so the cache follows
-     * what `cache.serializable_classes` can actually store: an allowlist has to
-     * name the tenant model, `false` disables the cache, and
+     * what `cache.serializable_classes` can store: an allowlist has to name the
+     * tenant model, `false` disables the cache, and
      * `numerosis.tenancy.cache_resolved_tenants` overrides either way. A store
      * that cannot unserialize it returns `__PHP_Incomplete_Class` silently.
      */

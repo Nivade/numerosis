@@ -15,11 +15,8 @@ use RuntimeException;
 /**
  * Fortify's `ResetsUserPasswords` slot, bound via
  * `Fortify::resetUserPasswordsUsing()`. `NewPasswordController` calls this
- * from inside the password broker's callback, after the broker has already
- * verified the token — only the new password needs validating here.
- *
- * No core action covered this before Phase 4; the logic lived inside
- * `auth-ui`'s now-deleted `ResetPassword` Livewire component.
+ * from inside the password broker's callback, after the broker has verified
+ * the token, so only the new password needs validating here.
  */
 class ResetUserPassword implements ResetsUserPasswords
 {

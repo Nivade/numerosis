@@ -8,11 +8,10 @@ use Nvade\Numerosis\Models\User;
 
 /**
  * Standard CRUD policy over permissions named `"<action> <context>"`, drawn
- * from the same vocabulary {@see \Nvade\Numerosis\Models\Permission::actionsFor()}
+ * from the vocabulary {@see \Nvade\Numerosis\Models\Permission::actionsFor()}
  * seeds. Compose it and declare {@see self::permissionContext()}. Each check
  * resolves against the model's own guard, and `updateAny`/`deleteAny`
- * short-circuit the per-record check. A policy with real domain logic of its
- * own should not build on this.
+ * short-circuit the per-record check.
  */
 trait ChecksContextPermissions
 {

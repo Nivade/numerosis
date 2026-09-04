@@ -20,10 +20,9 @@ class FindUserByGlobalId
 
     /**
      * Only the raw attributes are cached, never the model instance: both user
-     * models carry $with-eager-loaded or lazily-loaded relations that would
-     * otherwise be baked into the cache at write time and go stale the moment
-     * something outside this action's own saved/deleted hooks changes them
-     * (e.g. a Membership row). Rehydrating via newFromBuilder() gives back a
+     * models carry relations that would be baked into the cache at write time
+     * and go stale as soon as something outside this action's own saved and
+     * deleted hooks changed them. Rehydrating via newFromBuilder() gives back a
      * model with no relations loaded, exactly like a fresh query would.
      */
     public function handle(string $globalId, ?Context $context = null): ?User

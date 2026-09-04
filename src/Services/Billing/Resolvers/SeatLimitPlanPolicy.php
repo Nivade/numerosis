@@ -11,13 +11,11 @@ use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * Refuses a plan whose seat limit the tenant already exceeds. Checked when
- * starting a checkout and when swapping plans.
- *
- * `options.max_users` comes from host-editable config, so it is `mixed`. A
- * value that is not numeric is treated as no limit, the same as an absent one
- * — a malformed entry must not lock a customer out of a plan they are paying
- * for.
+ * Refuses a plan whose seat limit the tenant already exceeds, checked when
+ * starting a checkout and when swapping plans. `options.max_users` comes from
+ * host-editable config, so a non-numeric value is treated as no limit, exactly
+ * as an absent one is: a malformed entry must not lock a customer out of a
+ * plan they are paying for.
  */
 class SeatLimitPlanPolicy implements PlanPolicy
 {

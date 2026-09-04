@@ -9,12 +9,11 @@ use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Contracts\NamedFeature;
 
 /**
- * The whole OAuth surface: routes, provider buttons, and the connected-
- * accounts manager. Enabling a provider means credentials in
- * `config/services.php` plus a case on `Enums\Auth\SocialProvider`. Discord
- * needs its driver registered here too, from `socialiteproviders/discord` —
- * a `suggest`, so its class names appear as strings and never as a `use`
- * import, which would fatal on a host that has not installed it.
+ * The whole OAuth surface: routes, provider buttons, connected-accounts
+ * manager. Enabling a provider means credentials in `config/services.php` plus
+ * a case on `Enums\Auth\SocialProvider`. Discord also needs its driver
+ * registered here, from the `socialiteproviders/discord` `suggest`, whose class
+ * names stay strings because a `use` import would fatal without it.
  */
 class SocialLoginFeature implements NamedFeature
 {

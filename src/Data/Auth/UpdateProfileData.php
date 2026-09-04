@@ -10,10 +10,9 @@ use Spatie\LaravelData\Optional;
 /**
  * Crosses Fortify's `array $input` boundary for
  * `Actions\Auth\UpdateUserProfile::update()`. Optional fields default to
- * `Optional` and never `?string`, since `UpdateUserProfile` fills then checks
- * `isDirty('email')`, so a `null` for an unsubmitted field would clear it.
- * Email uniqueness-except-self needs the target user in scope, so
- * `UpdateUserProfile` checks that itself before saving.
+ * `Optional` and never `?string`, since that action fills then checks
+ * `isDirty('email')`, so a `null` for an unsubmitted field would clear it. It
+ * also checks email uniqueness-except-self, which needs the user in scope.
  */
 class UpdateProfileData extends Data
 {

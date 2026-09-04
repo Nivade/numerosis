@@ -9,11 +9,10 @@ use Override;
 
 /**
  * Bound over Fortify's own `VerifyEmailRequest` in
- * `NumerosisServiceProvider::packageBooted()` — `VerifyEmailController`
- * type-hints the concrete class, so a subclass binding still resolves.
- * `EmailVerificationFeature` builds the signed URL's `id` from
- * `getGlobalIdentifierKey()`, not the primary key Fortify's own
- * `authorize()` compares against; this override matches it.
+ * `NumerosisServiceProvider::packageBooted()`. `EmailVerificationFeature`
+ * builds the signed URL's `id` from `getGlobalIdentifierKey()` and never the
+ * primary key Fortify's `authorize()` compares against, so this override
+ * matches it.
  */
 class NumerosisVerifyEmailRequest extends VerifyEmailRequest
 {

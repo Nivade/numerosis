@@ -12,12 +12,11 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
 
 /**
- * Attaches the registering user to the tenant as its owner, and creates their
+ * Attaches the registering user to the tenant as its owner and creates their
  * counterpart row inside the tenant database. A provisioning step, idempotent
- * so a retried provision is harmless. It writes the tenant-side row itself
- * because neither `MembershipObserver::created()` nor
- * `Listeners\Tenancy\BackfillTenantUsers` has run by the time
- * `PromoteFirstUserToAdmin` reads the tenant's users.
+ * on retry. It writes the tenant-side row itself because neither
+ * `MembershipObserver::created()` nor `Listeners\Tenancy\BackfillTenantUsers`
+ * has run when `PromoteFirstUserToAdmin` reads the tenant's users.
  */
 class AddTenantOwner
 {

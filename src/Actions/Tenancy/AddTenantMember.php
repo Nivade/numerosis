@@ -10,14 +10,11 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * Only attaches. The tenant-side user row and the `MemberJoined` event both
- * come from `MembershipObserver::created()` — attaching through the
- * relation (never `Membership::create()` or a raw insert) is what makes that
- * fire.
- *
- * `$invitedBy` is the inviter's `global_id`: the pivot's `invited_by` column
- * is a foreign key onto `users.global_id`, never the numeric primary key
- * `Invitation::invited_by_user_id` carries.
+ * Only attaches, and only through the relation: `Membership::create()` or a
+ * raw insert skips `MembershipObserver::created()`, which is what produces the
+ * tenant-side user row and the `MemberJoined` event. `$invitedBy` is the
+ * inviter's `global_id`, since the pivot's `invited_by` is a foreign key onto
+ * `users.global_id` and never `Invitation::invited_by_user_id`.
  *
  * @method static void run(Tenant $tenant, CentralUser $user, MembershipRole $role, ?string $invitedBy)
  */

@@ -13,12 +13,11 @@ use Illuminate\Support\Facades\Cookie;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * Drops the tenant guard's session state when the session was established for a
- * different tenant. One session cookie spans the whole apex domain, and the
- * tenant guard stores nothing but a per-database primary key, so the same id
- * identifies a different person in the next tenant. Clearing it fails the
- * mismatch closed, and `Authenticate` re-establishes the right tenant user
- * from the central guard.
+ * Drops the tenant guard's session state when the session was established for
+ * a different tenant. One session cookie spans the apex domain and the tenant
+ * guard stores nothing but a per-database primary key, so the same id
+ * identifies a different person in the next tenant. Clearing it fails closed;
+ * `Authenticate` re-establishes the right user from the central guard.
  */
 class EnsureSessionMatchesTenant
 {

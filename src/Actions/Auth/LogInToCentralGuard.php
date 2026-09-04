@@ -10,12 +10,11 @@ use Nvade\Numerosis\Models\User;
 use RuntimeException;
 
 /**
- * The second half of the old `LoginUser` action, run as a step in Fortify's
- * `authenticateThrough()` pipeline (`NumerosisServiceProvider::packageBooted()`),
- * after `AttemptToAuthenticate`/`PrepareAuthenticatedSession` have already
- * logged the request's own guard in. Dual-guard login itself still lives in
- * `LoginUser`, which this delegates to — this class only adapts it to the
- * pipeline's `(Request, Closure): mixed` shape.
+ * A step in Fortify's `authenticateThrough()` pipeline, running after
+ * `AttemptToAuthenticate`/`PrepareAuthenticatedSession` have logged the
+ * request's own guard in. Dual-guard login lives in `LoginUser`, which this
+ * delegates to; this class only adapts it to the pipeline's
+ * `(Request, Closure): mixed` shape.
  */
 class LogInToCentralGuard
 {

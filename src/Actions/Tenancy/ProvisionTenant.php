@@ -18,12 +18,10 @@ use Throwable;
 
 /**
  * Provisions a tenant: creates the tenant row synchronously, then runs the
- * database, ownership, subscription and finalization work as a queued chain
- * on the `provisioning` queue.
- *
- * Reach it through {@see ProvisionsTenant::queue()} rather than dispatching
- * it directly. Add your own steps via `numerosis.tenancy.provisioning.steps`;
- * every step must be idempotent, since the chain can be retried.
+ * database, ownership, subscription and finalization work as a queued chain on
+ * the `provisioning` queue. Reach it through {@see ProvisionsTenant::queue()}
+ * and never by dispatching it directly. Add your own steps via
+ * `numerosis.tenancy.provisioning.steps`; each must be idempotent on retry.
  */
 class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
 {

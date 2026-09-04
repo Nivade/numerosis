@@ -19,14 +19,11 @@ use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Stripe\Exception\ApiErrorException;
 
 /**
- * Creates the Stripe subscription for a checkout.
- *
- * Takes an explicit billable for callers with no session of their own — the
- * Stripe webhook, in particular. Everyone else resolves it from the request.
- *
- * On an incomplete payment, the subscription id is recorded before the
- * exception propagates, so a replay cannot create a second subscription
- * while the challenge is still pending.
+ * Creates the Stripe subscription for a checkout. Takes an explicit billable
+ * for callers with no session of their own, the Stripe webhook in particular;
+ * everyone else resolves it from the request. On an incomplete payment the
+ * subscription id is recorded before the exception propagates, so a replay
+ * cannot create a second subscription while the challenge is pending.
  *
  * @throws IncompletePayment
  * @throws ApiErrorException the Stripe call underneath `newSubscription()->create()`

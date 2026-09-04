@@ -16,13 +16,11 @@ use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
- * A tenant that has been claimed but does not exist yet.
- *
- * The row is written when the checkout session is created (status `reserved`),
- * promoted to `provisioning` once payment is confirmed, and deleted once
- * provisioning succeeds. It exists purely so `tenants.mine` can render a
- * placeholder before the Tenant record itself exists — once the Tenant row is
- * there, readiness is tracked by `tenants.provisioned_at` instead.
+ * A tenant that has been claimed but does not exist yet. Written when the
+ * checkout session is created (status `reserved`), promoted to `provisioning`
+ * once payment is confirmed, and deleted once provisioning succeeds. It exists
+ * so `tenants.mine` can render a placeholder before the Tenant row does;
+ * afterwards readiness is `tenants.provisioned_at`.
  *
  * @property string $domain
  * @property string|null $custom_domain

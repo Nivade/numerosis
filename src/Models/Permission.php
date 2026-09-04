@@ -62,13 +62,11 @@ class Permission extends \Spatie\Permission\Models\Permission
     }
 
     /**
-     * Actions that only make sense for one context, keyed by context.
-     *
-     * Empty in core: every context it ships wants exactly
-     * {@see self::defaultActions()}. The seam exists for a context whose verbs
-     * are not CRUD. Only the tenant seeder reads it, and a subclass's override
-     * only takes effect through a seeder of your own, since both package
-     * seeders name this class literally.
+     * Actions that only make sense for one context, keyed by context. Empty in
+     * core, since every context it ships wants exactly
+     * {@see self::defaultActions()}. Only the tenant seeder reads it, and a
+     * subclass's override only takes effect through a seeder of your own, since
+     * both package seeders name this class literally.
      *
      * @see self::actionsFor()
      * @see \Nvade\Numerosis\Database\Seeders\Tenant\PermissionAndRoleSeeder
