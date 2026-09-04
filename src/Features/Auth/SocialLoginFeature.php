@@ -15,10 +15,8 @@ use Nvade\Numerosis\Contracts\NamedFeature;
  * Enabling a provider means credentials in `config/services.php` plus a case
  * on `Nvade\Numerosis\Enums\Auth\SocialProvider`. Google, GitHub, GitLab and
  * Facebook need nothing more; Discord's driver is registered here, since
- * Socialite does not ship one — `socialiteproviders/discord` is a
- * `suggest`, so the class names are referenced as strings rather than `use`
- * imports, the same `class_exists()` seam `.ai/rules/optional-dependencies.md`
- * documents elsewhere.
+ * Socialite does not ship one. `socialiteproviders/discord` is a `suggest`,
+ * so the class names are referenced as strings rather than `use` imports.
  */
 class SocialLoginFeature implements NamedFeature
 {

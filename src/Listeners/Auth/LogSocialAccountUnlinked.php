@@ -8,10 +8,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
 
 /**
- * `spatie/laravel-activitylog` is a `suggest`, not a `require` — see
- * `.ai/rules/optional-dependencies.md` — so the global `activity()` helper
- * it defines may not exist. The row is already gone by the time this runs,
- * so nothing is `performedOn()`.
+ * `spatie/laravel-activitylog` is a `suggest`, not a `require`, so the
+ * global `activity()` helper it defines may not exist. The row is already
+ * gone by the time this runs, so nothing is `performedOn()`.
  */
 class LogSocialAccountUnlinked implements ShouldQueue
 {

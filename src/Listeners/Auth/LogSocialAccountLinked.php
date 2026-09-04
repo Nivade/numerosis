@@ -9,9 +9,8 @@ use Illuminate\Queue\Attributes\DeleteWhenMissingModels;
 use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 
 /**
- * `spatie/laravel-activitylog` is a `suggest`, not a `require` — see
- * `.ai/rules/optional-dependencies.md` — so the global `activity()` helper
- * it defines may not exist.
+ * `spatie/laravel-activitylog` is a `suggest`, not a `require`, so the
+ * global `activity()` helper it defines may not exist.
  */
 #[DeleteWhenMissingModels]
 class LogSocialAccountLinked implements ShouldQueue
