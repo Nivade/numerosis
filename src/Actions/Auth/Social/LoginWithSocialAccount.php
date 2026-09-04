@@ -53,8 +53,8 @@ class LoginWithSocialAccount
 
         if ($user === null && $data->email !== null) {
             // An email exists locally but does not qualify for the
-            // conditional link above, so refuse instead of creating a second
-            // account for the same address.
+            // conditional link above. Refuse; a second account for the same
+            // address must never be created.
             $hasLocalAccount = $centralUserClass::query()
                 ->whereRaw('lower(email) = ?', [Str::lower($data->email)])
                 ->exists();

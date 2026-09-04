@@ -16,7 +16,7 @@ interface PaymentPlanRepository
     public function findBySlug(string $slug): ?Plan;
 
     /**
-     * Resolve a plan whether or not it is still selectable — for admin and
+     * Resolve a plan whether or not it is still selectable, for admin and
      * reporting paths that have to describe subscriptions on retired plans.
      */
     public function findAnyBySlug(string $slug): ?Plan;

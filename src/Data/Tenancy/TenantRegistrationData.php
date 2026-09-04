@@ -23,7 +23,7 @@ class TenantRegistrationData extends Data implements Wireable
         public string $global_id,
         public ?string $payment_plan = null,
         public ?BillingCycle $billing_cycle = null,
-        // Only set under IdentificationMode::CustomDomain — the tenant's own
+        // Only set under IdentificationMode::CustomDomain: the tenant's own
         // fully-qualified domain, distinct from `$domain` above (which
         // always stays the safe id/slug; see CreateTenantDomain).
         public ?string $custom_domain = null,

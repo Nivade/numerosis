@@ -24,7 +24,7 @@ final class Domains
     private function __construct() {}
 
     /**
-     * The hostname the app itself answers on — `APP_URL`'s host, verbatim.
+     * The hostname the app itself answers on: `APP_URL`'s host, verbatim.
      */
     public static function hostFromAppUrl(): string
     {

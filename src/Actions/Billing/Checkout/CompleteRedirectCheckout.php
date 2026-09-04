@@ -20,7 +20,7 @@ use Stripe\Exception\ApiErrorException;
 
 /**
  * Where a redirect payment method lands when the customer's bank sends them
- * back. Cards never reach here — they confirm inline.
+ * back. Cards never reach here, confirming inline.
  *
  * The payment method may still be attaching at this point, in which case the
  * checkout is finished later by the Stripe webhook instead.
@@ -89,7 +89,8 @@ class CompleteRedirectCheckout
 
     /**
      * Sends the customer back to the wizard with the error, or home when the
-     * registration wizard is disabled — this route is reachable without it.
+     * registration wizard is disabled, since this route is reachable without
+     * it.
      */
     private function registrationErrorRedirect(string $message): RedirectResponse
     {

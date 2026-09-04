@@ -23,8 +23,8 @@ class OneTimePasswordFeature implements NamedFeature
     /**
      * The named rate limiter guarding the challenge's verify leg, registered
      * in `NumerosisServiceProvider::registerAuthRateLimiters()` and applied
-     * in {@see \Nvade\Numerosis\Support\Numerosis::routes()}. Deliberately
-     * not `fortify.limiters.login` — see that method.
+     * in {@see \Nvade\Numerosis\Support\Numerosis::routes()}, which explains
+     * why `fortify.limiters.login` is deliberately not used.
      */
     public const LIMITER = 'numerosis-one-time-password';
 

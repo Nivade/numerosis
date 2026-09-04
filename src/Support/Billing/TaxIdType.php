@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Support\Billing;
 /**
  * Maps a billing address country to the Stripe tax id "type" a VAT number
  * for that country should be created as. Shared by SyncBillingAddress
- * (checkout time) and the tenant Billing page's later add/replace action —
+ * (checkout time) and the tenant Billing page's later add/replace action, in
  * one place so the two never drift on which countries are supported.
  */
 final class TaxIdType
@@ -16,7 +16,7 @@ final class TaxIdType
 
     /**
      * Not exhaustive by design: an unsupported country submitting a VAT
-     * number is a UI mistake to surface, not silently ignore.
+     * number is a UI mistake worth surfacing.
      */
     private const array BY_COUNTRY = [
         'GB' => 'gb_vat',

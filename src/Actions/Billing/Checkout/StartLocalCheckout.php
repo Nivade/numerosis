@@ -16,9 +16,9 @@ use Nvade\Numerosis\Services\Billing\Checkout\RedirectResponsable;
 /**
  * Provisions a tenant locally without taking payment, for development.
  *
- * Takes the same path as a paid checkout — same pending row, same queued
- * provisioning — so the shortcut exercises production's code rather than a
- * parallel one. Its route is only registered in a local environment.
+ * Takes the same path as a paid checkout, with the same pending row and the
+ * same queued provisioning, so the shortcut exercises production's own code.
+ * Its route is only registered in a local environment.
  */
 class StartLocalCheckout
 {

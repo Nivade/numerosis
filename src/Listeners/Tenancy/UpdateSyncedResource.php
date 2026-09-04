@@ -10,9 +10,9 @@ use Illuminate\Queue\SerializesModels;
 use Stancl\Tenancy\Listeners\UpdateSyncedResource as BaseListener;
 
 /**
- * Adds retry/backoff and makes the listener queueable — the actual sync
- * logic stays entirely in the parent's `handle()`, inherited as-is rather
- * than overridden. `handle()` runs as a queued job (tries/backoff below),
+ * Adds retry/backoff and makes the listener queueable. The sync logic stays
+ * entirely in the parent's `handle()`, inherited as-is and never overridden.
+ * `handle()` runs as a queued job (tries/backoff below),
  * so a failure (e.g. the tenant DB/migrations aren't ready yet) is handled
  * by the job retrying.
  */

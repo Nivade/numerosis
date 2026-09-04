@@ -13,9 +13,9 @@ use Spatie\LaravelData\Optional;
 
 /**
  * Fortify's `UpdatesUserProfileInformation` slot, bound via
- * `Fortify::updateUserProfileInformationUsing()`. `update()` must validate —
- * `ProfileInformationController` performs none itself — which
- * `UpdateProfileData` does on entry.
+ * `Fortify::updateUserProfileInformationUsing()`. `ProfileInformationController`
+ * validates nothing itself, so `update()` must, which `UpdateProfileData` does
+ * on entry.
  */
 class UpdateUserProfile implements UpdatesUserProfileInformation
 {

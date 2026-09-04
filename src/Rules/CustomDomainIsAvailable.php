@@ -11,8 +11,9 @@ use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 
 /**
  * Only used under IdentificationMode::CustomDomain, on the wizard's separate
- * custom-domain field — see Nvade\Numerosis\Rules\DomainIsAvailable, its
- * counterpart for the id/slug field every mode shares.
+ * custom-domain field.
+ *
+ * @see DomainIsAvailable the id/slug counterpart
  */
 class CustomDomainIsAvailable implements ValidationRule
 {

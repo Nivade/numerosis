@@ -17,7 +17,7 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
     /**
      * Scoped to available plans on purpose. Every checkout path resolves its
      * plan through here from a client-supplied slug, and existence is not
-     * availability — an unscoped lookup lets anyone who remembers a retired
+     * availability: an unscoped lookup lets anyone who remembers a retired
      * slug subscribe to it at its old price. Use {@see findAnyBySlug()} for
      * the admin/reporting paths that must still see retired plans.
      */

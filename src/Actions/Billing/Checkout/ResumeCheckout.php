@@ -16,7 +16,7 @@ use Stripe\Exception\ApiErrorException;
 
 /**
  * Reopens a checkout against its stored SetupIntent, so a refresh or a
- * direct visit to `/checkout/{domain}` resumes rather than starting over.
+ * direct visit to `/checkout/{domain}` resumes, never starting over.
  *
  * Ownership is checked the same way {@see ResolveSetupIntent} checks it.
  *

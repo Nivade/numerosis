@@ -8,7 +8,7 @@ use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 
 /**
- * Scalars only — the row is gone by the time a queued listener runs.
+ * Scalars only: the row is gone by the time a queued listener runs.
  */
 class SocialAccountUnlinked implements ShouldDispatchAfterCommit
 {

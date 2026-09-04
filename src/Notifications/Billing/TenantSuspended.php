@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notification;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * Access revoked, data retained. Sent once suspension actually happens —
+ * Access revoked, data retained. Sent once suspension actually happens;
  * PaymentFailed is the earlier warning during the grace period.
  */
 class TenantSuspended extends Notification

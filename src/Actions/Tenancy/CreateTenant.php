@@ -12,8 +12,8 @@ use Nvade\Numerosis\Support\Numerosis;
 use RuntimeException;
 
 /**
- * Creates the tenant row and its domain — the first provisioning step, and
- * the only one that runs synchronously.
+ * Creates the tenant row and its domain: the first provisioning step, and the
+ * only one that runs synchronously.
  *
  * Creates no database: that happens later in the provisioning chain, so a
  * tenant returned from here is not yet usable.

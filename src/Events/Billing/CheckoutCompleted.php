@@ -11,7 +11,7 @@ use Illuminate\Foundation\Events\Dispatchable;
  * every checkout path funnels through: the redirect return route, the
  * `payment_method.attached` webhook, and the card/Link Livewire path all
  * call it. Fires whether or not the subscription settled immediately, since
- * a trial collects nothing upfront — see `SettleCheckout`'s own docblock.
+ * a trial collects nothing upfront. `SettleCheckout`'s docblock has the rest.
  */
 class CheckoutCompleted
 {

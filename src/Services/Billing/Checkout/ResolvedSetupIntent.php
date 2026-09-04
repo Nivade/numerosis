@@ -9,8 +9,8 @@ use Stripe\PaymentMethod;
 
 /**
  * What ResolveSetupIntent hands back: the reservation the SetupIntent belongs
- * to, plus the payment method Stripe attached to it, expanded rather than as an
- * id so SyncBillingAddress can read billing_details.address without a second
+ * to, plus the payment method Stripe attached to it, expanded to the object so
+ * SyncBillingAddress can read billing_details.address without a second
  * Stripe call. Not a Spatie Data object, since it never crosses the wire.
  */
 final readonly class ResolvedSetupIntent

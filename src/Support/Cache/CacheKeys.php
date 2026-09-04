@@ -21,8 +21,8 @@ final class CacheKeys
 
     /**
      * The configurable prefix every key below is built on. Its own value is
-     * never cached (each call reads config fresh), so changing it at runtime
-     * — e.g. between tests — takes effect immediately.
+     * never cached (each call reads config fresh), so changing it at runtime,
+     * between tests for instance, takes effect immediately.
      */
     private static function prefix(): string
     {

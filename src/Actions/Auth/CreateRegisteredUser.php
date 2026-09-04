@@ -13,10 +13,10 @@ use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * Fortify's `CreatesNewUsers` slot, bound via `Fortify::createUsersUsing()`
- * in `NumerosisServiceProvider::packageBooted()`. `create()` must validate —
- * `RegisteredUserController` performs none itself — which `RegistrationData`
- * does on entry, converting the untyped `array $input` Fortify's contract
- * requires into a typed object at the boundary.
+ * in `NumerosisServiceProvider::packageBooted()`. `RegisteredUserController`
+ * validates nothing itself, so `create()` must, which `RegistrationData` does
+ * on entry, converting the untyped `array $input` Fortify's contract requires
+ * into a typed object at the boundary.
  *
  * @method static CentralUser run(array<string, mixed> $input)
  */

@@ -60,8 +60,9 @@ class Domain extends \Stancl\Tenancy\Database\Models\Domain
      * Only ever reconstructs `{id}.{apex}` under subdomain mode, where
      * `domain` is exactly that concatenation and `getHost()` predates having
      * a stored value to just return. Every other mode's `domain` column
-     * already holds the real host — see
-     * Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain.
+     * already holds the real host.
+     *
+     * @see \Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain
      */
     public function getHost(): string
     {

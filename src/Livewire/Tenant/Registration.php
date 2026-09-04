@@ -55,8 +55,8 @@ class Registration extends WizardComponent
     }
 
     /**
-     * Mirrors `numerosis.tenancy.provisioning.steps`'s nesting deliberately —
-     * see that key's docblock in `config/numerosis.php`.
+     * Mirrors `numerosis.tenancy.provisioning.steps`'s nesting deliberately;
+     * that key's own docblock in `config/numerosis.php` says why.
      *
      * @return list<class-string<Component>>
      */
@@ -90,7 +90,7 @@ class Registration extends WizardComponent
 
     /**
      * The one choke point every step transition passes through, so wizard
-     * state is persisted here rather than in each step component. Keep
+     * state is persisted here and never in a step component. Keep
      * `#[On('showStep')]` on this override; attributes do not inherit, and
      * the event is how `StepComponent::showStep()` reaches it.
      *
@@ -109,8 +109,8 @@ class Registration extends WizardComponent
     /**
      * The wizard state worth persisting: everything except Stripe secrets and
      * request-local UI flags. Checkout re-derives those from the pending
-     * provision row, so a session copy would only ever be stale — and one
-     * fewer thing in the session is one fewer thing to tamper with.
+     * provision row, so a session copy would only ever be stale, and one fewer
+     * thing in the session is one fewer thing to tamper with.
      *
      * @return array<string, array<string, mixed>>
      */

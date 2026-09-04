@@ -9,7 +9,7 @@ use Illuminate\Validation\ValidationException;
 interface TenantDomainPolicy
 {
     /**
-     * $domain is always the tenant's safe id/slug — the value the wizard's
+     * $domain is always the tenant's safe id/slug: the value the wizard's
      * "domain" field holds in every identification mode, format-checked the
      * same way regardless (see Nvade\Numerosis\Enums\Tenancy\IdentificationMode).
      *
@@ -18,7 +18,7 @@ interface TenantDomainPolicy
     public function assertAvailable(string $domain): void;
 
     /**
-     * Only relevant under IdentificationMode::CustomDomain — $domain here is
+     * Only relevant under IdentificationMode::CustomDomain, where $domain is
      * the tenant's own fully-qualified domain (e.g. "app.acme.com"), checked
      * against a different format and a different uniqueness scope than
      * assertAvailable() above.

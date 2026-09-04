@@ -40,7 +40,7 @@ class ResolveSocialUser
 
     /**
      * Per-provider: GitHub and Google expose whether the address was
-     * verified, others do not — where it is not knowable, this is `false`.
+     * verified, others do not; where it is not knowable, this is `false`.
      * Getting this wrong is the account-takeover vector
      * {@see LoginWithSocialAccount} guards against.
      */

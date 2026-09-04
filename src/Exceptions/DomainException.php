@@ -7,8 +7,9 @@ namespace Nvade\Numerosis\Exceptions;
 use RuntimeException;
 
 /**
- * Base for expected, user-facing failures — invalid state reached through
- * normal use (an already-accepted invitation, a claimed domain), not a bug.
+ * Base for expected, user-facing failures: invalid state reached through
+ * normal use (an already-accepted invitation, a claimed domain) with no bug
+ * behind it.
  * Distinct from RuntimeException/LogicException throws elsewhere in the app,
  * which signal a programmer error and must stay uncaught by the UI.
  */

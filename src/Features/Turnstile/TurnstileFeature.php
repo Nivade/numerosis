@@ -46,8 +46,8 @@ class TurnstileFeature implements NamedFeature
     }
 
     /**
-     * Override the switch in a test. Pass null in teardown to restore it —
-     * this is process-wide and otherwise leaks into the next test.
+     * Override the switch in a test. Pass null in teardown to restore it,
+     * since this is process-wide and otherwise leaks into the next test.
      */
     public static function forceForTesting(?bool $enabled): void
     {
@@ -55,8 +55,8 @@ class TurnstileFeature implements NamedFeature
     }
 
     /**
-     * The validation rule for every form's `turnstileResponse` field —
-     * empty when Turnstile is off, so nothing about the field is enforced.
+     * The validation rule for every form's `turnstileResponse` field. Empty
+     * when Turnstile is off, so nothing about the field is enforced.
      *
      * @return array<int, mixed>
      */

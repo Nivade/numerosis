@@ -42,7 +42,7 @@ enum SocialProvider: string
 
     /**
      * `client_id` specifically, never membership in `array_keys(config('services'))`
-     * — that config file declares `client_id` for every provider unconditionally
+     * That config file declares `client_id` for every provider unconditionally
      * (`env('GOOGLE_CLIENT_ID', '')`), and also holds unrelated services
      * (postmark, ses, resend, slack, turnstile) that would otherwise match.
      */

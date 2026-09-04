@@ -10,7 +10,7 @@ enum BillingCycle: string
     case Yearly = 'yearly';
 
     /**
-     * Written as a match rather than "{$this->value}_id" so the result is a
+     * Written as a match, never "{$this->value}_id", so the result is a
      * literal type: callers index a typed plan-metadata array with it.
      *
      * @return 'monthly_id'|'yearly_id'

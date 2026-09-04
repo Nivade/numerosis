@@ -99,7 +99,7 @@ final class Contributions
     }
 
     /**
-     * "Which package added this route" — `source` is whatever the caller of
+     * "Which package added this route": `source` is whatever the caller of
      * {@see self::addCentralRoutes()} passed, in registration order,
      * parallel to {@see self::centralRouteCallbacks()}. `null` where the
      * caller didn't attribute itself.

@@ -20,14 +20,16 @@ use Spatie\LivewireWizard\Components\StepComponent;
 class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
 {
     /**
-     * Always the tenant's safe id/slug, regardless of mode — see
-     * Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain.
+     * Always the tenant's safe id/slug, whatever the mode.
+     *
+     * @see \Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain
      */
     public string $domain = '';
 
     /**
-     * Only used under IdentificationMode::CustomDomain — see
-     * IdentificationMode::current().
+     * Only used under IdentificationMode::CustomDomain.
+     *
+     * @see IdentificationMode::current()
      */
     public string $customDomain = '';
 
@@ -88,9 +90,9 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
     }
 
     /**
-     * Reserves the domain here rather than at checkout, so a domain someone
-     * else claims mid-wizard is caught before the user picks a plan and
-     * starts paying. Checkout reserves it again, harmlessly.
+     * Reserves the domain here, well before checkout, so a domain someone else
+     * claims mid-wizard is caught before the user picks a plan and starts
+     * paying. Checkout reserves it again, harmlessly.
      */
     public function continue(): void
     {

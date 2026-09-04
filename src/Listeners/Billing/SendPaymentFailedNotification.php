@@ -12,8 +12,8 @@ use Nvade\Numerosis\Support\Features;
 
 /**
  * Auto-discovered by Laravel's event discovery, so BillingNotificationsFeature
- * cannot un-discover it — see the feature class's own docblock for the named
- * exception this early return is.
+ * cannot un-discover it. The feature class's own docblock names this early
+ * return as the exception it is.
  */
 class SendPaymentFailedNotification
 {

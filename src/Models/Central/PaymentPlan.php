@@ -185,9 +185,9 @@ class PaymentPlan extends Model implements Plan
 
     /**
      * The plan/subscription tables are central data, so this must be computed
-     * once for every tenant rather than once per tenant: a plain Cache::
-     * call, in tenant context, is Stancl's tenant-tagged manager, which both
-     * duplicates the computation per tenant and requires a taggable cache
+     * once for all tenants together: a plain Cache:: call, in tenant context,
+     * is stancl's tenant-tagged manager, which both duplicates the computation
+     * per tenant and requires a taggable cache
      * store for something that has nothing to do with any one tenant.
      */
     public function popular(): bool

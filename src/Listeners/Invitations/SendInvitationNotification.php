@@ -14,8 +14,8 @@ use Nvade\Numerosis\Events\Invitations\InvitationCreated;
 use Nvade\Numerosis\Notifications\InvitationNotification;
 
 /**
- * Always registered — always fires, invitations are not behind their own
- * gate the way social login is.
+ * Always registered and always fires: invitations sit behind no feature gate
+ * of their own, unlike social login.
  */
 #[Queue('mail')]
 #[Tries(3)]

@@ -11,7 +11,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
 interface HasTenants
 {
     /**
-     * Concrete `Tenant`, not stancl's — callers need `subscriptions()`.
+     * Concrete `Tenant`, never stancl's, because callers need `subscriptions()`.
      *
      * @return BelongsToMany<Tenant, static, Membership, 'pivot'>
      */

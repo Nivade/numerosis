@@ -37,8 +37,8 @@ trait Billable
 
     /**
      * The Stripe customer id as a `string`, for callers that have already
-     * established the customer exists — `hasStripeId()` does not narrow the
-     * nullable property for static analysis.
+     * established the customer exists, since `hasStripeId()` does not narrow
+     * the nullable property for static analysis.
      *
      * The exception is an invariant breach, never something to show a user.
      *

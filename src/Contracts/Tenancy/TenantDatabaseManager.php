@@ -12,7 +12,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
  *
  * Point `numerosis.tenancy.implementations` at your own class to provision onto
  * separate database servers or regions, or to use a database driver of your
- * own, rather than reaching into stancl/tenancy internals.
+ * own, without reaching into stancl/tenancy internals.
  */
 interface TenantDatabaseManager
 {

@@ -50,7 +50,7 @@ class StoreInvitationRequest extends FormRequest
     }
 
     /**
-     * `from()` casts rather than validates, since `validation_strategy` is
+     * `from()` casts and does not validate, since `validation_strategy` is
      * `OnlyRequests` and this is an array. The rules above already ran.
      */
     public function toInvitationData(): InvitationData

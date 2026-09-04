@@ -30,8 +30,8 @@ class PruneStalledTenantProvisions extends Command
 
     /**
      * Reservations whose owner never completed checkout. Expected garbage
-     * rather than an incident, so these are dropped quietly and the domain
-     * becomes claimable again.
+     * and no incident, so these are dropped quietly and the domain becomes
+     * claimable again.
      */
     private function releaseAbandonedReservations(Carbon $cutoff, bool $dryRun): void
     {

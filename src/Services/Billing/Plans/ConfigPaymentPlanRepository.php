@@ -10,9 +10,9 @@ use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 
 /**
- * Zero-migration plan source: reads billing.plans instead of the
- * payment_plans table. A consumer without the PaymentPlan migration binds
- * this in place of EloquentPaymentPlanRepository.
+ * Zero-migration plan source, reading billing.plans in place of the
+ * payment_plans table. A consumer without the PaymentPlan migration binds this
+ * over EloquentPaymentPlanRepository.
  */
 class ConfigPaymentPlanRepository implements PaymentPlanRepository
 {

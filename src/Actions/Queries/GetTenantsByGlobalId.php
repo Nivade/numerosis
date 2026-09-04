@@ -27,7 +27,7 @@ class GetTenantsByGlobalId
         /**
          * `tenants()->get()` is typed against the relation's own declaration
          * (`Model`), and the cache round-trip widens it further, so the shape
-         * is asserted once here rather than at every caller.
+         * is asserted once here, sparing every caller.
          *
          * @var Collection<int, Tenant>
          */

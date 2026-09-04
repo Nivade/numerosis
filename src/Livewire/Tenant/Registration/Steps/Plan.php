@@ -84,7 +84,7 @@ class Plan extends StepComponent
         $domain = $this->state()->get('domain');
 
         // Both are required to start a checkout. Send the user to whichever
-        // step is missing, rather than to a validation error they cannot see.
+        // step is missing; a validation error here would be invisible.
         if (blank($companyName)) {
             $this->showStep('company-info');
 
@@ -106,8 +106,8 @@ class Plan extends StepComponent
             : BillingCycle::from($this->billingCycle);
 
         // Checkout refusals carry customer-facing copy; uncaught, Livewire
-        // renders a dead button instead of the reason. Typed to
-        // ShowsMessageToUser, never Throwable, so nothing unexpected leaks.
+        // renders a dead button and no reason. Typed to ShowsMessageToUser,
+        // never Throwable, so nothing unexpected leaks.
         try {
             $intent = StartSubscriptionCheckout::run(new TenantRegistrationData(
                 company_name: (string) $companyName,

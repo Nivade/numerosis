@@ -54,8 +54,8 @@ class PlanFeature extends Model
     /**
      * The class renamed; the table did not. Renaming `features` would mean
      * rewriting five migrations and the `payment_plan_features` pivot's
-     * foreign key for a name only ever seen in a schema dump — the confusion
-     * this rename fixes was in the PHP namespace, not the database.
+     * foreign key for a name only ever seen in a schema dump. The confusion
+     * this rename fixes was in the PHP namespace, never in the database.
      */
     protected $table = 'features';
 

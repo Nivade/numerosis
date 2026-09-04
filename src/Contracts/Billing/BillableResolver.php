@@ -10,8 +10,8 @@ use Laravel\Cashier\Billable;
 interface BillableResolver
 {
     /**
-     * Billable is a trait, so PHP can't express the intersection natively —
-     * the real contract is "a Model that uses Laravel\Cashier\Billable".
+     * Billable is a trait, so PHP cannot express the intersection natively.
+     * The real contract is "a Model that uses Laravel\Cashier\Billable".
      *
      * @return (Model&Billable)|null
      */

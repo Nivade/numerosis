@@ -190,8 +190,7 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
 
     public function latestInvoice(): ?Invoice
     {
-        // latestSubscription() is a method, not a relation — reading it as a
-        // property throws.
+        // latestSubscription() is a method; reading it as a property throws.
         return $this->latestSubscription()?->latestInvoice([
             'download' => true,
         ]);

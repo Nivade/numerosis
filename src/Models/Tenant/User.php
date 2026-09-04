@@ -31,9 +31,9 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
  * A user inside a tenant database, paired with a central user by `global_id`.
  *
  * A host adds its own relations to this model through
- * `Model::resolveRelationUsing()` rather than by editing it, so the package
- * copy stays upgradable. Such relations are invisible to static analysis and
- * IDE completion.
+ * `Model::resolveRelationUsing()`, never by editing it, so the package copy
+ * stays upgradable. Such relations are invisible to static analysis and IDE
+ * completion.
  *
  * @property int $id
  * @property string $name

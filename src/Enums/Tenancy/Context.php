@@ -14,7 +14,7 @@ enum Context: string
     /**
      * The current context, decided by whether tenancy is initialized.
      *
-     * Ask here rather than inspecting the default guard: anything calling
+     * Ask here, never by inspecting the default guard: anything calling
      * `Auth::shouldUse()` moves that for the rest of the request.
      */
     public static function current(): self
@@ -24,7 +24,7 @@ enum Context: string
 
     /**
      * The guard that authenticates users in this context. Read guard names
-     * through here rather than naming `numerosis.auth.guards.*` yourself.
+     * through here, never by naming `numerosis.auth.guards.*` yourself.
      */
     public function guard(): string
     {

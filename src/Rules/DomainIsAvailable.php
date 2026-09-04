@@ -12,9 +12,10 @@ use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 /**
  * Adapts TenantDomainPolicy (format, reserved words, already a live tenant)
  * for use in a rules() array, so the wizard's own validation stays in step
- * with what ReserveTenantDomain checks at checkout time instead of a second,
- * hand-copied regex. Deliberately does not cover pending_tenant_provisions —
- * see Nvade\Numerosis\Services\Tenancy\DefaultTenantDomainPolicy.
+ * with what ReserveTenantDomain checks at checkout time, with no second
+ * hand-copied regex. Deliberately does not cover pending_tenant_provisions.
+ *
+ * @see \Nvade\Numerosis\Services\Tenancy\DefaultTenantDomainPolicy
  */
 class DomainIsAvailable implements ValidationRule
 {

@@ -13,8 +13,8 @@ use Nvade\Numerosis\Models\User;
 trait RequiresAuthenticatedUser
 {
     /**
-     * Resolve the authenticated user, failing loudly instead of silently
-     * operating on null when the guard has no user.
+     * Resolve the authenticated user, failing loudly when the guard has no
+     * user so nothing silently operates on null.
      *
      * @throws AuthenticationException
      */

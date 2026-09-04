@@ -10,8 +10,8 @@ use Illuminate\Notifications\Notification;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * Dunning notice sent while the tenant is still in the grace period —
- * suspension has not happened yet, this is the chance to avoid it.
+ * Dunning notice sent while the tenant is still in the grace period.
+ * Suspension has not happened yet; this is the chance to avoid it.
  */
 class PaymentFailed extends Notification
 {

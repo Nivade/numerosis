@@ -11,8 +11,8 @@ use Nvade\Numerosis\Models\Central\Tenant;
 /**
  * Clears each member's cached tenant list when a tenant is deleted.
  *
- * Runs on `deleting`, not `deleted`: the membership rows naming those users
- * are still readable then, and gone afterwards.
+ * Runs on `deleting`, where the membership rows naming those users are still
+ * readable; by `deleted` they are gone.
  */
 class TenantObserver
 {

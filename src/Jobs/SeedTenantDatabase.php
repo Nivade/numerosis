@@ -25,8 +25,8 @@ class SeedTenantDatabase implements ShouldQueue
     public function __construct(protected TenantWithDatabase $tenant) {}
 
     /**
-     * Invokes the tenant seeder directly rather than through `tenants:seed`,
-     * which does not work: with stancl/tenancy installed, that command
+     * Invokes the tenant seeder directly, since `tenants:seed` does not
+     * work: with stancl/tenancy installed, that command
      * registers under the wrong name and drops its own `--tenants` option.
      */
     public function handle(): void

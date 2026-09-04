@@ -41,9 +41,9 @@ class PruneOrphanedTenantDatabases extends Command
 
         $expected = $tenantIds->map(fn (string $id): string => $prefix.$id)->all();
 
-        // Non-string schema names are dropped rather than coerced: this command
+        // Non-string schema names are dropped, never coerced: this command
         // issues DROP DATABASE, so anything unrecognised must fall out of the
-        // orphan list, never into it.
+        // orphan list.
         $orphans = collect(DB::select(
             'SELECT SCHEMA_NAME AS name FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME LIKE ?',
             [$prefix.'%'],
@@ -75,7 +75,7 @@ class PruneOrphanedTenantDatabases extends Command
         $dropped = 0;
 
         foreach ($orphans as $name) {
-            // Names are quoted rather than interpolated bare: tenant ids have
+            // Names are quoted, never interpolated bare: tenant ids have
             // historically contained spaces, commas and apostrophes.
             $escaped = str_replace('`', '``', $name);
 

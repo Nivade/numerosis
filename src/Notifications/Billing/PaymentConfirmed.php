@@ -10,8 +10,8 @@ use Illuminate\Notifications\Notification;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * Sent on recovery — either an async payment (SEPA-via-iDEAL/Bancontact)
- * finally settling, or a suspended tenant's payment method being fixed.
+ * Sent on recovery: an async payment (SEPA-via-iDEAL/Bancontact) finally
+ * settling, or a suspended tenant's payment method being fixed.
  * Either way, whatever AwaitingPayment/suspended banner was showing clears.
  */
 class PaymentConfirmed extends Notification

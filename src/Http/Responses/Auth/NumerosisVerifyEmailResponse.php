@@ -12,7 +12,7 @@ use Nvade\Numerosis\Support\Routes\RouteNames;
  * Bound against Fortify's `VerifyEmailResponse` contract in
  * `NumerosisServiceProvider::packageRegistered()`. Port of the old
  * `Http\Controllers\Auth\VerifyEmailController`'s redirect, which landed on
- * the tenant workspace list rather than Fortify's default `fortify.home`.
+ * the tenant workspace list, never Fortify's default `fortify.home`.
  */
 class NumerosisVerifyEmailResponse implements VerifyEmailResponse
 {

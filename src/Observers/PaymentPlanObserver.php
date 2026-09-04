@@ -10,9 +10,9 @@ use Nvade\Numerosis\Support\Cache\CacheKeys;
 
 /**
  * Keeps {@see \Nvade\Numerosis\Services\Billing\Plans\EloquentPaymentPlanRepository::available()}'s
- * cached list from outliving an admin edit — an admin toggling
- * `available` or changing a price must be reflected immediately, not
- * after the TTL happens to expire.
+ * cached list from outliving an admin edit: toggling `available` or changing
+ * a price must be reflected immediately, never once the TTL happens to
+ * expire.
  */
 class PaymentPlanObserver
 {

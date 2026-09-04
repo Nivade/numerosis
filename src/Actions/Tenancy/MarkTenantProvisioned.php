@@ -16,8 +16,8 @@ use Stancl\Tenancy\Contracts\Tenant;
  * Marks a tenant ready: stamps `provisioned_at`, clears its pending row, and
  * broadcasts {@see TenantProvisioned}.
  *
- * `provisioned_at` — not the existence of the tenant row — is what makes a
- * tenant safe to link to, since the row exists well before its database does.
+ * `provisioned_at` is what makes a tenant safe to link to, never the existence
+ * of the tenant row, which appears well before its database does.
  */
 class MarkTenantProvisioned
 {

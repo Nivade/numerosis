@@ -98,7 +98,7 @@ class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
 
     /**
      * The database-creation jobs, included only when the tenant database does
-     * not exist yet — all of them or none, since gating them individually
+     * not exist yet: all of them or none, since gating them individually
      * would re-seed a database that is already populated.
      *
      * @return array<int, ShouldQueue>

@@ -44,6 +44,6 @@ class PreservingPathTenantResolver extends PathTenantResolver
     #[Override]
     public function resolved(Tenant $tenant, mixed ...$args): void
     {
-        // Deliberately does not forgetParameter() — see class docblock.
+        // Deliberately does not forgetParameter(); see the class docblock.
     }
 }

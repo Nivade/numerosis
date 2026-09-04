@@ -10,12 +10,12 @@ use Illuminate\Support\Carbon;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * The customer's cancellation, not this package's suspension of access.
- * The two can be days apart: see `TenantSuspended` for the enforcement side.
+ * The customer's cancellation. Access is suspended separately, and the two can
+ * be days apart; `TenantSuspended` is the enforcement side.
  *
  * `$tenantId` rides alongside `$tenant` because `SerializesModels` re-queries
- * on unserialize — a queued listener that runs after the tenant is gone gets
- * a `ModelNotFoundException` off the model but can still read the id.
+ * on unserialize: a queued listener running after the tenant is gone gets a
+ * `ModelNotFoundException` off the model but can still read the id.
  */
 class SubscriptionCancelled
 {

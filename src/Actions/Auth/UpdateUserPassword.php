@@ -12,10 +12,10 @@ use Nvade\Numerosis\Models\User;
 
 /**
  * Fortify's `UpdatesUserPasswords` slot, bound via
- * `Fortify::updateUserPasswordsUsing()`. `update()` must validate —
- * `PasswordController` performs none itself — which `UpdatePasswordData`
- * does on entry, including the `current_password` check the Livewire
- * settings screen already performs inline for itself.
+ * `Fortify::updateUserPasswordsUsing()`. `PasswordController` validates
+ * nothing itself, so `update()` must, which `UpdatePasswordData` does on
+ * entry, including the `current_password` check the Livewire settings screen
+ * already performs inline for itself.
  */
 class UpdateUserPassword implements UpdatesUserPasswords
 {

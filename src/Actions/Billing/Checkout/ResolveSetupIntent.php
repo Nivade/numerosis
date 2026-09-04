@@ -22,7 +22,7 @@ use Stripe\PaymentMethod;
  *
  * The single ownership check every checkout path shares. Fails closed: a
  * checkout carrying a subscription id with no matching local row counts as
- * already completed, not as safe to charge again.
+ * already completed, never as safe to charge again.
  *
  * @method static ResolvedSetupIntent run(string $setupIntentId)
  */
