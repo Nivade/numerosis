@@ -23,41 +23,44 @@ Obligations, in RFC 2119 terms:
 
 ### How long a comment may be
 
-Ask who reads it, and when. There are two budgets, and the answer is not about which file the comment is in — everything in `src/` ships to a host's `vendor/`, so hover reaches all of it, `private` methods included.
+One budget, no exemptions. Visibility does not buy extra lines: not `public`, not a class docblock, not a documented seam, not a trait a host composes into its own tests.
 
-| | Read by | Budget |
-| --- | --- | --- |
-| **Call-site** | someone who never opens the body: what an argument means, what a flag turns off, a footgun that bites the caller | as long as it needs to be. This is the package's API documentation. |
-| **Debug-time** | someone already inside the method, reading the code under the comment | 5 prose lines. |
-
-- A debug-time docblock MUST NOT exceed 5 prose lines, and an inline comment 3. The cap routes rather than compresses: a fact needing more belongs in `.ai/rules/`, in full, with the source keeping the one sentence a reader of *this method* needs and no pointer back (see the cross-reference rule above).
+- A docblock MUST NOT exceed 5 prose lines. An inline comment, or a run of consecutive `//` lines, MUST NOT exceed 3.
 - A comment MUST NOT carry more than one fact. Three paragraphs are three facts, and at most one of them is about the code below. `NumerosisServiceProvider::registerAuthRateLimiters()` held three: the tenant-keyed bucket (about the method), the OTP challenge's separate limiter (about a different method), and a bug in a vendor package (about neither). Only the first stayed.
-- `@see`, `@param`, `@return` and the rest are tags, not prose. They fall under neither budget, and `{@see SomeClass::method()}` is not a cross-reference: it names a symbol the reader can open.
+- The cap routes; it does not compress. A fact that needs more than 5 lines goes somewhere a document can hold it — `.ai/rules/` for a codebase trap, `docs/` for anything a host needs to act on — and the source keeps the one sentence a reader of *this* code needs, with no pointer back (see the cross-reference rule above).
+- `@see`, `@param`, `@return` and the rest are tags, not prose. They do not count against the cap, and `{@see SomeClass::method()}` is not a cross-reference: it names a symbol the reader can open.
+
+Splitting a 30-line docblock into six 5-line ones on adjacent members is a violation, not a fix. The cap is on prose, and the one-fact rule is what decides whether the prose should exist at all.
 
 ```bash
+# docblock prose
 awk '/^[[:space:]]*\/\*\*/{n=0} /^[[:space:]]*\*/ && !/^[[:space:]]*\*[[:space:]]*@/ && !/^[[:space:]]*\*[[:space:]]*$/ && !/\*\//{n++} /\*\//{if(n>5) print n"\t"FILENAME":"FNR; n=0}' $(git ls-files 'src/**.php') | sort -rn
+
+# runs of // lines
+awk '/^[[:space:]]*\/\//{n++; if(n==1) s=FNR; next} {if(n>3) print n"\t"FILENAME":"s; n=0}' $(git ls-files 'src/**.php') | sort -rn
 ```
 
 POSIX classes, not `\s`: the default `awk` here is mawk, which does not
 support `\s` and silently matches nothing rather than erroring. A version of
 this check using `\s` reported zero hits against 114 real ones.
 
-Read the hits; a long one on a public seam is the first budget doing its job.
-As of 2026-09-04 there are 114 over-budget blocks holding 1,147 prose lines,
-over half the docblock prose in `src/` — but only 33 of them (345 lines) sit
-on a `private`, `protected` or unmarked member, which is where the cap
-applies without argument. The other 81 are class docblocks and `public`
-methods, and each needs the reader question asked rather than a line count.
+Baseline when the cap landed, 2026-09-04: 114 over-budget docblocks holding
+1,147 prose lines, over half the docblock prose in `src/`, plus 10 `//` runs
+over three lines. The worst are `Testing/CleansUpTenancyDatabases.php` (a
+39-line class docblock), `Support/Numerosis.php` (10 blocks) and
+`Support/HostConfig.php` (5).
 
 ### `docs/` is not on a host's disk
 
 `.gitattributes` marks `/docs`, `/tests` and `/workbench` `export-ignore`, so a Composer dist install has `src/`, `config/`, `routes/`, `resources/`, `database/`, `stubs/` and `.ai/` — and no `docs/`. A source comment saying "see `docs/extending.md`" therefore dangles for every host, the same defect as the `.ai/rules` citations. State the fact or leave it out.
 
+This does not make `docs/` the wrong home for displaced prose. It is where a host reads about this package, on GitHub or Packagist, before and after installing it; it is only unreachable from a comment. Move the prose there and say nothing about it in the source.
+
 ```bash
 grep -rnE '^\s*(\*|//).*docs/' --include='*.php' src/
 ```
 
-Docblocks are where the volume is, not `//` lines. Prose inside a docblock follows the same rules as a `//` comment.
+Docblocks are where the volume is. Prose inside one follows every rule above, exactly as a `//` comment does.
 
 For the prose itself, use the `no-ai-slop` skill (`~/.claude/skills/no-ai-slop`). Its pattern catalog is the standard here, and it covers more than a hand-rolled list will. The four patterns this repo keeps failing on:
 
