@@ -15,17 +15,10 @@ use Throwable;
 
 /**
  * Final provisioning step: promotes the first non-bot user to admin, then
- * signals that provisioning finished.
- *
- * Must stay last. It reads users out of the tenant database, and it is the
- * only emitter of the "ready" signal the UI waits on — if it never completes,
- * that UI spins forever, which is why it retries generously.
- *
- * Typed against this package's own {@see Tenant} rather than stancl's
- * `Contracts\Tenant`: {@see PromoteFirstUserToAdmin} requires the concrete
- * model, and the only caller ({@see ProvisionTenant::dispatchProvisioningChain()})
- * has always passed one. The broader hint bought nothing and forced
- * `owner()` into an `instanceof` that could never be false.
+ * signals that provisioning finished. Must stay last, since it reads users out
+ * of the tenant database. It is the only emitter of the "ready" signal the UI
+ * waits on, so it retries generously; a silent exhaustion spins that UI
+ * forever.
  */
 class FinalizeTenantProvisioning implements ShouldQueue
 {

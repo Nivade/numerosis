@@ -9,15 +9,10 @@ use Illuminate\Auth\Middleware\RequirePassword;
 
 /**
  * `password.confirm` for everyone who has a password, and a pass-through for
- * everyone who does not.
- *
- * A user who registered through OAuth has `users.password` null. Fortify's
- * confirm-password screen ends in `Hash::check($password, null)`, which can
- * never return true, so plain `password.confirm` on `social.destroy` locked
- * those users out of disconnecting anything. `SocialAccountPolicy::delete()`
- * still refuses to remove their last credential, which is the protection that
- * actually applies to them. `routes/web.php` gates `settings/password` on
- * `PasswordResetFeature` for the same underlying reason.
+ * everyone who does not. A user who registered through OAuth has
+ * `users.password` null, and Fortify's confirm-password screen ends in
+ * `Hash::check($password, null)`, which can never return true, so plain
+ * `password.confirm` locks those users out of the route entirely.
  */
 class RequirePasswordIfSet extends RequirePassword
 {

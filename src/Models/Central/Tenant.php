@@ -99,16 +99,9 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
 
     /**
      * The attributes stored in real columns. Everything else is folded into
-     * the `data` JSON column.
-     *
-     * Adding a column to the tenants table is only half the job: name it here
-     * too, via {@see Numerosis::addTenantColumns()}, or it is written to
-     * `data` and the column stays NULL. The model still reads the value back
-     * correctly, so the failure only shows up in SQL — a `where` on that
-     * column matching nothing, or a join finding no rows.
-     *
-     * Register additions from a service provider's `register()`, before any
-     * tenant is loaded or saved.
+     * the `data` JSON column, so a new `tenants` column that is not named here
+     * through {@see Numerosis::addTenantColumns()} stays NULL while the model
+     * still reads its value back correctly.
      *
      * @return list<string>
      */

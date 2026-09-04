@@ -14,15 +14,11 @@ use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
  * Drops the tenant guard's session state when the session was established for a
- * different tenant.
- *
- * The session cookie is issued for the whole apex domain, so every tenant
- * subdomain shares one session, and the tenant guard stores nothing but a
- * primary key from the tenant database it logged in against. Those keys are
- * per-database integers, so the same id identifies a different person — or a
- * bot — in the next tenant. Clearing the key here makes the mismatch fail
- * closed; the panel's Authenticate middleware then re-establishes the correct
- * tenant user from the central guard.
+ * different tenant. One session cookie spans the whole apex domain, and the
+ * tenant guard stores nothing but a per-database primary key, so the same id
+ * identifies a different person in the next tenant. Clearing it fails the
+ * mismatch closed, and `Authenticate` re-establishes the right tenant user
+ * from the central guard.
  */
 class EnsureSessionMatchesTenant
 {

@@ -28,7 +28,7 @@ named `route()` — it has to stay installable on its own.
 | views | `->hasViews('numerosis')` from your own provider | `FileViewFinder::addNamespace()` *appends*, so several packages can serve one namespace. Paths are searched in registration order, so a view must be **moved, never copied** |
 | single-file Livewire pages | your own key in `livewire.component_namespaces` | Unlike views, a prefix maps to exactly **one** directory — two packages cannot join the same key. Set the key from `register()`, and set *one key*, never the whole array: replacing it drops every other package's |
 | the `home` page | `numerosis.routes.home_view` | Core always registers the `home` route and declares it first, so a second route on `/` never matches. Point this at your own view instead |
-| tenant model columns | `Numerosis::addTenantColumns(array)` | |
+| tenant model columns | `Numerosis::addTenantColumns(array)` | Adding a column to the `tenants` table is only half the job. Name it here too, from a provider's `register()` and before any tenant is loaded or saved, or the value is folded into the `data` JSON column and the real column stays NULL. The model still reads it back correctly, so the failure only shows up in SQL — a `where` on that column matching nothing, or a join finding no rows |
 | a model | publish `--tag numerosis-models`, or set `numerosis.models.<FQCN>` | Convention (`App\Models\<suffix>`) is found automatically; the config key is for a non-conventional location |
 
 ### Overriding `Permission::additionalActions()`
