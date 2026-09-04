@@ -100,6 +100,20 @@ restructured top-level keys. It has never fired.
 - `config/numerosis/` and `config/stubs/` deleted
 - Install contract unchanged: `composer require` + DB credentials + `APP_URL`
 
+## How to execute this
+
+**Commit per phase.** Phases 1–5 are deletions and a file move; Phase 6 is
+the only genuinely risky one.
+
+**Get green after Phase 5, before starting Phase 6.** That separates "did
+collapsing the config break anything" from "did rewriting `HostConfig` break
+anything". Run together, the two are indistinguishable in one red suite and
+you will bisect by hand.
+
+Phase 2 has an ordering constraint of its own: the `verify*()` method and
+its two tests must go in the **same commit**, or the `@verifies` pairing
+test in `HostRequirementsTest` fails on the intermediate state.
+
 ---
 
 ## Phase 1 — delete `billing.plans` and the config plan source
@@ -150,10 +164,13 @@ and all five tests that read them already `markTestSkipped`.
 `Contracts/Billing/Plan.php:25`, `Models/Central/PaymentPlan.php:41,158`,
 and both files being deleted, but no such class or PHPStan type alias is
 defined anywhere. Twenty entries in `phpstan-baseline.neon` exist purely to
-suppress "unknown class" errors for it. Deleting `ConfigPlan` and
-`ConfigPaymentPlanRepository` removes roughly thirteen of them. Either
-define a real `@phpstan-type PlanMetadata` alias for the remaining seven or
-leave them baselined — but do not let the count silently grow.
+suppress "unknown class" errors for it.
+
+**Do: replace it with `array<string, mixed>` in the two docblocks that
+survive.** Do not define a real `@phpstan-type` alias — that means inventing
+a shape for a JSON column, and inventing it wrong is worse than not having
+one. Three edits, all twenty baseline entries go, no new concept. A precise
+shape is a separate task if anyone wants one.
 
 ## Phase 2 — delete `schema_version`
 
@@ -273,8 +290,13 @@ Target ~180 lines.
 
   The mechanism itself needs no change: the test regexes quoted dotted keys
   out of `HostConfig.php`'s **source text** (`:123`, `:126`), so keys moved
-  into a `const CORRECTIONS` array are still caught. Verify this holds after
-  the rewrite rather than assuming it.
+  into a `const CORRECTIONS` array should still be caught.
+
+  **Do: prove it, don't assume it.** Add a bogus key to `CORRECTIONS`,
+  confirm the test fails naming that key, remove it. `.ai/rules/testing.md`
+  requires a repaired assertion be made to fail before it is trusted, and
+  this is the only thing standing between the refactor and a safety net that
+  silently stopped catching anything.
 - `docs/architecture.md` — the config section, including the "thirteen
   partials" description and the deep-fill/`schema_version` paragraphs
 - `docs/extending.md` — the Fortify customization table, now that
@@ -299,32 +321,74 @@ The four suites that actually exercise this work:
 - `tests/Feature/FreshHostTest.php` — the load-bearing one. Boots without
   the pre-set config `TestCase` normally supplies, so `HostConfig` has to
   prove itself rather than being handed already-correct values.
-- `tests/Feature/HostConfigTest.php` — asserts idempotency and, in several
-  places, that a key is **not** in `HostConfig::applied()` when the host set
-  it. Those assertions encode the stock-value sniffing being deleted; expect
-  to rewrite them against the new preference/correction semantics rather
-  than to keep them green as-is.
+- `tests/Feature/HostConfigTest.php` — see below; this is the one that will
+  go wrong.
 - `tests/Feature/Support/PackageContributionSeamsTest.php` — calls
   `HostConfig::apply()` directly at `:113`
 - `tests/Feature/Console/Commands/InstallNumerosisCommandTest.php`
 
-**Gotchas:**
+### `HostConfigTest` — rewrite by category, and report the count
 
-- `tests/TestCase.php:183-200` pre-sets keys that `HostConfig::apply()` would
-  also set, because Testbench runs `RegisterProviders` before
-  `getEnvironmentSetUp()`. The docblock records that deleting the block was
-  already tried once and does not hold for anything `HostConfig` computes
-  from `numerosis.*`. Read it before touching it.
-- `tests/TestCase.php:396` sets `'central'` explicitly, not `'mysql'`, and
-  warns against "fixing" it — doing so breaks `HostConfigTest`'s idempotency
-  assertion.
-- The static analysis config is `phpstan.neon.dist`; there is no
-  `phpstan.neon`. Level 9 with a baseline. A warm result cache hides errors,
-  so compare cold-vs-cold when regenerating the baseline
-  (`.ai/rules/static-analysis.md`).
-- `workbench/` has no `config/` directory — app config comes from Testbench's
-  skeleton in `vendor/orchestra/testbench-core/laravel/config/`. Nothing in
-  this plan should change that.
+Its `assertNotContains(..., HostConfig::applied())` assertions (`:130`,
+`:171`, `:288`, `:370`, `:392`, `:447`) encode "the host set it, so we did
+not write". That stays true for **corrections**, which keep a null-check. It
+becomes **false by design** for **preferences**, which now always project
+from `numerosis.*`.
+
+Do not try to keep those green. Keeping them green means reintroducing the
+stock-value sniffing one key at a time, which is the thing this plan exists
+to delete.
+
+Rewrite around four cases:
+
+1. a preference projects onto its vendor key
+2. a host-set correction is left alone
+3. an unset correction lands
+4. `apply()` twice is idempotent — `applied()` is empty on the second run
+
+Per `CLAUDE.md`, deleting tests needs approval. Rewriting in place is fine;
+shrinking coverage is not. **State the before/after test count** in the
+commit message or the final report rather than letting it change unremarked.
+
+### `tests/TestCase.php` — add to it, do not delete from it
+
+`:183-200` pre-sets keys `HostConfig::apply()` would also set, because
+Testbench runs `RegisterProviders` before `getEnvironmentSetUp()`. The
+docblock records that deleting the block was already tried once and does not
+hold for anything `HostConfig` computes from `numerosis.*`.
+
+Phase 5 adds exactly that kind of key (`tenancy.central_connection`,
+`tenancy.seeder`), so this block likely needs **two more entries, not
+fewer**. If you find yourself wanting to remove it, something in Phase 6
+went wrong.
+
+`:396` sets `'central'` explicitly, not `'mysql'`, and warns against
+"fixing" it — doing so breaks the idempotency assertion. Leave it.
+
+### Baseline — once, at the end, cold on both sides
+
+The static analysis config is `phpstan.neon.dist`; there is no
+`phpstan.neon`. Level 9 with a baseline.
+
+Regenerate **once, after Phase 7** — not per phase. Run
+`vendor/bin/phpstan clear-result-cache` before the before-run and again
+before the after-run; a warm result cache hides errors and bakes them into
+the new baseline (`.ai/rules/static-analysis.md`).
+
+The useful check: **the baseline should shrink.** Twenty `PlanMetadata`
+entries go in Phase 1, plus whatever `ConfigPlan` and
+`ConfigPaymentPlanRepository` carried. If it grows, something regressed and
+the baseline is now hiding it — find the entry rather than accepting it.
+
+### `workbench/config/` — a tripwire, not a task
+
+`workbench/` has no `config/` directory; app config comes from Testbench's
+skeleton in `vendor/orchestra/testbench-core/laravel/config/`. Nothing here
+should change that.
+
+If you find yourself wanting to create `workbench/config/numerosis.php` to
+make a test pass, the design went wrong — that is the failure mode
+publishing vendor config would have caused, arriving by the back door.
 
 ## Phase 9 — record the rule
 
