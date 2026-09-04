@@ -35,10 +35,19 @@ Ask who reads it, and when. There are two budgets, and the answer is not about w
 - `@see`, `@param`, `@return` and the rest are tags, not prose. They fall under neither budget, and `{@see SomeClass::method()}` is not a cross-reference: it names a symbol the reader can open.
 
 ```bash
-awk '/^\s*\/\*\*/{n=0} /^\s*\*/ && !/^\s*\*\s*@/ && !/^\s*\*\s*$/ && !/\*\//{n++} /\*\//{if(n>5) print FILENAME":"FNR" ("n" prose lines)"}' $(git ls-files 'src/**.php')
+awk '/^[[:space:]]*\/\*\*/{n=0} /^[[:space:]]*\*/ && !/^[[:space:]]*\*[[:space:]]*@/ && !/^[[:space:]]*\*[[:space:]]*$/ && !/\*\//{n++} /\*\//{if(n>5) print n"\t"FILENAME":"FNR; n=0}' $(git ls-files 'src/**.php') | sort -rn
 ```
 
+POSIX classes, not `\s`: the default `awk` here is mawk, which does not
+support `\s` and silently matches nothing rather than erroring. A version of
+this check using `\s` reported zero hits against 114 real ones.
+
 Read the hits; a long one on a public seam is the first budget doing its job.
+As of 2026-09-04 there are 114 over-budget blocks holding 1,147 prose lines,
+over half the docblock prose in `src/` — but only 33 of them (345 lines) sit
+on a `private`, `protected` or unmarked member, which is where the cap
+applies without argument. The other 81 are class docblocks and `public`
+methods, and each needs the reader question asked rather than a line count.
 
 ### `docs/` is not on a host's disk
 
