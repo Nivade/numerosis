@@ -3,7 +3,7 @@
 Bring every comment and docblock in `src/` up to `.ai/rules/general.md`. Read
 that rule first. It is the standard; this plan is only the execution order.
 
-## Session handoff — 2026-09-04, after batch 11 of 4a
+## Session handoff — 2026-09-04, after batch 14 of 4a
 
 Read `.ai/rules/general.md`'s "How long a comment may be" first. It is the
 standard this phase enforces and it changed mid-sweep.
@@ -12,9 +12,9 @@ standard this phase enforces and it changed mid-sweep.
 
 | Metric | At cap | Now |
 | --- | --- | --- |
-| Over-budget docblocks | 112 blocks / 1,089 lines | 55 blocks / 380 lines, 52 files |
+| Over-budget docblocks | 112 blocks / 1,089 lines | 45 blocks / 281 lines, 43 files |
 | `//` runs over 3 lines | 23 / 114 lines | 22 / 110 lines |
-| Cadence hits (grep `A`) | 379 | 234 |
+| Cadence hits (grep `A`) | 379 | ~220 |
 
 Commits, oldest first: `db150ba` `832cac6` `1ca9f1d` `4b1e764` (batch 5, no
 hash recorded) `b476951` `47c794c` `de2bdff` `1a15799` `1d4fc38`, plus batches
@@ -27,12 +27,20 @@ hash recorded) `b476951` `47c794c` `de2bdff` `1a15799` `1d4fc38`, plus batches
 
 ### Next, in order
 
-No block is over 10 lines any more. Regenerate the worst-first list with the
-docblock check in `general.md` and take it from the top; as of this handoff
-that is `Actions/Tenancy/{FinalizeTenantProvisioning,AddTenantOwner}` (10
-each), then `Models/Central/Tenant.php:114`,
-`Http/Middleware/{RequirePasswordIfSet,EnsureSessionMatchesTenant}` (9 each),
-then ~48 files holding one block of 6–8 lines.
+The tail is uniform now: 45 blocks of 6–7 lines across 43 files, one block
+each. Regenerate the worst-first list with the docblock check in `general.md`
+and work it in batches of five or six. Most of these need one or two sentences
+cut, not a new rule-file home — the facts that needed one have mostly landed.
+
+Then the `//` runs, which this sweep has not touched at all: 22 runs holding
+110 lines, worst `Models/User.php:36` (15), then
+`Services/Billing/Resolvers/DefaultUnpaidTenantQuota.php:21` and
+`Livewire/Billing/Checkout.php:175` (7 each).
+
+`src/Services/Tenancy/Bootstrappers/AuthGuardBootstrapper.php` was reverted on
+2026-09-04 at the user's instruction; the other session's docblock rewrite there
+(which spliced `@see \Illuminate\Contracts\Auth\Authenticatable` mid-sentence)
+is gone and the file is at `HEAD`, already in budget at 4 prose lines.
 
 Then the `//` runs, worst first: `Models/User.php:36` (15 lines),
 `Services/Billing/Resolvers/DefaultUnpaidTenantQuota.php:21` and
@@ -52,12 +60,8 @@ Then the `//` runs, worst first: `Models/User.php:36` (15 lines),
 
 ### Working tree
 
-`src/Http/Middleware/InitializeTenancyByDomainOrSubdomain.php` and
-`src/Services/Tenancy/Bootstrappers/AuthGuardBootstrapper.php` are modified and
-**belong to another session**. Leave them; stage by explicit path only. The
-`AuthGuardBootstrapper` edit is a docblock rewrite that splices
-`@see \Illuminate\Contracts\Auth\Authenticatable` into the middle of a
-sentence — worth resolving with whoever owns it before that file's own batch.
+`src/Http/Middleware/InitializeTenancyByDomainOrSubdomain.php` is modified and
+**belongs to another session**. Leave it; stage by explicit path only.
 
 ### Per-file loop that has been working
 
