@@ -912,3 +912,18 @@ to all this — single-process, no locking semantics.
   Provisioning tests (`CreateTenantTest`, `ProvisionTenantTest`,
   `MakeFirstUserAdminTest`, `TenantProvisioningSignalTest`) must keep creating
   own tenants — testing pipeline itself.
+## A deleted tenant migration is invisible to this harness (2026-09-03)
+
+Tenant databases here are cloned from a cached schema source, not re-migrated
+per test. Moving `database/migrations/tenant/2026_07_31_120000_create_one_time_passwords_table.php`
+aside, dropping every `tenant%` **and** `%template%` database, and re-running
+still produced a tenant database whose own `migrations` table carried the OTP
+row — so `OneTimePasswordLoginTest::test_a_tenant_user_authenticates_on_a_tenant_subdomain`
+stays green against a migration that is not on disk.
+
+The test is still worth having: it proves the tenant *write path*, measured
+directly (1 row in `tenantotp-…`, 0 in `central`), which is the half that
+actually broke in the incident `.ai/rules/auth-login.md` records. What it
+cannot prove is that the file exists. **Never argue "the tenant migration is
+covered" from a passing tenant test** — same family as the stale-template trap
+above, but worse, because purging the templates does not clear it.

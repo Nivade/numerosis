@@ -39,7 +39,7 @@ use Stancl\Tenancy\Jobs\MigrateDatabase;
  *
  * `APP_URL`/`DB_*`/`STRIPE_*` are set via `putenv()` in `setUp()`, *before*
  * `parent::setUp()` — not via `Config::set()` in `getEnvironmentSetUp()`.
- * `.claude/rules/testing.md`'s "`TestCase::getEnvironmentSetUp()` runs after
+ * `.ai/rules/testing.md`'s "`TestCase::getEnvironmentSetUp()` runs after
  * providers register" section is exactly why: `HostConfig::apply()` (and
  * `config/numerosis.php`'s own `Domains::apexFromAppUrl()`, and
  * `config/database.php`'s `env('DB_*')` reads) all resolve during
@@ -149,7 +149,7 @@ class FreshHostTest extends Orchestra
             //   `QUEUE_CONNECTION=database`, matching a fresh Laravel install.
             // - `array` because `CacheTenancyBootstrapper` isolates tenants
             //   with cache *tags*, and Laravel's `database` store is not
-            //   taggable (see `.claude/rules/tenant-caching.md`). A host on
+            //   taggable (see `.ai/rules/tenant-caching.md`). A host on
             //   `CACHE_STORE=database` is already outside what this package
             //   supports, so pinning it here changes nothing a real host
             //   would have gotten away with.
@@ -313,14 +313,17 @@ class FreshHostTest extends Orchestra
     }
 
     /**
-     * `login` belonged to nvade/numerosis-auth-ui's Livewire
-     * PasswordlessLogin, deleted (not moved) when that package folded into
-     * core in Phase 3 of `.claude/plans/humming-nibbling-flame.md`. Phase 4
-     * rebuilds it on Fortify — reinstate this assertion then.
+     * `login` is Fortify's route, loaded into this host's central-domain
+     * group by `Numerosis::routes()` — so this also covers 4a's per-group
+     * `require` of `routes/routes.php` against a host that configured
+     * nothing.
      */
     public function test_login_renders_with_zero_explicit_numerosis_tenancy_or_auth_config(): void
     {
-        $this->markTestSkipped('login awaits the Fortify rebuild in Phase 4.');
+        $response = $this->get(self::APP_URL.'/login');
+
+        $response->assertOk();
+        $response->assertSeeText('Log in');
     }
 
     public function test_tenancy_bootstrappers_carry_both_package_bootstrappers(): void

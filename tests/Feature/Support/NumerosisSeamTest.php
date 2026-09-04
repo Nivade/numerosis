@@ -312,7 +312,7 @@ afterEach(function () {
 
 afterEach(function () {
     // These three statics persist for the life of the PHP process, not per
-    // Application instance (see .claude/rules/testing.md's general warning
+    // Application instance (see .ai/rules/testing.md's general warning
     // about static state) — a callback left set here would fire again for
     // every later test's own registerMiddleware()/registerBroadcasting()/
     // routes() call, most of which don't expect one.

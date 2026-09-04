@@ -109,7 +109,7 @@ class TenancyServiceProvider extends ServiceProvider
      * group. Under `IdentificationMode::Path`, tenant routes deliberately
      * live on the central domain (path-prefixed), so the ordinary block
      * would 404 every tenant request — see
-     * .claude/rules/identification-modes.md.
+     * .ai/rules/identification-modes.md.
      */
     public static function tenancyRouteMiddleware(): string
     {
@@ -236,7 +236,7 @@ class TenancyServiceProvider extends ServiceProvider
      * on v3, which is why this package builds its own `new CacheManager($app)`
      * — v3 never resolves `globalCache` itself. **Both the constructor
      * signature and `$shouldCache` change on dev-master**; see
-     * `.claude/rules/stancl-tenancy-v4.md` when porting.
+     * `.ai/rules/stancl-tenancy-v4.md` when porting.
      */
     protected function registerCachedDomainResolver(): void
     {

@@ -1,58 +1,30 @@
 # Package Boundaries
 
-> **Header note, 2026-09-03 (Phase 2).** The **module system is deleted** —
-> `Actions/Modules`, `Contracts/{Modules,Billing/Module*}`, both Eloquent
-> models, the 4 module migrations, `ModuleSystemFeature`,
-> `config/numerosis/modules.php`, the three `tenants:*-module` commands and
-> the `modules` permission context are all gone, and `internachi/modular` is
-> no longer even a `suggest`. `ImpersonationFeature`,
-> `Actions/Tenancy/ImpersonateTenantUser` and the `impersonate/{token}` route
-> went with it. Every module paragraph below is history; the *mechanisms*
-> they illustrate (one seam per optional package, migrations stay in core)
-> still hold.
->
-> **Header note, 2026-09-03 (Phase 1).** `packages/filament` is deleted (Phase 1 of
-> `.claude/plans/humming-nibbling-flame.md`). The four panel-related rows in
-> the seam table below (`panels.tenant.login`,
-> `panels.admin.tenant_registration_component`, `panels.{admin,tenant}.provider`)
-> describe config keys that **no longer exist** — `config/numerosis/panels.php`
-> went with the package. The "Core still names `Filament\`, in 11 files"
-> paragraph is also void: it names none. Phase 3 rewrites this file for a
-> two-package world; until then, read those parts as history.
->
-> **Rewritten 2026-08-31 (section F of `.claude/plans/numerosis-consolidation.md`).**
-> The original version of this file argued that the split could not happen
-> because this package had exactly one extension point per concern, each of
-> them "replace it wholesale" rather than "contribute to it". **Every seam it
-> asked for now exists**, and four packages were extracted through them. What
-> follows is the seam map — what to contribute through, and the boundary facts
-> that are still load-bearing. The old "here is why you cannot" framing is
-> gone; its conclusions are void, its mechanisms are preserved below and in
-> `.ai/rules/package-split.md`.
+> **Rewritten 2026-09-03 (Phase 7 of `.claude/plans/humming-nibbling-flame.md`),
+> for the two-package shape Phase 3 left behind.** `packages/{auth-ui,onboarding,account}`
+> folded into core; `packages/filament` and the module system were deleted
+> outright in Phases 1–2. The seam table, boundary facts and history below
+> describe **`nvade/numerosis` (core) and `nvade/numerosis-ui` only** — one
+> host-facing seam list, not a satellite-registration protocol. Everything
+> this file used to say about satellites contributing into core (panels
+> config, `numerosis.panels.*`, `PurchasesModules`, the module system) is
+> **void** and has been removed rather than kept as marked history; see
+> `docs/extending.md` for the current, single seam list and
+> `.claude/plans/humming-nibbling-flame.md` for why each satellite went.
 
-Layout: one repo, core at the root plus `packages/{ui,auth-ui,filament,onboarding}`,
-path-installed from a single `{"type":"path","url":"packages/*"}` entry and
-published as read-only splits on tag. `tests/Feature/PackageBoundariesTest.php`
-is what enforces the boundaries now — in a monorepo the filesystem enforces
-nothing.
+Layout: one repo, core at the root plus `packages/ui`, path-installed from a
+single `{"type":"path","url":"packages/*"}` entry and published as read-only
+splits on tag. `tests/Feature/PackageBoundariesTest.php` enforces the one
+boundary left — `nvade/numerosis-ui` may not reference core, `Filament\`,
+`tenancy()` or a named `route()` — in a monorepo the filesystem enforces
+nothing else.
 
 ## The seams
 
-All on `Nvade\Numerosis\Support\{Numerosis,Features}`, all additive. A
-satellite or a host calls these; neither ever names the other's classes.
-
-| Contribute | Call | Notes |
-|---|---|---|
-| central-domain routes | `Numerosis::addCentralRoutes(Closure)` | callback runs **once per configured central domain**, inside that domain's own `Route::middleware('web')->domain($domain)` group. A plain `Route::get()` instead would answer on every tenant subdomain, and nothing would fail — `SatelliteRouteContributionTest` is the guard. |
-| tenant routes | `Numerosis::addTenantRoutes(Closure)` | same, inside the single `Route::middleware('tenant')` group. |
-| a `Feature` | `Features::register(class-string<Feature>)` | merges with `config('numerosis.features')`; `Features::registered()` tells a contributed feature from a host-configured one. |
-| tenant migrations | `Numerosis::addTenantMigrationPath(string)` | `HostConfig::tenancyMigrationParameters()` already treated `--path` as an array; this is the public way in. |
-| seed data | `Numerosis::addTenantSeeder()` / `addCentralSeeder()` | ran by the package's own `TenantDatabaseSeeder` / `DatabaseSeeder`. |
-| permissions | `Numerosis::addPermissionContext(string)` | a missing permission row is a **500, not a 403** (`.ai/rules/auth-guards.md`), and Filament evaluates every resource's `viewAny` on every page render, so one missing context breaks the whole panel. |
-| views | `->hasViews('numerosis')` from the satellite's own provider | `FileViewFinder::addNamespace()` *appends*, so several packages serve one namespace. Paths are searched in registration order — files must be **moved, never copied**. |
-| the tenant panel's login page | `numerosis.panels.tenant.login` | a Livewire component class. `null` = Filament's own login page. |
-| the registration wizard | `numerosis.panels.admin.tenant_registration_component` | a Livewire **alias**, not a class — that is what keeps core and `packages/filament` from naming `packages/onboarding`'s classes. |
-| a panel wholesale | `numerosis.panels.{admin,tenant}.provider` | core registers what you name and `numerosis-filament` stands down for that panel. |
+All on `Nvade\Numerosis\Support\{Numerosis,Features}`, all additive. A host
+calls these; core never names a host's classes. Full table, with notes, is in
+`docs/extending.md` — this file only records the boundary facts that are easy
+to get wrong.
 
 `Numerosis::registerRoutesUsing()` / `registerMiddlewareUsing()` /
 `registerBroadcastingUsing()` still exist and still replace the whole
@@ -60,22 +32,6 @@ mechanism. Reach for the `add*` seams first; the `registerXUsing()` ones are
 for a host that genuinely wants none of the defaults.
 
 ## Boundary facts that still bite
-
-- **A satellite must be able to register into a world where core's config is
-  not there, and do nothing.** Larastan boots an application that discovers
-  every *vendor* package but not the root one, so every satellite registers
-  with core absent — the same shape as a host that installs a satellite and
-  doesn't register core. `Features::all()` reads
-  `Config::array('numerosis.features', [])` for exactly this reason. Sentinel
-  on a key **only core writes**; `Arr::set()` auto-vivifies, so "the namespace
-  exists" is not evidence core registered.
-
-- **A satellite config write belongs in the register phase only where the
-  parent namespace is deep-filled.** `numerosis.panels` survives a
-  `packageRegistered()` write because `HostConfig::numerosisConfig()`
-  deep-fills it; `numerosis.tenancy` does not, and the identical write
-  destroyed `implementations`/`provisioning`/`identification`. Full mechanism
-  and both symptoms in `.ai/rules/package-split.md`.
 
 - **A feature class listed in config but not installed is a hard container
   failure at boot, and the first symptom is the wrong one.**
@@ -87,28 +43,21 @@ for a host that genuinely wants none of the defaults.
   packaging change that could leave a feature class unavailable needs the
   config change in the same commit.
 
-- **Core still names `Filament\`, in 11 files, and that is fine.** Every one
-  is lazy — a method type-hint, a `use` import reached only when a panel
-  exists, or a `class_exists()`-guarded call. `Support\Compat\Filament*` stay
-  in **core**: they are what lets core's own models load without Filament, so
-  a satellite owning them would invert the dependency they exist to prevent.
-  The asymmetry (`extends`/`implements`/`use <Trait>` resolve eagerly, type
-  hints do not) is in `.ai/rules/optional-dependencies.md`.
-
-  The one real cycle this file used to name is **resolved**:
-  `Concerns\Modules\PurchasesModules` returned `Filament\Actions\Action`
-  objects from core, and its only two consumers were Filament pages. It lives
-  at `packages/filament/src/Concerns/Modules/PurchasesModules.php` now.
-  `Http\Middleware\CheckInvitationStatus` was the other — a core route
-  reachable with no panel anywhere, calling `Notification::make()`; it is
-  `class_exists()`-guarded with a session-flash fallback.
+- **Core names no `Filament\` symbol anywhere** (`packages/filament` deleted
+  Phase 1) — enforced by `PackageBoundariesTest`'s
+  `test_core_names_no_filament_symbol()` for `src/`, `config/`, `routes/`,
+  `resources/`, `database/` and `workbench/`. The asymmetry that used to
+  matter here (`extends`/`implements`/`use <Trait>` resolve eagerly, type
+  hints do not) is still the live rule for the packages core *does* still
+  `suggest` — see `.ai/rules/optional-dependencies.md`.
 
 - **One seam per optional package, not one `class_exists()` per call site.**
   The module system was the worked example — seven consumers, all asking
-  `ModuleSystemFeature::available()` — and it is deleted. The rule is what
-  survives: give an optional dependency exactly one `available()` predicate.
-  `spatie/laravel-one-time-passwords` and `spatie/laravel-activitylog` are the
-  remaining cases.
+  `ModuleSystemFeature::available()` — and it is deleted (Phase 2). The rule
+  is what survives: give an optional dependency exactly one `available()`/
+  `isEnabled()` predicate. `spatie/laravel-one-time-passwords`,
+  `spatie/laravel-activitylog` and, since Phase 6,
+  `ryangjchandler/laravel-cloudflare-turnstile` are the remaining cases.
 
 - **80 migrations live in core** (63 central, 17 tenant), including
   9 for `activity_log` (4 central, 5 tenant — **not** symmetrical;
@@ -121,48 +70,39 @@ for a host that genuinely wants none of the defaults.
 
 - **Core's config is split by *key*, not by package** (2026-09-01):
   `config/numerosis/<key>.php`, thirteen partials that `config/numerosis.php`
-  `array_merge`s. Splitting per package would be wrong, not merely
-  unnecessary — a satellite fills its own keys at register time and a host's
-  override wins over both, so there is no package line to cut along. Core's
-  config deliberately does **not** name the onboarding wizard's step classes:
-  that would put a package core does not depend on into core's own config.
+  `array_merge`s. Splitting per package would be wrong even in the six-package
+  world, and there is now only one package to split along anyway — a host's
+  override file only needs to name the keys it changes.
 
-  Two traps the split introduced. **The root file can never be published** —
-  its `require __DIR__` paths would resolve against the *host's* config
-  directory — which is why `NumerosisServiceProvider` no longer calls
-  `hasConfigFile('numerosis')` (that registers the real file for publishing)
-  and instead does `mergeConfigFrom()` in `packageRegistered()` plus a
-  `publishGroup()` of `config/stubs/numerosis.php`. And **a new partial is
-  invisible until it is listed in that root `array_merge`**, with nothing
-  failing: the key just defaults away through `HostConfig`'s deep-fill.
+  Two traps the split introduced, both still live. **The root file can never
+  be published** — its `require __DIR__` paths would resolve against the
+  *host's* config directory — which is why `NumerosisServiceProvider` no
+  longer calls `hasConfigFile('numerosis')` (that registers the real file for
+  publishing) and instead does `mergeConfigFrom()` in `packageRegistered()`
+  plus a `publishGroup()` of `config/stubs/numerosis.php`. And **a new
+  partial is invisible until it is listed in that root `array_merge`**, with
+  nothing failing: the key just defaults away through `HostConfig`'s
+  deep-fill.
 
-## Suggested better approach
+## Contribution readers
 
-The seams are narrow on purpose — contribute-a-callback, not
-override-the-mechanism — and that is worth keeping as more get added. The one
-thing they lack is a way to *inspect* what has been contributed.
+Every `add*()` writer has a reader next to it:
+`Numerosis::tenantMigrationPaths()`, `::tenantSeeders()`,
+`::centralSeeders()`, `::permissionContexts()`
+(`src/Support/Numerosis.php:385,413,439,474`), and `Features::registered()`.
 
-**Corrected 2026-09-01 — this section used to claim "there is no equivalent
-for routes, migration paths or seeders". Three of those four already have
-readers**, and a session acting on the old text would have rebuilt what
-exists: `Numerosis::tenantMigrationPaths()`, `::tenantSeeders()`,
-`::centralSeeders()` and `::permissionContexts()` all sit next to their
-`add*()` writers (`src/Support/Numerosis.php:385,413,439,474`), as does
-`Features::registered()`.
-
-**Routes had one real gap, closed 2026-09-02.** `Contributions::$centralRouteCallbacks`
-/ `$tenantRouteCallbacks` used to hold bare `Closure`s, so a reader over them
-could answer "how many" and never "which package". `addCentralRoutes()` /
-`addTenantRoutes()` now take an optional `?string $source` (both on
-`Numerosis` and on `Contributions`, the latter doing the actual storing as
-`array{callback, source}` pairs), and `Contributions::centralRouteSources()`
-/ `::tenantRouteSources()` read the `source` half back, in the same order as
-`::centralRouteCallbacks()` / `::tenantRouteCallbacks()` (which still return
-bare closures — `Numerosis::routes()` invokes them positionally and doesn't
-need the pairing). The three in-repo satellites that call `addCentralRoutes()`
-/ `addTenantRoutes()` (`nvade/numerosis-{onboarding,account,auth-ui}`) all
-pass their own package name; a caller that doesn't leaves `source` `null`,
-same as before this existed.
+Route contributions carry an optional `?string $source` too —
+`addCentralRoutes()` / `addTenantRoutes()` (both on `Numerosis` and on
+`Contributions`, the latter doing the actual storing as
+`array{callback, source}` pairs), read back by
+`Contributions::centralRouteSources()` / `::tenantRouteSources()`, in the
+same order as `::centralRouteCallbacks()` / `::tenantRouteCallbacks()` (which
+still return bare closures — `Numerosis::routes()` invokes them positionally
+and doesn't need the pairing). With no satellite left to pass its own package
+name, `source` is `null` unless the host calling these seams supplies one
+itself — the mechanism from the six-package era is intact, just unused by
+anything in this repo now. `tests/Feature/Support/PackageContributionSeamsTest.php`
+is what exercises it (renamed from `SatelliteRouteContributionTest`).
 
 The general rule stands: add the reader alongside the writer rather than
 after — a boundary test that can enumerate contributions is strictly better

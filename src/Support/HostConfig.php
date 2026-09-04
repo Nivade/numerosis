@@ -5,14 +5,19 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Support;
 
 use Illuminate\Support\Facades\Config;
+use Laravel\Fortify\Features as FortifyFeatures;
+use Laravel\Fortify\Fortify;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
+use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
+use ReflectionClass;
 use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
 use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
 
@@ -57,7 +62,7 @@ final class HostConfig
         self::authPasswordBroker();
         self::tenantPasswordBroker();
         self::activityLogTable();
-        self::geoipService();
+        self::fortifyFeatures();
         self::numerosisConfig();
     }
 
@@ -88,9 +93,9 @@ final class HostConfig
          * dev-master** — `tenancy.models.{tenant,domain}`, two segments
          * under a sub-array stancl's own `mergeConfigFrom()` populates, so
          * a dotted `Config::set()` would then hit the `Arr::set()`
-         * auto-vivification hazard `.claude/rules/package-host-bootstrap.md`
+         * auto-vivification hazard `.ai/rules/package-host-bootstrap.md`
          * documents for `tenancy.database`. See
-         * `.claude/rules/stancl-tenancy-v4.md`'s config-key map.
+         * `.ai/rules/stancl-tenancy-v4.md`'s config-key map.
          */
         $stancl = [
             'tenancy.tenant_model' => [StanclTenant::class, Numerosis::model(Tenant::class)],
@@ -146,11 +151,12 @@ final class HostConfig
     }
 
     /**
-     * Appends the two bootstrappers this package relies on:
+     * Appends the three bootstrappers this package relies on:
      * `AuthGuardBootstrapper` switches the default guard to match the
-     * current context, and `SpatiePermissionsBootstrapper` keeps role and
-     * permission lookups pointed at the right database. Your own
-     * bootstrappers are kept.
+     * current context, `SpatiePermissionsBootstrapper` keeps role and
+     * permission lookups pointed at the right database, and
+     * `PasswordBrokerBootstrapper` points Fortify's password broker at the
+     * tenant one. Your own bootstrappers are kept.
      */
     private static function tenancyBootstrappers(): void
     {
@@ -158,7 +164,11 @@ final class HostConfig
         $bootstrappers = Config::array('tenancy.bootstrappers', []);
 
         $missing = array_values(array_diff(
-            [SpatiePermissionsBootstrapper::class, AuthGuardBootstrapper::class],
+            [
+                SpatiePermissionsBootstrapper::class,
+                AuthGuardBootstrapper::class,
+                PasswordBrokerBootstrapper::class,
+            ],
             $bootstrappers,
         ));
 
@@ -475,18 +485,60 @@ final class HostConfig
     }
 
     /**
-     * torann/geoip's own stock config ships `service` as `null`, and its
-     * `GeoIP::getService()` throws `Exception('No GeoIP service is
-     * configured.')` if left that way — every checkout page load would
-     * fatal the moment {@see \Nvade\Numerosis\Actions\Billing\Checkout\ResolveCheckoutRegion}
-     * calls it. Backfills the local MaxMind database driver, which needs no
-     * outbound request per lookup, unless you've already chosen a service.
+     * The auth screens Fortify should register, while `fortify.features`
+     * still holds Fortify's own shipped list — i.e. while the host has not
+     * chosen. Two differences from that shipped list:
+     *
+     * - two-factor authentication and passkeys are dropped. Neither has a
+     *   view under `numerosis::auth.` and neither has the columns their
+     *   controllers write, so leaving them on registers screens that fail
+     *   only once somebody reaches them.
+     * - password reset follows `PasswordResetFeature`, this package's own
+     *   toggle, so the two configs cannot disagree about whether the
+     *   feature exists.
+     *
+     * A host that publishes `config/fortify.php` and edits the list owns it
+     * outright from then on, including turning 2FA back on — which is what
+     * `docs/extending.md` promises and what setting this key unconditionally
+     * in `registerFortify()` used to quietly break.
      */
-    private static function geoipService(): void
+    private static function fortifyFeatures(): void
     {
-        if (Config::get('geoip.service') === null) {
-            self::set('geoip.service', 'maxmind_database');
+        if (Config::array('fortify.features') !== self::fortifyStockFeatures()) {
+            return;
         }
+
+        self::set('fortify.features', array_values(array_filter([
+            FortifyFeatures::registration(),
+            Features::enabled(PasswordResetFeature::NAME) ? FortifyFeatures::resetPasswords() : null,
+            FortifyFeatures::updateProfileInformation(),
+            FortifyFeatures::updatePasswords(),
+            FortifyFeatures::emailVerification(),
+        ])));
+    }
+
+    /**
+     * Fortify's own shipped `features` list, read from the package rather
+     * than restated here — restating it would go stale the first time
+     * Fortify added a feature, and "the host has not chosen" would silently
+     * become "the host has chosen" for every install.
+     *
+     * @return list<mixed>
+     */
+    private static function fortifyStockFeatures(): array
+    {
+        $path = dirname((string) (new ReflectionClass(Fortify::class))->getFileName(), 2).'/config/fortify.php';
+
+        if (! is_file($path)) {
+            return [];
+        }
+
+        /** @var array<string, mixed> $stock */
+        $stock = require $path;
+
+        $features = $stock['features'] ?? [];
+
+        return is_array($features) ? array_values($features) : [];
     }
 
     /**

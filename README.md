@@ -1,7 +1,8 @@
 # Numerosis
 
-Multi-tenant SaaS foundation for Laravel. Tenancy and billing are the required
-core; auth screens, invitations and the registration wizard are opt-in.
+Multi-tenant SaaS foundation for Laravel. Tenancy, Fortify-backed auth and
+billing are the required core; invitations and the registration wizard are
+feature-gated but always installed.
 
 **Proprietary — not published to Packagist.** Install from a path or VCS repo.
 
@@ -11,7 +12,7 @@ core; auth screens, invitations and the registration wizard are opt-in.
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | How the package boots, what happens on a central vs. tenant request, where code lives |
 | [`docs/features.md`](docs/features.md) | Every feature class, which package owns it, what turning it off costs |
-| [`docs/extending.md`](docs/extending.md) | How a host or a satellite package contributes routes, migrations, seeders, permissions |
+| [`docs/extending.md`](docs/extending.md) | How a host contributes routes, migrations, seeders, permissions, and customizes auth through Fortify |
 | [`docs/host-requirements.md`](docs/host-requirements.md) | The things a host must provide, and every config key the package normalizes for you |
 
 `.ai/rules/` holds non-obvious traps and invariants by topic (start at
@@ -20,26 +21,23 @@ authoritative about current behaviour.
 
 ## What you install
 
-Five Composer packages, developed in this one repository, published as
-read-only splits on tag. Core is the only one you must have; declining any of
-the other four is a supported state, not a degraded one.
+Two Composer packages, developed in this one repository, published as
+read-only splits on tag — collapsed from six (`.claude/plans/humming-nibbling-flame.md`).
+Both are effectively required.
 
 | Package | What it is |
 |---|---|
-| `nvade/numerosis` | Tenancy, billing, provisioning, auth mechanics, every migration and seeder |
+| `nvade/numerosis` | Tenancy, Fortify-backed auth, billing, provisioning, the onboarding wizard, every migration and seeder |
 | `nvade/numerosis-ui` | Shared Blade layer (`<x-numerosis::ui.*>`), design tokens, `livewire/flux`. Core requires it |
-| `nvade/numerosis-auth-ui` | Login / register / password-reset / OAuth screens, `laravel/socialite` |
-| `nvade/numerosis-account` | Account UI: settings screens, workspace list, billing portal, invoice downloads |
-| `nvade/numerosis-onboarding` | Self-serve registration wizard at `/get-started` |
 
-`nvade/numerosis-filament` — admin and tenant Filament panels — was **deleted
-on 2026-09-03**. Neither panel exists, and `filament/filament` is not a
-dependency of anything here. Core ships the tenant landing page and the
-account screens; a host wanting an admin UI builds its own against the
-package's models and policies.
+Auth screens, routes and session handling are `laravel/fortify`'s — core
+supplies the tenancy-aware actions and views. Admin/tenant Filament panels
+were deleted outright; `filament/filament` is not a dependency of anything
+here. Core ships the tenant landing page and the account screens; a host
+wanting an admin UI builds its own against the package's models and
+policies.
 
-What declining each one costs is listed per package in
-[`docs/host-requirements.md`](docs/host-requirements.md) §0.
+See [`docs/host-requirements.md`](docs/host-requirements.md) §0 for detail.
 
 ## Requirements
 
@@ -62,7 +60,8 @@ What declining each one costs is listed per package in
 ```
 
 Composer path repositories are not transitive, which is why a host names
-`packages/*` itself rather than inheriting it from core.
+`packages/*` itself rather than inheriting it from core — `packages/ui` is
+what that glob resolves to today.
 
 ```php
 // bootstrap/app.php
@@ -86,8 +85,8 @@ seeding. It is the executable copy of `docs/host-requirements.md`.
 ## Repo layout
 
 ```
-src/                    core: tenancy, billing, auth mechanics
-packages/{ui,auth-ui,account,onboarding}/  the four satellite splits
+src/                    core: tenancy, Fortify-backed auth, billing
+packages/ui/            the one other split — shared Blade + design tokens
 config/numerosis/       every knob, one file per top-level key
 config/numerosis.php    assembles those partials — never published
 config/stubs/           the small override file a host publishes instead

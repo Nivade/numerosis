@@ -19,8 +19,8 @@ class CreateTenantDomain
      * `$subdomain` is always the tenant's safe id/slug (also `tenants.id` and
      * the physical database name), regardless of mode — it is never the raw
      * value of a custom domain, which cannot safely be either of those (see
-     * .claude/rules/tenant-provisioning.md's `id` bullet and
-     * .claude/rules/identification-modes.md).
+     * .ai/rules/tenant-provisioning.md's `id` bullet and
+     * .ai/rules/identification-modes.md).
      *
      * Returns null under `IdentificationMode::Path`, which resolves tenants
      * purely by id and creates no `domains` row at all.

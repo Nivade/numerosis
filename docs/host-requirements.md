@@ -21,33 +21,25 @@ publishing or seeding anything.
 
 ## 0. What you install
 
-`nvade/numerosis` is five Composer packages developed in one repository and
-published as read-only splits. Core is the only one you must have; the other
-four are UI layers you can decline, and declining one is a supported state,
-not a degraded one.
+`nvade/numerosis` is two Composer packages developed in one repository and
+published as read-only splits — collapsed from six by
+`.claude/plans/humming-nibbling-flame.md`. Both are effectively required.
 
-| Package | What it is | Declining it costs |
-|---|---|---|
-| `nvade/numerosis` | Tenancy, billing, provisioning, auth mechanics, every migration and seeder. | — it is the package. |
-| `nvade/numerosis-ui` | The shared Blade layer: `<x-numerosis::ui.*>`, the design tokens, `livewire/flux`. | Not declinable in practice — core `require`s it, because core's own views render its components and a missing Blade tag renders as literal text rather than failing. |
-| `nvade/numerosis-auth-ui` | The login / register / password-reset / OAuth **screens**, and `laravel/socialite`. | No `/login`, `/register` or `/forgot-password` route, and social login is unavailable. Core keeps the auth *mechanics* — guards, `LogoutUser`, email verification, the social-account repository, `TurnstileFeature`, both `one_time_passwords` migrations. |
-| `nvade/numerosis-account` | The account UI: the four settings screens (profile, password, appearance, delete account), the workspace list, the billing-portal and invoice-download routes, and `AccountPagesFeature`. | No `/settings/*`, no workspace list, no billing portal — build your own. Core keeps the *name* of the feature as `Support\Ui\AccountPages::FEATURE`, because six core and satellite call sites gate a post-login redirect on it. Its views join the shared `numerosis::` namespace; its single-file Livewire pages use their own `account-pages::` prefix, since `livewire.component_namespaces` maps a prefix to exactly one directory. |
-| `nvade/numerosis-onboarding` | The self-serve registration wizard at `/get-started`. | No signup route, and core's own references to it — links in four views plus `CompleteRedirectCheckout`'s post-checkout redirect — are hidden. All of them gate on `Support\Tenancy\SelfServeRegistration::FEATURE`, a constant **core** owns for exactly this reason: a class-constant fetch autoloads the class, so gating on the satellite's own `NAME` would fatal a host that declined it. Tenants can still be created from an admin screen, a job or a Stripe webhook. |
+| Package | What it is |
+|---|---|
+| `nvade/numerosis` | Tenancy, Fortify-backed auth, billing, provisioning, the onboarding wizard, every migration and seeder, and the auth/account/onboarding screens that used to be separate packages. |
+| `nvade/numerosis-ui` | The shared Blade layer: `<x-numerosis::ui.*>`, the design tokens, `livewire/flux`. Not declinable in practice — core `require`s it, because core's own views render its components and a missing Blade tag renders as literal text rather than failing. |
 
-Two consequences worth knowing before you pick:
+Auth screens, routes and session handling are `laravel/fortify`'s; core
+supplies the tenancy-aware actions Fortify's contracts call and the views at
+`numerosis::auth.*`. See [`extending.md`](extending.md) for the
+customization seams.
 
-- **Installing a package is not the same decision as switching its feature
-  on.** `config('numerosis.features')` is a code-level switch; a package you
-  installed but whose feature you removed registers nothing. The wizard is the
-  live example — `/get-started` stays behind `RegistrationWizardFeature`
-  whether or not `nvade/numerosis-onboarding` is present.
-- **Neither layer names the other's classes.** The tenant panel's login
-  component and the wizard reach core through
-  `numerosis.panels.tenant.login` and
-  `numerosis.panels.admin.tenant_registration_component` (a Livewire
-  **alias**, not a class), and both default to something harmless when the
-  owning package is absent. If you replace a layer with your own, fill those
-  keys rather than subclassing anything.
+Worth knowing: **installing a feature's code is not the same decision as
+switching it on.** `config('numerosis.features')` is the only switch —
+turning `RegistrationWizardFeature` off hides `/get-started` even though the
+wizard's code is always present; turning `SocialLoginFeature` off hides
+OAuth even though `laravel/socialite` is always a dependency.
 
 `.ai/rules/package-boundaries.md` is the full seam map — routes,
 features, migration paths, seeders, permission contexts, panels — for anyone
@@ -69,25 +61,18 @@ framework hook that has to run before any package code can act.
 | `php artisan vendor:publish --tag=numerosis-public-assets` | run at least once, unless you build `resources/js/numerosis.js` through your own Vite | copies this package's prebuilt JS/CSS to `public/vendor/numerosis/`; `Assets::tags()` links both URLs whether or not they are there, so a missing publish is a 404, not an exception | `verifyPublicAssets()` |
 | DNS + a provisioning worker | depends on `numerosis.tenancy.identification.mode` — `subdomain`: `*.{tenant_pattern}` resolves; `custom_domain`: each tenant points their own domain here; `path`: no DNS change at all. Plus, in every mode, a queue worker on the `provisioning` queue | infrastructure — tenant provisioning is queued there, not on the default worker | — infrastructure, outside anything a boot-time check can observe; `numerosis:install`'s printed manual steps name the right one for your mode |
 
-**Plus two conditionals**:
+**Plus one conditional**:
 
 - `NUMEROSIS_APEX_DOMAIN` when served at the apex of a multi-part public
   suffix (`example.co.uk`) — the documented limit of
   `Domains::apexFromAppUrl()`'s label-count heuristic (it strips one label
   from `APP_URL`'s host, which is wrong when the registrable domain itself
   has two labels). See the `domains.apex` row below.
-- `MAXMIND_LICENSE_KEY` plus one `php artisan geoip:update`, if you want
-  checkout's region-specific payment-method order. `HostConfig` points
-  `geoip.service` at torann/geoip's local `maxmind_database` driver (the
-  only one needing no outbound request per lookup), but the `.mmdb` file
-  it reads is licensed, so nothing can ship or fetch it for you. The
-  package schedules `geoip:update` weekly once that service is configured;
-  the *first* run is yours. Skipping this is a supported state, not a
-  broken one: `ResolveCheckoutRegion` catches the driver's throw, reports
-  it and returns null, so checkout falls back to
-  `numerosis.billing.payment_methods.default_order` — at the cost of one
-  reported exception per checkout page load, which is worth knowing before
-  it shows up in Sentry.
+
+Checkout's region-specific payment-method order has no lookup wired in —
+`torann/geoip` was dropped (Phase 6 of the scope-reduction plan) —
+`ResolveCheckoutRegion` always returns null, and checkout always falls back
+to `numerosis.billing.payment_methods.default_order`.
 
 Central data (roles, permissions and the example plans) needs
 seeding too, but as of the seeding-by-convention work below that's now a
@@ -109,15 +94,14 @@ all. Every normalization is independently covered by
 meaningful thing to hold), and every config key `HostConfig` so much as
 names has to appear somewhere in this document —
 `tests/Feature/Docs/HostRequirementsTest.php` fails otherwise, which is
-what stops the next normalization from shipping undocumented the way
-`geoip.service` did.
+what stops the next normalization from shipping undocumented.
 
 | Concern | Set to, by default | Override | Checked by |
 |---|---|---|---|
 | `tenancy.tenant_model` / `tenancy.domain_model` / `tenancy.central_user_model` / `tenancy.tenant_user_model` | `Numerosis::model(...)` for each — the package's own concrete class, or a host subclass at the conventional `App\Models\<suffix>` path, picked up automatically (see the `models.*` row below) | publish a stub at that path, or set `numerosis.models.<FQCN>` directly for a non-conventional location | `verifyTenancyModels()` (narrowed — HostConfig sets this; only fires for a key set directly, bypassing `Numerosis::model()`) |
 | `tenancy.seeder_parameters['--class']` | the package's own `TenantDatabaseSeeder` | set `tenancy.seeder_parameters` yourself | `verifyTenancyModels()` |
 | `tenancy.central_domains` | `[numerosis.domains.central]`, derived from `APP_URL` — checked against stancl's own stock default (`['127.0.0.1', 'localhost']`, not `[]`) as well as empty, so an untouched host is corrected too | set the array yourself, or override `numerosis.domains.central` | `verifyCentralDomains()` (narrowed) |
-| `tenancy.bootstrappers` | stancl's stock four, plus `SpatiePermissionsBootstrapper` and `AuthGuardBootstrapper` (appended, never replaced) | override `tenancy.bootstrappers` to a list that excludes them, on purpose — at which point tenancy-guard/permission behaviour is your own responsibility | — appended unconditionally on every boot, so nothing to fail; a host who deliberately overrides the list past this point is opting out of the guarantee, not tripping a bug |
+| `tenancy.bootstrappers` | stancl's stock four, plus `SpatiePermissionsBootstrapper`, `AuthGuardBootstrapper` and `PasswordBrokerBootstrapper` (appended, never replaced) | override `tenancy.bootstrappers` to a list that excludes them, on purpose — at which point tenancy-guard/permission behaviour is your own responsibility | — appended unconditionally on every boot, so nothing to fail; a host who deliberately overrides the list past this point is opting out of the guarantee, not tripping a bug |
 | `tenancy.migration_parameters` | `--path` includes `Numerosis::tenantMigrationPath()` (the vendor directory itself, not a published copy), `--realpath` forced true | append your own extra `--path` entries for host-specific tenant migrations | `verifyTenantMigrationPath()` (narrowed to validating any *extra* paths a host has added — the vendor path itself is unconditionally present after every boot) |
 | `tenancy.filesystem.disks` | never contains `livewire` | — not user-facing, nothing to override | — actively stripped on every boot if present, so nothing to fail |
 | `tenancy.filesystem.root_override.local` | `'%storage_path%/app/private/'` | set it yourself | — no `verify*()`; a wrong value here surfaces as the mimetype-rejection failure `tenant-filesystem.md` documents, at upload time, not at install time |
@@ -129,6 +113,7 @@ what stops the next normalization from shipping undocumented the way
 | `auth.guards.tenant` / `auth.providers.tenant` | session guard over an eloquent provider on `Numerosis::model(Tenant\User::class)` | set `auth.guards.tenant` / `auth.providers.tenant` yourself | `verifyAuthGuards()` (narrowed) |
 | `auth.providers.users.model` | `Numerosis::model(CentralUser::class)`, whenever the current value doesn't implement `Nvade\Numerosis\Contracts\Auth\CentralUserModel` | point it at your own model, as long as it implements that contract | folded into `verifyAuthGuards()` |
 | `auth.passwords.<broker>` | a broker over the `users` provider, `password_reset_tokens` table, whenever `auth.defaults.passwords` names a broker with no entry | define the broker yourself | `verifyAuthPasswordBroker()` (narrowed) |
+| `auth.passwords.tenant` | a broker over the `tenant` provider, `password_reset_tokens` table (in the tenant database), whenever unset. `PasswordBrokerBootstrapper` points `fortify.passwords` at it for the duration of tenancy — without which a tenant subdomain's forgot/reset request resolves the *central* `users` provider | define `auth.passwords.tenant` yourself, or rename it through `numerosis.auth.password_brokers.tenant` | — no `verify*()`; covered by `tests/Feature/Auth/PasswordResetBrokerTest.php`, which asserts the notifiable is the tenant user and not its synced central mirror |
 | `numerosis.*` deep-fill (the mechanism, not any one key) | every key under `config/numerosis.php` is filled in at every depth from the package's own defaults, so a host override file only has to name what it's actually changing | publish `config/numerosis.php` (or write a smaller override file — any key you omit is filled in, at any depth, not just the top level) | — a mechanism, not a single checkable value; the individual keys it protects each have their own row and check below |
 | `numerosis.schema_version`, in a *published* `config/numerosis.php` | must match the package's own current value | bump it once you've confirmed your file still matches the package's current shape | `verifyConfigSchemaVersion()` |
 | `numerosis.routes.home_view` | `'numerosis::home'` — a placeholder. Core registers the `home` route unconditionally (OAuth redirects, checkout error paths and the tenant panel all fall back to it), but the page itself is the product's | point this at your own view. Do **not** register a second route named `home` or a second route on `/`: core declares its own first, so yours would never match | — no `verify*()`; a missing view fails as `View [x] not found` on the first request to `/`, which is loud enough |
@@ -144,10 +129,27 @@ what stops the next normalization from shipping undocumented the way
 | central `permissions` / `payment_plans` rows | seeded by `numerosis:install` (default; `--no-seed` to skip) or a fresh host's own `db:seed`, via the binding above | run either command | `verifyCentralDataSeeded()` |
 | `resources/{css,js}` (published `numerosis-assets`) | not required — `Numerosis::assetTags()` renders the prebuilt `dist/numerosis.js`/`dist/numerosis.css` whenever `resources/js/numerosis.js` hasn't been published | publish + customise (`numerosis.js` imports `stripe-checkout.js`/`stripe-confirm.js` by relative path, both load-bearing for payment — keep the directory together) | `verifyPublishedAssetsMatchSource()` (warns on drift between a published copy and the vendor original; doesn't fail the install) |
 | `activitylog.table_name` | `'activity_log'`, whenever unset | set it yourself | — no `verify*()`; a wrong value here surfaces as `Incorrect table name ''` from `migrate`, not at install-check time |
-| `geoip.service` | `'maxmind_database'`, whenever unset — torann/geoip ships `null` there and its own `GeoIP::getService()` throws on that, so every checkout page load would fatal | choose another service (`maxmind_api`, `ipapi`, …), or keep this one and repoint `geoip.services.maxmind_database.database_path` | — no `verify*()`: the sole caller (`ResolveCheckoutRegion`) catches, reports and returns null, so even a missing `.mmdb` costs the region-specific payment-method order rather than the checkout. See §1's MaxMind conditional |
+| `fortify.features` | registration, password reset (following `PasswordResetFeature`), profile updates, password updates and email verification — **only while the key still holds Fortify's own shipped list**, i.e. while you have not chosen. Two-factor authentication and passkeys are dropped from that list: no `numerosis::auth.two-factor-challenge` view ships and the columns those controllers write do not exist, so leaving them on registers screens that fail only once somebody reaches them | publish `config/fortify.php` and edit `features` — from that point the list is yours outright, including turning 2FA back on (you supply the views and the migration). Toggling password reset alone is better done through `numerosis.features`' `PasswordResetFeature`, so the two configs cannot disagree | — no `verify*()`; a host that has taken the key over owns the consequences, and the backfill is covered by `tests/Feature/HostConfigTest.php` |
 
 ### Notes worth keeping in mind
 
+- **`php artisan route:cache` does not work, and fails loudly.** Fortify's
+  route file is loaded once per central domain *and* once inside the tenant
+  group (`Support\Numerosis::routes()`), because `guest:<guard>` is baked
+  into route middleware at registration time and the two groups need
+  different guards. Route *names* are therefore duplicated — `login`,
+  `register`, `password.*`, `verification.*` — and Laravel refuses to
+  serialize a duplicate name:
+  `Unable to prepare route [login] for serialization. Another route has
+  already been assigned name [login].` Serving the routes uncached is
+  correct: the router matches the domain-scoped copy first on a central
+  host, and `route('login')` resolves the domain-less tenant copy, which
+  generates a host-relative URL that is right on both. Only the *cache* step
+  is unavailable. Leave `route:cache` out of your deploy pipeline;
+  `config:cache`, `view:cache` and `event:cache` are unaffected. Removing
+  this limitation means one registration behind a context-aware guard (see
+  `.ai/rules/auth-login.md`), which is a change to this package, not to your
+  app.
 - **`numerosis.tenancy.identification.mode` is a deploy-time choice, not a
   runtime toggle.** `subdomain` (default) keeps the original behaviour
   exactly: `{tenant}.{apex}`, a `domains` row per tenant, wildcard DNS.
@@ -165,8 +167,8 @@ what stops the next normalization from shipping undocumented the way
   is always registered; verify that one by hand against a real web server.
   See `.ai/rules/identification-modes.md`.
 - **`spatie/laravel-one-time-passwords` and `spatie/laravel-activitylog` are
-  both `suggest`, not `require`** — as are the optional packages in §0
-  (`nvade/numerosis-{auth-ui,onboarding}`).
+  both `suggest`, not `require`** (as is
+  `ryangjchandler/laravel-cloudflare-turnstile`, since Phase 6).
   Skip them and you get a working
   multi-tenant SaaS with no passwordless (OTP)
   login and no activity logging — `App\Models\User` (or your own subclass)

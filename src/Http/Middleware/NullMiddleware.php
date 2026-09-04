@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
  * under `IdentificationMode::Path`, where tenant routes deliberately live on
  * the central domain (path-prefixed) rather than a distinct one — the
  * central-domain block would otherwise 404 every tenant-panel request. See
- * .claude/rules/identification-modes.md.
+ * .ai/rules/identification-modes.md.
  */
 class NullMiddleware
 {

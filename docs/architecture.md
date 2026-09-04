@@ -5,40 +5,37 @@ what a *host* must supply, see [`host-requirements.md`](host-requirements.md);
 for what to switch off, [`features.md`](features.md); for how to add your own
 code, [`extending.md`](extending.md).
 
-## The five packages
+## The two packages
 
-One repository, five Composer packages. Core is the root; the four satellites
-are path-installed from `packages/*` and published as read-only splits on tag.
+One repository, two Composer packages — collapsed from six by
+`.claude/plans/humming-nibbling-flame.md`. Core is the root; the second is
+path-installed from `packages/ui` and published as a read-only split on tag.
 
 ```
-nvade/numerosis  (src/)                core — tenancy, billing, auth mechanics,
-                                       all migrations and seeders
- ├── nvade/numerosis-ui                shared Blade + design tokens (required)
- ├── nvade/numerosis-auth-ui           auth screens + OAuth           (optional)
- ├── nvade/numerosis-account           account UI: settings, workspace
- │                                     list, billing portal           (optional)
- └── nvade/numerosis-onboarding        registration wizard            (optional)
+nvade/numerosis     (src/)   core — tenancy, Fortify-backed auth, billing,
+                              onboarding, views, all migrations and seeders
+ └── nvade/numerosis-ui      shared Blade + design tokens (required)
 ```
 
-A sixth package, `nvade/numerosis-filament` (admin + tenant panels), was
-**deleted on 2026-09-03** along with `filament/filament`. Nothing in this repo
-names a `Filament\` symbol, and `tests/Feature/PackageBoundariesTest.php`
-asserts that for core and every satellite. The tenant domain's `/` is now a
-core route in `routes/tenant.php`; it was the panel's before.
+`nvade/numerosis-auth-ui`, `nvade/numerosis-onboarding` and
+`nvade/numerosis-account` folded into core (Phase 3); `nvade/numerosis-filament`
+(admin + tenant panels) was deleted outright (Phase 1), along with
+`filament/filament` — nothing in this repo names a `Filament\` symbol. The
+tenant domain's `/` is a core route in `routes/tenant.php`; it was the
+panel's before. Auth itself moved onto `laravel/fortify` (Phase 4): core
+supplies the tenancy wiring, the views and the actions Fortify's contracts
+call; Fortify owns route registration, session handling and password
+hashing. See [`extending.md`](extending.md) for the customization seams this
+buys.
 
-Core is a framework, not a product: it ships no marketing site and no account
-screens. The pages a *specific* SaaS wants live in the host app or in
-`numerosis-account`. Core keeps `home` alone, and only as a placeholder view
-behind `numerosis.routes.home_view`.
+Core is a framework, not a product: it ships no marketing site. The pages a
+*specific* SaaS wants live in the host app. Core keeps `home` alone, and only
+as a placeholder view behind `numerosis.routes.home_view`.
 
-**Direction of dependency is one-way and enforced.** Satellites know core;
-core never names a satellite's classes. Where core needs to reach into one, it
-does so through a config key or a constant core itself owns — the registration
-wizard's `Support\Tenancy\SelfServeRegistration::FEATURE` and the account
-UI's `Support\Ui\AccountPages::FEATURE` are both core constants naming a
-satellite's feature, precisely so a class-constant fetch never autoloads a
-class a host declined. `tests/Feature/PackageBoundariesTest.php` is what keeps
-this true; in a monorepo the filesystem enforces nothing.
+**Direction of dependency is one-way and enforced.** `nvade/numerosis-ui`
+knows nothing of core, tenancy, or a named route — it is a Blade + design-token
+library, installable on its own. `tests/Feature/PackageBoundariesTest.php`
+is what keeps this true; in a monorepo the filesystem enforces nothing.
 
 `Support\Compat\*` holds the conditional-definition shims for what is still
 optional (`spatie/laravel-one-time-passwords`, `spatie/laravel-activitylog`):
@@ -131,17 +128,18 @@ worker there, not just on `default`.
 
 ```
 src/
-  Actions/        61 files — lorisleiva/laravel-actions; the verbs of the system
-  Contracts/      28 — every swappable behaviour, bound in packageRegistered()
+  Actions/        62 files — lorisleiva/laravel-actions; the verbs of the system
+  Contracts/      26 — every swappable behaviour, bound in packageRegistered()
   Exceptions/     22
   Services/       24 — default implementations, grouped by domain:
                   Auth/ Billing/ Invitations/ Notifications/ Tenancy/
   Models/         16 — Central/ and Tenant/
-  Support/        16 — Numerosis, ModelResolver, Contributions, Assets,
-                  HostConfig, Features, Domains, + Billing/ Cache/ Compat/
-                  Routes/ Social/ Tenancy/ Ui/
-  Http/           13 — controllers (billing webhook) and middleware
-  Features/        6 feature classes, grouped by domain (Auth/ Billing/
+  Support/        7 top-level classes — Numerosis, ModelResolver, Contributions,
+                  Assets, HostConfig, Features, Domains, + Billing/ Cache/
+                  Compat/ Routes/ Social/ Tenancy/
+  Http/           19 — controllers (auth, Socialite, billing webhook) and
+                  middleware
+  Features/        9 feature classes, grouped by domain (Auth/ Billing/
                   Invitations/ Tenancy/ Turnstile/) — see
                   docs/features.md
   Enums/          every enum under a domain namespace: Billing/ Tenancy/
@@ -167,10 +165,10 @@ already use. Read the delegate for the seam, the owner for the mechanism.
 |---|---|
 | `Support\Numerosis` | application bootstrap and the front door to everything below: `configure()`, `routes()`, `middleware()`, `broadcasting()`, `exceptions()`, and the three `registerXUsing()` wholesale overrides |
 | `Support\ModelResolver` | model resolution, the model↔factory name mapping and its memoization cache. Behind `Numerosis::{model,factoryNameFor,modelNameFor,resetModelCache}()` |
-| `Support\Contributions` | what satellites and hosts have added — tenant columns, central/tenant routes, tenant migration paths, seeders, permission contexts — plus the readers `routes()` and the seeders consume. Behind every `Numerosis::add*()`. Note `Contributions::tenantMigrationPaths()` is contributions only, while `Numerosis::tenantMigrationPaths()` includes the package's own; `HostConfig` wants the latter |
+| `Support\Contributions` | what a host has added — tenant columns, central/tenant routes, tenant migration paths, seeders, permission contexts — plus the readers `routes()` and the seeders consume. Behind every `Numerosis::add*()`. Note `Contributions::tenantMigrationPaths()` is contributions only, while `Numerosis::tenantMigrationPaths()` includes the package's own; `HostConfig` wants the latter |
 | `Support\Assets` | the `numerosis-assets` publish map, the published `public/vendor/numerosis` paths, and the `<link>`/`<script>` tags for the package's CSS/JS. Behind `Numerosis::{assetSourcePaths,assetTags}()`. The only one of these that reaches for `Vite` and the filesystem |
 | `Support\HostConfig` | every config value normalized for a host at boot. One row per key in `host-requirements.md` |
-| `Support\Features` | the feature registry — merges `config('numerosis.features')` with satellite `Features::register()` calls |
+| `Support\Features` | the feature registry — merges `config('numerosis.features')` with any `Features::register()` call a host makes from its own provider |
 | `Support\Domains` | apex / central / tenant hostname derivation from `APP_URL`. **Nothing in it may call a facade** — it is invoked from `config/numerosis.php`, during `LoadConfiguration`, before `RegisterFacades` |
 
 ## Configuration
@@ -180,9 +178,9 @@ One config namespace, 15 top-level keys, one file per key in
 partials, each of which returns its own `['key' => value]` pair and carries
 that key's documentation.
 
-Split by *key*, not by package, on purpose: a satellite fills its own keys at
-register time and a host's override wins over both, so there is nothing to
-divide along package lines.
+Split by *key*, not by package, on purpose: a host's own override file only
+needs to name the keys it changes, so there is nothing to divide along
+package lines.
 
 Three consequences:
 

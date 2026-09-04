@@ -25,7 +25,7 @@ class CreateTenantTest extends TestCase
     /**
      * `CreateTenant` only creates the tenant row and domain —
      * database creation and owner attachment moved into `ProvisionTenant`'s
-     * queued chain. See .claude/rules/tenant-provisioning.md.
+     * queued chain. See .ai/rules/tenant-provisioning.md.
      */
     public function test_it_creates_only_the_tenant_row_and_domain(): void
     {
@@ -44,7 +44,7 @@ class CreateTenantTest extends TestCase
 
         // Tenant/Domain live on the `central` connection (Tenant model's
         // CentralConnection trait), a separate PDO session from the default
-        // connection RefreshDatabase transacts — see .claude/rules/testing.md
+        // connection RefreshDatabase transacts — see .ai/rules/testing.md
         // on why central-connection writes need the connection named
         // explicitly rather than relying on incidental query ordering.
         $this->assertDatabaseHas('tenants', ['id' => $tenantId], 'central');

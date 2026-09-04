@@ -1,6 +1,21 @@
+{{--
+    `OneTimePasswordFeature` replaces the password step of Fortify's login
+    pipeline rather than adding a factor after it, so this form must stop
+    asking for a password when it is on. `NumerosisLoginRequest` already drops
+    `password` from `required` at the same seam; without the matching change
+    here the field's own `required` attribute is what blocks an email-only
+    submission, and the feature is unreachable from a browser.
+--}}
+@php($passwordless = \Nvade\Numerosis\Features\Auth\OneTimePasswordFeature::available())
+
 <x-layouts::auth :title="__('Log in')">
     <div class="flex flex-col gap-6">
-        <x-numerosis::auth-header :title="__('Log in to your account')" :description="__('Enter your email and password below to log in')" />
+        <x-numerosis::auth-header
+            :title="__('Log in to your account')"
+            :description="$passwordless
+                ? __('Enter your email below and we will send you a one-time code')
+                : __('Enter your email and password below to log in')"
+        />
 
         <x-numerosis::ui.auth-session-status class="text-center" :status="session('status')" />
 
@@ -24,23 +39,25 @@
                 placeholder="email@example.com"
             />
 
-            <div class="relative">
-                <flux:input
-                    name="password"
-                    :label="__('Password')"
-                    type="password"
-                    required
-                    autocomplete="current-password"
-                    :placeholder="__('Password')"
-                    viewable
-                />
+            @unless ($passwordless)
+                <div class="relative">
+                    <flux:input
+                        name="password"
+                        :label="__('Password')"
+                        type="password"
+                        required
+                        autocomplete="current-password"
+                        :placeholder="__('Password')"
+                        viewable
+                    />
 
-                @if (\Illuminate\Support\Facades\Route::has('password.request'))
-                    <flux:link class="absolute end-0 top-0 text-sm" :href="route('password.request')">
-                        {{ __('Forgot your password?') }}
-                    </flux:link>
-                @endif
-            </div>
+                    @if (\Illuminate\Support\Facades\Route::has('password.request'))
+                        <flux:link class="absolute end-0 top-0 text-sm" :href="route('password.request')">
+                            {{ __('Forgot your password?') }}
+                        </flux:link>
+                    @endif
+                </div>
+            @endunless
 
             <x-numerosis::turnstile-field />
 
@@ -48,7 +65,7 @@
 
             <div class="flex items-center justify-end">
                 <flux:button type="submit" variant="primary" class="w-full">
-                    {{ __('Log in') }}
+                    {{ $passwordless ? __('Send code') : __('Log in') }}
                 </flux:button>
             </div>
         </form>

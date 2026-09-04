@@ -17,7 +17,7 @@ use RuntimeException;
  * no tenant prefix. That is the whole point of it (central data has to survive
  * `CacheTenancyBootstrapper`'s prefixing) and also its hazard — anything
  * derived from a tenant database must carry the tenant in its key. See
- * `.claude/rules/tenant-caching.md`.
+ * `.ai/rules/tenant-caching.md`.
  *
  * Why this exists rather than calling stancl's `global_cache()` helper
  * directly at each site: **dev-master declares that helper `: mixed`** (v3

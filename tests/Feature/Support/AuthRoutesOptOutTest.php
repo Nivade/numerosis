@@ -21,12 +21,14 @@ use Override;
  * the previous answer was "skip Numerosis::routes() entirely and hand-roll a
  * replacement", i.e. duplicate the billing and checkout wiring.
  *
- * `login`/`register`/`password.request`/`password.reset` used to be two of
- * those four names, contributed by `nvade/numerosis-auth-ui`. That package
- * folded into core in Phase 3 of `.claude/plans/humming-nibbling-flame.md`,
- * and its Livewire screens were deleted rather than moved — Phase 4 rebuilds
- * them on Fortify. Until then, only `logout` and `verification.verify` are
- * gated on this flag at all.
+ * Since Phase 4 of `.claude/plans/humming-nibbling-flame.md` the flag covers
+ * Fortify's whole route file, not just the handful of names core declared
+ * itself: `Numerosis::routes(withAuth: false)` skips the per-group `require`
+ * of `vendor/laravel/fortify/routes/routes.php` entirely. That is a much
+ * wider surface than the four names this test was written for, so every name
+ * the file registers under the enabled features is asserted absent — a
+ * partial opt-out (say, `login` gone but `password.email` still posting into
+ * Fortify) is the failure worth catching.
  */
 class AuthRoutesOptOutTest extends TestCase
 {
@@ -38,7 +40,23 @@ class AuthRoutesOptOutTest extends TestCase
 
     public function test_it_registers_none_of_the_auth_route_names(): void
     {
-        foreach (['logout', 'verification.verify'] as $name) {
+        $names = [
+            'login',
+            'login.store',
+            'logout',
+            'register',
+            'register.store',
+            'password.request',
+            'password.reset',
+            'password.email',
+            'password.update',
+            'password.confirm',
+            'verification.notice',
+            'verification.verify',
+            'verification.send',
+        ];
+
+        foreach ($names as $name) {
             $this->assertFalse(Route::has($name), "Route [{$name}] was registered despite withAuth: false.");
         }
     }

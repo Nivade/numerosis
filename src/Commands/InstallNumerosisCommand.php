@@ -437,7 +437,7 @@ class InstallNumerosisCommand extends Command
 
         // Only meaningful under IdentificationMode::Subdomain — CustomDomain
         // mode uses a fixed '{tenant}' pattern internally, and Path mode uses
-        // no domain pattern at all. See .claude/rules/identification-modes.md.
+        // no domain pattern at all. See .ai/rules/identification-modes.md.
         if (IdentificationMode::current() !== IdentificationMode::Subdomain) {
             return;
         }
@@ -802,10 +802,6 @@ class InstallNumerosisCommand extends Command
         });
         $this->line('  2. Run a queue worker on the dedicated "provisioning" queue (`php artisan queue:work --queue=provisioning`) — tenant provisioning is queued there, not on the default worker.');
         $this->line('  3. Run `php artisan vendor:publish --tag=numerosis-public-assets` — it copies this package\'s prebuilt dist/numerosis.js and dist/numerosis.css to public/vendor/numerosis/. No vite.config.js entry needed: neither goes through your build unless you\'ve published and customised resources/js/numerosis.js yourself (Numerosis::assetTags() prefers your own Vite manifest entry for it when one exists).');
-        if (Config::string('geoip.service', '') === 'maxmind_database') {
-            $this->line('  4. Optional, for checkout\'s region-specific payment-method order: set MAXMIND_LICENSE_KEY and run `php artisan geoip:update` once. The .mmdb database torann/geoip reads is licensed, so nothing here can fetch it for you; the weekly refresh afterwards is scheduled for you. Skipping this is supported — ResolveCheckoutRegion reports the driver\'s throw and falls back to numerosis.billing.payment_methods.default_order, at one reported exception per checkout page load.');
-        }
-
-        $this->line('  5. To rebrand (accent colour, radius, fonts, density), add a `:root { --pref-...: ...; }` block to your published resources/css/app.css AFTER its `@import \'.../vendor/nvade/numerosis/resources/css/tokens.css\';` line, and rebuild. See tokens.css for the full list of overridable custom properties. Note the prebuilt dist/numerosis.css from step 3 is compiled once against the default `--pref-accent-hue` and does not read your app.css, so rebranding means building your own CSS through Vite rather than relying on that bundle. This is a one-time, host-level choice — Numerosis has no per-user or per-tenant theme picker. A custom `--pref-accent-hue` is not contrast-verified for you — white text on `--color-primary` is only checked against the default hue; check your own hue\'s contrast (browser devtools\' contrast checker is enough) before shipping it.');
+        $this->line('  4. To rebrand (accent colour, radius, fonts, density), add a `:root { --pref-...: ...; }` block to your published resources/css/app.css AFTER its `@import \'.../vendor/nvade/numerosis/resources/css/tokens.css\';` line, and rebuild. See tokens.css for the full list of overridable custom properties. Note the prebuilt dist/numerosis.css from step 3 is compiled once against the default `--pref-accent-hue` and does not read your app.css, so rebranding means building your own CSS through Vite rather than relying on that bundle. This is a one-time, host-level choice — Numerosis has no per-user or per-tenant theme picker. A custom `--pref-accent-hue` is not contrast-verified for you — white text on `--color-primary` is only checked against the default hue; check your own hue\'s contrast (browser devtools\' contrast checker is enough) before shipping it.');
     }
 }

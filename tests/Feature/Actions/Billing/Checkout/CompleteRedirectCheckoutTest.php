@@ -101,7 +101,7 @@ class CompleteRedirectCheckoutTest extends TestCase
      * bank redirect — must not run CreateInlineSubscription a second time
      * and charge the customer twice. It should land the already-paid
      * customer on their tenant, not surface a refusal. See
-     * .claude/rules/billing-checkout.md.
+     * .ai/rules/billing-checkout.md.
      */
     public function test_a_replayed_return_visit_does_not_create_a_second_subscription(): void
     {

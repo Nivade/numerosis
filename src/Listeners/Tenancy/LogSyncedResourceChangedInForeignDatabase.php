@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
  * `Stancl\Tenancy\ResourceSyncing\Events\SyncedResourceSavedInForeignDatabase`
  * and the shape it reads is identical on both, so not naming the class
  * keeps this listener working across the port
- * (`.claude/rules/stancl-tenancy-v4.md`).
+ * (`.ai/rules/stancl-tenancy-v4.md`).
  */
 class LogSyncedResourceChangedInForeignDatabase
 {

@@ -13,7 +13,7 @@ namespace Nvade\Numerosis\Concerns;
  * `stancl/tenancy` v3's `ResourceSyncing` trait calls both methods without
  * declaring them, which is why they live here. **On dev-master that trait
  * declares them itself**, so a model composing both would hit a fatal
- * trait-method collision — see `.claude/rules/stancl-tenancy-v4.md` when
+ * trait-method collision — see `.ai/rules/stancl-tenancy-v4.md` when
  * porting.
  */
 trait HasGlobalIdentity

@@ -20,7 +20,7 @@ use Override;
  * `extends InitializeTenancyByDomain`, whose promoted `Tenancy`/
  * `DomainTenantResolver` properties a subclass constructor must forward to**
  * or `parent::handle()` throws on an uninitialized typed property; see
- * `.claude/rules/stancl-tenancy-v4.md` when porting.
+ * `.ai/rules/stancl-tenancy-v4.md` when porting.
  */
 class InitializeTenancyByDomainOrSubdomain extends \Stancl\Tenancy\Middleware\InitializeTenancyByDomainOrSubdomain
 {

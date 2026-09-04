@@ -18,13 +18,16 @@ uses(TestCase::class, RefreshDatabase::class);
  * inherited from a previous one.
  */
 /**
- * `login` belonged to nvade/numerosis-auth-ui's Livewire PasswordlessLogin,
- * deleted (not moved) when that package folded into core in Phase 3 of
- * `.claude/plans/humming-nibbling-flame.md`. Phase 4 rebuilds it on Fortify
- * — reinstate this test then.
+ * The login screen is Fortify's route rendering `numerosis::auth.login`, a
+ * plain Blade form since Phase 4 — no Livewire on a guest auth screen. Over
+ * real HTTP is the only place the `@csrf` that replaced Livewire's own token
+ * is observable.
  */
 it('serves the central login page over real HTTP', function (): void {
     Playwright::setHost('central.numerosistest.test');
 
-    visit('/')->assertSee('Numerosis');
-})->skip('login awaits the Fortify rebuild in Phase 4.');
+    $page = visit('/login');
+
+    $page->assertSee('Log in');
+    $page->assertPresent('input[name="_token"]');
+});

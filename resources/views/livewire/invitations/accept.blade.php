@@ -52,7 +52,9 @@
             />
         @endunless
 
-        <x-numerosis::turnstile-field />
+        {{-- Livewire component: binds to $turnstileResponse, which
+             Accept::rules() validates through TurnstileFeature::rules(). --}}
+        <x-numerosis::turnstile-field model="turnstileResponse" />
 
         <flux:button variant="primary" type="submit" class="w-full">
             {{ $existingUser ? __('Accept Invitation') : __('Create account & accept') }}

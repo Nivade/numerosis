@@ -541,22 +541,28 @@ parameters:
 			path: src/Features/Auth/SocialLoginFeature.php
 
 		-
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Http/Controllers/Auth/OneTimePasswordChallengeController.php
+
+		-
 			message: '#^Access to an undefined property Nvade\\Numerosis\\Models\\Tenant\\User\:\:\$is_bot\.$#'
 			identifier: property.notFound
 			count: 1
 			path: src/Http/Middleware/Authenticate.php
 
 		-
-			message: '#^Access to an undefined property Workbench\\App\\Models\\User\:\:\$global_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Http/Requests/Billing/StartCheckoutRequest.php
-
-		-
 			message: '#^Call to an undefined method Workbench\\App\\Models\\User\:\:getGlobalIdentifierKey\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: src/Http/Requests/Auth/NumerosisVerifyEmailRequest.php
+
+		-
+			message: '#^Access to an undefined property Workbench\\App\\Models\\User\:\:\$global_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Http/Requests/Billing/StartCheckoutRequest.php
 
 		-
 			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'

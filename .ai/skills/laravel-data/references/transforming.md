@@ -1,7 +1,7 @@
 # Output: API responses and `toArray` shaping
 
-Read `../SKILL.md` and the "Data objects are this app's API transformation layer" section of
-`.ai/rules/data.md` first — that decision is why this file exists and why `app/Http/Resources` does not.
+Read `../SKILL.md` first. There is no `.ai/rules/data.md` in this repo — no decision record exists for using
+Data objects as an API layer here; this file is speculative reference, not a recorded convention.
 
 **Status: no API endpoints exist yet.** What follows is the shape the first ones should take. Nothing here is
 proven against real routes, so treat specifics as a starting point and verify against
@@ -69,8 +69,8 @@ $data->include('document.pages');
 $data->exclude('document');
 ```
 
-`ignore_invalid_partials` is `false` in `config/data.php`, so a typo'd partial path throws instead of silently
-doing nothing. Keep it that way.
+`ignore_invalid_partials` is `false` by package default (unpublished here), so a typo'd partial path throws
+instead of silently doing nothing. Keep it that way.
 
 `#[Hidden]` drops a property from output permanently (it stays available internally) — use it for values that
 must never reach the wire, rather than remembering an `except()` at every call site.
@@ -78,8 +78,8 @@ must never reach the wire, rather than remembering an `except()` at every call s
 ## Wrapping
 
 `wrap` is `null` globally — responses are unwrapped. Per-object overrides are `->wrap('data')` and
-`->withoutWrapping()`; there is no class-level default-wrap hook. If the API wants an envelope, set `wrap` in
-`config/data.php` once and record it in `.ai/rules/data.md` — don't call `->wrap()` in every controller.
+`->withoutWrapping()`; there is no class-level default-wrap hook. If the API wants an envelope, publish
+`config/data.php` and set `wrap` there once, rather than calling `->wrap()` in every controller.
 
 ## Name mapping
 
@@ -102,5 +102,5 @@ For values that depend on request state rather than the object, use the `Appenda
 ## Depth guard
 
 `max_transformation_depth` is `null` (unlimited) with `throw_when_max_transformation_depth_reached` at `true`.
-A recursive relation chain will loop until memory runs out. If self-referencing Data ever ships (matter →
-related matters → ...), set a depth in `config/data.php` at that point.
+A recursive relation chain will loop until memory runs out. If self-referencing Data ever ships, publish
+`config/data.php` and set a depth there at that point.

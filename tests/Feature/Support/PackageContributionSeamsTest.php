@@ -132,7 +132,7 @@ it('adds a registered tenant seeder to what TenantDatabaseSeeder::run() calls', 
  * permission context whose seeder (`RoleAndPermissionSeeder`) stays in core:
  * a satellite cannot be asked to publish and edit that seeder, and a missing
  * permission context 500s *every* page in the panel, not just its own
- * (`.claude/rules/auth-guards.md`), so "the host can wire it up" is not an
+ * (`.ai/rules/auth-guards.md`), so "the host can wire it up" is not an
  * acceptable answer. That example was the `modules` context, deleted with the
  * module system in Phase 2 of `.claude/plans/humming-nibbling-flame.md`; the
  * seams stand on their own for the next package that needs one.
@@ -155,7 +155,7 @@ it('seeds a contributed permission context under the central guard and grants it
 
     // Asserted on the central connection explicitly: these rows are written
     // through it (autocommit) and are invisible to the default connection's
-    // open RefreshDatabase transaction — see .claude/rules/testing.md.
+    // open RefreshDatabase transaction — see .ai/rules/testing.md.
     foreach (Nvade\Numerosis\Models\Permission::defaultActions() as $action) {
         assertDatabaseHas('permissions', [
             'name' => $action.' seam_probe',
@@ -168,4 +168,39 @@ it('seeds a contributed permission context under the central guard and grants it
         ->sole();
 
     expect($admin->hasPermissionTo('viewAny seam_probe'))->toBeTrue();
+});
+
+/**
+ * Every list on `Contributions` is a plain static, so it outlives the request
+ * that filled it. A provider that registers twice — Octane booting a worker,
+ * a host provider re-registered by a test harness — used to grow them without
+ * bound, which reaches `HostConfig` as a duplicated `--path` in
+ * `tenancy.migration_parameters` and a repeated seeder class. Registering the
+ * same value twice has to be a no-op.
+ *
+ * Route callbacks are deliberately not covered: two `Closure`s built from the
+ * same `function () { … }` on two boots are distinct objects with nothing
+ * comparable about them. See `Contributions::appendOnce()`.
+ */
+it('does not accumulate a contribution registered twice', function () {
+    $path = Numerosis::tenantMigrationPath();
+
+    Numerosis::addTenantMigrationPath($path);
+    Numerosis::addTenantMigrationPath($path);
+
+    Numerosis::addTenantColumns(['duplicated_column']);
+    Numerosis::addTenantColumns(['duplicated_column']);
+
+    Numerosis::addPermissionContext('duplicated_context');
+    Numerosis::addPermissionContext('duplicated_context');
+
+    Numerosis::addCentralSeeder(Nvade\Numerosis\Database\Seeders\PaymentPlanSeeder::class);
+    Numerosis::addCentralSeeder(Nvade\Numerosis\Database\Seeders\PaymentPlanSeeder::class);
+
+    expect(Contributions::tenantMigrationPaths())->toBe([$path])
+        ->and(Contributions::tenantColumns())->toBe(['duplicated_column'])
+        ->and(Contributions::permissionContexts())->toBe(['duplicated_context'])
+        ->and(Contributions::centralSeeders())->toBe([
+            Nvade\Numerosis\Database\Seeders\PaymentPlanSeeder::class,
+        ]);
 });

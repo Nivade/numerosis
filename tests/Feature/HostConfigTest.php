@@ -6,11 +6,13 @@ namespace Nvade\Numerosis\Tests\Feature;
 
 use Illuminate\Foundation\Auth\User as GenericUser;
 use Illuminate\Support\Facades\Config;
+use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
@@ -106,6 +108,7 @@ class HostConfigTest extends TestCase
             DatabaseTenancyBootstrapper::class,
             SpatiePermissionsBootstrapper::class,
             AuthGuardBootstrapper::class,
+            PasswordBrokerBootstrapper::class,
         ], $bootstrappers);
     }
 
@@ -114,6 +117,7 @@ class HostConfigTest extends TestCase
         Config::set('tenancy.bootstrappers', [
             SpatiePermissionsBootstrapper::class,
             AuthGuardBootstrapper::class,
+            PasswordBrokerBootstrapper::class,
         ]);
 
         $this->rebootPackage();
@@ -121,6 +125,7 @@ class HostConfigTest extends TestCase
         $this->assertSame([
             SpatiePermissionsBootstrapper::class,
             AuthGuardBootstrapper::class,
+            PasswordBrokerBootstrapper::class,
         ], Config::array('tenancy.bootstrappers'));
         $this->assertNotContains('tenancy.bootstrappers', HostConfig::applied());
     }
@@ -425,6 +430,38 @@ class HostConfigTest extends TestCase
      * dies with `Incorrect table name ''` — a null config value
      * interpolates to an empty string in the generated SQL.
      */
+    /**
+     * `docs/extending.md` names `config('fortify.features')` as the seam for
+     * choosing which auth screens exist. That is only true while this stays
+     * a backfill: `registerFortify()` used to `Config::set()` the key
+     * unconditionally on every boot, which discarded a published
+     * `config/fortify.php` and made the documented seam a no-op.
+     */
+    public function test_it_leaves_a_hosts_fortify_features_alone(): void
+    {
+        Config::set('fortify.features', ['host-chose-this']);
+
+        $this->rebootPackage();
+
+        $this->assertSame(['host-chose-this'], Config::array('fortify.features'));
+        $this->assertNotContains('fortify.features', HostConfig::applied());
+    }
+
+    public function test_it_drops_two_factor_from_fortifys_stock_feature_list(): void
+    {
+        $this->rebootPackage();
+
+        $features = Config::array('fortify.features');
+
+        $this->assertContains(FortifyFeatures::registration(), $features);
+        $this->assertContains(FortifyFeatures::emailVerification(), $features);
+
+        // No `numerosis::auth.two-factor-challenge` view ships, and the
+        // columns its controllers write do not exist — so the screens would
+        // only fail once somebody reached them.
+        $this->assertNotContains(FortifyFeatures::twoFactorAuthentication(), $features);
+    }
+
     public function test_it_defaults_the_activity_log_table_name_when_unset(): void
     {
         Config::set('activitylog.table_name');
@@ -441,31 +478,6 @@ class HostConfigTest extends TestCase
         $this->rebootPackage();
 
         $this->assertSame('custom_activity_log', Config::get('activitylog.table_name'));
-    }
-
-    /**
-     * torann/geoip's own stock config ships `service => null`, and
-     * `GeoIP::getService()` throws `No GeoIP service is configured.` on
-     * that rather than degrading — so an unset key would fatal every
-     * checkout page load through `ResolveCheckoutRegion`, not merely lose
-     * the region-specific payment-method order.
-     */
-    public function test_it_defaults_the_geoip_service_when_unset(): void
-    {
-        Config::set('geoip.service');
-
-        $this->rebootPackage();
-
-        $this->assertSame('maxmind_database', Config::get('geoip.service'));
-    }
-
-    public function test_it_does_not_override_a_hosts_geoip_service(): void
-    {
-        Config::set('geoip.service', 'maxmind_api');
-
-        $this->rebootPackage();
-
-        $this->assertSame('maxmind_api', Config::get('geoip.service'));
     }
 
     /**

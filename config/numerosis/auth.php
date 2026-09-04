@@ -17,6 +17,13 @@ return [
     | central app authenticates on; 'tenant' the guard every tenant
     | subdomain uses. See Nvade\Numerosis\Enums\Tenancy\Context::guard().
     |
+    | 'password_brokers.tenant' names the auth.passwords.* entry Fortify's
+    | password-reset controllers use while tenancy is initialized — see
+    | Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper. There is no
+    | 'central' counterpart on purpose: outside tenancy the broker is
+    | whatever config('fortify.passwords') says, which is Fortify's own key
+    | and a host's to set.
+    |
     | 'verification_expire' is minutes a signed email-verification link stays
     | valid for. Previously auth.verification.expire, same reasoning.
     |
@@ -25,6 +32,10 @@ return [
     'auth' => [
         'guards' => [
             'central' => 'web',
+            'tenant' => 'tenant',
+        ],
+
+        'password_brokers' => [
             'tenant' => 'tenant',
         ],
 

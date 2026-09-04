@@ -203,7 +203,7 @@ abstract class TestCase extends Orchestra
         // tenancy.central_domains, a bogus stock tenant-migration path).
         // 319 of 526 tests failed. Restored, with this note so the same
         // experiment isn't repeated the same way — see
-        // .claude/rules/testing.md for the recorded version.
+        // .ai/rules/testing.md for the recorded version.
         Config::set('tenancy.tenant_model', \App\Models\Central\Tenant::class);
         Config::set('tenancy.id_generator', UUIDGenerator::class);
         Config::set('tenancy.domain_model', Domain::class);
@@ -305,7 +305,7 @@ abstract class TestCase extends Orchestra
         // default — but `database/migrations/central/2026_01_07_195854_remove_
         // redundant_tables.php` deliberately drops the `cache`/`cache_locks`
         // tables that store needs, on the assumption a real host runs Redis in
-        // production (see .claude/rules/exception-handling.md's `failed_jobs`
+        // production (see .ai/rules/exception-handling.md's `failed_jobs`
         // bullet for the sibling case). Left unset, every write through the
         // default cache store — including CentralUserObserver's
         // ForgetsCacheKey — throws `Base table or view not found: 1146 …
@@ -320,7 +320,7 @@ abstract class TestCase extends Orchestra
         // `array` — v3's equivalent bootstrapper has no such check. Every
         // test entering tenant context hits this, since `session.driver`
         // above is always `array` here. No key on v3 (harmless no-op there,
-        // see .claude/rules/stancl-tenancy-v4.md); this package's tests
+        // see .ai/rules/stancl-tenancy-v4.md); this package's tests
         // exercise tenant *cache* scoping directly, never session scoping,
         // so turning it off costs nothing.
         $app->make(Repository::class)->set('tenancy.cache.scope_sessions', false);
@@ -388,7 +388,7 @@ abstract class TestCase extends Orchestra
         $app->make(Repository::class)->set('queue.default', 'sync');
 
         // Gated by QUEUE_FAILED_DRIVER, not by queue.default — see
-        // .claude/rules/exception-handling.md. The package ships the central
+        // .ai/rules/exception-handling.md. The package ships the central
         // `failed_jobs` migration, so the host has to point this at a
         // connection that carries it; Testbench's skeleton points at sqlite,
         // and the failure is `Database file at path […]/database.sqlite does
@@ -577,7 +577,7 @@ abstract class TestCase extends Orchestra
         // container-scoped, so a test that calls forceForTesting() would
         // otherwise leak its override into whichever test runs next in the
         // same process — same class of trap as Tenant::unsetEventDispatcher()
-        // (see .claude/rules/testing.md).
+        // (see .ai/rules/testing.md).
         TurnstileFeature::forceForTesting(null);
     }
 

@@ -3,8 +3,16 @@
 Read `../SKILL.md` first. Package source: `vendor/spatie/laravel-data/src/Support/Livewire/`
 (`LivewireDataSynth`, `LivewireDataCollectionSynth`).
 
-`config/data.php` sets `livewire.enable_synths` to `true`, so a Data object is a first-class public property —
-no `toArray()`/`from()` round-tripping, no `Wireable` interface to implement.
+**Not this package's live pattern.** `config/data.php` is unpublished here, so
+the package's own stock default applies: `livewire.enable_synths` is
+**`false`** (`vendor/spatie/laravel-data/config/data.php`) — a Data object is
+**not** a bindable public property today, and no component in `src/Livewire/`
+binds one (checked, per Phase 4d of `.claude/plans/humming-nibbling-flame.md`).
+Everything below describes what turning the synth on would buy, for if that
+ever changes; it needs `Config::set('data.livewire.enable_synths', true)` (or
+a published `config/data.php`) first, and there is no `.ai/rules/pages.md` in
+this repo — the `wire:key` reminder below is just Livewire's own rule for any
+loop.
 
 ## Data object as component state
 

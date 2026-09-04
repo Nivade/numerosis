@@ -116,7 +116,7 @@ class InstallNumerosisCommandTest extends TestCase
      * installed that name resolves to `Stancl\Tenancy\Commands\Seed`, which
      * throws `The "tenants" option does not exist` — see
      * `InstallNumerosisCommand::seedCentralData()`'s docblock and
-     * `.claude/rules/tenant-provisioning.md`. Any test in this package that
+     * `.ai/rules/tenant-provisioning.md`. Any test in this package that
      * wants to seed has the same problem.
      */
     private function seedCentralData(): void
@@ -601,26 +601,14 @@ class InstallNumerosisCommandTest extends TestCase
     }
 
     /**
-     * The MaxMind database file is the one thing `HostConfig`'s `geoip`
-     * default cannot finish on its own (the `.mmdb` is licensed), so
-     * `docs/host-requirements.md` §1 lists it as a conditional obligation
-     * and the command has to say so too — there is no `verify*()` for it,
-     * since a missing file costs only the region-specific payment-method
-     * order, not the checkout.
+     * torann/geoip went in Phase 6 of
+     * `.claude/plans/humming-nibbling-flame.md`, and with it the manual
+     * MaxMind licence step this command used to print. Asserted rather than
+     * simply deleted: the step was conditional on `geoip.service`, so its
+     * removal is invisible in any run that did not set that key.
      */
-    public function test_it_names_the_maxmind_step_while_the_package_geoip_default_is_in_place(): void
+    public function test_it_no_longer_names_the_maxmind_step(): void
     {
-        Config::set('geoip.service', 'maxmind_database');
-
-        $this->install()
-            ->expectsOutputToContain('MAXMIND_LICENSE_KEY')
-            ->assertSuccessful();
-    }
-
-    public function test_it_omits_the_maxmind_step_when_the_host_chose_another_geoip_service(): void
-    {
-        Config::set('geoip.service', 'ipapi');
-
         $this->install()
             ->doesntExpectOutputToContain('MAXMIND_LICENSE_KEY')
             ->assertSuccessful();

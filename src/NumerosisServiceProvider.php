@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Actions\AttemptToAuthenticate;
+use Laravel\Fortify\Actions\CanonicalizeUsername;
 use Laravel\Fortify\Actions\EnsureLoginIsNotThrottled;
 use Laravel\Fortify\Actions\PrepareAuthenticatedSession;
 use Laravel\Fortify\Contracts\LoginResponse as FortifyLoginResponse;
@@ -33,11 +34,13 @@ use Laravel\Fortify\Contracts\LogoutResponse as FortifyLogoutResponse;
 use Laravel\Fortify\Contracts\VerifyEmailResponse as FortifyVerifyEmailResponse;
 use Laravel\Fortify\Features as FortifyFeatures;
 use Laravel\Fortify\Fortify;
+use Laravel\Fortify\Http\Requests\LoginRequest as FortifyLoginRequest;
 use Laravel\Fortify\Http\Requests\VerifyEmailRequest as FortifyVerifyEmailRequest;
 use Livewire\Livewire;
 use Nvade\Numerosis\Actions\Auth\AuthenticateLoginCandidate;
 use Nvade\Numerosis\Actions\Auth\CreateRegisteredUser;
 use Nvade\Numerosis\Actions\Auth\LogInToCentralGuard;
+use Nvade\Numerosis\Actions\Auth\RedirectIfOneTimePasswordAuthenticatable;
 use Nvade\Numerosis\Actions\Auth\ResetUserPassword;
 use Nvade\Numerosis\Actions\Auth\ResolveLoginCandidate;
 use Nvade\Numerosis\Actions\Auth\SendEmailVerificationNotification;
@@ -64,11 +67,12 @@ use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\TenantSuspended;
 use Nvade\Numerosis\Events\Invitations\InvitationIssued;
-use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
+use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
 use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
+use Nvade\Numerosis\Http\Requests\Auth\NumerosisLoginRequest;
 use Nvade\Numerosis\Http\Requests\Auth\NumerosisVerifyEmailRequest;
 use Nvade\Numerosis\Http\Responses\Auth\NumerosisLoginResponse;
 use Nvade\Numerosis\Http\Responses\Auth\NumerosisLogoutResponse;
@@ -99,6 +103,7 @@ use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Services\Auth\EloquentSocialAccountRepository;
 use Nvade\Numerosis\Services\Invitations\EloquentInvitationRepository;
 use Nvade\Numerosis\Services\Notifications\NotifiesTenantOwnerDirectly;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
@@ -159,6 +164,12 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // itself, per group. See `.claude/plans/humming-nibbling-flame.md`
         // Phase 4a.
         Fortify::ignoreRoutes();
+
+        // Singleton, not a bind: `Tenancy::getBootstrappers()` resolves the
+        // configured bootstrappers through `app()` on *both* initialize and
+        // end, so anything remembering state between `bootstrap()` and
+        // `revert()` needs one shared instance. See the class docblock.
+        $this->app->singleton(PasswordBrokerBootstrapper::class);
 
         $this->app->bind(ResolvesLoginCandidate::class, ResolveLoginCandidate::class);
         $this->app->bind(AuthenticatesLoginCandidate::class, AuthenticateLoginCandidate::class);
@@ -329,7 +340,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
      * `App\Policies\Central\TenantPolicy`; registering the base leaves the
      * guesser ahead of us and still catches every subclass.
      *
-     * `CentralUser` is deliberately absent — see `.claude/rules/auth-guards.md`
+     * `CentralUser` is deliberately absent — see `.ai/rules/auth-guards.md`
      * for why giving it a policy is a behaviour change that needs deciding
      * rather than a gap to close here.
      */
@@ -399,15 +410,6 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
             if (Config::boolean('numerosis.schedule.prune_stalled_provisions')) {
                 $schedule->command('tenancy:prune-stalled-provisions')->hourly();
-            }
-
-            // torann/geoip's MaxMind database driver (backs ResolveCheckoutRegion)
-            // needs its local .mmdb file refreshed periodically — MaxMind
-            // rotates license keys and update cadence. Only registered when
-            // that service is actually configured, since geoip:update no-ops
-            // (with a log line, not an error) for every other driver.
-            if (Config::string('geoip.service') === 'maxmind_database') {
-                $schedule->command('geoip:update')->weekly();
             }
         });
     }
@@ -520,13 +522,14 @@ class NumerosisServiceProvider extends PackageServiceProvider
     {
         Fortify::viewPrefix('numerosis::auth.');
 
-        Config::set('fortify.features', array_filter([
-            FortifyFeatures::registration(),
-            Features::enabled(PasswordResetFeature::NAME) ? FortifyFeatures::resetPasswords() : null,
-            FortifyFeatures::updateProfileInformation(),
-            FortifyFeatures::updatePasswords(),
-            FortifyFeatures::emailVerification(),
-        ]));
+        // `fortify.features` is a *default*, not an override, and it is set
+        // in `HostConfig::fortifyFeatures()` with the same "only while the
+        // key still holds the stock value" rule every other backfill in this
+        // package follows. Setting it here instead would discard a host's
+        // published `config/fortify.php` on every boot, while
+        // `docs/extending.md` goes on naming that key as the seam for
+        // choosing which auth screens exist.
+        $this->app->bind(FortifyLoginRequest::class, NumerosisLoginRequest::class);
 
         Fortify::createUsersUsing(CreateRegisteredUser::class);
         Fortify::updateUserProfileInformationUsing(UpdateUserProfile::class);
@@ -535,14 +538,30 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         // `LoginUser`'s dual-guard login runs last, once Fortify's own two
         // steps have logged the request's own (central or tenant) guard in.
+        //
+        // `CanonicalizeUsername` is carried over from Fortify's own default
+        // pipeline rather than dropped: replacing the pipeline wholesale is
+        // what silently turns `fortify.lowercase_usernames` into a dead
+        // config key. It has to stay *ahead* of the OTP step, whose candidate
+        // lookup is an exact-match `firstWhere('email', …)`, so that the
+        // address the limiter keys on and the address the lookup uses are the
+        // same string.
+        //
+        // `RedirectIfOneTimePasswordAuthenticatable` then runs before
+        // `AttemptToAuthenticate` and, when `OneTimePasswordFeature` is on,
+        // never calls `$next()` — it replaces the password check rather than
+        // adding a factor after it, so `AttemptToAuthenticate` never runs for
+        // a request it has handled.
         Fortify::authenticateThrough(fn (Request $request): array => array_filter([
             Config::get('fortify.limiters.login') ? null : EnsureLoginIsNotThrottled::class,
+            Config::get('fortify.lowercase_usernames') ? CanonicalizeUsername::class : null,
+            OneTimePasswordFeature::available() ? RedirectIfOneTimePasswordAuthenticatable::class : null,
             AttemptToAuthenticate::class,
             PrepareAuthenticatedSession::class,
             LogInToCentralGuard::class,
         ]));
 
-        $this->registerLoginRateLimiter();
+        $this->registerAuthRateLimiters();
 
         // `VerifyEmailController` type-hints Fortify's own concrete
         // `VerifyEmailRequest`; binding a subclass still resolves for a
@@ -559,18 +578,59 @@ class NumerosisServiceProvider extends PackageServiceProvider
      * lockout counter, and tenant A's failed attempts lock out tenant B's
      * user. Mixing the tenant key into `->by(...)` is the fix; regression-test
      * it with two tenants; a single-tenant test passes either way.
+     *
+     * The OTP challenge gets its **own** limiter for a related reason: its
+     * request carries no `email` field, so reusing `login` would key every
+     * verification from one IP into a single bucket. It reads the address
+     * back out of the session instead — the same value the send leg keyed on,
+     * so the two legs stay per-user without the challenge form having to
+     * carry (and therefore let a caller choose) the address.
+     *
+     * **Known gap, upstream:** `spatie/laravel-one-time-passwords` runs its
+     * own per-user limiter inside `ConsumeOneTimePasswordAction`, keyed
+     * `consume-one-time-password-attempt:{$user->getKey()}` — a primary key,
+     * which collides across tenant databases and with the central users
+     * table. Five wrong attempts against tenant A's user 1 also lock tenant
+     * B's user 1 for the window. It is a denial of service, not a bypass, and
+     * the limiter registered here is the one that actually bounds guessing;
+     * fixing it means overriding a vendor action that this package only
+     * `suggest`s, so it is recorded rather than forked.
      */
-    protected function registerLoginRateLimiter(): void
+    protected function registerAuthRateLimiters(): void
     {
         Config::set('fortify.limiters.login', 'login');
 
-        RateLimiter::for('login', function (Request $request): Limit {
-            $tenant = tenancy()->tenant;
-            $tenantKey = $tenant instanceof Tenant ? (string) $tenant->getTenantKey() : 'central';
-            $email = Str::lower((string) $request->string('email'));
+        RateLimiter::for('login', fn (Request $request): Limit => Limit::perMinute(5)->by(
+            $this->authThrottleKey($request, (string) $request->string(Fortify::username()))
+        ));
 
-            return Limit::perMinute(5)->by("{$tenantKey}|{$email}|{$request->ip()}");
-        });
+        RateLimiter::for(OneTimePasswordFeature::LIMITER, fn (Request $request): Limit => Limit::perMinute(5)->by(
+            $this->authThrottleKey($request, $this->pendingLoginAddress($request))
+        ));
+    }
+
+    /**
+     * The address the OTP send leg stashed, which is what keys the challenge's
+     * limiter — the challenge form deliberately does not carry it, so a
+     * caller cannot choose whose bucket to spend.
+     */
+    protected function pendingLoginAddress(Request $request): string
+    {
+        $email = $request->hasSession() ? $request->session()->get('login.email') : null;
+
+        return is_string($email) ? $email : '';
+    }
+
+    /**
+     * Tenant + address + IP. The tenant key is what keeps two tenants holding
+     * the same address off one another's lockout counter.
+     */
+    protected function authThrottleKey(Request $request, string $email): string
+    {
+        $tenant = tenancy()->tenant;
+        $tenantKey = $tenant instanceof Tenant ? (string) $tenant->getTenantKey() : 'central';
+
+        return $tenantKey.'|'.Str::lower($email).'|'.$request->ip();
     }
 
     /**

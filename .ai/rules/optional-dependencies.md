@@ -1,3 +1,13 @@
+> **Header note, 2026-09-03 (Phase 6).** `ryangjchandler/laravel-cloudflare-turnstile`
+> moved `require` → `suggest` — `TurnstileFeature::isEnabled()` gained a
+> `class_exists(TurnstileRule::class)` check, the one seam. It needed no
+> `Support\Compat\*` shim: nothing in core `implements`/`use <Trait>`s a
+> Turnstile symbol, only a method-body `new TurnstileRule` gated behind the
+> flag — the lazy case this file's first bullet describes, not the eager one
+> `Support\Compat\*` exists for. Also dropped the same phase, with no
+> guard at all rather than a `suggest`: `torann/geoip`. `ResolveCheckoutRegion`
+> stopped calling it, full stop — there is nothing left to degrade.
+>
 > **Header note, 2026-09-03 (Phase 2).** `internachi/modular` is **gone too** —
 > not `suggest`, not `require-dev`, not referenced anywhere. The whole module
 > system, `ModuleSystemFeature::available()`, the three
@@ -198,5 +208,7 @@ conditional-definition file, one per symbol, forever. If a fourth or fifth
 one shows up, consider a small code-generation step (a composer script that
 emits `Support/Compat/*.php` from a declarative list of
 `[symbol, realClass, kind]` tuples) rather than continuing to hand-write
-near-identical files — the four here are still simple enough that this
-wasn't worth building yet.
+near-identical files — the two here (`HasOneTimePasswordsIfInstalled`,
+`LogsActivityIfInstalled`; the two Filament shims were deleted with
+`packages/filament` in Phase 1) are still simple enough that this wasn't
+worth building yet.

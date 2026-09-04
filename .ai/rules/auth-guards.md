@@ -1,5 +1,35 @@
 # Auth Guards
 
+> **Header note, 2026-09-03 (Phases 1 & 4 of `.claude/plans/humming-nibbling-flame.md`).**
+> Two things below describe deleted code; the mechanisms they illustrate are
+> preserved and, for logout, still exactly how the current fix works.
+>
+> - **`UpdateUserLastSeenMiddleware` and the whole `last_seen_at` leg are
+>   gone** (deleted Phase 1, alongside `packages/filament`'s tenant panel,
+>   the only place that registered it — see `.ai/rules/index.md`'s middleware
+>   note). The bullet below and its "Suggested better approach" are pure
+>   history now; no `last_seen_at` write path exists to retarget the wrong
+>   connection.
+> - **`POST /logout` is Fortify's route now, not `routes/auth.php` (deleted,
+>   folded into `routes/web.php` in Phase 3, then superseded by Fortify's own
+>   route loading in Phase 4).** `Actions\Auth\LogoutUser::handle()` is no
+>   longer what runs on that path — `AuthenticatedSessionController::destroy()`
+>   is, and it only logs out `config('fortify.guard')`.
+>   `Listeners\Auth\EndOtherGuardSession` (registered with an explicit
+>   `Event::listen(Logout::class, ...)` in `packageBooted()`, since Laravel's
+>   listener auto-discovery never scans a package's `src/`) covers the other
+>   guard instead, firing on the `Logout` event `SessionGuard::logout()`
+>   dispatches before invalidating the session. **The mechanism the bullet
+>   below documents — resolving the tenant guard outside tenant context reads
+>   the *central* `users` table, and `SessionGuard::logout()` resolves before
+>   it clears — is exactly why the listener still ends the tenant session by
+>   forgetting the guard's session key and recaller cookie directly, never
+>   calling `logout()`, outside tenancy.** `Actions\Auth\LogoutUser` still
+>   exists, trimmed to a plain `handle(): void` for non-HTTP callers
+>   (`Livewire\Actions\Logout`, tests) — read the bullet's mechanism as
+>   current, its call sites as history. See `.ai/rules/auth-login.md` for the
+>   listener's own docblock-level detail.
+
 - **Invariant: central domain default guard = central guard, inside tenant = tenant guard.** Enforced by `Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper`, registered in `config('tenancy.bootstrappers')`, calls `Auth::shouldUse()` on bootstrap, restores previous guard on `revert()`. `AuthManager::shouldUse()` rewrites both `auth.defaults.guard` *and* manager's `userResolver`, so `auth()->user()`, `$request->user()`, `@auth`, `Gate`, policies all follow automatically. Before this: rule was convention only — code opting into `TenancyAwareGuard` got it right, everything else silently resolved `CentralUser` on tenant domains.
 
 - **`web` *is* central guard.** No guard named `central` — one existed alongside `web`, backed by duplicate `central` provider over same `CentralUser` model, deleted because nothing called `Auth::guard('central')` and two session guards over one model = user authenticated under one, not other. `web` keeps Laravel's default name so framework/package defaults land on it. App code names it `config('numerosis.auth.guards.central')` — renamed from `auth.defaults.guards.context.central` during the package extraction (better-dx.md Phase 0): a package key inside a framework config file could carry no package default, so every consumer had to hand-write it before login worked at all. `Nvade\Numerosis\Enums\Tenancy\Context::guard()` is the one place that reads the key now (`Config::string("numerosis.auth.guards.{$this->value}")`) — read through the enum, don't re-interpolate the string at a new call site.

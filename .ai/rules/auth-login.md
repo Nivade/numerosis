@@ -1,45 +1,165 @@
 ---
 topic: auth-login
-updated: 2026-07-31
+updated: 2026-09-04
 ---
 
-> **Moved 2026-08-30.** The auth *screens* this file is mostly about now live
-> in `packages/auth-ui` (`nvade/numerosis-auth-ui`):
-> `Nvade\Numerosis\Livewire\Auth\*` is
-> `Nvade\NumerosisAuthUi\Livewire\*` (no `Auth` segment),
-> `Concerns\Auth\ThrottlesLoginAttempts` is `NumerosisAuthUi\Concerns\…`,
-> `SocialLoginFeature` is `NumerosisAuthUi\Features\…`, and `routes/auth.php`
-> is that package's, contributed through `Numerosis::addCentralRoutes()`.
-> Auth *mechanics* — guards, `Actions\Auth\*`, `Models\SocialiteLogin`,
-> `ConfiguredProviders`, `TurnstileFeature`, both `one_time_passwords`
-> migrations — stayed in core, so every claim below still holds; only the
-> namespaces moved. `.ai/rules/auth-guards.md` is unaffected.
+> **Rewritten 2026-09-03 (Phase 7 of `.claude/plans/humming-nibbling-flame.md`),
+> for Fortify.** Everything this file used to describe —
+> `Livewire\Auth\PasswordlessLogin`, `packages/auth-ui`, `ThrottlesLoginAttempts`
+> — is deleted. Auth is `laravel/fortify`'s now (Phase 4): Fortify owns route
+> registration, the login controller, session handling and password hashing.
+> Guest auth screens (`resources/views/auth/*`) are plain Blade `<form>`s
+> posting Fortify's routes, not Livewire — see `docs/extending.md` for why
+> that split is structural, not a style choice. What follows is current
+> behaviour, plus the two lessons the old file earned the hard way, carried
+> forward because they are *why* the current design is shaped the way it is.
 
-- **Tenancy-aware user resolver answer diff question than "does email have central account" — two must not share contract.** `Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate` (default impl `FindLoginCandidate`, via `TenancyAwareUserModel`) correct for `PasswordlessLogin` — deliberately switch tenant/central user model based on ambient tenancy, cuz that's what "who login this host" mean. `Nvade\Numerosis\Livewire\Invitations\Accept` looked same op (`CentralUser::where('email', ...)`), briefly rewired onto same contract during refactor — but invitation accept run *inside* `$tenant->run()` (link visited on tenant subdomain), so tenancy-aware resolver silently start looking up `Tenant\User` that could never exist yet, `existingUser` went permanently false. `AcceptTest::test_it_accepts_without_a_password_for_a_central_user_new_to_this_tenant` caught it immediate. Left as direct `CentralUser::where(...)` calls; only *creation* of new invited user (`Nvade\Numerosis\Contracts\Invitations\CreatesInvitedUser`) swappable, since that step no tenancy ambiguity. **Before reuse contract across two call sites, check both actually want same answer under tenancy, not just same-looking query.**
+# Login surfaces, current shape
 
-- **`Nvade\Numerosis\Actions\Auth\LoginUser::handle()` used log into two guards (current + central) via two copy-pasted resolve blocks — same trap as passwordless-login drift above.** Each block: resolve guard → `getProvider()` w/ `throw_if(null)` → `getModel()` → `$user instanceof $expectedModel` check → fallback `userResolver()`. Five steps, twice, only guard name differed. Extracted into `resolveUserForGuard(string $guardName, User $user): User` + `loginToGuard(string $guardName, User $user, bool $remember): void`, both call sites in `handle()` now share one path. `userResolver()`'s doc comment (guard being logged into decides model, never ambient `tenancy()->initialized`) now applies uniformly since only one call site left. **Add third guard later, extend `handle()`'s loop over guard names — don't hand-copy block again.**
+> **Audit pass 2026-09-04** added the four entries marked *(audit)* below.
+> Each is a defect the Phase 4 design produced and the suite did not see.
 
-  `guardName === Context::Central->guard() ? Central : Tenant` also moved off `LoginUser` (was `contextForGuard()`) onto `Nvade\Numerosis\Enums\Tenancy\Context::fromGuard()` — inverse of existing `Context::guard()`, belongs on enum not caller. Reuse it, don't re-derive the ternary at a new call site.
+- **(audit) `route:cache` is impossible while Fortify's routes load twice.**
+  `Numerosis::routes()` requires `vendor/laravel/fortify/routes/routes.php`
+  once per central domain and once in the tenant group, because
+  `'guest:'.config('fortify.guard')` is baked into route middleware *at
+  registration time*. Both copies therefore carry the same route names, and
+  `php artisan route:cache` throws `Unable to prepare route [login] for
+  serialization`. Serving them uncached is fine (the domain-scoped copy
+  matches first on a central host; `route('login')` resolves the domain-less
+  tenant copy, which generates a host-relative URL correct on both), so the
+  cost is exactly the cache step — documented in
+  `docs/host-requirements.md`. **The package's own suite cannot see this**:
+  Testbench registers Fortify's routes once, so the duplicate only appears
+  in a real host (`../numerosis-thin-app`). Fixing it properly means one
+  registration whose `guest:`/`auth:` middleware resolve the guard at
+  request time — note that `Auth::guard('')` falls through to the *default*
+  driver, which `AuthGuardBootstrapper` already switches per context, so
+  `config('fortify.guard') === ''` is the thread to pull.
 
-# Login Surfaces
+- **(audit) A config key Fortify reads at request time cannot be swapped at
+  route-registration time.** `fortify.passwords` was swapped inside
+  `loadFortifyRoutes()`, by symmetry with `fortify.guard`, and restored in a
+  `finally` — a no-op, because `PasswordResetLinkController::broker()`,
+  `NewPasswordController::broker()` and `PasswordController::broker()` all
+  read the key when the request arrives. Tenant password resets silently
+  resolved the *central* `users` provider. The fix is
+  `Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper`. **Ask which
+  phase reads a key before deciding where to set it:** baked into a route =
+  registration time, read by a controller = request time.
 
-Guard *selection* in `.ai/rules/auth-guards.md`. This file about login screens themselves — which component serve which URL, what each one is (and isn't) enforcing.
+- **(audit) A `TenancyBootstrapper` must be a container singleton if it
+  remembers anything.** `Tenancy::getBootstrappers()` is
+  `array_map('app', config('tenancy.bootstrappers'))`, resolved afresh on
+  *both* initialize and end — so an unbound class hands `revert()` a
+  different instance than `bootstrap()` wrote to, and whatever it captured is
+  gone. `AuthGuardBootstrapper` has never escaped this; it only looks
+  correct because `revert()` falls back to `?? Context::Central->guard()`.
+  `PasswordBrokerBootstrapper` is registered with `$this->app->singleton()`
+  in `packageRegistered()` for this reason.
 
-- **Central `/login` and every tenant subdomain login page now same component: `Nvade\Numerosis\Livewire\Auth\PasswordlessLogin`.** Until 2026-07-31 two independently-maintained components sharing no code — separate anonymous class in `resources/views/pages/auth/⚡passwordless-login.blade.php` served central via `Route::livewire(...)`, while `TenantAdminPanelProvider::panel()` → `->login(PasswordlessLogin::class)` served every tenant subdomain. Both extended `Spatie\OneTimePasswords\Livewire\OneTimePasswordComponent`, protections drifted between them twice (turnstile added to one only, then OTP check itself — see below). `routes/auth.php` now do `Route::get('login', PasswordlessLogin::class)->name('login')` direct, both surfaces share `resources/views/livewire/auth/passwordless-login/`. Register-link block in `email-form.blade.php` wrapped in `@unless (tenancy()->initialized)` since only central login should offer it — `Route::has('register')` alone not safe guard, route name visible regardless which domain matched.
+- **(audit) The login limiter is tenant-keyed, and the test for it needs
+  `tenancy()->end()`.** `authThrottleKey()` mixes `tenancy()->tenant` into
+  the bucket so tenant A's failed logins cannot lock the same address out on
+  tenant B. In a feature test every request runs in one process against one
+  container and *nothing ends tenancy between them*, so a central request
+  issued after a tenant one still reads the previous tenant and the
+  assertion fails against correct code. `tests/Feature/Auth/LoginRateLimitTest.php`
+  calls `tenancy()->end()` for exactly this. Worth knowing beyond tests:
+  under Octane the same leak is a live concern.
 
-  Collapsing them surfaced third live instance of same drift: `PasswordlessLogin` had no `findUser()` override, inherited parent's `config('auth.providers.users.model')` lookup — always `CentralUser`, so real tenant-subdomain login resolving wrong model. Now uses `Nvade\Numerosis\Concerns\TenancyAwareUserModel`, same as deleted central-only class already did, regression test (`test_it_authenticates_a_tenant_user_when_run_inside_tenant_context` in `tests/Feature/Livewire/Auth/PasswordlessLoginTest.php`) proves `Tenant\User` can actually authenticate through this component inside `tenancy()->initialize()`. **If third login surface ever added, wire it to this same class rather than new component** — that's property that actually stops this drift, not remembering to update two (or now three)
 
-  Same regression test also caught second, unrelated live bug while writing it: `database/migrations/2025_11_25_165156_create_one_time_passwords_table.php` is **central-only** migration — never copied into `database/migrations/tenant/`, only path `config('tenancy.migration_parameters')` migrates. Every tenant subdomain login was therefore issuing `SQLSTATE 1146 Base table or view not found` moment code sent, cuz `HasOneTimePasswords` writes through whichever connection currently default — `tenant`, for whole duration of tenant-subdomain request. Fixed by adding `database/migrations/tenant/2026_07_31_120000_create_one_time_passwords_table.php` with identical schema. **Vendor/package migration landing in `database/migrations/` (central-only) needs manual tenant copy if table it creates ever written to from tenant context** — nothing enforces this, passing test suite gave no signal, cuz `Tests\Support\CloneTenantSchema`'s template only rebuild when physical `tenantphpunittemplate` database doesn't already exist (see `.ai/rules/testing.md`) — stale template from prior run silently keeps testing against old (missing-table) schema until dropped by hand.
-  places by hand.
+Guard *selection* is `.ai/rules/auth-guards.md`. This file is about who runs
+what during login/logout, and the two traps worth re-reading before touching
+any of it.
 
-- **`Nvade\Numerosis\Livewire\Auth\PasswordlessLogin::submitOneTimePassword()` shipped with `OneTimePasswordRule` validation commented out, authenticated on `email` alone.** Introduced 2026-02-27 (`6b8c78c`), found 2026-07-31. Parent class validates code; override replaced that with `$user = $this->findUser(); … $this->authenticate($user);` and three commented-out lines where check used to be. Cuz this component is tenant panel's login page, result was **account takeover on every tenant subdomain**: `email` plain public property, every public method on Livewire component directly invokable by client, so attacker never had to call `submitEmail()` first — set property, invoke method, get session as that user.
+- **Dual-guard login is `Actions\Auth\LoginUser::handle(User, remember, ?guard)`,
+  run as the last step of Fortify's pipeline, not a controller.**
+  `NumerosisServiceProvider::registerFortify()` appends
+  `Actions\Auth\LogInToCentralGuard` after Fortify's own
+  `AttemptToAuthenticate`/`PrepareAuthenticatedSession` — by the time it
+  runs, the request's own guard is already logged in; `LogInToCentralGuard`
+  fetches the now-authenticated user and calls `LoginUser::run()`, which logs
+  the *central* guard in too if it isn't already the one just used.
+  `LoginUser` still does the guard→model resolution
+  (`resolveUserForGuard()`/`userResolver()`) that predates Fortify; only the
+  entry point moved.
 
-  General rule this instance of: **on Livewire component, reaching method proves nothing about which method ran before it.** `displayingEmailForm` and friends are view state, not state machine server enforces. Any method granting something must re-verify own preconditions. Same lesson `.ai/rules/billing-checkout.md` records for `Payment::$pendingDomain` and `Plan`/`Payment` bypassing `StartCheckoutRequest` — third instance in same codebase, why worth stating as rule rather than bugfix note.
+- **Passwordless OTP is a pipeline step that replaces the password check, not
+  a second factor after it.** `Actions\Auth\RedirectIfOneTimePasswordAuthenticatable`
+  runs before `AttemptToAuthenticate`, only when `OneTimePasswordFeature::available()`.
+  It identifies the candidate by email, sends the code, stashes
+  `login.email`/`login.remember` in the session and redirects to
+  `one-time-password.login` — it never calls `$next()`, so
+  `AttemptToAuthenticate` does not run for a request this step already
+  handled. `Http\Requests\Auth\NumerosisLoginRequest` (bound over Fortify's
+  own `LoginRequest`) is what makes `password` optional when OTP is on —
+  Fortify's stock `rules()` makes it unconditionally required, and that
+  `FormRequest` validates *before* the pipeline even starts, so a password-less
+  submission would 422 before this step got a chance to redirect it.
 
-  Regression tests live in `tests/Feature/Livewire/Auth/PasswordlessLoginTest.php`, verified to fail against pre-fix file, not merely pass after it. Test that only ever ran green against fixed code proves nothing about this class of bug.
+- **`OneTimePasswordChallengeController::store()` and
+  `RedirectIfOneTimePasswordAuthenticatable::handle()` both answer identically
+  whether or not the address belongs to a user.** No password exists to check
+  here, so a per-outcome response would make the OTP send/verify endpoints an
+  unauthenticated account-existence oracle — a password login leaks nothing
+  comparable, because a wrong password and an unknown user fail the same way
+  there already. See `Actions\Auth\RedirectIfOneTimePasswordAuthenticatable`'s
+  own docblock for what this does *not* hide (an unauthenticated caller can
+  still make the package send mail to any address it holds an account for).
 
-- **Verification attempts must rate limit separate from code sending.** `OneTimePasswordComponent::rateLimitHit()` throttles `sendCode()` (10 per 60s per email) and nothing else, so six-digit code was guessable at request speed. `PasswordlessLogin::ensureIsNotRateLimited()` already existed, copied from `Nvade\Numerosis\Livewire\Auth\Login`, **never called** — dead code that read as protection. Now called from `submitOneTimePassword()` with `RateLimiter::hit()` on each failure, `clear()` on success, keyed by email+IP via `throttleKey()`. If similar helper turns up on component, check for caller before assuming limit live.
+- **Logout is a listener, not a controller, because Fortify's controller
+  actively fights dual-guard logout.** `AuthenticatedSessionController::destroy()`
+  logs out only `config('fortify.guard')` and then invalidates the session.
+  `Listeners\Auth\EndOtherGuardSession` is registered with an explicit
+  `Event::listen()` in `packageBooted()` — Laravel's listener auto-discovery
+  only scans a *host application's* `app/Listeners`, never a package's `src/`,
+  so a discovered-by-convention listener here would silently never fire.
+  It fires on `Illuminate\Auth\Events\Logout`, which `SessionGuard::logout()`
+  dispatches *before* clearing state, so it still sees a live session to end.
+  Guards each branch on `check()`/`tenancy()->initialized` before calling
+  `logout()` on the other guard — unguarded, `logout()` unconditionally
+  re-dispatches `Logout` even when nothing was logged in, which would recurse
+  into this same listener. `Actions\Auth\LogoutUser` still exists, trimmed to
+  a plain `handle(): void` for callers outside `POST /logout` (`Livewire\Actions\Logout`,
+  tests) — it is not what the HTTP route runs anymore.
 
-  Duplicated copies of `ensureIsNotRateLimited()`/`throttleKey()` now live in `Nvade\Numerosis\Concerns\Auth\ThrottlesLoginAttempts`, shared by both components.
+- **Rate limiting is tenant-keyed on purpose, and the OTP challenge gets its
+  own limiter.** `NumerosisServiceProvider::registerAuthRateLimiters()`
+  registers `login` (`Limit::perMinute(5)->by($tenant.'|'.$email.'|'.$ip)`)
+  and `OneTimePasswordFeature::LIMITER` the same way, keyed by the address
+  the send leg stashed in session rather than a field the verify request
+  carries — so a caller cannot choose whose bucket to spend. Fortify's
+  *default* `login` limiter keys on `lower(username).'|'.$ip` alone, with no
+  tenant in it: two tenants sharing a user at the same email address would
+  share one lockout counter, letting tenant A's failed attempts lock out
+  tenant B's user. Regression-test rate limiting **with two tenants** — a
+  single-tenant test passes whether or not the limiter is tenant-keyed, so it
+  proves nothing.
 
-- **Before adding a method to a concern that a Filament page or package component composes, grep the parent chain for the name — a silent trait-vs-parent override, not a fatal error, is what a collision looks like.** Discovered on `Nvade\Numerosis\Livewire\Auth\Login` (password-based login, unreachable — no route resolved to it since `PasswordlessLogin` took over `/login`; deleted 2026-08-04): it extended `Filament\Auth\Pages\Login`, which composes `DanHarrin\LivewireRateLimiting\WithRateLimiting`, and that trait already declares `clearRateLimiter($method = null, $component = null)` and `hitRateLimiter($method = null, $decaySeconds = 60, $component = null)` — plus `getRateLimitKey()` and `rateLimit()`. A concern using either name silently *overrides* the package's limiter with an incompatible signature, so Filament's own throttling (`rateLimit()` in its `authenticate()`) starts calling the concern's method with args it doesn't accept. Nothing fails at boot — PHP allows trait-vs-parent resolution — the class was discovered only because PHPStan reported `overrides method Filament\Auth\Pages\Login::hitRateLimiter() but misses parameter #1 $method`. `ThrottlesLoginAttempts` therefore names them `hitLoginThrottle()` / `clearLoginThrottle()`; `ensureIsNotRateLimited()` and `throttleKey()` were safe precisely cuz both components already declared them, neither exists upstream. The rule outlives the class that surfaced it — check any future page's parent chain the same way, don't assume it's fine because nothing here composes `WithRateLimiting` today.
+## Two lessons from the deleted `PasswordlessLogin`, still load-bearing
+
+Both are why Phase 5's OTP challenge is a Fortify pipeline step + a plain
+controller rather than a Livewire component, and both need their own
+regression test verified to fail against a stubbed-out step before being
+trusted:
+
+- **A Livewire component cannot be trusted to gate a public method on prior
+  state.** The deleted `PasswordlessLogin::submitOneTimePassword()` shipped
+  with its `OneTimePasswordRule` validation commented out, authenticating on
+  `email` alone — reachable directly because every public method on a
+  Livewire component is client-invokable, so an attacker never had to call
+  `submitEmail()` first. **On any component, reaching a method proves nothing
+  about which method ran before it; any method granting something must
+  re-verify its own preconditions.** `.ai/rules/billing-checkout.md` records
+  the same class of bug for `Payment::$pendingDomain`. A Fortify pipeline
+  step doesn't have this shape at all — each step runs in a fixed server-side
+  order the client cannot reach into.
+
+- **`throttle:login` is route middleware and does not cover `/livewire/update`.**
+  A Livewire login form has *no* rate limiting, silently — Livewire posts
+  every interaction to one shared endpoint, never to the route the middleware
+  is attached to. This is the concrete reason login and the OTP challenge are
+  both plain controllers behind Fortify's routing, not Livewire components:
+  `throttle:login`/the OTP limiter above only bind because the request
+  actually goes through routing.

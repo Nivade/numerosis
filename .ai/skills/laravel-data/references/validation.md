@@ -3,12 +3,15 @@
 Read `../SKILL.md` first. Package source: `vendor/spatie/laravel-data/src/Attributes/Validation/`,
 `src/Concerns/ValidateableData.php`, `src/Resolvers/DataValidationRulesResolver.php`.
 
-This app has no non-auth `FormRequest`s. A Data class **is** the request-validation layer — rules live on the
-Data class, not in a separate request object.
+This package uses Form Requests normally (`StartCheckoutRequest`, `NumerosisLoginRequest`, …) — a Data class
+is **not** the only validation layer here. It becomes the validation layer specifically at Fortify's `array
+$input` boundary (`CreatesNewUsers`, `UpdatesUserPasswords`, …), where there is no Form Request to put rules
+on; see `../SKILL.md`'s "Crossing Fortify's `array $input` boundary" section.
 
 ## When validation actually runs
 
-`config/data.php` sets `validation_strategy` to `OnlyRequests`. That means:
+`config/data.php` is unpublished here — `validation_strategy` is the package's own stock default,
+`OnlyRequests` (`vendor/spatie/laravel-data/config/data.php`). That means:
 
 | Call | Validates? |
 | --- | --- |
@@ -25,13 +28,14 @@ anything.
 
 ## Three ways to declare rules
 
-**1. Inferred from the type** — always on, nothing to write. `config/data.php` enables `SometimesRuleInferrer`,
-`NullableRuleInferrer`, `RequiredRuleInferrer`, `BuiltInTypesRuleInferrer`, `AttributesRuleInferrer`. So:
+**1. Inferred from the type** — always on, nothing to write; the package's default inferrer stack
+(`SometimesRuleInferrer`, `NullableRuleInferrer`, `RequiredRuleInferrer`, `BuiltInTypesRuleInferrer`,
+`AttributesRuleInferrer`) applies unconfigured. So:
 
 ```php
-public readonly string $field;          // required, string
-public readonly ?int $threshold;        // nullable, integer
-public readonly Optional|string $note;  // sometimes, string
+public string $field;          // required, string
+public ?int $threshold;        // nullable, integer
+public Optional|string $note;  // sometimes, string
 ```
 
 Don't restate `required`/`nullable`/`string`/`integer` by hand — the inferrers already added them, and a manual

@@ -74,7 +74,7 @@ final class Contributions
      */
     public static function addTenantColumns(array $columns): void
     {
-        self::$tenantColumns = array_values(array_merge(self::$tenantColumns, $columns));
+        self::$tenantColumns = self::appendOnce(self::$tenantColumns, ...$columns);
     }
 
     /**
@@ -137,7 +137,7 @@ final class Contributions
 
     public static function addTenantMigrationPath(string $path): void
     {
-        self::$tenantMigrationPaths[] = $path;
+        self::$tenantMigrationPaths = self::appendOnce(self::$tenantMigrationPaths, $path);
     }
 
     /**
@@ -157,7 +157,10 @@ final class Contributions
      */
     public static function addTenantSeeder(string $seeder): void
     {
-        self::$tenantSeeders[] = $seeder;
+        /** @var list<class-string<Seeder>> $seeders */
+        $seeders = self::appendOnce(self::$tenantSeeders, $seeder);
+
+        self::$tenantSeeders = $seeders;
     }
 
     /**
@@ -173,7 +176,10 @@ final class Contributions
      */
     public static function addCentralSeeder(string $seeder): void
     {
-        self::$centralSeeders[] = $seeder;
+        /** @var list<class-string<Seeder>> $seeders */
+        $seeders = self::appendOnce(self::$centralSeeders, $seeder);
+
+        self::$centralSeeders = $seeders;
     }
 
     /**
@@ -186,7 +192,36 @@ final class Contributions
 
     public static function addPermissionContext(string $context): void
     {
-        self::$permissionContexts[] = $context;
+        self::$permissionContexts = self::appendOnce(self::$permissionContexts, $context);
+    }
+
+    /**
+     * Appends whatever is not already present, preserving registration
+     * order. Every list here is static and therefore lives as long as the
+     * process does, so a provider that registers more than once — Octane's
+     * per-worker boot, a host provider re-registered by a test harness —
+     * would otherwise grow them without bound and hand `tenancy.migration_parameters`
+     * the same path several times over.
+     *
+     * The route-callback lists cannot be deduplicated the same way: two
+     * `Closure`s built from the same `function () { … }` on two boots are
+     * distinct objects with nothing comparable about them, and collapsing by
+     * `source` alone would drop a package's second, legitimately different
+     * contribution. They are bounded in practice by there being one
+     * registration site per package.
+     *
+     * @param  list<string>  $existing
+     * @return list<string>
+     */
+    private static function appendOnce(array $existing, string ...$values): array
+    {
+        foreach ($values as $value) {
+            if (! in_array($value, $existing, true)) {
+                $existing[] = $value;
+            }
+        }
+
+        return array_values($existing);
     }
 
     /**

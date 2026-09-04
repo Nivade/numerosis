@@ -19,7 +19,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Fortify as FortifyFacade;
+use Laravel\Fortify\RoutePath;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
+use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
+use Nvade\Numerosis\Http\Controllers\Auth\OneTimePasswordChallengeController;
 use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Models\User as NumerosisUser;
@@ -186,7 +189,10 @@ class Numerosis
                     require $routes.'/web.php';
 
                     if ($withAuth) {
-                        self::loadFortifyRoutes(Config::string('numerosis.auth.guards.central'));
+                        $guard = Config::string('numerosis.auth.guards.central');
+
+                        self::loadFortifyRoutes($guard);
+                        self::loadOneTimePasswordRoutes($guard);
                     }
 
                     foreach (Contributions::centralRouteCallbacks() as $callback) {
@@ -212,7 +218,10 @@ class Numerosis
             require $routes.'/tenant.php';
 
             if ($withAuth) {
-                self::loadFortifyRoutes(Config::string('numerosis.auth.guards.tenant'), passwordBroker: 'tenant');
+                $guard = Config::string('numerosis.auth.guards.tenant');
+
+                self::loadFortifyRoutes($guard);
+                self::loadOneTimePasswordRoutes($guard);
             }
 
             foreach (Contributions::tenantRouteCallbacks() as $callback) {
@@ -245,14 +254,20 @@ class Numerosis
      * `fortify.middleware` is cleared for the same registration-time reason —
      * the outer group already applied `web`/`tenant`, and leaving Fortify's
      * own default (`['web']`) would double it inside the tenant group.
+     *
+     * **`fortify.passwords` is deliberately not swapped here.** It used to
+     * be, by symmetry with the guard, and it was a no-op: nothing bakes the
+     * broker into a route, and Fortify's three password controllers read the
+     * key when the request arrives — long after the `finally` below restored
+     * it. The tenant broker is applied at request time instead, by
+     * {@see \Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper}.
      */
-    private static function loadFortifyRoutes(string $guard, ?string $passwordBroker = null): void
+    private static function loadFortifyRoutes(string $guard): void
     {
         $original = Config::array('fortify');
 
         Config::set('fortify.guard', $guard);
         Config::set('fortify.middleware', []);
-        Config::set('fortify.passwords', $passwordBroker);
 
         try {
             require self::fortifyRoutesPath();
@@ -266,6 +281,46 @@ class Numerosis
         $reflection = new ReflectionClass(FortifyFacade::class);
 
         return dirname((string) $reflection->getFileName(), 2).'/routes/routes.php';
+    }
+
+    /**
+     * Registers the `OneTimePasswordFeature` challenge routes inside
+     * whichever group is currently open, matching {@see self::loadFortifyRoutes()}
+     * — same reasoning: a route name baked with the wrong `guest:` guard at
+     * registration time is wrong for the rest of the process. Only
+     * registered when {@see OneTimePasswordFeature::available()}, so a host
+     * that never enables it (or enabled it without
+     * `spatie/laravel-one-time-passwords`) gets no extra routes at all.
+     *
+     * The paths go through Fortify's own `RoutePath::for()` so they are
+     * overridable from `config('fortify.paths')` like every neighbouring auth
+     * URL, rather than being the one hardcoded exception.
+     *
+     * The verify leg carries its **own** limiter, not `fortify.limiters.login`:
+     * this request has no `email` field (the address lives in the session),
+     * so the login limiter's `tenant|email|ip` key would collapse to
+     * `tenant||ip` and put every OTP verification from one IP in a single
+     * bucket. Fortify draws the same distinction for its 2FA challenge
+     * (`fortify.limiters.two-factor`).
+     */
+    private static function loadOneTimePasswordRoutes(string $guard): void
+    {
+        if (! OneTimePasswordFeature::available()) {
+            return;
+        }
+
+        $path = RoutePath::for('one-time-password.login', '/one-time-password-challenge');
+
+        Route::get($path, [OneTimePasswordChallengeController::class, 'create'])
+            ->middleware('guest:'.$guard)
+            ->name('one-time-password.login');
+
+        Route::post($path, [OneTimePasswordChallengeController::class, 'store'])
+            ->middleware([
+                'guest:'.$guard,
+                'throttle:'.OneTimePasswordFeature::LIMITER,
+            ])
+            ->name('one-time-password.login.store');
     }
 
     /**

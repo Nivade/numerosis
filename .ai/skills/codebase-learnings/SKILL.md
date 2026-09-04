@@ -1,11 +1,11 @@
 ---
 name: codebase-learnings
-description: Record non-obvious, important things learned about this codebase (gotchas, invariants, cross-file traps, "why it's built this way") into .claude/rules/, organized by topic, each paired with a suggested better approach rather than just the gotcha. Use when the user says "remember this about the codebase", "note this for later", "record this learning", "add this to the rules", or after a debugging/review session surfaces a non-obvious fact worth not re-discovering. Also proactively offer to record one when you notice a hard-won fact mid-task, even without a trigger phrase. Also use to recall what's already known before starting related work.
+description: Record non-obvious, important things learned about this codebase (gotchas, invariants, cross-file traps, "why it's built this way") into .ai/rules/, organized by topic, each paired with a suggested better approach rather than just the gotcha. Use when the user says "remember this about the codebase", "note this for later", "record this learning", "add this to the rules", or after a debugging/review session surfaces a non-obvious fact worth not re-discovering. Also proactively offer to record one when you notice a hard-won fact mid-task, even without a trigger phrase. Also use to recall what's already known before starting related work.
 ---
 
 # Codebase Learnings
 
-`.claude/rules/` holds a project-versioned, per-topic record of things learned
+`.ai/rules/` holds a project-versioned, per-topic record of things learned
 about *this* codebase while working on it — the kind of fact that took real
 investigation to find and would otherwise get re-discovered (or re-broken)
 every time someone touches that area. It is checked into git, so it travels
@@ -15,7 +15,7 @@ memory.
 `CLAUDE.md` points here so these rules get read automatically at the start of
 every session — see the pointer under "Codebase Rules" in `CLAUDE.md`.
 
-## What belongs in `.claude/rules/`
+## What belongs in `.ai/rules/`
 
 - Race conditions / concurrency traps between specific files or code paths.
 - Invariants that aren't visible from reading a single file (e.g. "these two
@@ -40,7 +40,7 @@ does," skip it — the code already says that.
 
 ## Recording a learning
 
-1. Pick (or create) a topic file: `.claude/rules/<topic>.md`, kebab-case,
+1. Pick (or create) a topic file: `.ai/rules/<topic>.md`, kebab-case,
    scoped to a feature/subsystem (e.g. `tenant-provisioning.md`,
    `billing-webhooks.md`) — not one giant file, not one file per tiny fact.
 2. Give new files a frontmatter header:
@@ -64,7 +64,7 @@ does," skip it — the code already says that.
    instance), and the trade-off if there is one. Do not implement it
    unprompted — this is a recommendation for the user to accept, defer, or
    reject, not an invitation to refactor on the spot.
-5. Update `.claude/rules/INDEX.md`: one line per file between the
+5. Update `.ai/rules/INDEX.md`: one line per file between the
    `<!-- topic-index:start -->` / `<!-- topic-index:end -->` markers,
    `- [file.md](file.md) — one-line hook`, under ~150 chars.
 6. Never duplicate a rule — check the index first; extend the existing
@@ -92,7 +92,7 @@ costs a re-investigation later.
 
 ## Recalling learnings
 
-Before starting non-trivial work in an area, skim `.claude/rules/INDEX.md`
+Before starting non-trivial work in an area, skim `.ai/rules/INDEX.md`
 and open any file whose topic overlaps. Treat it as historical: a rule that
 names a specific function or file may be stale if that code has since moved —
 verify with a quick grep before relying on it for anything the user will act

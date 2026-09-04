@@ -128,7 +128,7 @@ class User extends BaseUser implements TenantUserModel
      * `getCreationAttributes()` concept at all (its old listener copied
      * every attribute instead — the original `is_bot`-column bug this
      * package already worked around), so this override is inert there. See
-     * `.claude/rules/stancl-tenancy-v4.md`.
+     * `.ai/rules/stancl-tenancy-v4.md`.
      *
      * @return list<string>
      */

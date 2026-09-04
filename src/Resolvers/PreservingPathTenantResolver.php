@@ -33,7 +33,7 @@ class PreservingPathTenantResolver extends PathTenantResolver
      * delegate to the parent instead, keeping its binding-field resolution
      * and `allowedExtraModelColumns()` check. It also replaces the static
      * `$tenantParameterName` property read below with a static method; see
-     * `.claude/rules/stancl-tenancy-v4.md`.
+     * `.ai/rules/stancl-tenancy-v4.md`.
      */
     #[Override]
     public function resolveWithoutCache(mixed ...$args): Tenant

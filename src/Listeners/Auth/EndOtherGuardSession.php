@@ -33,7 +33,7 @@ use Illuminate\Support\Facades\Session;
  * model has no connection of its own, so resolving it outside tenant
  * context (via `check()`/`user()`) runs its query against whatever
  * connection is ambient — the central one — hydrating a stranger's row; see
- * `.claude/rules/auth-guards.md`. The central guard's model always carries
+ * `.ai/rules/auth-guards.md`. The central guard's model always carries
  * its own explicit connection, so logging it out from tenant context is
  * safe by comparison.
  */

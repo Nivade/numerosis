@@ -35,7 +35,7 @@ class RegistrationWizardFeature implements NamedFeature
      * resolves to. `Steps\Payment` is deliberately absent: its natural alias
      * (`payment`) collides with Cashier's own published
      * `resources/views/vendor/cashier/payment.blade.php`
-     * (`.claude/rules/billing-checkout.md`), so it keeps resolving by its
+     * (`.ai/rules/billing-checkout.md`), so it keeps resolving by its
      * full FQCN instead — Livewire supports that with no `addComponent()`
      * call at all. Deriving every alias as `Str::kebab(class_basename($step))`
      * in a naive loop is exactly what would reintroduce that collision

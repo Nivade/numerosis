@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
+use Illuminate\Auth\EloquentUserProvider;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Session;
@@ -42,12 +43,18 @@ class LoginUser
 
     protected function resolveUserForGuard(string $guardName, User $user): User
     {
-        $guardInstance = Auth::guard($guardName);
+        $provider = Auth::guard($guardName)->getProvider();
 
-        // @phpstan-ignore method.notFound
-        $provider = $guardInstance->getProvider();
-
-        throw_if($provider === null, RuntimeException::class, "No provider found for guard: {$guardName}");
+        // Narrowed to the Eloquent provider rather than null-checked: only
+        // that one exposes getModel(), which is the whole reason the provider
+        // is resolved here. A guard backed by anything else cannot answer
+        // "which model does this guard expect", so it is a configuration
+        // error, not a null.
+        throw_unless(
+            $provider instanceof EloquentUserProvider,
+            RuntimeException::class,
+            "Guard [{$guardName}] is not backed by an Eloquent user provider."
+        );
 
         $expectedModel = $provider->getModel();
 

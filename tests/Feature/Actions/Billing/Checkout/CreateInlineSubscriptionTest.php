@@ -89,7 +89,7 @@ class CreateInlineSubscriptionTest extends TestCase
         // Stamped onto the pending row as soon as the subscription exists —
         // this is what lets ResolveSetupIntent refuse a replayed subscribe()
         // and lets confirmed() settle by subscription id instead of
-        // Billable::latestSubscription(). See .claude/rules/billing-checkout.md.
+        // Billable::latestSubscription(). See .ai/rules/billing-checkout.md.
         $pending->refresh();
         $this->assertSame($subscription->stripe_id, $pending->stripe_subscription_id);
     }

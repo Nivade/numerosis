@@ -1,10 +1,28 @@
 # Splitting Numerosis Into Packages
 
+> **Header note, 2026-09-03 (Phase 3/7 of `.claude/plans/humming-nibbling-flame.md`).**
+> The direction reversed: `packages/{auth-ui,onboarding,account}` were folded
+> *back* into core, and `packages/filament` was deleted outright. **Only
+> `nvade/numerosis-ui` is a separate package now.** Every bullet below is
+> preserved as history — the mechanisms (shared view namespace, the
+> register-vs-`booting()` phase rule, the constant-vs-`use` autoload
+> asymmetry, the escaped-namespace trap, the monorepo boundary-test
+> technique) are exactly what makes `nvade/numerosis-ui` work today and what
+> the *next* extraction would need again, if there is one. Two things below
+> are stale facts rather than durable mechanism, corrected here rather than
+> in place: `tests/Feature/Support/SatelliteRouteContributionTest` is now
+> `tests/Feature/Support/PackageContributionSeamsTest`, and every mention of
+> `packages/{auth-ui,onboarding,filament}` describes a directory that no
+> longer exists. See `.ai/rules/package-boundaries.md` for the current,
+> two-package seam map, and `docs/architecture.md` for why each satellite
+> went (Phase 1 deleted filament, Phase 2 deleted the module system, Phase 3
+> folded the rest into core).
+
 Facts learned actually doing it, not from the plan
 (`.claude/plans/memoized-tinkering-meadow.md`, Phases 6–8). The agreed
 six-package map and the D1–D4 decisions live there; this file is what the
-first real extraction taught, and every bullet holds for the four still to
-come.
+first real extraction taught, and every bullet held for the packages that
+came after — right up until three of them folded back into core.
 
 > **Layout note, 2026-08-31.** The three extracted packages are no longer
 > sibling repos: `nvade/numerosis-{ui,auth-ui,filament}` live in this repo

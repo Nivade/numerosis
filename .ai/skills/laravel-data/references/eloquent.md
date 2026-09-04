@@ -1,20 +1,22 @@
 # Eloquent: casting columns, building from models
 
 Read `../SKILL.md` first. Package source: `vendor/spatie/laravel-data/src/Support/EloquentCasts/`,
-`src/Normalizers/ModelNormalizer.php`.
+`src/Normalizers/ModelNormalizer.php`. `config/data.php` is unpublished in this package — every default named
+below is the package's own stock value (`vendor/spatie/laravel-data/config/data.php`), not a local override.
 
 ## Casting a JSON column to a Data class
 
-This is the main reason the package is here. A JSON column with a known shape gets cast to a Data class, not to
-`'array'`.
+A JSON column with a known shape gets cast to a Data class, not to `'array'`. **No model in `src/Models/` does
+this today** (checked — every `casts()` here uses enums or Laravel's own cast types); this is the package
+feature, illustrative only, for the day a JSON column needs it.
 
 ```php
-use App\Data\Automation\RuleConditionData;
+use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 
 protected function casts(): array
 {
     return [
-        'condition' => RuleConditionData::class,
+        'condition' => TenantRegistrationData::class,
     ];
 }
 ```
@@ -63,7 +65,7 @@ The column is a normal `json` column — nothing package-specific in the migrati
 
 ## Building a Data object from a model
 
-`ModelNormalizer` is enabled in `config/data.php`, so `Data::from($model)` maps attributes by property name.
+`ModelNormalizer` is enabled by package default, so `Data::from($model)` maps attributes by property name.
 
 ```php
 $data = MatterData::from($matter);

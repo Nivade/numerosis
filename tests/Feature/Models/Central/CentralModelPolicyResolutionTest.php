@@ -38,7 +38,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  *
  * CentralUser is the documented exception, not a fourth instance of the same
  * bug: #[UsePolicy(UserPolicy::class)] lives only on Tenant\User, and
- * .claude/rules/auth-guards.md records this as a deliberate, unresolved gap
+ * .ai/rules/auth-guards.md records this as a deliberate, unresolved gap
  * — moving it onto the shared Nvade\Numerosis\Models\User base would change
  * authorization behaviour for every central-panel check (and needs
  * UserPolicy::viewAny() to exist first, or the missing-method throws instead

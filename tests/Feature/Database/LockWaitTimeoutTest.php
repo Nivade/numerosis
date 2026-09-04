@@ -29,7 +29,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  * possible way to report it: nothing fails, nothing finishes, and the
  * container keeps the session open long after the run is killed.
  *
- * See `.claude/rules/testing.md` for the incidents this prevents.
+ * See `.ai/rules/testing.md` for the incidents this prevents.
  */
 class LockWaitTimeoutTest extends TestCase
 {

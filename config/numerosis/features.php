@@ -51,9 +51,17 @@ return [
         // Payment confirmed / payment failed / tenant suspended emails.
         BillingNotificationsFeature::class,
 
-        // Password reset (login itself is passwordless). Does not cover
-        // password.confirm — see the class docblock.
+        // Password reset. Fortify's own password.confirm route is
+        // unaffected — see the class docblock.
         PasswordResetFeature::class,
+
+        // Passwordless email OTP login, layered on Fortify rather than
+        // replacing it. Off by default — Fortify's password login is the
+        // default once this is not enabled. Uncommenting this **requires**
+        // spatie/laravel-one-time-passwords: the feature's bootstrap() throws
+        // at boot without it rather than failing at somebody's login attempt.
+        // See the class docblock.
+        // \Nvade\Numerosis\Features\Auth\OneTimePasswordFeature::class,
 
         // Marketing pages (terms/privacy/about/features) are the *product's*,
         // not the framework's, and live in the host app. Core keeps only the
