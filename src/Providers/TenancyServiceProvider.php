@@ -87,11 +87,11 @@ class TenancyServiceProvider extends ServiceProvider
     }
 
     /**
-     * The Livewire update route carries no `{tenant}` parameter — see
-     * {@see \Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath}
-     * for why `InitializeTenancyByPath` itself can't be applied to it. Every
-     * other mode identifies by domain, which needs no route parameter, so
-     * {@see self::identificationMiddleware()} already works unmodified there.
+     * The Livewire update route carries no `{tenant}` parameter, so
+     * `InitializeTenancyByPath` cannot be applied to it. Every other mode
+     * identifies by domain, which needs no route parameter.
+     *
+     * @see \Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath
      */
     public static function livewireUpdateIdentificationMiddleware(): string
     {
@@ -116,8 +116,8 @@ class TenancyServiceProvider extends ServiceProvider
     /**
      * The jobs that build a tenant's database, in order.
      *
-     * Replace this only from a test bootstrap — swapping migrate and seed for
-     * a copy of a prepared template database is worth roughly ten times the
+     * Replace this only from a test bootstrap. Swapping migrate and seed for a
+     * copy of a prepared template database is worth roughly ten times the
      * speed per tenant. Application code should leave it alone.
      *
      * @var list<class-string>
@@ -217,26 +217,17 @@ class TenancyServiceProvider extends ServiceProvider
     }
 
     /**
-     * Caches the domain-to-tenant lookup, which every tenant request would
-     * otherwise pay against the central database before anything else runs.
-     * Invalidated whenever a tenant or domain changes.
-     *
-     * Given a cache manager of its own rather than the container's, which
-     * becomes tenant-scoped inside tenant context — a resolver built there
-     * would write to one namespace while invalidation cleared another, so a
-     * domain change would appear not to take effect. Bound as a singleton so
-     * the resolver and its invalidators share one store.
-     *
-     * `CachedTenantResolver::__construct()` takes `Contracts\Cache\Factory`
-     * on `stancl/tenancy` v3, which never resolves `globalCache` itself, so
-     * this package builds its own `new CacheManager($app)`.
+     * Caches the domain-to-tenant lookup, invalidated whenever a tenant or
+     * domain changes. The container's cache manager becomes tenant-scoped
+     * inside tenant context, so a resolver built with it would write to one
+     * namespace while invalidation cleared another and a domain change would
+     * appear not to take effect; it gets a `new CacheManager($app)` instead.
      */
     protected function registerCachedDomainResolver(): void
     {
-        // Decided from a booting() callback rather than here: the allowlist
-        // check reads `tenancy.tenant_model`, which HostConfig::apply() fills
-        // in from its own booting() callback — registered earlier, so it runs
-        // first. Nothing reads the flag until a request resolves a domain.
+        // Deferred to booting(): the allowlist check reads `tenancy.tenant_model`,
+        // which HostConfig::apply() fills in from an earlier-registered booting()
+        // callback. Nothing reads the flag until a request resolves a domain.
         $this->app->booting(function (): void {
             DomainTenantResolver::$shouldCache = self::shouldCacheResolvedTenants();
         });
@@ -250,23 +241,11 @@ class TenancyServiceProvider extends ServiceProvider
     /**
      * Whether the resolver's tenant cache can be trusted on this host.
      *
-     * `DomainTenantResolver` caches a whole tenant *model*, and Laravel's own
-     * `cache.serializable_classes` decides whether any cache store may
-     * `unserialize()` an object at all. A fresh Laravel app ships `false`
-     * there — hardening against gadget chains — which does not make the read
-     * fail: it silently returns `__PHP_Incomplete_Class` instead of the
-     * object, with no exception and no log line. The first request after a
-     * cache clear then resolves fine (cache miss) and every request after it
-     * dies on `DomainTenantResolver::resolved(): Argument #1 ($tenant) must be
-     * of type Tenant, __PHP_Incomplete_Class given`, which reads like a
-     * tenancy bug and is two config defaults disagreeing.
-     *
-     * So the cache follows what the host's cache config can actually store: an
-     * allowlist has to name the tenant model, `false` disables the cache, and
-     * `numerosis.tenancy.cache_resolved_tenants` overrides the lot in either
-     * direction. `numerosis:install`'s `verifyTenantResolverCache()` reports
-     * when this has turned the cache off, since losing it costs a central
-     * lookup per tenant request.
+     * `DomainTenantResolver` caches a whole tenant model, so the cache follows
+     * what `cache.serializable_classes` can actually store: an allowlist has to
+     * name the tenant model, `false` disables the cache, and
+     * `numerosis.tenancy.cache_resolved_tenants` overrides either way. A store
+     * that cannot unserialize it returns `__PHP_Incomplete_Class` silently.
      */
     public static function shouldCacheResolvedTenants(): bool
     {

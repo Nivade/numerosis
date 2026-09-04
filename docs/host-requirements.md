@@ -201,10 +201,15 @@ what stops the next normalization from shipping undocumented.
   `app.central.*`) — a package key in a framework file can have no default
   at all, since `mergeConfigFrom()` only ever supplies defaults for a
   package's *own* config file. They live under `numerosis.domains.*` now.
-- **`numerosis.models.*`'s three-step resolution** (explicit config, then
-  convention, then the package's own class) is documented in full on
-  `Numerosis::model()`'s own docblock — read that before touching either
-  this table's row or `HostConfig::tenancyModels()`.
+- **`numerosis.models.*` resolves in three steps.** An explicit
+  `numerosis.models.<FQCN>` entry wins; failing that, the same class name
+  under your app namespace (`App\Models\Central\Tenant` for
+  `Nvade\Numerosis\Models\Central\Tenant`) is used when it exists *and*
+  extends the package model, so a conventionally-named subclass needs no
+  config at all and an unrelated class of that name is ignored; failing both,
+  the package's own class. Every model this covers is concrete, so overriding
+  is optional, and results are memoized for the lifetime of the process. Read
+  this before touching either this table's row or `HostConfig::tenancyModels()`.
 - **`#[UseFactory]` is the escape hatch for your own `App\Models\*` classes.**
   `Numerosis::factoryNameFor()` replaces Laravel's *global* factory-name
   resolver (it has to: every factory ships from the package even when the

@@ -1,6 +1,7 @@
 ---
 paths:
   - 'src/Support/Cache/**'
+  - 'src/Providers/TenancyServiceProvider.php'
 ---
 # Tenant Caching
 
@@ -89,6 +90,34 @@ paths:
   `ForgetUserTenants`). The TTL is the backstop for an invalidation path
   nobody thought of; the invalidator is what makes the common case correct.
   `forever` is only defensible for genuinely immutable data.
+
+- **`DomainTenantResolver` gets its own `CacheManager`, and must stay a
+  singleton.** `TenancyServiceProvider::registerCachedDomainResolver()` builds
+  `new CacheManager($app)` rather than resolving the container's, which becomes
+  tenant-scoped inside tenant context: a resolver built there writes to one
+  namespace while invalidation clears another, so a domain change appears not
+  to take effect. It is a `singleton` so the resolver and its invalidators
+  share one store; rebinding it as `bind` reintroduces the same split. The
+  `new` is needed because `CachedTenantResolver::__construct()` type-hints
+  `Contracts\Cache\Factory` on `stancl/tenancy` v3 and never resolves
+  `globalCache` itself.
+
+- **`cache.serializable_classes` silently disables the resolver cache, and the
+  symptom looks like a tenancy bug.** `DomainTenantResolver` caches a whole
+  tenant *model*, and a fresh Laravel app ships `cache.serializable_classes`
+  as `false` (hardening against gadget chains). The read does not fail: it
+  returns `__PHP_Incomplete_Class` with no exception and no log line. The first
+  request after a cache clear resolves fine (a miss) and every request after it
+  dies on `DomainTenantResolver::resolved(): Argument #1 ($tenant) must be of
+  type Tenant, __PHP_Incomplete_Class given`, which is two config defaults
+  disagreeing. `TenancyServiceProvider::shouldCacheResolvedTenants()` therefore
+  follows what the host's cache config can actually store — an allowlist has to
+  name the tenant model, `false` disables the cache, and
+  `numerosis.tenancy.cache_resolved_tenants` overrides either way — and
+  `numerosis:install`'s `verifyTenantResolverCache()` reports when that has
+  turned the cache off, since losing it costs a central lookup per tenant
+  request. `null` is Laravel's "no restriction" value: the stores only pass
+  `allowed_classes` to `unserialize()` when it is non-null.
 
 - **A cache write nobody reads is worse than no cache.** `UpdateUserStatus`
   wrote `chat:status:{id}` for months; the only chat reads are
