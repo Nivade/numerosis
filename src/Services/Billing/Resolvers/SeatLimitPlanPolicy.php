@@ -13,6 +13,11 @@ use Nvade\Numerosis\Models\Central\Tenant;
 /**
  * Refuses a plan whose seat limit the tenant already exceeds. Checked when
  * starting a checkout and when swapping plans.
+ *
+ * `options.max_users` comes from host-editable config, so it is `mixed`. A
+ * value that is not numeric is treated as no limit, the same as an absent one
+ * — a malformed entry must not lock a customer out of a plan they are paying
+ * for.
  */
 class SeatLimitPlanPolicy implements PlanPolicy
 {
@@ -24,10 +29,11 @@ class SeatLimitPlanPolicy implements PlanPolicy
 
         $maxUsers = $plan->metadata()['options']['max_users'] ?? null;
 
-        if ($maxUsers === null) {
+        if (! is_numeric($maxUsers)) {
             return;
         }
 
+        $maxUsers = (int) $maxUsers;
         $currentUsers = $for->users()->count();
 
         if ($currentUsers > $maxUsers) {

@@ -1,3 +1,7 @@
+---
+paths:
+  - '**'
+---
 # Sub-agents — Execution Constraint
 
 Execution constraint, not a codebase fact. Restated in `CLAUDE.md`; this file

@@ -1,3 +1,8 @@
+---
+paths:
+  - 'src/Resolvers/**'
+  - 'config/numerosis/tenancy.php'
+---
 > **Header note, 2026-09-03.** Every reference below to
 > `.ai/rules/filament-tenancy.md`, to a panel, or to Filament's own tenancy is
 > **void**: `packages/filament` and that rule file were deleted in Phase 1 of

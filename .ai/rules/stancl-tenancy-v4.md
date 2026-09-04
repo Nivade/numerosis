@@ -1,8 +1,8 @@
 ---
-topic: stancl-tenancy-v4
-updated: 2026-08-31
+paths:
+  - 'src/**Tenancy**'
+  - 'config/numerosis/tenancy.php'
 ---
-
 # Port map: stancl/tenancy v3 → dev-master ("v4")
 
 > **This package is v3-only. The dual-version layer described below was

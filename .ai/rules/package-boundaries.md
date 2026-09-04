@@ -1,3 +1,9 @@
+---
+paths:
+  - 'src/Support/**'
+  - 'src/Http/Middleware/**'
+  - 'packages/**'
+---
 # Package Boundaries
 
 > **Rewritten 2026-09-03 (Phase 7 of `.claude/plans/archive/humming-nibbling-flame.md`),
@@ -33,15 +39,22 @@ for a host that genuinely wants none of the defaults.
 
 ## Boundary facts that still bite
 
-- **A feature class listed in config but not installed is a hard container
-  failure at boot, and the first symptom is the wrong one.**
-  `NumerosisServiceProvider` does `$this->app->make($feature)->bootstrap()`
-  over `Features::all()` (`src/NumerosisServiceProvider.php:238-245`), while
-  `Features::names()`'s `is_a($class, NamedFeature::class, true)` autoloads
-  and quietly returns `false` for a missing class — so the *name map* silently
-  loses the entry first and the crash arrives from the `make()` loop. Any
-  packaging change that could leave a feature class unavailable needs the
-  config change in the same commit.
+- **A feature class listed in config but not installed disappears silently,
+  from two places, and neither raises anything you will see.**
+  `Features::names()`'s `is_a($class, NamedFeature::class, true)`
+  (`src/Support/Features.php:127`) autoloads and quietly returns `false` for a
+  missing class, so the entry drops out of the *name map* and every
+  `Features::enabled('that-name')` reads `false`. It used to at least crash
+  afterwards: `NumerosisServiceProvider`'s boot loop called
+  `$this->app->make($feature)->bootstrap()` straight over `Features::all()`.
+  Since `a4167a4` that loop is `class_exists()`-guarded and does
+  `Log::warning("… does not exist; skipping")` + `continue`
+  (`src/NumerosisServiceProvider.php:243-251`), which was the right call for
+  the widened `stancl/tenancy` constraint but removed the only loud symptom.
+  **The failure mode is now a feature that is configured, reads as disabled,
+  and logs one warning at boot.** Any packaging change that could leave a
+  feature class unavailable needs the config change in the same commit, and
+  grep the boot log before concluding a feature toggle is broken.
 
 - **Core names no `Filament\` symbol anywhere** (`packages/filament` deleted
   Phase 1) — enforced by `PackageBoundariesTest`'s
@@ -89,7 +102,7 @@ for a host that genuinely wants none of the defaults.
 Every `add*()` writer has a reader next to it:
 `Numerosis::tenantMigrationPaths()`, `::tenantSeeders()`,
 `::centralSeeders()`, `::permissionContexts()`
-(`src/Support/Numerosis.php:385,413,439,474`), and `Features::registered()`.
+(`src/Support/Numerosis.php:512,536,558,590`), and `Features::registered()`.
 
 Route contributions carry an optional `?string $source` too —
 `addCentralRoutes()` / `addTenantRoutes()` (both on `Numerosis` and on

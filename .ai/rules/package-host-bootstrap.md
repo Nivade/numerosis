@@ -1,8 +1,9 @@
 ---
-topic: package-host-bootstrap
-updated: 2026-08-31
+paths:
+  - 'src/NumerosisServiceProvider.php'
+  - 'src/Support/HostConfig.php'
+  - 'src/Support/Domains.php'
 ---
-
 # Package/Host Bootstrap Wiring
 
 Three independent bugs stacked on top of each other and took thin-app fully

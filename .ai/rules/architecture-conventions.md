@@ -1,3 +1,10 @@
+---
+paths:
+  - 'src/Contracts/**'
+  - 'src/Services/**'
+  - 'src/Actions/**'
+  - 'src/Data/**'
+---
 # Architecture Conventions
 
 Recorded by `/infer-conventions`. Describes the house pattern, not a

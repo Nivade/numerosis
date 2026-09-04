@@ -1,34 +1,48 @@
+---
+paths:
+  - 'src/Livewire/Tenant/Registration.php'
+  - 'src/Livewire/Tenant/Registration/**'
+---
 # Tenant Registration Wizard
 
-> **Moved 2026-08-31.** The wizard lives in `packages/onboarding`
-> (`nvade/numerosis-onboarding`) now:
-> `Nvade\Numerosis\Livewire\Tenant\Registration\Registration` is
-> `Nvade\NumerosisOnboarding\Livewire\Registration`, its steps are
-> `NumerosisOnboarding\Livewire\Steps\*` (no `Tenant\Registration` segment),
-> `Support\State\RegistrationState` is `NumerosisOnboarding\Support\RegistrationState`,
-> and `RegistrationWizardFeature` is `NumerosisOnboarding\Features\…`. The
-> views moved with them but keep their `numerosis::` view names, so every
-> claim below still holds — only the namespaces changed. Two things core
-> kept: `Support\Tenancy\SelfServeRegistration::{FEATURE,SESSION_KEY}` (core
-> gates six of its own surfaces on the feature name and must not autoload the
-> satellite's class), and `Contracts\Tenancy\ProvidesTenantIdentity`. The
-> `/get-started` route is contributed through `Numerosis::addCentralRoutes()`,
-> still behind the same feature gate. `RegisterTenant` (the Filament page that
-> hosts the wizard) is in `packages/filament` and reaches it by Livewire
-> *alias* via `numerosis.panels.admin.tenant_registration_component` — neither
-> package names the other's classes.
+> **Header note, 2026-09-04. Read this before anything below.** This file was
+> written twice against layouts that no longer exist, and the second header
+> said the opposite of what is true today. Current facts:
+>
+> - The wizard is **in core**: `Nvade\Numerosis\Livewire\Tenant\Registration`
+>   (`src/Livewire/Tenant/Registration.php`), steps under
+>   `src/Livewire/Tenant/Registration/Steps/*`. It moved out to
+>   `packages/onboarding` on 2026-08-31 and folded straight back in Phase 3
+>   (2026-09-03) — there is no `NumerosisOnboarding` namespace.
+> - There is no `Support\Tenancy\SelfServeRegistration`. Its two constants live
+>   on `Features\Tenancy\RegistrationWizardFeature` now
+>   (`::FEATURE`, `::SESSION_KEY = 'registration.wizard_state'`), read by
+>   `Livewire\Billing\Checkout` and `Actions\Billing\Checkout\CompleteRedirectCheckout`.
+> - `RegistrationState` is `Support\Tenancy\RegistrationState`, not
+>   `Support\State\`.
+> - `/get-started` is a plain core route —
+>   `Route::livewire('/get-started', Registration::class)->name('tenants.create')`
+>   in `routes/web.php:49` — not an `addCentralRoutes()` contribution. The
+>   component alias `tenant-registration` is registered by
+>   `RegistrationWizardFeature` (`src/Features/Tenancy/RegistrationWizardFeature.php:90`),
+>   because Livewire cannot discover a package's classes.
+> - **Every mention of Filament below is history.** `packages/filament`, both
+>   panels, the `RegisterTenant` page and `numerosis.panels.*` were deleted in
+>   Phase 1 (2026-09-03). `Contracts\Tenancy\ProvidesTenantIdentity` survives.
+>
+> The Livewire mechanics below are still correct and still bite — only the
+> hosting surface changed.
 
-- **A Filament page whose entire view is a single `@livewire()` directive
-  can lose that child's own component boundary — Livewire flattens the two
-  together, and the child silently stops being independently addressable.**
-  `resources/views/filament/admin/pages/register-tenant.blade.php` used to
-  be exactly one line, `@livewire('tenant-registration')`. Confirmed via
-  the rendered page's raw `wire:id`/`wire:snapshot` attributes and the
-  actual network payload sent on interaction: only **two** Livewire
-  components ever existed in the DOM — the Filament page itself, and
-  whichever wizard step was current — never a third for the wizard
-  component (`Nvade\Numerosis\Livewire\Tenant\Registration\Registration`,
-  registered under the alias `tenant-registration`) in between. Fixed by
+- **A page whose entire view is a single `@livewire()` directive can lose that
+  child's own component boundary — Livewire flattens the two together, and the
+  child silently stops being independently addressable.** Found on the
+  since-deleted Filament `RegisterTenant` page, whose view
+  (`resources/views/filament/admin/pages/register-tenant.blade.php`) was
+  exactly one line, `@livewire('tenant-registration')`. Confirmed via the
+  rendered page's raw `wire:id`/`wire:snapshot` attributes and the actual
+  network payload sent on interaction: only **two** Livewire components ever
+  existed in the DOM — the host page itself, and whichever wizard step was
+  current — never a third for the wizard component in between. Fixed by
   wrapping the directive in a `<div>`:
 
   ```blade
@@ -37,11 +51,12 @@
   </div>
   ```
 
-  That alone was enough to stop the flattening. **Any future Filament page
-  whose view is nothing but one `@livewire()` call needs the same wrapper**
-  — don't assume a bare single-directive view is safe just because it
-  renders successfully; a 200 response proves nothing about whether the
-  embedded component kept its own identity.
+  That alone was enough to stop the flattening. Core no longer embeds the
+  wizard this way — `/get-started` routes at it directly — but **any view that
+  is nothing but one `@livewire()` call needs the wrapper**, and a host
+  embedding the wizard in its own page is exactly the case that reintroduces
+  this. Don't assume a bare single-directive view is safe because it renders;
+  a 200 proves nothing about whether the embedded component kept its identity.
 
 - **`spatie/laravel-livewire-wizard`'s `StepComponent::nextStep()`/
   `previousStep()`/`showStep()` target their transition event

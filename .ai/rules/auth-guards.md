@@ -1,3 +1,9 @@
+---
+paths:
+  - 'src/**/Auth/**'
+  - 'src/Policies/**'
+  - 'config/numerosis/auth.php'
+---
 # Auth Guards
 
 > **Header note, 2026-09-03 (Phases 1 & 4 of `.claude/plans/archive/humming-nibbling-flame.md`).**

@@ -1,8 +1,7 @@
 ---
-topic: tenant-caching
-updated: 2026-08-29
+paths:
+  - 'src/Support/Cache/**'
 ---
-
 # Tenant Caching
 
 > **This file is written against stancl/tenancy v3's tag-based isolation,

@@ -1,6 +1,7 @@
 ---
-topic: host-integration-quickstart
-updated: 2026-08-12
+paths:
+  - 'config/**'
+  - 'src/Commands/InstallNumerosisCommand.php'
 ---
 # Integrating Numerosis Into an Existing Host
 

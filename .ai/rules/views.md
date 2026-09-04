@@ -2,7 +2,6 @@
 paths:
   - 'resources/views/**'
 ---
-
 # Views
 
 ## Never pass wire:model to x-turnstile from a plain Blade form

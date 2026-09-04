@@ -1,6 +1,8 @@
 ---
-topic: tenant-provisioning
-updated: 2026-08-29
+paths:
+  - 'src/Actions/Tenancy/**'
+  - 'src/Jobs/**'
+  - 'src/Console/Commands/**'
 ---
 # Tenant Provisioning
 
@@ -328,7 +330,7 @@ updated: 2026-08-29
   default. Structural fix, if this bites again: override listener so create
   path filtered to columns central table actually has.
 
-- `pending_tenant_provisions.status` is `Nvade\Numerosis\Enums\TenantProvisionStatus`
+- `pending_tenant_provisions.status` is `Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus`
   (`Reserved`/`Provisioning`/`Failed`), cast on model — not old `STATUS_*`
   string constants, which gone.
 

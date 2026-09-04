@@ -1,8 +1,9 @@
 ---
-topic: auth-login
-updated: 2026-09-04
+paths:
+  - 'src/Actions/Auth/**'
+  - 'src/Livewire/**'
+  - 'resources/views/auth/**'
 ---
-
 > **Rewritten 2026-09-03 (Phase 7 of `.claude/plans/archive/humming-nibbling-flame.md`),
 > for Fortify.** Everything this file used to describe —
 > `Livewire\Auth\PasswordlessLogin`, `packages/auth-ui`, `ThrottlesLoginAttempts`

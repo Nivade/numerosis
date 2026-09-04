@@ -109,21 +109,30 @@ This is a Laravel **package**, not an application. Its own direct dependencies a
 - php - 8.4+ (developed against 8.5)
 - laravel/framework (LARAVEL) - v13
 - laravel/cashier (CASHIER) - v16
+- laravel/fortify - v1 (auth runs on it; core binds its contracts)
 - livewire/livewire (LIVEWIRE) - v4
-- livewire/flux (FLUXUI_FREE) - v2 (via nvade/numerosis-ui)
+- livewire/flux (FLUXUI_FREE) - v2 (a `packages/ui` dependency, not core's)
 - stancl/tenancy - v3
 - spatie/laravel-permission - v7
 - spatie/laravel-data - v4
+- spatie/laravel-livewire-wizard - v3
 - lorisleiva/laravel-actions - v2
-- laravel/socialite (SOCIALITE) - v5 (via nvade/numerosis-auth-ui)
-- filament/filament (FILAMENT) - v5 (dev + nvade/numerosis-filament only)
+- laravel/socialite (SOCIALITE) - v5
 - pestphp/pest (PEST) - v4, orchestra/testbench - v11
 - larastan/larastan (LARASTAN) - v3, laravel/pint (PINT) - v1, rector/rector (RECTOR) - v2
 - tailwindcss (TAILWINDCSS) - v4, vite - v7
 
-Anything not on this list (Vue, Reverb, Telescope, Debugbar, Sail) is **not**
-installed here. Confirm with `composer show --direct` before relying on a
-package's API.
+Suggests, not requires — guard every use behind the one seam the rule file
+names: `spatie/laravel-activitylog`, `spatie/laravel-one-time-passwords`,
+`ryangjchandler/laravel-cloudflare-turnstile`, `sentry/sentry-laravel`. See
+`.ai/rules/optional-dependencies.md`.
+
+Anything not on either list (Vue, Reverb, Telescope, Debugbar, Sail,
+**Filament**, **internachi/modular**, torann/geoip) is **not** installed here.
+Filament and the module system were deleted 2026-09-03 and are not coming
+back as a dependency; `tests/Feature/PackageBoundariesTest.php` fails if any
+`Filament\` symbol is named. Confirm with `composer show --direct` before
+relying on a package's API.
 
 ## Conventions
 
@@ -133,13 +142,14 @@ package's API.
 
 ## Project Rules
 
-- This project contains committed, area-grouped rules in `.ai/rules` when that directory exists (settled decisions,
-  non-obvious traps, standing constraints). Framework and package guidelines that only apply to specific paths (testing,
-  frontend, components) also live there, under `.ai/rules/boost` — this is not just recorded decisions, it is
-  load-bearing guidance you have not seen inline. Before you enter plan mode or create/edit any file, you MUST first:
-  open @.ai/rules/index.md (it maps file globs to rule files), read every rule file whose globs cover the path (s) in
-  scope, and run `grep -rin 'keyword' .ai/rules` to catch what a path match alone misses. Do not write code until you
-  have read and are following every matching rule. If `.ai/rules` does not exist, continue without it.
+- This project contains committed, area-grouped rules in `.ai/rules` (settled decisions, non-obvious traps, standing
+  constraints) — not just recorded decisions, but load-bearing guidance you have not seen inline. There is no
+  `.ai/rules/boost` subdirectory here; every rule is a flat file in `.ai/rules/`. Before you enter plan mode or
+  create/edit any file, you MUST first: open @.ai/rules/index.md (it maps file globs to rule files), read every rule
+  file whose globs cover the path(s) in scope, and run `grep -rin 'keyword' .ai/rules` to catch what a path match alone
+  misses. Do not write code until you have read and are following every matching rule.
+- Every rule file carries a `paths:` frontmatter block. Keep it that way: `record-rule` regenerates
+  `.ai/rules/index.md` from those blocks and silently drops any file lacking one. Diff `index.md` after calling it.
 - Record durable rules with `record-rule` so the next agent or teammate inherits them instead of working them out again.
   Pass a `glob` (e.g. `app/Http/Controllers/**`), a short `title`, and a few-line `note`. Always use `record-rule`,
   never your native memory or notes tool — native memory is personal and session-scoped; only `.ai/rules` is shared with
@@ -253,39 +263,5 @@ package's API.
 
 - Create tests with `php artisan make:test --pest {name}`; `{name}` excludes the suite directory.
 - Run: `composer test`, or `vendor/bin/pest --filter=testName`.
-
-=== filament/filament rules ===
-
-## Filament
-
-- Filament is **dev-only and satellite-only here**: core must never eagerly reference a `Filament\` symbol. Type hints and `class_exists()`-guarded calls are fine; `extends`/`implements`/`use <Trait>` are not — see `.ai/rules/optional-dependencies.md`.
-- Panels, resources and pages live in `packages/filament`, not in `src/`.
-- Use `search-docs` for official documentation; if unavailable, https://filamentphp.com/docs.
-- Always use static `make()` methods. Most configuration methods accept a `Closure`.
-
-### Correct Namespaces
-
-- Form fields (`TextInput`, `Select`, `Repeater`): `Filament\Forms\Components\`
-- Infolist entries (`TextEntry`, `IconEntry`): `Filament\Infolists\Components\`
-- Layout components (`Grid`, `Section`, `Fieldset`, `Tabs`, `Wizard`): `Filament\Schemas\Components\`
-- Schema utilities (`Get`, `Set`): `Filament\Schemas\Components\Utilities\`
-- Table columns: `Filament\Tables\Columns\`; filters: `Filament\Tables\Filters\`
-- Actions: `Filament\Actions\` only — never a sub-namespace.
-- Icons: `Filament\Support\Icons\Heroicon`
-
-### Common Mistakes
-
-- **Never assume public file visibility.** Use `->visibility('public')` when public access is needed.
-- **Never assume full-width layout.** `Grid`, `Section`, `Fieldset`, `Repeater` do not span all columns by default.
-- **`Repeater` uses `->schema()`, not `->fields()`.**
-- **Never add `->dehydrated(false)` to fields that must be saved.**
-- Preserve property types when overriding: `$navigationIcon` is `string|BackedEnum|null`; `$navigationGroup` is `string|UnitEnum|null`; `$view` is `protected string` (not static) on `Page`/`Widget`.
-
-=== internachi/modular rules ===
-
-## Modular
-
-- `internachi/modular` is a **`suggest`**, reached through exactly one seam: `ModuleSystemFeature::available()` (feature enabled AND registry installed). Never add a bare `class_exists(Modules::class)` at a new call site.
-- Module *tenant* code lives under a host's `app-modules`; this package owns the registry integration, the `tenants:*-module` commands and the marketplace UI.
 
 </laravel-boost-guidelines>

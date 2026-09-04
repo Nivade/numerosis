@@ -1,3 +1,10 @@
+---
+paths:
+  - 'src/Models/**'
+  - 'src/Features/**'
+  - 'src/Support/Compat/**'
+  - 'composer.json'
+---
 > **Header note, 2026-09-03 (Phase 6).** `ryangjchandler/laravel-cloudflare-turnstile`
 > moved `require` → `suggest` — `TurnstileFeature::isEnabled()` gained a
 > `class_exists(TurnstileRule::class)` check, the one seam. It needed no

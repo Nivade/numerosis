@@ -1,3 +1,8 @@
+---
+paths:
+  - 'packages/**'
+  - 'composer.json'
+---
 # Splitting Numerosis Into Packages
 
 > **Header note, 2026-09-03 (Phase 3/7 of `.claude/plans/archive/humming-nibbling-flame.md`).**

@@ -1,3 +1,8 @@
+---
+paths:
+  - 'src/**/Billing/**'
+  - 'src/Http/Controllers/Billing/**'
+---
 # Inline Checkout
 
 - **`subscriptions.subscribable_id` holds the owner's *primary* key, never its

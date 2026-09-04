@@ -469,15 +469,9 @@ parameters:
 			path: src/Actions/Billing/Checkout/CreateInlineSubscription.php
 
 		-
-			message: '#^Parameter \#1 \$price of method Laravel\\Cashier\\SubscriptionBuilder\:\:price\(\) expects array\|string, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Actions/Billing/Checkout/CreateInlineSubscription.php
-
-		-
 			message: '#^Access to an undefined property Laravel\\Cashier\\Subscription\:\:\$stripe_id\.$#'
 			identifier: property.notFound
-			count: 2
+			count: 1
 			path: src/Actions/Billing/Checkout/SettleCheckout.php
 
 		-
@@ -497,24 +491,6 @@ parameters:
 			identifier: method.notFound
 			count: 1
 			path: src/Console/Commands/DeleteTenants.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Contracts\\Billing\\Plan\:\:metadata\(\) has invalid return type Nvade\\Numerosis\\Contracts\\Billing\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Contracts/Billing/Plan.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Contracts\\Billing\\Plan\:\:metadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Contracts/Billing/Plan.php
-
-		-
-			message: '#^PHPDoc tag @return with type Nvade\\Numerosis\\Contracts\\Billing\\PlanMetadata is incompatible with native type array\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: src/Contracts/Billing/Plan.php
 
 		-
 			message: '#^Type static\(Nvade\\Numerosis\\Contracts\\Subscribable\) in generic type Illuminate\\Database\\Eloquent\\Relations\\MorphMany\<Nvade\\Numerosis\\Models\\Central\\Subscription, static\(Nvade\\Numerosis\\Contracts\\Subscribable\)\> in PHPDoc tag @return is not subtype of template type TDeclaringModel of Illuminate\\Database\\Eloquent\\Model of class Illuminate\\Database\\Eloquent\\Relations\\MorphMany\.$#'
@@ -637,42 +613,6 @@ parameters:
 			path: src/Models/Central/CentralUser.php
 
 		-
-			message: '#^Access to offset ''monthly_incentive''\|''yearly_incentive'' on an unknown class Nvade\\Numerosis\\Models\\Central\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Models/Central/PaymentPlan.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Models\\Central\\PaymentPlan\:\:metadata\(\) has invalid return type Nvade\\Numerosis\\Models\\Central\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Models/Central/PaymentPlan.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Models\\Central\\PaymentPlan\:\:metadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Models/Central/PaymentPlan.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Models\\Central\\PaymentPlan\:\:metadata\(\) should return array but returns array\|Nvade\\Numerosis\\Models\\Central\\PlanMetadata\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Models/Central/PaymentPlan.php
-
-		-
-			message: '#^PHPDoc tag @property for property Nvade\\Numerosis\\Models\\Central\\PaymentPlan\:\:\$metadata contains unknown class Nvade\\Numerosis\\Models\\Central\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Models/Central/PaymentPlan.php
-
-		-
-			message: '#^PHPDoc tag @return with type Nvade\\Numerosis\\Models\\Central\\PlanMetadata is incompatible with native type array\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: src/Models/Central/PaymentPlan.php
-
-		-
 			message: '#^Return type \(Illuminate\\Database\\Eloquent\\Relations\\MorphMany\<Nvade\\Numerosis\\Models\\Central\\Subscription, \$this\(Nvade\\Numerosis\\Models\\Central\\Tenant\)\>\) of method Nvade\\Numerosis\\Models\\Central\\Tenant\:\:subscriptions\(\) should be compatible with return type \(Illuminate\\Database\\Eloquent\\Relations\\MorphMany\<Nvade\\Numerosis\\Models\\Central\\Subscription, static\(Nvade\\Numerosis\\Contracts\\Subscribable\)\>\) of method Nvade\\Numerosis\\Contracts\\Subscribable\:\:subscriptions\(\)$#'
 			identifier: method.childReturnType
 			count: 1
@@ -683,84 +623,6 @@ parameters:
 			identifier: cast.string
 			count: 1
 			path: src/Rules/DomainIsAvailable.php
-
-		-
-			message: '#^Access to offset ''archived'' on an unknown class Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 2
-			path: src/Services/Billing/Plans/ConfigPaymentPlanRepository.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPaymentPlanRepository\:\:plans\(\) has invalid return type Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPaymentPlanRepository.php
-
-		-
-			message: '#^PHPDoc tag @var for variable \$plans contains unknown class Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPaymentPlanRepository.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata\>\:\:first\(\) expects \(callable\(Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata, int\)\: bool\)\|null, Closure\(array\)\: bool given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPaymentPlanRepository.php
-
-		-
-			message: '#^Parameter \#1 \$data of class Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPlan constructor expects array, Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata given\.$#'
-			identifier: argument.type
-			count: 4
-			path: src/Services/Billing/Plans/ConfigPaymentPlanRepository.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPlan\:\:__construct\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPlan\:\:metadata\(\) has invalid return type Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPlan\:\:metadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
-			message: '#^PHPDoc tag @param for parameter \$data with type Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata is incompatible with native type array\.$#'
-			identifier: parameter.phpDocType
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
-			message: '#^PHPDoc tag @return with type Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata is incompatible with native type array\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
-			message: '#^PHPDoc type for property Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPlan\:\:\$data with type Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata is incompatible with native type array\.$#'
-			identifier: property.phpDocType
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
-			message: '#^Parameter \$data of method Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPlan\:\:__construct\(\) has invalid type Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
-			message: '#^Property Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPlan\:\:\$data has unknown class Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata as its type\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
 
 		-
 			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:expect\(\)\.$#'

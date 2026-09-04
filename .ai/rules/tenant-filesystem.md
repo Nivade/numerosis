@@ -1,4 +1,26 @@
+---
+paths:
+  - 'src/NumerosisServiceProvider.php'
+  - 'src/Support/HostConfig.php'
+---
 # Filesystem Tenancy
+
+> **Header note, 2026-09-04.** Both fixes below are **core's now, applied
+> defensively** — this file used to read as a list of host `config/` edits, and
+> this repo has no `config/filesystems.php`, `config/livewire.php` or
+> `bootstrap/app.php` to edit. `HostConfig::filesystemRootOverride()`
+> (`src/Support/HostConfig.php:255-263`) sets
+> `tenancy.filesystem.root_override.local`, and only when the host left it null
+> or on stancl's stale `%storage_path%/app/` stub. `NumerosisServiceProvider`
+> (`src/NumerosisServiceProvider.php:218-230`) defines the `livewire` disk and
+> points `livewire.temporary_file_upload.disk` at it, both guarded on
+> `=== null` so a host override wins. `InstallNumerosisCommand` verifies the
+> second one and fails the install with the mimetype-rejection explanation if
+> the configured disk appears in `tenancy.filesystem.disks`. The Filament panel
+> named below is history (`packages/filament` deleted Phase 1, 2026-09-03);
+> read it as "a tenant-identified Livewire update route", which is what a host
+> panel or a tenant-routed page still is. `docs/host-requirements.md:107` is
+> the host-facing row for the override.
 
 - **`config('tenancy.filesystem.root_override')` for `local` stale vs Laravel 11 private-by-default local disk.** `config/filesystems.php` set `'local' => ['root' => storage_path('app/private'), ...]`, but stancl's stubbed `root_override` still pointed at `%storage_path%/app/` (one level too high — missing `/private/`) from before that Laravel convention existed. Under tenant context, `FilesystemTenancyBootstrapper` replaces disk's root with this template, so every tenant-context request looked for `local`-disk files one directory above where they actually live. Now `'local' => '%storage_path%/app/private/'`, matching base config.
 

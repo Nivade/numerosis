@@ -1,6 +1,6 @@
 ---
-topic: testing
-updated: 2026-08-29
+paths:
+  - 'tests/**'
 ---
 # Test Suite
 
