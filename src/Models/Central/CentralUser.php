@@ -143,18 +143,6 @@ class CentralUser extends User implements CentralUserModel, HasTenants, Subscrib
     }
 
     /**
-     * dev-master only — see `Tenant\User::getCreationAttributes()`'s
-     * docblock for why the global identifier column has to be listed here
-     * explicitly.
-     *
-     * @return list<string>
-     */
-    public function getCreationAttributes(): array
-    {
-        return [...$this->getSyncedAttributeNames(), $this->getGlobalIdentifierKeyName()];
-    }
-
-    /**
      * @return string|list<string>
      */
     public function guardName(): string|array

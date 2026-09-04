@@ -114,26 +114,4 @@ class User extends BaseUser implements TenantUserModel
             'email_verified_at',
         ];
     }
-
-    /**
-     * dev-master only: the default implementation is `getSyncedAttributeNames()`
-     * verbatim, which does not include the global identifier column. Without
-     * this, `UpdateOrCreateSyncedResource`/`CreateTenantResource` create the
-     * counterpart record via `$model::withoutEvents(fn () => $model::create(...))`
-     * — `withoutEvents` also suppresses the `creating` hook that would
-     * otherwise auto-generate one, so the new row's `global_id` stays null,
-     * the pivot attach that follows writes a null foreign key, and this
-     * package's own `SyncedResourceSaved(In|Changed)*` listeners throw a
-     * `TypeError` reading it straight back off the model. v3 has no
-     * `getCreationAttributes()` concept at all (its old listener copied
-     * every attribute instead — the original `is_bot`-column bug this
-     * package already worked around), so this override is inert there. See
-     * `.ai/rules/stancl-tenancy-v4.md`.
-     *
-     * @return list<string>
-     */
-    public function getCreationAttributes(): array
-    {
-        return [...$this->getSyncedAttributeNames(), $this->getGlobalIdentifierKeyName()];
-    }
 }
