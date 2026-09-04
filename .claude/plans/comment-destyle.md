@@ -172,11 +172,60 @@ next to the measurement that qualifies them.
 
 One `docs:` commit.
 
-## Phase 4 — the batches
+## Phase 4 — length, then cadence
+
+**Length runs first, and it changed what Phase 4 is.** `.ai/rules/general.md`
+gained a hard cap on 2026-09-04 (`66920f1`): 5 prose lines per docblock, 3 per
+inline comment or `//` run, no exemption for `public` members, class docblocks
+or documented seams. 114 docblocks in `src/` are over it, holding 1,147 prose
+lines — more than half the docblock prose in the package — across 76 files,
+plus 10 `//` runs.
+
+Cadence work on a paragraph that the cap will delete is wasted. Batch 1 proved
+it: `registerAuthRateLimiters()`'s docblock was restyled line by line, then cut
+from 23 lines to 5 an hour later, and the restyling of the two deleted
+paragraphs bought nothing. So:
+
+1. **4a, length.** Take the over-budget blocks worst-first. Each fact that
+   outgrows the cap moves to `.ai/rules/` (codebase trap) or `docs/` (anything
+   a host acts on) before it leaves the source. This phase writes
+   documentation, not just deletions, and it is the larger half of the work.
+2. **4b, cadence.** The batch table below, over whatever prose survives 4a.
+   Expect it to be well under the 357 hits outstanding at the time of writing.
+
+Re-run both checks in `general.md` between the two, not once at the start.
+
+### 4a batches — over-budget blocks, worst first
+
+| # | File | Prose lines | Blocks |
+| --- | --- | --- | --- |
+| 1 | `src/Support/Numerosis.php` | 132 | 10 |
+| 2 | `src/Testing/CleansUpTenancyDatabases.php` | 87 | 6 |
+| 3 | `src/Commands/InstallNumerosisCommand.php` | 51 | 5 |
+| 4 | `src/Support/HostConfig.php` | 45 | 5 |
+| 5 | `src/Livewire/Tenant/Registration.php` | 42 | 4 |
+| 6 | `src/NumerosisServiceProvider.php` | 40 | 3 |
+| 7 | `src/Support/Contributions.php` | 39 | 4 |
+| 8 | `src/Support/ModelResolver.php` | 34 | 3 |
+| 9 | `src/Providers/TenancyServiceProvider.php` | 28 | 2 |
+| 10 | `src/Actions/Auth/**` | 59 | 4 |
+| 11 | `src/Http/**` | 56 | 4 |
+| 12 | Remainder: 66 files holding one or two blocks each | ~490 | ~64 |
+
+The three that will hurt, because each holds host-facing content that has to
+land in `docs/` rather than be deleted: `CleansUpTenancyDatabases`'s 39-line
+class docblock (a trait hosts compose into their own suites),
+`Numerosis::routes()`'s 24 lines (the `withAuth: false` documentation), and
+`RedirectIfOneTimePasswordAuthenticatable`'s 24-line class docblock.
+
+One commit per destination, so a reviewer sees the source cut and the new home
+for its facts in the same diff.
+
+### 4b batches — cadence
 
 Sixteen batches, worst first, so an abandoned sweep still leaves the worst
-files fixed. Counts are from the 2026-09-04 baseline and will be lower once
-phases 2 and 3 land; re-run grep `B` and treat the table as ordering, not as a
+files fixed. Counts are from the 2026-09-04 baseline and are already stale
+where 4a has been; re-run grep `B` and treat the table as ordering, not as a
 contract.
 
 | # | Files | Offending lines |
@@ -197,6 +246,9 @@ contract.
 | 14 | `src/Contracts/**`, `src/Concerns/**`, `src/Enums/**`, `src/Data/**` | 45 |
 | 15 | `src/Listeners/**`, `src/Events/**`, `src/Observers/**`, `src/Notifications/**`, `src/Policies/**` | 31 |
 | 16 | Remainder: `src/Support/**`, `src/Livewire/**` and `src/Testing/**` not yet done, plus `src/Console/**`, `src/Exceptions/**`, `src/Rules/**`, `src/Jobs/**` | 36 |
+
+Batches 1 (`44edc63`) and 2 (`679b225`) landed before the cap existed, so both
+files are cadence-clean and still over budget on length; 4a revisits them.
 
 Batches 13 to 16 are mostly files with one or two offending lines — 74 files in
 `src/` have exactly one, most from the invitations, social-login and
