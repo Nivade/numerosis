@@ -263,3 +263,37 @@ the app is not live**. The warning in 2 (`verifyCentralMigrationCollisions()`)
 stays useful for hosts that merge the schema into their own files, or for any
 *future* basename collision — it names the colliding file dynamically, not
 these three specifically.
+
+## Publishing a model stub inside one process does not make it resolvable
+
+`numerosis:install` publishes model stubs and then verifies them in the same
+run, and two separate caches hold the pre-publish answer:
+
+- `Numerosis::model()` memoizes per class for the life of the process, so it
+  keeps returning the package's own class after the stub lands. Cleared with
+  `Numerosis::resetModelCache()`.
+- Composer's `ClassLoader` records a class name as permanently missing the
+  first time it cannot find it (`ClassLoader::$missingClasses`, private, with
+  no public reset). Boot-time resolution in `HostConfig::apply()` already
+  called `class_exists()` on every host model path before the stub existed, so
+  the next `class_exists()` short-circuits to `false` however valid the file
+  on disk now is. Reflection over `getRegisteredLoaders()` is the only way to
+  clear it — `InstallNumerosisCommand::forgetMissingClasses()` does this, and
+  it is safe only because that command is one-shot and never on a request path.
+
+Resetting the first without the second still fails verification.
+
+## `app.css`/`app.js` need a fingerprint before an install can call them stale
+
+`InstallNumerosisCommand`'s published-asset drift check compares hashes, which
+works for `numerosis.js`, `tokens.css` and every other namespaced path: their
+existence at the target path already means they came from this package. It does
+not work for `app.css` and `app.js`. Every Laravel skeleton ships those names,
+so a host that never published `numerosis-assets` still has its own file at the
+same relative path (a fresh skeleton's `app.js` is a bare `//`), and an unequal
+hash there compares two unrelated files on every install.
+
+Those two are gated on a fingerprint that only a published-then-edited copy
+carries — `vendor/nvade/numerosis/resources/css/tokens.css` in `app.css`,
+`virtual:livewire-hot-reload` in `app.js`. Adding a new publishable asset under
+a name a skeleton also uses needs the same treatment.

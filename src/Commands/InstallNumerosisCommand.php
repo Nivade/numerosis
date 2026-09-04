@@ -28,13 +28,10 @@ use ReflectionProperty;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 
 /**
- * Publishes config and model stubs, appends missing `.env` keys, seeds
- * central data, then verifies the result.
- *
- * The verification is the point: nearly every misconfiguration this catches
- * would otherwise surface much later as a 404, a 500, or a mimetype
- * rejection that names neither the config key nor the real cause. Re-run it
- * any time with `--verify-only`.
+ * Publishes config and model stubs, appends missing `.env` keys, seeds central
+ * data, then verifies the result. The verification is the point: what it
+ * catches otherwise surfaces as a 404, a 500 or a mimetype rejection naming
+ * neither the config key nor the cause. Re-runnable with `--verify-only`.
  */
 class InstallNumerosisCommand extends Command
 {
@@ -130,28 +127,18 @@ class InstallNumerosisCommand extends Command
         // Tenant migrations are deliberately not published: they run from
         // the package. Publish `numerosis-tenant-migrations` only to edit one.
 
-        // Numerosis::model() memoizes per class for the life of the process.
-        // A model stub published above didn't exist when boot-time code
-        // (HostConfig::apply()) first resolved these classes, so without
-        // this the cache still answers with the package's own class and
-        // verifyModelOverrides() below fails against stubs this same
-        // command just wrote.
+        // Stubs published above did not exist when HostConfig::apply()
+        // resolved these classes at boot, so this cache still answers with
+        // the package's own class.
         Numerosis::resetModelCache();
 
         $this->forgetMissingClasses();
     }
 
     /**
-     * That same boot-time resolution also called `class_exists()` on each
-     * host model path before the stub existed, and Composer's ClassLoader
-     * caches a class name as permanently missing the first time it can't
-     * find it (`ClassLoader::$missingClasses`, private, no public reset).
-     * `Numerosis::resetModelCache()` alone isn't enough — the *next*
-     * `class_exists()` call still short-circuits to false via that cache,
-     * so verification would see the stub's class as undefined even once
-     * the file is on disk and would be autoloadable in any other process.
-     * Reflection is the only way to clear it; scoped to this one-shot
-     * install command, never on a request path.
+     * Clears Composer's permanently-missing-class cache, which still holds the
+     * stubs `class_exists()` could not find at boot. Reflection is the only
+     * way in, and this command is one-shot and off the request path.
      */
     private function forgetMissingClasses(): void
     {
@@ -473,23 +460,11 @@ class InstallNumerosisCommand extends Command
     }
 
     /**
-     * Warns when one of your own migrations shares a filename with one of the
-     * package's central migrations.
-     *
-     * Laravel's migrator collects the files from every registered path and
-     * keys them by migration *name* — the filename without its extension — so
-     * two files of the same name are not merged and do not error: one is
-     * silently dropped. `MigrateCommand` appends `database/migrations` after
-     * every package-registered path, and the later path wins the key, so it is
-     * always the package's copy that never runs.
-     *
-     * This package's `users`/`cache`/`jobs` migrations used to ship under the
-     * exact filenames a fresh Laravel app's own stock migrations use
-     * (`0001_01_01_00000{0,1,2}_*`), guaranteeing a collision on every
-     * install — renamed to `2019_09_01_00000{0,1,2}_*` so a host no longer
-     * has to delete its own copy before installing. This check now guards
-     * the general case: any future host migration whose basename happens to
-     * match one of ours.
+     * Warns when one of a host's migrations shares a filename with one of the
+     * package's central ones. The migrator keys migrations by filename without
+     * extension and silently drops the duplicate, and `database/migrations` is
+     * appended after every package path, so the host's copy always wins and
+     * the package's never runs.
      */
     private function verifyCentralMigrationCollisions(): void
     {
@@ -529,16 +504,9 @@ class InstallNumerosisCommand extends Command
 
     /**
      * Warns when the domain-to-tenant resolver cache is off because the host's
-     * cache store cannot round-trip an object.
-     *
-     * A fresh Laravel app ships `cache.serializable_classes => false`, which
-     * passes `['allowed_classes' => false]` to every `unserialize()` a cache
-     * store makes. That does not reject the read — it turns any cached object
-     * into `__PHP_Incomplete_Class`, with no exception and no log line — and
-     * the resolver caches a whole tenant model. So the package leaves its
-     * cache off in that case rather than resolving the first request and
-     * failing every one after it (see `TenancyServiceProvider::
-     * shouldCacheResolvedTenants()`); this reports the cost.
+     * `cache.serializable_classes` cannot round-trip the tenant model the
+     * resolver caches. `TenancyServiceProvider::shouldCacheResolvedTenants()`
+     * makes that call; this reports what it costs.
      */
     private function verifyTenantResolverCache(): void
     {
@@ -586,19 +554,9 @@ class InstallNumerosisCommand extends Command
                     continue;
                 }
 
-                // `app.css`/`app.js` are names every Laravel skeleton
-                // already ships under, so an unequal hash alone doesn't
-                // mean this file was ever ours — a host that never
-                // published `numerosis-assets` still has its own
-                // resources/js/app.js sitting at this same relative path
-                // (a fresh skeleton's is a bare `//`), and comparing it
-                // against the package's copy is comparing two unrelated
-                // files, on every single install. Every other path this
-                // loop can reach (`numerosis.js`, `tokens.css`, …) is
-                // namespaced enough that its mere existence already means
-                // it came from us, so only these two need a second check:
-                // does the target still carry something that only a
-                // genuinely published-then-edited copy would.
+                // Every Laravel skeleton ships an `app.css`/`app.js`, so an
+                // unequal hash at those two paths does not mean the file was
+                // ever ours. Require a marker only a published copy carries.
                 $fingerprints = [
                     'app.css' => 'vendor/nvade/numerosis/resources/css/tokens.css',
                     'app.js' => 'virtual:livewire-hot-reload',
@@ -622,17 +580,10 @@ class InstallNumerosisCommand extends Command
     }
 
     /**
-     * Confirms both prebuilt bundles reached the public path, once one of
-     * them has.
-     *
-     * Gated on `public/vendor/numerosis` existing at all — the signal that
-     * `vendor:publish --tag=numerosis-public-assets` has run at least once,
-     * the same shape the Filament-era check used against
-     * `public/css/filament`. Never publishing is a supported choice (a host
-     * building `resources/js/numerosis.js` through its own Vite does not need
-     * these), so the un-run case is a manual step below, not a failure here;
-     * a *half*-landed publish is the silent one worth catching, since
-     * `Assets::tags()` links both URLs whether or not the files exist.
+     * Confirms both prebuilt bundles reached the public path, once one of them
+     * has. Never publishing them is supported and reported as a manual step
+     * below; a half-landed publish is the silent case, since `Assets::tags()`
+     * links both URLs whether or not the files exist.
      */
     private function verifyPublicAssets(): void
     {
