@@ -6,14 +6,6 @@ namespace Nvade\Numerosis\Listeners\Tenancy;
 
 use Illuminate\Support\Facades\Log;
 
-/**
- * The native parameter type stays `object`, narrowed only via `@param`:
- * dev-master renames this event to
- * `Stancl\Tenancy\ResourceSyncing\Events\SyncedResourceSavedInForeignDatabase`
- * and the shape it reads is identical on both, so not naming the class
- * keeps this listener working across the port
- * (`.ai/rules/stancl-tenancy-v4.md`).
- */
 class LogSyncedResourceChangedInForeignDatabase
 {
     /** @param \Stancl\Tenancy\Events\SyncedResourceChangedInForeignDatabase $event */

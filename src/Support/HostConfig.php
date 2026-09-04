@@ -88,15 +88,7 @@ final class HostConfig
      */
     private static function tenancyModels(): void
     {
-        /**
-         * key => [stock value, package default]. **Both keys move on
-         * dev-master** — `tenancy.models.{tenant,domain}`, two segments
-         * under a sub-array stancl's own `mergeConfigFrom()` populates, so
-         * a dotted `Config::set()` would then hit the `Arr::set()`
-         * auto-vivification hazard `.ai/rules/package-host-bootstrap.md`
-         * documents for `tenancy.database`. See
-         * `.ai/rules/stancl-tenancy-v4.md`'s config-key map.
-         */
+        // key => [stock value, package default]
         $stancl = [
             'tenancy.tenant_model' => [StanclTenant::class, Numerosis::model(Tenant::class)],
             'tenancy.domain_model' => [StanclDomain::class, Numerosis::model(Domain::class)],

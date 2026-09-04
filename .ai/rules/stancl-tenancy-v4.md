@@ -5,6 +5,18 @@ paths:
 ---
 # Port map: stancl/tenancy v3 → dev-master ("v4")
 
+> **Header note, 2026-09-04. The v4 port is off the table permanently, not
+> deferred until a tag lands.** Everything below is now a historical record
+> of the v3/dev-master differences measured 2026-08-29, not a live migration
+> plan to execute later. In particular: the "every eager symbol carries an
+> inline `.ai/rules/stancl-tenancy-v4.md` pointer at its site in `src/`"
+> claim two paragraphs down is **no longer true** — those pointers were
+> removed from source as part of the comment-de-styling sweep, since nothing
+> will ever grep for them to drive a port that isn't happening. Do not add a
+> new one. If v4 support is ever revisited, treat this file as a starting
+> reference to re-verify against a fresh clone, not as ground truth to trust
+> verbatim — stancl's own tenancy has almost certainly moved since.
+
 > **This package is v3-only. The dual-version layer described below was
 > built, measured, and deliberately deleted on 2026-08-31** (section A of
 > `.claude/plans/archive/numerosis-consolidation.md`). What existed: 8

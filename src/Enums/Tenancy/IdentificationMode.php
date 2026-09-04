@@ -9,10 +9,7 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * How a request is matched to a tenant. See config('numerosis.tenancy.identification.mode')'s
- * docblock in config/numerosis.php for what each mode means; see
- * .ai/rules/identification-modes.md for the mechanics each one relies
- * on and the one thing (Path mode's route-parameter conflict with the
- * own tenant resolution) that isn't provable by this repo's test harness.
+ * docblock in config/numerosis.php for what each mode means.
  */
 enum IdentificationMode: string
 {
@@ -32,8 +29,7 @@ enum IdentificationMode: string
      * invocation (not under Testbench, which boots the whole app first).
      * `Config::string()` would otherwise throw `A facade root has not been
      * set`, fatally, before the exception handler even exists to catch it —
-     * same class of bug as `Domains::appUrl()`'s
-     * (`.ai/rules/package-host-bootstrap.md`), reached through a
+     * same class of bug as `Domains::appUrl()`'s, reached through a
      * different door. Falling back to the default here is safe because
      * `NumerosisServiceProvider::registerMiddleware()` unconditionally
      * re-registers the real value later, from `packageBooted()`, once

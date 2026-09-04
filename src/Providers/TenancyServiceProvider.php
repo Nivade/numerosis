@@ -104,8 +104,7 @@ class TenancyServiceProvider extends ServiceProvider
      * The central-domain-block gate used inside the `tenant` middleware
      * group. Under `IdentificationMode::Path`, tenant routes deliberately
      * live on the central domain (path-prefixed), so the ordinary block
-     * would 404 every tenant request — see
-     * .ai/rules/identification-modes.md.
+     * would 404 every tenant request.
      */
     public static function tenancyRouteMiddleware(): string
     {
@@ -228,11 +227,9 @@ class TenancyServiceProvider extends ServiceProvider
      * domain change would appear not to take effect. Bound as a singleton so
      * the resolver and its invalidators share one store.
      *
-     * `CachedTenantResolver::__construct()` takes `Contracts\Cache\Factory`
-     * on v3, which is why this package builds its own `new CacheManager($app)`
-     * — v3 never resolves `globalCache` itself. **Both the constructor
-     * signature and `$shouldCache` change on dev-master**; see
-     * `.ai/rules/stancl-tenancy-v4.md` when porting.
+     * `CachedTenantResolver::__construct()` takes `Contracts\Cache\Factory`,
+     * which is why this package builds its own `new CacheManager($app)`
+     * rather than resolving `globalCache` itself.
      */
     protected function registerCachedDomainResolver(): void
     {

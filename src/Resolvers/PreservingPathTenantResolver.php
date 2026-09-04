@@ -18,22 +18,14 @@ use Stancl\Tenancy\Resolvers\PathTenantResolver;
  * current URL, any middleware ordered after tenancy identification — sees
  * `$request->route()->hasParameter('tenant')` as false and silently takes
  * its no-tenant branch rather than 404ing. Nothing in this package's
- * path-mode support relies on stancl's removal of it. See
- * `.ai/rules/identification-modes.md`.
+ * path-mode support relies on stancl's removal of it.
  */
 class PreservingPathTenantResolver extends PathTenantResolver
 {
     /**
-     * v3 calls `$route->forgetParameter()` inside `resolveWithoutCache()` as
-     * well as in `resolved()`, so the body has to be replaced rather than
-     * delegated to.
-     *
-     * **dev-master only forgets the parameter in `resolved()`** — which this
-     * class already overrides — so on that version this method should
-     * delegate to the parent instead, keeping its binding-field resolution
-     * and `allowedExtraModelColumns()` check. It also replaces the static
-     * `$tenantParameterName` property read below with a static method; see
-     * `.ai/rules/stancl-tenancy-v4.md`.
+     * `stancl/tenancy` calls `$route->forgetParameter()` inside
+     * `resolveWithoutCache()` as well as in `resolved()`, so the body has to
+     * be replaced rather than delegated to.
      */
     #[Override]
     public function resolveWithoutCache(mixed ...$args): Tenant
