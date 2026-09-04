@@ -75,8 +75,8 @@ class Checkout extends Component
 
     /**
      * ISO country code from {@see ResolveCheckoutRegion}, null on an
-     * unresolved lookup (private/local IP, database miss). Only pre-fills
-     * the Address Element's default and picks $paymentMethodOrder — never
+     * unresolved lookup (private/local IP, database miss). Only pre-fills the
+     * Address Element's default and picks $paymentMethodOrder. It never
      * restricts what Stripe is willing to show.
      */
     #[Locked]
@@ -85,7 +85,7 @@ class Checkout extends Component
     /**
      * Display order for the Payment Element, in Stripe's `paymentMethodOrder`
      * shape. A method absent here still appears if Stripe considers it
-     * eligible — this only reorders, per
+     * eligible, since this only reorders, per
      * config('numerosis.billing.payment_methods').
      *
      * @var list<string>
@@ -161,7 +161,7 @@ class Checkout extends Component
         } catch (CheckoutAlreadyCompleted) {
             // Replayed subscribe() for a SetupIntent already turned into a
             // subscription: a double-click, or a retry the browser never saw
-            // answered. Settle from what exists rather than refusing.
+            // answered. Settle from what exists, refusing nothing.
             $this->settleFromPendingSubscription();
 
             return;
@@ -171,9 +171,9 @@ class Checkout extends Component
             return;
         }
 
-        // ResolveSetupIntent proves the row belongs to the caller, not that it
-        // is the row this component mounted for. Without this, one user holding
-        // two reservations gets two tenants for one payment.
+        // ResolveSetupIntent proves only that the row belongs to the caller,
+        // leaving open whether it is the row this component mounted for.
+        // Without this, two reservations become two tenants for one payment.
         if ($resolved->pending->domain !== $this->pendingDomain) {
             $this->paymentError = __('numerosis::billing.checkout.session_expired');
 
@@ -271,8 +271,9 @@ class Checkout extends Component
     /**
      * The curated payment method display order for a resolved country, or
      * the config default when the country is null (unresolved) or has no
-     * curated entry of its own. Ordering only, never eligibility — see
-     * ResolveCheckoutRegion.
+     * curated entry of its own. Ordering only, never eligibility.
+     *
+     * @see ResolveCheckoutRegion
      *
      * @return list<string>
      */
@@ -290,8 +291,8 @@ class Checkout extends Component
 
     /**
      * Settles the subscription this checkout created, found by the id stored
-     * on its own pending row — never the billable's newest subscription,
-     * which may belong to an entirely different workspace.
+     * on its own pending row. Never the billable's newest subscription, which
+     * may belong to an entirely different workspace.
      */
     private function settleFromPendingSubscription(): void
     {

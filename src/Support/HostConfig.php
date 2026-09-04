@@ -158,8 +158,8 @@ final class HostConfig
     }
 
     /**
-     * Adds the package's tenant migrations — plus any registered via
-     * {@see Numerosis::addTenantMigrationPath()} — to whatever paths are
+     * Adds the package's tenant migrations, plus any registered via
+     * {@see Numerosis::addTenantMigrationPath()}, to whatever paths are
      * already configured, keeping yours. `--realpath` is forced on, since
      * the added paths are absolute.
      */
@@ -216,7 +216,7 @@ final class HostConfig
      * Keeps the `livewire` disk out of the tenant-suffixed list. Livewire's
      * temporary-upload route is never tenant-identified, so suffixing that
      * disk makes validation look for the file in a directory the upload was
-     * never written to — surfacing as a bogus "invalid file type" error.
+     * never written to, surfacing as a bogus "invalid file type" error.
      */
     private static function livewireDiskExclusion(): void
     {
@@ -244,7 +244,7 @@ final class HostConfig
     /**
      * Names the central connection `central`, which is what this package
      * assumes throughout. Skipped once it names anything other than
-     * `database.default` — stancl's stock value resolves to `DB_CONNECTION`,
+     * `database.default`: stancl's stock value resolves to `DB_CONNECTION`,
      * so matching the default means it was never chosen deliberately.
      */
     private static function tenancyCentralConnection(): void
@@ -403,10 +403,10 @@ final class HostConfig
 
     /**
      * Defines the default password broker against the `users` provider.
-     * `Password::sendResetLink()` resolves its model through the broker
-     * rather than through `auth.providers`, and with no broker entry falls
-     * back to a model that cannot be notified — reported as "Call to
-     * undefined method ...User::notify()" rather than as missing config.
+     * `Password::sendResetLink()` resolves its model through the broker and
+     * never through `auth.providers`, so with no broker entry it falls back to
+     * a model that cannot be notified. That surfaces as "Call to undefined
+     * method ...User::notify()", giving no hint that config is missing.
      */
     private static function authPasswordBroker(): void
     {
@@ -451,7 +451,7 @@ final class HostConfig
     /**
      * Names the activity-log table. Current spatie/laravel-activitylog
      * ships no default for it, and the activity-log migrations read the key
-     * directly — unset, they fail with `Incorrect table name ''`.
+     * directly: unset, they fail with `Incorrect table name ''`.
      */
     private static function activityLogTable(): void
     {

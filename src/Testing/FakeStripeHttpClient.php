@@ -38,7 +38,7 @@ class FakeStripeHttpClient implements ClientInterface
     {
         $path = (string) parse_url($absUrl, PHP_URL_PATH);
         $segments = array_values(array_filter(explode('/', $path)));
-        // ['v1', 'customers', 'cus_1', 'tax_ids'] etc — drop the leading 'v1'.
+        // ['v1', 'customers', 'cus_1', 'tax_ids'] etc. Drop the leading 'v1'.
         array_shift($segments);
 
         try {
@@ -151,9 +151,8 @@ class FakeStripeHttpClient implements ClientInterface
     /**
      * A confirmed SetupIntent (`confirm: true` plus a test token like
      * `pm_card_visa`) implies a PaymentMethod that was never created via a
-     * separate call in the test — real Stripe test tokens work the same
-     * way. Creates it under the literal id given, rather than a generated
-     * one, if it doesn't already exist.
+     * separate call in the test, exactly as real Stripe test tokens do.
+     * Creates it under the literal id given when it does not already exist.
      *
      * @return array<string, mixed>
      */
@@ -412,8 +411,8 @@ class FakeStripeHttpClient implements ClientInterface
 
 /**
  * Thrown by a handler to make {@see FakeStripeHttpClient::request()} return a
- * Stripe-shaped error response (`{"error": {...}}`, non-2xx status) instead of
- * a success body — the shape `Stripe\ApiRequestor::handleErrorResponse()`
+ * Stripe-shaped error response (`{"error": {...}}`, non-2xx status) in place
+ * of a success body: the shape `Stripe\ApiRequestor::handleErrorResponse()`
  * expects in order to raise the real `ApiErrorException` subclasses
  * application code catches.
  */

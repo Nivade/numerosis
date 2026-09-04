@@ -153,8 +153,8 @@ class InstallNumerosisCommand extends Command
      * re-run: every seeder keys on natural keys.
      *
      * Skip with `--no-seed`, but note that an empty `permissions` table is
-     * not merely missing data — Spatie throws rather than denying, so the
-     * first admin-panel request 500s.
+     * worse than missing data: Spatie throws where it might have denied, so
+     * the first admin-panel request 500s.
      */
     private function seedCentralData(): void
     {
@@ -425,8 +425,8 @@ class InstallNumerosisCommand extends Command
 
     /**
      * Validates any tenant-migration path of your own. Paths are not checked
-     * for existence — an empty `database/migrations/tenant` is normal when
-     * you have no tenant migrations of your own yet.
+     * for existence, since an empty `database/migrations/tenant` is normal
+     * until you have tenant migrations of your own.
      */
     private function verifyTenantMigrationPath(): void
     {
@@ -478,7 +478,7 @@ class InstallNumerosisCommand extends Command
 
         // Not allFiles(): the migrator globs each registered path without
         // recursing, so `database/migrations/tenant` (published tenant
-        // migrations, a deliberate copy) is a different path, not a collision.
+        // migrations, a deliberate copy) is a different path with no clash.
         foreach (File::files(dirname(__DIR__, 2).'/database/migrations/central') as $file) {
             $packageMigrations[$file->getFilenameWithoutExtension()] = true;
         }
@@ -641,8 +641,9 @@ class InstallNumerosisCommand extends Command
     }
 
     /**
-     * The one check about data rather than configuration. Skipped when the
-     * tables don't exist yet — `php artisan migrate` reports that better.
+     * The one check about data, all the others being about configuration.
+     * Skipped when the tables don't exist yet, which `php artisan migrate`
+     * reports better.
      */
     private function verifyCentralDataSeeded(): void
     {

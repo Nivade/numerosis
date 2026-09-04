@@ -16,8 +16,8 @@ use Nvade\Numerosis\Livewire\Tenant\Registration\Steps as Wizard;
  * The self-serve tenant registration wizard and its route.
  *
  * Remove it from `numerosis.features` and there is no self-serve signup.
- * Provisioning itself is unaffected — the wizard is only one caller of it,
- * so creating tenants from an admin screen or a job keeps working.
+ * Provisioning itself is unaffected, since the wizard is only one caller of
+ * it, so creating tenants from an admin screen or a job keeps working.
  */
 class RegistrationWizardFeature implements NamedFeature
 {
@@ -32,7 +32,7 @@ class RegistrationWizardFeature implements NamedFeature
 
     /**
      * Alias each shipped step registers under, and the view file that alias
-     * resolves to. Written out by hand, not derived: `Steps\Payment` is
+     * resolves to. Written out by hand, never derived: `Steps\Payment` is
      * absent because its natural alias collides with Cashier's published
      * `payment.blade.php`, so it resolves by FQCN. A host-supplied step is not
      * auto-registered here; register your own component for it.
@@ -65,8 +65,8 @@ class RegistrationWizardFeature implements NamedFeature
         }
 
         // Livewire::addComponent() takes an absolute path, so it is built
-        // from `numerosis.views.path` rather than assumed as a relative
-        // constant — see NumerosisServiceProvider::packageBooted().
+        // from `numerosis.views.path`, which
+        // NumerosisServiceProvider::packageBooted() sets.
         $viewsPath = Config::string('numerosis.views.path');
 
         /** @var list<class-string> $steps */
@@ -96,8 +96,8 @@ class RegistrationWizardFeature implements NamedFeature
     }
 
     /**
-     * A step list with no identity source still renders a working wizard —
-     * the missing identifier/display name only surfaces once
+     * A step list with no identity source still renders a working wizard, so
+     * the missing identifier or display name only surfaces once
      * `ProvisionTenant`'s queued chain tries to build the tenant, far from
      * whoever misconfigured this key. Fail here instead.
      *

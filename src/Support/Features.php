@@ -52,10 +52,10 @@ final class Features
     }
 
     /**
-     * Register a feature outside `config('numerosis.features')` — the seam
-     * a second package uses to contribute its own {@see Feature} without the
-     * host having to edit that array. Duplicate registration (or a class
-     * already listed in config) is a no-op, not a second `bootstrap()` call.
+     * Register a feature outside `config('numerosis.features')`: the seam a
+     * second package uses to contribute its own {@see Feature} without the host
+     * having to edit that array. Duplicate registration, or a class already
+     * listed in config, is a no-op and never a second `bootstrap()` call.
      *
      * @param  class-string<Feature>  $feature
      */
@@ -71,7 +71,7 @@ final class Features
      * The contributions made through {@see self::register()}, without the
      * host's own `numerosis.features` entries. Exists so a caller can tell
      * "the host asked for this" from "an installed satellite package brought
-     * it along" — {@see self::all()} deliberately erases that distinction.
+     * it along", a distinction {@see self::all()} deliberately erases.
      *
      * @return list<class-string<Feature>>
      */
@@ -81,9 +81,8 @@ final class Features
     }
 
     /**
-     * Clears {@see self::register()} contributions. For tests only — a real
-     * host/package registers once and it lives for the application's
-     * lifetime.
+     * Clears {@see self::register()} contributions. For tests only: a real
+     * host or package registers once, for the application's lifetime.
      */
     public static function resetRegisteredForTesting(): void
     {
@@ -105,8 +104,8 @@ final class Features
     }
 
     /**
-     * Built once per resolved feature list rather than scanned per call —
-     * enabled() is called from inside Blade loops.
+     * Built once per resolved feature list, since enabled() is called from
+     * inside Blade loops.
      *
      * @return array<string, class-string<Feature>>
      */

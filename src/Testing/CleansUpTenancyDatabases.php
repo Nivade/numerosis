@@ -82,7 +82,7 @@ trait CleansUpTenancyDatabases
 
     /**
      * Tenant databases this suite created outside the `tenants` table's own
-     * knowledge — a test that fakes the queue and provisions by hand, or a
+     * knowledge: a test that fakes the queue and provisions by hand, or a
      * harness that swaps stancl's `TenantCreated` pipeline for a faster
      * stand-in. Names returned here are dropped in addition to the ones
      * derived from surviving tenant rows.
@@ -95,8 +95,8 @@ trait CleansUpTenancyDatabases
     }
 
     /**
-     * Tenant databases teardown must never drop — a template database a
-     * clone-based speedup builds once per process, typically.
+     * Tenant databases teardown must never drop, typically a template database
+     * a clone-based speedup builds once per process.
      *
      * @return list<string>
      */
@@ -141,9 +141,9 @@ trait CleansUpTenancyDatabases
     /**
      * A test that ends inside tenant context leaves the default connection
      * pointed at the tenant database, the cache prefixed, and the auth guard
-     * switched. Reverting first is what lets the rest of teardown — and
-     * `RefreshDatabase`'s rollback, whichever side of this it runs on — reach
-     * the central database rather than one that is about to be dropped.
+     * switched. Reverting first is what lets the rest of teardown, plus
+     * `RefreshDatabase`'s rollback on whichever side of this it runs, reach the
+     * central database and not one about to be dropped.
      */
     private function endTenancy(): void
     {
@@ -190,9 +190,9 @@ trait CleansUpTenancyDatabases
     }
 
     /**
-     * Notes every table written on the `central` connection. The listener sits
-     * on the event dispatcher rather than on the connection, so it survives
-     * the `DB::purge()` calls tenancy makes mid-test.
+     * Notes every table written on the `central` connection. A
+     * connection-level listener would be lost to the `DB::purge()` calls
+     * tenancy makes mid-test, so this one sits on the event dispatcher.
      */
     private function recordCentralWrites(): void
     {
@@ -212,10 +212,9 @@ trait CleansUpTenancyDatabases
     }
 
     /**
-     * Transacting `central` instead of deleting is not an option: stancl's
-     * database manager issues its `CREATE DATABASE` on that connection, and
-     * MySQL implicitly commits on DDL, so any test creating a tenant would
-     * lose the transaction mid-test anyway.
+     * Transacting `central` is not an option: stancl's database manager issues
+     * its `CREATE DATABASE` on that connection, and MySQL implicitly commits on
+     * DDL, so any test creating a tenant loses the transaction mid-test.
      */
     private function deleteCentralWrites(): void
     {

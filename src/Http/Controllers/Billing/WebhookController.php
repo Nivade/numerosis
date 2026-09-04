@@ -94,9 +94,9 @@ class WebhookController extends CashierWebhookController
             /** @var int|null $userId */
             $userId = $centralUserClass::where('global_id', $registration->global_id)->value('id');
 
-            // Queued, not inline: Stripe retries a webhook that answers
-            // slowly, and building a tenant database exceeds that budget.
-            // Unique per domain, so the redirect path cannot double-dispatch.
+            // Queued: Stripe retries a webhook that answers slowly, and
+            // building a tenant database exceeds that budget. Unique per
+            // domain, so the redirect path cannot double-dispatch.
             $this->provisioning->queue(new TenantProvisionData(
                 registration: $registration,
                 stripeCustomerId: $stripeSubscription['customer'] ?? null,
@@ -128,8 +128,8 @@ class WebhookController extends CashierWebhookController
         $customerId = $object['customer'] ?? null;
         $setupAttemptId = $object['sepa_debit']['generated_from']['setup_attempt'] ?? null;
 
-        // Not a PaymentMethod generated from one of our SetupIntents (e.g.
-        // a plain card attach) — nothing for this handler to do.
+        // Not a PaymentMethod generated from one of our SetupIntents (a plain
+        // card attach, say), so there is nothing for this handler to do.
         if (! is_string($paymentMethodId) || ! is_string($customerId) || ! is_string($setupAttemptId)) {
             return $this->successMethod();
         }
@@ -190,8 +190,8 @@ class WebhookController extends CashierWebhookController
             }
 
             // None of this customer's open checkouts resolve to this
-            // PaymentMethod — either it belongs to one that already
-            // completed, or Stripe hasn't finished linking it yet.
+            // PaymentMethod. It belongs to one that already completed, or
+            // Stripe hasn't finished linking it yet.
             return $this->successMethod();
         };
 
@@ -268,7 +268,7 @@ class WebhookController extends CashierWebhookController
         $newPriceId = count($items) === 1 ? ($items[0]['price']['id'] ?? null) : null;
 
         // A null previous price means this row was created by this very
-        // webhook, which is a subscription appearing, not a plan changing.
+        // webhook: a subscription appearing, where no plan has changed.
         if ($tenant !== null && is_string($newPriceId) && is_string($previousPriceId) && $newPriceId !== $previousPriceId) {
             event(new SubscriptionPlanChanged(
                 $tenant,
@@ -303,9 +303,9 @@ class WebhookController extends CashierWebhookController
     /**
      * Compared within whichever billing cycle the new price belongs to, so a
      * monthly figure is never weighed against a yearly one. Falls back to
-     * `Upgrade` when either price resolves to no configured plan — a
-     * directionless plan-change event is less useful than an optimistic one,
-     * and every consumer of this is copy or a heuristic.
+     * `Upgrade` when either price resolves to no configured plan, since every
+     * consumer of this is copy or a heuristic and a directionless event serves
+     * them worse than an optimistic one.
      */
     private function planChangeDirection(string $fromPriceId, string $toPriceId): PlanChangeDirection
     {
@@ -327,7 +327,7 @@ class WebhookController extends CashierWebhookController
     /**
      * The dunning notice, sent while still in Stripe's retry/grace period.
      * Suspension itself happens in handleCustomerSubscriptionUpdated once
-     * Stripe gives up, not here.
+     * Stripe gives up.
      *
      * @param  array{data: array{object: array{id?: string, customer?: string}}}  $payload
      */
@@ -345,9 +345,9 @@ class WebhookController extends CashierWebhookController
     /**
      * Suspends only once no subscription still grants access.
      *
-     * The question is whether anything valid remains, not whether something
-     * just ended — a tenant holding several subscriptions must not be locked
-     * out of a workspace they are still paying for.
+     * The question is whether anything valid remains, never whether something
+     * just ended: a tenant holding several subscriptions must not be locked out
+     * of a workspace they are still paying for.
      */
     private function suspendBillableFor(?string $customerId): void
     {
