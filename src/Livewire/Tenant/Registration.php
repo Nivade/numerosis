@@ -167,18 +167,13 @@ class Registration extends WizardComponent
 
     public function getFormalCurrentStepName(): string
     {
-        // Try to resolve the current step's 1-based index from the wizard's step names
-        $index = $this->stepNames()->search(fn (string $step) => $step === $this->currentStepName);
+        $index = $this->currentStepIndex();
 
         if ($index !== false) {
-            // Convert zero-based index to 1-based step number and delegate
-            return $this->getFormalStepNameFor(((int) $index) + 1);
+            return $this->getFormalStepNameFor($index + 1);
         }
 
-        // Fallback: format the current step name directly if not found in the steps list
-        $name = str_replace('-', ' ', (string) $this->currentStepName);
-
-        return ucwords($name);
+        return $this->humanize((string) $this->currentStepName);
     }
 
     public function getFormalStepNameFor(int $stepNumber): string
@@ -197,15 +192,25 @@ class Registration extends WizardComponent
         // Derive the step slug from the class name, mirroring Livewire Wizard's naming
         $slug = Str::kebab(class_basename($stepClass));
 
-        $name = str_replace('-', ' ', $slug);
-
-        return ucwords($name);
+        return $this->humanize($slug);
     }
 
     public function getCurrentStepNumber(): int
     {
+        $index = $this->currentStepIndex();
+
+        return $index !== false ? $index + 1 : 1;
+    }
+
+    private function currentStepIndex(): int|false
+    {
         $index = $this->stepNames()->search(fn (string $step) => $step === $this->currentStepName);
 
-        return $index !== false ? ((int) $index) + 1 : 1;
+        return is_int($index) ? $index : false;
+    }
+
+    private function humanize(string $slug): string
+    {
+        return ucwords(str_replace('-', ' ', $slug));
     }
 }
