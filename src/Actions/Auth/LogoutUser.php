@@ -14,13 +14,11 @@ use Illuminate\Support\Facades\Session;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * Logs a user out of both guards directly — used by callers outside HTTP's
- * `POST /logout` (`Livewire\Actions\Logout`, tests). The HTTP route is now
- * Fortify's own `AuthenticatedSessionController::destroy()`, which logs out
- * only `config('fortify.guard')`; `Listeners\Auth\EndOtherGuardSession`
- * covers the other guard for that path instead of this class, since
- * `destroy()` also owns session invalidation and calling `handle()` there
- * too would invalidate it twice.
+ * Logs a user out of both guards directly, for callers outside HTTP's
+ * `POST /logout` (`Livewire\Actions\Logout`, tests). That route runs Fortify's
+ * `AuthenticatedSessionController::destroy()` and
+ * `Listeners\Auth\EndOtherGuardSession`, which between them already invalidate
+ * the session, so nothing there may call this too.
  */
 class LogoutUser
 {
@@ -35,21 +33,11 @@ class LogoutUser
 
     /**
      * Ends the tenant guard's session without ever resolving a user outside
-     * tenant context.
+     * tenant context. `SessionGuard::logout()` resolves the current user
+     * first, and with tenancy uninitialized that lookup runs against the
+     * central database and writes a remember token onto a stranger's row.
      *
-     * `POST /logout` is a central-domain route as well as a tenant one, and
-     * `SessionGuard::logout()` resolves the current user before clearing
-     * anything. The tenant provider's model has no connection of its own, so
-     * with tenancy uninitialized that lookup runs against the *central*
-     * database: it hydrates whichever central user happens to hold the id
-     * the shared session carries — soft-deleted rows included, since the
-     * tenant user model does not soft-delete — and then cycles a remember
-     * token onto that row. The write lands on a stranger's central record,
-     * and the resulting `SyncedResourceSaved` carries no tenant, so the
-     * queued sync listener dies with `ModelNotSyncMasterException` twenty
-     * times over. Dropping the guard's state directly is what
-     * {@see \Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant}
-     * already does for the same reason.
+     * @see \Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant
      */
     private function endTenantSession(): void
     {

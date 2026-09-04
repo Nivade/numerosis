@@ -9,30 +9,11 @@ use Illuminate\Http\Request;
 use Stancl\Tenancy\Tenancy;
 
 /**
- * `Livewire::setUpdateRoute()` registers one global `/livewire/update`
- * route for every page, and it carries no `{tenant}` parameter. Under
- * `IdentificationMode::Path`, applying `Stancl\Tenancy\Middleware\
- * InitializeTenancyByPath` to that route throws — it asserts
- * `$route->parameterNames()[0] === 'tenant'`, and index 0 does not exist
- * on a route with no parameters at all. The practical effect before this
- * class existed: every `mountAction`/`wire:model`/form-submit commit under
- * path mode failed tenancy identification silently (a warning-turned-
- * exception the Livewire JS swallows without a visible console error), so
- * no Livewire interaction worked on a path-mode tenant panel — found via a
- * browser test whose modal never mounted for this reason rather than for a
- * Livewire/Alpine bug.
- *
- * The route itself can't carry `{tenant}` — Livewire's client always posts
- * to the one URL `Livewire::setUpdateRoute()` registered, regardless of
- * which page issued the commit. Instead, the tenant is read off the
- * `Referer` header's first path segment, which is what the browser was
- * actually looking at when it fired the commit. A same-origin `fetch()`
- * (which is what Livewire's JS makes) sends `Referer` under the default
- * `strict-origin-when-cross-origin` policy, so this is reliable in
- * practice; if it is ever missing (a privacy extension, a non-browser
- * client), the request degrades to an un-initialized central context
- * exactly as a Livewire commit from a genuine central page already does,
- * rather than throwing.
+ * Identifies the tenant for `/livewire/update` under `IdentificationMode::Path`.
+ * That route is global and carries no `{tenant}` parameter, which
+ * `Stancl\Tenancy\Middleware\InitializeTenancyByPath` requires, so the tenant
+ * is read off the `Referer` header's first path segment. A missing `Referer`
+ * leaves the request in an un-initialized central context and does not throw.
  */
 class InitializeLivewireTenancyByPath
 {

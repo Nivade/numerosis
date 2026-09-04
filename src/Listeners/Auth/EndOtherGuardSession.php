@@ -13,28 +13,11 @@ use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Session;
 
 /**
- * Fortify's `AuthenticatedSessionController::destroy()` logs out only
- * `config('fortify.guard')` — one guard, whichever the current domain group
- * registered. `POST /logout` is reachable on both central and tenant
- * domains, so the *other* guard's session survives it unless something ends
- * it too. Registered with an explicit `Event::listen()` in
- * `NumerosisServiceProvider::packageBooted()` — Laravel's listener
- * auto-discovery only scans a host application's `app/Listeners`, never a
- * package's `src/`.
- *
- * Fires before `destroy()` invalidates the session (`SessionGuard::logout()`
- * dispatches `Logout` before clearing state), so acting here still sees a
- * live session to end.
- *
- * Guards each branch with `check()`/`tenancy()->initialized` before ever
- * calling `logout()` on the other guard: `logout()` unconditionally
- * re-dispatches `Logout` even when nothing was logged in, so an unguarded
- * call here would recurse into this same listener. The tenant guard's own
- * model has no connection of its own, so resolving it outside tenant
- * context (via `check()`/`user()`) runs its query against whatever
- * connection is ambient, the central one, hydrating a stranger's row. The
- * central guard's model always carries its own explicit connection, so
- * logging it out from tenant context is safe by comparison.
+ * Ends the session of whichever guard `POST /logout` did not log out itself.
+ * Fortify's `AuthenticatedSessionController::destroy()` handles only
+ * `config('fortify.guard')`, and that route is reachable on both central and
+ * tenant domains. Each branch is guarded by `check()`/`tenancy()->initialized`,
+ * because `logout()` re-dispatches `Logout` even when nothing was logged in.
  */
 class EndOtherGuardSession
 {

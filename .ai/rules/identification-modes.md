@@ -1,6 +1,7 @@
 ---
 paths:
   - 'src/Resolvers/**'
+  - 'src/Http/Middleware/InitializeLivewireTenancyByPath.php'
   - 'config/numerosis/tenancy.php'
 ---
 > **Header note, 2026-09-03.** Every reference below to
@@ -105,6 +106,31 @@ of the mistake. `Nvade\Numerosis\Resolvers\PreservingPathTenantResolver`
 overrides both methods to leave the parameter alone, bound over
 `PathTenantResolver` in `TenancyServiceProvider::register()`. Nothing in this
 package relies on stancl's removal of it.
+
+**Path mode cannot identify the tenant on `/livewire/update` the ordinary
+way.** `Livewire::setUpdateRoute()` registers one global route for every page
+and it carries no `{tenant}` parameter, so applying stancl's
+`InitializeTenancyByPath` to it throws: that middleware asserts
+`$route->parameterNames()[0] === 'tenant'` and index 0 does not exist on a
+parameterless route. Before `Http\Middleware\InitializeLivewireTenancyByPath`
+existed, every `mountAction`/`wire:model`/form-submit commit under path mode
+failed identification silently — a warning-turned-exception the Livewire JS
+swallows with no visible console error — so no Livewire interaction worked on
+a path-mode tenant panel. It was found through a browser test whose modal
+never mounted, which looked like a Livewire/Alpine bug.
+
+The route cannot be given a `{tenant}`: Livewire's client always posts to the
+one URL `setUpdateRoute()` registered, whichever page issued the commit. The
+tenant is therefore read off the `Referer` header's first path segment, which
+is the page the browser was actually looking at. A same-origin `fetch()` (what
+Livewire's JS makes) sends `Referer` under the default
+`strict-origin-when-cross-origin` policy, so this holds in practice; when it
+is missing (a privacy extension, a non-browser client) the request degrades to
+an un-initialized central context, exactly as a commit from a genuine central
+page already does, and does not throw.
+`TenancyServiceProvider::livewireUpdateIdentificationMiddleware()` picks it,
+and only under path mode — every other mode identifies by domain and needs no
+route parameter.
 
 **Path mode also has to opt out of two central-domain guards**, because its
 tenant routes deliberately live *on* the central domain:

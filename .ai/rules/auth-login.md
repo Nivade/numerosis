@@ -141,9 +141,16 @@ any of it.
   here, so a per-outcome response would make the OTP send/verify endpoints an
   unauthenticated account-existence oracle — a password login leaks nothing
   comparable, because a wrong password and an unknown user fail the same way
-  there already. See `Actions\Auth\RedirectIfOneTimePasswordAuthenticatable`'s
-  own docblock for what this does *not* hide (an unauthenticated caller can
-  still make the package send mail to any address it holds an account for).
+  there already. A session pointing at an address with no account fails code
+  validation with the same generic message a wrong code gets.
+
+  What it does *not* hide: an unauthenticated caller can make the package send
+  mail to any address it holds an account for, and
+  `one-time-passwords.only_one_active_one_time_password_per_user` means each
+  send invalidates the previous code, so a third party can keep a victim's
+  pending code from working. Both are inherent to passwordless email login;
+  the `login` rate limiter (`NumerosisServiceProvider::registerAuthRateLimiters()`,
+  keyed tenant + address + IP) is what bounds them.
 
 - **Logout is a listener, not a controller, because Fortify's controller
   actively fights dual-guard logout.** `AuthenticatedSessionController::destroy()`
@@ -159,7 +166,27 @@ any of it.
   re-dispatches `Logout` even when nothing was logged in, which would recurse
   into this same listener. `Actions\Auth\LogoutUser` still exists, trimmed to
   a plain `handle(): void` for callers outside `POST /logout` (`Livewire\Actions\Logout`,
-  tests) — it is not what the HTTP route runs anymore.
+  tests) — it is not what the HTTP route runs anymore. It does not call
+  `handle()` from the listener path either, because `destroy()` already owns
+  session invalidation and would invalidate twice.
+
+- **Never call `logout()` on the tenant guard outside tenant context; drop its
+  session state directly.** `POST /logout` is a central-domain route as well as
+  a tenant one, and `SessionGuard::logout()` resolves the current user before
+  clearing anything. The tenant provider's model carries no connection of its
+  own, so with tenancy uninitialized that lookup runs against the *central*
+  database and hydrates whichever central user holds the id the shared session
+  carries — soft-deleted rows included, since the tenant user model does not
+  soft-delete — then cycles a remember token onto that row. The write lands on
+  a stranger's central record, and the resulting `SyncedResourceSaved` carries
+  no tenant, so the queued sync listener dies with
+  `ModelNotSyncMasterException` twenty times over. `LogoutUser::endTenantSession()`,
+  `EndOtherGuardSession::endTenantSession()` and
+  `Http\Middleware\EnsureSessionMatchesTenant` all instead `Session::forget()`
+  the guard's name and forget its recaller cookie. The same applies to any
+  `check()`/`user()` call on that guard. The central guard's model always
+  carries an explicit connection, so logging *it* out from tenant context is
+  safe by comparison.
 
 - **Rate limiting is tenant-keyed on purpose, and the OTP challenge gets its
   own limiter.** `NumerosisServiceProvider::registerAuthRateLimiters()`
