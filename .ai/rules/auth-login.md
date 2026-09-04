@@ -44,7 +44,10 @@ paths:
   `finally` — a no-op, because `PasswordResetLinkController::broker()`,
   `NewPasswordController::broker()` and `PasswordController::broker()` all
   read the key when the request arrives. Tenant password resets silently
-  resolved the *central* `users` provider. The fix is
+  resolved the *central* `users` provider — and note that a broker reads its
+  user provider from `auth.passwords.*`, a key `auth.guards.*` has no bearing
+  on, so switching the guard alone never moves a reset off the central
+  provider. The fix is
   `Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper`. **Ask which
   phase reads a key before deciding where to set it:** baked into a route =
   registration time, read by a controller = request time.
