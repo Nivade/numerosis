@@ -17,7 +17,7 @@ use Nvade\Numerosis\Tests\TestCase;
 
 /**
  * Runs against FakesStripe's in-memory fake, not live Stripe test mode —
- * see D9 in .claude/plans/package-extraction.md.
+ * see D9 in .claude/plans/archive/package-extraction.md.
  */
 class InlineCheckoutGatewayTest extends TestCase
 {

@@ -11,7 +11,7 @@ decided below — comment a line out, feature is gone.
 
 **Decided (2026-08-04, by the user): the class-string array in
 `config('numerosis.features')` is the toggle.** No boolean feature map, no
-second config file per subsystem. `.claude/plans/package-extraction.md` Phase 2
+second config file per subsystem. `.claude/plans/archive/package-extraction.md` Phase 2
 describes a string-keyed map — **that part of Phase 2 is superseded by this
 document**; update it when this ships.
 
@@ -1158,7 +1158,7 @@ Cut all four `Livewire::addComponent(...)` calls out of
 `AppServiceProvider::boot()` and their `App\Livewire\Tenant as Tenants` import.
 
 **Note for the package split, do not act on it here**: `resource_path()` does
-not exist for a package consumer — `.claude/plans/package-extraction.md` Phase
+not exist for a package consumer — `.claude/plans/archive/package-extraction.md` Phase
 1.5 converts these to namespaced package views. Moving them into this class
 first is deliberate: it puts all four in one place for that later rewrite.
 
@@ -1473,7 +1473,7 @@ So this phase is **two steps, in order**:
 1. Move the route names into config (`numerosis.routes.names.home`,
    `…tenants_mine`, etc.) and change every `route('home')` /
    `route('tenants.mine')` call site to read the configured name — this is
-   `.claude/plans/package-extraction.md` Phase 1.3, and it is a no-op change on
+   `.claude/plans/archive/package-extraction.md` Phase 1.3, and it is a no-op change on
    its own, verifiable by the existing `tests/Feature/StaticPagesTest.php`.
 2. Only then gate the route registrations.
 
@@ -1525,7 +1525,7 @@ while its migrations and seeder still run.
 
 ### 10.1 Chat is not wired anywhere — decide, then wire
 
-`.claude/plans/chat-to-module.md` decided "free/core, plugin stays
+`.claude/plans/archive/chat-to-module.md` decided "free/core, plugin stays
 unconditionally registered", but the tree registers it nowhere, so that
 decision was never implemented. Two options; the second is better for a
 package and is the recommendation:
@@ -1598,7 +1598,7 @@ resolves relations):
 Trade-off to state when asking: `resolveRelationUsing` relations are invisible
 to static analysis and to IDE completion, so PHPStan will not know
 `$user->channels` exists inside the module. That is the price of removing a
-hard core→module import. If the package split (`.claude/plans/package-extraction.md`
+hard core→module import. If the package split (`.claude/plans/archive/package-extraction.md`
 Phase 3.4, concrete models published into the consumer app) lands first, this
 problem dissolves and none of step 2 is needed.
 
@@ -1631,7 +1631,7 @@ regression tests.
 
 Both panel providers are unconditional in `bootstrap/providers.php`. Converting
 them to `Filament\Contracts\Plugin` implementations the consumer registers is
-`.claude/plans/package-extraction.md` Phase 5. **Do not** add a
+`.claude/plans/archive/package-extraction.md` Phase 5. **Do not** add a
 `panel_enabled` boolean in the meantime — it keeps the provider, keeps the
 route registration risk described in `TenantAdminPanelProvider::register()`'s
 docblock (the `{tenant}` pattern matching the central subdomain), and is

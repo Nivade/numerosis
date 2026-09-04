@@ -7,7 +7,7 @@ updated: 2026-08-31
 
 > **This package is v3-only. The dual-version layer described below was
 > built, measured, and deliberately deleted on 2026-08-31** (section A of
-> `.claude/plans/numerosis-consolidation.md`). What existed: 8
+> `.claude/plans/archive/numerosis-consolidation.md`). What existed: 8
 > `Support\Compat\Tenancy\*` shims, `Support\Tenancy\{TenancyVersion,
 > TenancyConfigKeys}`, 27 runtime branches across 12 files, 427 LOC of
 > hand-written PHPStan reflection stubs that had to mirror real signatures

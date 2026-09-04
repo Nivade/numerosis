@@ -3,7 +3,7 @@ topic: auth-login
 updated: 2026-09-04
 ---
 
-> **Rewritten 2026-09-03 (Phase 7 of `.claude/plans/humming-nibbling-flame.md`),
+> **Rewritten 2026-09-03 (Phase 7 of `.claude/plans/archive/humming-nibbling-flame.md`),
 > for Fortify.** Everything this file used to describe —
 > `Livewire\Auth\PasswordlessLogin`, `packages/auth-ui`, `ThrottlesLoginAttempts`
 > — is deleted. Auth is `laravel/fortify`'s now (Phase 4): Fortify owns route

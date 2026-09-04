@@ -15,7 +15,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  * namespace's path list rather than replacing it, so they compose.
  *
  * `auth-ui`, `onboarding` and `account` folded into core in Phase 3 of
- * `.claude/plans/humming-nibbling-flame.md` — their views moved into core's
+ * `.claude/plans/archive/humming-nibbling-flame.md` — their views moved into core's
  * own `resources/views/`, which core's own `hasViews()` call already covers,
  * so there is nothing satellite-specific left to assert for them.
  *

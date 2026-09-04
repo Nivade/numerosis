@@ -131,7 +131,7 @@ class CloneTenantSchema implements ShouldQueue
 
         self::central()->statement("DROP DATABASE IF EXISTS `{$database}`");
 
-        // Tenant is abstract (see .claude/plans/package-extraction.md Phase
+        // Tenant is abstract (see .claude/plans/archive/package-extraction.md Phase
         // 4.4) — forceCreate() calls `new static`, which late static binding
         // resolves to whatever class the call was written against. Written
         // as Tenant::forceCreate(...) that would be the abstract class

@@ -1,7 +1,7 @@
 > **Header note, 2026-09-03.** Every reference below to
 > `.ai/rules/filament-tenancy.md`, to a panel, or to Filament's own tenancy is
 > **void**: `packages/filament` and that rule file were deleted in Phase 1 of
-> `.claude/plans/humming-nibbling-flame.md`. The three identification modes,
+> `.claude/plans/archive/humming-nibbling-flame.md`. The three identification modes,
 > the slug-vs-domain distinction and `PreservingPathTenantResolver` are all
 > unchanged and still current — only the second tenancy system they used to
 > have to coexist with is gone.
@@ -12,7 +12,7 @@
 `Nvade\Numerosis\Enums\Tenancy\IdentificationMode`'s three cases —
 `subdomain` (default, the original and only behaviour before 2026-08-30),
 `custom_domain`, `path`. Added in Phase 5 of
-`.claude/plans/memoized-tinkering-meadow.md`.
+`.claude/plans/archive/memoized-tinkering-meadow.md`.
 
 Everything below was found by reading Filament's and stancl's own source
 against a real run, not from either project's docs. Read

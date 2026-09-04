@@ -13,7 +13,7 @@ use Nvade\Numerosis\Tests\TestCase;
 
 /**
  * Regression for the convention-registration audit
- * (.claude/plans/package-extraction.md, step 2): these classes had no
+ * (.claude/plans/archive/package-extraction.md, step 2): these classes had no
  * `render()` override, so Livewire fell back to guessing a view path from
  * the class's own namespace segments — a guess resolved against the host's
  * `resources/views/livewire/*`, which never has these package views.
@@ -23,7 +23,7 @@ use Nvade\Numerosis\Tests\TestCase;
  *
  * `ConfirmPassword` and `VerifyEmail` (formerly `nvade/numerosis-auth-ui`'s)
  * were deleted, not moved, in Phase 3 of
- * `.claude/plans/humming-nibbling-flame.md` — Phase 4 rebuilds both screens
+ * `.claude/plans/archive/humming-nibbling-flame.md` — Phase 4 rebuilds both screens
  * on Fortify. `Appearance` (formerly `nvade/numerosis-account`'s) was a
  * starter-kit nicety, deleted outright the same phase.
  */

@@ -17,9 +17,9 @@ use Stripe\PaymentMethod;
  * Creates a PaymentMethod with a billing address attached (standing in for
  * what the Address Element produces client-side), then asserts the address
  * lands on the Stripe customer and an EU VAT number becomes a tax id of the
- * right type. See .claude/plans/module-marketplace.md. Runs against
+ * right type. See .claude/plans/archive/module-marketplace.md. Runs against
  * FakesStripe's in-memory fake, not live Stripe test mode — see D9 in
- * .claude/plans/package-extraction.md.
+ * .claude/plans/archive/package-extraction.md.
  */
 class SyncBillingAddressTest extends TestCase
 {

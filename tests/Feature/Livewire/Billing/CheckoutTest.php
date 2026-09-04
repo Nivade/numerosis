@@ -50,7 +50,7 @@ class CheckoutTest extends TestCase
      * The curated per-region order is still live code — a host that binds a
      * region lookup back in gets it — even though `ResolveCheckoutRegion`
      * itself always answers null since torann/geoip was dropped in Phase 6 of
-     * `.claude/plans/humming-nibbling-flame.md`. Mocking the action rather
+     * `.claude/plans/archive/humming-nibbling-flame.md`. Mocking the action rather
      * than a GeoIP facade is what keeps that path covered without the
      * dependency.
      */

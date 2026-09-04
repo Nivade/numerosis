@@ -22,7 +22,7 @@ use Nvade\Numerosis\Tests\TestCase;
  * via parent::) and LinkSubscriptionToTenant's manual write both target the
  * same `subscriptions` row for a given stripe_id. Neither ordering should
  * ever produce two rows or duplicate items — see
- * .claude/plans/vendor-duplication-cleanup.md #1.
+ * .claude/plans/archive/vendor-duplication-cleanup.md #1.
  */
 class SubscriptionDualWriterTest extends TestCase
 {

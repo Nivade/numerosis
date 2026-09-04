@@ -16,7 +16,7 @@ use Nvade\Numerosis\Tests\TestCase;
 /**
  * The settings screens stayed Livewire through Phase 4 while the guest auth
  * screens became plain Blade — see 4d of
- * `.claude/plans/humming-nibbling-flame.md`. Two things follow that are not
+ * `.claude/plans/archive/humming-nibbling-flame.md`. Two things follow that are not
  * true of the guest screens and are asserted here:
  *
  * - they drive numerosis's Fortify actions rather than posting to a Fortify

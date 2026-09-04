@@ -1,6 +1,6 @@
 # Numerosis: dual-version tenancy, customizable wizard, package split
 
-> ## ⚠️ Phases 7–8 below are SUPERSEDED. Live plan: `.claude/plans/numerosis-consolidation.md`
+> ## ⚠️ Phases 7–8 below are SUPERSEDED. Live plan: `.claude/plans/archive/numerosis-consolidation.md`
 >
 > Audited 2026-08-30. Three premises were re-decided with the maintainer:
 > **dual-version tenancy is dropped (v3 only)**, the split **collapses into one

@@ -2,7 +2,7 @@
 
 Every seam is additive and lives on `Nvade\Numerosis\Support\{Numerosis,Features}`.
 A **host** application calls these — as of the scope-reduction plan
-(`.claude/plans/humming-nibbling-flame.md`), `nvade/numerosis` is one package
+(`.claude/plans/archive/humming-nibbling-flame.md`), `nvade/numerosis` is one package
 (tenancy, Fortify-backed auth, billing, onboarding, views); the only other
 split, `nvade/numerosis-ui`, is a reusable Flux component library with no
 features or routes of its own, so these seams have exactly one caller: your
@@ -39,7 +39,7 @@ no provider edit, no subclassing.
 
 That map is why all 32 interfaces in `src/Contracts/` stay, even though each
 ships exactly one implementation (**decided 2026-09-01**; deleting the
-"redundant" ones was an open question from `.claude/plans/confusion-cleanup.md`
+"redundant" ones was an open question from `.claude/plans/archive/confusion-cleanup.md`
 step 4). They are not speculative abstraction:
 
 - **22 are the swap points themselves**, named in one of those two maps.

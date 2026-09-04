@@ -11,7 +11,7 @@ use Nvade\Numerosis\Models\Permission;
  *
  * Core ships no such context — the module system's `purchase`/`cancel
  * modules` was the only one and went in Phase 2 of
- * `.claude/plans/humming-nibbling-flame.md` — so this fixture is the only
+ * `.claude/plans/archive/humming-nibbling-flame.md` — so this fixture is the only
  * thing keeping {@see Permission::additionalActions()} exercised.
  */
 class PermissionWithExtraActions extends Permission

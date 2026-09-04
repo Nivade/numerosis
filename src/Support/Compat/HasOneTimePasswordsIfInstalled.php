@@ -13,7 +13,7 @@ namespace Nvade\Numerosis\Support\Compat;
  * consumer without that package installed gets a base model that compiles
  * fine and simply has no passwordless-login methods; nothing in this
  * package calls them unless a passwordless-login surface (Phase 5 of
- * `.claude/plans/humming-nibbling-flame.md`'s `OneTimePasswordFeature`, or a
+ * `.claude/plans/archive/humming-nibbling-flame.md`'s `OneTimePasswordFeature`, or a
  * host's own OTP code) is reached, which requires the package anyway.
  */
 if (trait_exists(\Spatie\OneTimePasswords\Models\Concerns\HasOneTimePasswords::class)) {

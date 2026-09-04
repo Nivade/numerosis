@@ -77,7 +77,7 @@ equivalent. To keep local/dev working with zero Cloudflare setup:
   default `false`) — added alongside the package's own `turnstile.key`/`turnstile.secret`
   in `config/services.php`, not a new config file.
 - **One Feature class**, per this app's own established convention
-  (`.claude/plans/opt-in-feature-classes.md` — `App\Contracts\Feature`,
+  (`.claude/plans/archive/opt-in-feature-classes.md` — `App\Contracts\Feature`,
   `bootstrap(): void`, resolved from a `features` class-string array, same
   shape as `Stancl\Tenancy`'s `config('tenancy.features')`). Explicitly asked
   for over a plain `@if(config(...))` scattered across five views, even

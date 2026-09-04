@@ -227,7 +227,7 @@
   upfront, gating authorised-but-settling debit would be stricter than
   deliberate 14-day unpaid trial. Correct, but means bug in
   `confirmed()`/`settle()` provisions rather than merely mislabels. See
-  `.claude/plans/custom-checkout.md`, "Provisioning and settlement".
+  `.claude/plans/archive/custom-checkout.md`, "Provisioning and settlement".
 
 - **`ResumeCheckout` reloads `PendingTenantProvision` by domain, reuses
   stored `stripe_setup_intent_id`** so refresh or direct

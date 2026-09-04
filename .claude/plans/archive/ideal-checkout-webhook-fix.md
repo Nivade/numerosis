@@ -76,7 +76,7 @@ the exact diff against its current content is included below. Execute the
 steps in order (1 → 4); each later step depends on files created in an
 earlier one.
 
-## Interaction with `.claude/plans/tenant-wizard-refresh-persistence.md`
+## Interaction with `.claude/plans/archive/tenant-wizard-refresh-persistence.md`
 
 That plan (being executed alongside this one) moves the registration
 wizard's Payment step onto the embedded `App\Livewire\Billing\Checkout`
@@ -151,7 +151,7 @@ directly: `app/Actions/Tenancy/SuspendTenant.php`,
 `app/Http/Middleware/EnsureTenantSubscriptionActive.php`, and
 `app/Http/Controllers/Billing/WebhookController.php`'s
 `past_due`/`unpaid`/`incomplete_expired` handling (lines 132-140) all
-already exist and are wired up. `.claude/plans/custom-checkout.md`'s Phase 3
+already exist and are wired up. `.claude/plans/archive/custom-checkout.md`'s Phase 3
 (the access-gate/suspension work it said must land "before iDEAL/Bancontact/
 SEPA are enabled") is done. `SettleCheckout`'s `AwaitingPayment` status
 (`app/Enums/TenantProvisionStatus.php`) and the `handleInvoicePaymentSucceeded`
@@ -431,7 +431,7 @@ class CompleteRedirectCheckout
             );
         }
 
-        // See .claude/plans/tenant-wizard-refresh-persistence.md —
+        // See .claude/plans/archive/tenant-wizard-refresh-persistence.md —
         // App\Livewire\Billing\Checkout::settle() clears this same key on its
         // own successful-completion path; this route is a separate
         // browser-facing entry point that can reach the same "registration

@@ -31,7 +31,7 @@ class HeaderTest extends TestCase
      * The sign-in link is gated on `Route::has('login')` — that route
      * belonged to nvade/numerosis-auth-ui's Livewire PasswordlessLogin,
      * deleted (not moved) when that package folded into core in Phase 3 of
-     * `.claude/plans/humming-nibbling-flame.md`. Phase 4 rebuilds it on
+     * `.claude/plans/archive/humming-nibbling-flame.md`. Phase 4 rebuilds it on
      * Fortify — reinstate this assertion then.
      */
     public function test_it_shows_sign_in_link_for_guests(): void

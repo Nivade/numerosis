@@ -171,7 +171,7 @@ return [
             // package broken for any consumer until they re-derive this list
             // by hand. Registration, post-login redirect and password reset
             // are Laravel Fortify's own seams since Phase 4 of
-            // `.claude/plans/humming-nibbling-flame.md` — see
+            // `.claude/plans/archive/humming-nibbling-flame.md` — see
             // `Fortify::createUsersUsing()` etc. in
             // `NumerosisServiceProvider::registerFortify()`, not here.
             ResolvesLoginCandidate::class => ResolveLoginCandidate::class,

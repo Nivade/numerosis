@@ -12,7 +12,7 @@ default dashboard, superseding item 9 below). Verified: full package suite
 green (only the pre-existing `RegisterTenantTest` failure), PHPStan clean of
 new errors.
 
-**Superseded (2026-08-11) by `.claude/plans/better-dx.md` Phase 2.** That
+**Superseded (2026-08-11) by `.claude/plans/archive/better-dx.md` Phase 2.** That
 phase moves panel registration into the package itself
 (`src/Providers/Filament/NumerosisAdminPanelProvider.php`) and deletes
 thin-app's `app/Providers/Filament/AdminPanelProvider.php` — the file this

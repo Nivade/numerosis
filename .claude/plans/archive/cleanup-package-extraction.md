@@ -1,6 +1,6 @@
 # Plan: finish pulling host setup into the package
 
-**Companion to `.claude/plans/package-extraction.md`, not a replacement.** That
+**Companion to `.claude/plans/archive/package-extraction.md`, not a replacement.** That
 file is the extraction itself and stays canonical for phases 0-10. This one
 tracks a specific follow-up: a review on 2026-08-06 found that several things a
 consumer had to wire by hand belonged in the package, and two of them were live

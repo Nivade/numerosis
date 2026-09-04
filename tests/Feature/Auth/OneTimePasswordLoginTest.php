@@ -17,7 +17,7 @@ use Spatie\OneTimePasswords\Notifications\OneTimePasswordNotification;
 
 /**
  * Regression coverage for Phase 5 of
- * `.claude/plans/humming-nibbling-flame.md`: `OneTimePasswordFeature`
+ * `.claude/plans/archive/humming-nibbling-flame.md`: `OneTimePasswordFeature`
  * replaces the password step of Fortify's `authenticateThrough()` pipeline
  * rather than adding a factor after it.
  *

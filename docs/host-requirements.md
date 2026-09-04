@@ -23,7 +23,7 @@ publishing or seeding anything.
 
 `nvade/numerosis` is two Composer packages developed in one repository and
 published as read-only splits — collapsed from six by
-`.claude/plans/humming-nibbling-flame.md`. Both are effectively required.
+`.claude/plans/archive/humming-nibbling-flame.md`. Both are effectively required.
 
 | Package | What it is |
 |---|---|

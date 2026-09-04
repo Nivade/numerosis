@@ -10,7 +10,7 @@ disable it. There is no separate "satellite feature" registration path
 anymore — `nvade/numerosis` is a single package (the only other split,
 `nvade/numerosis-ui`, is a Flux component library with no features of its
 own; see the scope-reduction plan at
-`.claude/plans/humming-nibbling-flame.md`).
+`.claude/plans/archive/humming-nibbling-flame.md`).
 
 > **A feature class named in config but not installed is a hard container
 > failure at boot**, and the first symptom is misleading — the name map loses

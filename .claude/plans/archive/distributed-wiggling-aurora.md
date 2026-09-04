@@ -8,7 +8,7 @@ targeted tests pass, PHPStan diff shows zero new `app/` errors, Pint clean.
 
 ## Context
 
-`.claude/plans/actions.md` audit of `app/Actions/*` vs `app/Jobs/*` vs
+`.claude/plans/archive/actions.md` audit of `app/Actions/*` vs `app/Jobs/*` vs
 Laravel Actions (`lorisleiva/laravel-actions`) usage surfaced nine findings.
 Five (#2–#5) are "no gap, already correct" and need no work. Four are real
 defects: dead `ShouldQueue` interface, inconsistent Action-invocation style,

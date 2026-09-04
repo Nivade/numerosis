@@ -29,7 +29,7 @@ a Payment Element only ever lived in that in-memory wizard state.
 — it detects the blank secret and bounces back to the Plan step, discarding
 an in-progress checkout.
 
-This was already half-fixed once: `.claude/plans/module-marketplace.md`
+This was already half-fixed once: `.claude/plans/archive/module-marketplace.md`
 ("Reusable checkout" section) extracted `App\Livewire\Billing\Checkout` — a
 resumable component reachable at `/checkout/{domain}`, backed by
 `App\Actions\Billing\Checkout\ResumeCheckout`, which reloads the SetupIntent
@@ -125,7 +125,7 @@ add one line right before `$this->redirectRoute('tenants.mine');`:
 
 **Check:** `vendor/bin/sail artisan tinker --execute 'echo class_exists(App\Livewire\Billing\Checkout::class) ? "ok" : "fail";'`
 
-**Cross-reference — `.claude/plans/ideal-checkout-webhook-fix.md`**: that
+**Cross-reference — `.claude/plans/archive/ideal-checkout-webhook-fix.md`**: that
 plan fixes a separate bug (iDEAL/Bancontact checkouts crashing on
 PaymentMethod-attach) by adding logic to `CompleteRedirectCheckout`, the
 redirect-return route — a different entry point from this `settle()`. It
@@ -594,7 +594,7 @@ class Registration extends WizardComponent
      * from the pending_tenant_provisions row via ResumeCheckout, so a
      * session-stored client secret would only ever be stale. Matches the
      * "no session carrier means no tamper surface" principle in
-     * .claude/plans/custom-checkout.md.
+     * .claude/plans/archive/custom-checkout.md.
      *
      * @return array<string, array<string, mixed>>
      */

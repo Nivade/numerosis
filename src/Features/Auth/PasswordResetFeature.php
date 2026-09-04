@@ -11,7 +11,7 @@ use Nvade\Numerosis\Contracts\NamedFeature;
  * settings page.
  *
  * Login is password-based (Laravel Fortify, since Phase 4 of
- * `.claude/plans/humming-nibbling-flame.md`) — turn this off and there is no
+ * `.claude/plans/archive/humming-nibbling-flame.md`) — turn this off and there is no
  * way to recover a forgotten password, only set one from the settings page
  * while already logged in. Password *confirmation* for sensitive actions is
  * separate and stays available regardless.

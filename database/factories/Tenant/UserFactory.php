@@ -20,7 +20,7 @@ use Nvade\Numerosis\Models\Tenant\User;
  * @extends Factory<User>
  */
 // No `protected $model` override: User is abstract (see
-// .claude/plans/package-extraction.md Phase 4.4) — a hardcoded $model here
+// .claude/plans/archive/package-extraction.md Phase 4.4) — a hardcoded $model here
 // bypasses Numerosis::modelNameFor()'s global resolver and forces `new
 // static` inside Eloquent's create()/make() to instantiate the abstract
 // class directly, which throws.

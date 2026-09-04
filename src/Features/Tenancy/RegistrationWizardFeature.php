@@ -39,7 +39,7 @@ class RegistrationWizardFeature implements NamedFeature
      * full FQCN instead — Livewire supports that with no `addComponent()`
      * call at all. Deriving every alias as `Str::kebab(class_basename($step))`
      * in a naive loop is exactly what would reintroduce that collision
-     * (`.claude/plans/memoized-tinkering-meadow.md`'s Phase 4.2) — this map
+     * (`.claude/plans/archive/memoized-tinkering-meadow.md`'s Phase 4.2) — this map
      * is the fix, not an oversight to "complete" later.
      *
      * A host-supplied step (added to `numerosis.tenancy.registration.steps`

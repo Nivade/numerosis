@@ -11,7 +11,7 @@ use Symfony\Component\Finder\SplFileInfo;
 
 /**
  * The boundary between the two packages left after
- * `.claude/plans/humming-nibbling-flame.md`'s Phase 3 folded `auth-ui`,
+ * `.claude/plans/archive/humming-nibbling-flame.md`'s Phase 3 folded `auth-ui`,
  * `onboarding` and `account` into core: `nvade/numerosis` (core) and
  * `nvade/numerosis-ui` (the reusable Flux component library core itself
  * `require`s).
@@ -59,7 +59,7 @@ class PackageBoundariesTest extends BaseTestCase
     }
 
     /**
-     * Phase 1 of `.claude/plans/humming-nibbling-flame.md` deleted
+     * Phase 1 of `.claude/plans/archive/humming-nibbling-flame.md` deleted
      * `packages/filament` and `filament/filament` with it, so core naming a
      * `Filament\` symbol is no longer a lazy reference to an optional
      * package — it is a reference to a class that cannot be installed at all.

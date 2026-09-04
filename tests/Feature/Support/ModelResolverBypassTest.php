@@ -22,7 +22,7 @@ use PhpParser\ParserFactory;
 use Symfony\Component\Finder\Finder;
 
 /**
- * D12's premise (.claude/plans/package-extraction.md, "Decisions taken"):
+ * D12's premise (.claude/plans/archive/package-extraction.md, "Decisions taken"):
  * every one of the 8 config('numerosis.models') classes is resolved through
  * Numerosis::model() at its call site, never referenced literally, so a
  * host's config override actually reaches every call site instead of just

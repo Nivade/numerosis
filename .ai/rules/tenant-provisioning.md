@@ -366,7 +366,7 @@ updated: 2026-08-29
   session had already built it — so `SeedTenantDatabase::handle()` (the one
   path that would have hit this) never actually ran. It surfaced only once
   numerosis got its own fresh compose MySQL
-  (`.claude/plans/package-extraction.md`, step 5) with no leftover volume.
+  (`.claude/plans/archive/package-extraction.md`, step 5) with no leftover volume.
   **Any "0 failed" number measured against a reused MySQL volume is
   unverified for whatever code path only runs on a database that doesn't
   exist yet** — template-build, first-migration, first-seed. Prefer a

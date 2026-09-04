@@ -9,7 +9,7 @@ use Nvade\Numerosis\Tests\Support\PermissionWithExtraActions;
  * `Permission::additionalActions()` returns `[]` in core and has exactly one
  * caller, so nothing else in the suite reaches it: the module system was its
  * only in-repo consumer and was deleted in Phase 2 of
- * `.claude/plans/humming-nibbling-flame.md`. Left uncovered the seam reads as
+ * `.claude/plans/archive/humming-nibbling-flame.md`. Left uncovered the seam reads as
  * dead code and gets deleted by the next cleanup.
  *
  * The middle test is the one with teeth. It fails against `self::` in

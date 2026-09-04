@@ -16,7 +16,7 @@ use Nvade\Numerosis\Tests\TestCase;
 
 /**
  * Covers the payment_method.attached handler added to fix the iDEAL
- * PaymentMethod-attach crash — see .claude/plans/ideal-checkout-webhook-fix.md.
+ * PaymentMethod-attach crash — see .claude/plans/archive/ideal-checkout-webhook-fix.md.
  *
  * A genuine end-to-end iDEAL round trip (bank redirect + Stripe's async
  * ideal -> sepa_debit conversion) cannot be automated here: Stripe's test

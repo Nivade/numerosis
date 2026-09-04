@@ -15,7 +15,7 @@ use Nvade\Numerosis\Notifications\Auth\VerifyEmail;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
- * Phase 4 of `.claude/plans/humming-nibbling-flame.md` rebound four of this
+ * Phase 4 of `.claude/plans/archive/humming-nibbling-flame.md` rebound four of this
  * package's actions onto Fortify's contracts —
  * `CreateRegisteredUser`/`UpdateUserProfile`/`UpdateUserPassword`/`ResetUserPassword`
  * — and every one of them is reached only through a Fortify controller. The

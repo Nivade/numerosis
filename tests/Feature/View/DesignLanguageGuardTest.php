@@ -9,7 +9,7 @@ use Nvade\Numerosis\Tests\TestCase;
 use Symfony\Component\Finder\Finder;
 
 /**
- * Phase 3 guard (.claude/plans/design-system-unification.md): the 57-view
+ * Phase 3 guard (.claude/plans/archive/design-system-unification.md): the 57-view
  * gray/neutral/stone → zinc sweep and the 8-value → 5-token radius collapse
  * are mechanical edits with nothing structural stopping them from
  * regressing the next time someone pastes a class from an old file or a

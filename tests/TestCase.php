@@ -356,7 +356,7 @@ abstract class TestCase extends Orchestra
         // Set one key at a time, never the whole array: a satellite provider
         // used to contribute its own namespace here (nvade/numerosis-account's
         // `account-pages`, folded into core's own `pages::` in Phase 3 of
-        // `.claude/plans/humming-nibbling-flame.md`). Replacing the array
+        // `.claude/plans/archive/humming-nibbling-flame.md`). Replacing the array
         // wholesale dropped it silently, and the only symptom was
         // `Unable to find component: [account-pages::tenant.mine]`.
         $app->make(Repository::class)->set(

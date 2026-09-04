@@ -62,7 +62,7 @@ Route::middleware(['auth:web'])->group(function () {
     // The account UI: settings, the workspace list, invoice downloads and
     // the billing portal. Formerly nvade/numerosis-account, contributed
     // through Numerosis::addCentralRoutes() — folded into core in Phase 3 of
-    // `.claude/plans/humming-nibbling-flame.md`. No feature flag any more:
+    // `.claude/plans/archive/humming-nibbling-flame.md`. No feature flag any more:
     // it always ships with core now, so there is nothing left to toggle.
     Route::redirect('settings', 'settings/profile');
 
@@ -104,7 +104,7 @@ Route::middleware(['auth:web'])->group(function () {
 // `login`, `register`, `logout`, `password.request`, `password.reset` and
 // `verification.verify` are Laravel Fortify's, loaded by
 // `Support\Numerosis::routes()` inside this same domain group (and again
-// inside the tenant group) — see `.claude/plans/humming-nibbling-flame.md`
+// inside the tenant group) — see `.claude/plans/archive/humming-nibbling-flame.md`
 // Phase 4a. `Numerosis::authRoutesEnabled()` (the `withAuth` flag on
 // `Numerosis::routes()`) gates that load the same way it used to gate the
 // routes declared here directly.

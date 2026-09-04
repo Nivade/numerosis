@@ -77,7 +77,7 @@ class TenancyServiceProvider extends ServiceProvider
      * The middleware that identifies a tenant from the request, chosen by
      * {@see IdentificationMode::current()}. Was a compile-time
      * `TENANCY_IDENTIFICATION` constant before Phase 5 of
-     * `.claude/plans/memoized-tinkering-meadow.md` — a method, because the
+     * `.claude/plans/archive/memoized-tinkering-meadow.md` — a method, because the
      * choice now depends on config read at boot, not at class-declaration
      * time.
      */

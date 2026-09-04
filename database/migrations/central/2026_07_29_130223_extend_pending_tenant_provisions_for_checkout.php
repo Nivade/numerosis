@@ -10,7 +10,7 @@ return new class extends Migration
 {
     /**
      * Makes the pending row the checkout aggregate rather than just a
-     * reservation flag — see .claude/plans/custom-checkout.md, "Data model".
+     * reservation flag — see .claude/plans/archive/custom-checkout.md, "Data model".
      */
     public function up(): void
     {

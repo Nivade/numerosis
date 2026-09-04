@@ -840,7 +840,7 @@ before moving to the next:
    swap-by-config pattern the 7 existing entries already use (9 failures
    fixed, `Target [...] is not instantiable`).
 5. **`Register`/`ForgotPassword`/`ResetPassword` had no explicit
-   `render()`** — same bug class `.claude/plans/package-extraction.md`'s
+   `render()`** — same bug class `.claude/plans/archive/package-extraction.md`'s
    own Phase 6 notes already catalogued for `ChatPanel`: relying on
    Livewire's naming-convention view lookup resolves against the *host's*
    default view namespace, not `numerosis::`. Added explicit `render():

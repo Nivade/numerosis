@@ -161,7 +161,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // Fortify registers its own routes on one domain/prefix group; this
         // package needs them on every central domain *and* inside the tenant
         // group instead, so `Numerosis::routes()` loads `routes/routes.php`
-        // itself, per group. See `.claude/plans/humming-nibbling-flame.md`
+        // itself, per group. See `.claude/plans/archive/humming-nibbling-flame.md`
         // Phase 4a.
         Fortify::ignoreRoutes();
 
@@ -493,7 +493,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
      * before running a host's own callback — plain Laravel skeleton
      * behaviour, unconditional whether or not a host passes one. `login`
      * belonged to nvade/numerosis-auth-ui until that package folded into
-     * core in Phase 3 of `.claude/plans/humming-nibbling-flame.md`, and its
+     * core in Phase 3 of `.claude/plans/archive/humming-nibbling-flame.md`, and its
      * Livewire screens were deleted rather than moved (Phase 4 rebuilds them
      * on Fortify) — so the stock default now throws RouteNotFoundException
      * on every guest request to a protected route instead of redirecting
@@ -514,7 +514,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
     /**
      * Wires this package's own actions into Fortify's published seams,
      * customized the way Fortify's own docs describe — see
-     * `.claude/plans/humming-nibbling-flame.md` Phase 4e. `numerosis.features`
+     * `.claude/plans/archive/humming-nibbling-flame.md` Phase 4e. `numerosis.features`
      * and `fortify.features` stay separate: numerosis's gates
      * tenancy/billing surfaces, Fortify's gates auth screens.
      */

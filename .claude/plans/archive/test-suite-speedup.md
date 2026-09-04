@@ -4,7 +4,7 @@
 `tests/Support/CloneTenantSchema.php`) shipped and is the suite's current
 mechanism — see `.claude/rules/testing.md`. **Phase 2 (parallel execution)
 was later abandoned entirely** (deadlocks — see
-`.claude/plans/parallel-test-isolation.md`'s status note and
+`.claude/plans/abandoned/parallel-test-isolation.md`'s status note and
 `.claude/rules/testing.md` "Why parallel was dropped").
 
 ## Context

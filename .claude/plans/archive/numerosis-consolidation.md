@@ -1,6 +1,6 @@
 # Numerosis consolidation — v3-only, monorepo, modules in core
 
-> **Supersedes the remaining work in `.claude/plans/memoized-tinkering-meadow.md`**
+> **Supersedes the remaining work in `.claude/plans/archive/memoized-tinkering-meadow.md`**
 > (Phases 7–8 of it). That file stays as the record of Phases 0–6 and the three
 > completed extractions; do not delete it, do not take its Phase 7/8 text as
 > current. Written 2026-08-30 after auditing it at 1518 lines.

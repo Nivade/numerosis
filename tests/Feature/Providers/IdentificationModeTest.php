@@ -22,7 +22,7 @@ use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\InitializeTenancyByPath;
 
 /**
- * Phase 5 of .claude/plans/memoized-tinkering-meadow.md. Covers the parts of
+ * Phase 5 of .claude/plans/archive/memoized-tinkering-meadow.md. Covers the parts of
  * IdentificationMode that are provable without a real HTTP request — see
  * .ai/rules/identification-modes.md for what Path mode's route-parameter
  * routing needs that this harness cannot exercise; tests/Browser/PathModeTest

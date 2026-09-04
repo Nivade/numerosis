@@ -10,7 +10,7 @@ use Nvade\Numerosis\Tests\TestCase;
 
 /**
  * `torann/geoip` was dropped in Phase 6 of
- * `.claude/plans/humming-nibbling-flame.md`, so this action has no lookup
+ * `.claude/plans/archive/humming-nibbling-flame.md`, so this action has no lookup
  * behind it and always answers null. What is worth holding is the
  * *contract*: null means "use `numerosis.billing.payment_methods.default_order`",
  * never an error — a host that wires a lookup back in replaces the action,

@@ -22,7 +22,7 @@ authoritative about current behaviour.
 ## What you install
 
 Two Composer packages, developed in this one repository, published as
-read-only splits on tag — collapsed from six (`.claude/plans/humming-nibbling-flame.md`).
+read-only splits on tag — collapsed from six (`.claude/plans/archive/humming-nibbling-flame.md`).
 Both are effectively required.
 
 | Package | What it is |

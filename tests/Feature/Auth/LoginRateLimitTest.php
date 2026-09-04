@@ -20,7 +20,7 @@ use Nvade\Numerosis\Tests\TestCase;
  *
  * **Two tenants is the whole point.** A single-tenant test passes whether or
  * not the key is tenant-scoped, which is why the plan
- * (`.claude/plans/humming-nibbling-flame.md`, 4f) called for this shape.
+ * (`.claude/plans/archive/humming-nibbling-flame.md`, 4f) called for this shape.
  * Deleting the `$tenantKey.'|'` segment from `authThrottleKey()` turns the
  * first two tests here red and leaves the third green.
  *

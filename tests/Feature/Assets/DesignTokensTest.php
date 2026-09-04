@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Assets;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
- * Guards Phase 2 of .claude/plans/design-system-unification.md: the token
+ * Guards Phase 2 of .claude/plans/archive/design-system-unification.md: the token
  * layer. These are raw-file assertions, not rendered-view ones — tokens.css
  * is never fetched through Blade/Vite in the Workbench harness (see
  * TestCase::stubViteManifest()'s docblock), so the only honest thing to

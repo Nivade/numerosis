@@ -1,7 +1,7 @@
 # Dependencies, per package
 
 > **Rewritten 2026-09-03** for the two-package shape left by
-> `.claude/plans/humming-nibbling-flame.md`. The previous version described
+> `.claude/plans/archive/humming-nibbling-flame.md`. The previous version described
 > six units (`nvade/numerosis-{filament,auth-ui,onboarding,account}` plus
 > core and `-ui`) and `internachi/modular`; all four satellites and the
 > module system are gone. History worth keeping from that version is
@@ -150,7 +150,7 @@ to `suggest`:
 
 ## History worth keeping
 
-- **2026-09-01 to 2026-09-03** — `.claude/plans/humming-nibbling-flame.md`:
+- **2026-09-01 to 2026-09-03** — `.claude/plans/archive/humming-nibbling-flame.md`:
   Phase 1 deleted `packages/filament`, `filament/filament` and
   `alizharb/filament-activity-log` outright. Phase 2 deleted the module
   system and `internachi/modular`. Phase 3 folded `-auth-ui`, `-onboarding`

@@ -602,7 +602,7 @@ class InstallNumerosisCommandTest extends TestCase
 
     /**
      * torann/geoip went in Phase 6 of
-     * `.claude/plans/humming-nibbling-flame.md`, and with it the manual
+     * `.claude/plans/archive/humming-nibbling-flame.md`, and with it the manual
      * MaxMind licence step this command used to print. Asserted rather than
      * simply deleted: the step was conditional on `geoip.service`, so its
      * removal is invisible in any run that did not set that key.

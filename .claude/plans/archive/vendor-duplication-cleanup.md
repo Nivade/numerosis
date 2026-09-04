@@ -20,7 +20,7 @@ resurfaces.
 
 Audit of where this codebase reimplements behaviour that `laravel/cashier`,
 `stancl/tenancy`, `spatie/*` or `internachi/modular` already provide. Separate
-from `.claude/plans/package-extraction.md` — this stands on its own and is
+from `.claude/plans/archive/package-extraction.md` — this stands on its own and is
 worth doing whether or not the package extraction happens. Doing it *first*
 shrinks what has to be extracted.
 

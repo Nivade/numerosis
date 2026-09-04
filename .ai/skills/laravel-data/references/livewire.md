@@ -7,7 +7,7 @@ Read `../SKILL.md` first. Package source: `vendor/spatie/laravel-data/src/Suppor
 the package's own stock default applies: `livewire.enable_synths` is
 **`false`** (`vendor/spatie/laravel-data/config/data.php`) — a Data object is
 **not** a bindable public property today, and no component in `src/Livewire/`
-binds one (checked, per Phase 4d of `.claude/plans/humming-nibbling-flame.md`).
+binds one (checked, per Phase 4d of `.claude/plans/archive/humming-nibbling-flame.md`).
 Everything below describes what turning the synth on would buy, for if that
 ever changes; it needs `Config::set('data.livewire.enable_synths', true)` (or
 a published `config/data.php`) first, and there is no `.ai/rules/pages.md` in

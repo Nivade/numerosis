@@ -8,45 +8,56 @@ abandoned, or executed differently from what they say.
 For current behaviour read, in this order:
 
 1. `README.md` and `docs/` — architecture, features, extending, host requirements
-2. `.claude/rules/` — traps and invariants, indexed in `INDEX.md`
+2. `.ai/rules/` — traps and invariants, indexed in `index.md`
 3. the code
 
 If a plan and a `docs/` file disagree, the `docs/` file wins. If a plan and the
 code disagree, the code wins.
 
-## Still open
+## Layout
 
-Per `plan-audit-unexecuted.md` (audited 2026-08-10, spot-checked 2026-09-01):
+| Directory | Meaning |
+|---|---|
+| this directory (loose files) | **Live.** Not executed, or partially executed and still worth finishing |
+| `archive/` | Executed. Kept for the reasoning and incident history only |
+| `abandoned/` | Not executed, and no longer worth executing. The diagnosis in them may still be good; the plan of action is not |
+
+Re-sorted 2026-09-04, validating every file against the tree rather than
+against its own Status line. 37 files moved to `archive/`, 1 to `abandoned/`,
+4 left live.
+
+## Live
 
 | Plan | State |
 |---|---|
-| `confusion-cleanup.md` | **Partial, uncommitted, and the newest work here (2026-09-01).** Steps 1–6 verified green; step 7 (the `ModelResolver` extraction) was never test-run, and the config split was not started. Read it before touching `Support\Numerosis`, `config/numerosis.php`, or the package layout |
-| `post-extraction-review.md` | **Partial.** Phases 1 and 3 done. Phases 2, 4, 5, 6 have no DONE marker; Phase 5 (the host becomes a real test consumer) is flagged in the file as where the remaining risk lives |
-| `vendor-duplication-cleanup.md` | **Partial.** Items #4 (drop legacy `subscriptions`/`payments` migration history), #6 (`Money` cast float round-trip → integer minor units) and #7 (impersonation: enable or drop its migration) read as still open |
-| `design-system-unification.md` | **Partial.** Phases 0–8 done for browser-independent work; Phase 7's keyboard-nav and mobile-width items need a real browser pass |
-| `test-suite-speedup.md` | **Partial.** Template-clone done and measured (~0.19s/tenant vs ~1.9s). The "shared tenant DB per test process" step never started |
+| `config-consolidation.md` | **Not executed.** Written 2026-09-04. Thirteen `config/numerosis/*.php` partials collapse into one publishable file. `config/numerosis/` still holds the partials |
+| `domain-events-expansion.md` | **Not executed.** Approved 2026-09-04. Runs **before** `invitations-social-redesign.md`. Confirmed unstarted: no `src/Actions/Tenancy/EnsureTenantUserExists.php` |
+| `invitations-social-redesign.md` | **Not executed.** Approved 2026-09-04. Depends on `domain-events-expansion.md` landing first |
+| `post-extraction-review.md` | **Mostly done; three items survive.** Its Live status block is stale — read the correction at the top of the file, not the table |
 
-## Dead — do not execute
+## Abandoned
 
 | Plan | Why |
 |---|---|
-| `parallel-test-isolation.md` | Abandoned. `--parallel` deadlocked across two sessions; the approach is dead, not merely undone. See `.claude/rules/testing.md` |
-| `admin-panel-provider-polish.md` | Targets `App\Providers\Filament\AdminPanelProvider` in the host — that file no longer exists in either repo. Panel providers live in `packages/filament/src/Providers/` and are registered by that package |
+| `parallel-test-isolation.md` | `--parallel` deadlocked across two sessions and was dropped from the suite entirely. The root-cause diagnosis is preserved in `.ai/rules/testing.md`; the plan's direction (keep `--parallel`, delete most of the parallel bootstrap) is dead |
 
-## Audit staleness worth knowing
+## Notes on the archive
 
-`plan-audit-unexecuted.md` calls `checkout-region-localization.md`
-**"❌ Not executed — `torann/geoip` never installed, no `ResolveCheckoutRegion`
-action."** Both now exist (`torann/geoip` is a `require`;
-`src/Actions/Billing/Checkout/ResolveCheckoutRegion.php` is in place), so that
-plan was executed after the audit was written. Treat the audit as a snapshot of
-2026-08-10, not a live list — the table above is the corrected version.
+Nothing in `archive/` is actionable. Two things there are worth knowing about:
 
-`package-extraction-log.md` is an append-only session log, not an actionable
-plan.
+- **`plan-audit-unexecuted.md`** is a snapshot of 2026-08-10 and was wrong by
+  2026-08-11 (it calls `checkout-region-localization.md` unexecuted; it had
+  been executed). It is archived as a record of the audit method, not as a
+  status list.
+- **`package-extraction-log.md`** is an append-only session log, not a plan.
+  It is the only record of the bug classes that extraction turned up.
 
-## Everything else
+Several archived plans describe subsystems that have since been **deleted**
+(the Filament panels, the module marketplace, `torann/geoip`, the six-package
+split, the chat module). They were executed as written and then removed by a
+later plan — `humming-nibbling-flame.md` did most of the removing. Executed
+does not mean still present.
 
-Fully executed as of the audit. Filenames generated from a random word list
-(`agile-bubbling-lake.md`, `federated-wandering-wozniak.md`, …) say nothing
-about their contents — open the file's first lines for its subject and Status.
+Filenames generated from a random word list (`agile-bubbling-lake.md`,
+`federated-wandering-wozniak.md`, …) say nothing about their contents — open
+the file's first lines for its subject and Status.

@@ -233,7 +233,7 @@ return [
         | reorders what it was already going to show. A method absent from a
         | region's list still appears, just after the curated ones; nothing
         | here restricts eligibility, only ResolveCheckoutRegion's country
-        | lookup feeds the pick. See .claude/plans/checkout-region-localization.md.
+        | lookup feeds the pick. See .claude/plans/archive/checkout-region-localization.md.
         |
         */
 

@@ -17,7 +17,7 @@
 >
     <php>
         <!-- turbo-ext is broken in this environment (see R7 in
-             .claude/plans/package-extraction.md) and the default 128M
+             .claude/plans/archive/package-extraction.md) and the default 128M
              exhausts under the full suite. Baked in here so a bare
              `vendor/bin/pest` no longer needs `php -d memory_limit=1G`
              re-derived every session. -->

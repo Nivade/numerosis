@@ -8,7 +8,7 @@ code, [`extending.md`](extending.md).
 ## The two packages
 
 One repository, two Composer packages — collapsed from six by
-`.claude/plans/humming-nibbling-flame.md`. Core is the root; the second is
+`.claude/plans/archive/humming-nibbling-flame.md`. Core is the root; the second is
 path-installed from `packages/ui` and published as a read-only split on tag.
 
 ```

@@ -1,6 +1,6 @@
 # Splitting Numerosis Into Packages
 
-> **Header note, 2026-09-03 (Phase 3/7 of `.claude/plans/humming-nibbling-flame.md`).**
+> **Header note, 2026-09-03 (Phase 3/7 of `.claude/plans/archive/humming-nibbling-flame.md`).**
 > The direction reversed: `packages/{auth-ui,onboarding,account}` were folded
 > *back* into core, and `packages/filament` was deleted outright. **Only
 > `nvade/numerosis-ui` is a separate package now.** Every bullet below is
@@ -19,7 +19,7 @@
 > folded the rest into core).
 
 Facts learned actually doing it, not from the plan
-(`.claude/plans/memoized-tinkering-meadow.md`, Phases 6–8). The agreed
+(`.claude/plans/archive/memoized-tinkering-meadow.md`, Phases 6–8). The agreed
 six-package map and the D1–D4 decisions live there; this file is what the
 first real extraction taught, and every bullet held for the packages that
 came after — right up until three of them folded back into core.
@@ -68,7 +68,7 @@ came after — right up until three of them folded back into core.
   `method.notFound`.
 
   **A third instance, found and fixed 2026-08-31** (outside the change that
-  surfaced it — section C of `.claude/plans/numerosis-consolidation.md`):
+  surfaced it — section C of `.claude/plans/archive/numerosis-consolidation.md`):
   `DesignLanguageGuardTest::test_no_filament_resource_uses_a_raw_heroicon_string_for_empty_state_icon`
   used to scan core `src/` for `emptyStateIcon('heroicon-…')`, and every Filament
   resource moved to `packages/filament` in Phase 7. It asserted 317 times
@@ -261,7 +261,7 @@ came after — right up until three of them folded back into core.
   `.ai/rules/package-host-bootstrap.md` describes for `tenancy.database`.
 
   **Counter-example, found 2026-08-31 doing `packages/onboarding` (section D
-  of `.claude/plans/numerosis-consolidation.md`): "writes go in the register
+  of `.claude/plans/archive/numerosis-consolidation.md`): "writes go in the register
   phase" is only safe where the parent namespace is deep-filled.**
   `numerosis-onboarding` wrote `numerosis.tenancy.registration.steps` from
   `packageRegistered()`, exactly as auth-ui writes `numerosis.panels.tenant.login`

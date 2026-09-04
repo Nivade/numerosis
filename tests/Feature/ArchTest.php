@@ -16,7 +16,7 @@ use Symfony\Component\Finder\Finder;
  * Scoped to Nvade\Numerosis\Contracts\Billing plus the two new tenancy contracts rather
  * than all of Nvade\Numerosis\Contracts: Subscribable and HasTenants predate this
  * refactor, reference Nvade\Numerosis\Models\* deliberately, and are kept as-is (see
- * .claude/plans/billing-provisioning-clarity-refactor.md §2.1). UserResolver
+ * .claude/plans/archive/billing-provisioning-clarity-refactor.md §2.1). UserResolver
  * was removed entirely (2026-07-31) — one implementation, nothing ever
  * resolved it through the interface, everyone called
  * GetAuthenticatedUser::run() directly.

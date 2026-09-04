@@ -19,7 +19,7 @@ a header naming where it lives now. `package-boundaries.md` is the seam map.
 
 **Auth moved onto `laravel/fortify` (Phase 4), and `torann/geoip`/
 `ryangjchandler/laravel-cloudflare-turnstile` were dropped or demoted (Phase
-6)**, both of `.claude/plans/humming-nibbling-flame.md`. Core's own actions
+6)**, both of `.claude/plans/archive/humming-nibbling-flame.md`. Core's own actions
 (`CreateRegisteredUser`, `UpdateUserProfile`, `UpdateUserPassword`,
 `ResetUserPassword`) are bound against Fortify's contracts rather than
 running their own controllers; `ResolveCheckoutRegion` always returns null
@@ -28,10 +28,10 @@ now (no GeoIP lookup wired in); `TurnstileFeature::isEnabled()` gained a
 `docs/extending.md` for the Fortify customization table and
 `.ai/rules/auth-login.md` for what stayed core-only through the move.
 
-**`packages/filament` was deleted 2026-09-03** (Phase 1 of `.claude/plans/humming-nibbling-flame.md`), along with `filament/filament` itself, both panels, `config/numerosis/panels.php`, `Support\Compat\Filament*`, and `filament-tenancy.md`. Nothing in this repo names a `Filament\` symbol: `tests/Feature/PackageBoundariesTest.php` enforces it for all four satellites (`account` was missing from that data provider until the same day, so its rules had been vacuous since extraction) *and*, via `test_core_names_no_filament_symbol()`, for `src/`, `config/`, `routes/`, `resources/`, `database/` and `workbench/`. Any rule text below still describing a panel is describing history.
+**`packages/filament` was deleted 2026-09-03** (Phase 1 of `.claude/plans/archive/humming-nibbling-flame.md`), along with `filament/filament` itself, both panels, `config/numerosis/panels.php`, `Support\Compat\Filament*`, and `filament-tenancy.md`. Nothing in this repo names a `Filament\` symbol: `tests/Feature/PackageBoundariesTest.php` enforces it for all four satellites (`account` was missing from that data provider until the same day, so its rules had been vacuous since extraction) *and*, via `test_core_names_no_filament_symbol()`, for `src/`, `config/`, `routes/`, `resources/`, `database/` and `workbench/`. Any rule text below still describing a panel is describing history.
 
 **The module system, and impersonation, were deleted 2026-09-03** (Phase 2 of
-`.claude/plans/humming-nibbling-flame.md`), along with `module-marketplace.md`
+`.claude/plans/archive/humming-nibbling-flame.md`), along with `module-marketplace.md`
 and `internachi/modular` — which is now not even a `suggest`. Gone with it:
 `Actions/Modules`, `Contracts/{Modules,Billing/Module*}`,
 `Models/{Central/ModuleOffering,Tenant/Module}` and their 4 migrations,

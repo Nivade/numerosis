@@ -57,7 +57,7 @@ bugs that surfaced getting it there, none of them hypothetical.
 - **Phase 4** (models by convention) — done, numerosis only, 2026-08-11.
   **Deviation flagged and confirmed with the user before writing code**:
   this phase's design (`App\Models\<suffix>` convention fallback inside
-  `Numerosis::model()`) is what D12 in `.claude/plans/package-extraction.md`
+  `Numerosis::model()`) is what D12 in `.claude/plans/archive/package-extraction.md`
   explicitly removed from this exact method ("no more by-convention
   `app()->getNamespace()` guessing — config or nothing"), after the user
   had already reopened R1 once over it. Asked before proceeding; user chose
@@ -510,7 +510,7 @@ multi-part public suffix (`example.co.uk`) — the documented limit of
 - `be1915a` ("move host-installed deps into package require") already removed
   the dependency-list class of requirement — thin-app's `require` went 24 → 13.
   Nothing here re-litigates it.
-- `.claude/plans/admin-panel-provider-polish.md` (**Not executed**, per the
+- `.claude/plans/archive/admin-panel-provider-polish.md` (**Not executed**, per the
   2026-08-10 audit) targets thin-app's `AdminPanelProvider.php` — a file Phase
   2 **deletes**. That plan is superseded, not abandoned: see Phase 2.
 

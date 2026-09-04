@@ -36,7 +36,7 @@ final class ConfiguredProviders
      * the feature class itself.
      *
      * `SocialLoginFeature` folded into core alongside `nvade/numerosis-auth-ui`
-     * in Phase 3 of `.claude/plans/humming-nibbling-flame.md`. Its `NAME` is
+     * in Phase 3 of `.claude/plans/archive/humming-nibbling-flame.md`. Its `NAME` is
      * still defined as `= ConfiguredProviders::FEATURE` rather than a second
      * literal, so the two cannot drift.
      */

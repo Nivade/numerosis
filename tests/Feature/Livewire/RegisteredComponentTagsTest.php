@@ -10,7 +10,7 @@ use Nvade\Numerosis\Tests\TestCase;
 use Symfony\Component\Finder\Finder;
 
 /**
- * Convention-registration audit (.claude/plans/package-extraction.md, step
+ * Convention-registration audit (.claude/plans/archive/package-extraction.md, step
  * 2): Livewire's default component discovery scans the *host* application's
  * `app/Livewire` namespace, which never has this package's classes. Every
  * `<livewire:name />` tag with no explicit `namespace::` prefix therefore

@@ -43,7 +43,7 @@ if (Features::enabled(InvitationsFeature::NAME)) {
 
 // `verification.notice` and `password.confirm` used to be contributed by
 // nvade/numerosis-auth-ui through Numerosis::addTenantRoutes(). That package
-// folded into core in Phase 3 of `.claude/plans/humming-nibbling-flame.md`
+// folded into core in Phase 3 of `.claude/plans/archive/humming-nibbling-flame.md`
 // and its Livewire screens were deleted rather than moved; both are Laravel
 // Fortify's since Phase 4, loaded by `Support\Numerosis::routes()` inside
 // this same tenant group (after this file, not inside it — see
@@ -67,7 +67,7 @@ Route::middleware(['universal', 'tenancy.auth:tenant'])->group(function () {
     //
     // Empty today, deliberately. `packages/filament`'s tenant panel was the
     // whole authenticated tenant surface and it was deleted in Phase 1 of
-    // `.claude/plans/humming-nibbling-flame.md`; Phase 3 moves real screens
+    // `.claude/plans/archive/humming-nibbling-flame.md`; Phase 3 moves real screens
     // in here. The group exists now so the gate is wired and tested rather
     // than rediscovered later — the panel owned the only registration of
     // EnsureTenantSubscriptionActive, so deleting it silently switched

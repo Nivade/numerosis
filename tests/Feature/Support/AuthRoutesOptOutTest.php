@@ -21,7 +21,7 @@ use Override;
  * the previous answer was "skip Numerosis::routes() entirely and hand-roll a
  * replacement", i.e. duplicate the billing and checkout wiring.
  *
- * Since Phase 4 of `.claude/plans/humming-nibbling-flame.md` the flag covers
+ * Since Phase 4 of `.claude/plans/archive/humming-nibbling-flame.md` the flag covers
  * Fortify's whole route file, not just the handful of names core declared
  * itself: `Numerosis::routes(withAuth: false)` skips the per-group `require`
  * of `vendor/laravel/fortify/routes/routes.php` entirely. That is a much

@@ -1,6 +1,6 @@
 # Package Boundaries
 
-> **Rewritten 2026-09-03 (Phase 7 of `.claude/plans/humming-nibbling-flame.md`),
+> **Rewritten 2026-09-03 (Phase 7 of `.claude/plans/archive/humming-nibbling-flame.md`),
 > for the two-package shape Phase 3 left behind.** `packages/{auth-ui,onboarding,account}`
 > folded into core; `packages/filament` and the module system were deleted
 > outright in Phases 1–2. The seam table, boundary facts and history below
@@ -10,7 +10,7 @@
 > config, `numerosis.panels.*`, `PurchasesModules`, the module system) is
 > **void** and has been removed rather than kept as marked history; see
 > `docs/extending.md` for the current, single seam list and
-> `.claude/plans/humming-nibbling-flame.md` for why each satellite went.
+> `.claude/plans/archive/humming-nibbling-flame.md` for why each satellite went.
 
 Layout: one repo, core at the root plus `packages/ui`, path-installed from a
 single `{"type":"path","url":"packages/*"}` entry and published as read-only

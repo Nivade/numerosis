@@ -27,7 +27,7 @@ use Stancl\Tenancy\Jobs\MigrateDatabase;
  * `migrate`, the `bootstrap/app.php` routing/middleware hook, asset publishing,
  * a provisioning worker) gets a fully working multi-tenant SaaS with zero
  * `numerosis.*`/`tenancy.*`/`auth.*` config of its own — this is the test
- * `.claude/plans/better-dx.md`'s "Verification" section calls for and the
+ * `.claude/plans/archive/better-dx.md`'s "Verification" section calls for and the
  * whole plan otherwise has no automated check for.
  *
  * Deliberately does **not** extend `Tests\TestCase`: that class exists to

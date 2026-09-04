@@ -7,7 +7,7 @@
 `numerosis-config`.**
 
 Both files were removed in `numerosis@59f026f` (decision D13,
-`.claude/plans/package-extraction.md`) — their contents moved into
+`.claude/plans/archive/package-extraction.md`) — their contents moved into
 `config/numerosis.php` under nested `'billing'` and `'tenancy'` keys. The
 package's own `mergeConfigFrom()` for those two files was removed at the
 same time, so a host holding a published copy of either loses its

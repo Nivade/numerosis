@@ -4,7 +4,7 @@
     Blade compiles to `$_instance->getId()` — undefined outside a Livewire
     render, so passing a model unconditionally made this component fatal on
     every plain Blade form ("Undefined variable $_instance"). Phase 4 of
-    `.claude/plans/humming-nibbling-flame.md` converted the four guest auth
+    `.claude/plans/archive/humming-nibbling-flame.md` converted the four guest auth
     screens away from Livewire, which is what turned that into a 500 on GET
     /login for anyone with `TurnstileFeature` on — the shipped default.
 

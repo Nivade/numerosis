@@ -15,7 +15,7 @@ uses(CustomDomainModeTestCase::class, RefreshDatabase::class);
 
 /**
  * Custom-domain mode's HTTP round trip — the second of the two non-path legs
- * `.claude/plans/numerosis-consolidation.md` left open after `PathModeTest`.
+ * `.claude/plans/archive/numerosis-consolidation.md` left open after `PathModeTest`.
  *
  * `.ai/rules/identification-modes.md` records the mechanism this exercises:
  * the tenant is identified from the *whole* host rather than a subdomain

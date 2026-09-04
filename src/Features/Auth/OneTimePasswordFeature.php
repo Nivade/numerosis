@@ -11,7 +11,7 @@ use Spatie\OneTimePasswords\Models\Concerns\HasOneTimePasswords;
 
 /**
  * Passwordless email OTP, layered on Fortify rather than replacing it — see
- * Phase 5 of `.claude/plans/humming-nibbling-flame.md`. When enabled,
+ * Phase 5 of `.claude/plans/archive/humming-nibbling-flame.md`. When enabled,
  * `Nvade\Numerosis\Actions\Auth\RedirectIfOneTimePasswordAuthenticatable`
  * intercepts Fortify's `authenticateThrough()` pipeline before
  * `AttemptToAuthenticate`: it identifies the candidate by email, sends a

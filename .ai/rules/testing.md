@@ -684,7 +684,7 @@ rest of this file is read:
   `Config::set()` call inside `getEnvironmentSetUp()` happens strictly
   *after*, and simply overwrites whatever `HostConfig` already decided.
 
-  Tried during Phase 6 of `.claude/plans/better-dx.md`: deleted the
+  Tried during Phase 6 of `.claude/plans/archive/better-dx.md`: deleted the
   `tenancy.*`/`database.connections.central`/`auth.guards.*`/`session.domain`
   block from `getEnvironmentSetUp()` on the theory that `HostConfig` would
   backfill every one of them, the same proof-by-deletion Phase 4 made safely

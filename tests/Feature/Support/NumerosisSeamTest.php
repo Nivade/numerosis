@@ -81,7 +81,7 @@ it('binds a web-middleware route per central domain and a tenant group', functio
 
     // 'tenant.suspended', not 'verification.notice': that route belonged to
     // nvade/numerosis-auth-ui, which folded into core in Phase 3 of
-    // .claude/plans/humming-nibbling-flame.md and had its Livewire screens
+    // .claude/plans/archive/humming-nibbling-flame.md and had its Livewire screens
     // deleted rather than moved (Phase 4 rebuilds them on Fortify), so it
     // does not register right now.
     $tenant = Route::getRoutes()->getByName('tenant.suspended');

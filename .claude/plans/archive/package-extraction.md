@@ -21,7 +21,7 @@ Overwrite this block; never append to it. Fifteen lines, hard limit.
 
 | | |
 |---|---|
-| Phase | 10 — end-to-end gate items 3-4 passed live against a real tenant. **Status: ✅ Done — archive step dropped, saas-m stays (decision 2026-08-10).** **Correction (2026-08-06):** Phase 8 was recorded here as done but had not been done *as designed* — no `Filament\Contracts\Plugin` class existed, panel definitions were hand-copied and had already drifted. Fixed properly in `.claude/plans/cleanup-package-extraction.md`'s item A; see that file, not this line, for Phase 8's real state |
+| Phase | 10 — end-to-end gate items 3-4 passed live against a real tenant. **Status: ✅ Done — archive step dropped, saas-m stays (decision 2026-08-10).** **Correction (2026-08-06):** Phase 8 was recorded here as done but had not been done *as designed* — no `Filament\Contracts\Plugin` class existed, panel definitions were hand-copied and had already drifted. Fixed properly in `.claude/plans/archive/cleanup-package-extraction.md`'s item A; see that file, not this line, for Phase 8's real state |
 | numerosis | `84a9a7d`, clean (no package changes this session) |
 | thin-app | `395f08a`, clean. Panels boot (Phase 8), assets build (Phase 9), and a real `StartLocalCheckout` provision was run to completion — see below |
 | saas-m | frozen at `c66cc72`; untouched this session |
@@ -413,7 +413,7 @@ new evidence, same as D8's original text asked.
 `config/numerosis-billing.php` and `config/numerosis-tenancy.php` are gone;
 their contents live in `config/numerosis.php` under nested `'billing'` and
 `'tenancy'` keys. Shipped as `numerosis@59f026f`; execution plan kept at
-`numerosis/.claude/plans/federated-wandering-wozniak.md`.
+`numerosis/.claude/plans/archive/federated-wandering-wozniak.md`.
 
 **Nested, not flattened, because two keys genuinely collide.** `models` means
 per-model class overrides at the core level (D12's mechanism) and Cashier
@@ -574,7 +574,7 @@ execution" at the end of the document to reflect the split:
 ### R4 — The freeze (4.1) is already being violated, by this file — **CLOSED by D11, executed 2026-08-06**
 
 saas-m is declared read-only from Phase 4.1, yet every session since has
-written status notes into `.claude/plans/package-extraction.md` **in saas-m**
+written status notes into `.claude/plans/archive/package-extraction.md` **in saas-m**
 (the working tree carries exactly that modification right now), and the last
 three sessions' hard-won facts (view-namespace prefixing, instantiation by
 proxy, `URL::forceRootUrl` under Testbench, `Config::string()` on an unset key
@@ -617,7 +617,7 @@ an agent with no prior context — must now read a session log before reaching
 step 1.
 
 **Correction:**
-1. Create `.claude/plans/package-extraction-log.md` and move every dated status
+1. Create `.claude/plans/archive/package-extraction-log.md` and move every dated status
    section into it verbatim. The findings have real value (they are the only
    record of five bug classes); the value is archival, not navigational.
 2. Keep at the top of this file a **Live status** block of at most 15 lines,
@@ -1048,7 +1048,7 @@ it).
 hits and `vendor/bin/sail artisan test --compact --filter=Billing` passes.
 
 **Reversed 2026-08-06.** Three-file split undone in the package repo — see
-`~/.claude/plans/federated-wandering-wozniak.md` (numerosis repo). All three
+`~/.claude/plans/archive/federated-wandering-wozniak.md` (numerosis repo). All three
 merge back into one `config/numerosis.php`, with billing/tenancy content
 nested under `'billing'`/`'tenancy'` top-level keys (avoids a real key
 collision: `numerosis.php`'s `models` — per-model class overrides — and
@@ -1464,7 +1464,7 @@ Playwright run fails with confusing permission errors
 
 ## Phase 8 — Filament as plugins
 
-**Marked done at the time, was not — see `.claude/plans/cleanup-package-extraction.md`
+**Marked done at the time, was not — see `.claude/plans/archive/cleanup-package-extraction.md`
 item A.** No `Filament\Contracts\Plugin` class existed; 545 lines of panel
 definition were hand-copied across thin-app and the package's Workbench
 harness and had already drifted. Fixed 2026-08-06.

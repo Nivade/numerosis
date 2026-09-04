@@ -14,7 +14,7 @@ use function Pest\Laravel\assertDatabaseHas;
 use function Pest\Laravel\seed;
 
 /*
- * Phase 3 of .claude/plans/memoized-tinkering-meadow.md: additive
+ * Phase 3 of .claude/plans/archive/memoized-tinkering-meadow.md: additive
  * contribution seams a second package uses to add a route, a feature, or a
  * tenant migration path/seeder without reproducing (or replacing) the
  * package's own registration. Each of these is a static that persists for
@@ -127,14 +127,14 @@ it('adds a registered tenant seeder to what TenantDatabaseSeeder::run() calls', 
 });
 
 /*
- * Phase 6 (`.claude/plans/memoized-tinkering-meadow.md`) added the two
+ * Phase 6 (`.claude/plans/archive/memoized-tinkering-meadow.md`) added the two
  * central-side seams below. The motivating case was a satellite owning a
  * permission context whose seeder (`RoleAndPermissionSeeder`) stays in core:
  * a satellite cannot be asked to publish and edit that seeder, and a missing
  * permission context 500s *every* page in the panel, not just its own
  * (`.ai/rules/auth-guards.md`), so "the host can wire it up" is not an
  * acceptable answer. That example was the `modules` context, deleted with the
- * module system in Phase 2 of `.claude/plans/humming-nibbling-flame.md`; the
+ * module system in Phase 2 of `.claude/plans/archive/humming-nibbling-flame.md`; the
  * seams stand on their own for the next package that needs one.
  */
 
