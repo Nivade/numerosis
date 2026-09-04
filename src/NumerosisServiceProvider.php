@@ -569,28 +569,11 @@ class NumerosisServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Fortify's default `login` rate limiter keys on
-     * `lower(username).'|'.$request->ip()`, one bucket across every tenant, so
-     * a user at the same email address on two different tenants shares a
-     * lockout counter and tenant A's failed attempts lock out tenant B's user.
-     * Mixing the tenant key into `->by(...)` is the fix; regression-test it
-     * with two tenants, since a single-tenant test passes either way.
-     *
-     * The OTP challenge gets its own limiter for a related reason: its request
-     * carries no `email` field, so reusing `login` would key every
-     * verification from one IP into a single bucket. It reads the address back
-     * out of the session, the same value the send leg keyed on, so the two
-     * legs stay per-user without the challenge form having to carry (and
-     * therefore let a caller choose) the address.
-     *
-     * Known gap, upstream: `spatie/laravel-one-time-passwords` runs its own
-     * per-user limiter inside `ConsumeOneTimePasswordAction`, keyed
-     * `consume-one-time-password-attempt:{$user->getKey()}`. That primary key
-     * collides across tenant databases and with the central users table, so
-     * five wrong attempts against tenant A's user 1 also lock tenant B's user
-     * 1 for the window. The impact is a denial of service; guessing is still
-     * bounded by the limiter registered here. Fixing it upstream's way means
-     * overriding a vendor action that this package only `suggest`s.
+     * Both limiters replace Fortify's default, which keys on
+     * `lower(username).'|'.$request->ip()` and so shares one lockout counter
+     * between two tenants holding a user at the same address. Regression-test
+     * either one with two tenants; a single-tenant test passes whether or not
+     * the tenant key is in the bucket.
      */
     protected function registerAuthRateLimiters(): void
     {

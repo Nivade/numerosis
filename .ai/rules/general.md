@@ -21,6 +21,33 @@ Obligations, in RFC 2119 terms:
 - A comment MAY carry a fact the code cannot: how an external system behaves, a race, a rejected alternative, an invariant spanning several files, a performance rationale.
 - Sentences SHOULD be short.
 
+### How long a comment may be
+
+Ask who reads it, and when. There are two budgets, and the answer is not about which file the comment is in — everything in `src/` ships to a host's `vendor/`, so hover reaches all of it, `private` methods included.
+
+| | Read by | Budget |
+| --- | --- | --- |
+| **Call-site** | someone who never opens the body: what an argument means, what a flag turns off, a footgun that bites the caller | as long as it needs to be. This is the package's API documentation. |
+| **Debug-time** | someone already inside the method, reading the code under the comment | 5 prose lines. |
+
+- A debug-time docblock MUST NOT exceed 5 prose lines, and an inline comment 3. The cap routes rather than compresses: a fact needing more belongs in `.ai/rules/`, in full, with the source keeping the one sentence a reader of *this method* needs and no pointer back (see the cross-reference rule above).
+- A comment MUST NOT carry more than one fact. Three paragraphs are three facts, and at most one of them is about the code below. `NumerosisServiceProvider::registerAuthRateLimiters()` held three: the tenant-keyed bucket (about the method), the OTP challenge's separate limiter (about a different method), and a bug in a vendor package (about neither). Only the first stayed.
+- `@see`, `@param`, `@return` and the rest are tags, not prose. They fall under neither budget, and `{@see SomeClass::method()}` is not a cross-reference: it names a symbol the reader can open.
+
+```bash
+awk '/^\s*\/\*\*/{n=0} /^\s*\*/ && !/^\s*\*\s*@/ && !/^\s*\*\s*$/ && !/\*\//{n++} /\*\//{if(n>5) print FILENAME":"FNR" ("n" prose lines)"}' $(git ls-files 'src/**.php')
+```
+
+Read the hits; a long one on a public seam is the first budget doing its job.
+
+### `docs/` is not on a host's disk
+
+`.gitattributes` marks `/docs`, `/tests` and `/workbench` `export-ignore`, so a Composer dist install has `src/`, `config/`, `routes/`, `resources/`, `database/`, `stubs/` and `.ai/` — and no `docs/`. A source comment saying "see `docs/extending.md`" therefore dangles for every host, the same defect as the `.ai/rules` citations. State the fact or leave it out.
+
+```bash
+grep -rnE '^\s*(\*|//).*docs/' --include='*.php' src/
+```
+
 Docblocks are where the volume is, not `//` lines. Prose inside a docblock follows the same rules as a `//` comment.
 
 For the prose itself, use the `no-ai-slop` skill (`~/.claude/skills/no-ai-slop`). Its pattern catalog is the standard here, and it covers more than a hand-rolled list will. The four patterns this repo keeps failing on:
