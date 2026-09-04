@@ -40,7 +40,7 @@ whole table before starting; other sessions commit to this repo.
 | Docblock prose lines | 2,301 | `C` below |
 | Inline `//` lines | 389 | `grep -rE '^\s*//' --include='*.php' src/ \| wc -l` |
 | Em-dashes in comments | 311 | `A` with `(—)` |
-| `rather than` / `instead of` | 116 | `A` with `(rather than\|instead of)` |
+| `rather than` / `instead of` | 118 | `A` with `(rather than\|instead of)` |
 | `, not ` | 57 | `A` with `(, not )` |
 | Decorative bold | 33 | `A` with `(\*\*)` |
 
