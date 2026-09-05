@@ -6,11 +6,11 @@ namespace Nvade\Numerosis\Livewire\Tenant;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
 use Nvade\Numerosis\Support\Tenancy\RegistrationState;
 use Override;
@@ -83,7 +83,7 @@ class Registration extends WizardComponent
     public function initialState(): ?array
     {
         /** @var array<string, array<string, mixed>>|null $state */
-        $state = session('registration.wizard_state');
+        $state = session(RegistrationWizardFeature::SESSION_KEY);
 
         return $state;
     }
@@ -103,7 +103,7 @@ class Registration extends WizardComponent
     {
         parent::showStep($toStepName, $currentStepState);
 
-        session()->put('registration.wizard_state', $this->stateToPersist());
+        session()->put(RegistrationWizardFeature::SESSION_KEY, $this->stateToPersist());
     }
 
     /**
@@ -133,52 +133,15 @@ class Registration extends WizardComponent
         return $state;
     }
 
-    public function getFormalCurrentStepName(): string
-    {
-        $index = $this->currentStepIndex();
-
-        if ($index !== false) {
-            return $this->getFormalStepNameFor($index + 1);
-        }
-
-        return $this->humanize((string) $this->currentStepName);
-    }
-
-    public function getFormalStepNameFor(int $stepNumber): string
-    {
-        $steps = $this->steps();
-
-        // Treat a given step number as 1-based for usability
-        $index = $stepNumber - 1;
-
-        if ($index < 0 || $index >= count($steps)) {
-            return '';
-        }
-
-        $stepClass = $steps[$index];
-
-        // Derive the step slug from the class name, mirroring Livewire Wizard's naming
-        $slug = Str::kebab(class_basename($stepClass));
-
-        return $this->humanize($slug);
-    }
-
     public function getCurrentStepNumber(): int
     {
-        $index = $this->currentStepIndex();
-
-        return $index !== false ? $index + 1 : 1;
+        return ($this->currentStepIndex() ?? 0) + 1;
     }
 
-    private function currentStepIndex(): int|false
+    private function currentStepIndex(): ?int
     {
-        $index = $this->stepNames()->search(fn (string $step) => $step === $this->currentStepName);
+        $index = $this->stepNames()->search(fn (string $step): bool => $step === $this->currentStepName);
 
-        return is_int($index) ? $index : false;
-    }
-
-    private function humanize(string $slug): string
-    {
-        return ucwords(str_replace('-', ' ', $slug));
+        return is_int($index) ? $index : null;
     }
 }

@@ -28,8 +28,7 @@ class TenantLandingPageTest extends TestCase
 
     public function test_a_tenant_domain_serves_the_landing_page_to_an_unauthenticated_visitor(): void
     {
-        $tenant = Tenant::factory()->create();
-        CreateTenantDomain::run($tenant, $tenant->id);
+        $tenant = $this->tenantOnItsOwnDomain();
 
         $this->withoutExceptionHandling()
             ->get('http://'.$this->tenantDomain($tenant->id).'/')
@@ -38,8 +37,7 @@ class TenantLandingPageTest extends TestCase
 
     public function test_a_tenant_domain_serves_the_landing_page_to_a_tenant_guard_session(): void
     {
-        $tenant = Tenant::factory()->create();
-        CreateTenantDomain::run($tenant, $tenant->id);
+        $tenant = $this->tenantOnItsOwnDomain();
 
         /** @var TenantUser $user */
         $user = $tenant->run(fn (): TenantUser => TenantUser::factory()->create());
@@ -51,5 +49,14 @@ class TenantLandingPageTest extends TestCase
                 ->get('http://'.$this->tenantDomain($tenant->id).'/')
                 ->assertOk();
         });
+    }
+
+    private function tenantOnItsOwnDomain(): Tenant
+    {
+        $tenant = Tenant::factory()->create();
+
+        CreateTenantDomain::run($tenant, $tenant->id);
+
+        return $tenant;
     }
 }

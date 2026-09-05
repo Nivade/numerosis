@@ -108,7 +108,6 @@ class CentralUser extends User implements CentralUserModel, HasTenants, Subscrib
         )
             ->using(Membership::class)
             ->withPivot(['role', 'invited_by', 'invited_at', 'joined_at']);
-
     }
 
     public function initials(): string

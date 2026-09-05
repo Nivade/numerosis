@@ -4,29 +4,15 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Notifications\Billing;
 
-use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
-use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Notifications\TenantNotification;
 
 /**
  * Dunning notice sent while the tenant is still in the grace period.
  * Suspension has not happened yet; this is the chance to avoid it.
  */
-class PaymentFailed extends Notification
+class PaymentFailed extends TenantNotification
 {
-    use Queueable;
-
-    public function __construct(public Tenant $tenant) {}
-
-    /**
-     * @return list<string>
-     */
-    public function via(object $notifiable): array
-    {
-        return ['mail'];
-    }
-
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)

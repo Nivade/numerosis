@@ -19,10 +19,7 @@
 
         <x-numerosis::ui.auth-session-status class="text-center" :status="session('status')" />
 
-        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Auth\SocialLoginFeature::NAME))
-            <x-numerosis::auth.social-buttons />
-            <x-numerosis::auth.social-divider />
-        @endif
+        <x-numerosis::auth.social-buttons />
 
         <form method="POST" action="{{ route('login.store') }}" class="flex flex-col gap-6">
             @csrf

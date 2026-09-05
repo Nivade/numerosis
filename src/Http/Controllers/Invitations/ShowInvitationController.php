@@ -7,9 +7,7 @@ namespace Nvade\Numerosis\Http\Controllers\Invitations;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Config;
-use Nvade\Numerosis\Exceptions\Invitations\InvitationAlreadyAccepted;
-use Nvade\Numerosis\Exceptions\Invitations\InvitationExpired;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Http\Controllers\Controller;
 use Nvade\Numerosis\Models\Central\Invitation;
@@ -19,11 +17,10 @@ class ShowInvitationController extends Controller
 {
     public function __invoke(Invitation $invitation): View|RedirectResponse
     {
-        $authenticated = Auth::guard(Config::string('numerosis.auth.guards.central'))->check();
+        $authenticated = Auth::guard(Context::Central->guard())->check();
 
         try {
-            throw_if($invitation->isAccepted(), InvitationAlreadyAccepted::class, 'This invitation has already been accepted.');
-            throw_if($invitation->isExpired(), InvitationExpired::class, 'This invitation has expired.');
+            $invitation->assertClaimable();
         } catch (ShowsMessageToUser $e) {
             // Fortify's `login` carries `guest`, which bounces an
             // authenticated visitor to `home` and drops the flash with it,

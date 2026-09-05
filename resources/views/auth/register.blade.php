@@ -4,10 +4,7 @@
 
         <x-numerosis::ui.auth-session-status class="text-center" :status="session('status')" />
 
-        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Auth\SocialLoginFeature::NAME))
-            <x-numerosis::auth.social-buttons />
-            <x-numerosis::auth.social-divider />
-        @endif
+        <x-numerosis::auth.social-buttons />
 
         {{-- An invitee arriving through `invitations.show` gets the
              invitation's address prefilled. `ShowInvitationController` stashes
@@ -41,25 +38,7 @@
                 placeholder="email@example.com"
             />
 
-            <flux:input
-                name="password"
-                :label="__('Password')"
-                type="password"
-                required
-                autocomplete="new-password"
-                :placeholder="__('Password')"
-                viewable
-            />
-
-            <flux:input
-                name="password_confirmation"
-                :label="__('Confirm password')"
-                type="password"
-                required
-                autocomplete="new-password"
-                :placeholder="__('Confirm password')"
-                viewable
-            />
+            <x-numerosis::auth.password-fields />
 
             <x-numerosis::turnstile-field />
 

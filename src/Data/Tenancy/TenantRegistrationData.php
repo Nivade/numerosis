@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Data\Tenancy;
 
 use Livewire\Wireable;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Spatie\LaravelData\Concerns\WireableData;
 use Spatie\LaravelData\Data;
 
@@ -28,6 +29,22 @@ class TenantRegistrationData extends Data implements Wireable
         // always stays the safe id/slug; see CreateTenantDomain).
         public ?string $custom_domain = null,
     ) {}
+
+    /**
+     * The registration a pending checkout was started from, read back off the
+     * row the domain in Stripe's metadata resolves to.
+     */
+    public static function fromPending(PendingTenantProvision $pending): self
+    {
+        return new self(
+            company_name: $pending->company_name,
+            domain: $pending->domain,
+            global_id: $pending->global_id,
+            payment_plan: $pending->payment_plan,
+            billing_cycle: $pending->billing_cycle,
+            custom_domain: $pending->custom_domain,
+        );
+    }
 
     /**
      * Only `company_name`: it's validated identically wherever it's

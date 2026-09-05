@@ -19,9 +19,6 @@ use Override;
 
 class Authenticate extends Middleware
 {
-    /**
-     * Create a new middleware instance.
-     */
     public function __construct(
         Factory $auth,
         private readonly AuthManager $authManager,
@@ -30,9 +27,6 @@ class Authenticate extends Middleware
     }
 
     /**
-     * Handle an incoming request.
-     *
-     *
      * @param  string  ...$guards
      *
      * @throws AuthenticationException
@@ -56,20 +50,22 @@ class Authenticate extends Middleware
     #[Override]
     public function authenticate($request, array $guards): void
     {
-        if (tenancy()->initialized && $this->authManager->guard(Context::Central->guard())->check()) {
+        $centralGuard = Context::Central->guard();
+
+        if (tenancy()->initialized && $this->authManager->guard($centralGuard)->check()) {
             /** @var CentralUser $centralUser */
-            $centralUser = GetAuthenticatedUser::run(Context::Central->guard());
+            $centralUser = GetAuthenticatedUser::run($centralGuard);
 
             $currentTenant = tenant();
 
             if ($currentTenant instanceof Tenant && $centralUser->canAccessTenant($currentTenant)) {
-                /** @var User $tenantUser */
-                $tenantUser = $this->authManager->guard(Context::Tenant->guard())->check()
-                    ? $this->authManager->guard(Context::Tenant->guard())->user()
-                    : null;
+                $tenantGuard = Context::Tenant->guard();
+
+                /** @var User|null $tenantUser */
+                $tenantUser = $this->authManager->guard($tenantGuard)->user();
 
                 if (! $tenantUser || $tenantUser->global_id !== $centralUser->global_id || $tenantUser->is_bot) {
-                    LoginUser::run(user: $centralUser, guard: Context::Tenant->guard());
+                    LoginUser::run(user: $centralUser, guard: $tenantGuard);
                 }
             }
         }

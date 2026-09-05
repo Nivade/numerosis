@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Http\Controllers\Billing;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PaymentPlan;
 use App\Models\Central\PendingTenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
@@ -14,6 +13,8 @@ use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Events\Billing\CheckoutCompleted;
 use Nvade\Numerosis\Facades\Billing;
+use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
+use Nvade\Numerosis\Tests\Concerns\DisablesWebhookSignature;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -36,50 +37,9 @@ use Nvade\Numerosis\Tests\TestCase;
  */
 class WebhookControllerSetupIntentTest extends TestCase
 {
+    use CreatesCheckoutFixtures;
+    use DisablesWebhookSignature;
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        // VerifyWebhookSignature is bound at controller construction time,
-        // so it has to be off before that happens.
-        config(['cashier.webhook.secret' => null]);
-    }
-
-    /**
-     * @return array{setupIntentId: string, paymentMethodId: string, customerId: string}
-     */
-    private function confirmedSetupIntent(CentralUser $user): array
-    {
-        $customer = $user->createOrGetStripeCustomer();
-
-        $paymentMethod = Cashier::stripe()->paymentMethods->create([
-            'type' => 'card',
-            'card' => ['token' => 'tok_visa'],
-            'billing_details' => [
-                'address' => [
-                    'line1' => '123 Main St',
-                    'city' => 'Amsterdam',
-                    'postal_code' => '1000AA',
-                    'country' => 'NL',
-                ],
-            ],
-        ]);
-
-        $setupIntent = Cashier::stripe()->setupIntents->create([
-            'customer' => $customer->id,
-            'payment_method' => $paymentMethod->id,
-            'payment_method_types' => ['card'],
-            'confirm' => true,
-        ]);
-
-        return [
-            'setupIntentId' => $setupIntent->id,
-            'paymentMethodId' => $paymentMethod->id,
-            'customerId' => $customer->id,
-        ];
-    }
 
     /**
      * @return array<string, mixed>
@@ -131,43 +91,22 @@ class WebhookControllerSetupIntentTest extends TestCase
     {
         $fake = Billing::fake();
 
-        $priceId = getenv('STRIPE_STARTER_MONTHLY_PLAN') ?: '';
-
-        if ($priceId === '') {
-            $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');
-        }
+        $this->createStarterPlan($this->starterPriceIdOrSkip());
 
         $user = CentralUser::factory()->create();
 
-        PaymentPlan::create([
-            'name' => 'Starter',
-            'slug' => 'starter',
-            'description' => 'Starter Plan',
-            'monthly_id' => $priceId,
-            'yearly_id' => $priceId,
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
-            'available' => true,
-            'trial_days' => 0,
-        ]);
+        $paymentMethod = $this->cardWithBillingAddress();
+        $setupIntent = $this->confirmedSetupIntentFor($user, $paymentMethod->id);
+        $customerId = $user->stripeIdOrFail();
 
-        [
-            'setupIntentId' => $setupIntentId,
-            'paymentMethodId' => $paymentMethodId,
-            'customerId' => $customerId,
-        ] = $this->confirmedSetupIntent($user);
-
-        PendingTenantProvision::factory()->create([
-            'domain' => 'webhook-pm-attached-test',
-            'global_id' => $user->global_id,
+        $this->reserve('webhook-pm-attached-test', $user, $setupIntent->id, [
             'payment_plan' => 'starter',
             'billing_cycle' => BillingCycle::Monthly,
-            'stripe_setup_intent_id' => $setupIntentId,
         ]);
 
         $this->postJson(
             Config::string('numerosis.billing.webhook_path', 'billing/webhook'),
-            $this->paymentMethodAttachedPayload($paymentMethodId, $customerId, 'setatt_stand_in'),
+            $this->paymentMethodAttachedPayload($paymentMethod->id, $customerId, 'setatt_stand_in'),
         )->assertOk();
 
         $fake->assertTenantProvisioned('webhook-pm-attached-test');
@@ -188,52 +127,31 @@ class WebhookControllerSetupIntentTest extends TestCase
     {
         $fake = Billing::fake();
 
-        $priceId = getenv('STRIPE_STARTER_MONTHLY_PLAN') ?: '';
-
-        if ($priceId === '') {
-            $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');
-        }
+        $this->createStarterPlan($this->starterPriceIdOrSkip());
 
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
-        PaymentPlan::create([
-            'name' => 'Starter',
-            'slug' => 'starter',
-            'description' => 'Starter Plan',
-            'monthly_id' => $priceId,
-            'yearly_id' => $priceId,
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
-            'available' => true,
-            'trial_days' => 0,
-        ]);
+        $paymentMethod = $this->cardWithBillingAddress();
+        $setupIntent = $this->confirmedSetupIntentFor($user, $paymentMethod->id);
+        $customerId = $user->stripeIdOrFail();
 
-        [
-            'setupIntentId' => $setupIntentId,
-            'paymentMethodId' => $paymentMethodId,
-            'customerId' => $customerId,
-        ] = $this->confirmedSetupIntent($user);
-
-        PendingTenantProvision::factory()->create([
-            'domain' => 'webhook-then-redirect-test',
-            'global_id' => $user->global_id,
+        $this->reserve('webhook-then-redirect-test', $user, $setupIntent->id, [
             'payment_plan' => 'starter',
             'billing_cycle' => BillingCycle::Monthly,
-            'stripe_setup_intent_id' => $setupIntentId,
         ]);
 
         Event::fake([CheckoutCompleted::class]);
 
         $this->postJson(
             Config::string('numerosis.billing.webhook_path', 'billing/webhook'),
-            $this->paymentMethodAttachedPayload($paymentMethodId, $customerId, 'setatt_stand_in'),
+            $this->paymentMethodAttachedPayload($paymentMethod->id, $customerId, 'setatt_stand_in'),
         )->assertOk();
 
         // The customer's browser, arriving second. AssertPendingReservationIsFresh
         // sees the subscription id the webhook wrote and refuses, so this
         // never reaches SettleCheckout again.
-        $this->get(route('checkout.subscription.return', ['setup_intent' => $setupIntentId]))
+        $this->get(route('checkout.subscription.return', ['setup_intent' => $setupIntent->id]))
             ->assertRedirect(route('tenants.mine'));
 
         Event::assertDispatchedTimes(CheckoutCompleted::class, 1);
@@ -249,44 +167,23 @@ class WebhookControllerSetupIntentTest extends TestCase
      */
     public function test_payment_method_attached_is_a_noop_once_already_completed(): void
     {
-        $priceId = getenv('STRIPE_STARTER_MONTHLY_PLAN') ?: '';
-
-        if ($priceId === '') {
-            $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');
-        }
+        $this->createStarterPlan($this->starterPriceIdOrSkip());
 
         $user = CentralUser::factory()->create();
 
-        PaymentPlan::create([
-            'name' => 'Starter',
-            'slug' => 'starter',
-            'description' => 'Starter Plan',
-            'monthly_id' => $priceId,
-            'yearly_id' => $priceId,
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
-            'available' => true,
-            'trial_days' => 0,
-        ]);
+        $paymentMethod = $this->cardWithBillingAddress();
+        $setupIntent = $this->confirmedSetupIntentFor($user, $paymentMethod->id);
+        $customerId = $user->stripeIdOrFail();
 
-        [
-            'setupIntentId' => $setupIntentId,
-            'paymentMethodId' => $paymentMethodId,
-            'customerId' => $customerId,
-        ] = $this->confirmedSetupIntent($user);
-
-        PendingTenantProvision::factory()->create([
-            'domain' => 'webhook-pm-attached-idempotent-test',
-            'global_id' => $user->global_id,
+        $this->reserve('webhook-pm-attached-idempotent-test', $user, $setupIntent->id, [
             'payment_plan' => 'starter',
             'billing_cycle' => BillingCycle::Monthly,
-            'stripe_setup_intent_id' => $setupIntentId,
             'stripe_subscription_id' => 'sub_already_completed',
         ]);
 
         $this->postJson(
             Config::string('numerosis.billing.webhook_path', 'billing/webhook'),
-            $this->paymentMethodAttachedPayload($paymentMethodId, $customerId, 'setatt_stand_in'),
+            $this->paymentMethodAttachedPayload($paymentMethod->id, $customerId, 'setatt_stand_in'),
         )->assertOk();
 
         $pending = PendingTenantProvision::find('webhook-pm-attached-idempotent-test');

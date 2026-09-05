@@ -33,15 +33,11 @@ class InlineCheckoutGatewayTest extends TestCase
         // InlineCheckoutGateway::begin() only checks a price is configured
         // locally — it never sends it to Stripe (that happens later, in
         // CreateInlineSubscription) — so a placeholder id is fine here.
-        PaymentPlan::create([
-            'name' => 'Basic',
+        PaymentPlan::factory()->create([
             'slug' => 'basic',
-            'description' => 'Basic Plan',
             'monthly_id' => 'price_test_monthly',
             'yearly_id' => 'price_test_yearly',
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
-            'available' => true,
+            'trial_days' => 0,
         ]);
 
         PendingTenantProvision::factory()->create([

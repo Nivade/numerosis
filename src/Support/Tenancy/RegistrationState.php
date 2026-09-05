@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Support\Tenancy;
 
 use Illuminate\Support\Fluent;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\TechnicalSetup;
@@ -20,9 +21,14 @@ class RegistrationState extends State
     {
         $state = $this->forStepClass(Plan::class);
 
+        // Reading the step's own live state gives the enum; reading another
+        // step's gives what `StepComponent::dispatchDehydrated()` wrote, a
+        // string. Callers get the string either way.
+        $cycle = $state['billingCycle'] ?? null;
+
         return [
             'payment_plan' => $state['payment_plan'] ?? null,
-            'billing_cycle' => $state['billing_cycle']->value ?? null,
+            'billing_cycle' => $cycle instanceof BillingCycle ? $cycle->value : $cycle,
             'terms' => $state['terms'] ?? null,
             'is_submitting' => $state['isSubmitting'] ?? null,
         ];

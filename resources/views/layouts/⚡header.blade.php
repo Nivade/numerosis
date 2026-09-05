@@ -2,7 +2,6 @@
 
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Config;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -150,17 +149,15 @@ new class extends Component {
             <x-numerosis::app-logo/>
         </a>
         <flux:navlist variant="outline">
-            @if ($this->user)
-                @if($this->user->tenants->isNotEmpty())
-                    <flux:navlist.group :heading="__('Tenants')">
-                        @foreach ($this->user->tenants as /** @var \Nvade\Numerosis\Models\Central\Tenant */ $tenant)
-                            @php($route = tenant_route($tenant->id, 'home'))
-                            <flux:navlist.item :href="$route" :target="str_starts_with($route, 'http') ? '_blank' : '_self'">
-                                {{ $tenant->name }}
-                            </flux:navlist.item>
-                        @endforeach
-                    </flux:navlist.group>
-                @endif
+            @if ($this->user && $this->user->tenants->isNotEmpty())
+                <flux:navlist.group :heading="__('Tenants')">
+                    @foreach ($this->user->tenants as /** @var \Nvade\Numerosis\Models\Central\Tenant */ $tenant)
+                        @php($route = tenant_route($tenant->id, 'home'))
+                        <flux:navlist.item :href="$route" :target="str_starts_with($route, 'http') ? '_blank' : '_self'">
+                            {{ $tenant->name }}
+                        </flux:navlist.item>
+                    @endforeach
+                </flux:navlist.group>
             @endif
         </flux:navlist>
         <flux:spacer/>

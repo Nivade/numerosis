@@ -4,29 +4,15 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Notifications\Billing;
 
-use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
-use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Notifications\TenantNotification;
 
 /**
  * Access revoked, data retained. Sent once suspension actually happens;
  * PaymentFailed is the earlier warning during the grace period.
  */
-class TenantSuspended extends Notification
+class TenantSuspended extends TenantNotification
 {
-    use Queueable;
-
-    public function __construct(public Tenant $tenant) {}
-
-    /**
-     * @return list<string>
-     */
-    public function via(object $notifiable): array
-    {
-        return ['mail'];
-    }
-
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)

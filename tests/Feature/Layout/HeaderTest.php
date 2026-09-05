@@ -6,7 +6,6 @@ namespace Nvade\Numerosis\Tests\Feature\Layout;
 
 use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -51,7 +50,7 @@ class HeaderTest extends TestCase
             'email' => 'john@example.com',
         ]);
 
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
+        $this->actingAsCentralUser($user);
 
         Livewire::test(self::COMPONENT)
             ->assertSee('John Doe')

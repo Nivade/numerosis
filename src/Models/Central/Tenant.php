@@ -158,22 +158,12 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
             ->withTimestamps();
     }
 
-    /**
-     * @return BelongsToMany<CentralUser, $this, Membership>
-     */
-    public function members(): BelongsToMany
-    {
-        return $this->users();
-    }
-
     /** The user who created this tenant and owns its subscription. */
     public function owner(): ?CentralUser
     {
-        $membership = $this->users()
+        return $this->users()
             ->wherePivot('role', MembershipRole::Owner->value)
             ->first();
-
-        return $membership;
     }
 
     public function primaryDomain(): ?Domain

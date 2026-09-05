@@ -5,12 +5,9 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Auth;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\Tenant;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\URL;
-use Nvade\Numerosis\Models\Central\Invitation;
-use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Tests\Concerns\BuildsInvitations;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -27,6 +24,7 @@ use Nvade\Numerosis\Tests\TestCase;
  */
 class RenamedCentralGuardTest extends TestCase
 {
+    use BuildsInvitations;
     use RefreshDatabase;
 
     protected function getEnvironmentSetUp($app): void
@@ -55,43 +53,25 @@ class RenamedCentralGuardTest extends TestCase
 
     public function test_the_invitation_landing_page_recognises_the_signed_in_visitor(): void
     {
-        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
-        $invitation = Invitation::factory()->for($tenant, 'tenant')->create([
-            'email' => 'renamed-guard-'.uniqid().'@example.com',
-        ]);
-
+        $invitation = $this->pendingInvitation('renamed-guard');
         $user = CentralUser::factory()->create(['email' => $invitation->email]);
 
-        $url = URL::temporarySignedRoute(
-            RouteNames::invitationShow(),
-            $invitation->expires_at,
-            ['invitation' => $invitation->getRouteKey()],
-        );
-
         $this->actingAs($user, 'host_central')
-            ->get($url)
+            ->get($this->signedShowUrl($invitation))
             ->assertOk()
-            ->assertSeeText($tenant->name);
+            ->assertSeeText($invitation->tenant->name);
     }
 
     public function test_accepting_an_invitation_works_under_the_renamed_guard(): void
     {
-        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
-        $invitation = Invitation::factory()->for($tenant, 'tenant')->create([
-            'email' => 'renamed-accept-'.uniqid().'@example.com',
-        ]);
-
+        $invitation = $this->pendingInvitation('renamed-accept');
         $user = CentralUser::factory()->create(['email' => $invitation->email]);
 
-        $url = URL::temporarySignedRoute(
-            RouteNames::invitationShow(),
-            $invitation->expires_at,
-            ['invitation' => $invitation->getRouteKey()],
-        );
+        $this->actingAs($user, 'host_central')
+            ->post($this->signedShowUrl($invitation))
+            ->assertRedirect();
 
-        $this->actingAs($user, 'host_central')->post($url)->assertRedirect();
-
-        $this->assertTrue($user->tenants()->where('tenants.id', $tenant->getKey())->exists());
+        $this->assertTrue($user->tenants()->where('tenants.id', $invitation->tenant_id)->exists());
         $this->assertNotNull($invitation->fresh()?->accepted_at);
     }
 }

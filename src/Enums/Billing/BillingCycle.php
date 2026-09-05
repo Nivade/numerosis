@@ -41,18 +41,4 @@ enum BillingCycle: string
             self::Yearly => '/yr',
         };
     }
-
-    /**
-     * @param  array<string, mixed>  $plan
-     */
-    public static function fromPriceId(string $priceId, array $plan): self|string
-    {
-        foreach (self::cases() as $cycle) {
-            if (($plan[$cycle->priceIdLabel()] ?? null) === $priceId) {
-                return $cycle;
-            }
-        }
-
-        return 'unknown';
-    }
 }

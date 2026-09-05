@@ -6,7 +6,6 @@ namespace Nvade\Numerosis\Tests\Feature\Livewire\Settings;
 
 use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 use Nvade\Numerosis\Livewire\Settings\Password;
@@ -33,14 +32,14 @@ class SettingsComponentsTest extends TestCase
 
     public function test_profile_renders(): void
     {
-        $this->actingAsCentralUser();
+        $this->signedInCentralUser();
 
         Livewire::test(Profile::class)->assertStatus(200);
     }
 
     public function test_profile_updates_the_authenticated_user(): void
     {
-        $user = $this->actingAsCentralUser();
+        $user = $this->signedInCentralUser();
 
         Livewire::test(Profile::class)
             ->set('name', 'Renamed Through Livewire')
@@ -54,7 +53,7 @@ class SettingsComponentsTest extends TestCase
     {
         $taken = CentralUser::factory()->create();
 
-        $this->actingAsCentralUser();
+        $this->signedInCentralUser();
 
         Livewire::test(Profile::class)
             ->set('email', $taken->email)
@@ -65,7 +64,7 @@ class SettingsComponentsTest extends TestCase
 
     public function test_password_updates_through_the_fortify_action(): void
     {
-        $user = $this->actingAsCentralUser();
+        $user = $this->signedInCentralUser();
 
         Livewire::test(Password::class)
             ->set('current_password', 'password')
@@ -79,7 +78,7 @@ class SettingsComponentsTest extends TestCase
 
     public function test_a_wrong_current_password_renders_from_the_default_bag(): void
     {
-        $this->actingAsCentralUser();
+        $this->signedInCentralUser();
 
         Livewire::test(Password::class)
             ->set('current_password', 'not-the-password')
@@ -89,11 +88,11 @@ class SettingsComponentsTest extends TestCase
             ->assertHasErrors('current_password');
     }
 
-    private function actingAsCentralUser(): CentralUser
+    private function signedInCentralUser(): CentralUser
     {
         $user = CentralUser::factory()->create(['password' => Hash::make('password')]);
 
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
+        $this->actingAsCentralUser($user);
 
         return $user;
     }

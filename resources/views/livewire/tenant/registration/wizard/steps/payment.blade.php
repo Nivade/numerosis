@@ -13,17 +13,15 @@
                 <livewire:billing.checkout :domain="$domain" :embedded="true" :key="'checkout-'.$domain" />
             </div>
         </div>
-
-        <div class="flex justify-start pt-8 border-t border-zinc-200 dark:border-zinc-700">
-            <flux:button wire:click="back" variant="outline" icon="chevron-left">
-                Back
-            </flux:button>
-        </div>
-    @else
-        <div class="flex justify-start pt-4 border-t border-zinc-200 dark:border-zinc-700">
-            <flux:button wire:click="back" variant="outline" icon="chevron-left">
-                Back
-            </flux:button>
-        </div>
     @endif
+
+    <div @class([
+        'flex justify-start border-t border-zinc-200 dark:border-zinc-700',
+        'pt-8' => $plan && $domain,
+        'pt-4' => ! ($plan && $domain),
+    ])>
+        <flux:button wire:click="back" variant="outline" icon="chevron-left">
+            Back
+        </flux:button>
+    </div>
 </div>

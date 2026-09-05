@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Database\Factories\Tenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Database\Factories\Concerns\GeneratesUniqueEmails;
 use Nvade\Numerosis\Models\Tenant\User;
 
 /**
@@ -25,6 +26,8 @@ use Nvade\Numerosis\Models\Tenant\User;
 // throws.
 class UserFactory extends Factory
 {
+    use GeneratesUniqueEmails;
+
     /**
      * The current password being used by the factory.
      */
@@ -40,7 +43,7 @@ class UserFactory extends Factory
             // Tenant users are synced from a central user by global_id, so a
             // value colliding across tenants cross-wires two users.
             'global_id' => (string) Str::uuid(),
-            'email' => fake()->unique()->safeEmail(),
+            'email' => static::uniqueEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),

@@ -32,6 +32,7 @@ use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Subscription as CentralSubscription;
+use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Stripe\Exception\ApiErrorException;
@@ -80,14 +81,7 @@ class WebhookController extends CashierWebhookController
         $pending = is_string($domain) ? $pendingClass::find($domain) : null;
 
         if ($pending !== null) {
-            $registration = new TenantRegistrationData(
-                company_name: $pending->company_name,
-                domain: $pending->domain,
-                global_id: $pending->global_id,
-                payment_plan: $pending->payment_plan,
-                billing_cycle: $pending->billing_cycle,
-                custom_domain: $pending->custom_domain,
-            );
+            $registration = TenantRegistrationData::fromPending($pending);
 
             $centralUserClass = Numerosis::model(CentralUser::class);
 
@@ -100,13 +94,13 @@ class WebhookController extends CashierWebhookController
             $this->provisioning->queue(new TenantProvisionData(
                 registration: $registration,
                 stripeCustomerId: $stripeSubscription['customer'] ?? null,
-                stripeSubscriptionId: $stripeSubscription['id'] ?? null,
+                stripeSubscriptionId: $stripeSubscriptionId,
                 centralUserId: $userId !== null ? (string) $userId : null,
             ));
         }
 
         Log::info('Subscription created', [
-            'subscription_id' => $stripeSubscription['id'] ?? null,
+            'subscription_id' => $stripeSubscriptionId,
         ]);
 
         return $response;
@@ -156,42 +150,14 @@ class WebhookController extends CashierWebhookController
 
         $handle = function () use ($candidates, $billable, $paymentMethodId): Response {
             foreach ($candidates as $pending) {
-                if ($pending->stripe_setup_intent_id === null) {
-                    continue;
+                if ($this->finalizeIfPaymentMethodMatches($pending, $billable, $paymentMethodId)) {
+                    break;
                 }
-
-                $setupIntent = Cashier::stripe()->setupIntents->retrieve(
-                    $pending->stripe_setup_intent_id,
-                    ['expand' => ['payment_method']],
-                );
-
-                $paymentMethod = ResolveAttachedPaymentMethod::run($setupIntent);
-                if ($paymentMethod === null) {
-                    continue;
-                }
-                if ($paymentMethod->id !== $paymentMethodId) {
-                    continue;
-                }
-
-                SyncBillingAddress::run($billable, $paymentMethod);
-
-                try {
-                    FinalizeCheckoutSubscription::run($pending, $paymentMethod, $billable);
-                } catch (IncompletePayment $e) {
-                    // The first invoice needs a 3DS challenge and there is no
-                    // browser to show it in. Acknowledge; the customer is
-                    // prompted on their next visit.
-                    report($e);
-                } catch (ApiErrorException $e) {
-                    report($e);
-                }
-
-                return $this->successMethod();
             }
 
-            // None of this customer's open checkouts resolve to this
-            // PaymentMethod. It belongs to one that already completed, or
-            // Stripe hasn't finished linking it yet.
+            // Answering success either way: a PaymentMethod matching none of
+            // this customer's open checkouts belongs to one that already
+            // completed, or Stripe has not finished linking it yet.
             return $this->successMethod();
         };
 
@@ -202,6 +168,47 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
+     * Settles one open checkout if the attached PaymentMethod is the one its
+     * SetupIntent generated. Returns whether this checkout was the match, so
+     * the caller stops at the first one.
+     */
+    private function finalizeIfPaymentMethodMatches(
+        PendingTenantProvision $pending,
+        CentralUser $billable,
+        string $paymentMethodId,
+    ): bool {
+        if ($pending->stripe_setup_intent_id === null) {
+            return false;
+        }
+
+        $setupIntent = Cashier::stripe()->setupIntents->retrieve(
+            $pending->stripe_setup_intent_id,
+            ['expand' => ['payment_method']],
+        );
+
+        $paymentMethod = ResolveAttachedPaymentMethod::run($setupIntent);
+
+        if ($paymentMethod === null || $paymentMethod->id !== $paymentMethodId) {
+            return false;
+        }
+
+        SyncBillingAddress::run($billable, $paymentMethod);
+
+        try {
+            FinalizeCheckoutSubscription::run($pending, $paymentMethod, $billable);
+        } catch (IncompletePayment $e) {
+            // The first invoice needs a 3DS challenge and there is no browser
+            // to show it in. Acknowledge; the customer is prompted on their
+            // next visit.
+            report($e);
+        } catch (ApiErrorException $e) {
+            report($e);
+        }
+
+        return true;
+    }
+
+    /**
      * @param  array{data: array{object: array{id?: string, customer?: string, current_period_end?: int}}}  $payload
      */
     #[Override]
@@ -209,14 +216,14 @@ class WebhookController extends CashierWebhookController
     {
         $response = parent::handleCustomerSubscriptionDeleted($payload);
 
-        $customerId = $payload['data']['object']['customer'] ?? null;
-
-        $this->suspendBillableFor($customerId);
-
-        $tenant = FindTenantByStripeCustomer::run($customerId);
-        $periodEnd = $payload['data']['object']['current_period_end'] ?? null;
+        $stripeSubscription = $payload['data']['object'];
+        $tenant = FindTenantByStripeCustomer::run($stripeSubscription['customer'] ?? null);
 
         if ($tenant !== null) {
+            $this->suspendUnlessStillEntitled($tenant);
+
+            $periodEnd = $stripeSubscription['current_period_end'] ?? null;
+
             event(new SubscriptionCancelled(
                 $tenant,
                 is_int($periodEnd) ? Carbon::createFromTimestamp($periodEnd) : null,
@@ -225,7 +232,7 @@ class WebhookController extends CashierWebhookController
         }
 
         Log::info('Subscription deleted', [
-            'subscription_id' => $payload['data']['object']['id'] ?? null,
+            'subscription_id' => $stripeSubscription['id'] ?? null,
         ]);
 
         return $response;
@@ -280,7 +287,7 @@ class WebhookController extends CashierWebhookController
         }
 
         Log::info('Subscription updated', [
-            'subscription_id' => $payload['data']['object']['id'] ?? null,
+            'subscription_id' => $subscriptionId,
             'status' => $status,
         ]);
 
@@ -349,14 +356,8 @@ class WebhookController extends CashierWebhookController
      * just ended: a tenant holding several subscriptions must not be locked out
      * of a workspace they are still paying for.
      */
-    private function suspendBillableFor(?string $customerId): void
+    private function suspendUnlessStillEntitled(Tenant $tenant): void
     {
-        $tenant = FindTenantByStripeCustomer::run($customerId);
-
-        if ($tenant === null) {
-            return;
-        }
-
         $stillEntitled = $tenant->subscriptions()
             ->get()
             ->contains(fn (Subscription $subscription): bool => $subscription->valid());

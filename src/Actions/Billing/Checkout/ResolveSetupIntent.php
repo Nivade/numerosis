@@ -6,10 +6,8 @@ namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
 use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Exceptions\Billing\SetupIntentNotConfirmed;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Services\Billing\Checkout\ResolvedSetupIntent;
 use Nvade\Numerosis\Support\Numerosis;
@@ -30,8 +28,6 @@ class ResolveSetupIntent
 {
     use AsAction;
 
-    public function __construct(private readonly BillableResolver $billables) {}
-
     public function handle(string $setupIntentId): ResolvedSetupIntent
     {
         /** @var PendingTenantProvision|null $pending */
@@ -41,11 +37,7 @@ class ResolveSetupIntent
             throw new CheckoutSessionExpired(__('numerosis::billing.checkout.session_expired'));
         }
 
-        $billable = $this->billables->resolve();
-
-        if (! $billable instanceof CentralUser || $billable->global_id !== $pending->global_id) {
-            throw new CheckoutSessionExpired(__('numerosis::billing.checkout.foreign_session'));
-        }
+        $billable = AssertReservationIsOwned::run($pending);
 
         AssertPendingReservationIsFresh::run($pending, $billable);
 
@@ -63,7 +55,7 @@ class ResolveSetupIntent
             throw new CheckoutSessionExpired(__('numerosis::billing.checkout.foreign_session'));
         }
 
-        $rawPaymentMethod = $setupIntent->payment_method instanceof PaymentMethod ? $setupIntent->payment_method : null;
+        $rawPaymentMethod = $setupIntent->payment_method;
 
         if ($setupIntent->status !== 'succeeded' || ! $rawPaymentMethod instanceof PaymentMethod) {
             throw new SetupIntentNotConfirmed(__('numerosis::billing.checkout.confirmation_failed'));

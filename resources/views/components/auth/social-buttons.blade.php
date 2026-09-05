@@ -1,5 +1,11 @@
+{{--
+    Owns its own feature gate and the divider that separates it from the email
+    form, so a guest screen calls one tag and needs no `@if` of its own.
+--}}
 @php
-    $providers = \Nvade\Numerosis\Enums\Auth\SocialProvider::configured();
+    $providers = \Nvade\Numerosis\Features\Auth\SocialLoginFeature::available()
+        ? \Nvade\Numerosis\Enums\Auth\SocialProvider::configured()
+        : [];
 @endphp
 
 @if ($providers !== [])
@@ -15,4 +21,6 @@
             </flux:button>
         @endforeach
     </div>
+
+    <x-numerosis::auth.social-divider />
 @endif

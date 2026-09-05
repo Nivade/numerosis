@@ -20,6 +20,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Nvade\Numerosis\Database\Factories\Central\InvitationFactory;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
+use Nvade\Numerosis\Exceptions\Invitations\InvitationAlreadyAccepted;
+use Nvade\Numerosis\Exceptions\Invitations\InvitationExpired;
 use Nvade\Numerosis\Policies\InvitationPolicy;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
@@ -119,6 +121,20 @@ class Invitation extends Model
     public function isAccepted(): bool
     {
         return $this->accepted_at !== null;
+    }
+
+    /**
+     * Both refusals a visitor can be shown before the row is claimed. The
+     * claim itself is a conditional `UPDATE` in `AcceptInvitation`, which is
+     * what makes concurrent acceptance safe; this only fails early and readably.
+     *
+     * @throws InvitationAlreadyAccepted
+     * @throws InvitationExpired
+     */
+    public function assertClaimable(): void
+    {
+        throw_if($this->isAccepted(), InvitationAlreadyAccepted::class, 'This invitation has already been accepted.');
+        throw_if($this->isExpired(), InvitationExpired::class, 'This invitation has expired.');
     }
 
     /**

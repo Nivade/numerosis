@@ -141,10 +141,7 @@ final class Contributions
      */
     public static function addTenantSeeder(string $seeder): void
     {
-        /** @var list<class-string<Seeder>> $seeders */
-        $seeders = self::appendOnce(self::$tenantSeeders, $seeder);
-
-        self::$tenantSeeders = $seeders;
+        self::$tenantSeeders = self::appendOnce(self::$tenantSeeders, $seeder);
     }
 
     /**
@@ -160,10 +157,7 @@ final class Contributions
      */
     public static function addCentralSeeder(string $seeder): void
     {
-        /** @var list<class-string<Seeder>> $seeders */
-        $seeders = self::appendOnce(self::$centralSeeders, $seeder);
-
-        self::$centralSeeders = $seeders;
+        self::$centralSeeders = self::appendOnce(self::$centralSeeders, $seeder);
     }
 
     /**
@@ -180,13 +174,24 @@ final class Contributions
     }
 
     /**
+     * @return list<string>
+     */
+    public static function permissionContexts(): array
+    {
+        return self::$permissionContexts;
+    }
+
+    /**
      * Appends whatever is not already present, preserving registration order.
      * These lists are static, so a provider registering twice would otherwise
      * grow them without bound. The route-callback lists cannot use this, since
      * two `Closure`s from the same source are distinct objects.
      *
-     * @param  list<string>  $existing
-     * @return list<string>
+     * @template TValue of string
+     *
+     * @param  list<TValue>  $existing
+     * @param  TValue  ...$values
+     * @return list<TValue>
      */
     private static function appendOnce(array $existing, string ...$values): array
     {
@@ -196,15 +201,7 @@ final class Contributions
             }
         }
 
-        return array_values($existing);
-    }
-
-    /**
-     * @return list<string>
-     */
-    public static function permissionContexts(): array
-    {
-        return self::$permissionContexts;
+        return $existing;
     }
 
     /**

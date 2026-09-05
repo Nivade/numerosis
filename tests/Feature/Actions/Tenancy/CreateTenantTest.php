@@ -63,14 +63,9 @@ class CreateTenantTest extends TestCase
             'global_id' => 'test-global-id-'.uniqid(),
         ]);
 
-        $paymentPlan = PaymentPlan::create([
-            'name' => 'Test Plan',
+        $paymentPlan = PaymentPlan::factory()->create([
             'slug' => 'test-plan',
-            'description' => 'Test description',
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
             'trial_days' => 14,
-            'available' => true,
         ]);
 
         $tenantId = 'test-tenant-'.uniqid();

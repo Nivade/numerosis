@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth\Social;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -55,9 +56,7 @@ class LoginWithSocialAccount
             // An email exists locally but does not qualify for the
             // conditional link above. Refuse; a second account for the same
             // address must never be created.
-            $hasLocalAccount = $centralUserClass::query()
-                ->whereRaw('lower(email) = ?', [Str::lower($data->email)])
-                ->exists();
+            $hasLocalAccount = $this->whereEmailMatches($centralUserClass, $data->email)->exists();
 
             if ($hasLocalAccount) {
                 return null;
@@ -90,12 +89,23 @@ class LoginWithSocialAccount
         }
 
         /** @var CentralUser|null $match */
-        $match = $centralUserClass::query()
-            ->whereRaw('lower(email) = ?', [Str::lower($data->email)])
+        $match = $this->whereEmailMatches($centralUserClass, $data->email)
             ->whereNotNull('email_verified_at')
             ->first();
 
         return $match;
+    }
+
+    /**
+     * Case-insensitive, because a provider may hand back the same address in
+     * different case than the local account was created with.
+     *
+     * @param  class-string<CentralUser>  $centralUserClass
+     * @return Builder<CentralUser>
+     */
+    private function whereEmailMatches(string $centralUserClass, string $email): Builder
+    {
+        return $centralUserClass::query()->whereRaw('lower(email) = ?', [Str::lower($email)]);
     }
 
     /**
@@ -120,12 +130,7 @@ class LoginWithSocialAccount
             'user_id' => $user->getKey(),
             'provider' => $data->provider,
             'provider_id' => $data->providerId,
-            'name' => $data->name,
-            'email' => $data->email,
-            'avatar_url' => $data->avatarUrl,
-            'token' => $data->token,
-            'refresh_token' => $data->refreshToken,
-            'token_expires_at' => $data->expiresAt,
+            ...$data->accountAttributes(),
         ]);
 
         event(new SocialAccountLinked($socialAccount, $user->global_id, $data->provider->value));
@@ -133,13 +138,6 @@ class LoginWithSocialAccount
 
     private function refreshTokens(SocialAccount $account, SocialUserData $data): void
     {
-        $account->update([
-            'name' => $data->name,
-            'email' => $data->email,
-            'avatar_url' => $data->avatarUrl,
-            'token' => $data->token,
-            'refresh_token' => $data->refreshToken,
-            'token_expires_at' => $data->expiresAt,
-        ]);
+        $account->update($data->accountAttributes());
     }
 }

@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Features\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Contracts\NamedFeature;
+use Nvade\Numerosis\Support\Features;
 
 /**
  * The whole OAuth surface: routes, provider buttons, connected-accounts
@@ -22,6 +23,11 @@ class SocialLoginFeature implements NamedFeature
     public static function featureName(): string
     {
         return self::NAME;
+    }
+
+    public static function available(): bool
+    {
+        return Features::enabled(self::NAME);
     }
 
     public function bootstrap(): void

@@ -11,7 +11,6 @@ use Nvade\Numerosis\Actions\Tenancy\AddTenantMember;
 use Nvade\Numerosis\Events\Invitations\InvitationAccepted;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationAlreadyAccepted;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationEmailMismatch;
-use Nvade\Numerosis\Exceptions\Invitations\InvitationExpired;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -33,8 +32,8 @@ class AcceptInvitation
     public function handle(Invitation $invitation, CentralUser $user): Invitation
     {
         return DB::transaction(function () use ($invitation, $user): Invitation {
-            throw_if($invitation->isAccepted(), InvitationAlreadyAccepted::class, 'This invitation has already been accepted.');
-            throw_if($invitation->isExpired(), InvitationExpired::class, 'This invitation has expired.');
+            $invitation->assertClaimable();
+
             throw_unless(
                 Str::lower($user->email) === Str::lower($invitation->email),
                 InvitationEmailMismatch::class,

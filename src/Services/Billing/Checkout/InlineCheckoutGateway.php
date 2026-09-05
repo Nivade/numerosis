@@ -13,7 +13,6 @@ use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\Billing\BillingCycleRequired;
-use Nvade\Numerosis\Exceptions\Billing\PaymentPlanNotFound;
 use Nvade\Numerosis\Exceptions\Billing\StripePriceNotConfigured;
 use Nvade\Numerosis\Exceptions\Billing\UnsupportedBillable;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -31,11 +30,7 @@ class InlineCheckoutGateway implements CheckoutGateway
     {
         throw_if(! $registration->billing_cycle instanceof BillingCycle, BillingCycleRequired::class, 'A billing cycle is required to start a checkout.');
 
-        $plan = $this->plans->findBySlug((string) $registration->payment_plan);
-
-        if (! $plan) {
-            throw new PaymentPlanNotFound("Payment plan not found: {$registration->payment_plan}");
-        }
+        $plan = $this->plans->findBySlugOrFail((string) $registration->payment_plan);
 
         // The subscription is priced later from the pending row. Checked here
         // so a misconfigured plan fails before the customer enters a card.

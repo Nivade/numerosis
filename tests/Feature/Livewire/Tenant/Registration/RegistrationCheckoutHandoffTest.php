@@ -66,15 +66,11 @@ class RegistrationCheckoutHandoffTest extends TestCase
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
-        PaymentPlan::create([
-            'name' => 'Starter',
+        PaymentPlan::factory()->create([
             'slug' => 'starter',
-            'description' => 'Starter Plan',
             'monthly_id' => 'price_test_monthly',
             'yearly_id' => 'price_test_yearly',
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
-            'available' => true,
+            'trial_days' => 0,
         ]);
 
         $this->planStep([

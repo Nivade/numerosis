@@ -89,8 +89,6 @@ class PaymentPlan extends Model implements Plan
     }
 
     /**
-     * Get all features for this payment plan through the pivot table.
-     *
      * @return BelongsToMany<PlanFeature, $this, PaymentPlanFeature>
      */
     public function features(): BelongsToMany
@@ -170,17 +168,6 @@ class PaymentPlan extends Model implements Plan
     protected function available(Builder $query): Builder
     {
         return $query->where('available', true);
-    }
-
-    /**
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    #[Scope]
-    protected function tieredAscending(Builder $query): Builder
-    {
-        return $query->where('available', true)
-            ->orderBy('monthly_price', 'asc');
     }
 
     /**

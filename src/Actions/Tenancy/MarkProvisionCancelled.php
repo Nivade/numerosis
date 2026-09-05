@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Tenancy;
 
 use DomainException;
-use Exception;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningCancelled;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
@@ -17,15 +16,10 @@ class MarkProvisionCancelled
 
     public function handle(string $domain): void
     {
-        $pendingClass = Numerosis::model(PendingTenantProvision::class);
+        /** @var PendingTenantProvision|null $pending */
+        $pending = Numerosis::model(PendingTenantProvision::class)::firstWhere('domain', $domain);
 
-        try {
-            /** @var PendingTenantProvision $pending */
-            $pending = $pendingClass::where('domain', $domain)
-                ->firstOrFail();
-        } catch (Exception) {
-            throw new DomainException("Could not find a pending tenant reservation for domain: {$domain}");
-        }
+        throw_unless($pending, DomainException::class, "Could not find a pending tenant reservation for domain: {$domain}");
 
         $ownerId = $pending->global_id;
 

@@ -10,6 +10,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Support\Broadcasting\OwnerChannel;
 
 class TenantProvisioned implements ShouldBroadcast
 {
@@ -22,9 +23,12 @@ class TenantProvisioned implements ShouldBroadcast
         public readonly string|int $ownerId,
     ) {}
 
+    /**
+     * @return list<PrivateChannel>
+     */
     public function broadcastOn(): array
     {
-        return [new PrivateChannel("user.{$this->ownerId}")];
+        return OwnerChannel::forId($this->ownerId);
     }
 
     public function broadcastAs(): string

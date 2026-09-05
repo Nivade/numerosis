@@ -56,6 +56,8 @@ use Nvade\Numerosis\Services\Tenancy\DefaultTenantDomainPolicy;
 use Nvade\Numerosis\Services\Tenancy\StanclTenantDatabaseManager;
 use Nvade\Numerosis\Support\Domains;
 
+$apex = env('NUMEROSIS_APEX_DOMAIN') ?: Domains::apexFromAppUrl();
+
 /**
  * Publishable. `HostConfig`'s deep-fill backfills every key a host's copy
  * omits, at any depth, so an override file only has to name what it changes.
@@ -155,14 +157,13 @@ return [
     */
 
     'domains' => [
-        'apex' => env('NUMEROSIS_APEX_DOMAIN') ?: Domains::apexFromAppUrl(),
+        'apex' => $apex,
 
         'central' => env('NUMEROSIS_CENTRAL_DOMAIN') ?: Domains::hostFromAppUrl(),
 
         // '{tenant}.'.apex, not APP_URL's host — APP_URL may carry a central
         // subdomain too, which would put every tenant one level too deep.
-        'tenant_pattern' => env('NUMEROSIS_TENANT_DOMAIN')
-            ?: '{tenant}.'.(env('NUMEROSIS_APEX_DOMAIN') ?: Domains::apexFromAppUrl()),
+        'tenant_pattern' => env('NUMEROSIS_TENANT_DOMAIN') ?: '{tenant}.'.$apex,
     ],
 
     /*
@@ -305,7 +306,7 @@ return [
         // Provisioning happens before settlement, so this caps how many
         // concurrently-unpaid tenants a single user can own before
         // StartSubscriptionCheckout refuses to start another.
-        'unpaid_tenant_cap' => env('BILLING_UNPAID_TENANT_CAP', 2),
+        'unpaid_tenant_cap' => (int) env('BILLING_UNPAID_TENANT_CAP', 2),
 
         // Disable if your application syncs tenants to Stripe itself and
         // does not want SyncTenantToStripe firing a second write.

@@ -1,6 +1,6 @@
 {
     "name": "nvade/numerosis-ui",
-    "description": "Shared Blade primitives for the Numerosis packages: UI components, icons, layouts and partials.",
+    "description": "Shared Blade primitives for the Numerosis packages: UI components, icons and Flux icon fallbacks.",
     "keywords": [
         "nvade",
         "laravel",

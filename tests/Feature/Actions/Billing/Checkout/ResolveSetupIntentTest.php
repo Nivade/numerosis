@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Checkout;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Subscription;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
@@ -14,33 +13,23 @@ use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Exceptions\Billing\SetupIntentNotConfirmed;
 use Nvade\Numerosis\Testing\FakesStripe;
+use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
 use Nvade\Numerosis\Tests\TestCase;
 
 class ResolveSetupIntentTest extends TestCase
 {
+    use CreatesCheckoutFixtures;
     use FakesStripe;
     use RefreshDatabase;
 
     public function test_it_resolves_a_confirmed_setup_intent_owned_by_the_caller(): void
     {
         $this->fakeStripe();
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
+        $user = $this->signedInCustomer();
 
-        $customer = $user->createOrGetStripeCustomer();
+        $setupIntent = $this->confirmedSetupIntentFor($user);
 
-        $setupIntent = Cashier::stripe()->setupIntents->create([
-            'customer' => $customer->id,
-            'payment_method' => 'pm_card_visa',
-            'payment_method_types' => ['card'],
-            'confirm' => true,
-        ]);
-
-        $pending = PendingTenantProvision::factory()->create([
-            'domain' => 'resolve-test',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => $setupIntent->id,
-        ]);
+        $pending = $this->reserve('resolve-test', $user, $setupIntent->id);
 
         $resolved = ResolveSetupIntent::run($setupIntent->id);
 
@@ -51,8 +40,7 @@ class ResolveSetupIntentTest extends TestCase
 
     public function test_it_refuses_a_setup_intent_with_no_matching_pending_row(): void
     {
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
+        $user = $this->signedInCustomer();
 
         $this->expectException(CheckoutSessionExpired::class);
 
@@ -65,11 +53,7 @@ class ResolveSetupIntentTest extends TestCase
         $owner = CentralUser::factory()->create();
         $this->actingAs($user);
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'foreign-reservation',
-            'global_id' => $owner->global_id,
-            'stripe_setup_intent_id' => 'seti_belongs_to_someone_else',
-        ]);
+        $this->reserve('foreign-reservation', $owner, 'seti_belongs_to_someone_else');
 
         $this->expectException(CheckoutSessionExpired::class);
 
@@ -79,20 +63,13 @@ class ResolveSetupIntentTest extends TestCase
     public function test_it_refuses_an_unconfirmed_setup_intent(): void
     {
         $this->fakeStripe();
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
-
-        $customer = $user->createOrGetStripeCustomer();
+        $user = $this->signedInCustomer();
 
         $setupIntent = Cashier::stripe()->setupIntents->create([
-            'customer' => $customer->id,
+            'customer' => $user->createOrGetStripeCustomer()->id,
         ]);
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'unconfirmed-test',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => $setupIntent->id,
-        ]);
+        $this->reserve('unconfirmed-test', $user, $setupIntent->id);
 
         $this->expectException(SetupIntentNotConfirmed::class);
 
@@ -110,22 +87,11 @@ class ResolveSetupIntentTest extends TestCase
     public function test_it_refuses_a_setup_intent_already_turned_into_a_live_subscription(): void
     {
         $this->fakeStripe();
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
+        $user = $this->signedInCustomer();
 
-        $customer = $user->createOrGetStripeCustomer();
+        $setupIntent = $this->confirmedSetupIntentFor($user);
 
-        $setupIntent = Cashier::stripe()->setupIntents->create([
-            'customer' => $customer->id,
-            'payment_method' => 'pm_card_visa',
-            'payment_method_types' => ['card'],
-            'confirm' => true,
-        ]);
-
-        PendingTenantProvision::factory()->create([
-            'domain' => 'already-completed-test',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => $setupIntent->id,
+        $this->reserve('already-completed-test', $user, $setupIntent->id, [
             'stripe_subscription_id' => 'sub_already_settled',
         ]);
 
@@ -152,22 +118,11 @@ class ResolveSetupIntentTest extends TestCase
     public function test_it_allows_resolving_again_when_the_recorded_subscription_was_cancelled(): void
     {
         $this->fakeStripe();
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
+        $user = $this->signedInCustomer();
 
-        $customer = $user->createOrGetStripeCustomer();
+        $setupIntent = $this->confirmedSetupIntentFor($user);
 
-        $setupIntent = Cashier::stripe()->setupIntents->create([
-            'customer' => $customer->id,
-            'payment_method' => 'pm_card_visa',
-            'payment_method_types' => ['card'],
-            'confirm' => true,
-        ]);
-
-        PendingTenantProvision::factory()->create([
-            'domain' => 'cancelled-completed-test',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => $setupIntent->id,
+        $this->reserve('cancelled-completed-test', $user, $setupIntent->id, [
             'stripe_subscription_id' => 'sub_previously_cancelled',
         ]);
 

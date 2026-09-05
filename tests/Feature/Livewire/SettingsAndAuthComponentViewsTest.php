@@ -6,7 +6,6 @@ namespace Nvade\Numerosis\Tests\Feature\Livewire;
 
 use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
 use Nvade\Numerosis\Livewire\Settings\Password;
 use Nvade\Numerosis\Tests\TestCase;
@@ -34,7 +33,7 @@ class SettingsAndAuthComponentViewsTest extends TestCase
     public function test_password_renders(): void
     {
         $user = CentralUser::factory()->create();
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
+        $this->actingAsCentralUser($user);
 
         Livewire::test(Password::class)->assertStatus(200);
     }

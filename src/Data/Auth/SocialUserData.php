@@ -33,4 +33,22 @@ class SocialUserData extends Data
         public ?string $refreshToken,
         public ?CarbonImmutable $expiresAt,
     ) {}
+
+    /**
+     * The profile and credential columns of a `SocialAccount` row, as every
+     * write path in `Actions\Auth\Social` sets them.
+     *
+     * @return array{name: ?string, email: ?string, avatar_url: ?string, token: ?string, refresh_token: ?string, token_expires_at: ?CarbonImmutable}
+     */
+    public function accountAttributes(): array
+    {
+        return [
+            'name' => $this->name,
+            'email' => $this->email,
+            'avatar_url' => $this->avatarUrl,
+            'token' => $this->token,
+            'refresh_token' => $this->refreshToken,
+            'token_expires_at' => $this->expiresAt,
+        ];
+    }
 }

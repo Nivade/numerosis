@@ -16,7 +16,6 @@ use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Events\Billing\CheckoutStarted;
-use Nvade\Numerosis\Exceptions\Billing\PaymentPlanNotFound;
 use Nvade\Numerosis\Http\Requests\Billing\StartCheckoutRequest;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Services\Billing\Checkout\CheckoutIntentResponse;
@@ -35,11 +34,7 @@ class StartSubscriptionCheckout
 
     public function handle(TenantRegistrationData $registration): CheckoutIntent
     {
-        $plan = $this->plans->findBySlug((string) $registration->payment_plan);
-
-        if (! $plan) {
-            throw new PaymentPlanNotFound("Payment plan not found: {$registration->payment_plan}");
-        }
+        $plan = $this->plans->findBySlugOrFail((string) $registration->payment_plan);
 
         $billable = $this->billables->resolve();
 

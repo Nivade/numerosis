@@ -7,7 +7,6 @@ namespace Nvade\Numerosis\Tests\Feature\Auth;
 use App\Models\Central\CentralUser;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
@@ -73,7 +72,7 @@ class FortifyEndpointsTest extends TestCase
         Notification::fake();
 
         $user = CentralUser::factory()->create(['email_verified_at' => now()]);
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
+        $this->actingAsCentralUser($user);
 
         $this->put('/user/profile-information', [
             'name' => $user->name,
@@ -92,7 +91,7 @@ class FortifyEndpointsTest extends TestCase
         Notification::fake();
 
         $user = CentralUser::factory()->create(['email_verified_at' => now()]);
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
+        $this->actingAsCentralUser($user);
 
         $this->put('/user/profile-information', [
             'name' => 'Renamed',
@@ -110,7 +109,7 @@ class FortifyEndpointsTest extends TestCase
     public function test_updating_the_password_requires_the_current_one(): void
     {
         $user = CentralUser::factory()->create(['password' => Hash::make('old-password')]);
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
+        $this->actingAsCentralUser($user);
 
         $this->from('/settings/password')->put('/user/password', [
             'current_password' => 'not-the-old-password',
@@ -124,7 +123,7 @@ class FortifyEndpointsTest extends TestCase
     public function test_updating_the_password_replaces_it(): void
     {
         $user = CentralUser::factory()->create(['password' => Hash::make('old-password')]);
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
+        $this->actingAsCentralUser($user);
 
         $this->put('/user/password', [
             'current_password' => 'old-password',

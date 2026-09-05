@@ -22,7 +22,7 @@
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
 
-                <flux:link class="text-sm cursor-pointer" href="#" onclick="event.preventDefault(); this.closest('form').submit();">
+                <flux:link as="button" type="submit" class="text-sm cursor-pointer">
                     {{ __('Log out') }}
                 </flux:link>
             </form>

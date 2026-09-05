@@ -12,14 +12,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Billing\Subscriptions\LinkSubscriptionToTenant;
 use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
 use Nvade\Numerosis\Data\Billing\SubscriptionItemData;
-use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Models\Central\Subscription as PackageSubscription;
+use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\TestCase;
 use Spatie\LaravelData\DataCollection;
 
 class LinkSubscriptionToTenantTest extends TestCase
 {
+    use BuildsTenantProvisionData;
     use RefreshDatabase;
 
     public function test_it_transfers_existing_subscription_to_tenant(): void
@@ -30,19 +30,7 @@ class LinkSubscriptionToTenantTest extends TestCase
         $user = CentralUser::factory()->create();
         $tenant = Tenant::factory()->create(['stripe_id' => null]);
         $plan = PaymentPlan::factory()->create(['slug' => 'pro']);
-        $subscription = Subscription::factory()->create([
-            'stripe_id' => 'sub_123',
-            // The morph is keyed on the owner's primary key, which is what
-            // Cashier's own subscriptions()->create() writes. Using global_id
-            // here produced a row whose owner silently resolved to null, and
-            // intermittently an ErrorException: subscriptions.subscribable_id
-            // is a string column, but CentralUser::getKeyType() is 'int', so
-            // the eager load runs whereIntegerInRaw and casts every value —
-            // fine for "1", fatal for a UUID shaped like 3e106911-...
-            'subscribable_id' => $user->getKey(),
-            'subscribable_type' => CentralUser::class,
-            'payment_plan_id' => $plan->id,
-        ]);
+        $subscription = $this->subscriptionOwnedBy($user, 'sub_123', $plan->id);
 
         LinkSubscriptionToTenant::run(
             $this->provisionData($user, 'test', 'pro', 'cus_123', 'sub_123'),
@@ -66,19 +54,7 @@ class LinkSubscriptionToTenantTest extends TestCase
         $user = CentralUser::factory()->create();
         $tenant = Tenant::factory()->create(['stripe_id' => null]);
         $plan = PaymentPlan::factory()->create(['slug' => 'pro']);
-        $subscription = Subscription::factory()->create([
-            'stripe_id' => 'sub_789',
-            // The morph is keyed on the owner's primary key, which is what
-            // Cashier's own subscriptions()->create() writes. Using global_id
-            // here produced a row whose owner silently resolved to null, and
-            // intermittently an ErrorException: subscriptions.subscribable_id
-            // is a string column, but CentralUser::getKeyType() is 'int', so
-            // the eager load runs whereIntegerInRaw and casts every value —
-            // fine for "1", fatal for a UUID shaped like 3e106911-...
-            'subscribable_id' => $user->getKey(),
-            'subscribable_type' => CentralUser::class,
-            'payment_plan_id' => null,
-        ]);
+        $subscription = $this->subscriptionOwnedBy($user, 'sub_789', null);
 
         LinkSubscriptionToTenant::run(
             $this->provisionData($user, 'test3', 'pro', 'cus_789', 'sub_789'),
@@ -132,25 +108,27 @@ class LinkSubscriptionToTenantTest extends TestCase
         $this->assertEquals($plan->id, $subscription->payment_plan_id);
     }
 
-    private function provisionData(
-        CentralUser $user,
-        string $domain,
-        string $paymentPlan,
-        string $stripeCustomerId,
-        string $stripeSubscriptionId,
-    ): TenantProvisionData {
-        return new TenantProvisionData(
-            registration: TenantRegistrationData::from([
-                'company_name' => 'Test Company',
-                'domain' => $domain,
-                'payment_plan' => $paymentPlan,
-                'billing_cycle' => BillingCycle::Monthly,
-                'global_id' => $user->global_id,
-            ]),
-            stripeCustomerId: $stripeCustomerId,
-            stripeSubscriptionId: $stripeSubscriptionId,
-            centralUserId: (string) $user->id,
-        );
+    /**
+     * The morph is keyed on the owner's primary key, which is what Cashier's
+     * own `subscriptions()->create()` writes. A `global_id` here produces a
+     * row whose owner silently resolves to null, and intermittently an
+     * `ErrorException`: `subscribable_id` is a string column while
+     * `CentralUser::getKeyType()` is `'int'`, so the eager load runs
+     * `whereIntegerInRaw` and casts every value — fine for `"1"`, fatal for a
+     * UUID shaped like `3e106911-…`.
+     *
+     * Returns the package's own model rather than the host subclass the
+     * factory builds at runtime: Larastan resolves `Subscription::factory()`
+     * through the factory's generic, which names the package class.
+     */
+    private function subscriptionOwnedBy(CentralUser $user, string $stripeId, ?int $paymentPlanId): PackageSubscription
+    {
+        return Subscription::factory()->create([
+            'stripe_id' => $stripeId,
+            'subscribable_id' => $user->getKey(),
+            'subscribable_type' => CentralUser::class,
+            'payment_plan_id' => $paymentPlanId,
+        ]);
     }
 
     /**

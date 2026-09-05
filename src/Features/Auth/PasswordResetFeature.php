@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Features\Auth;
 
 use Nvade\Numerosis\Contracts\NamedFeature;
+use Nvade\Numerosis\Support\Features;
 
 /**
  * Password reset: the forgot- and reset-password routes and the password
@@ -19,6 +20,11 @@ class PasswordResetFeature implements NamedFeature
     public static function featureName(): string
     {
         return self::NAME;
+    }
+
+    public static function available(): bool
+    {
+        return Features::enabled(self::NAME);
     }
 
     public function bootstrap(): void

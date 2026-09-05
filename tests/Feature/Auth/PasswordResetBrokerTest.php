@@ -44,13 +44,7 @@ class PasswordResetBrokerTest extends TestCase
 
         [$tenant, $domain] = $this->tenantWithDomain();
 
-        $tenant->run(function () use ($email): void {
-            TenantUser::create([
-                'global_id' => 'global-'.uniqid(),
-                'name' => 'Tenant User',
-                'email' => $email,
-            ]);
-        });
+        $this->createTenantUser($tenant, ['email' => $email]);
 
         // Written by ResourceSyncing, not by this test — and it is exactly
         // what the central broker would hand the reset token to.
@@ -115,13 +109,7 @@ class PasswordResetBrokerTest extends TestCase
     private function tenantWithDomain(): array
     {
         $id = 'broker'.substr(uniqid(), -8);
-        $domain = $this->tenantDomain($id);
 
-        // forceCreate, as production does: `id` is not fillable, so
-        // Tenant::create() drops it and the subdomain stops matching.
-        $tenant = Tenant::forceCreate(['id' => $id, 'name' => 'Broker Tenant']);
-        $tenant->domains()->create(['id' => $id, 'domain' => $domain]);
-
-        return [$tenant, $domain];
+        return [$this->createTenantWithDomain($id, 'Broker Tenant'), $this->tenantDomain($id)];
     }
 }

@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Models\Central\Tenant as TenantModel;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
 use Nvade\Numerosis\Tests\TestCase;
@@ -20,6 +24,34 @@ TenancyServiceProvider::$tenantCreatedJobs = [
 ];
 
 uses(TestCase::class, RefreshDatabase::class)->in('Feature');
+
+/**
+ * Sign a fresh tenant user in on the tenant guard, inside the tenant's own
+ * database.
+ *
+ * `Auth::login()` rather than the test's own `actingAs()`: identical effect on
+ * the guard, and it needs no reference to the TestCase — PHPStan types `$this`
+ * inside a Pest closure as `Pest\PendingCalls\TestCall`, so passing it to a
+ * typed parameter is an error it cannot see through.
+ */
+function signInTenantUser(TenantModel $tenant): void
+{
+    $tenant->run(function (): void {
+        Auth::guard(Config::string('numerosis.auth.guards.tenant'))->login(TenantUser::factory()->create());
+    });
+}
+
+/**
+ * The tenant landing page rendered, rather than the "Server Error" body a
+ * rendered 500 produces — which is all a failing tenant page says otherwise.
+ */
+function expectTenantLandingPage(string $url): void
+{
+    $content = (string) visit($url)->content();
+
+    expect($content)->toContain(Config::string('app.name'));
+    expect($content)->not->toContain('Server Error');
+}
 
 /*
  * tests/Browser deliberately gets no directory-wide uses(): its files do not

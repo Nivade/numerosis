@@ -25,7 +25,7 @@ class ResolveAttachedPaymentMethod
 
     public function handle(SetupIntent $setupIntent): ?PaymentMethod
     {
-        $paymentMethod = $setupIntent->payment_method instanceof PaymentMethod ? $setupIntent->payment_method : null;
+        $paymentMethod = $setupIntent->payment_method;
 
         if (! $paymentMethod instanceof PaymentMethod) {
             return null;

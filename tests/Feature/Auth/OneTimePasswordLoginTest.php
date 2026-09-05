@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Auth;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
@@ -187,21 +186,10 @@ class OneTimePasswordLoginTest extends TestCase
     {
         $id = 'otp-'.uniqid();
         $domain = $this->tenantDomain($id);
-
-        // forceCreate, as production does: `id` is not fillable, so
-        // Tenant::create() drops it and the subdomain stops matching.
-        $tenant = Tenant::forceCreate(['id' => $id, 'name' => 'OTP Tenant']);
-        $tenant->domains()->create(['id' => $id, 'domain' => $domain]);
-
         $email = 'tenant-'.uniqid().'@example.com';
 
-        $tenant->run(function () use ($email): void {
-            TenantUser::create([
-                'global_id' => 'global-'.uniqid(),
-                'name' => 'Tenant User',
-                'email' => $email,
-            ]);
-        });
+        $tenant = $this->createTenantWithDomain($id, 'OTP Tenant');
+        $this->createTenantUser($tenant, ['email' => $email]);
 
         $this->post('http://'.$domain.'/login', ['email' => $email])
             ->assertRedirectContains('/one-time-password-challenge');

@@ -5,19 +5,16 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Invitations;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\Tenant;
-use DateTimeInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Queue;
-use Illuminate\Support\Facades\URL;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
-use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Tests\Concerns\BuildsInvitations;
 use Nvade\Numerosis\Tests\TestCase;
 
 class InvitationRoutesTest extends TestCase
 {
+    use BuildsInvitations;
     use RefreshDatabase;
 
     public function test_an_unsigned_url_is_refused(): void
@@ -52,7 +49,7 @@ class InvitationRoutesTest extends TestCase
         $invitation = $this->pendingInvitation();
         $user = CentralUser::factory()->create(['email' => $invitation->email]);
 
-        $response = $this->actingAs($user, Config::string('numerosis.auth.guards.central'))
+        $response = $this->actingAsCentralUser($user)
             ->get($this->signedShowUrl($invitation));
 
         $response->assertOk();
@@ -68,7 +65,7 @@ class InvitationRoutesTest extends TestCase
 
         // Not `login`: that route carries Fortify's `guest` middleware, which
         // would bounce this already-authenticated user and drop the flash.
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'))
+        $this->actingAsCentralUser($user)
             ->post($this->signedShowUrl($invitation))
             ->assertRedirect(route(RouteNames::tenantsMine()))
             ->assertSessionHas('status', 'This invitation was sent to a different email address.');
@@ -90,14 +87,11 @@ class InvitationRoutesTest extends TestCase
      */
     public function test_an_expired_invitation_shows_its_message_to_an_authenticated_visitor(): void
     {
-        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
-        $invitation = Invitation::factory()->for($tenant, 'tenant')->expired()->create([
-            'email' => 'expired-'.uniqid().'@example.com',
-        ]);
+        $invitation = $this->expiredInvitation();
 
         $user = CentralUser::factory()->create(['email' => $invitation->email]);
 
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'))
+        $this->actingAsCentralUser($user)
             ->get($this->signedShowUrl($invitation, now()->addHour()))
             ->assertRedirect(route(RouteNames::tenantsMine()))
             ->assertSessionHas('status', 'This invitation has expired.');
@@ -105,10 +99,7 @@ class InvitationRoutesTest extends TestCase
 
     public function test_an_expired_link_is_refused_by_its_signature_before_the_controller(): void
     {
-        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
-        $invitation = Invitation::factory()->for($tenant, 'tenant')->expired()->create([
-            'email' => 'stale-'.uniqid().'@example.com',
-        ]);
+        $invitation = $this->expiredInvitation('stale');
 
         $this->get($this->signedShowUrl($invitation))->assertForbidden();
     }
@@ -119,23 +110,5 @@ class InvitationRoutesTest extends TestCase
 
         $this->assertInstanceOf(MembershipRole::class, $invitation->role);
         $this->assertNotContains(MembershipRole::Owner, MembershipRole::assignable());
-    }
-
-    private function pendingInvitation(): Invitation
-    {
-        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
-
-        return Invitation::factory()->for($tenant, 'tenant')->create([
-            'email' => 'invitee-'.uniqid().'@example.com',
-        ]);
-    }
-
-    private function signedShowUrl(Invitation $invitation, ?DateTimeInterface $expiry = null): string
-    {
-        return URL::temporarySignedRoute(
-            RouteNames::invitationShow(),
-            $expiry ?? $invitation->expires_at,
-            ['invitation' => $invitation->getRouteKey()],
-        );
     }
 }

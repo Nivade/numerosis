@@ -23,6 +23,18 @@ use function Pest\Laravel\seed;
  * later test.
  */
 
+/**
+ * `Route::getByName()` reads a lookup table `RouteServiceProvider` rebuilds
+ * after loading a route file — a bypass the direct `Numerosis::routes()` calls
+ * below never go through, so a freshly added route has to be found by scanning
+ * the collection.
+ */
+function registeredRoute(string $name): Illuminate\Routing\Route
+{
+    return collect(Route::getRoutes()->getRoutes())
+        ->sole(fn (Illuminate\Routing\Route $route): bool => $route->getName() === $name);
+}
+
 afterEach(function (): void {
     Numerosis::resetRouteContributionsForTesting();
     Numerosis::resetMigrationAndSeederContributionsForTesting();
@@ -36,12 +48,7 @@ it('runs an addCentralRoutes() callback inside the central domain group, with th
 
     Numerosis::routes();
 
-    // getByName() reads a lookup table normally rebuilt by
-    // RouteServiceProvider after loading a route file — a bypass this
-    // test's direct Numerosis::routes() call never goes through, so a
-    // fresh route added here has to be found by scanning the collection.
-    $route = collect(Route::getRoutes()->getRoutes())
-        ->sole(fn ($r) => $r->getName() === 'seam.central.probe');
+    $route = registeredRoute('seam.central.probe');
     $centralDomains = Config::array('tenancy.central_domains');
 
     expect($route->getDomain())->toBe($centralDomains[0])
@@ -55,15 +62,10 @@ it('runs an addTenantRoutes() callback inside the tenant middleware group', func
 
     Numerosis::routes();
 
-    $route = collect(Route::getRoutes()->getRoutes())
-        ->sole(fn ($r) => $r->getName() === 'seam.tenant.probe');
-
-    expect($route->gatherMiddleware())->toContain('tenant');
+    expect(registeredRoute('seam.tenant.probe')->gatherMiddleware())->toContain('tenant');
 });
 
 it('attributes a route contribution to the source that registered it', function () {
-    Numerosis::resetRouteContributionsForTesting();
-
     Numerosis::addCentralRoutes(function (): void {}, source: 'nvade/numerosis-onboarding');
     Numerosis::addCentralRoutes(function (): void {});
     Numerosis::addTenantRoutes(function (): void {}, source: 'nvade/numerosis-auth-ui');

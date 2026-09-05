@@ -11,6 +11,7 @@ use Nvade\Numerosis\Contracts\NamedFeature;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
 use Nvade\Numerosis\Livewire\Tenant\Registration as WizardRegistration;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps as Wizard;
+use Nvade\Numerosis\Support\Features;
 
 /**
  * The self-serve tenant registration wizard and its route.
@@ -50,6 +51,11 @@ class RegistrationWizardFeature implements NamedFeature
         return self::NAME;
     }
 
+    public static function available(): bool
+    {
+        return Features::enabled(self::NAME);
+    }
+
     public function bootstrap(): void
     {
         // Fills an unset key only, so a host's own step list wins. Every
@@ -67,7 +73,7 @@ class RegistrationWizardFeature implements NamedFeature
         // Livewire::addComponent() takes an absolute path, so it is built
         // from `numerosis.views.path`, which
         // NumerosisServiceProvider::packageBooted() sets.
-        $viewsPath = Config::string('numerosis.views.path');
+        $wizardViews = Config::string('numerosis.views.path').'/livewire/tenant/registration/wizard';
 
         /** @var list<class-string> $steps */
         $steps = Config::array('numerosis.tenancy.registration.steps');
@@ -76,7 +82,7 @@ class RegistrationWizardFeature implements NamedFeature
 
         Livewire::addComponent(
             name: 'tenant-registration',
-            viewPath: $viewsPath.'/livewire/tenant/registration/wizard/index.blade.php',
+            viewPath: $wizardViews.'/index.blade.php',
             class: WizardRegistration::class,
         );
 
@@ -89,7 +95,7 @@ class RegistrationWizardFeature implements NamedFeature
 
             Livewire::addComponent(
                 name: $alias,
-                viewPath: $viewsPath.'/livewire/tenant/registration/wizard/steps/'.$alias.'.blade.php',
+                viewPath: $wizardViews.'/steps/'.$alias.'.blade.php',
                 class: $step,
             );
         }

@@ -9,19 +9,27 @@ use Illuminate\View\View;
 use Livewire\Attributes\Validate;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
+use Nvade\Numerosis\Contracts\Billing\Plan as PlanContract;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
-use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Support\Numerosis;
 use Spatie\LivewireWizard\Components\StepComponent;
 
 class Plan extends StepComponent
 {
     public string $payment_plan = '';
 
+    /**
+     * Cannot be narrowed to `BillingCycle`. The wizard re-mounts each step with
+     * `allStepState` as mount params, and Livewire's
+     * `SupportNestingComponents::assignParamsToProperties()` assigns those to
+     * matching public properties directly, with no cast — so the string
+     * `StepComponent::dispatchDehydrated()` wrote arrives raw. Read it through
+     * {@see self::cycle()}.
+     */
     public BillingCycle|string $billingCycle = BillingCycle::Monthly;
 
     #[Validate('required|boolean|accepted')]
@@ -44,6 +52,18 @@ class Plan extends StepComponent
     public ?string $checkoutPublishableKey = null;
 
     /**
+     * The selected cycle as the enum, whichever shape {@see self::$billingCycle}
+     * happens to hold. An unrecognised stored value falls back rather than
+     * throwing, so a stale session cannot break the whole wizard.
+     */
+    public function cycle(): BillingCycle
+    {
+        return $this->billingCycle instanceof BillingCycle
+            ? $this->billingCycle
+            : BillingCycle::tryFrom($this->billingCycle) ?? BillingCycle::Monthly;
+    }
+
+    /**
      * @return array<string, list<string>>
      */
     public function rules(): array
@@ -62,11 +82,6 @@ class Plan extends StepComponent
     public function updatedTerms(): void
     {
         $this->validateOnly('terms');
-    }
-
-    public function setBillingCycle(BillingCycle $billingCycle): void
-    {
-        $this->billingCycle = $billingCycle;
     }
 
     public function back(): void
@@ -101,10 +116,6 @@ class Plan extends StepComponent
 
         abort_if($user === null, 403);
 
-        $billingCycle = $this->billingCycle instanceof BillingCycle
-            ? $this->billingCycle
-            : BillingCycle::from($this->billingCycle);
-
         // Checkout refusals carry customer-facing copy; uncaught, Livewire
         // renders a dead button and no reason. Typed to ShowsMessageToUser,
         // never Throwable, so nothing unexpected leaks.
@@ -114,7 +125,7 @@ class Plan extends StepComponent
                 domain: (string) $domain,
                 global_id: $user->global_id,
                 payment_plan: $this->payment_plan,
-                billing_cycle: $billingCycle,
+                billing_cycle: $this->cycle(),
             ));
         } catch (ShowsMessageToUser $e) {
             $this->checkoutError = $e->getMessage();
@@ -133,40 +144,25 @@ class Plan extends StepComponent
 
         if ($intent instanceof RedirectCheckout) {
             $this->redirect($intent->url);
-
-            return;
         }
     }
 
-    public function check(): void {}
-
     /**
-     * @return Collection<int, PaymentPlan>
+     * Through the repository, never the model: that is where the retired-plan
+     * scope and the catalogue cache live, and where a host's own
+     * implementation is swapped in.
+     *
+     * @return Collection<int, PlanContract>
      */
     public function getPaymentPlans(): Collection
     {
-        return Numerosis::model(PaymentPlan::class)::available()
-            ->orderBy('monthly_price', 'asc')
-            ->get();
+        return resolve(PaymentPlanRepository::class)->available();
     }
 
-    /**
-     * @return View
-     */
-    public function render()
+    public function render(): View
     {
         return view('numerosis::livewire.tenant.registration.wizard.steps.plan', [
             'paymentPlans' => $this->getPaymentPlans(),
         ]);
-    }
-
-    public function monthly(): void
-    {
-        $this->setBillingCycle(BillingCycle::Monthly);
-    }
-
-    public function yearly(): void
-    {
-        $this->setBillingCycle(BillingCycle::Yearly);
     }
 }

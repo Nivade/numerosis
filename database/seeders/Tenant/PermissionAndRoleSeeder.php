@@ -11,13 +11,19 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Database\Seeders\Tenant;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Log;
+use Nvade\Numerosis\Database\Seeders\Concerns\SeedsAdminRole;
 use Nvade\Numerosis\Models\Permission;
+use Nvade\Numerosis\Models\Tenant\User;
 
 class PermissionAndRoleSeeder extends Seeder
 {
+    use SeedsAdminRole;
+
     /**
      * Run the database seeds.
+     *
+     * No connection is pinned: this runs inside tenant context, where the
+     * default connection is already the tenant's own database.
      */
     public function run(): void
     {
@@ -29,23 +35,12 @@ class PermissionAndRoleSeeder extends Seeder
             'users',
         ];
 
-        $permissions = collect([]);
-        foreach ($contexts as $context) {
-            foreach (Permission::actionsFor($context) as $action) {
-                $permissions->push(Permission::firstOrCreate([
-                    'name' => $action.' '.$context,
-                    'guard_name' => 'tenant',
-                ]));
-            }
-        }
+        $admin = $this->seedAdminRole(
+            $contexts,
+            'tenant',
+            fn (string $context): array => Permission::actionsFor($context),
+        );
 
-        $admin = \Nvade\Numerosis\Models\Role::firstOrCreate([
-            'name' => 'admin',
-            'guard_name' => 'tenant',
-        ]);
-
-        $admin->givePermissionTo($permissions);
-
-        Log::info(\Nvade\Numerosis\Models\Tenant\User::first()?->assignRole($admin));
+        User::first()?->assignRole($admin);
     }
 }

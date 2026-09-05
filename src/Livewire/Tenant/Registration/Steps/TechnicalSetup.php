@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Livewire\Tenant\Registration\Steps;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Unique;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
@@ -68,11 +69,7 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
                 'required',
                 'string',
                 new DomainIsAvailable,
-                // Excludes the current user's own reservation, so
-                // re-submitting this step does not self-block on the row
-                // ReserveTenantDomain creates below.
-                Rule::unique('pending_tenant_provisions', 'domain')
-                    ->where(fn ($query) => $query->where('global_id', '!=', $user?->global_id)),
+                $this->unreservedByAnyoneElse('domain', $user?->global_id),
             ],
         ];
 
@@ -81,12 +78,21 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
                 'required',
                 'string',
                 new CustomDomainIsAvailable,
-                Rule::unique('pending_tenant_provisions', 'custom_domain')
-                    ->where(fn ($query) => $query->where('global_id', '!=', $user?->global_id)),
+                $this->unreservedByAnyoneElse('custom_domain', $user?->global_id),
             ];
         }
 
         return $rules;
+    }
+
+    /**
+     * Excludes the caller's own reservation, so re-submitting this step does
+     * not self-block on the row {@see ReserveTenantDomain} already created.
+     */
+    private function unreservedByAnyoneElse(string $column, ?string $globalId): Unique
+    {
+        return Rule::unique('pending_tenant_provisions', $column)
+            ->where(fn ($query) => $query->where('global_id', '!=', $globalId));
     }
 
     /**

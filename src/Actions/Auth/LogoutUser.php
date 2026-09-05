@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
-use Illuminate\Auth\SessionGuard;
 use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Session;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Concerns\Auth\ForgetsGuardSession;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 
 /**
  * Logs a user out of both guards directly, for callers outside HTTP's
@@ -23,6 +22,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 class LogoutUser
 {
     use AsAction;
+    use ForgetsGuardSession;
 
     public function handle(): void
     {
@@ -32,11 +32,6 @@ class LogoutUser
     }
 
     /**
-     * Ends the tenant guard's session without ever resolving a user outside
-     * tenant context. `SessionGuard::logout()` resolves the current user
-     * first, and with tenancy uninitialized that lookup runs against the
-     * central database and writes a remember token onto a stranger's row.
-     *
      * @see \Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant
      */
     private function endTenantSession(): void
@@ -49,19 +44,16 @@ class LogoutUser
             return;
         }
 
-        if ($guard instanceof SessionGuard) {
-            Session::forget($guard->getName());
-            Cookie::queue(Cookie::forget($guard->getRecallerName()));
-        }
+        $this->forgetGuardSession($guard);
     }
 
     public function tenant(): Guard|StatefulGuard
     {
-        return Auth::guard(Config::string('numerosis.auth.guards.tenant'));
+        return Auth::guard(Context::Tenant->guard());
     }
 
     public function central(): Guard|StatefulGuard
     {
-        return Auth::guard(Config::string('numerosis.auth.guards.central'));
+        return Auth::guard(Context::Central->guard());
     }
 }

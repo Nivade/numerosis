@@ -14,10 +14,9 @@
 
     <div class="space-y-6">
         <flux:field>
-            <flux:label class="text-base font-semibold text-zinc-900 dark:text-white flex items-center">
+            <x-numerosis::registration.required-label>
                 {{ $isPath ? 'Workspace Identifier' : 'Workspace Domain' }}
-                <span class="ml-1 text-danger-text" aria-label="Required field">*</span>
-            </flux:label>
+            </x-numerosis::registration.required-label>
 
             <div class="mt-3 relative group">
                 @if($isSubdomain)
@@ -44,18 +43,16 @@
 
             <x-numerosis::ui.info-box type="warning" title="Important: Choose carefully - this cannot be changed later" class="mt-4">
                 <ul class="mt-2 space-y-1">
-                    <li class="flex items-center space-x-2">
-                        <span class="w-1.5 h-1.5 bg-warning-icon rounded-full"></span>
-                        <span>Use only letters, numbers, and hyphens</span>
-                    </li>
-                    <li class="flex items-center space-x-2">
-                        <span class="w-1.5 h-1.5 bg-warning-icon rounded-full"></span>
-                        <span>Must be between 3-30 characters</span>
-                    </li>
-                    <li class="flex items-center space-x-2">
-                        <span class="w-1.5 h-1.5 bg-warning-icon rounded-full"></span>
-                        <span>Cannot start or end with a hyphen</span>
-                    </li>
+                    @foreach ([
+                        'Use only letters, numbers, and hyphens',
+                        'Must be between 3-30 characters',
+                        'Cannot start or end with a hyphen',
+                    ] as $rule)
+                        <li class="flex items-center space-x-2">
+                            <span class="w-1.5 h-1.5 bg-warning-icon rounded-full"></span>
+                            <span>{{ $rule }}</span>
+                        </li>
+                    @endforeach
                 </ul>
             </x-numerosis::ui.info-box>
 
@@ -64,10 +61,7 @@
 
         @if($isCustomDomain)
             <flux:field>
-                <flux:label class="text-base font-semibold text-zinc-900 dark:text-white flex items-center">
-                    Custom Domain
-                    <span class="ml-1 text-danger-text" aria-label="Required field">*</span>
-                </flux:label>
+                <x-numerosis::registration.required-label>Custom Domain</x-numerosis::registration.required-label>
 
                 <div class="mt-3">
                     <flux:input

@@ -12,8 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Nvade\Numerosis\Actions\Auth\UpdateUserPassword;
 use Nvade\Numerosis\Actions\Auth\UpdateUserProfile;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
-use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -27,6 +26,7 @@ use Nvade\Numerosis\Tests\TestCase;
  */
 class ProfileSyncTest extends TestCase
 {
+    use BuildsTenantProvisionData;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -49,7 +49,7 @@ class ProfileSyncTest extends TestCase
             'global_id' => 'global-1',
         ]);
 
-        AddTenantOwner::run($tenant, $this->provisionData($tenant, $centralUser));
+        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $centralUser));
 
         $tenant->run(function () {
             $tenantUser = TenantUser::where('global_id', 'global-1')->first();
@@ -88,7 +88,7 @@ class ProfileSyncTest extends TestCase
             'global_id' => 'global-2',
         ]);
 
-        AddTenantOwner::run($tenant, $this->provisionData($tenant, $centralUser));
+        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $centralUser));
 
         $tenant->run(function () {
             $tenantUser = TenantUser::where('global_id', 'global-2')->first();
@@ -106,16 +106,5 @@ class ProfileSyncTest extends TestCase
         // Verify central DB updated
         $centralUser->refresh();
         $this->assertTrue(Hash::check('new-password', $centralUser->password));
-    }
-
-    private function provisionData(Tenant $tenant, CentralUser $user): TenantProvisionData
-    {
-        return new TenantProvisionData(
-            registration: TenantRegistrationData::from([
-                'company_name' => 'Test Co',
-                'domain' => (string) $tenant->getTenantKey(),
-                'global_id' => $user->global_id,
-            ]),
-        );
     }
 }

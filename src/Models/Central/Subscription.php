@@ -74,8 +74,6 @@ class Subscription extends \Laravel\Cashier\Subscription
     }
 
     /**
-     * Get the model related to the subscription.
-     *
      * @return MorphTo<Model, $this>
      */
     public function subscribable(): MorphTo
@@ -84,8 +82,6 @@ class Subscription extends \Laravel\Cashier\Subscription
     }
 
     /**
-     * Get the model related to the subscription (Cashier override).
-     *
      * @return MorphTo<Model, $this>
      */
     #[Override]

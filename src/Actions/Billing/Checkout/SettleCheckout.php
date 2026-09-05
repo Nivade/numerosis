@@ -41,17 +41,8 @@ class SettleCheckout
             'status' => $settled ? TenantProvisionStatus::Provisioning : TenantProvisionStatus::AwaitingPayment,
         ]);
 
-        $registration = new TenantRegistrationData(
-            company_name: $pending->company_name,
-            domain: $pending->domain,
-            global_id: $pending->global_id,
-            payment_plan: $pending->payment_plan,
-            billing_cycle: $pending->billing_cycle,
-            custom_domain: $pending->custom_domain,
-        );
-
         $this->provisioning->queue(new TenantProvisionData(
-            registration: $registration,
+            registration: TenantRegistrationData::fromPending($pending),
             stripeCustomerId: $stripeCustomerId,
             stripeSubscriptionId: $stripeSubscriptionId,
             centralUserId: $centralUserId,

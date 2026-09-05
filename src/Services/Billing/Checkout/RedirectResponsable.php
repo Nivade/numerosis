@@ -9,8 +9,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Redirect;
 
 /**
- * Wraps a redirect so gateways can satisfy CheckoutGateway::start(): Responsable
- * without going through Stripe's own Responsable Checkout object.
+ * Wraps a redirect so a checkout route can answer with one without going
+ * through Stripe's own Responsable Checkout object.
  */
 class RedirectResponsable implements Responsable
 {

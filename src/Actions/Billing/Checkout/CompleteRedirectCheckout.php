@@ -36,7 +36,7 @@ class CompleteRedirectCheckout
         try {
             $resolved = ResolveSetupIntent::run($setupIntentId);
         } catch (CheckoutAlreadyCompleted) {
-            return to_route(RouteNames::tenantsMine())->with('success', __('numerosis::billing.checkout.setting_up'));
+            return $this->tenantsMine('success', 'numerosis::billing.checkout.setting_up');
         } catch (ShowsMessageToUser $e) {
             return $this->registrationErrorRedirect($e->getMessage());
         }
@@ -54,37 +54,36 @@ class CompleteRedirectCheckout
         $stripeCustomerId = $billable instanceof CentralUser ? $billable->stripe_id : null;
 
         if ($resolved->paymentMethod->customer !== $stripeCustomerId) {
-            return to_route(RouteNames::tenantsMine())->with('info', __('numerosis::billing.checkout.confirming_payment'));
+            return $this->tenantsMine('info', 'numerosis::billing.checkout.confirming_payment');
         }
 
         try {
-            $subscription = FinalizeCheckoutSubscription::run(
+            FinalizeCheckoutSubscription::run(
                 $resolved->pending,
                 $resolved->paymentMethod,
                 $billable instanceof CentralUser ? $billable : null,
             );
         } catch (IncompletePayment) {
-            return to_route(RouteNames::tenantsMine())->with(
-                'error',
-                __('numerosis::billing.checkout.requires_verification'),
-            );
+            return $this->tenantsMine('error', 'numerosis::billing.checkout.requires_verification');
         } catch (ApiErrorException $e) {
             report($e);
 
-            return to_route(RouteNames::tenantsMine())->with(
-                'error',
-                __('numerosis::billing.checkout.requires_verification'),
-            );
+            return $this->tenantsMine('error', 'numerosis::billing.checkout.requires_verification');
         }
 
         session()->forget(RegistrationWizardFeature::SESSION_KEY);
 
-        return to_route(RouteNames::tenantsMine())->with('success', __('numerosis::billing.checkout.setting_up'));
+        return $this->tenantsMine('success', 'numerosis::billing.checkout.setting_up');
     }
 
     public function asController(CheckoutReturnRequest $request): RedirectResponse
     {
         return $this->handle($request->setupIntentId());
+    }
+
+    private function tenantsMine(string $level, string $message): RedirectResponse
+    {
+        return to_route(RouteNames::tenantsMine())->with($level, __($message));
     }
 
     /**

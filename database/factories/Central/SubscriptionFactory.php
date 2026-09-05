@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Database\Factories\Central;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
@@ -51,7 +53,7 @@ class SubscriptionFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \Nvade\Numerosis\Models\Central\CentralUser::factory(),
+            'user_id' => CentralUser::factory(),
             'type' => 'default',
             // lexify() only randomizes `?` placeholders — a `*`-based pattern
             // here previously returned the exact same literal string on
@@ -66,12 +68,10 @@ class SubscriptionFactory extends Factory
             'trial_ends_at' => null,
             'ends_at' => null,
             'subscribable_id' => Tenant::factory(),
-            /**
-             * The concrete host class, never the abstract one: this string is
-             * what Eloquent instantiates when the morph is resolved.
-             */
+            // The concrete host class, never the abstract one: this string is
+            // what Eloquent instantiates when the morph is resolved.
             'subscribable_type' => Numerosis::model(Tenant::class),
-            'payment_plan_id' => \Nvade\Numerosis\Models\Central\PaymentPlan::factory(),
+            'payment_plan_id' => PaymentPlan::factory(),
         ];
     }
 }

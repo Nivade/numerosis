@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Tests;
 
 use App\Models\Central\CentralUser;
 use App\Models\Central\Domain;
+use App\Models\Central\Tenant;
 use App\Models\Tenant\User;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository;
@@ -53,9 +54,60 @@ abstract class TestCase extends Orchestra
      * unrelated 403/redirect. Replaces the panel-aware helper the deleted
      * Filament package used to supply.
      */
-    protected function actingAsTenantUser(Authenticatable $user): void
+    protected function actingAsTenantUser(Authenticatable $user): static
     {
         $this->actingAs($user, Config::string('numerosis.auth.guards.tenant'));
+
+        return $this;
+    }
+
+    /**
+     * Authenticate on the central guard by its configured name.
+     *
+     * `actingAs()`'s default is whatever `auth.defaults.guard` says, and the
+     * central guard is renameable (`RenamedCentralGuardTest` boots it as
+     * `host_central`), so spelling `'web'` at a call site pins a name the
+     * host owns.
+     */
+    protected function actingAsCentralUser(Authenticatable $user): static
+    {
+        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
+
+        return $this;
+    }
+
+    /**
+     * A tenant reachable at its own subdomain.
+     *
+     * `forceCreate`, as production does: `id` is not fillable, so
+     * `Tenant::create()` drops it and `UUIDGenerator` assigns a uuid instead
+     * — the subdomain then no longer matches and identification 404s.
+     */
+    protected function createTenantWithDomain(string $id, string $name = 'Test Tenant'): Tenant
+    {
+        $tenant = Tenant::forceCreate(['id' => $id, 'name' => $name]);
+        $tenant->domains()->create(['id' => $id, 'domain' => $this->tenantDomain($id)]);
+
+        return $tenant;
+    }
+
+    /**
+     * A user inside the tenant's own database, returned already resolved on
+     * the tenant connection so `actingAsTenantUser()` takes it directly.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    protected function createTenantUser(Tenant $tenant, array $attributes = []): User
+    {
+        /** @var User $user */
+        $user = $tenant->run(fn (): User => User::create([
+            'global_id' => 'global-'.uniqid(),
+            'name' => 'Tenant User',
+            'email' => 'tenant-'.uniqid().'@example.com',
+            ...$attributes,
+        ]));
+
+        return $user;
     }
 
     /**
@@ -204,7 +256,7 @@ abstract class TestCase extends Orchestra
         // 319 of 526 tests failed. Restored, with this note so the same
         // experiment isn't repeated the same way — see
         // .ai/rules/testing.md for the recorded version.
-        Config::set('tenancy.tenant_model', \App\Models\Central\Tenant::class);
+        Config::set('tenancy.tenant_model', Tenant::class);
         Config::set('tenancy.id_generator', UUIDGenerator::class);
         Config::set('tenancy.domain_model', Domain::class);
         $app->make(Repository::class)->set('tenancy.central_user_model', CentralUser::class);
@@ -378,7 +430,7 @@ abstract class TestCase extends Orchestra
         ]);
         $app->make(Repository::class)->set('permission.cache.store', 'array');
 
-        $app->make(Repository::class)->set('cashier.model', \App\Models\Central\Tenant::class);
+        $app->make(Repository::class)->set('cashier.model', Tenant::class);
         $app->make(Repository::class)->set('cashier.key', 'pk_test_dummy');
         $app->make(Repository::class)->set('cashier.secret', 'sk_test_dummy');
         $app->make(Repository::class)->set('cashier.currency', 'usd');

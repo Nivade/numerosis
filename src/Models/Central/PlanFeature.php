@@ -73,8 +73,6 @@ class PlanFeature extends Model
     }
 
     /**
-     * Get the payment plans that have this feature.
-     *
      * @return BelongsToMany<PaymentPlan, $this, PaymentPlanFeature>
      */
     public function paymentPlans(): BelongsToMany

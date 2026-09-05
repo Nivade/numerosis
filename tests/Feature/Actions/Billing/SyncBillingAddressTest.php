@@ -10,6 +10,7 @@ use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
 use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
 use Nvade\Numerosis\Testing\FakesStripe;
+use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
 use Nvade\Numerosis\Tests\TestCase;
 use Stripe\PaymentMethod;
 
@@ -23,6 +24,7 @@ use Stripe\PaymentMethod;
  */
 class SyncBillingAddressTest extends TestCase
 {
+    use CreatesCheckoutFixtures;
     use FakesStripe;
     use RefreshDatabase;
 
@@ -83,18 +85,7 @@ class SyncBillingAddressTest extends TestCase
 
     private function paymentMethodWithAddress(string $customerId, string $country): PaymentMethod
     {
-        $paymentMethod = Cashier::stripe()->paymentMethods->create([
-            'type' => 'card',
-            'card' => ['token' => 'tok_visa'],
-            'billing_details' => [
-                'address' => [
-                    'line1' => '123 Main St',
-                    'city' => 'Amsterdam',
-                    'postal_code' => '1000AA',
-                    'country' => $country,
-                ],
-            ],
-        ]);
+        $paymentMethod = $this->cardWithBillingAddress($country);
 
         Cashier::stripe()->paymentMethods->attach($paymentMethod->id, ['customer' => $customerId]);
 

@@ -86,32 +86,15 @@ final class HostConfig
      */
     private static function tenancyModels(): void
     {
-        // key => [stock value, package default]
-        $stancl = [
-            'tenancy.tenant_model' => [StanclTenant::class, Numerosis::model(Tenant::class)],
-            'tenancy.domain_model' => [StanclDomain::class, Numerosis::model(Domain::class)],
-        ];
+        self::applyWhileStock([
+            'tenancy.tenant_model' => [[StanclTenant::class], Numerosis::model(Tenant::class)],
+            'tenancy.domain_model' => [[StanclDomain::class], Numerosis::model(Domain::class)],
 
-        foreach ($stancl as $key => [$stock, $default]) {
-            $current = Config::get($key);
-
-            if ($current === null || $current === $stock) {
-                self::set($key, $default);
-            }
-        }
-
-        // These two are in no stancl config stub, so there is no stock value
-        // to compare against and unset is the only signal.
-        $ownKeys = [
-            'tenancy.central_user_model' => Numerosis::model(CentralUser::class),
-            'tenancy.tenant_user_model' => Numerosis::model(TenantUser::class),
-        ];
-
-        foreach ($ownKeys as $key => $default) {
-            if (Config::get($key) === null) {
-                self::set($key, $default);
-            }
-        }
+            // The last two are in no stancl config stub, so there is no stock
+            // value to compare against and unset is the only signal.
+            'tenancy.central_user_model' => [[], Numerosis::model(CentralUser::class)],
+            'tenancy.tenant_user_model' => [[], Numerosis::model(TenantUser::class)],
+        ]);
     }
 
     /**
@@ -355,7 +338,18 @@ final class HostConfig
 
     private static function applyCorrections(): void
     {
-        foreach (self::corrections() as $key => [$stockValues, $value]) {
+        self::applyWhileStock(self::corrections());
+    }
+
+    /**
+     * Writes each key while it is unset or still holds one of the stock values
+     * listed against it, leaving a host's own value alone.
+     *
+     * @param  array<string, array{0: list<mixed>, 1: mixed}>  $table
+     */
+    private static function applyWhileStock(array $table): void
+    {
+        foreach ($table as $key => [$stockValues, $value]) {
             $current = Config::get($key);
 
             if ($current === null || in_array($current, $stockValues, true)) {

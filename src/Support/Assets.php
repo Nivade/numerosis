@@ -68,7 +68,7 @@ final class Assets
      */
     public static function publishedUrl(string $extension): string
     {
-        return asset('vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.'.$extension);
+        return asset(self::publishedRelativePath($extension));
     }
 
     /**
@@ -79,8 +79,14 @@ final class Assets
     public static function publishedPaths(): array
     {
         return [
-            'css' => public_path('vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.css'),
-            'js' => public_path('vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js'),
+            'css' => public_path(self::publishedRelativePath('css')),
+            'js' => public_path(self::publishedRelativePath('js')),
         ];
+    }
+
+    /** Where one bundle sits under `public/`, as the publish group writes it. */
+    private static function publishedRelativePath(string $extension): string
+    {
+        return 'vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.'.$extension;
     }
 }

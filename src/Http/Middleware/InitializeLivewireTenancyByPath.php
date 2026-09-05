@@ -23,12 +23,10 @@ class InitializeLivewireTenancyByPath
     {
         $id = $this->tenantIdFromReferer($request);
 
-        if ($id !== null) {
-            $tenant = tenancy()->find($id);
+        $tenant = $id === null ? null : $this->tenancy->find($id);
 
-            if ($tenant !== null) {
-                $this->tenancy->initialize($tenant);
-            }
+        if ($tenant !== null) {
+            $this->tenancy->initialize($tenant);
         }
 
         return $next($request);
@@ -48,8 +46,6 @@ class InitializeLivewireTenancyByPath
             return null;
         }
 
-        $segment = explode('/', $path)[0];
-
-        return $segment === '' ? null : $segment;
+        return explode('/', $path)[0];
     }
 }

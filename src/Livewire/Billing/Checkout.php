@@ -207,10 +207,7 @@ class Checkout extends Component
             return;
         }
 
-        $pendingClass = Numerosis::model(PendingTenantProvision::class);
-
-        /** @var PendingTenantProvision|null $pending */
-        $pending = $pendingClass::find($this->pendingDomain);
+        $pending = $this->pendingReservation();
 
         if (! $pending || $pending->global_id !== $billable->global_id) {
             $this->paymentError = __('numerosis::billing.checkout.session_expired');
@@ -279,12 +276,12 @@ class Checkout extends Component
      */
     private function resolvePaymentMethodOrder(?string $country): array
     {
-        $key = $country !== null ? "numerosis.billing.payment_methods.regions.{$country}" : null;
+        $default = Config::array('numerosis.billing.payment_methods.default_order');
 
         /** @var array<mixed> $order */
-        $order = $key !== null
-            ? Config::array($key, Config::array('numerosis.billing.payment_methods.default_order'))
-            : Config::array('numerosis.billing.payment_methods.default_order');
+        $order = $country !== null
+            ? Config::array("numerosis.billing.payment_methods.regions.{$country}", $default)
+            : $default;
 
         return array_values(array_filter($order, is_string(...)));
     }
@@ -296,10 +293,7 @@ class Checkout extends Component
      */
     private function settleFromPendingSubscription(): void
     {
-        $pendingClass = Numerosis::model(PendingTenantProvision::class);
-
-        /** @var PendingTenantProvision|null $pending */
-        $pending = $pendingClass::find($this->pendingDomain);
+        $pending = $this->pendingReservation();
         $billable = GetAuthenticatedUser::run();
 
         $subscription = $pending?->stripe_subscription_id !== null && $billable instanceof CentralUser
@@ -315,12 +309,20 @@ class Checkout extends Component
         $this->settle($subscription);
     }
 
-    private function settle(Subscription $subscription): void
+    /** The reservation this component mounted for, by its `#[Locked]` domain. */
+    private function pendingReservation(): ?PendingTenantProvision
     {
         $pendingClass = Numerosis::model(PendingTenantProvision::class);
 
         /** @var PendingTenantProvision|null $pending */
         $pending = $pendingClass::find($this->pendingDomain);
+
+        return $pending;
+    }
+
+    private function settle(Subscription $subscription): void
+    {
+        $pending = $this->pendingReservation();
         $billable = GetAuthenticatedUser::run();
 
         // Ownership is re-checked here as well as being #[Locked]: the lock

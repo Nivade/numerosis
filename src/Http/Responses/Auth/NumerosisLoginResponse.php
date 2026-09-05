@@ -13,9 +13,7 @@ use Nvade\Numerosis\Support\Routes\RouteNames;
 
 /**
  * Bound against Fortify's `LoginResponse` contract in
- * `NumerosisServiceProvider::packageRegistered()`. Port of the old
- * `ResolvePostLoginRedirectUrl` action, now receiving the request directly,
- * which drops that action's own `request()` helper call.
+ * `NumerosisServiceProvider::packageRegistered()`.
  */
 class NumerosisLoginResponse implements LoginResponse
 {

@@ -80,7 +80,7 @@ test('nothing reads the old cashier appendix keys', function (): void {
 test('nothing reads the current user through the Auth facade', function (): void {
     $roots = array_map(
         fn (string $directory): string => dirname(__DIR__, 2)."/{$directory}",
-        ['src', 'packages/account/src', 'packages/auth-ui/src', 'packages/onboarding/src'],
+        ['src', 'packages/ui/src'],
     );
 
     $files = (new Finder)

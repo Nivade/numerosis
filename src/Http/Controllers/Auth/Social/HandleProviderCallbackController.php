@@ -6,12 +6,12 @@ namespace Nvade\Numerosis\Http\Controllers\Auth\Social;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Config;
 use Laravel\Fortify\Contracts\LoginResponse;
 use Nvade\Numerosis\Actions\Auth\Social\LinkSocialAccount;
 use Nvade\Numerosis\Actions\Auth\Social\LoginWithSocialAccount;
 use Nvade\Numerosis\Actions\Auth\Social\ResolveSocialUser;
 use Nvade\Numerosis\Enums\Auth\SocialProvider;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Http\Controllers\Controller;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -31,7 +31,7 @@ class HandleProviderCallbackController extends Controller
         $data = ResolveSocialUser::run($provider);
 
         /** @var CentralUser|null $authed */
-        $authed = Auth::guard(Config::string('numerosis.auth.guards.central'))->user();
+        $authed = Auth::guard(Context::Central->guard())->user();
 
         if ($authed instanceof CentralUser) {
             try {

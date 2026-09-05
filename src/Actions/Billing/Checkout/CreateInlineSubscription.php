@@ -11,7 +11,6 @@ use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\TrialResolver;
 use Nvade\Numerosis\Exceptions\Billing\BillingCycleRequired;
-use Nvade\Numerosis\Exceptions\Billing\PaymentPlanNotFound;
 use Nvade\Numerosis\Exceptions\Billing\StripePriceNotConfigured;
 use Nvade\Numerosis\Exceptions\Billing\UnsupportedBillable;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -42,11 +41,7 @@ class CreateInlineSubscription
 
     public function handle(PendingTenantProvision $pending, string $paymentMethodId, ?CentralUser $billable = null): Subscription
     {
-        $plan = $this->plans->findBySlug((string) $pending->payment_plan);
-
-        if (! $plan) {
-            throw new PaymentPlanNotFound("Payment plan not found: {$pending->payment_plan}");
-        }
+        $plan = $this->plans->findBySlugOrFail((string) $pending->payment_plan);
 
         $billingCycle = $pending->billing_cycle;
 

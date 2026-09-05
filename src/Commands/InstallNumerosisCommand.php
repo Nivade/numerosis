@@ -7,20 +7,12 @@ namespace Nvade\Numerosis\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Domain;
-use Nvade\Numerosis\Models\Central\Invitation;
-use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Nvade\Numerosis\Models\Central\SocialAccount;
-use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\User as TenantUser;
-use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Support\Assets;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
@@ -209,20 +201,18 @@ class InstallNumerosisCommand extends Command
 
     private function verifyTenancyModels(): void
     {
-        foreach (['tenancy.tenant_model', 'tenancy.domain_model'] as $key) {
+        $keys = [
+            'tenancy.tenant_model',
+            'tenancy.domain_model',
+            'tenancy.central_user_model',
+            'tenancy.tenant_user_model',
+        ];
+
+        foreach ($keys as $key) {
             $class = Config::get($key);
 
             if (! is_string($class) || $class === '' || ! class_exists($class)) {
                 $this->failures[] = "config('{$key}') must name a class that exists — a tenant panel answers 404 on every tenant URL when this is unresolvable, rather than reporting a config problem.";
-            }
-        }
-
-        // This package's own keys, in no stancl config stub.
-        foreach (['central_user_model', 'tenant_user_model'] as $key) {
-            $class = Config::get("tenancy.{$key}");
-
-            if (! is_string($class) || $class === '' || ! class_exists($class)) {
-                $this->failures[] = "config('tenancy.{$key}') must name a class that exists — a tenant panel answers 404 on every tenant URL when this is unresolvable, rather than reporting a config problem.";
             }
         }
 
@@ -592,9 +582,9 @@ class InstallNumerosisCommand extends Command
             return;
         }
 
-        foreach ($paths as $extension => $path) {
+        foreach ($paths as $path) {
             if (! File::exists($path)) {
-                $this->failures[] = 'public/vendor/numerosis exists but public/vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.'.$extension.' does not — run `php artisan vendor:publish --tag=numerosis-public-assets --force` again, or every page rendering resources/views/partials/styles.blade.php links a 404 for it.';
+                $this->failures[] = "public/vendor/numerosis exists but {$path} does not — run `php artisan vendor:publish --tag=numerosis-public-assets --force` again, or every page rendering resources/views/partials/styles.blade.php links a 404 for it.";
             }
         }
     }
@@ -602,7 +592,9 @@ class InstallNumerosisCommand extends Command
     private function verifyStripeKeys(): void
     {
         foreach (['key', 'secret'] as $setting) {
-            if (! is_string(Config::get("cashier.{$setting}")) || Config::get("cashier.{$setting}") === '') {
+            $value = Config::get("cashier.{$setting}");
+
+            if (! is_string($value) || $value === '') {
                 $this->failures[] = "config('cashier.{$setting}') is not set — add STRIPE_".strtoupper($setting).' to .env.';
             }
         }
@@ -656,13 +648,13 @@ class InstallNumerosisCommand extends Command
             }
         }
 
-        $schema = Schema::connection($connection);
+        $database = DB::connection($connection);
 
-        if ($schema->getConnection()->table('permissions')->count() === 0) {
+        if ($database->table('permissions')->count() === 0) {
             $this->failures[] = 'The central `permissions` table is empty — Spatie throws PermissionDoesNotExist rather than returning false, so every policy check 500s with "There is no permission named …", which reads as a guard bug. Run `php artisan numerosis:install` (seeds by default).';
         }
 
-        if ($schema->getConnection()->table('payment_plans')->count() === 0) {
+        if ($database->table('payment_plans')->count() === 0) {
             $this->failures[] = 'The central `payment_plans` table is empty — the registration wizard has nothing to sell and renders an empty plan step. Run `php artisan numerosis:install` (seeds by default).';
         }
     }
@@ -675,23 +667,10 @@ class InstallNumerosisCommand extends Command
      */
     private function modelStubMap(): array
     {
-        /** @var array<class-string, string> $models */
-        $models = [
-            Tenant::class => 'Central/Tenant',
-            Domain::class => 'Central/Domain',
-            CentralUser::class => 'Central/CentralUser',
-            Subscription::class => 'Central/Subscription',
-            PaymentPlan::class => 'Central/PaymentPlan',
-            PendingTenantProvision::class => 'Central/PendingTenantProvision',
-            Invitation::class => 'Central/Invitation',
-            SocialAccount::class => 'Central/SocialAccount',
-            TenantUser::class => 'Tenant/User',
-        ];
-
         $namespace = $this->laravel->getNamespace();
         $map = [];
 
-        foreach ($models as $packageModel => $relative) {
+        foreach (Numerosis::modelStubs() as $packageModel => $relative) {
             $map[$packageModel] = [
                 'path' => app_path("Models/{$relative}.php"),
                 'class' => $namespace.'Models\\'.str_replace('/', '\\', $relative),

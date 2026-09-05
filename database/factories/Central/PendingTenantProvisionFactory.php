@@ -30,7 +30,7 @@ class PendingTenantProvisionFactory extends Factory
         ];
     }
 
-    public function forCheckout(string $paymentPlan, BillingCycle $billingCycle): self
+    public function forCheckout(string $paymentPlan, BillingCycle $billingCycle): static
     {
         return $this->state(fn (): array => [
             'payment_plan' => $paymentPlan,
@@ -38,14 +38,14 @@ class PendingTenantProvisionFactory extends Factory
         ]);
     }
 
-    public function provisioning(): self
+    public function provisioning(): static
     {
         return $this->state(fn (): array => [
             'status' => TenantProvisionStatus::Provisioning,
         ]);
     }
 
-    public function failed(): self
+    public function failed(): static
     {
         return $this->state(fn (): array => [
             'status' => TenantProvisionStatus::Failed,

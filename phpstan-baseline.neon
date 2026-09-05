@@ -433,12 +433,6 @@ parameters:
 			path: database/migrations/tenant/2026_05_06_145658_upgrade_activitylog.php
 
 		-
-			message: '#^Parameter \#1 \$message of static method Illuminate\\Log\\Logger\:\:info\(\) expects array\|Illuminate\\Contracts\\Support\\Arrayable\|Illuminate\\Contracts\\Support\\Jsonable\|Illuminate\\Support\\Stringable\|string, Nvade\\Numerosis\\Models\\Tenant\\User\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: database/seeders/Tenant/PermissionAndRoleSeeder.php
-
-		-
 			message: '#^Access to an undefined property Laravel\\Cashier\\Subscription\:\:\$stripe_id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -601,12 +595,6 @@ parameters:
 			path: src/Models/Central/Tenant.php
 
 		-
-			message: '#^Cannot cast mixed to string\.$#'
-			identifier: cast.string
-			count: 1
-			path: src/Rules/DomainIsAvailable.php
-
-		-
 			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:expect\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -704,12 +692,6 @@ parameters:
 
 		-
 			message: '#^Cannot access property \$failed_at on App\\Models\\Central\\PendingTenantProvision\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Central\\PendingTenantProvision\>\|null\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: tests/Feature/Actions/Tenancy/TenantProvisioningSignalTest.php
-
-		-
-			message: '#^Cannot access property \$name on Illuminate\\Broadcasting\\Channel\|string\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: tests/Feature/Actions/Tenancy/TenantProvisioningSignalTest.php

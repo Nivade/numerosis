@@ -6,7 +6,6 @@ namespace Nvade\Numerosis\Tests\Feature;
 
 use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -27,7 +26,7 @@ class SettingsProfilePageTest extends TestCase
     {
         $user = CentralUser::factory()->create();
 
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
+        $this->actingAsCentralUser($user);
 
         $this->get(route('settings.profile'))
             ->assertOk()

@@ -30,15 +30,8 @@ class InitializeLivewireTenancyByPathTest extends TestCase
     {
         $tenant = Tenant::factory()->create();
 
-        $middleware = new InitializeLivewireTenancyByPath(app(Tenancy::class));
+        $this->handleUpdate("http://central.test/{$tenant->id}/marketplace");
 
-        $request = Request::create('/livewire/update', 'POST');
-        $request->headers->set('referer', "http://central.test/{$tenant->id}/marketplace");
-
-        $response = $middleware->handle($request, fn (Request $request): Response => new Response('ok'));
-
-        $this->assertInstanceOf(Response::class, $response);
-        $this->assertSame('ok', $response->getContent());
         $this->assertTrue(tenancy()->initialized);
 
         $initializedTenant = app(Tenancy::class)->tenant;
@@ -48,15 +41,8 @@ class InitializeLivewireTenancyByPathTest extends TestCase
 
     public function test_it_leaves_tenancy_uninitialized_when_the_referer_names_no_real_tenant(): void
     {
-        $middleware = new InitializeLivewireTenancyByPath(app(Tenancy::class));
+        $this->handleUpdate('http://central.test/no-such-tenant/marketplace');
 
-        $request = Request::create('/livewire/update', 'POST');
-        $request->headers->set('referer', 'http://central.test/no-such-tenant/marketplace');
-
-        $response = $middleware->handle($request, fn (Request $request): Response => new Response('ok'));
-
-        $this->assertInstanceOf(Response::class, $response);
-        $this->assertSame('ok', $response->getContent());
         $this->assertFalse(tenancy()->initialized);
     }
 
@@ -68,14 +54,28 @@ class InitializeLivewireTenancyByPathTest extends TestCase
      */
     public function test_it_leaves_tenancy_uninitialized_with_no_referer_at_all(): void
     {
-        $middleware = new InitializeLivewireTenancyByPath(app(Tenancy::class));
+        $this->handleUpdate(null);
 
+        $this->assertFalse(tenancy()->initialized);
+    }
+
+    /**
+     * Drives one `/livewire/update` commit through the middleware and asserts
+     * it always reaches the next handler — degradation here is an
+     * uninitialized tenancy, never a refused request.
+     */
+    private function handleUpdate(?string $referer): void
+    {
         $request = Request::create('/livewire/update', 'POST');
 
-        $response = $middleware->handle($request, fn (Request $request): Response => new Response('ok'));
+        if ($referer !== null) {
+            $request->headers->set('referer', $referer);
+        }
+
+        $response = (new InitializeLivewireTenancyByPath(app(Tenancy::class)))
+            ->handle($request, fn (Request $request): Response => new Response('ok'));
 
         $this->assertInstanceOf(Response::class, $response);
         $this->assertSame('ok', $response->getContent());
-        $this->assertFalse(tenancy()->initialized);
     }
 }

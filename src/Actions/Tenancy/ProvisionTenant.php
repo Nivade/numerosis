@@ -10,10 +10,10 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
+use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Throwable;
 
 /**
@@ -34,6 +34,8 @@ class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
     public int $jobUniqueFor = 300;
 
     public string $jobQueue = 'provisioning';
+
+    public function __construct(private readonly TenantDatabaseManager $databases) {}
 
     public function queue(TenantProvisionData $data): void
     {
@@ -105,9 +107,7 @@ class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
      */
     private function databaseJobs(Tenant $tenant): array
     {
-        $database = $tenant->database()->getName() ?? '';
-
-        if ($database !== '' && $tenant->database()->manager()->databaseExists($database)) {
+        if ($this->databases->databaseExists($tenant)) {
             return [];
         }
 
@@ -117,6 +117,6 @@ class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
             assert($job instanceof ShouldQueue);
 
             return $job;
-        }, TenancyServiceProvider::$tenantCreatedJobs);
+        }, $this->databases->creationJobs());
     }
 }

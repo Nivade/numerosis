@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Auth;
 
-use App\Models\Central\Tenant;
-use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -110,33 +108,20 @@ class LoginRateLimitTest extends TestCase
     private function tenantWithUser(string $email): string
     {
         $id = 'ratelimit'.substr(uniqid(), -8);
-        $domain = $this->tenantDomainFor($id);
 
-        $tenant = Tenant::find($id);
+        $this->createTenantUser($this->createTenantWithDomain($id, 'Rate Limit Tenant'), [
+            'name' => 'Rate Limited User',
+            'email' => $email,
+            'password' => Hash::make('password'),
+        ]);
 
-        $tenant?->run(function () use ($email): void {
-            TenantUser::create([
-                'global_id' => 'global-'.uniqid(),
-                'name' => 'Rate Limited User',
-                'email' => $email,
-                'password' => Hash::make('password'),
-            ]);
-        });
-
-        return $domain;
+        return $this->tenantDomain($id);
     }
 
-    /**
-     * forceCreate, as production does: `id` is not fillable, so
-     * Tenant::create() drops it and the subdomain stops matching.
-     */
     private function tenantDomainFor(string $id): string
     {
-        $domain = $this->tenantDomain($id);
+        $this->createTenantWithDomain($id, 'Rate Limit Tenant');
 
-        $tenant = Tenant::forceCreate(['id' => $id, 'name' => 'Rate Limit Tenant']);
-        $tenant->domains()->create(['id' => $id, 'domain' => $domain]);
-
-        return $domain;
+        return $this->tenantDomain($id);
     }
 }

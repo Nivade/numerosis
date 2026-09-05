@@ -10,9 +10,6 @@ use Nvade\Numerosis\Actions\Auth\LogoutUser;
 
 class Logout
 {
-    /**
-     * Log the current user out of the application.
-     */
     public function __invoke(): RedirectResponse
     {
         LogoutUser::run();

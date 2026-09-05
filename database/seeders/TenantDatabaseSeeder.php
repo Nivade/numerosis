@@ -16,11 +16,10 @@ class TenantDatabaseSeeder extends Seeder
         $this->call([
             PermissionAndRoleSeeder::class,
             UserSeeder::class,
-            //            ChatSeeder::class,
+            // Seeders registered via Numerosis::addTenantSeeder() — a
+            // satellite package's own tenant tables, without
+            // publishing/editing this file.
+            ...Numerosis::tenantSeeders(),
         ]);
-
-        // Seeders registered via Numerosis::addTenantSeeder() — a satellite
-        // package's own tenant tables, without publishing/editing this file.
-        $this->call(Numerosis::tenantSeeders());
     }
 }

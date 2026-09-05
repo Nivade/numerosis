@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Checkout;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PaymentPlan;
-use App\Models\Central\PendingTenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Actions\Billing\Checkout\CreateInlineSubscription;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -23,34 +22,19 @@ use Nvade\Numerosis\Tests\TestCase;
  */
 class CreateInlineSubscriptionTest extends TestCase
 {
+    use CreatesCheckoutFixtures;
     use RefreshDatabase;
 
     public function test_it_creates_a_subscription_from_a_confirmed_setup_intent(): void
     {
-        $priceId = getenv('STRIPE_STARTER_MONTHLY_PLAN') ?: '';
-
-        if ($priceId === '') {
-            $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');
-        }
+        $priceId = $this->starterPriceIdOrSkip();
 
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
-        PaymentPlan::create([
-            'name' => 'Starter',
-            'slug' => 'starter',
-            'description' => 'Starter Plan',
-            'monthly_id' => $priceId,
-            'yearly_id' => $priceId,
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
-            'available' => true,
-            'trial_days' => 0,
-        ]);
+        $this->createStarterPlan($priceId);
 
-        $pending = PendingTenantProvision::factory()->create([
-            'domain' => 'inline-sub-test',
-            'global_id' => $user->global_id,
+        $pending = $this->reserve('inline-sub-test', $user, null, [
             'payment_plan' => 'starter',
             'billing_cycle' => BillingCycle::Monthly,
         ]);

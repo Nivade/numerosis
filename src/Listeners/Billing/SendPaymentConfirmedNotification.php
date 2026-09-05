@@ -4,25 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Listeners\Billing;
 
-use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
-use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
+use Nvade\Numerosis\Listeners\Concerns\NotifiesTenantOwnerWhenEnabled;
 use Nvade\Numerosis\Notifications\Billing\PaymentConfirmed;
-use Nvade\Numerosis\Support\Features;
 
-/**
- * Auto-discovered by Laravel's event discovery, so BillingNotificationsFeature
- * cannot un-discover it. The feature class's own docblock names this early
- * return as the exception it is.
- */
 class SendPaymentConfirmedNotification
 {
+    use NotifiesTenantOwnerWhenEnabled;
+
     public function handle(PaymentSettled $event): void
     {
-        if (! Features::enabled(BillingNotificationsFeature::NAME)) {
-            return;
-        }
-
-        resolve(NotifiesTenantOwner::class)->notify($event->tenant, new PaymentConfirmed($event->tenant));
+        $this->notifyTenantOwner($event->tenant, new PaymentConfirmed($event->tenant));
     }
 }

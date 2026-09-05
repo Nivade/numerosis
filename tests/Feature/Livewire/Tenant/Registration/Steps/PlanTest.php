@@ -44,4 +44,30 @@ class PlanTest extends TestCase
             ->assertSee('Plan 2')
             ->assertSee('Plan 3');
     }
+
+    /**
+     * `cycle-toggle.blade.php` toggles with `$set('billingCycle', 'yearly')`,
+     * a raw string, and the wizard re-mounts this step with the string
+     * `StepComponent::dispatchDehydrated()` wrote. Both reach the property
+     * uncast, which is why `cycle()` exists.
+     */
+    public function test_cycle_normalises_a_string_billing_cycle(): void
+    {
+        PaymentPlan::factory()->create(['available' => true]);
+
+        $step = Livewire::test(Plan::class, ['billingCycle' => BillingCycle::Yearly->value])->instance();
+
+        $this->assertInstanceOf(Plan::class, $step);
+        $this->assertSame(BillingCycle::Yearly, $step->cycle());
+    }
+
+    public function test_cycle_falls_back_to_monthly_for_an_unrecognised_stored_value(): void
+    {
+        PaymentPlan::factory()->create(['available' => true]);
+
+        $step = Livewire::test(Plan::class, ['billingCycle' => 'fortnightly'])->instance();
+
+        $this->assertInstanceOf(Plan::class, $step);
+        $this->assertSame(BillingCycle::Monthly, $step->cycle());
+    }
 }

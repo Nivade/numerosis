@@ -11,12 +11,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin;
-use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\TestCase;
 
 class AddTenantOwnerTest extends TestCase
 {
+    use BuildsTenantProvisionData;
     use RefreshDatabase;
 
     /**
@@ -34,7 +34,7 @@ class AddTenantOwnerTest extends TestCase
         // database-creation jobs, which a fake would swallow.
         Queue::fake();
 
-        AddTenantOwner::run($tenant, $this->provisionData($tenant, $user));
+        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $user));
 
         $this->assertNull($tenant->refresh()->provisioned_at);
 
@@ -59,7 +59,7 @@ class AddTenantOwnerTest extends TestCase
         // database-creation jobs, which a fake would swallow.
         Queue::fake();
 
-        AddTenantOwner::run($tenant, $this->provisionData($tenant, $user));
+        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $user));
         PromoteFirstUserToAdmin::run($tenant);
 
         $tenant->run(function () use ($user): void {
@@ -86,21 +86,10 @@ class AddTenantOwnerTest extends TestCase
             $this->assertNull(TenantUser::where('global_id', $user->global_id)->first());
         });
 
-        AddTenantOwner::run($tenant, $this->provisionData($tenant, $user));
+        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $user));
 
         $tenant->run(function () use ($user): void {
             $this->assertNotNull(TenantUser::where('global_id', $user->global_id)->first());
         });
-    }
-
-    private function provisionData(Tenant $tenant, CentralUser $user): TenantProvisionData
-    {
-        return new TenantProvisionData(
-            registration: TenantRegistrationData::from([
-                'company_name' => 'Owner Row Co',
-                'domain' => (string) $tenant->getTenantKey(),
-                'global_id' => $user->global_id,
-            ]),
-        );
     }
 }

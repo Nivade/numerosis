@@ -6,8 +6,8 @@ namespace Nvade\Numerosis\Http\Controllers\Invitations;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Actions\Invitations\AcceptInvitation;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Http\Controllers\Controller;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -21,7 +21,7 @@ class AcceptInvitationController extends Controller
     public function __invoke(Invitation $invitation): RedirectResponse
     {
         /** @var CentralUser $user */
-        $user = Auth::guard(Config::string('numerosis.auth.guards.central'))->user();
+        $user = Auth::guard(Context::Central->guard())->user();
 
         try {
             $invitation = AcceptInvitation::run($invitation, $user);

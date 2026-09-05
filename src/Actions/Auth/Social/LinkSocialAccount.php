@@ -46,12 +46,7 @@ class LinkSocialAccount
             ['user_id' => $user->getKey(), 'provider' => $data->provider],
             [
                 'provider_id' => $data->providerId,
-                'name' => $data->name,
-                'email' => $data->email,
-                'avatar_url' => $data->avatarUrl,
-                'token' => $data->token,
-                'refresh_token' => $data->refreshToken,
-                'token_expires_at' => $data->expiresAt,
+                ...$data->accountAttributes(),
             ],
         );
 

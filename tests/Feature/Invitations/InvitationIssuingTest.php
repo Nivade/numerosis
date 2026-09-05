@@ -156,25 +156,17 @@ class InvitationIssuingTest extends TestCase
     private function tenantDomainWithUser(string $email, ?string $role): array
     {
         $id = 'issuing'.substr(uniqid(), -8);
-        $tenant = Tenant::forceCreate(['id' => $id, 'name' => 'Issuing Tenant']);
-        $tenant->domains()->create(['id' => $id, 'domain' => $this->tenantDomain($id)]);
+        $tenant = $this->createTenantWithDomain($id, 'Issuing Tenant');
 
-        $user = null;
+        $user = $this->createTenantUser($tenant, [
+            'name' => 'Team Member',
+            'email' => $email,
+            'password' => bcrypt('password'),
+        ]);
 
-        $tenant->run(function () use ($email, $role, &$user): void {
-            $user = TenantUser::create([
-                'global_id' => 'global-'.uniqid(),
-                'name' => 'Team Member',
-                'email' => $email,
-                'password' => bcrypt('password'),
-            ]);
-
-            if ($role !== null) {
-                $user->assignRole($role);
-            }
-        });
-
-        $this->assertNotNull($user);
+        if ($role !== null) {
+            $tenant->run(fn () => $user->assignRole($role));
+        }
 
         return [$this->tenantDomain($id), $user, $tenant];
     }

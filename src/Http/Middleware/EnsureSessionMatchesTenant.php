@@ -6,10 +6,9 @@ namespace Nvade\Numerosis\Http\Middleware;
 
 use Closure;
 use Illuminate\Auth\AuthManager;
-use Illuminate\Auth\SessionGuard;
-use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cookie;
+use Nvade\Numerosis\Concerns\Auth\ForgetsGuardSession;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
@@ -21,12 +20,11 @@ use Nvade\Numerosis\Models\Central\Tenant;
  */
 class EnsureSessionMatchesTenant
 {
+    use ForgetsGuardSession;
+
     public const SESSION_KEY = 'tenancy.session_tenant';
 
-    public function __construct(
-        private readonly AuthManager $auth,
-        private readonly Repository $config,
-    ) {}
+    public function __construct(private readonly AuthManager $auth) {}
 
     public function handle(Request $request, Closure $next): mixed
     {
@@ -47,12 +45,7 @@ class EnsureSessionMatchesTenant
             return $next($request);
         }
 
-        $guard = $this->auth->guard($this->config->string('numerosis.auth.guards.tenant'));
-
-        if ($guard instanceof SessionGuard) {
-            $session->forget($guard->getName());
-            Cookie::queue(Cookie::forget($guard->getRecallerName()));
-        }
+        $this->forgetGuardSession($this->auth->guard(Context::Tenant->guard()));
 
         $session->put(self::SESSION_KEY, $tenantKey);
 

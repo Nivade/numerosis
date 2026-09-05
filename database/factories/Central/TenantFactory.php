@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Database\Factories\Central;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
+use Nvade\Numerosis\Models\Central\CentralUser;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\Nvade\Numerosis\Models\Central\Tenant>
+ * @extends Factory<\Nvade\Numerosis\Models\Central\Tenant>
  */
 class TenantFactory extends Factory
 {
@@ -26,7 +28,7 @@ class TenantFactory extends Factory
             // enforces. Raw company names contain spaces, commas and
             // apostrophes, which produced unquotable database names and left
             // orphaned schemas behind on teardown.
-            'id' => \Illuminate\Support\Str::slug($company),
+            'id' => Str::slug($company),
             // `name` is set as a top-level attribute, never as
             // `'data' => ['name' => …]`. VirtualColumn folds every
             // non-custom attribute into `data` on save, so passing `data`
@@ -36,7 +38,7 @@ class TenantFactory extends Factory
             // had a null name. Nothing failed until the browser suite
             // started rendering a tenant's name on screen.
             'name' => $company,
-            'user_id' => \Nvade\Numerosis\Models\Central\CentralUser::factory(),
+            'user_id' => CentralUser::factory(),
         ];
     }
 }

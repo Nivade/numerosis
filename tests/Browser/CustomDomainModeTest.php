@@ -3,10 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Central\Tenant;
-use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
 use Nvade\Numerosis\Tests\Browser\CustomDomainModeTestCase;
 use Pest\Browser\Playwright\Playwright;
@@ -26,18 +23,11 @@ it('renders the tenant landing page under its custom domain for a signed-in user
     $tenant = Tenant::factory()->create();
     CreateTenantDomain::run($tenant, $tenant->id, 'app.acmetest.test');
 
-    $tenant->run(function (): void {
-        $user = TenantUser::factory()->create();
-
-        Auth::guard(Config::string('numerosis.auth.guards.tenant'))->login($user);
-    });
+    signInTenantUser($tenant);
 
     Playwright::setHost('app.acmetest.test');
 
-    $content = (string) visit('/')->content();
-
-    expect($content)->toContain(Config::string('app.name'));
-    expect(str_contains($content, 'Server Error'))->toBeFalse();
+    expectTenantLandingPage('/');
 });
 
 it('serves the tenant landing page on the custom domain for an unauthenticated visitor', function (): void {
@@ -46,9 +36,5 @@ it('serves the tenant landing page on the custom domain for an unauthenticated v
 
     Playwright::setHost('app.acmetest.test');
 
-    $page = visit('/');
-
-    $page->assertSee(Config::string('app.name'));
-
-    expect((string) $page->content())->not->toContain('Server Error');
+    expectTenantLandingPage('/');
 });

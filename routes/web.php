@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Actions\Billing\Checkout\CompleteRedirectCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartLocalCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
@@ -49,8 +50,8 @@ Route::get('/', fn () => view(Config::string('numerosis.routes.home_view')))
 
 // Stripe Webhooks - No auth/CSRF protection needed
 Route::post(
-    uri: config(key: 'numerosis.billing.webhook_path', default: 'billing/webhook'),
-    action: [WebhookController::class, 'handleWebhook']
+    Config::string('numerosis.billing.webhook_path', 'billing/webhook'),
+    [WebhookController::class, 'handleWebhook']
 )->name('billing.webhook');
 
 // Self-serve tenant registration wizard. Deliberately outside the `auth:web`
@@ -137,7 +138,6 @@ Route::middleware([$centralAuth])->group(function () {
     if (app()->isLocal()) {
         Route::get('/checkout/subscription/dev', StartLocalCheckout::class)->name('checkout.subscription.dev');
     }
-
 });
 
 // `login`, `register`, `logout`, `password.request`, `password.reset` and

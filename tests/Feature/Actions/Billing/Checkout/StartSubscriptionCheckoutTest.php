@@ -81,15 +81,11 @@ class StartSubscriptionCheckoutTest extends TestCase
             'global_id' => 'test-global-id',
         ]);
 
-        PaymentPlan::create([
-            'name' => 'Basic',
+        PaymentPlan::factory()->create([
             'slug' => 'basic',
-            'description' => 'Basic Plan',
             'monthly_id' => 'price_basic_monthly',
             'yearly_id' => 'price_basic_yearly',
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
-            'available' => true,
+            'trial_days' => 0,
         ]);
 
         // Mock Cashier/Stripe checkout to avoid hitting the real API with non-existent prices
@@ -119,15 +115,11 @@ class StartSubscriptionCheckoutTest extends TestCase
         $tenant = Tenant::factory()->create();
         $tenant->users()->attach($user->global_id, ['role' => 'owner']);
 
-        PaymentPlan::create([
-            'name' => 'Basic',
+        PaymentPlan::factory()->create([
             'slug' => 'basic',
-            'description' => 'Basic Plan',
             'monthly_id' => 'price_basic_monthly',
             'yearly_id' => 'price_basic_yearly',
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
-            'available' => true,
+            'trial_days' => 0,
         ]);
 
         $this->actingAs($user);
@@ -157,15 +149,11 @@ class StartSubscriptionCheckoutTest extends TestCase
 
         $user = CentralUser::factory()->create();
 
-        PaymentPlan::create([
-            'name' => 'Basic',
+        PaymentPlan::factory()->create([
             'slug' => 'basic',
-            'description' => 'Basic Plan',
             'monthly_id' => 'price_basic_monthly',
             'yearly_id' => 'price_basic_yearly',
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
-            'available' => true,
+            'trial_days' => 0,
         ]);
 
         StartSubscriptionCheckout::run(new TenantRegistrationData(

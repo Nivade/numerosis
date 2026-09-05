@@ -16,7 +16,7 @@ class extends Component
         $this->refreshInvitations();
     }
 
-    public function refreshInvitations(): void
+    private function refreshInvitations(): void
     {
         $invitationClass = Numerosis::model(Invitation::class);
 

@@ -20,11 +20,16 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Fortify as FortifyFacade;
 use Laravel\Fortify\RoutePath;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
 use Nvade\Numerosis\Http\Controllers\Auth\OneTimePasswordChallengeController;
+use Nvade\Numerosis\Http\Middleware\Authenticate;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
+use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
 use Nvade\Numerosis\Http\Middleware\RequirePasswordIfSet;
+use Nvade\Numerosis\Models\Central;
+use Nvade\Numerosis\Models\Tenant as TenantModels;
 use Nvade\Numerosis\Models\User as NumerosisUser;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use ReflectionClass;
@@ -161,10 +166,7 @@ class Numerosis
                     require $routes.'/web.php';
 
                     if ($withAuth) {
-                        $guard = Config::string('numerosis.auth.guards.central');
-
-                        self::loadFortifyRoutes($guard);
-                        self::loadOneTimePasswordRoutes($guard);
+                        self::loadAuthRoutes(Context::Central->guard());
                     }
 
                     foreach (Contributions::centralRouteCallbacks() as $callback) {
@@ -186,10 +188,7 @@ class Numerosis
             require $routes.'/tenant.php';
 
             if ($withAuth) {
-                $guard = Config::string('numerosis.auth.guards.tenant');
-
-                self::loadFortifyRoutes($guard);
-                self::loadOneTimePasswordRoutes($guard);
+                self::loadAuthRoutes(Context::Tenant->guard());
             }
 
             foreach (Contributions::tenantRouteCallbacks() as $callback) {
@@ -199,11 +198,19 @@ class Numerosis
     }
 
     /**
-     * Loads Fortify's own `routes/routes.php` into whichever group is open,
-     * once per central domain and once for the tenant group. Both keys set
-     * here are baked into route middleware at registration time; the
-     * `finally` restores them because a leftover `fortify.guard` changes the
-     * process-wide default.
+     * Every auth route, into whichever group is open: once per central domain
+     * under the central guard, once for the tenant group under the tenant one.
+     */
+    private static function loadAuthRoutes(string $guard): void
+    {
+        self::loadFortifyRoutes($guard);
+        self::loadOneTimePasswordRoutes($guard);
+    }
+
+    /**
+     * Loads Fortify's own `routes/routes.php`. Both keys set here are baked
+     * into route middleware at registration time; the `finally` restores them
+     * because a leftover `fortify.guard` changes the process-wide default.
      */
     private static function loadFortifyRoutes(string $guard): void
     {
@@ -333,7 +340,7 @@ class Numerosis
             'web',
             'tenancy.identification',
             'tenancy.session',
-            'auth:'.Config::string('numerosis.auth.guards.tenant'),
+            'auth:'.Context::Tenant->guard(),
             'universal',
         ];
     }
@@ -351,6 +358,54 @@ class Numerosis
     }
 
     /**
+     * Every alias the package registers, read by both {@see self::middleware()}
+     * and `NumerosisServiceProvider::registerMiddleware()`. One registry: an
+     * alias present in only one of the two works in this repo and fails in a
+     * host, or the reverse.
+     *
+     * @return array<string, string>
+     */
+    public static function middlewareAliases(): array
+    {
+        return [
+            // Laravel's `auth`, plus the central-to-tenant session promotion.
+            // It takes its own alias because `auth` is the host's, and every
+            // central route using that one must keep Laravel's behaviour.
+            'tenancy.auth' => Authenticate::class,
+
+            'password.confirm.if-set' => RequirePasswordIfSet::class,
+
+            // Apply the suspension gate per route group. It redirects to
+            // `tenant.suspended`, itself a tenant route, so putting it on the
+            // `tenant` group as a whole loops.
+            'tenancy.subscription' => EnsureTenantSubscriptionActive::class,
+
+            'tenancy.identification' => TenancyServiceProvider::identificationMiddleware(),
+            'tenancy.route' => TenancyServiceProvider::tenancyRouteMiddleware(),
+            'tenancy.session' => EnsureSessionMatchesTenant::class,
+        ];
+    }
+
+    /**
+     * The groups this package defines, read by the same two callers as
+     * {@see self::middlewareAliases()}.
+     *
+     * @return array<string, list<string>>
+     */
+    public static function middlewareGroups(): array
+    {
+        return [
+            'tenant' => [
+                'web',
+                'tenancy.identification',
+                'tenancy.route',
+                'tenancy.session',
+            ],
+            'universal' => [],
+        ];
+    }
+
+    /**
      * Middleware aliases, groups, and trust configuration for
      * `bootstrap/app.php`'s `withMiddleware()`. CSRF is left alone: pass
      * {@see self::csrfExceptions()} to `preventRequestForgery()` yourself,
@@ -358,21 +413,11 @@ class Numerosis
      */
     public static function middleware(Middleware $middleware): void
     {
-        $middleware->alias([
-            'password.confirm.if-set' => RequirePasswordIfSet::class,
-            'tenancy.identification' => TenancyServiceProvider::identificationMiddleware(),
-            'tenancy.route' => TenancyServiceProvider::tenancyRouteMiddleware(),
-            'tenancy.session' => EnsureSessionMatchesTenant::class,
-        ]);
+        $middleware->alias(self::middlewareAliases());
 
-        $middleware->group('tenant', [
-            'web',
-            'tenancy.identification',
-            'tenancy.route',
-            'tenancy.session',
-        ]);
-
-        $middleware->group('universal', []);
+        foreach (self::middlewareGroups() as $name => $stack) {
+            $middleware->group($name, $stack);
+        }
 
         $middleware->trustProxies('*');
 
@@ -590,6 +635,29 @@ class Numerosis
         $exceptions->dontReportDuplicates();
 
         $exceptions->throttle(fn () => Limit::perMinute(30));
+    }
+
+    /**
+     * The models a host may subclass, as package class => path relative to
+     * both `stubs/Models` and the host's `app/Models`. The `numerosis-models`
+     * publish group and `numerosis:install`'s override check read this one
+     * list, so a tenth model is added in a single place.
+     *
+     * @return array<class-string<Model>, string>
+     */
+    public static function modelStubs(): array
+    {
+        return [
+            Central\Tenant::class => 'Central/Tenant',
+            Central\Domain::class => 'Central/Domain',
+            Central\CentralUser::class => 'Central/CentralUser',
+            Central\Subscription::class => 'Central/Subscription',
+            Central\PaymentPlan::class => 'Central/PaymentPlan',
+            Central\PendingTenantProvision::class => 'Central/PendingTenantProvision',
+            Central\Invitation::class => 'Central/Invitation',
+            Central\SocialAccount::class => 'Central/SocialAccount',
+            TenantModels\User::class => 'Tenant/User',
+        ];
     }
 
     /**

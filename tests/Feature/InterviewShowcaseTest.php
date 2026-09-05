@@ -42,14 +42,10 @@ class InterviewShowcaseTest extends TestCase
             'global_id' => 'global-john-'.uniqid(),
         ]);
 
-        $paymentPlan = PaymentPlan::create([
+        $paymentPlan = PaymentPlan::factory()->create([
             'name' => 'Professional',
             'slug' => 'pro',
-            'description' => 'For growing teams',
-            'monthly_price' => 2900,
-            'yearly_price' => 29000,
             'trial_days' => 14,
-            'available' => true,
         ]);
 
         $tenantDomain = 'acme-'.uniqid();

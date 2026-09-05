@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Services\Billing\Plans;
 use Illuminate\Support\Collection;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\Plan;
+use Nvade\Numerosis\Exceptions\Billing\PaymentPlanNotFound;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
 use Nvade\Numerosis\Support\Cache\GlobalCache;
@@ -26,6 +27,15 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
         return Numerosis::model(PaymentPlan::class)::available()->firstWhere('slug', $slug);
     }
 
+    public function findBySlugOrFail(string $slug): Plan
+    {
+        $plan = $this->findBySlug($slug);
+
+        throw_unless($plan instanceof Plan, PaymentPlanNotFound::class, "Payment plan not found: {$slug}");
+
+        return $plan;
+    }
+
     public function findAnyBySlug(string $slug): ?Plan
     {
         return Numerosis::model(PaymentPlan::class)::firstWhere('slug', $slug);
@@ -40,10 +50,11 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
     }
 
     /**
-     * The plan catalogue changes only when an operator edits it in an admin UI
-     * (see {@see PaymentPlan::booted()} and
-     * {@see \Nvade\Numerosis\Models\Central\PaymentPlanFeature::booted()}), so this is
-     * cached with a bounded TTL as a backstop behind that invalidation.
+     * The plan catalogue changes only when an operator edits it in an admin UI,
+     * which busts this key through
+     * {@see \Nvade\Numerosis\Observers\PaymentPlanObserver} and
+     * {@see \Nvade\Numerosis\Observers\PaymentPlanFeatureObserver}, so the TTL
+     * is only a backstop behind that invalidation.
      *
      * @return Collection<int, Plan>
      */

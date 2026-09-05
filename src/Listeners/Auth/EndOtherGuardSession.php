@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Listeners\Auth;
 
 use Illuminate\Auth\Events\Logout;
-use Illuminate\Auth\SessionGuard;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Facades\Session;
+use Nvade\Numerosis\Concerns\Auth\ForgetsGuardSession;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 
 /**
  * Ends the session of whichever guard `POST /logout` did not log out itself.
@@ -21,10 +19,12 @@ use Illuminate\Support\Facades\Session;
  */
 class EndOtherGuardSession
 {
+    use ForgetsGuardSession;
+
     public function handle(Logout $event): void
     {
-        $central = Config::string('numerosis.auth.guards.central');
-        $tenant = Config::string('numerosis.auth.guards.tenant');
+        $central = Context::Central->guard();
+        $tenant = Context::Tenant->guard();
 
         if ($event->guard === $tenant) {
             $this->logoutGuardIfActive($central);
@@ -48,17 +48,12 @@ class EndOtherGuardSession
 
     private function endTenantSession(string $guardName): void
     {
-        $guard = Auth::guard($guardName);
-
         if (tenancy()->initialized) {
             $this->logoutGuardIfActive($guardName);
 
             return;
         }
 
-        if ($guard instanceof SessionGuard) {
-            Session::forget($guard->getName());
-            Cookie::queue(Cookie::forget($guard->getRecallerName()));
-        }
+        $this->forgetGuardSession(Auth::guard($guardName));
     }
 }

@@ -9,10 +9,14 @@ use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
+use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
+use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
+use Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain;
 use Nvade\Numerosis\Http\Middleware\NullMiddleware;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
@@ -34,9 +38,19 @@ class IdentificationModeTest extends TestCase
 
     protected function tearDown(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Subdomain->value);
+        $this->useMode(IdentificationMode::Subdomain);
 
         parent::tearDown();
+    }
+
+    /**
+     * `IdentificationMode::current()` reads one config key, and everything
+     * downstream of it — identification middleware, domain-row creation, the
+     * domain policy — reads it through that enum.
+     */
+    private function useMode(IdentificationMode $mode): void
+    {
+        Config::set('numerosis.tenancy.identification.mode', $mode->value);
     }
 
     public function test_default_mode_is_subdomain(): void
@@ -46,13 +60,13 @@ class IdentificationModeTest extends TestCase
 
     public function test_each_mode_selects_its_own_identification_middleware(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Subdomain->value);
+        $this->useMode(IdentificationMode::Subdomain);
         $this->assertSame(InitializeTenancyByDomainOrSubdomain::class, TenancyServiceProvider::identificationMiddleware());
 
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::CustomDomain->value);
+        $this->useMode(IdentificationMode::CustomDomain);
         $this->assertSame(InitializeTenancyByDomain::class, TenancyServiceProvider::identificationMiddleware());
 
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Path->value);
+        $this->useMode(IdentificationMode::Path);
         $this->assertSame(InitializeTenancyByPath::class, TenancyServiceProvider::identificationMiddleware());
     }
 
@@ -66,31 +80,31 @@ class IdentificationModeTest extends TestCase
      */
     public function test_livewire_update_route_uses_a_referer_based_middleware_only_under_path_mode(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Subdomain->value);
+        $this->useMode(IdentificationMode::Subdomain);
         $this->assertSame(InitializeTenancyByDomainOrSubdomain::class, TenancyServiceProvider::livewireUpdateIdentificationMiddleware());
 
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::CustomDomain->value);
+        $this->useMode(IdentificationMode::CustomDomain);
         $this->assertSame(InitializeTenancyByDomain::class, TenancyServiceProvider::livewireUpdateIdentificationMiddleware());
 
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Path->value);
-        $this->assertSame(\Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath::class, TenancyServiceProvider::livewireUpdateIdentificationMiddleware());
+        $this->useMode(IdentificationMode::Path);
+        $this->assertSame(InitializeLivewireTenancyByPath::class, TenancyServiceProvider::livewireUpdateIdentificationMiddleware());
     }
 
     public function test_path_mode_skips_the_central_domain_block_and_other_modes_dont(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Path->value);
+        $this->useMode(IdentificationMode::Path);
         $this->assertSame(NullMiddleware::class, TenancyServiceProvider::tenancyRouteMiddleware());
 
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Subdomain->value);
+        $this->useMode(IdentificationMode::Subdomain);
         $this->assertNotSame(NullMiddleware::class, TenancyServiceProvider::tenancyRouteMiddleware());
 
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::CustomDomain->value);
+        $this->useMode(IdentificationMode::CustomDomain);
         $this->assertNotSame(NullMiddleware::class, TenancyServiceProvider::tenancyRouteMiddleware());
     }
 
     public function test_subdomain_mode_creates_a_domain_row_by_concatenating_the_apex(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Subdomain->value);
+        $this->useMode(IdentificationMode::Subdomain);
         $tenant = Tenant::factory()->create();
 
         $domain = CreateTenantDomain::run($tenant, 'acme');
@@ -102,7 +116,7 @@ class IdentificationModeTest extends TestCase
 
     public function test_custom_domain_mode_stores_the_custom_domain_verbatim(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::CustomDomain->value);
+        $this->useMode(IdentificationMode::CustomDomain);
         $tenant = Tenant::factory()->create();
 
         $domain = CreateTenantDomain::run($tenant, 'acme', 'app.acme.com');
@@ -114,7 +128,7 @@ class IdentificationModeTest extends TestCase
 
     public function test_custom_domain_mode_requires_a_custom_domain(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::CustomDomain->value);
+        $this->useMode(IdentificationMode::CustomDomain);
         $tenant = Tenant::factory()->create();
 
         $this->expectException(RuntimeException::class);
@@ -124,7 +138,7 @@ class IdentificationModeTest extends TestCase
 
     public function test_path_mode_creates_no_domain_row_at_all(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Path->value);
+        $this->useMode(IdentificationMode::Path);
         $tenant = Tenant::factory()->create();
 
         $domain = CreateTenantDomain::run($tenant, 'acme');
@@ -141,7 +155,7 @@ class IdentificationModeTest extends TestCase
      */
     public function test_default_policy_ignores_a_tenant_id_collision_under_subdomain_mode(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Subdomain->value);
+        $this->useMode(IdentificationMode::Subdomain);
         Tenant::factory()->create(['id' => 'occupied-tenant-row-only']);
 
         resolve(TenantDomainPolicy::class)->assertAvailable('occupied-tenant-row-only');
@@ -151,7 +165,7 @@ class IdentificationModeTest extends TestCase
 
     public function test_default_policy_rejects_a_taken_subdomain_under_subdomain_mode(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Subdomain->value);
+        $this->useMode(IdentificationMode::Subdomain);
         $tenant = Tenant::factory()->create();
         CreateTenantDomain::run($tenant, 'reserved-slug');
 
@@ -161,7 +175,7 @@ class IdentificationModeTest extends TestCase
 
     public function test_default_policy_checks_tenants_table_directly_under_path_mode(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Path->value);
+        $this->useMode(IdentificationMode::Path);
         Tenant::factory()->create(['id' => 'taken-id']);
 
         $this->expectException(ValidationException::class);
@@ -170,7 +184,7 @@ class IdentificationModeTest extends TestCase
 
     public function test_custom_domain_policy_validates_format_and_uniqueness(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::CustomDomain->value);
+        $this->useMode(IdentificationMode::CustomDomain);
 
         $this->expectException(ValidationException::class);
         resolve(TenantDomainPolicy::class)->assertCustomDomainAvailable('not a domain');
@@ -178,7 +192,7 @@ class IdentificationModeTest extends TestCase
 
     public function test_custom_domain_policy_rejects_an_already_claimed_domain(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::CustomDomain->value);
+        $this->useMode(IdentificationMode::CustomDomain);
         $tenant = Tenant::factory()->create();
         CreateTenantDomain::run($tenant, (string) $tenant->id, 'app.acme.com');
 
@@ -188,7 +202,7 @@ class IdentificationModeTest extends TestCase
 
     public function test_tenant_resolves_route_binding_by_id_outside_custom_domain_mode(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::Subdomain->value);
+        $this->useMode(IdentificationMode::Subdomain);
         $tenant = Tenant::factory()->create();
 
         $resolved = $tenant->resolveRouteBinding($tenant->id, 'id');
@@ -210,7 +224,7 @@ class IdentificationModeTest extends TestCase
      */
     public function test_a_custom_domain_resolves_to_its_tenant_under_that_mode(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::CustomDomain->value);
+        $this->useMode(IdentificationMode::CustomDomain);
         $tenant = Tenant::factory()->create();
         CreateTenantDomain::run($tenant, (string) $tenant->id, 'app.acme.com');
 
@@ -222,12 +236,12 @@ class IdentificationModeTest extends TestCase
 
     public function test_reserve_tenant_domain_persists_custom_domain_alongside_the_slug(): void
     {
-        Config::set('numerosis.tenancy.identification.mode', IdentificationMode::CustomDomain->value);
+        $this->useMode(IdentificationMode::CustomDomain);
 
-        \Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain::run(new \Nvade\Numerosis\Data\Tenancy\TenantRegistrationData(
+        ReserveTenantDomain::run(new TenantRegistrationData(
             company_name: 'Acme',
             domain: 'acme',
-            global_id: (string) \Illuminate\Support\Str::uuid(),
+            global_id: (string) Str::uuid(),
             custom_domain: 'app.acme.com',
         ));
 

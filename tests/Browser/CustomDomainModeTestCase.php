@@ -4,27 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Browser;
 
-use Illuminate\Contracts\Config\Repository;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
-use Nvade\Numerosis\Tests\TestCase;
 
 /**
- * Boots the application in **custom domain** identification mode. See
- * `PathModeTestCase` for why this has to happen before boot rather than via
- * a `Config::set()` in the test body: the mode decides identification
- * middleware, whether the tenant panel gets a domain pattern, and — for this
- * mode specifically — that the pattern is the literal `{tenant}`, matched
- * against `Tenant::resolveRouteBinding()`'s override rather than `id`.
+ * Custom-domain mode alone matches the tenant against the literal `{tenant}`
+ * pattern, resolved through `Tenant::resolveRouteBinding()` rather than `id`.
  */
-abstract class CustomDomainModeTestCase extends TestCase
+abstract class CustomDomainModeTestCase extends IdentificationModeTestCase
 {
-    protected function getEnvironmentSetUp($app): void
+    protected function identificationMode(): IdentificationMode
     {
-        parent::getEnvironmentSetUp($app);
-
-        $app->make(Repository::class)->set(
-            'numerosis.tenancy.identification.mode',
-            IdentificationMode::CustomDomain->value,
-        );
+        return IdentificationMode::CustomDomain;
     }
 }

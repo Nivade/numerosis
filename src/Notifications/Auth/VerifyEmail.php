@@ -5,21 +5,22 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Notifications\Auth;
 
 use Illuminate\Auth\Notifications\VerifyEmail as BaseVerifyEmail;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Date;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\URL;
 use InvalidArgumentException;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\User;
 use Override;
 
 class VerifyEmail extends BaseVerifyEmail
 {
     /**
-     * Get the verification URL for the given notifiable.
+     * The `id`/`hash` pair must match what
+     * {@see \Nvade\Numerosis\Http\Requests\Auth\NumerosisVerifyEmailRequest::authorize()}
+     * compares against: the global identifier, and `sha1()` of the address.
+     * A salted hash never compares equal there, so the link would 403.
      */
     #[Override]
     protected function verificationUrl(mixed $notifiable): string
@@ -28,13 +29,10 @@ class VerifyEmail extends BaseVerifyEmail
             return call_user_func(static::$createUrlCallback, $notifiable);
         }
 
-        throw_if(! $notifiable instanceof Model || ! $notifiable instanceof MustVerifyEmail, InvalidArgumentException::class, 'Notifiable must be a Model implementing MustVerifyEmail.');
+        throw_if(! $notifiable instanceof User, InvalidArgumentException::class, 'Notifiable must be a '.User::class.'.');
 
-        // Determine the correct origin URL based on tenant context
         $originUrl = $this->determineOriginUrl();
-
-        // For multi-tenancy: temporarily override the root URL to match the tenant domain
-        $previousRootUrl = Config::string('app.url');
+        $appUrl = Config::string('app.url');
 
         try {
             if ($originUrl) {
@@ -42,18 +40,20 @@ class VerifyEmail extends BaseVerifyEmail
             }
 
             return URL::temporarySignedRoute('verification.verify', Date::now()->addMinutes(Config::integer('numerosis.auth.verification_expire', 60)), [
-                'id' => $notifiable->getKey(),
-                'hash' => Hash::make($notifiable->getEmailForVerification()),
+                'id' => $notifiable->getGlobalIdentifierKey(),
+                'hash' => sha1($notifiable->getEmailForVerification()),
             ]);
         } finally {
-            // Restore original root URL
-            URL::useOrigin($previousRootUrl);
+            URL::useOrigin($appUrl);
         }
     }
 
+    /**
+     * The tenant's own domain while tenancy is initialized, so the link lands
+     * on the host the session was established for.
+     */
     protected function determineOriginUrl(): ?string
     {
-        // If tenancy is initialized, use the tenant's domain
         if (tenancy()->initialized) {
             /** @var Tenant $tenant */
             $tenant = tenant();
@@ -64,12 +64,10 @@ class VerifyEmail extends BaseVerifyEmail
             }
         }
 
-        // Fall back to request URL if available
         if (Request::getHost()) {
             return Request::getScheme().'://'.Request::getHost();
         }
 
-        // Finally, fall back to app URL
         return Config::string('app.url');
     }
 }

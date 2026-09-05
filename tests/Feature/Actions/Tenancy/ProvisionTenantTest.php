@@ -16,17 +16,18 @@ use Illuminate\Support\Facades\Schema;
 use Lorisleiva\Actions\Decorators\JobDecorator;
 use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
-use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
+use Nvade\Numerosis\Models\Central\Tenant as PackageTenant;
+use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\TestCase;
 use RuntimeException;
 use Stancl\Tenancy\Jobs\CreateDatabase;
 
 class ProvisionTenantTest extends TestCase
 {
+    use BuildsTenantProvisionData;
     use RefreshDatabase;
 
     public function test_it_creates_the_tenant_without_a_subscription(): void
@@ -61,11 +62,10 @@ class ProvisionTenantTest extends TestCase
         $user = CentralUser::factory()->create();
         $data = $this->provisionData($user, 'doomed');
 
-        PendingTenantProvision::create([
+        PendingTenantProvision::factory()->provisioning()->create([
             'domain' => 'doomed',
             'company_name' => 'Doomed Co',
             'global_id' => $user->global_id,
-            'status' => TenantProvisionStatus::Provisioning,
         ]);
 
         ProvisionTenant::make()->jobFailed(new RuntimeException('queue exploded'), $data);
@@ -157,6 +157,39 @@ class ProvisionTenantTest extends TestCase
         Bus::assertDispatched(CreateDatabase::class);
     }
 
+    /**
+     * `numerosis.tenancy.implementations` documents TenantDatabaseManager as
+     * the seam for provisioning onto other database servers. ProvisionTenant
+     * used to inline both of its methods instead, so a host's own manager was
+     * bound and then never consulted.
+     */
+    public function test_it_asks_the_bound_tenant_database_manager(): void
+    {
+        Bus::fake();
+
+        $this->instance(TenantDatabaseManager::class, new class implements TenantDatabaseManager
+        {
+            public function databaseExists(PackageTenant $tenant): bool
+            {
+                return false;
+            }
+
+            /**
+             * @return list<class-string>
+             */
+            public function creationJobs(): array
+            {
+                return [];
+            }
+        });
+
+        $user = CentralUser::factory()->create();
+
+        ProvisionTenant::run($this->provisionData($user, 'swappedmanager'));
+
+        Bus::assertNotDispatched(CreateDatabase::class);
+    }
+
     public function test_it_is_unique_per_domain(): void
     {
         $user = CentralUser::factory()->create();
@@ -164,19 +197,6 @@ class ProvisionTenantTest extends TestCase
         $this->assertSame(
             'acme',
             ProvisionTenant::make()->getJobUniqueId($this->provisionData($user, 'acme')),
-        );
-    }
-
-    private function provisionData(CentralUser $user, string $domain): TenantProvisionData
-    {
-        return new TenantProvisionData(
-            registration: TenantRegistrationData::from([
-                'company_name' => 'Test Company',
-                'domain' => $domain,
-                'billing_cycle' => BillingCycle::Monthly,
-                'global_id' => $user->global_id,
-            ]),
-            centralUserId: (string) $user->id,
         );
     }
 }

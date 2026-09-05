@@ -43,8 +43,6 @@ abstract class User extends Authenticatable implements MustVerifyEmail, Syncable
     use Notifiable;
 
     /**
-     * Get the attributes that should be cast.
-     *
      * @return array<string, string>
      */
     #[Override]
@@ -61,9 +59,6 @@ abstract class User extends Authenticatable implements MustVerifyEmail, Syncable
         return GetTenantsByGlobalId::run($this->global_id)->contains('id', $tenant->getKey());
     }
 
-    /**
-     * Send the email verification notification.
-     */
     #[Override]
     public function sendEmailVerificationNotification(): void
     {

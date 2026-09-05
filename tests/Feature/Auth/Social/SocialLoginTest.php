@@ -14,6 +14,7 @@ use Nvade\Numerosis\Enums\Auth\SocialProvider;
 use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
 use Nvade\Numerosis\Models\Central\SocialAccount;
+use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -119,7 +120,7 @@ class SocialLoginTest extends TestCase
             'provider_id' => 'google-only-'.uniqid(),
         ]);
 
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'))
+        $this->actingAsCentralUser($user)
             ->withSession(['auth.password_confirmed_at' => time()])
             ->from('settings/profile')
             ->delete("/settings/social/{$socialAccount->id}")
@@ -152,7 +153,7 @@ class SocialLoginTest extends TestCase
             'provider_id' => 'google-unlink-'.uniqid(),
         ]);
 
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'))
+        $this->actingAsCentralUser($user)
             ->withSession(['auth.password_confirmed_at' => time()])
             ->delete("/settings/social/{$socialAccount->id}")
             ->assertRedirect();
@@ -171,7 +172,7 @@ class SocialLoginTest extends TestCase
             'provider_id' => 'google-owned-'.uniqid(),
         ]);
 
-        $this->actingAs($attacker, Config::string('numerosis.auth.guards.central'))
+        $this->actingAsCentralUser($attacker)
             ->withSession(['auth.password_confirmed_at' => time()])
             ->delete("/settings/social/{$socialAccount->id}")
             ->assertForbidden();
@@ -210,7 +211,7 @@ class SocialLoginTest extends TestCase
             $this->socialData(providerId: $providerId, email: $user->email, emailVerified: true),
         );
 
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'))
+        $this->actingAsCentralUser($user)
             ->get('/auth/google/callback')
             ->assertRedirect(route('settings.connected-accounts'));
 
@@ -242,7 +243,7 @@ class SocialLoginTest extends TestCase
             $this->socialData(providerId: $providerId, email: $attacker->email, emailVerified: true),
         );
 
-        $this->actingAs($attacker, Config::string('numerosis.auth.guards.central'))
+        $this->actingAsCentralUser($attacker)
             ->get('/auth/google/callback')
             ->assertRedirect(route('settings.connected-accounts'))
             ->assertSessionHas('status', 'That Google account is already connected to another user.');
@@ -276,7 +277,7 @@ class SocialLoginTest extends TestCase
             'provider_id' => 'github-keep-'.uniqid(),
         ]);
 
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'))
+        $this->actingAsCentralUser($user)
             ->delete("/settings/social/{$spare->id}")
             ->assertRedirect();
 
@@ -293,7 +294,7 @@ class SocialLoginTest extends TestCase
             'provider_id' => 'google-confirm-'.uniqid(),
         ]);
 
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'))
+        $this->actingAsCentralUser($user)
             ->delete("/settings/social/{$socialAccount->id}")
             ->assertRedirect(route('password.confirm'));
 
@@ -307,6 +308,34 @@ class SocialLoginTest extends TestCase
         }
 
         $this->get('/auth/google/redirect')->assertStatus(429);
+    }
+
+    /**
+     * `<x-numerosis::auth.social-buttons />` carries the feature gate and the
+     * divider itself, so the guest screens call it unconditionally. Both
+     * halves are asserted here because a gate that never closes renders an
+     * empty divider above the email form on every install with social off.
+     */
+    public function test_the_guest_screens_render_the_provider_buttons_and_the_divider(): void
+    {
+        foreach (['/login', '/register'] as $uri) {
+            $this->get($uri)
+                ->assertOk()
+                ->assertSee('Google')
+                ->assertSee('Or continue with email');
+        }
+    }
+
+    public function test_the_guest_screens_render_neither_when_the_feature_is_off(): void
+    {
+        Features::forceForTesting([]);
+
+        foreach (['/login', '/register'] as $uri) {
+            $this->get($uri)
+                ->assertOk()
+                ->assertDontSee('Google')
+                ->assertDontSee('Or continue with email');
+        }
     }
 
     private function socialData(string $providerId, ?string $email, bool $emailVerified): SocialUserData

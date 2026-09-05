@@ -53,8 +53,6 @@ class PaymentPlanFeature extends Pivot
     }
 
     /**
-     * Get the payment plan that owns this feature.
-     *
      * @return BelongsTo<PaymentPlan, $this>
      */
     public function paymentPlan(): BelongsTo
@@ -63,8 +61,6 @@ class PaymentPlanFeature extends Pivot
     }
 
     /**
-     * Get the feature for this pivot.
-     *
      * @return BelongsTo<PlanFeature, $this>
      */
     public function feature(): BelongsTo

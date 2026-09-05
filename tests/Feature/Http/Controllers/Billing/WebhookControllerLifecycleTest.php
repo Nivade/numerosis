@@ -16,6 +16,7 @@ use Nvade\Numerosis\Events\Billing\SubscriptionCancelled;
 use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
 use Nvade\Numerosis\Notifications\Billing\PaymentFailed;
 use Nvade\Numerosis\Notifications\Billing\TenantSuspended;
+use Nvade\Numerosis\Tests\Concerns\DisablesWebhookSignature;
 use Nvade\Numerosis\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -28,15 +29,12 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 class WebhookControllerLifecycleTest extends TestCase
 {
+    use DisablesWebhookSignature;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
-
-        // VerifyWebhookSignature is bound at controller construction time,
-        // so it has to be off before that happens.
-        config(['cashier.webhook.secret' => null]);
 
         // Tenant::save() is no longer event-suppressed (see
         // tenantWithStripeCustomer() below — dev-master's DatabaseTenancyBootstrapper

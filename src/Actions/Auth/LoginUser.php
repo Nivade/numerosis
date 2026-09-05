@@ -6,7 +6,6 @@ namespace Nvade\Numerosis\Actions\Auth;
 
 use Illuminate\Auth\EloquentUserProvider;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Session;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Queries\FindUserByGlobalId;
@@ -27,7 +26,7 @@ class LoginUser
 
         $this->loginToGuard($guardName, $user, $remember);
 
-        $centralGuard = Config::string('numerosis.auth.guards.central', 'web');
+        $centralGuard = Context::Central->guard();
 
         if ($guardName !== $centralGuard) {
             $this->loginToGuard($centralGuard, $user, $remember);

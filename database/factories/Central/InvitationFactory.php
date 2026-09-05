@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Database\Factories\Central;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Nvade\Numerosis\Database\Factories\Concerns\GeneratesUniqueEmails;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -12,6 +13,8 @@ use Nvade\Numerosis\Models\Central\Tenant;
 /** @extends Factory<\Nvade\Numerosis\Models\Central\Invitation> */
 class InvitationFactory extends Factory
 {
+    use GeneratesUniqueEmails;
+
     /**
      * Define the model's default state.
      */
@@ -19,7 +22,7 @@ class InvitationFactory extends Factory
     {
         return [
             'tenant_id' => Tenant::factory(),
-            'email' => $this->faker->unique()->safeEmail(),
+            'email' => static::uniqueEmail(),
             'role' => MembershipRole::Member,
             'invited_by_user_id' => CentralUser::factory(),
             'expires_at' => now()->addDays(7),

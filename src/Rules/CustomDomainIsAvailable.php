@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Rules;
 
-use Closure;
-use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 
 /**
@@ -15,26 +12,10 @@ use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
  *
  * @see DomainIsAvailable the id/slug counterpart
  */
-class CustomDomainIsAvailable implements ValidationRule
+class CustomDomainIsAvailable extends TenantDomainRule
 {
-    public function validate(string $attribute, mixed $value, Closure $fail): void
+    protected function assertAvailable(TenantDomainPolicy $policy, string $domain): void
     {
-        // Not a `(string)` cast: an array or object here is a fatal rather
-        // than a validation failure, and a client controls this value.
-        if (! is_string($value)) {
-            $fail('The domain format is invalid.');
-
-            return;
-        }
-
-        try {
-            resolve(TenantDomainPolicy::class)->assertCustomDomainAvailable($value);
-        } catch (ValidationException $e) {
-            foreach ($e->errors() as $messages) {
-                foreach ($messages as $message) {
-                    $fail($message);
-                }
-            }
-        }
+        $policy->assertCustomDomainAvailable($domain);
     }
 }
