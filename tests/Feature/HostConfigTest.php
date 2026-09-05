@@ -11,13 +11,13 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Tests\TestCase;
-use Pdo\Mysql;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
 use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
@@ -183,9 +183,15 @@ class HostConfigTest extends TestCase
         );
     }
 
-    public function test_it_does_not_override_a_hosts_custom_seeder(): void
+    /**
+     * `tenancy.seeder` is a preference: it always projects onto
+     * `tenancy.seeder_parameters.--class`, so a host chooses a seeder
+     * through the numerosis key rather than the vendor key directly.
+     */
+    public function test_it_projects_a_custom_seeder_from_the_numerosis_key(): void
     {
-        Config::set('tenancy.seeder_parameters', ['--class' => 'App\\Custom\\Seeder']);
+        Config::set('numerosis.tenancy.seeder', 'App\\Custom\\Seeder');
+        Config::set('tenancy.seeder_parameters', ['--class' => 'SomethingElseEntirely']);
 
         $this->rebootPackage();
 
@@ -229,12 +235,18 @@ class HostConfigTest extends TestCase
         $this->assertSame('central', Config::get('tenancy.database.central_connection'));
     }
 
-    public function test_it_does_not_override_a_deliberately_named_central_connection(): void
+    /**
+     * `tenancy.central_connection` is a preference: it always projects onto
+     * `tenancy.database.central_connection`, so a host names a connection
+     * through the numerosis key rather than the vendor key directly.
+     */
+    public function test_it_projects_a_custom_central_connection_from_the_numerosis_key(): void
     {
+        Config::set('numerosis.tenancy.central_connection', 'tenant');
         // 'tenant' rather than an unconfigured name: TestCase's teardown
         // queries through whatever this key resolves to, and it must stay a
         // real, connectable connection for that cleanup to succeed.
-        Config::set('tenancy.database.central_connection', 'tenant');
+        Config::set('tenancy.database.central_connection', 'reporting');
 
         $this->rebootPackage();
 
@@ -260,32 +272,6 @@ class HostConfigTest extends TestCase
         $this->rebootPackage();
 
         $this->assertSame('host-owned', Config::get('database.connections.central.marker'));
-    }
-
-    public function test_it_mirrors_innodb_lock_wait_timeout_when_only_lock_wait_timeout_set(): void
-    {
-        $initCommandKey = Mysql::ATTR_INIT_COMMAND;
-
-        Config::set('database.connections.central.driver', 'mysql');
-        Config::set('database.connections.central.options', [
-            $initCommandKey => 'SET SESSION lock_wait_timeout = 15',
-        ]);
-
-        $this->rebootPackage();
-
-        $options = Config::array('database.connections.central.options');
-
-        $this->assertSame(
-            'SET SESSION lock_wait_timeout = 15, innodb_lock_wait_timeout = 15',
-            $options[$initCommandKey],
-        );
-    }
-
-    public function test_it_does_not_touch_options_that_already_set_both_timeouts(): void
-    {
-        $this->rebootPackage();
-
-        $this->assertNotContains('database.connections', HostConfig::applied());
     }
 
     public function test_it_defaults_session_domain_when_null(): void
@@ -392,11 +378,16 @@ class HostConfigTest extends TestCase
         $this->assertNotContains('auth.passwords.users', HostConfig::applied());
     }
 
+    /**
+     * The deep-fill runs in `NumerosisServiceProvider::packageRegistered()`,
+     * not `HostConfig::apply()` — re-registering the provider is what
+     * exercises it, rather than `rebootPackage()`.
+     */
     public function test_it_fills_missing_keys_in_a_partially_overridden_numerosis_section(): void
     {
         Config::set('numerosis.billing', ['trial_days' => 3]);
 
-        $this->rebootPackage();
+        (new NumerosisServiceProvider(app()))->register();
 
         // The key the host set survives, and every sibling it omitted — which
         // a one-level-deep merge would have dropped — is backfilled.
@@ -408,7 +399,7 @@ class HostConfigTest extends TestCase
     {
         Config::set('numerosis.features', []);
 
-        $this->rebootPackage();
+        (new NumerosisServiceProvider(app()))->register();
 
         $this->assertSame([], Config::get('numerosis.features'));
     }

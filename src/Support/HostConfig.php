@@ -6,7 +6,6 @@ namespace Nvade\Numerosis\Support;
 
 use Illuminate\Support\Facades\Config;
 use Laravel\Fortify\Features as FortifyFeatures;
-use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -21,10 +20,15 @@ use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
 
 /**
  * Fills in the config this package needs, so an app only has to supply
- * ordinary Laravel database credentials to get a working install. A key is
- * written only while unset or still holding the stock value Laravel or
- * stancl/tenancy shipped, several of which never resolve to null. Every write
- * is recorded and reported by `numerosis:install`, and running twice is inert.
+ * ordinary Laravel database credentials to get a working install.
+ *
+ * A **preference** (`numerosis.*` names a value a host might legitimately
+ * want another value for) is projected onto its vendor key unconditionally.
+ * A **correction** (the package does not work otherwise) is written only
+ * while its vendor key is unset or still holding a stock value Laravel or
+ * stancl/tenancy shipped, several of which never resolve to null. Every
+ * write is recorded and reported by `numerosis:install`, and running twice
+ * is inert.
  */
 final class HostConfig
 {
@@ -36,25 +40,18 @@ final class HostConfig
         self::$applied = [];
 
         self::tenancyModels();
+        self::centralAuthProviderModelPreference();
         self::centralDomains();
         self::tenancyBootstrappers();
         self::tenantMigrationParameters();
-        self::tenantSeederParameters();
-        self::livewireDiskExclusion();
-        self::filesystemRootOverride();
-        self::tenancyCentralConnection();
+        self::tenantSeederPreference();
+        self::filesystemDisks();
+        self::centralConnectionPreference();
         self::centralDatabaseConnection();
-        self::databaseLockOptions();
         self::sessionDomain();
-        self::failedJobsConnection();
-        self::tenantAuthGuard();
-        self::tenantAuthProvider();
-        self::centralAuthProviderModel();
         self::authPasswordBroker();
-        self::tenantPasswordBroker();
-        self::activityLogTable();
+        self::applyCorrections();
         self::fortifyFeatures();
-        self::numerosisConfig();
     }
 
     /**
@@ -73,9 +70,19 @@ final class HostConfig
         self::$applied[] = $key;
     }
 
+    /** Writes a preference only when it would actually change the key. */
+    private static function project(string $key, mixed $value): void
+    {
+        if (Config::get($key) !== $value) {
+            self::set($key, $value);
+        }
+    }
+
     /**
      * Points tenancy at this package's tenant, domain and user models.
-     * Left alone once any of them names a class of your own.
+     * Left alone once any of them names a class of your own — unlike
+     * `auth.providers.users.model` below, a host may set one of these four
+     * directly rather than through `numerosis.models.*`.
      */
     private static function tenancyModels(): void
     {
@@ -108,10 +115,19 @@ final class HostConfig
     }
 
     /**
-     * Derives the central domain from `APP_URL` (override with
-     * `NUMEROSIS_CENTRAL_DOMAIN`). Central routes are bound per hostname
-     * listed here, so leaving stancl's stock `127.0.0.1`/`localhost` in
-     * place would scope every central URL to the wrong host.
+     * Projects `numerosis.models.*`'s `CentralUser` entry onto
+     * `auth.providers.users.model`, always.
+     */
+    private static function centralAuthProviderModelPreference(): void
+    {
+        self::project('auth.providers.users.model', Numerosis::model(CentralUser::class));
+    }
+
+    /**
+     * Derives the central domain from `numerosis.domains.central`. Stays a
+     * method rather than a plain projection: the vendor key is a list (a
+     * host serving several central hostnames sets more than one), so an
+     * unconditional projection would flatten that list to one value.
      */
     private static function centralDomains(): void
     {
@@ -192,21 +208,17 @@ final class HostConfig
     }
 
     /**
-     * Seeds new tenant databases with this package's tenant seeder instead
-     * of stancl's stock `DatabaseSeeder`, which is your central-database
-     * root seeder and knows nothing about tenant data.
+     * Projects `numerosis.tenancy.seeder` onto `tenancy.seeder_parameters`,
+     * always — set the numerosis key to choose a seeder, not this one.
      */
-    private static function tenantSeederParameters(): void
+    private static function tenantSeederPreference(): void
     {
         /** @var array<string, mixed> $parameters */
         $parameters = Config::array('tenancy.seeder_parameters', []);
-        $class = $parameters['--class'] ?? null;
+        $class = Config::string('numerosis.tenancy.seeder', TenantDatabaseSeeder::class);
 
-        if ($class === null || $class === 'DatabaseSeeder') {
-            self::set('tenancy.seeder_parameters', [
-                ...$parameters,
-                '--class' => TenantDatabaseSeeder::class,
-            ]);
+        if (($parameters['--class'] ?? null) !== $class) {
+            self::set('tenancy.seeder_parameters', [...$parameters, '--class' => $class]);
         }
     }
 
@@ -216,7 +228,7 @@ final class HostConfig
      * disk makes validation look for the file in a directory the upload was
      * never written to, surfacing as a bogus "invalid file type" error.
      */
-    private static function livewireDiskExclusion(): void
+    private static function filesystemDisks(): void
     {
         /** @var list<string> $disks */
         $disks = Config::array('tenancy.filesystem.disks', []);
@@ -227,32 +239,15 @@ final class HostConfig
     }
 
     /**
-     * Corrects stancl's stock tenant root for the `local` disk, which
-     * predates Laravel 11 moving that disk to `storage/app/private`.
+     * Projects `numerosis.tenancy.central_connection` onto
+     * `tenancy.database.central_connection`, always.
      */
-    private static function filesystemRootOverride(): void
+    private static function centralConnectionPreference(): void
     {
-        $current = Config::get('tenancy.filesystem.root_override.local');
-
-        if ($current === null || $current === '%storage_path%/app/') {
-            self::set('tenancy.filesystem.root_override.local', '%storage_path%/app/private/');
-        }
-    }
-
-    /**
-     * Names the central connection `central`, which is what this package
-     * assumes throughout. Skipped once it names anything other than
-     * `database.default`: stancl's stock value resolves to `DB_CONNECTION`,
-     * so matching the default means it was never chosen deliberately.
-     */
-    private static function tenancyCentralConnection(): void
-    {
-        $current = Config::get('tenancy.database.central_connection');
-        $default = Config::get('database.default');
-
-        if ($current === null || $current === $default) {
-            self::set('tenancy.database.central_connection', 'central');
-        }
+        self::project(
+            'tenancy.database.central_connection',
+            Config::string('numerosis.tenancy.central_connection', 'central'),
+        );
     }
 
     /**
@@ -278,59 +273,11 @@ final class HostConfig
     }
 
     /**
-     * Mirrors any MySQL `lock_wait_timeout` you set into
-     * `innodb_lock_wait_timeout`. The first bounds waits on schema locks
-     * only; without the second, a blocked `INSERT` or `DELETE` still waits
-     * out MySQL's 50-second default while appearing to be bounded.
-     */
-    private static function databaseLockOptions(): void
-    {
-        /** @var array<string, mixed> $connections */
-        $connections = Config::array('database.connections', []);
-        $changed = false;
-
-        foreach ($connections as $name => $connection) {
-            if (! is_array($connection) || ($connection['driver'] ?? null) !== 'mysql') {
-                continue;
-            }
-
-            /** @var array<int|string, mixed> $options */
-            $options = is_array($connection['options'] ?? null) ? $connection['options'] : [];
-            $updatedOptions = $options;
-
-            foreach ($options as $optionKey => $optionValue) {
-                if (! is_string($optionValue) || ! str_contains($optionValue, 'lock_wait_timeout')) {
-                    continue;
-                }
-
-                if (str_contains($optionValue, 'innodb_lock_wait_timeout')) {
-                    continue;
-                }
-
-                if (preg_match('/(?<!innodb_)lock_wait_timeout\s*=\s*(\d+)/', $optionValue, $matches) !== 1) {
-                    continue;
-                }
-
-                $updatedOptions[$optionKey] = rtrim($optionValue, '; ')
-                    .", innodb_lock_wait_timeout = {$matches[1]}";
-                $changed = true;
-            }
-
-            if ($updatedOptions !== $options) {
-                $connection['options'] = $updatedOptions;
-                $connections[$name] = $connection;
-            }
-        }
-
-        if ($changed) {
-            self::set('database.connections', $connections);
-        }
-    }
-
-    /**
      * Scopes the session cookie to the apex domain, so one session spans the
      * central app and every tenant subdomain. Left null, each subdomain gets
-     * its own separate session.
+     * its own separate session. The null check stays even though the value
+     * is a preference: overwriting a host's own `session.domain` /
+     * `SESSION_DOMAIN` unconditionally would break login silently.
      */
     private static function sessionDomain(): void
     {
@@ -340,62 +287,6 @@ final class HostConfig
             if ($apex !== '') {
                 self::set('session.domain', '.'.$apex);
             }
-        }
-    }
-
-    /**
-     * Pins failed jobs to the central connection. Left on a connection that
-     * moves under tenancy, a job failing inside tenant context writes its
-     * `failed_jobs` row into that tenant's database, where nothing looks
-     * for it.
-     */
-    private static function failedJobsConnection(): void
-    {
-        $current = Config::get('queue.failed.database');
-        $default = Config::get('database.default');
-
-        if ($current === null || $current === $default) {
-            self::set('queue.failed.database', 'central');
-        }
-    }
-
-    /**
-     * Adds the `tenant` session guard, paired with the `tenant` provider
-     * defined below. Laravel's stock `config/auth.php` ships neither.
-     */
-    private static function tenantAuthGuard(): void
-    {
-        if (Config::get('auth.guards.tenant') === null) {
-            self::set('auth.guards.tenant', [
-                'driver' => 'session',
-                'provider' => 'tenant',
-            ]);
-        }
-    }
-
-    private static function tenantAuthProvider(): void
-    {
-        if (Config::get('auth.providers.tenant') === null) {
-            self::set('auth.providers.tenant', [
-                'driver' => 'eloquent',
-                'model' => Numerosis::model(TenantUser::class),
-            ]);
-        }
-    }
-
-    /**
-     * Points central auth at a user model that implements
-     * {@see CentralUserModel}, which Laravel's stock `App\Models\User` does
-     * not. Any model of yours that satisfies the contract is left alone.
-     */
-    private static function centralAuthProviderModel(): void
-    {
-        $model = Config::get('auth.providers.users.model');
-
-        $valid = is_string($model) && class_exists($model) && is_a($model, CentralUserModel::class, true);
-
-        if (! $valid) {
-            self::set('auth.providers.users.model', Numerosis::model(CentralUser::class));
         }
     }
 
@@ -427,34 +318,49 @@ final class HostConfig
     }
 
     /**
-     * Defines the `tenant` password broker that `PasswordBrokerBootstrapper`
-     * swaps `fortify.passwords` to. A broker resolves its model through
-     * `auth.passwords.*`, so a tenant reset left on
-     * {@see self::authPasswordBroker()}'s central broker finds a `CentralUser`.
+     * Guarded key => value corrections: written while a key is unset or
+     * still holding a stock value. `tenancy.filesystem.root_override.local`
+     * and `queue.failed.database` never resolve to null, so a plain null
+     * check would silently stop correcting them once a host's other config
+     * happened to match their vendor default.
+     *
+     * @return array<string, array{0: list<mixed>, 1: mixed}>
      */
-    private static function tenantPasswordBroker(): void
+    private static function corrections(): array
     {
-        if (Config::get('auth.passwords.tenant') !== null) {
-            return;
-        }
+        return [
+            'auth.guards.tenant' => [[], [
+                'driver' => 'session',
+                'provider' => 'tenant',
+            ]],
+            'auth.providers.tenant' => [[], [
+                'driver' => 'eloquent',
+                'model' => Numerosis::model(TenantUser::class),
+            ]],
+            'auth.passwords.tenant' => [[], [
+                'provider' => 'tenant',
+                'table' => 'password_reset_tokens',
+                'expire' => 60,
+                'throttle' => 60,
+            ]],
+            'activitylog.table_name' => [[], 'activity_log'],
 
-        self::set('auth.passwords.tenant', [
-            'provider' => 'tenant',
-            'table' => 'password_reset_tokens',
-            'expire' => 60,
-            'throttle' => 60,
-        ]);
+            // Corrects stancl's stock tenant root, which predates Laravel 11
+            // moving the `local` disk to `storage/app/private`.
+            'tenancy.filesystem.root_override.local' => [['%storage_path%/app/'], '%storage_path%/app/private/'],
+
+            'queue.failed.database' => [[Config::get('database.default')], 'central'],
+        ];
     }
 
-    /**
-     * Names the activity-log table. Current spatie/laravel-activitylog
-     * ships no default for it, and the activity-log migrations read the key
-     * directly: unset, they fail with `Incorrect table name ''`.
-     */
-    private static function activityLogTable(): void
+    private static function applyCorrections(): void
     {
-        if (Config::get('activitylog.table_name') === null) {
-            self::set('activitylog.table_name', 'activity_log');
+        foreach (self::corrections() as $key => [$stockValues, $value]) {
+            $current = Config::get($key);
+
+            if ($current === null || in_array($current, $stockValues, true)) {
+                self::set($key, $value);
+            }
         }
     }
 
@@ -481,53 +387,5 @@ final class HostConfig
         if (Config::array('fortify.features') !== $features) {
             self::set('fortify.features', $features);
         }
-    }
-
-    /**
-     * Backfills `config/numerosis.php` defaults at every depth, because
-     * Laravel merges published config one level deep only: overriding
-     * `billing.trial_days` alone would drop every sibling under `billing`.
-     * Only keyed arrays are filled, so a list such as `features` is left
-     * exactly as the host set it, including empty.
-     */
-    private static function numerosisConfig(): void
-    {
-        /** @var array<string, mixed> $packageDefaults */
-        $packageDefaults = require dirname(__DIR__, 2).'/config/numerosis.php';
-
-        /** @var array<string, mixed> $current */
-        $current = Config::array('numerosis', []);
-
-        $merged = self::fillMissingKeys($packageDefaults, $current);
-
-        if ($merged !== $current) {
-            self::set('numerosis', $merged);
-        }
-    }
-
-    /**
-     * @param  array<array-key, mixed>  $default
-     * @param  array<array-key, mixed>  $current
-     * @return array<array-key, mixed>
-     */
-    private static function fillMissingKeys(array $default, array $current): array
-    {
-        $merged = $current;
-
-        foreach ($default as $key => $value) {
-            if (! array_key_exists($key, $current)) {
-                $merged[$key] = $value;
-
-                continue;
-            }
-
-            $existing = $current[$key];
-
-            if (is_array($value) && is_array($existing) && ! array_is_list($value) && ! array_is_list($existing)) {
-                $merged[$key] = self::fillMissingKeys($value, $existing);
-            }
-        }
-
-        return $merged;
     }
 }
