@@ -195,14 +195,13 @@ Three consequences:
   `hasConfigFile('numerosis')`, which would have registered the real file for
   publishing.
 - A host that published the old full-file copy keeps working: a complete file
-  needs no backfill, and `schema_version` still guards its shape.
+  needs no backfill.
 - `env()` in a partial is analysed as config, not application code —
   `configDirectories` in `phpstan.neon.dist` names `config/numerosis` as well
   as `config`.
 
 | Key | What it controls |
 |---|---|
-| `schema_version` | bumped when the file's *shape* changes; `numerosis:install` fails a published copy that is behind |
 | `features` | the feature class list — see [`features.md`](features.md) |
 | `schedule` | booleans, not features: whether this deployment's cron runs each prune command |
 | `routes.names` | indirection for the four route names called from outside their own route file, so a gated route can be renamed without breaking ~20 call sites |
@@ -218,7 +217,7 @@ Three consequences:
 
 The deep-fill in `HostConfig` backfills every missing key at every depth, so a
 host's override file only names what it changes. Its one blind spot is a key
-you still name in an *outdated shape* — that is what `schema_version` guards.
+you still name in an *outdated shape*, which it cannot detect.
 
 ## Testing
 

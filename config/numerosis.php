@@ -26,7 +26,6 @@ declare(strict_types=1);
 */
 
 return array_merge(
-    require __DIR__.'/numerosis/schema-version.php',
     require __DIR__.'/numerosis/features.php',
     require __DIR__.'/numerosis/schedule.php',
     require __DIR__.'/numerosis/routes.php',

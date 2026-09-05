@@ -80,7 +80,6 @@ class InstallNumerosisCommand extends Command
         $this->verifyStripeKeys();
         $this->verifyModelOverrides();
         $this->verifyCentralDataSeeded();
-        $this->verifyConfigSchemaVersion();
 
         if ($this->failures !== []) {
             $this->newLine();
@@ -665,35 +664,6 @@ class InstallNumerosisCommand extends Command
 
         if ($schema->getConnection()->table('payment_plans')->count() === 0) {
             $this->failures[] = 'The central `payment_plans` table is empty — the registration wizard has nothing to sell and renders an empty plan step. Run `php artisan numerosis:install` (seeds by default).';
-        }
-    }
-
-    /**
-     * Reports a published `config/numerosis.php` that predates a change to
-     * the config's shape. Missing keys are backfilled for you; a key you
-     * still name in an older shape cannot be, which is what this catches.
-     *
-     * Nothing to check if you have not published the config.
-     */
-    private function verifyConfigSchemaVersion(): void
-    {
-        $published = config_path('numerosis.php');
-
-        if (! File::exists($published)) {
-            return;
-        }
-
-        /** @var array<string, mixed> $hostConfig */
-        $hostConfig = require $published;
-        $hostVersion = is_int($hostConfig['schema_version'] ?? null) ? $hostConfig['schema_version'] : 0;
-
-        /** @var array<string, mixed> $packageConfig */
-        $packageConfig = require dirname(__DIR__, 2).'/config/numerosis.php';
-        /** @var int $currentVersion */
-        $currentVersion = $packageConfig['schema_version'];
-
-        if ($hostVersion < $currentVersion) {
-            $this->failures[] = "Published config/numerosis.php names schema_version {$hostVersion} (or none at all), but the package is on version {$currentVersion} — a top-level key may have been renamed or restructured since this file was written, which HostConfig's deep-fill cannot detect (it only backfills keys that are entirely missing, not ones your file still names with an old shape). Compare this file against the package's own config/numerosis.php, re-apply anything that changed, then set schema_version to {$currentVersion}.";
         }
     }
 

@@ -550,47 +550,6 @@ class InstallNumerosisCommandTest extends TestCase
     }
 
     /**
-     * @verifies verifyConfigSchemaVersion
-     *
-     * Writes a real file at `config_path('numerosis.php')` — this check
-     * reads the published file directly (`require`), not through
-     * `config()`, precisely because a missing key there gets silently
-     * backfilled by `HostConfig::numerosisConfig()`'s deep-fill and would
-     * make the check pass regardless of the file's real age. A published
-     * file with no `schema_version` key at all is the common case for an
-     * old publish (the key didn't exist yet); `0` here stands in for that.
-     */
-    public function test_it_fails_when_a_published_config_file_names_an_old_schema_version(): void
-    {
-        $published = config_path('numerosis.php');
-        File::ensureDirectoryExists(dirname($published));
-        File::put($published, "<?php\n\nreturn ['schema_version' => 0];\n");
-
-        try {
-            $this->install()
-                ->expectsOutputToContain('names schema_version 0')
-                ->assertFailed();
-        } finally {
-            File::delete($published);
-        }
-    }
-
-    /** @verifies verifyConfigSchemaVersion */
-    public function test_it_passes_when_a_published_config_file_names_the_current_schema_version(): void
-    {
-        $currentVersion = require dirname(__DIR__, 4).'/config/numerosis.php';
-        $published = config_path('numerosis.php');
-        File::ensureDirectoryExists(dirname($published));
-        File::put($published, '<?php'."\n\nreturn ['schema_version' => {$currentVersion['schema_version']}];\n");
-
-        try {
-            $this->install()->assertSuccessful();
-        } finally {
-            File::delete($published);
-        }
-    }
-
-    /**
      * torann/geoip went in Phase 6 of
      * `.claude/plans/archive/humming-nibbling-flame.md`, and with it the manual
      * MaxMind licence step this command used to print. Asserted rather than
