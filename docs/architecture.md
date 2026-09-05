@@ -176,29 +176,19 @@ already use. Read the delegate for the seam, the owner for the mechanism.
 
 ## Configuration
 
-One config namespace, 15 top-level keys, one file per key in
-`config/numerosis/`. `config/numerosis.php` only `array_merge`s the thirteen
-partials, each of which returns its own `['key' => value]` pair and carries
-that key's documentation.
+One config namespace, one publishable file: `config/numerosis.php`, eleven
+top-level keys.
 
 Split by *key*, not by package, on purpose: a host's own override file only
 needs to name the keys it changes, so there is nothing to divide along
 package lines.
 
-Three consequences:
-
-- **The package's own config file is never published**, because its
-  `require __DIR__` paths would resolve against a host's config directory.
-  `vendor:publish --tag=numerosis-config` writes `config/stubs/numerosis.php`
-  — a short override file — and `NumerosisServiceProvider::packageRegistered()`
-  does the `mergeConfigFrom()` by hand rather than through
-  `hasConfigFile('numerosis')`, which would have registered the real file for
-  publishing.
-- A host that published the old full-file copy keeps working: a complete file
-  needs no backfill.
-- `env()` in a partial is analysed as config, not application code —
-  `configDirectories` in `phpstan.neon.dist` names `config/numerosis` as well
-  as `config`.
+`NumerosisServiceProvider::packageRegistered()` deep-merges the package's
+defaults under whatever a host already published, at every depth — Laravel's
+own config merge is one level deep only, so a host file naming `billing` at
+all would otherwise shadow every sibling key the package later adds under it.
+`fillMissingKeys()` does the merge; only keyed arrays are filled, so a list
+such as `features` is left exactly as the host set it, including empty.
 
 | Key | What it controls |
 |---|---|
@@ -209,15 +199,15 @@ Three consequences:
 | `broadcasting` | channel authorization wiring |
 | `auth` | guard indirection (`auth.guards.central` defaults to `'web'`) |
 | `social` | OAuth provider metadata and route names |
-| `views` | view path, set at boot |
 | `cache` | the prefix for every key in `Support\Cache\CacheKeys`. Does **not** decide which keys are tenant-scoped — see `.ai/rules/tenant-caching.md` |
 | `models` | explicit model overrides (step one of `Numerosis::model()`) |
-| `billing` | Stripe, plans, payment-method ordering, checkout regions |
+| `billing` | Stripe, payment-method ordering, checkout regions |
 | `tenancy` | identification mode, provisioning, implementations |
 
-The deep-fill in `HostConfig` backfills every missing key at every depth, so a
-host's override file only names what it changes. Its one blind spot is a key
-you still name in an *outdated shape*, which it cannot detect.
+The one blind spot the deep-fill cannot see: a key you still name in an
+*outdated shape*. It only ever backfills a key that is entirely missing;
+compare your file against the package's own `config/numerosis.php` after an
+upgrade.
 
 ## Testing
 

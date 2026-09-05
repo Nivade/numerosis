@@ -136,10 +136,14 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
-        // Not `hasConfigFile()`: that offers this file for publishing, and a
-        // published copy would resolve its `require __DIR__` partials against
-        // the host's config directory. packageBooted() publishes a stub.
-        $this->mergeConfigFrom(__DIR__.'/../config/numerosis.php', 'numerosis');
+        // Not `mergeConfigFrom()`: Laravel merges published config only one
+        // level deep, so a host file naming `billing` at all would shadow
+        // every sibling key the package later adds under it.
+        /** @var array<string, mixed> $current */
+        $current = Config::get('numerosis', []);
+        /** @var array<string, mixed> $defaults */
+        $defaults = require __DIR__.'/../config/numerosis.php';
+        Config::set('numerosis', $this->fillMissingKeys($defaults, $current));
 
         Numerosis::resetModelCache();
 
@@ -254,11 +258,11 @@ class NumerosisServiceProvider extends PackageServiceProvider
         Livewire::addComponent(name: 'settings.delete-user-form', class: DeleteUserForm::class);
         Livewire::addComponent(name: 'settings.connected-accounts', class: ConnectedAccounts::class);
 
-        // A small override file, since HostConfig's deep-fill backfills every
-        // key it omits and the package's own config file cannot be published.
-        // Same tag package-tools would have used.
+        // The deep-fill backfills every key an override omits, at any depth,
+        // so publishing the full file is safe: a host only has to edit what
+        // it actually changes.
         $this->publishGroup([
-            __DIR__.'/../config/stubs/numerosis.php' => config_path('numerosis.php'),
+            __DIR__.'/../config/numerosis.php' => config_path('numerosis.php'),
         ], 'numerosis-config');
 
         // Tenant migrations run per-tenant, never centrally. Publish them
@@ -626,5 +630,35 @@ class NumerosisServiceProvider extends PackageServiceProvider
         if ($handler instanceof Handler) {
             Numerosis::exceptions(new Exceptions($handler));
         }
+    }
+
+    /**
+     * Backfills `config/numerosis.php` defaults at every depth. Only keyed
+     * arrays are filled, so a list such as `features` is left exactly as the
+     * host set it, including empty.
+     *
+     * @param  array<array-key, mixed>  $default
+     * @param  array<array-key, mixed>  $current
+     * @return array<array-key, mixed>
+     */
+    private function fillMissingKeys(array $default, array $current): array
+    {
+        $merged = $current;
+
+        foreach ($default as $key => $value) {
+            if (! array_key_exists($key, $current)) {
+                $merged[$key] = $value;
+
+                continue;
+            }
+
+            $existing = $current[$key];
+
+            if (is_array($value) && is_array($existing) && ! array_is_list($value) && ! array_is_list($existing)) {
+                $merged[$key] = $this->fillMissingKeys($value, $existing);
+            }
+        }
+
+        return $merged;
     }
 }

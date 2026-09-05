@@ -11,8 +11,8 @@ use Nvade\Numerosis\Tests\TestCase;
 
 /**
  * The other half of `OneTimePasswordLoginTest`: `OneTimePasswordFeature` is
- * **off by default** (it is commented out of `config/numerosis/features.php`),
- * so this class needs no setup at all — it is the shipped configuration.
+ * **off by default** (it is commented out of `config/numerosis.php`), so this
+ * class needs no setup at all — it is the shipped configuration.
  *
  * Worth its own file because Phase 5 changed two things that a passing OTP
  * suite says nothing about: `NumerosisLoginRequest` is bound over Fortify's
