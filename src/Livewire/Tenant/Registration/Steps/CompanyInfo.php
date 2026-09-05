@@ -5,15 +5,22 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Livewire\Tenant\Registration\Steps;
 
 use Illuminate\Contracts\View\View;
-use Livewire\Attributes\Validate;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
+use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Override;
 use Spatie\LivewireWizard\Components\StepComponent;
 
 class CompanyInfo extends StepComponent implements ProvidesTenantIdentity
 {
-    #[Validate('required|string|max:255')]
     public string $company_name = '';
+
+    /**
+     * @return array<string, list<mixed>>
+     */
+    public function rules(): array
+    {
+        return TenantRegistrationData::rules();
+    }
 
     public function continue(): void
     {

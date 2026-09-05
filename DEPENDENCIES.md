@@ -46,14 +46,14 @@ Phase 3 — every migration and seeder.
 | `livewire/livewire` | Every interactive surface core still owns — checkout, invitations, settings — is a Livewire component. |
 | `spatie/laravel-package-tools` | `NumerosisServiceProvider extends PackageServiceProvider`. |
 | `nvade/numerosis-ui` | Core's own views render `<x-numerosis::ui.*>`. A Blade tag for an unregistered component renders as **literal text** and passes tests — that is not clean degradation, so it cannot be `suggest`. Same reason `livewire/flux` was never optional; the requirement moved into `-ui` with the views. |
+| `spatie/laravel-one-time-passwords` | Moved `suggest` → `require` 2026-09-05: `Nvade\Numerosis\Models\User` `use HasOneTimePasswords` directly, no compat shim. `OneTimePasswordFeature::available()` is now a plain `Features::enabled()` check — the package is always present, only the feature toggle varies. |
+| `spatie/laravel-activitylog` | Moved `suggest` → `require` 2026-09-05: `Tenant\User` `use LogsActivity` directly, no compat shim. |
 
 ### suggest
 
 | Package | Guard | Absence costs |
 |---|---|---|
 | `ryangjchandler/laravel-cloudflare-turnstile` | `TurnstileFeature::isEnabled()` — `class_exists(TurnstileRule::class)` | `<x-numerosis::turnstile-field />` renders nothing, `rules()` returns `[]`. |
-| `spatie/laravel-one-time-passwords` | `OneTimePasswordFeature::available()` — `Features::enabled()` + `trait_exists(HasOneTimePasswords::class)` | `OneTimePasswordFeature` throws at boot if enabled without it (by design — loud at boot, not a login-time 500); `User::HasOneTimePasswordsIfInstalled` no-ops otherwise. |
-| `spatie/laravel-activitylog` | `Support\Compat\LogsActivityIfInstalled` | `Tenant\User`/`Invitation` stop logging. The 9 `activity_log` migrations still run and are fine — `HostConfig::activityLogTable()` defaults `activitylog.table_name` unconditionally, and the migrations contain zero `Spatie\*` class references. |
 | `sentry/sentry-laravel` | `app()->bound('sentry')` in `TagsSentryScopeWithTenant` | No tenant tag on job-failure reports. |
 | `laravel/telescope` | `class_exists()` on the scheduled `telescope:prune` entry | No prune schedule; `telescope/*` stays CSRF-exempt harmlessly. |
 | `laravel/reverb` / `pusher/pusher-php-server` | none needed — zero PHP references; core talks to whatever `config('broadcasting')` resolves | No broadcast server. Chosen and run by the host. |
@@ -68,9 +68,8 @@ to guard.
 
 Toolchain (`pest` + arch/laravel/**browser** plugins, `pint`, `larastan`,
 `rector`, `collision`, `orchestra/testbench`, `laravel/boost`) plus every
-`suggest` this repo's own suite exercises: `ryangjchandler/laravel-cloudflare-turnstile`,
-`sentry/sentry-laravel`, `spatie/laravel-activitylog`,
-`spatie/laravel-one-time-passwords`.
+remaining `suggest` this repo's own suite exercises:
+`ryangjchandler/laravel-cloudflare-turnstile`, `sentry/sentry-laravel`.
 
 One of those is load-bearing in a way that is easy to undo by accident:
 **`pestphp/pest-plugin-browser` makes Playwright a prerequisite for the whole
@@ -119,9 +118,10 @@ The fix, where an eager clause is genuinely wanted, is to make the *target*
 conditional rather than remove the clause: `Support\Compat\*` declares one
 symbol per interface/trait, `if (interface_exists(Real::class))` extending the
 real one and otherwise empty. Composer's PSR-4 autoloader maps name→file and
-never parses contents, so this needs no autoloader configuration. Two exist
-today (`HasOneTimePasswordsIfInstalled`, `LogsActivityIfInstalled`); the two
-Filament shims were deleted with `packages/filament` in Phase 1.
+never parses contents, so this needs no autoloader configuration. None exist
+today — the two Filament shims were deleted with `packages/filament` in
+Phase 1, and `HasOneTimePasswordsIfInstalled`/`LogsActivityIfInstalled` were
+deleted 2026-09-05 when both packages moved back to `require`.
 
 Two things no model-level shim protects, to check before moving any `require`
 to `suggest`:
@@ -150,6 +150,12 @@ to `suggest`:
 
 ## History worth keeping
 
+- **2026-09-05** — `spatie/laravel-one-time-passwords` and
+  `spatie/laravel-activitylog` moved `suggest` → `require` again, this time
+  for keeps: the package is always present, `numerosis.features` is the only
+  on/off switch. `Support\Compat\{HasOneTimePasswordsIfInstalled,LogsActivityIfInstalled}`
+  deleted; `Nvade\Numerosis\Models\User` and `Tenant\User` `use` the real
+  traits directly.
 - **2026-09-01 to 2026-09-03** — `.claude/plans/archive/humming-nibbling-flame.md`:
   Phase 1 deleted `packages/filament`, `filament/filament` and
   `alizharb/filament-activity-log` outright. Phase 2 deleted the module

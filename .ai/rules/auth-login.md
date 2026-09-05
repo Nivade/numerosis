@@ -223,8 +223,8 @@ any of it.
   so five wrong attempts against tenant A's user 1 also lock tenant B's user
   1 out for the window. It is a denial of service, not a bypass: guessing
   stays bounded by `OneTimePasswordFeature::LIMITER`, which is tenant-keyed.
-  Left alone because fixing it means overriding a vendor action in a package
-  this one only `suggest`s. Recorded here rather than in
+  Left alone because fixing it means overriding a vendor action, not
+  something this package's own code owns. Recorded here rather than in
   `NumerosisServiceProvider`, whose docblock it outgrew.
 
 ## OAuth identity matching (`Actions\Auth\Social\**`)

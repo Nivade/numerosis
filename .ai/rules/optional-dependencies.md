@@ -5,6 +5,18 @@ paths:
   - 'src/Support/Compat/**'
   - 'composer.json'
 ---
+> **Header note, 2026-09-05.** `spatie/laravel-one-time-passwords` and
+> `spatie/laravel-activitylog` moved `suggest` → `require`, for keeps: the
+> package is always present now, and the feature toggle
+> (`numerosis.features`'s `OneTimePasswordFeature`) or the model's own trait
+> use (`Tenant\User`'s `LogsActivity`) is the only thing that varies.
+> `Support\Compat\{HasOneTimePasswordsIfInstalled,LogsActivityIfInstalled}`
+> are deleted; `Nvade\Numerosis\Models\User` and `Tenant\User` `use` the real
+> traits directly, no conditional-definition shim in between.
+> `ryangjchandler/laravel-cloudflare-turnstile` is the only package left that
+> this file's mechanism still protects — everything below naming the other
+> two as "the two remaining optional packages" is describing history.
+>
 > **Header note, 2026-09-03 (Phase 6).** `ryangjchandler/laravel-cloudflare-turnstile`
 > moved `require` → `suggest` — `TurnstileFeature::isEnabled()` gained a
 > `class_exists(TurnstileRule::class)` check, the one seam. It needed no

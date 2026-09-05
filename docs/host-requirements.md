@@ -165,21 +165,15 @@ what stops the next normalization from shipping undocumented.
   `runningInConsole()` stays true and the tenant panel's `{tenant}` wildcard
   is always registered; verify that one by hand against a real web server.
   See `.ai/rules/identification-modes.md`.
-- **`spatie/laravel-one-time-passwords` and `spatie/laravel-activitylog` are
-  both `suggest`, not `require`** (as is
-  `ryangjchandler/laravel-cloudflare-turnstile`, since Phase 6).
-  Skip them and you get a working
-  multi-tenant SaaS with no passwordless (OTP)
-  login and no activity logging — `App\Models\User` (or your own subclass)
-  still autoloads and works, it just doesn't
-  compose `HasOneTimePasswords`/`LogsActivity`. This works because
-  `Nvade\Numerosis\Support\Compat\*` (`HasOneTimePasswordsIfInstalled`,
-  `LogsActivityIfInstalled`) conditionally define themselves against the
-  real package's interface/trait only when it's installed
-  (`interface_exists()`/`trait_exists()`, checked once at file scope) —
-  install one of these two later and the corresponding behaviour turns on
-  with no code change on your side, since the base models already
-  reference the compat symbol, not the real one directly.
+- **`ryangjchandler/laravel-cloudflare-turnstile` is `suggest`, not
+  `require`.** Skip it and `TurnstileFeature::isEnabled()`'s `class_exists()`
+  check keeps the feature silently off — `<x-numerosis::turnstile-field />`
+  still resolves and renders nothing. `spatie/laravel-one-time-passwords` and
+  `spatie/laravel-activitylog` are `require`: `App\Models\User` (or your own
+  subclass) always composes `HasOneTimePasswords`/`LogsActivity` directly, no
+  compat shim involved. Passwordless (OTP) login is still gated by
+  `numerosis.features`'s `OneTimePasswordFeature`; activity logging on
+  `Tenant\User` runs unconditionally.
 - **Don't name a guard literally `central` alongside `web`.** Two session
   guards over one model meant a user could authenticate under one and not
   the other. `web` *is* the central guard; `numerosis.auth.guards.central`

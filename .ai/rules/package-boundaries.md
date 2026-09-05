@@ -73,25 +73,25 @@ for a host that genuinely wants none of the defaults.
   `test_core_names_no_filament_symbol()` for `src/`, `config/`, `routes/`,
   `resources/`, `database/` and `workbench/`. The asymmetry that used to
   matter here (`extends`/`implements`/`use <Trait>` resolve eagerly, type
-  hints do not) is still the live rule for the packages core *does* still
-  `suggest` — see `.ai/rules/optional-dependencies.md`.
+  hints do not) is still the live rule for
+  `ryangjchandler/laravel-cloudflare-turnstile`, the one package core still
+  `suggest`s — see `.ai/rules/optional-dependencies.md`.
 
 - **One seam per optional package, not one `class_exists()` per call site.**
   The module system was the worked example — seven consumers, all asking
   `ModuleSystemFeature::available()` — and it is deleted (Phase 2). The rule
   is what survives: give an optional dependency exactly one `available()`/
-  `isEnabled()` predicate. `spatie/laravel-one-time-passwords`,
-  `spatie/laravel-activitylog` and, since Phase 6,
-  `ryangjchandler/laravel-cloudflare-turnstile` are the remaining cases.
+  `isEnabled()` predicate. `ryangjchandler/laravel-cloudflare-turnstile`
+  (since Phase 6) is the only remaining case — `spatie/laravel-one-time-passwords`
+  and `spatie/laravel-activitylog` moved to `require` 2026-09-05.
 
 - **80 migrations live in core** (63 central, 17 tenant), including
   9 for `activity_log` (4 central, 5 tenant — **not** symmetrical;
   the tenant side carries an `upgrade_activitylog` migration with no central
   counterpart) and 2 for `one_time_passwords`. They stay in core even where
   the code that reads them moved, because the tables have to exist wherever
-  core does — `Models\User` composes the OTP trait, `Tenant\User` and
-  `Invitation` compose `LogsActivity`, both through
-  `Support\Compat\*IfInstalled` shims that no-op without the package.
+  core does — `Models\User` composes the OTP trait, `Tenant\User` composes
+  `LogsActivity`, both `require` since 2026-09-05, no compat shim.
 
 - **Core's config is split by *key*, not by package** (2026-09-01):
   `config/numerosis/<key>.php`, thirteen partials that `config/numerosis.php`

@@ -28,4 +28,22 @@ class TenantRegistrationData extends Data implements Wireable
         // always stays the safe id/slug; see CreateTenantDomain).
         public ?string $custom_domain = null,
     ) {}
+
+    /**
+     * Only `company_name`: it's validated identically wherever it's
+     * collected. `domain`/`custom_domain` are deliberately not here — the
+     * registration wizard checks availability against
+     * `pending_tenant_provisions` before checkout exists, while checkout
+     * checks it through {@see \Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy}
+     * against the tenant that's about to be created; same field, different
+     * rules by design.
+     *
+     * @return array<string, list<mixed>>
+     */
+    public static function rules(): array
+    {
+        return [
+            'company_name' => ['required', 'string', 'max:255'],
+        ];
+    }
 }

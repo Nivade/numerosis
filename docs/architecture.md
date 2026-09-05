@@ -37,12 +37,15 @@ knows nothing of core, tenancy, or a named route — it is a Blade + design-toke
 library, installable on its own. `tests/Feature/PackageBoundariesTest.php`
 is what keeps this true; in a monorepo the filesystem enforces nothing.
 
-`Support\Compat\*` holds the conditional-definition shims for what is still
-optional (`spatie/laravel-one-time-passwords`, `spatie/laravel-activitylog`):
-PHP resolves `extends`/`implements`/`use <Trait>` eagerly but type hints only
-at call time, so an eager clause on an optional package's symbol needs a shim
-that always exists. See `.ai/rules/optional-dependencies.md` before adding a
-reference.
+`spatie/laravel-one-time-passwords` and `spatie/laravel-activitylog` are
+`require`, not `suggest` — the package is always present, and only
+`numerosis.features` (for OTP) or `Tenant\User`'s trait use (for activity
+logging) decides whether it does anything. `ryangjchandler/laravel-cloudflare-turnstile`
+is the one package still genuinely optional, guarded by a `class_exists()`
+seam in `TurnstileFeature`. PHP resolves `extends`/`implements`/`use <Trait>`
+eagerly but type hints only at call time — that asymmetry is why an eager
+clause on a package that stays `suggest` needs a `Support\Compat\*` shim. See
+`.ai/rules/optional-dependencies.md` before adding a reference.
 
 ## Boot sequence
 

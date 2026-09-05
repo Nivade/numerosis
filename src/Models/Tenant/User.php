@@ -20,10 +20,10 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\User as BaseUser;
 use Nvade\Numerosis\Observers\TenantUserObserver;
 use Nvade\Numerosis\Policies\UserPolicy;
-use Nvade\Numerosis\Support\Compat\LogsActivityIfInstalled;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 
@@ -71,7 +71,7 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 class User extends BaseUser implements TenantUserModel
 {
     use HasGlobalIdentity;
-    use LogsActivityIfInstalled;
+    use LogsActivity;
     use ResourceSyncing;
 
     #[Override]

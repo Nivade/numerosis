@@ -15,8 +15,8 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Nvade\Numerosis\Actions\Queries\GetTenantsByGlobalId;
 use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
-use Nvade\Numerosis\Support\Compat\HasOneTimePasswordsIfInstalled;
 use Override;
+use Spatie\OneTimePasswords\Models\Concerns\HasOneTimePasswords;
 use Spatie\Permission\Traits\HasRoles;
 use Stancl\Tenancy\Contracts\Syncable;
 
@@ -38,7 +38,7 @@ abstract class User extends Authenticatable implements MustVerifyEmail, Syncable
     /** @use HasFactory<Factory<static>> */
     use HasFactory;
 
-    use HasOneTimePasswordsIfInstalled;
+    use HasOneTimePasswords;
     use HasRoles;
     use Notifiable;
 

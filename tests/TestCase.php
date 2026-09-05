@@ -402,11 +402,6 @@ abstract class TestCase extends Orchestra
         ]);
         $app->make(Repository::class)->set('mail.default', 'array');
 
-        // spatie/laravel-activitylog is a "suggest" in composer.json (moved
-        // there so it isn't forced on every consumer — see
-        // Nvade\Numerosis\Support\Compat\LogsActivityIfInstalled), but the
-        // package's own require-dev pulls it in for the test suite, so this
-        // config/migration must exist here regardless.
         $app->make(Repository::class)->set('activitylog.database_connection', null);
         $app->make(Repository::class)->set('activitylog.table_name', 'activity_log');
         $app->make(Repository::class)->set('activitylog.activity_model', Activity::class);

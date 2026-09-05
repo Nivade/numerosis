@@ -29,7 +29,7 @@ class StartCheckoutRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'company_name' => ['required', 'string', 'max:255'],
+            ...TenantRegistrationData::rules(),
             'domain' => [
                 'required',
                 'string',

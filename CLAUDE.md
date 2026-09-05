@@ -123,9 +123,10 @@ This is a Laravel **package**, not an application. Its own direct dependencies a
 - tailwindcss (TAILWINDCSS) - v4, vite - v7
 
 Suggests, not requires — guard every use behind the one seam the rule file
-names: `spatie/laravel-activitylog`, `spatie/laravel-one-time-passwords`,
-`ryangjchandler/laravel-cloudflare-turnstile`, `sentry/sentry-laravel`. See
-`.ai/rules/optional-dependencies.md`.
+names: `ryangjchandler/laravel-cloudflare-turnstile`, `sentry/sentry-laravel`.
+See `.ai/rules/optional-dependencies.md`. `spatie/laravel-activitylog` and
+`spatie/laravel-one-time-passwords` moved to `require` 2026-09-05 — the
+package is always present; `numerosis.features` is the only switch.
 
 Anything not on either list (Vue, Reverb, Telescope, Debugbar, Sail,
 **Filament**, **internachi/modular**, torann/geoip) is **not** installed here.
