@@ -88,22 +88,22 @@ numerosis-specific auth API to learn on top of it:
 | URLs | `config('fortify.paths.*')` |
 | routes entirely | `Fortify::ignoreRoutes()` (core already calls this — expose it through `Numerosis::routes(withAuth: false)`) |
 
-`fortify.features` is defaulted by `HostConfig::fortifyFeatures()`, and only
-while the key still holds Fortify's own shipped list — the signal that you have
-not chosen. Two entries differ from that list: two-factor authentication and
-passkeys are dropped, since neither has a view under `numerosis::auth.` nor the
-columns its controllers write, so leaving them on registers screens that fail
-only once somebody reaches them; and password reset follows
-`PasswordResetFeature` so the two configs cannot disagree about whether it
-exists. Publish `config/fortify.php` and edit the list and you own it outright
-from then on, including turning 2FA back on — adding the missing views and
-columns with it.
+`fortify.features` is defaulted by `HostConfig::fortifyFeatures()`, gated by
+`numerosis.auth.manage_fortify_features` (default `true`) rather than a
+stock-value comparison. Two entries differ from Fortify's own shipped list:
+two-factor authentication and passkeys are dropped, since neither has a view
+under `numerosis::auth.` nor the columns its controllers write, so leaving
+them on registers screens that fail only once somebody reaches them; and
+password reset follows `PasswordResetFeature` so the two configs cannot
+disagree about whether it exists. Set `numerosis.auth.manage_fortify_features`
+to `false` and edit `fortify.features` yourself to own it outright, including
+turning 2FA back on — adding the missing views and columns with it.
 
 `numerosis.features` and `fortify.features` stay separate on purpose:
 numerosis's gates tenancy/billing surfaces (invitations, the registration
 wizard, OTP login), Fortify's gates auth screens (registration, password
-reset, email verification). `registerFortify()` derives `fortify.features`
-from `numerosis.features` for the two that overlap
+reset, email verification). `HostConfig::fortifyFeatures()` derives
+`fortify.features` from `numerosis.features` for the two that overlap
 (`PasswordResetFeature::NAME` → `FortifyFeatures::resetPasswords()`), so
 toggle those through the numerosis key, not the Fortify one.
 

@@ -432,14 +432,16 @@ class HostConfigTest extends TestCase
      */
     /**
      * `docs/extending.md` names `config('fortify.features')` as the seam for
-     * choosing which auth screens exist. That is only true while this stays
-     * a backfill: `registerFortify()` used to `Config::set()` the key
+     * choosing which auth screens exist, gated by
+     * `numerosis.auth.manage_fortify_features` rather than a stock-value
+     * comparison — `registerFortify()` used to `Config::set()` the key
      * unconditionally on every boot, which discarded a published
      * `config/fortify.php` and made the documented seam a no-op.
      */
     public function test_it_leaves_a_hosts_fortify_features_alone(): void
     {
         Config::set('fortify.features', ['host-chose-this']);
+        Config::set('numerosis.auth.manage_fortify_features', false);
 
         $this->rebootPackage();
 

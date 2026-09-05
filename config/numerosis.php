@@ -23,6 +23,7 @@ use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
+use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Features\Auth\EmailVerificationFeature;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
@@ -208,6 +209,10 @@ return [
         ],
 
         'verification_expire' => 60,
+
+        // Whether HostConfig may write fortify.features. Set false once you
+        // have edited that key yourself.
+        'manage_fortify_features' => true,
     ],
 
     /*
@@ -341,6 +346,12 @@ return [
         'identification' => [
             'mode' => env('NUMEROSIS_TENANCY_IDENTIFICATION_MODE', IdentificationMode::Subdomain->value),
         ],
+
+        // The stancl/tenancy central database connection name.
+        'central_connection' => 'central',
+
+        // The seeder new tenant databases run.
+        'seeder' => TenantDatabaseSeeder::class,
 
         // Steps run in order, as links in ProvisionTenant's queued chain,
         // every time a tenant is provisioned. The first entry must

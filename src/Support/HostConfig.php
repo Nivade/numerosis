@@ -6,7 +6,6 @@ namespace Nvade\Numerosis\Support;
 
 use Illuminate\Support\Facades\Config;
 use Laravel\Fortify\Features as FortifyFeatures;
-use Laravel\Fortify\Fortify;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
@@ -17,7 +16,6 @@ use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
-use ReflectionClass;
 use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
 use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
 
@@ -463,45 +461,26 @@ final class HostConfig
     /**
      * The auth screens Fortify registers, dropping two-factor and passkeys,
      * which have neither views nor columns here. Written only while
-     * `fortify.features` still holds Fortify's own shipped list, since a host
-     * that edited it owns the key outright from then on.
+     * `numerosis.auth.manage_fortify_features` is true; set it false once you
+     * have edited `fortify.features` yourself.
      */
     private static function fortifyFeatures(): void
     {
-        if (Config::array('fortify.features') !== self::fortifyStockFeatures()) {
+        if (! Config::boolean('numerosis.auth.manage_fortify_features')) {
             return;
         }
 
-        self::set('fortify.features', array_values(array_filter([
+        $features = array_values(array_filter([
             FortifyFeatures::registration(),
             Features::enabled(PasswordResetFeature::NAME) ? FortifyFeatures::resetPasswords() : null,
             FortifyFeatures::updateProfileInformation(),
             FortifyFeatures::updatePasswords(),
             FortifyFeatures::emailVerification(),
-        ])));
-    }
+        ]));
 
-    /**
-     * Fortify's own shipped `features` list, read from the package. A restated
-     * copy would go stale the first time Fortify adds a feature, turning "the
-     * host has not chosen" into "the host has chosen" on every install.
-     *
-     * @return list<mixed>
-     */
-    private static function fortifyStockFeatures(): array
-    {
-        $path = dirname((string) (new ReflectionClass(Fortify::class))->getFileName(), 2).'/config/fortify.php';
-
-        if (! is_file($path)) {
-            return [];
+        if (Config::array('fortify.features') !== $features) {
+            self::set('fortify.features', $features);
         }
-
-        /** @var array<string, mixed> $stock */
-        $stock = require $path;
-
-        $features = $stock['features'] ?? [];
-
-        return is_array($features) ? array_values($features) : [];
     }
 
     /**
