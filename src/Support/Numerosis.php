@@ -66,7 +66,7 @@ class Numerosis
      * for a test, or for a new application under Octane, is never blocked by
      * a previous one's registration.
      *
-     * @var \WeakMap<Handler, true>|null
+     * @var WeakMap<Handler, true>|null
      */
     private static ?WeakMap $exceptionsRegisteredFor = null;
 
@@ -401,7 +401,7 @@ class Numerosis
      */
     public static function exceptions(Exceptions $exceptions): void
     {
-        self::$exceptionsRegisteredFor ??= new WeakMap();
+        self::$exceptionsRegisteredFor ??= new WeakMap;
 
         if (isset(self::$exceptionsRegisteredFor[$exceptions->handler])) {
             return;
