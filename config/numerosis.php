@@ -33,7 +33,6 @@ return array_merge(
     require __DIR__.'/numerosis/broadcasting.php',
     require __DIR__.'/numerosis/auth.php',
     require __DIR__.'/numerosis/social.php',
-    require __DIR__.'/numerosis/views.php',
     require __DIR__.'/numerosis/cache.php',
     require __DIR__.'/numerosis/models.php',
     require __DIR__.'/numerosis/billing.php',
