@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Concerns\Billing;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use LogicException;
 use Nvade\Numerosis\Models\Central\Subscription;
@@ -21,11 +22,23 @@ trait Billable
     use \Laravel\Cashier\Billable;
 
     /**
-     * @return MorphMany<Subscription, $this>
+     * @return MorphMany<Subscription, Model>
      */
     public function subscriptions(): MorphMany
     {
-        return $this->morphMany(Numerosis::model(Subscription::class), 'subscribable')
+        return self::subscriptionsRelation($this);
+    }
+
+    /**
+     * A `Model`-typed parameter, not `$this` directly, is what makes the
+     * returned relation's `TDeclaringModel` match {@see Subscribable::subscriptions()}'s
+     * declared `Model` rather than the caller's concrete class.
+     *
+     * @return MorphMany<Subscription, Model>
+     */
+    private static function subscriptionsRelation(Model $model): MorphMany
+    {
+        return $model->morphMany(Numerosis::model(Subscription::class), 'subscribable')
             ->latest('created_at');
     }
 

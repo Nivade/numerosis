@@ -33,7 +33,7 @@ class PlanCardTest extends TestCase
      */
     private function render(PaymentPlan $plan, BillingCycle $cycle, string $type): TestView
     {
-        $price = resolve(BillingService::class)->formatAmount($plan->getPrice($cycle));
+        $price = resolve(BillingService::class)->formatAmount($plan->getPrice($cycle) ?? 0);
 
         return $this->blade(
             '<x-numerosis::billing.plan-card :plan="$plan" :billing-cycle="$cycle" :price="$price" :type="$type" />',
@@ -49,6 +49,9 @@ class PlanCardTest extends TestCase
         return [['display'], ['selectable']];
     }
 
+    /**
+     * @param  'display'|'selectable'  $type
+     */
     #[DataProvider('cardTypes')]
     public function test_it_displays_the_price_for_a_paid_plan(string $type): void
     {
@@ -70,6 +73,9 @@ class PlanCardTest extends TestCase
             ->assertDontSee('Free');
     }
 
+    /**
+     * @param  'display'|'selectable'  $type
+     */
     #[DataProvider('cardTypes')]
     public function test_it_displays_free_for_a_zero_price_plan(string $type): void
     {

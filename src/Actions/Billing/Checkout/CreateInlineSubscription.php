@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
 use Laravel\Cashier\Exceptions\IncompletePayment;
-use Laravel\Cashier\Subscription;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
@@ -15,6 +14,8 @@ use Nvade\Numerosis\Exceptions\Billing\StripePriceNotConfigured;
 use Nvade\Numerosis\Exceptions\Billing\UnsupportedBillable;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\Subscription;
+use RuntimeException;
 use Stripe\Exception\ApiErrorException;
 
 /**
@@ -87,6 +88,8 @@ class CreateInlineSubscription
 
             throw $e;
         }
+
+        throw_unless($subscription instanceof Subscription, RuntimeException::class, 'Cashier resolved the subscription to a different model than the one configured via Numerosis::model().');
 
         $pending->update(['stripe_subscription_id' => $subscription->stripe_id]);
 

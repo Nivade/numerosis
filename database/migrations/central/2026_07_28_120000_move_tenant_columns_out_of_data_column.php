@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -34,7 +35,7 @@ return new class extends Migration
 
     public function up(): void
     {
-        $connection = config('tenancy.database.central_connection', 'central');
+        $connection = Config::string('tenancy.database.central_connection', 'central');
 
         DB::connection($connection)->table('tenants')
             ->select('id', 'data')
@@ -52,7 +53,7 @@ return new class extends Migration
 
                     $value = $data[$column];
 
-                    $updates[$column] = ($value !== null && in_array($column, self::DATES, true))
+                    $updates[$column] = ($value !== null && is_scalar($value) && in_array($column, self::DATES, true))
                         ? Carbon::parse((string) $value)
                         : $value;
 

@@ -10,6 +10,7 @@ use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Billing\Subscriptions\RecordSubscription;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
+use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Tests\TestCase;
 
 class RecordSubscriptionTest extends TestCase
@@ -33,6 +34,7 @@ class RecordSubscriptionTest extends TestCase
         ]);
 
         $subscription = RecordSubscription::run($data);
+        assert($subscription instanceof Subscription);
 
         $this->assertEquals('sub_123', $subscription->stripe_id);
         $this->assertEquals('active', $subscription->stripe_status);

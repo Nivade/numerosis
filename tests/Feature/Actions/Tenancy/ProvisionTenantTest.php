@@ -70,7 +70,7 @@ class ProvisionTenantTest extends TestCase
 
         ProvisionTenant::make()->jobFailed(new RuntimeException('queue exploded'), $data);
 
-        $pending = PendingTenantProvision::find('doomed');
+        $pending = PendingTenantProvision::findOrFail('doomed');
 
         $this->assertSame(TenantProvisionStatus::Failed, $pending->status);
         $this->assertSame('queue exploded', $pending->error);

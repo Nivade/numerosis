@@ -111,6 +111,7 @@ class RegistrationCheckoutHandoffTest extends TestCase
 
     /**
      * @param  array<string, array<string, mixed>>  $stepsState
+     * @return Testable<Plan>
      */
     private function planStep(array $stepsState): Testable
     {

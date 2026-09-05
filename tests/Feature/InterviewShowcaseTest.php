@@ -103,7 +103,7 @@ class InterviewShowcaseTest extends TestCase
             // Verify Job Execution: FinalizeTenantProvisioning should have assigned the admin role
             // (Note: In tests, jobs usually run synchronously if QUEUE_CONNECTION=sync)
             $this->assertDatabaseHas('model_has_roles', [
-                'role_id' => Role::where('name', 'admin')->where('guard_name', 'tenant')->first()->id,
+                'role_id' => Role::where('name', 'admin')->where('guard_name', 'tenant')->firstOrFail()->id,
                 'model_id' => $tenantUser->id,
                 'model_type' => $tenantUser->getMorphClass(),
             ]);

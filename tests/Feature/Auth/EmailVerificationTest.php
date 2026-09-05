@@ -85,7 +85,7 @@ class EmailVerificationTest extends TestCase
             }
         };
 
-        $this->app->singleton(SendsEmailVerificationNotification::class, fn () => new readonly class($customNotification) implements SendsEmailVerificationNotification
+        app()->singleton(SendsEmailVerificationNotification::class, fn () => new readonly class($customNotification) implements SendsEmailVerificationNotification
         {
             public function __construct(private NotificationBase $notification) {}
 

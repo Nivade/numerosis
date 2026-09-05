@@ -18,7 +18,7 @@ class LogSyncedResourceChangedInForeignDatabaseTest extends TestCase
 
     public function test_it_logs_the_model_and_tenant(): void
     {
-        Log::spy();
+        $spy = Log::spy();
 
         $user = TenantUser::factory()->make(['global_id' => 'global-123']);
         $tenant = Tenant::factory()->make(['id' => 'acme']);
@@ -27,7 +27,7 @@ class LogSyncedResourceChangedInForeignDatabaseTest extends TestCase
             new SyncedResourceChangedInForeignDatabase($user, $tenant)
         );
 
-        Log::shouldHaveReceived('warning')
+        $spy->shouldHaveReceived('warning')
             ->once()
             ->withArgs(fn (string $message, array $context) => $message === 'Synced resource changed in foreign database'
                 && $context['central_model'] === $user->getCentralModelName()

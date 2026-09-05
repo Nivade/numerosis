@@ -5,6 +5,17 @@ paths:
   - 'src/Support/Compat/**'
   - 'composer.json'
 ---
+> **Header note, 2026-09-05 (later).** `ryangjchandler/laravel-cloudflare-turnstile`
+> and `socialiteproviders/discord` moved `suggest`/`require-dev` → `require`,
+> for keeps: both packages are always present now.
+> `TurnstileFeature::isEnabled()` lost its `class_exists(TurnstileRule::class)`
+> guard, and `SocialLoginFeature::bootstrap()` lost its
+> `class_exists(\SocialiteProviders\Discord\Provider::class)` guard and the
+> string-literal class names it existed to protect — both now plain `use`
+> imports. `socialiteproviders/zoho` is the only optional package left in
+> this family; it needs no guard of its own because nothing in core
+> references a Zoho-specific class.
+>
 > **Header note, 2026-09-05.** `spatie/laravel-one-time-passwords` and
 > `spatie/laravel-activitylog` moved `suggest` → `require`, for keeps: the
 > package is always present now, and the feature toggle

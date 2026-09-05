@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Nvade\Numerosis\Jobs\SeedTenantDatabase;
 use Nvade\Numerosis\Models\Central\Tenant;
+use RuntimeException;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Jobs\CreateDatabase;
 use Stancl\Tenancy\Jobs\MigrateDatabase;
@@ -97,6 +98,8 @@ class CloneTenantSchema implements ShouldQueue
     public function handle(): void
     {
         $database = $this->tenant->database()->getName();
+
+        throw_if($database === null, RuntimeException::class, 'Tenant database has no name.');
 
         $this->copyDatabase(self::templateDatabase(), $database);
 

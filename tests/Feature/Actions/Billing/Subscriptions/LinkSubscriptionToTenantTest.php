@@ -16,6 +16,8 @@ use Nvade\Numerosis\Models\Central\Subscription as PackageSubscription;
 use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\TestCase;
 use Spatie\LaravelData\DataCollection;
+use Stripe\Collection as StripeCollection;
+use Stripe\SubscriptionItem;
 
 class LinkSubscriptionToTenantTest extends TestCase
 {
@@ -78,18 +80,18 @@ class LinkSubscriptionToTenantTest extends TestCase
         $stripeSubscription = new \Stripe\Subscription('sub_456');
         $stripeSubscription->status = 'active';
         $stripeSubscription->trial_end = null;
-        $stripeSubscription->items = (object) [
+        $stripeSubscription->items = StripeCollection::constructFrom([
             'data' => [
-                (object) [
+                SubscriptionItem::constructFrom([
                     'id' => 'si_123',
-                    'price' => (object) [
+                    'price' => [
                         'id' => 'price_123',
                         'product' => 'prod_123',
                     ],
                     'quantity' => 1,
-                ],
+                ]),
             ],
-        ];
+        ]);
 
         LinkSubscriptionToTenant::run(
             $this->provisionData($user, 'test2', $plan->slug, 'cus_456', 'sub_456'),

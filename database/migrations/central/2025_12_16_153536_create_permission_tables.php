@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -13,9 +14,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $teams = config('permission.teams');
-        $tableNames = config('permission.table_names');
-        $columnNames = config('permission.column_names');
+        $teams = (bool) config('permission.teams');
+
+        /** @var array<string, string> $tableNames */
+        $tableNames = Config::array('permission.table_names');
+
+        /** @var array<string, string> $columnNames */
+        $columnNames = Config::array('permission.column_names');
+
         $pivotRole = $columnNames['role_pivot_key'] ?? 'role_id';
         $pivotPermission = $columnNames['permission_pivot_key'] ?? 'permission_id';
 
@@ -121,9 +127,11 @@ return new class extends Migration
             $table->primary([$pivotPermission, $pivotRole], 'role_has_permissions_permission_id_role_id_primary');
         });
 
+        $cacheStore = Config::string('permission.cache.store');
+
         app('cache')
-            ->store(config('permission.cache.store') !== 'default' ? config('permission.cache.store') : null)
-            ->forget(config('permission.cache.key'));
+            ->store($cacheStore !== 'default' ? $cacheStore : null)
+            ->forget(Config::string('permission.cache.key'));
     }
 
     /**
@@ -131,7 +139,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        $tableNames = config('permission.table_names');
+        /** @var array<string, string> $tableNames */
+        $tableNames = Config::array('permission.table_names');
 
         throw_if(empty($tableNames), Exception::class, 'Error: config/permission.php not found and defaults could not be merged. Please publish the package configuration before proceeding, or drop the tables manually.');
 

@@ -24,7 +24,6 @@ return new class extends Migration
                 $table->unique(['tenant_id', 'global_user_id']);
 
                 $table->foreign('invited_by')
-                    ->nullable()
                     ->references('global_id')
                     ->on('users')
                     ->onDelete('set null');

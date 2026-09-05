@@ -39,7 +39,7 @@ class TenantProvisioningSignalTest extends TestCase
 
         ProvisionTenant::run($this->provisionData($user, 'signaltenant'));
 
-        $tenant = Tenant::find('signaltenant');
+        $tenant = Tenant::findOrFail('signaltenant');
 
         $this->assertNotNull($tenant->provisioned_at);
         $this->assertNull(PendingTenantProvision::find('signaltenant'));
@@ -91,7 +91,7 @@ class TenantProvisioningSignalTest extends TestCase
 
         (new FinalizeTenantProvisioning)->jobFailed(new RuntimeException('seeding blew up'), $tenant);
 
-        $pending = PendingTenantProvision::find($tenant->id);
+        $pending = PendingTenantProvision::findOrFail((string) $tenant->id);
 
         $this->assertSame(TenantProvisionStatus::Failed, $pending->status);
         $this->assertSame('seeding blew up', $pending->error);

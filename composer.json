@@ -41,6 +41,8 @@
         "livewire/livewire": "^4.2",
         "lorisleiva/laravel-actions": "^2.9",
         "nvade/numerosis-ui": "self.version",
+        "ryangjchandler/laravel-cloudflare-turnstile": "^3.0",
+        "socialiteproviders/discord": "^4.2",
         "spatie/laravel-activitylog": "^5.0",
         "spatie/laravel-data": "^4.18",
         "spatie/laravel-livewire-wizard": "^3.1",
@@ -64,16 +66,13 @@
         "phpstan/phpstan-deprecation-rules": "^2.0",
         "phpstan/phpstan-phpunit": "^2.0",
         "rector/rector": "^2.6",
-        "ryangjchandler/laravel-cloudflare-turnstile": "^3.0",
         "sentry/sentry-laravel": "^4.20"
     },
     "suggest": {
-        "ryangjchandler/laravel-cloudflare-turnstile": "Cloudflare Turnstile field + validation rule for numerosis.features. Without it, TurnstileFeature::isEnabled() stays false.",
         "sentry/sentry-laravel": "Enables TagsSentryScopeWithTenant; guarded by app()->bound('sentry') where used.",
         "laravel/telescope": "Adds a scheduled telescope:prune entry and is why 'telescope/*' is CSRF-exempt; both are class_exists-guarded.",
         "laravel/reverb": "Broadcasting/presence-channel support for realtime features.",
         "pusher/pusher-php-server": "Alternative broadcast driver to laravel/reverb, same broadcasting code paths.",
-        "socialiteproviders/discord": "A Discord OAuth driver, since Socialite ships none. Gated the same as every other provider by numerosis.social.providers/Support\\Social\\ConfiguredProviders.",
         "socialiteproviders/zoho": "A Zoho OAuth driver, since Socialite ships none. Gated the same as every other provider by numerosis.social.providers/Support\\Social\\ConfiguredProviders."
     },
     "autoload": {

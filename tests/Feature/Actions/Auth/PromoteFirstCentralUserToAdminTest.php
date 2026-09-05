@@ -21,7 +21,7 @@ class PromoteFirstCentralUserToAdminTest extends TestCase
 
         $user = CentralUser::factory()->create();
 
-        $this->assertTrue(CentralUser::findOrFail($user->id)->hasRole('admin'));
+        $this->assertTrue(CentralUser::findOrFail((int) $user->id)->hasRole('admin'));
     }
 
     public function test_it_dispatches_admin_granted_for_the_first_user(): void
@@ -44,13 +44,13 @@ class PromoteFirstCentralUserToAdminTest extends TestCase
         CentralUser::factory()->create();
         $second = CentralUser::factory()->create();
 
-        $this->assertFalse(CentralUser::findOrFail($second->id)->hasRole('admin'));
+        $this->assertFalse(CentralUser::findOrFail((int) $second->id)->hasRole('admin'));
     }
 
     public function test_it_does_not_fail_when_the_admin_role_is_not_seeded_yet(): void
     {
         $user = CentralUser::factory()->create();
 
-        $this->assertFalse(CentralUser::findOrFail($user->id)->hasRole('admin'));
+        $this->assertFalse(CentralUser::findOrFail((int) $user->id)->hasRole('admin'));
     }
 }

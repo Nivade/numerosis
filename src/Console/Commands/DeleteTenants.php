@@ -26,7 +26,10 @@ class DeleteTenants extends Command
             return;
         }
 
-        foreach ($this->argument('tenants') as $tenantId) {
+        /** @var list<string> $tenantIds */
+        $tenantIds = (array) $this->argument('tenants');
+
+        foreach ($tenantIds as $tenantId) {
             $tenantClass::find($tenantId)?->delete();
         }
     }

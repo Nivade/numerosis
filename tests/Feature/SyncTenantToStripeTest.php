@@ -42,9 +42,9 @@ class SyncTenantToStripeTest extends TestCase
             'stripe_id' => null,
         ]);
 
+        $this->expectNotToPerformAssertions();
+
         // Should not throw exception and should return early
         SyncTenantToStripe::run($tenant);
-
-        $this->assertTrue(true); // Job completed without error
     }
 }

@@ -11,6 +11,7 @@ use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Models\User;
 
 class StartCheckoutRequest extends FormRequest
 {
@@ -20,7 +21,9 @@ class StartCheckoutRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->input('global_id') === $this->user()?->global_id;
+        $user = $this->user();
+
+        return $user instanceof User && $this->input('global_id') === $user->global_id;
     }
 
     /**

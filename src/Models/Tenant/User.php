@@ -43,6 +43,7 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
  * @property string|null $custom_status_text
  * @property Carbon|null $email_verified_at
  * @property string|null $remember_token
+ * @property bool $is_bot
  * @property-read Collection<int, Activity> $activities
  * @property-read int|null $activities_count
  *

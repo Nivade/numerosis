@@ -33,16 +33,9 @@ class TurnstileFeature implements NamedFeature
         self::$bootstrapped = true;
     }
 
-    /**
-     * The single `class_exists()` seam for `ryangjchandler/laravel-cloudflare-turnstile`,
-     * a `composer.json` `suggest`, so it may be absent. Every call site asks
-     * this seam; none probe the package directly. Without it, `rules()`
-     * returns `[new TurnstileRule]` and fatals on a class-not-found where it
-     * should degrade to no validation.
-     */
     public static function isEnabled(): bool
     {
-        return (self::$forcedForTesting ?? self::$bootstrapped) && class_exists(TurnstileRule::class);
+        return self::$forcedForTesting ?? self::$bootstrapped;
     }
 
     /**

@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\View\View;
 use Laravel\Cashier\Exceptions\IncompletePayment;
-use Laravel\Cashier\Subscription;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Billing\Checkout\AssertPendingReservationIsFresh;
@@ -28,6 +27,7 @@ use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 

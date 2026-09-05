@@ -70,10 +70,13 @@ class BotBlockingAuthTest extends TestCase
         // 4. Simulate a situation where the BOT is already authenticated in the 'tenant' guard
         // This could happen if a background job or some other logic incorrectly set the session
         $tenant->run(function () {
-            $bot = TenantUser::where('is_bot', true)->first();
+            $bot = TenantUser::where('is_bot', true)->firstOrFail();
             Auth::guard('tenant')->login($bot);
             $this->assertTrue(Auth::guard('tenant')->check());
-            $this->assertTrue(Auth::guard('tenant')->user()->is_bot);
+
+            $authenticated = Auth::guard('tenant')->user();
+            assert($authenticated instanceof TenantUser);
+            $this->assertTrue($authenticated->is_bot);
         });
 
         // 5. Authenticate the REAL central user on 'web' guard
@@ -96,6 +99,7 @@ class BotBlockingAuthTest extends TestCase
             // This is what we expect to FAIL if the bug is present
             // If the bug is present, $currentUser will be the bot.
             $this->assertNotNull($currentUser, 'User should be authenticated');
+            assert($currentUser instanceof TenantUser);
             $this->assertFalse($currentUser->is_bot, 'Authenticated user should NOT be a bot');
             $this->assertEquals($centralUser->global_id, $currentUser->global_id, 'Authenticated user should match the central user');
         });

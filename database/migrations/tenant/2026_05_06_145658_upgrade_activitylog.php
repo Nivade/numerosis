@@ -29,7 +29,12 @@ return new class extends Migration
                     ->orWhereNotNull('properties->old');
             })
             ->eachById(function ($row) {
-                $properties = json_decode($row->properties, true);
+                $properties = json_decode((string) $row->properties, true);
+
+                if (! is_array($properties)) {
+                    return;
+                }
+
                 $changes = array_intersect_key($properties, array_flip(['attributes', 'old']));
                 $remaining = array_diff_key($properties, array_flip(['attributes', 'old']));
 

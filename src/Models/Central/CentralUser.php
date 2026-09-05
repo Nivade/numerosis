@@ -95,11 +95,23 @@ class CentralUser extends User implements CentralUserModel, HasTenants, Subscrib
     /**
      * @see HasTenants::tenants()
      *
-     * @return BelongsToMany<Tenant, $this, Membership, 'pivot'>
+     * @return BelongsToMany<Tenant, Model, Membership, 'pivot'>
      */
     public function tenants(): BelongsToMany
     {
-        return $this->belongsToMany(
+        return self::tenantsRelation($this);
+    }
+
+    /**
+     * A `Model`-typed parameter, not `$this` directly, is what makes the
+     * returned relation's `TDeclaringModel` match {@see HasTenants::tenants()}'s
+     * declared `Model` rather than the caller's concrete class.
+     *
+     * @return BelongsToMany<Tenant, Model, Membership, 'pivot'>
+     */
+    private static function tenantsRelation(Model $model): BelongsToMany
+    {
+        return $model->belongsToMany(
             Numerosis::model(Tenant::class),
             'memberships',
             'global_user_id',

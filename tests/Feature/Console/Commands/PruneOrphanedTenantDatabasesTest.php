@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Tests\Feature\Console\Commands;
 
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -37,7 +38,7 @@ class PruneOrphanedTenantDatabasesTest extends TestCase
 
         $tenant = Tenant::factory()->create(['suspended_at' => now()->subDays(31)]);
 
-        $this->artisan('tenancy:prune-orphaned-databases', ['--days' => 30, '--force' => true])
+        $this->pruneOrphanedDatabases(['--days' => 30, '--force' => true])
             ->assertExitCode(0);
 
         $this->assertNull(Tenant::find($tenant->id));
@@ -49,7 +50,7 @@ class PruneOrphanedTenantDatabasesTest extends TestCase
 
         $tenant = Tenant::factory()->create(['suspended_at' => now()->subDays(5)]);
 
-        $this->artisan('tenancy:prune-orphaned-databases', ['--days' => 30, '--force' => true])
+        $this->pruneOrphanedDatabases(['--days' => 30, '--force' => true])
             ->assertExitCode(0);
 
         $this->assertNotNull(Tenant::find($tenant->id));
@@ -61,7 +62,7 @@ class PruneOrphanedTenantDatabasesTest extends TestCase
 
         $tenant = Tenant::factory()->create();
 
-        $this->artisan('tenancy:prune-orphaned-databases', ['--days' => 30, '--force' => true])
+        $this->pruneOrphanedDatabases(['--days' => 30, '--force' => true])
             ->assertExitCode(0);
 
         $this->assertNotNull(Tenant::find($tenant->id));
@@ -73,9 +74,25 @@ class PruneOrphanedTenantDatabasesTest extends TestCase
 
         $tenant = Tenant::factory()->create(['suspended_at' => now()->subDays(31)]);
 
-        $this->artisan('tenancy:prune-orphaned-databases', ['--days' => 30, '--dry-run' => true])
+        $this->pruneOrphanedDatabases(['--days' => 30, '--dry-run' => true])
             ->assertExitCode(0);
 
         $this->assertNotNull(Tenant::find($tenant->id));
+    }
+
+    /**
+     * `artisan()` is typed `PendingCommand|int` — it returns the int only once
+     * expectations have been run. Narrowing here keeps every test a single
+     * chained call without a baseline entry.
+     *
+     * @param  array<string, mixed>  $options
+     */
+    private function pruneOrphanedDatabases(array $options): PendingCommand
+    {
+        $command = $this->artisan('tenancy:prune-orphaned-databases', $options);
+
+        $this->assertInstanceOf(PendingCommand::class, $command);
+
+        return $command;
     }
 }

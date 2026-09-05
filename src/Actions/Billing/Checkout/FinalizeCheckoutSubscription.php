@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
 use Laravel\Cashier\Exceptions\IncompletePayment;
-use Laravel\Cashier\Subscription;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\Subscription;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentMethod;
 

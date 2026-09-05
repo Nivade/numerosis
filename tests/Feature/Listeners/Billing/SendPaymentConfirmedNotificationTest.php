@@ -59,7 +59,7 @@ class SendPaymentConfirmedNotificationTest extends TestCase
             }
         };
 
-        $this->app->instance(NotifiesTenantOwner::class, $spy);
+        app()->instance(NotifiesTenantOwner::class, $spy);
 
         (new SendPaymentConfirmedNotification)->handle(new PaymentSettled($tenant, $owner->id));
 

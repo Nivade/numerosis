@@ -88,6 +88,8 @@ class StartSubscriptionCheckoutTest extends TestCase
             'trial_days' => 0,
         ]);
 
+        $this->expectNotToPerformAssertions();
+
         // Mock Cashier/Stripe checkout to avoid hitting the real API with non-existent prices
         $this->actingAs($user)
             ->get(route('checkout.subscription', [
@@ -97,8 +99,6 @@ class StartSubscriptionCheckoutTest extends TestCase
                 'payment_plan' => 'basic',
                 'billing_cycle' => 'monthly',
             ]));
-
-        $this->assertTrue(true); // If it reached here without 500, it's a good sign for now.
     }
 
     /**

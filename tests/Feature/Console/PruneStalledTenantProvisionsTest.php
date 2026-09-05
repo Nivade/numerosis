@@ -9,6 +9,7 @@ use App\Models\Central\PendingTenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -21,7 +22,7 @@ class PruneStalledTenantProvisionsTest extends TestCase
         $this->reservation('abandoned', TenantProvisionStatus::Reserved, now()->subHours(5));
         $this->reservation('recent', TenantProvisionStatus::Reserved, now()->subMinutes(5));
 
-        $this->artisan('tenancy:prune-stalled-provisions')->assertSuccessful();
+        $this->pruneStalledProvisions()->assertSuccessful();
 
         $this->assertNull(PendingTenantProvision::find('abandoned'));
         $this->assertNotNull(PendingTenantProvision::find('recent'));
@@ -29,16 +30,16 @@ class PruneStalledTenantProvisionsTest extends TestCase
 
     public function test_it_logs_stalled_provisions_instead_of_deleting_them(): void
     {
-        Log::spy();
+        $spy = Log::spy();
 
         $this->reservation('stalled', TenantProvisionStatus::Provisioning, now()->subHours(5));
 
-        $this->artisan('tenancy:prune-stalled-provisions')->assertSuccessful();
+        $this->pruneStalledProvisions()->assertSuccessful();
 
         // The customer already paid, so the row is kept for a human to look at.
         $this->assertNotNull(PendingTenantProvision::find('stalled'));
 
-        Log::shouldHaveReceived('warning')
+        $spy->shouldHaveReceived('warning')
             ->once()
             ->withArgs(fn (string $message, array $context) => $message === 'Tenant provisioning stalled'
                 && $context['domain'] === 'stalled');
@@ -48,7 +49,7 @@ class PruneStalledTenantProvisionsTest extends TestCase
     {
         $this->reservation('brokendomain', TenantProvisionStatus::Failed, now()->subHours(5));
 
-        $this->artisan('tenancy:prune-stalled-provisions')->assertSuccessful();
+        $this->pruneStalledProvisions()->assertSuccessful();
 
         $this->assertNotNull(PendingTenantProvision::find('brokendomain'));
     }
@@ -58,10 +59,26 @@ class PruneStalledTenantProvisionsTest extends TestCase
         $this->reservation('abandoned', TenantProvisionStatus::Reserved, now()->subHours(5));
         $this->reservation('stalled', TenantProvisionStatus::Provisioning, now()->subHours(5));
 
-        $this->artisan('tenancy:prune-stalled-provisions', ['--dry-run' => true])->assertSuccessful();
+        $this->pruneStalledProvisions(['--dry-run' => true])->assertSuccessful();
 
         $this->assertNotNull(PendingTenantProvision::find('abandoned'));
         $this->assertNotNull(PendingTenantProvision::find('stalled'));
+    }
+
+    /**
+     * `artisan()` is typed `PendingCommand|int` — it returns the int only once
+     * expectations have been run. Narrowing here keeps every test a single
+     * chained call without a baseline entry.
+     *
+     * @param  array<string, mixed>  $options
+     */
+    private function pruneStalledProvisions(array $options = []): PendingCommand
+    {
+        $command = $this->artisan('tenancy:prune-stalled-provisions', $options);
+
+        $this->assertInstanceOf(PendingCommand::class, $command);
+
+        return $command;
     }
 
     private function reservation(string $domain, TenantProvisionStatus $status, Carbon $createdAt): void

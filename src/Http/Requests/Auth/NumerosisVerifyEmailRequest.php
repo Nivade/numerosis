@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Http\Requests\Auth;
 
 use Laravel\Fortify\Http\Requests\VerifyEmailRequest;
+use Nvade\Numerosis\Models\User;
 use Override;
 
 /**
@@ -21,7 +22,7 @@ class NumerosisVerifyEmailRequest extends VerifyEmailRequest
     {
         $user = $this->user();
 
-        if (! $user) {
+        if (! $user instanceof User) {
             return false;
         }
 

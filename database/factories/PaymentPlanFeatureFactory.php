@@ -16,7 +16,7 @@ class PaymentPlanFeatureFactory extends Factory
     /**
      * The name of the factory's corresponding model.
      *
-     * @var string
+     * @var class-string<PaymentPlanFeature>
      */
     protected $model = PaymentPlanFeature::class;
 
@@ -43,9 +43,8 @@ class PaymentPlanFeatureFactory extends Factory
      * Configure the feature as a boolean type.
      *
      * @param  bool  $value  The boolean value
-     * @return $this
      */
-    public function boolean(bool $value = true): self
+    public function boolean(bool $value = true): static
     {
         return $this->state(function () use ($value) {
             return [
@@ -59,9 +58,8 @@ class PaymentPlanFeatureFactory extends Factory
      * Configure the feature as an integer type.
      *
      * @param  int  $value  The integer value
-     * @return $this
      */
-    public function integer(int $value): self
+    public function integer(int $value): static
     {
         return $this->state(function () use ($value) {
             return [
@@ -75,9 +73,8 @@ class PaymentPlanFeatureFactory extends Factory
      * Configure the feature as a string type.
      *
      * @param  string  $value  The string value
-     * @return $this
      */
-    public function string(string $value): self
+    public function string(string $value): static
     {
         return $this->state(function () use ($value) {
             return [
@@ -89,10 +86,8 @@ class PaymentPlanFeatureFactory extends Factory
 
     /**
      * Configure the feature as disabled.
-     *
-     * @return $this
      */
-    public function disabled(): self
+    public function disabled(): static
     {
         return $this->state(function () {
             return [
@@ -105,9 +100,8 @@ class PaymentPlanFeatureFactory extends Factory
      * Set the sort order for the feature.
      *
      * @param  int  $order  The sort order
-     * @return $this
      */
-    public function sortOrder(int $order): self
+    public function sortOrder(int $order): static
     {
         return $this->state(function () use ($order) {
             return [
@@ -120,9 +114,8 @@ class PaymentPlanFeatureFactory extends Factory
      * Associate the feature with a specific payment plan.
      *
      * @param  int  $planId  The payment plan ID
-     * @return $this
      */
-    public function forPlan(int $planId): self
+    public function forPlan(int $planId): static
     {
         return $this->state(function () use ($planId) {
             return [
