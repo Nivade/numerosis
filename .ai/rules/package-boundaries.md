@@ -33,16 +33,15 @@ calls these; core never names a host's classes. Full table, with notes, is in
 `docs/extending.md` — this file only records the boundary facts that are easy
 to get wrong.
 
-`Numerosis::registerRoutesUsing()` / `registerMiddlewareUsing()` /
-`registerBroadcastingUsing()` still exist and still replace the whole
-mechanism. Reach for the `add*` seams first; the `registerXUsing()` ones are
-for a host that genuinely wants none of the defaults.
+`Numerosis::registerRoutesUsing()` / `registerMiddlewareUsing()` still exist
+and still replace the whole mechanism. Reach for the `add*` seams first; the
+`registerXUsing()` ones are for a host that genuinely wants none of the
+defaults.
 
 ## Boundary facts that still bite
 
-- **A satellite that seeds its own permissions instead of calling
-  `Numerosis::addPermissionContext()` 500s every page carrying a
-  policy-guarded navigation item.** Navigation evaluates that resource's
+- **Seeding permissions outside `RoleAndPermissionSeeder::contexts()` 500s
+  every page carrying a policy-guarded navigation item.** Navigation evaluates that resource's
   `viewAny` on every render to decide its own visibility, and Spatie throws
   `PermissionDoesNotExist` where a `false` return would degrade gracefully, so
   one missed context takes out every page rather than hiding one link. The
@@ -107,50 +106,50 @@ for a host that genuinely wants none of the defaults.
   defaults under whatever a host already published, since Laravel's own
   config merge is one level deep only.
 
-## Contribution readers
+## `Support\Contributions` is gone; the seams are conventions and the container
 
-Every `add*()` writer has a reader next to it:
-`Numerosis::tenantMigrationPaths()`, `::tenantSeeders()`,
-`::centralSeeders()`, `::permissionContexts()`
-(`src/Support/Numerosis.php:512,536,558,590`), and `Features::registered()`.
+Deleted 2026-09-05 with its ten `Numerosis::add*()` delegators
+(`addCentralRoutes`, `addTenantRoutes`, `addTenantColumns`,
+`addTenantMigrationPath`, `addTenantSeeder`, `addCentralSeeder`,
+`addPermissionContext` and their readers/flushes). Anything below describing a
+static contribution list is history. What each became:
 
-Route contributions carry an optional `?string $source` too —
-`addCentralRoutes()` / `addTenantRoutes()` (both on `Numerosis` and on
-`Contributions`, the latter doing the actual storing as
-`array{callback, source}` pairs), read back by
-`Contributions::centralRouteSources()` / `::tenantRouteSources()`, in the
-same order as `::centralRouteCallbacks()` / `::tenantRouteCallbacks()` (which
-still return bare closures — `Numerosis::routes()` invokes them positionally
-and doesn't need the pairing). With no satellite left to pass its own package
-name, `source` is `null` unless the host calling these seams supplies one
-itself — the mechanism from the six-package era is intact, just unused by
-anything in this repo now. `tests/Feature/Support/PackageContributionSeamsTest.php`
-is what exercises it (renamed from `SatelliteRouteContributionTest`).
+- **Routes.** `Numerosis::routes()` requires `base_path('routes/web.php')`,
+  `routes/tenant.php` and `routes/api.php` when present. The host file is
+  loaded **last** inside each group. `RouteCollection::addToCollections()`
+  keys on `implode('|', methods) . domain . uri`, so two routes on the same
+  `/` do not coexist — the later registration replaces the earlier one
+  outright, name lookup and all once `RouteServiceProvider::boot()` calls
+  `refreshNameLookups()`. Loading the host file first would have made core's
+  `/` win, which is the opposite of what a host wants. Consequence a host has
+  to be told: **name your own `/` route `home`**, or point
+  `numerosis.routes.names.home` at your name, or `route('home')` throws
+  `RouteNotFoundException` on every checkout error path.
+- **Tenant migrations.** `HostConfig::tenantMigrationParameters()` seeds
+  `$paths` with `[database_path('migrations/tenant')]` before appending the
+  package's own. Writing `--path` at all discards stancl's implicit default,
+  which silently stopped a host's conventionally placed tenant migrations from
+  running.
+- **Seeders, features, policies, middleware, exception context.** Bind over
+  them. `Seeder::resolve()`, `bootstrapFeatures()`, `Gate` and
+  `Pipeline::getContainer()->make()` all resolve through the container, so a
+  binding in a host's `AppServiceProvider` (which registers after the
+  package's) swaps the concrete with no seam to build.
+- **Permission contexts.** `RoleAndPermissionSeeder::contexts()` and
+  `Tenant\PermissionAndRoleSeeder::contexts()` are `protected` methods now;
+  add one by subclassing, overriding, and binding the subclass.
+- **Tenant columns.** `Models\Central\Tenant::getCustomColumns()` is
+  `KNOWN_COLUMNS` plus `array_diff(getColumnListing('tenants'), ['data',
+  ...KNOWN_COLUMNS])`, memoized in a private static and flushed by
+  `Numerosis::resetModelCache()`. It returns `[]` **without memoizing** while
+  the table does not exist, so the first call after `migrate` sees the real
+  schema.
 
-The general rule stands: add the reader alongside the writer rather than
-after — a boundary test that can enumerate contributions is strictly better
-than one that scans files for forbidden strings.
-
-## `Contributions`' lists are static, and only some of them deduplicate
-
-Every list on `Support\Contributions` is `static`, so it lives as long as the
-process. A provider that registers more than once — Octane's per-worker boot, a
-host provider re-registered by a test harness — would grow them without bound
-and hand `tenancy.migration_parameters` the same path several times.
-
-- Migration paths, seeders and permission contexts go through `appendOnce()`,
-  which appends what is not already present and preserves registration order.
-- The two route-callback lists cannot. Two `Closure`s built from the same
-  `function () { … }` on two boots are distinct objects with nothing comparable
-  about them, and collapsing by `source` would drop a package's second,
-  legitimately different contribution. They stay bounded only by there being
-  one registration site per package.
-- `$tenantColumns` has no reset at all, deliberately: its only writer is
-  `Models\Central\Tenant`'s own declaration, so there is no per-test
-  registration to undo. `flushRouteContributions()` and
-  `flushMigrationAndSeederContributions()` stay two methods rather than one
-  `flush()` so each caller clears only what it meant to; `PackageContributionSeamsTest`
-  calls them separately.
+The general rule that outlives all of it: add the reader alongside the writer.
+A boundary test that can enumerate what a host contributed is strictly better
+than one that scans files for forbidden strings — which is why
+`tests/Feature/Support/PackageContributionSeamsTest.php` survived the deletion
+rather than going with it.
 
 ## HostConfig's preference/correction split, and its one deliberate asymmetry
 HostConfig is organized on one axis: what a host may legitimately choose, not which vendor config file a key lands in.

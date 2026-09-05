@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\View\View;
 use Laravel\Cashier\Exceptions\IncompletePayment;
+use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Billing\Checkout\AssertPendingReservationIsFresh;
@@ -38,6 +39,7 @@ use Nvade\Numerosis\Support\Routes\RouteNames;
  *
  * {@see ConfirmsPayments} carries the 3DS half of the flow.
  */
+#[Layout('numerosis-layouts::app')]
 class Checkout extends Component
 {
     use ConfirmsPayments;

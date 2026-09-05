@@ -57,7 +57,7 @@ framework hook that has to run before any package code can act.
 | `STRIPE_WEBHOOK_SECRET` | the signing secret Stripe's dashboard gives your webhook endpoint | secret, used to verify inbound Stripe webhooks | — not independently verifiable; a wrong value fails loudly the first time Stripe calls back, not silently, so nothing here would catch it earlier than that |
 | DB credentials + `php artisan migrate` | working MySQL credentials; migrations run against the `central` connection | MySQL — tenancy needs `CREATE DATABASE`, and the `central` connection has to exist before anything else in this list means anything | `verifyDatabaseConnections()` |
 | — same, `failed_jobs` table specifically | present on whichever connection `queue.failed.database` names | migrations create it; nothing else does | `verifyFailedJobsConnection()` |
-| One-line `bootstrap/app.php` | `Numerosis::configure(...)`, or `->withRouting()`/`->withMiddleware()` calling `Numerosis::routes()`/`Numerosis::middleware()` | `ApplicationBuilder::withRouting()`/`withMiddleware()` run at builder time, before any service provider — nothing inside `packageRegistered()`/`packageBooted()` can substitute for the framework hook itself | — `NumerosisServiceProvider::booted()` self-heals a missing call (registers routes/middleware itself if it detects neither ran) rather than failing the install command; see `.ai/rules/package-host-bootstrap.md` |
+| `bootstrap/app.php` wiring | `->withRouting(using: Numerosis::routes(...))` plus `Numerosis::middleware()`/`Numerosis::exceptions()` inside your own `withMiddleware()`/`withExceptions()` closures, or `Numerosis::configure(...)` for a greenfield app | `ApplicationBuilder::withRouting()`/`withMiddleware()` run at builder time, before any service provider — nothing inside `packageRegistered()`/`packageBooted()` can substitute for the framework hook itself | — `NumerosisServiceProvider::booted()` self-heals a missing call (registers routes/middleware itself if it detects neither ran) rather than failing the install command; see `.ai/rules/package-host-bootstrap.md` |
 | `php artisan vendor:publish --tag=numerosis-public-assets` | run at least once, unless you build `resources/js/numerosis.js` through your own Vite | copies this package's prebuilt JS/CSS to `public/vendor/numerosis/`; `Assets::tags()` links both URLs whether or not they are there, so a missing publish is a 404, not an exception | `verifyPublicAssets()` |
 | DNS + a provisioning worker | depends on `numerosis.tenancy.identification.mode` — `subdomain`: `*.{tenant_pattern}` resolves; `custom_domain`: each tenant points their own domain here; `path`: no DNS change at all. Plus, in every mode, a queue worker on the `provisioning` queue | infrastructure — tenant provisioning is queued there, not on the default worker | — infrastructure, outside anything a boot-time check can observe; `numerosis:install`'s printed manual steps name the right one for your mode |
 
@@ -120,7 +120,7 @@ what stops the next normalization from shipping undocumented.
 | `numerosis.social.routes.{redirect,callback}.name` | `'social.redirect'` / `'social.callback'` — the package's own route names. Provider metadata (label, icon, which are configured) is `Enums\Auth\SocialProvider`, not config — nothing here to override for that | override if you rename either route | `verifySocialRoutes()` (narrowed) |
 | `numerosis.models.<FQCN>` | unset — `Numerosis::model()` finds a subclass at the conventional `App\Models\<suffix>` path automatically when one exists and extends the package model | publish the stub (`--tag numerosis-models`) and let convention find it, or set this key directly for a non-conventional class location | `verifyModelOverrides()` |
 | `livewire.temporary_file_upload.disk` | `'livewire'` — a dedicated disk, same physical root as `local`, deliberately excluded from `tenancy.filesystem.disks` | override, but not to `'local'` or anything else tenant-suffixed | `verifyLivewireUploadDisk()` |
-| `livewire.component_namespaces.{layouts,pages}` | the package's own `resources/views/{layouts,pages}` | override if you publish those views locally — **from your own provider's `register()`, not `boot()`** (see the note below) | `verifyLivewireComponentNamespaces()` |
+| `livewire.component_namespaces.{numerosis-layouts,numerosis-pages}` | the package's own `resources/views/{layouts,pages}` | override if you publish those views locally — **from your own provider's `register()`, not `boot()`** (see the note below). The generic `layouts`/`pages` keys are yours; core never writes them, because a Livewire namespace maps one prefix to exactly one directory | `verifyLivewireComponentNamespaces()` |
 | `cache.serializable_classes` (read, never written) | left exactly as your `config/cache.php` has it; what follows it is `DomainTenantResolver::$shouldCache`, which is only turned on when this value can round-trip a cached tenant model (`null`/`true`, or an allowlist naming `tenancy.tenant_model`) | add your tenant model to the allowlist to keep the resolver cache, or force the decision with `numerosis.tenancy.cache_resolved_tenants` (`true`/`false`) | `verifyTenantResolverCache()` (warns when the cache ended up off, since that costs a central lookup per tenant request; never fails the install) |
 | your own `database/migrations/*.php` filenames | must not collide with the package's `database/migrations/central/*.php`. The package ships extended copies of a fresh Laravel app's three stock migrations, but under `2019_09_01_00000{0,1,2}_*` rather than the stock `0001_01_01_*`, so an untouched app does not collide | delete yours, or merge what it adds into the package's copy | `verifyCentralMigrationCollisions()` (warns; the migrator dedupes by filename and keeps *yours*, so the package's copy silently never runs) |
 | `Database\Seeders\DatabaseSeeder` (container binding, not config) | the package's own seeder, whenever the host hasn't defined that class | write `database/seeders/DatabaseSeeder.php` yourself (the class existing wins outright — nothing here can override it); call `$this->call(\Nvade\Numerosis\Database\Seeders\DatabaseSeeder::class)` from it to combine the two | — the binding itself isn't checked (it can't fail in a way an install-time check would catch); the *data* it seeds is: |
@@ -220,7 +220,7 @@ what stops the next normalization from shipping undocumented.
   bakes the result into the view finder's hints
   (`app('view')->addNamespace(...)`), so a value set in any provider's
   `boot()` is accepted by the config repository and changes nothing about how
-  `pages::`/`layouts::` actually resolve — you see the right value in
+  `numerosis-pages::`/`numerosis-layouts::` actually resolve — you see the right value in
   `config()` and the package's views still win. Laravel registers app
   providers after package providers, so setting it in your own
   `AppServiceProvider::register()` lands after this package's default and
@@ -276,10 +276,10 @@ what stops the next normalization from shipping undocumented.
   before 2026-08-12 predates that line; `verifyPublishedAssetsMatchSource()`
   reports the drift, but only as a warning, since editing these files is
   the point of publishing them.
-- **`config/cashier.php`, `config/permission.php`, `config/broadcasting.php`
-  and `config/queue.php`** are published as-is by their own packages rather
-  than being package invariants — nothing to normalize or verify beyond
-  what's already listed above.
+- **`config/cashier.php`, `config/permission.php` and `config/queue.php`**
+  are published as-is by their own packages rather than being package
+  invariants — nothing to normalize or verify beyond what's already listed
+  above.
 - **The deep-fill has one blind spot: a key your file still names, in an
   outdated shape.** It only ever backfills a key that's entirely *missing*
   from your file — a top-level key renamed or restructured since you last

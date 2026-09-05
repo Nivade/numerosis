@@ -1,4 +1,4 @@
-<x-layouts::app :title="config('app.name')">
+<x-numerosis-layouts::app :title="config('app.name')">
     {{--
         The package's placeholder homepage.
 
@@ -41,4 +41,4 @@
             @endauth
         </div>
     </div>
-</x-layouts::app>
+</x-numerosis-layouts::app>

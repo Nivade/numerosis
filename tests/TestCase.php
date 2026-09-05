@@ -400,28 +400,9 @@ abstract class TestCase extends Orchestra
         ]);
         $app->make(Repository::class)->set('livewire.temporary_file_upload.disk', 'livewire');
 
-        // Livewire's own default config already points 'pages'/'layouts' at
-        // resource_path('views/{pages,layouts}') — correct for a plain
-        // Laravel app, wrong here, since those files ship from the package
-        // (routes/{web,tenant}.php's `Route::livewire('...', 'pages::...')`,
-        // and resources/views/layouts/app/header.blade.php's
-        // `<livewire:layouts::header />`). See docs/host-requirements.md's
-        // `config/livewire.php` row.
-        //
-        // Set one key at a time, never the whole array: a satellite provider
-        // used to contribute its own namespace here (nvade/numerosis-account's
-        // `account-pages`, folded into core's own `pages::` in Phase 3 of
-        // `.claude/plans/archive/humming-nibbling-flame.md`). Replacing the array
-        // wholesale dropped it silently, and the only symptom was
-        // `Unable to find component: [account-pages::tenant.mine]`.
-        $app->make(Repository::class)->set(
-            'livewire.component_namespaces.layouts',
-            dirname(__DIR__).'/resources/views/layouts',
-        );
-        $app->make(Repository::class)->set(
-            'livewire.component_namespaces.pages',
-            dirname(__DIR__).'/resources/views/pages',
-        );
+        // `numerosis-layouts`/`numerosis-pages` are registered by
+        // NumerosisServiceProvider::registerLivewireComponentNamespaces(),
+        // which no longer touches Livewire's own `layouts`/`pages` keys.
 
         $app->make(Repository::class)->set('permission.models.permission', Permission::class);
         $app->make(Repository::class)->set('permission.models.role', Role::class);
@@ -628,6 +609,8 @@ abstract class TestCase extends Orchestra
         // tenancy and releases the test's transactions itself), but running
         // after the rollback is still one fewer thing happening out of order,
         // and calling it here is what a plain-Laravel host would do too.
+        Numerosis::resetMiddlewareRegisteredForTesting();
+
         $this->setUpCleansUpTenancyDatabases();
 
         $this->beforeApplicationDestroyed(function (): void {

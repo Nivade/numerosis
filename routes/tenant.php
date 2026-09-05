@@ -49,7 +49,7 @@ Route::middleware(['universal', 'tenancy.auth:'.Config::string('numerosis.auth.g
     // `tenant` middleware group: this is where EnsureTenantSubscriptionActive
     // redirects to, so a suspended tenant reaching it must not be re-gated
     // into an infinite redirect.
-    Route::livewire('account-suspended', 'pages::tenant.suspended')
+    Route::livewire('account-suspended', 'numerosis-pages::tenant.suspended')
         ->name('tenant.suspended');
 
     // The subscription gate: every authenticated tenant screen that is the
@@ -67,7 +67,7 @@ Route::middleware(['universal', 'tenancy.auth:'.Config::string('numerosis.auth.g
     // verify an address and confirm a password.
     Route::middleware('tenancy.subscription')->group(function () {
         if (Features::enabled(InvitationsFeature::NAME)) {
-            Route::livewire('team/invitations', 'pages::tenant.invitations')->name('team.invitations.index');
+            Route::livewire('team/invitations', 'numerosis-pages::tenant.invitations')->name('team.invitations.index');
             Route::post('team/invitations', StoreInvitationController::class)->name('team.invitations.store');
             Route::delete('team/invitations/{invitation}', DestroyInvitationController::class)->name('team.invitations.destroy');
         }

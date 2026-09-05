@@ -22,7 +22,7 @@ paths:
 >   `Support\State\`.
 > - `/get-started` is a plain core route —
 >   `Route::livewire('/get-started', Registration::class)->name('tenants.create')`
->   in `routes/web.php:49` — not an `addCentralRoutes()` contribution. The
+>   in `routes/web.php:49` — not a host contribution. The
 >   component alias `tenant-registration` is registered by
 >   `RegistrationWizardFeature` (`src/Features/Tenancy/RegistrationWizardFeature.php:90`),
 >   because Livewire cannot discover a package's classes.

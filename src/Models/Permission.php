@@ -70,7 +70,6 @@ class Permission extends \Spatie\Permission\Models\Permission
      *
      * @see self::actionsFor()
      * @see \Nvade\Numerosis\Database\Seeders\Tenant\PermissionAndRoleSeeder
-     * @see \Nvade\Numerosis\Support\Numerosis::addTenantSeeder()
      *
      * @return array<string, list<string>>
      */

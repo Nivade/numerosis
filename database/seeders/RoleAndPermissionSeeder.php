@@ -8,7 +8,6 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Database\Seeders\Concerns\SeedsAdminRole;
 use Nvade\Numerosis\Models\Permission;
-use Nvade\Numerosis\Support\Numerosis;
 
 class RoleAndPermissionSeeder extends Seeder
 {
@@ -34,7 +33,22 @@ class RoleAndPermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        $contexts = [
+        $this->seedAdminRole(
+            $this->contexts(),
+            'web',
+            fn (): array => Permission::defaultActions(),
+            Config::string('tenancy.database.central_connection', 'central'),
+        );
+    }
+
+    /**
+     * Add a context by subclassing and binding your subclass to this class.
+     *
+     * @return list<string>
+     */
+    protected function contexts(): array
+    {
+        return [
             'domains',
             'features',
             'memberships',
@@ -46,14 +60,6 @@ class RoleAndPermissionSeeder extends Seeder
             'payment_plans',
             'payment_plan_features',
             'users',
-            ...Numerosis::permissionContexts(),
         ];
-
-        $this->seedAdminRole(
-            $contexts,
-            'web',
-            fn (): array => Permission::defaultActions(),
-            Config::string('tenancy.database.central_connection', 'central'),
-        );
     }
 }

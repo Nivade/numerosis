@@ -59,7 +59,7 @@ from work done one phase too early or too late (`.ai/rules/package-host-bootstra
 | `configurePackage()` | name, config file, views, translations, migrations, commands | Runs **before** this package's own `mergeConfigFrom()`, so `config('numerosis.*')` is unreadable. A command registered conditionally here must therefore gate on `class_exists()`, an install-time fact, never on a feature switch |
 | `packageRegistered()` | model-cache reset; registers `TenancyServiceProvider` + `BillingServiceProvider`; container bindings for every `Contracts\*` interface; the `DatabaseSeeder` fallback binding; Livewire namespace + upload-disk defaults | Container wiring only. The Livewire namespaces must be set here because Livewire bakes them into view-finder hints during *its* `boot()` — a host overriding them must also do so from `register()` |
 | `booting()` callbacks (queued from `packageRegistered()`) | `HostConfig::apply()` | Deferred on purpose: `booting()` fires after *every* provider has registered, so config that `stancl/tenancy` merges in is normalized after it lands rather than before. Doing this inline in `packageRegistered()` silently truncated `tenancy.database` |
-| `packageBooted()` | bootstraps every enabled `Feature`; routes fallback; `request()->isCentralDomain()` macro; event listeners; schedule; middleware groups and aliases; broadcasting; exception handling; explicit Livewire component registration; publish groups | Everything needing config, facades and other providers to exist |
+| `packageBooted()` | bootstraps every enabled `Feature`; routes fallback; `request()->isCentralDomain()` macro; event listeners; schedule; middleware groups and aliases; exception handling; explicit Livewire component registration; publish groups | Everything needing config, facades and other providers to exist |
 
 Two self-healing fallbacks live in `packageBooted()`, both for a host whose
 `bootstrap/app.php` skipped a framework hook that no provider can substitute
@@ -72,8 +72,13 @@ for:
   group, which begins with `web`, resolves as a class name and throws
   `Target class [web] does not exist`.
 
-`Numerosis::configure()` wires all three hooks in one line and is what a host
-should use.
+Adopting numerosis changes one line of an existing `bootstrap/app.php`: `web:`
+becomes `using: Numerosis::routes(...)`, because per-central-domain route
+groups are the one thing `web:` cannot express. `Numerosis::middleware()` and
+`Numerosis::exceptions()` go inside the host's own closures, first, so
+whatever the host configures afterwards wins. `Numerosis::configure()` is the
+same three calls in one line, for a greenfield app; the expanded chain is what
+reaches `health:` and `then:`.
 
 ## Request lifecycle
 
@@ -82,11 +87,18 @@ Routes are registered by `Numerosis::routes()` into exactly two groups:
 ```
 foreach (config('tenancy.central_domains') as $domain)   ← one group per hostname
     Route::middleware('web')->domain($domain)
-        routes/web.php  +  addCentralRoutes() contributions
+        routes/web.php  then  base_path('routes/web.php')
 
 Route::middleware('tenant')
-    routes/tenant.php   +  addTenantRoutes() contributions
+    routes/tenant.php   then  base_path('routes/tenant.php')
+
+Route::middleware('api')->prefix($apiPrefix)             ← outside both groups
+    base_path('routes/api.php')
 ```
+
+The host's file loads last in each group deliberately: `RouteCollection` keys
+on method + domain + URI, so a host route on `/` replaces the package's only
+by being registered after it.
 
 The per-domain loop is not cosmetic: tenant identification never runs for a
 central hostname, so a central route registered with a plain `Route::get()`
@@ -137,7 +149,7 @@ src/
   Services/       24 — default implementations, grouped by domain:
                   Auth/ Billing/ Invitations/ Notifications/ Tenancy/
   Models/         16 — Central/ and Tenant/
-  Support/        7 top-level classes — Numerosis, ModelResolver, Contributions,
+  Support/        6 top-level classes — Numerosis, ModelResolver,
                   Assets, HostConfig, Features, Domains, + Billing/ Cache/
                   Compat/ Routes/ Social/ Tenancy/
   Http/           19 — controllers (auth, Socialite, billing webhook) and
@@ -166,9 +178,8 @@ already use. Read the delegate for the seam, the owner for the mechanism.
 
 | Class | Owns |
 |---|---|
-| `Support\Numerosis` | application bootstrap and the front door to everything below: `configure()`, `routes()`, `middleware()`, `broadcasting()`, `exceptions()`, and the three `registerXUsing()` wholesale overrides |
+| `Support\Numerosis` | application bootstrap and the front door to everything below: `configure()`, `routes()`, `middleware()`, `exceptions()`, and the three `registerXUsing()` wholesale overrides. `Facades\Numerosis` is the post-boot facade over it, never usable from `bootstrap/app.php` |
 | `Support\ModelResolver` | model resolution, the model↔factory name mapping and its memoization cache. Behind `Numerosis::{model,factoryNameFor,modelNameFor,resetModelCache}()` |
-| `Support\Contributions` | what a host has added — tenant columns, central/tenant routes, tenant migration paths, seeders, permission contexts — plus the readers `routes()` and the seeders consume. Behind every `Numerosis::add*()`. Note `Contributions::tenantMigrationPaths()` is contributions only, while `Numerosis::tenantMigrationPaths()` includes the package's own; `HostConfig` wants the latter |
 | `Support\Assets` | the `numerosis-assets` publish map, the published `public/vendor/numerosis` paths, and the `<link>`/`<script>` tags for the package's CSS/JS. Behind `Numerosis::{assetSourcePaths,assetTags}()`. The only one of these that reaches for `Vite` and the filesystem |
 | `Support\HostConfig` | every config value normalized for a host at boot. One row per key in `host-requirements.md` |
 | `Support\Features` | the feature registry — merges `config('numerosis.features')` with any `Features::register()` call a host makes from its own provider |
@@ -176,7 +187,7 @@ already use. Read the delegate for the seam, the owner for the mechanism.
 
 ## Configuration
 
-One config namespace, one publishable file: `config/numerosis.php`, eleven
+One config namespace, one publishable file: `config/numerosis.php`, ten
 top-level keys.
 
 Split by *key*, not by package, on purpose: a host's own override file only
@@ -196,7 +207,6 @@ such as `features` is left exactly as the host set it, including empty.
 | `schedule` | booleans, not features: whether this deployment's cron runs each prune command |
 | `routes.names` | indirection for the four route names called from outside their own route file, so a gated route can be renamed without breaking ~20 call sites |
 | `domains` | `apex`, `central`, `tenant_pattern` — all derived from `APP_URL` |
-| `broadcasting` | channel authorization wiring |
 | `auth` | guard indirection (`auth.guards.central` defaults to `'web'`) |
 | `social` | OAuth provider metadata and route names |
 | `cache` | the prefix for every key in `Support\Cache\CacheKeys`. Does **not** decide which keys are tenant-scoped — see `.ai/rules/tenant-caching.md` |

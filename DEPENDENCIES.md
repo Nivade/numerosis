@@ -56,13 +56,18 @@ Phase 3 — every migration and seeder.
 | `ryangjchandler/laravel-cloudflare-turnstile` | `TurnstileFeature::isEnabled()` — `class_exists(TurnstileRule::class)` | `<x-numerosis::turnstile-field />` renders nothing, `rules()` returns `[]`. |
 | `sentry/sentry-laravel` | `app()->bound('sentry')` in `TagsSentryScopeWithTenant` | No tenant tag on job-failure reports. |
 | `laravel/telescope` | `class_exists()` on the scheduled `telescope:prune` entry | No prune schedule; `telescope/*` stays CSRF-exempt harmlessly. |
-| `laravel/reverb` / `pusher/pusher-php-server` | none needed — zero PHP references; core talks to whatever `config('broadcasting')` resolves | No broadcast server. Chosen and run by the host. |
 | `socialiteproviders/discord` / `socialiteproviders/zoho` | `Support\Social\ConfiguredProviders` — gated by `numerosis.social.providers` | Those two OAuth drivers unavailable; Socialite's own built-in providers are unaffected. |
 
 `torann/geoip` was dropped outright in Phase 6, not moved to `suggest`:
 `ResolveCheckoutRegion` always returns null now, checkout always falls back
 to `numerosis.billing.payment_methods.default_order`. There is nothing left
 to guard.
+
+`laravel/reverb` / `pusher/pusher-php-server` and `illuminate/broadcasting`
+itself were dropped outright (chat's real-time presence channel was their
+only caller; the tenant-provisioning status page it also fed already had a
+`wire:poll` fallback and needed no push transport of its own). There is
+nothing left to guard.
 
 ### require-dev
 

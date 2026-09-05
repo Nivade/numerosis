@@ -1,4 +1,4 @@
-<x-layouts::auth :title="__('Verify your code')">
+<x-numerosis-layouts::auth :title="__('Verify your code')">
     <div class="flex flex-col gap-6">
         <x-numerosis::auth-header
             :title="__('Enter your one-time code')"
@@ -28,4 +28,4 @@
             <flux:link :href="route('login')">{{ __('Use a different email address') }}</flux:link>
         </div>
     </div>
-</x-layouts::auth>
+</x-numerosis-layouts::auth>

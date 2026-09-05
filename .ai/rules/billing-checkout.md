@@ -263,8 +263,8 @@ paths:
   `InlineCheckoutGateway::begin()` is what persists that id in first
   place. Same ownership check as `ResolveSetupIntent`.
 - **`StartLocalCheckout` deliberately takes same route as paid
-  flow** — same pending row, same queued `ProvisionTenant`, same broadcast —
-  so dev shortcut exercises production's code path rather than
+  flow** — same pending row, same queued `ProvisionTenant`, same dispatched
+  events — so dev shortcut exercises production's code path rather than
   parallel one; only difference is no subscription gets attached. Always
   uses `LocalCheckoutGateway` directly, never container-bound
   `CheckoutGateway`, so dev route stays local regardless of what

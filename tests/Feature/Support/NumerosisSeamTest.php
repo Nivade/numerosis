@@ -12,7 +12,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Middleware\TrustHosts;
 use Illuminate\Routing\Route as IlluminateRoute;
 use Illuminate\Routing\Router;
-use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\Facades\File;
@@ -76,12 +75,6 @@ it('registers mode-agnostic middleware aliases with no facade application bound'
     } finally {
         Facade::setFacadeApplication($app);
     }
-});
-
-it('returns the exact broadcasting middleware list', function () {
-    expect(Numerosis::broadcasting())->toBe([
-        'web', 'tenancy.identification', 'tenancy.session', 'auth:tenant', 'universal',
-    ]);
 });
 
 it('returns the exact csrf exceptions list', function () {
@@ -213,16 +206,6 @@ it('registers the middleware aliases/groups against the real router with no host
     expect($middlewareProperty->getValue($kernel))->toContain(TrustHosts::class);
 });
 
-it('registers the broadcasting auth route and channels with no host bootstrap call', function () {
-    $registered = collect(Route::getRoutes()->getRoutes())->contains(fn ($route): bool => $route->uri() === 'broadcasting/auth');
-
-    expect($registered)->toBeTrue();
-
-    $channels = Broadcast::getChannels();
-
-    expect($channels->keys()->all())->toContain('user.{userId}');
-});
-
 it('wires context/throttling onto the real exception handler with no host bootstrap call', function () {
     $handler = resolve(ExceptionHandler::class);
 
@@ -236,13 +219,12 @@ it('wires context/throttling onto the real exception handler with no host bootst
     expect($context)->toHaveKeys(['tenant_id', 'guard', 'user_global_id']);
 });
 
-it('points assetSourcePaths(), tenantMigrationPath() and broadcastChannelsPath() at real directories', function () {
+it('points assetSourcePaths() and tenantMigrationPath() at real directories', function () {
     foreach (Numerosis::assetSourcePaths() as $source => $target) {
         expect(is_dir($source))->toBeTrue("expected {$source} to exist");
     }
 
     expect(is_dir(Numerosis::tenantMigrationPath()))->toBeTrue();
-    expect(file_exists(Numerosis::broadcastChannelsPath()))->toBeTrue();
 });
 
 // Numerosis::configure() is deliberately untested here:
@@ -332,14 +314,14 @@ afterEach(function () {
 });
 
 afterEach(function () {
-    // These three statics persist for the life of the PHP process, not per
+    // These two statics persist for the life of the PHP process, not per
     // Application instance (see .ai/rules/testing.md's general warning
     // about static state) — a callback left set here would fire again for
-    // every later test's own registerMiddleware()/registerBroadcasting()/
-    // routes() call, most of which don't expect one.
+    // every later test's own registerMiddleware()/routes() call, most of
+    // which don't expect one.
     Numerosis::$registerRoutesCallback = null;
-    Numerosis::$registerBroadcastingCallback = null;
     Numerosis::$registerMiddlewareCallback = null;
+    Numerosis::$registerExceptionsCallback = null;
 });
 
 it('replaces middleware registration entirely when registerMiddlewareUsing is set', function () {
@@ -361,24 +343,6 @@ it('replaces middleware registration entirely when registerMiddlewareUsing is se
 
     expect($called)->toBe(app())
         ->and(resolve(Router::class)->getMiddleware())->toHaveCount($aliasCountBefore);
-});
-
-it('replaces broadcasting registration entirely when registerBroadcastingUsing is set', function () {
-    // Same reasoning as the middleware test above: broadcasting/auth is
-    // already registered by the real boot before this test runs.
-    $routeCountBefore = count(Route::getRoutes()->getRoutes());
-
-    $called = null;
-
-    Numerosis::registerBroadcastingUsing(function ($app) use (&$called): void {
-        $called = $app;
-    });
-
-    $provider = new NumerosisServiceProvider(app());
-    new ReflectionMethod($provider, 'registerBroadcasting')->invoke($provider);
-
-    expect($called)->toBe(app())
-        ->and(count(Route::getRoutes()->getRoutes()))->toBe($routeCountBefore);
 });
 
 it('replaces route registration entirely when registerRoutesUsing is set', function () {

@@ -20,7 +20,6 @@
     "require": {
         "php": "^8.4",
         "illuminate/auth": "^13.0",
-        "illuminate/broadcasting": "^13.0",
         "illuminate/bus": "^13.0",
         "illuminate/cache": "^13.0",
         "illuminate/console": "^13.0",
@@ -71,8 +70,6 @@
     "suggest": {
         "sentry/sentry-laravel": "Enables TagsSentryScopeWithTenant; guarded by app()->bound('sentry') where used.",
         "laravel/telescope": "Adds a scheduled telescope:prune entry and is why 'telescope/*' is CSRF-exempt; both are class_exists-guarded.",
-        "laravel/reverb": "Broadcasting/presence-channel support for realtime features.",
-        "pusher/pusher-php-server": "Alternative broadcast driver to laravel/reverb, same broadcasting code paths.",
         "socialiteproviders/zoho": "A Zoho OAuth driver, since Socialite ships none. Gated the same as every other provider by numerosis.social.providers/Support\\Social\\ConfiguredProviders."
     },
     "autoload": {

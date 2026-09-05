@@ -12,7 +12,7 @@ use Livewire\Component;
  * only ever 403s produces a support ticket; one that routes here with a
  * billing-portal link produces a payment.
  */
-new #[Layout('layouts::auth')]
+new #[Layout('numerosis-layouts::auth')]
 class extends Component
 {
     #[Computed]

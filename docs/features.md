@@ -32,12 +32,12 @@ own; see the scope-reduction plan at
 | `MembershipsFeature` | `tenancy.memberships` | The Team screens | Membership rows are still written by provisioning and invitation-accept. This gates only the screens. It does **not** gate `InvitationsFeature` |
 
 There is no marketing-pages feature. Terms, privacy, about and features are the
-*product's* pages, so they live in the host app, which registers them through
-`Numerosis::addCentralRoutes()`. Core keeps only `home`, registered
-unconditionally because OAuth redirects and checkout error paths fall back to
-it; point `numerosis.routes.home_view` at your own view
-rather than registering a second route on `/`, since core's is declared first
-and wins the path match.
+*product's* pages, so they live in the host app's own `routes/web.php`, which
+`Numerosis::routes()` loads into each central-domain group. Core keeps only
+`home`, registered unconditionally because OAuth redirects and checkout error
+paths fall back to it. Point `numerosis.routes.home_view` at your own view, or
+declare `/` yourself — the host file loads after core's, so it wins — and name
+that route `home`, or `route('home')` stops resolving.
 
 Auth itself is Fortify's — a feature here only ever gates a *screen* or a
 *login method* around it, never account creation, password hashing or

@@ -45,26 +45,16 @@ class TenantProvisioningSignalTest extends TestCase
         $this->assertNull(PendingTenantProvision::find('signaltenant'));
     }
 
-    public function test_it_broadcasts_to_the_owner_when_provisioning_finishes(): void
+    public function test_it_dispatches_tenant_provisioned_for_the_owner_when_provisioning_finishes(): void
     {
         Event::fake([TenantProvisioned::class]);
 
         $user = CentralUser::factory()->create();
 
-        ProvisionTenant::run($this->provisionData($user, 'broadcasttenant'));
+        ProvisionTenant::run($this->provisionData($user, 'signaledtenant'));
 
-        Event::assertDispatched(fn (TenantProvisioned $event) => $event->tenant->id === 'broadcasttenant'
+        Event::assertDispatched(fn (TenantProvisioned $event) => $event->tenant->id === 'signaledtenant'
             && (int) $event->ownerId === $user->id);
-    }
-
-    public function test_it_broadcasts_on_the_owners_private_channel(): void
-    {
-        $user = CentralUser::factory()->create();
-        $tenant = Tenant::factory()->create();
-
-        $channels = new TenantProvisioned($tenant, $user->id)->broadcastOn();
-
-        $this->assertSame("private-user.{$user->id}", $channels[0]->name);
     }
 
     public function test_a_tenant_is_not_ready_until_provisioned_at_is_set(): void

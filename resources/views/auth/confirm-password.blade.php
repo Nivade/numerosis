@@ -1,4 +1,4 @@
-<x-layouts::auth :title="__('Confirm password')">
+<x-numerosis-layouts::auth :title="__('Confirm password')">
     <div class="flex flex-col gap-6">
         <x-numerosis::auth-header
             :title="__('Confirm password')"
@@ -23,4 +23,4 @@
             <flux:button variant="primary" type="submit" class="w-full">{{ __('Confirm') }}</flux:button>
         </form>
     </div>
-</x-layouts::auth>
+</x-numerosis-layouts::auth>

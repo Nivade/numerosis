@@ -57,7 +57,7 @@ everything.
 
 ## The reading path needs the same filter, and had it
 
-`pages::tenant.invitations` scopes with
+`numerosis-pages::tenant.invitations` scopes with
 `->where('tenant_id', tenant()->getKey())`. A central-table query written from
 tenant context returns every tenant's rows by default. Treat the missing
 `where` as the bug, not the present one as belt-and-braces.

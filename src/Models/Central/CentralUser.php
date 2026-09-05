@@ -59,7 +59,6 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
     'password',
     'global_id',
     'email_verified_at',
-    'display_status',
     'stripe_id',
     'pm_last_four',
     'pm_type',

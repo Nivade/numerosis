@@ -19,7 +19,7 @@ use Symfony\Component\Finder\Finder;
  * never existed. This test re-derives the tag list from the views on disk
  * so a future tag can't repeat the gap unnoticed.
  *
- * Namespaced tags (`layouts::header`) are skipped: those resolve through a
+ * Namespaced tags (`numerosis-layouts::header`) are skipped: those resolve through a
  * `livewire.component_namespaces`-style host config key, not through
  * `Livewire::addComponent()`, and are covered by
  * `docs/host-requirements.md` instead.

@@ -15,11 +15,11 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Fortify as FortifyFacade;
 use Laravel\Fortify\RoutePath;
+use Nvade\Numerosis\Contracts\Exceptions\ProvidesExceptionContext;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
@@ -32,38 +32,40 @@ use Nvade\Numerosis\Http\Middleware\RequirePasswordIfSet;
 use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
 use Nvade\Numerosis\Models\Central;
 use Nvade\Numerosis\Models\Tenant as TenantModels;
-use Nvade\Numerosis\Models\User as NumerosisUser;
 use ReflectionClass;
-use Stancl\Tenancy\Contracts\Tenant;
 use Stancl\Tenancy\Resolvers\PathTenantResolver;
-use Throwable;
 use WeakMap;
 
 /**
  * The package's entry point for a host's `bootstrap/app.php`, and the front
  * door to every seam a host or satellite uses. Implements routing, middleware,
- * broadcasting and exception handling itself; the rest of its methods delegate
- * to the classes below, so that `Numerosis::` stays the one idiom a host needs.
+ * and exception handling itself; the rest of its methods delegate to the
+ * classes below, so that `Numerosis::` stays the one idiom a host needs.
  *
  * @see ModelResolver model and factory resolution
- * @see Contributions routes, columns and seeders other packages added
  * @see Assets front-end publishing
  */
 class Numerosis
 {
     /**
-     * Set through {@see self::registerRoutesUsing()},
-     * {@see self::registerBroadcastingUsing()} and
+     * Set through {@see self::registerRoutesUsing()} and
      * {@see self::registerMiddlewareUsing()}. Each replaces the package's
      * own registration and receives the `Application` instance.
      */
     public static ?Closure $registerRoutesCallback = null;
 
-    public static ?Closure $registerBroadcastingCallback = null;
-
     public static ?Closure $registerMiddlewareCallback = null;
 
+    /**
+     * Set through {@see self::registerExceptionsUsing()}. Receives the
+     * `Exceptions` instance, not the `Application`, because it runs before
+     * the container exists.
+     */
+    public static ?Closure $registerExceptionsCallback = null;
+
     private static bool $routesRegistered = false;
+
+    private static bool $middlewareRegistered = false;
 
     private static bool $authRoutesEnabled = true;
 
@@ -74,27 +76,6 @@ class Numerosis
      * @var WeakMap<Handler, true>|null
      */
     private static ?WeakMap $exceptionsRegisteredFor = null;
-
-    /**
-     * Add columns to the central `tenants` table's fillable/virtual set.
-     * {@see Contributions::addTenantColumns()}.
-     *
-     * @param  list<string>  $columns
-     */
-    public static function addTenantColumns(array $columns): void
-    {
-        Contributions::addTenantColumns($columns);
-    }
-
-    /**
-     * {@see Contributions::tenantColumns()}.
-     *
-     * @return list<string>
-     */
-    public static function tenantColumns(): array
-    {
-        return Contributions::tenantColumns();
-    }
 
     /**
      * Whether a request is addressed to one of the central hostnames rather
@@ -110,20 +91,29 @@ class Numerosis
     }
 
     /**
-     * Reduces `bootstrap/app.php` to one line:
+     * The greenfield convenience, reducing `bootstrap/app.php` to one line:
      *
      * ```php
      * return Numerosis::configure(basePath: dirname(__DIR__))->create();
      * ```
      *
      * Applies {@see self::routes()}, {@see self::middleware()} and
-     * {@see self::exceptions()}. Wire those three up yourself to reach
-     * `configure()`'s other options (`then:`, `api:`, …).
+     * {@see self::exceptions()}. Write the `Application::configure()` chain
+     * yourself to reach `health:` or `then:`; passing a callable `then:`
+     * alongside `using:` discards this package's routing entirely.
      */
-    public static function configure(?string $basePath = null): ApplicationBuilder
-    {
+    public static function configure(
+        ?string $basePath = null,
+        ?string $commands = null,
+        ?string $channels = null,
+        string $apiPrefix = 'api',
+    ): ApplicationBuilder {
         return Application::configure(basePath: $basePath)
-            ->withRouting(using: self::routes(...))
+            ->withRouting(
+                using: fn () => self::routes(apiPrefix: $apiPrefix),
+                commands: $commands,
+                channels: $channels,
+            )
             ->withMiddleware(self::middleware(...))
             ->withExceptions(self::exceptions(...));
     }
@@ -139,11 +129,12 @@ class Numerosis
      * ->withRouting(using: fn () => Numerosis::routes(withAuth: false))
      * ```
      *
-     * @see self::addCentralRoutes()
-     * @see self::addTenantRoutes()
+     * `routes/web.php`, `routes/tenant.php` and `routes/api.php` in the host's
+     * own base path are loaded alongside the package's, each optional.
+     *
      * @see self::registerRoutesUsing()
      */
-    public static function routes(bool $withAuth = true): void
+    public static function routes(bool $withAuth = true, string $apiPrefix = 'api'): void
     {
         self::$routesRegistered = true;
         self::$authRoutesEnabled = $withAuth;
@@ -155,6 +146,8 @@ class Numerosis
         }
 
         $routes = dirname(__DIR__, 2).'/routes';
+        $hostWeb = base_path('routes/web.php');
+        $hostTenant = base_path('routes/tenant.php');
 
         foreach (Config::array('tenancy.central_domains') as $domain) {
             if (! is_string($domain)) {
@@ -163,15 +156,18 @@ class Numerosis
 
             Route::middleware('web')
                 ->domain($domain)
-                ->group(function () use ($routes, $withAuth): void {
+                ->group(function () use ($routes, $hostWeb, $withAuth): void {
                     require $routes.'/web.php';
 
                     if ($withAuth) {
                         self::loadAuthRoutes(Context::Central->guard());
                     }
 
-                    foreach (Contributions::centralRouteCallbacks() as $callback) {
-                        $callback();
+                    // Last, because `RouteCollection` keys on method + domain
+                    // + URI: a host route on `/` replaces the package's only
+                    // by being registered after it.
+                    if (is_file($hostWeb)) {
+                        require $hostWeb;
                     }
                 });
         }
@@ -185,17 +181,23 @@ class Numerosis
             $tenantRoutes = $tenantRoutes->prefix('{'.PathTenantResolver::$tenantParameterName.'}');
         }
 
-        $tenantRoutes->group(function () use ($routes, $withAuth): void {
+        $tenantRoutes->group(function () use ($routes, $hostTenant, $withAuth): void {
             require $routes.'/tenant.php';
 
             if ($withAuth) {
                 self::loadAuthRoutes(Context::Tenant->guard());
             }
 
-            foreach (Contributions::tenantRouteCallbacks() as $callback) {
-                $callback();
+            if (is_file($hostTenant)) {
+                require $hostTenant;
             }
         });
+
+        // Outside the domain groups, matching what `withRouting(api: ...)`
+        // would have built had `using:` left it reachable.
+        if (is_file($api = base_path('routes/api.php'))) {
+            Route::middleware('api')->prefix($apiPrefix)->group($api);
+        }
     }
 
     /**
@@ -262,41 +264,6 @@ class Numerosis
     }
 
     /**
-     * Register central-domain routes alongside `routes/web.php`. The callback
-     * runs once per configured central domain, inside that domain's own
-     * `Route::middleware('web')->domain($domain)` group. `$source` changes no
-     * behavior; it is a package name by convention, read back by
-     * {@see Contributions::centralRouteSources()} for attribution.
-     *
-     * @see self::registerRoutesUsing() bypasses this, replacing routes() whole
-     */
-    public static function addCentralRoutes(Closure $callback, ?string $source = null): void
-    {
-        Contributions::addCentralRoutes($callback, $source);
-    }
-
-    /**
-     * Register tenant routes alongside `routes/tenant.php`, inside the same
-     * `Route::middleware('tenant')` group. See {@see self::addCentralRoutes()}.
-     */
-    public static function addTenantRoutes(Closure $callback, ?string $source = null): void
-    {
-        Contributions::addTenantRoutes($callback, $source);
-    }
-
-    /**
-     * Clears route contributions registered via {@see self::addCentralRoutes()}
-     * / {@see self::addTenantRoutes()}. For tests only; a real host registers
-     * these once and they live for the application's lifetime, same as
-     * {@see self::$registerRoutesCallback}.
-     * {@see Contributions::flushRouteContributions()}.
-     */
-    public static function resetRouteContributionsForTesting(): void
-    {
-        Contributions::flushRouteContributions();
-    }
-
-    /**
      * Whether {@see self::routes()} has run yet. If it has not by the time the
      * application finishes booting, meaning `bootstrap/app.php` never called
      * `withRouting(using: Numerosis::routes(...))`, the service provider calls
@@ -308,42 +275,32 @@ class Numerosis
     }
 
     /**
+     * Whether {@see self::middleware()} has run yet. `NumerosisServiceProvider`
+     * stands down when it has, so trust configuration and alias swaps made
+     * after it in the same `withMiddleware()` closure survive.
+     */
+    public static function middlewareRegistered(): bool
+    {
+        return self::$middlewareRegistered;
+    }
+
+    /**
+     * For tests only. The flag is a process-lifetime static, so one test
+     * calling {@see self::middleware()} would otherwise stand the service
+     * provider down for every test after it in the same worker.
+     */
+    public static function resetMiddlewareRegisteredForTesting(): void
+    {
+        self::$middlewareRegistered = false;
+    }
+
+    /**
      * Whether `routes/web.php` should require `routes/auth.php`. Read there,
      * set by {@see self::routes()}'s `$withAuth` argument.
      */
     public static function authRoutesEnabled(): bool
     {
         return self::$authRoutesEnabled;
-    }
-
-    /**
-     * Absolute path to the package's `routes/channels.php`, for
-     * `bootstrap/app.php`'s `withBroadcasting()`.
-     */
-    public static function broadcastChannelsPath(): string
-    {
-        return dirname(__DIR__, 2).'/routes/channels.php';
-    }
-
-    /**
-     * Middleware stack for `withBroadcasting()`.
-     *
-     * The guard is always the tenant one, read from
-     * `numerosis.auth.guards.tenant` so a host that renames it keeps working.
-     * Broadcasting auth runs inside tenant context, and authenticating it
-     * against the central guard leaks presence channels across tenants.
-     *
-     * @return list<string>
-     */
-    public static function broadcasting(): array
-    {
-        return [
-            'web',
-            'tenancy.identification',
-            'tenancy.session',
-            'auth:'.Context::Tenant->guard(),
-            'universal',
-        ];
     }
 
     /**
@@ -419,9 +376,14 @@ class Numerosis
      * `bootstrap/app.php`'s `withMiddleware()`. CSRF is left alone: pass
      * {@see self::csrfExceptions()} to `preventRequestForgery()` yourself,
      * so you can add your own exempt paths to the list.
+     *
+     * Call it first in the closure: anything you configure afterwards wins,
+     * and `NumerosisServiceProvider` no longer re-applies these at boot.
      */
     public static function middleware(Middleware $middleware): void
     {
+        self::$middlewareRegistered = true;
+
         $middleware->alias(self::middlewareAliases());
 
         foreach (self::middlewareGroups() as $name => $stack) {
@@ -477,110 +439,15 @@ class Numerosis
     }
 
     /**
-     * Register a second tenant migration path, for a satellite package
-     * shipping its own tenant-database tables. `HostConfig` appends every
-     * registered path to `tenancy.migration_parameters['--path']`.
-     *
-     * @see Contributions::addTenantMigrationPath()
-     */
-    public static function addTenantMigrationPath(string $path): void
-    {
-        Contributions::addTenantMigrationPath($path);
-    }
-
-    /**
-     * Every path tenancy should migrate: this package's own
-     * ({@see self::tenantMigrationPath()}) plus each contributed one. This is
-     * what `HostConfig` wants; {@see Contributions::tenantMigrationPaths()}
-     * answers the narrower "what did other packages add".
+     * Every path tenancy should migrate. `HostConfig` appends these to
+     * whatever `tenancy.migration_parameters['--path']` already holds,
+     * alongside the host's own `database/migrations/tenant`.
      *
      * @return list<string>
      */
     public static function tenantMigrationPaths(): array
     {
-        return [self::tenantMigrationPath(), ...Contributions::tenantMigrationPaths()];
-    }
-
-    /**
-     * Register a seeder to run after `TenantDatabaseSeeder`'s own
-     * `PermissionAndRoleSeeder`/`UserSeeder` calls, for a satellite package
-     * seeding its own tenant tables without a host needing to publish and
-     * edit `TenantDatabaseSeeder` itself.
-     * {@see Contributions::addTenantSeeder()}.
-     *
-     * @param  class-string<\Illuminate\Database\Seeder>  $seeder
-     */
-    public static function addTenantSeeder(string $seeder): void
-    {
-        Contributions::addTenantSeeder($seeder);
-    }
-
-    /**
-     * {@see Contributions::tenantSeeders()}.
-     *
-     * @return list<class-string<\Illuminate\Database\Seeder>>
-     */
-    public static function tenantSeeders(): array
-    {
-        return Contributions::tenantSeeders();
-    }
-
-    /**
-     * The central-database counterpart of {@see self::addTenantSeeder()},
-     * run after `DatabaseSeeder`'s own three.
-     * {@see Contributions::addCentralSeeder()}.
-     *
-     * @param  class-string<\Illuminate\Database\Seeder>  $seeder
-     */
-    public static function addCentralSeeder(string $seeder): void
-    {
-        Contributions::addCentralSeeder($seeder);
-    }
-
-    /**
-     * {@see Contributions::centralSeeders()}.
-     *
-     * @return list<class-string<\Illuminate\Database\Seeder>>
-     */
-    public static function centralSeeders(): array
-    {
-        return Contributions::centralSeeders();
-    }
-
-    /**
-     * Contribute a permission context, the noun half of a permission name
-     * such as `invitations` in `viewAny invitations`. Call it from a service
-     * provider, before `RoleAndPermissionSeeder` runs: a policy-guarded
-     * resource whose context never reaches the seeder throws
-     * `PermissionDoesNotExist` from every page that renders a link to it.
-     *
-     * @see Contributions::addPermissionContext()
-     * @see \Nvade\Numerosis\Models\Permission::defaultActions()
-     */
-    public static function addPermissionContext(string $context): void
-    {
-        Contributions::addPermissionContext($context);
-    }
-
-    /**
-     * {@see Contributions::permissionContexts()}.
-     *
-     * @return list<string>
-     */
-    public static function permissionContexts(): array
-    {
-        return Contributions::permissionContexts();
-    }
-
-    /**
-     * Clears {@see self::addTenantMigrationPath()} / {@see self::addTenantSeeder()} /
-     * {@see self::addCentralSeeder()} / {@see self::addPermissionContext()}
-     * contributions. For tests only; see {@see self::resetRouteContributionsForTesting()}
-     * and {@see Contributions::flushMigrationAndSeederContributions()}.
-     */
-    public static function resetMigrationAndSeederContributionsForTesting(): void
-    {
-        Contributions::flushMigrationAndSeederContributions();
+        return [self::tenantMigrationPath()];
     }
 
     /**
@@ -612,6 +479,12 @@ class Numerosis
      */
     public static function exceptions(Exceptions $exceptions): void
     {
+        if (self::$registerExceptionsCallback instanceof Closure) {
+            (self::$registerExceptionsCallback)($exceptions);
+
+            return;
+        }
+
         self::$exceptionsRegisteredFor ??= new WeakMap;
 
         if (isset(self::$exceptionsRegisteredFor[$exceptions->handler])) {
@@ -620,26 +493,9 @@ class Numerosis
 
         self::$exceptionsRegisteredFor[$exceptions->handler] = true;
 
-        $exceptions->context(function (): array {
-            // Best-effort, never a hard dependency: an exception thrown during
-            // bootstrap is reported before facades are available, and letting
-            // that fail here would mask the error that actually broke boot.
-            try {
-                $tenantId = tenancy()->initialized && tenancy()->tenant instanceof Tenant
-                    ? (string) tenancy()->tenant->getTenantKey()
-                    : null;
-
-                $user = Auth::user();
-
-                return [
-                    'tenant_id' => $tenantId,
-                    'guard' => Auth::getDefaultDriver(),
-                    'user_global_id' => $user instanceof NumerosisUser ? $user->global_id : null,
-                ];
-            } catch (Throwable) {
-                return [];
-            }
-        });
+        // Resolved at report time, not here: `exceptions()` runs before the
+        // container exists.
+        $exceptions->context(fn (): array => app(ProvidesExceptionContext::class)->handle());
 
         $exceptions->dontReportDuplicates();
 
@@ -687,13 +543,15 @@ class Numerosis
     }
 
     /**
-     * Clear {@see self::model()}'s memoization. Runs on every boot, since the
-     * cache is static and would otherwise outlive an application instance
-     * under Octane or in tests. {@see ModelResolver::flush()}.
+     * Clear {@see self::model()}'s memoization, and `Tenant`'s column
+     * introspection. Runs on every boot, since both caches are static and
+     * would otherwise outlive an application instance under Octane or in
+     * tests. {@see ModelResolver::flush()}.
      */
     public static function resetModelCache(): void
     {
         ModelResolver::flush();
+        Central\Tenant::flushColumnCache();
     }
 
     /**
@@ -708,16 +566,6 @@ class Numerosis
     }
 
     /**
-     * Register broadcasting yourself. The package's `/broadcasting/auth`
-     * route and `routes/channels.php` are skipped entirely; `$callback`
-     * receives the `Application` instance.
-     */
-    public static function registerBroadcastingUsing(Closure $callback): void
-    {
-        self::$registerBroadcastingCallback = $callback;
-    }
-
-    /**
      * Register middleware yourself. The package's aliases, groups and trust
      * configuration are skipped entirely; `$callback` receives the
      * `Application` instance.
@@ -725,5 +573,15 @@ class Numerosis
     public static function registerMiddlewareUsing(Closure $callback): void
     {
         self::$registerMiddlewareCallback = $callback;
+    }
+
+    /**
+     * Register exception handling yourself. The package's context callback,
+     * duplicate suppression and throttle are skipped entirely; `$callback`
+     * receives the `Exceptions` instance.
+     */
+    public static function registerExceptionsUsing(Closure $callback): void
+    {
+        self::$registerExceptionsCallback = $callback;
     }
 }

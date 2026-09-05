@@ -27,20 +27,28 @@ class PermissionAndRoleSeeder extends Seeder
      */
     public function run(): void
     {
-        $contexts = [
+        $admin = $this->seedAdminRole(
+            $this->contexts(),
+            'tenant',
+            fn (string $context): array => Permission::actionsFor($context),
+        );
+
+        User::first()?->assignRole($admin);
+    }
+
+    /**
+     * Add a context by subclassing and binding your subclass to this class.
+     *
+     * @return list<string>
+     */
+    protected function contexts(): array
+    {
+        return [
             'invitations',
             'roles',
             'permissions',
             'clients',
             'users',
         ];
-
-        $admin = $this->seedAdminRole(
-            $contexts,
-            'tenant',
-            fn (string $context): array => Permission::actionsFor($context),
-        );
-
-        User::first()?->assignRole($admin);
     }
 }

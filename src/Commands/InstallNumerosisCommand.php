@@ -111,6 +111,10 @@ class InstallNumerosisCommand extends Command
         $this->call('vendor:publish', ['--tag' => 'numerosis-config', '--force' => false]);
         $this->call('vendor:publish', ['--tag' => 'numerosis-models', '--force' => false]);
 
+        // An empty routes/tenant.php, which Numerosis::routes() loads into
+        // the tenant group. routes/web.php ships with every skeleton.
+        $this->call('vendor:publish', ['--tag' => 'numerosis-routes', '--force' => false]);
+
         // Starting templates for resources/css/app.css and resources/js.
         // Safe to delete any copy you don't intend to customize.
         $this->call('vendor:publish', ['--tag' => 'numerosis-assets', '--force' => false]);
@@ -380,11 +384,11 @@ class InstallNumerosisCommand extends Command
         $namespaces = Config::get('livewire.component_namespaces');
         $namespaces = is_array($namespaces) ? $namespaces : [];
 
-        foreach (['layouts', 'pages'] as $namespace) {
+        foreach (['numerosis-layouts', 'numerosis-pages'] as $namespace) {
             $path = $namespaces[$namespace] ?? null;
 
             if (! is_string($path) || ! File::isDirectory($path)) {
-                $this->failures[] = "config('livewire.component_namespaces.{$namespace}') must point at an existing directory. This package sets it to its own resources/views/{$namespace} by default (see NumerosisServiceProvider::packageBooted()); if you overrode it, point the override at a real directory. Unset entirely, components resolve against the host's resources/ and fail with 'Unable to find component'.";
+                $this->failures[] = "config('livewire.component_namespaces.{$namespace}') must point at an existing directory. This package registers it against its own resources/views by default (see NumerosisServiceProvider::registerLivewireComponentNamespaces()); if you overrode it, point the override at a real directory. Unset entirely, the package's own components fail with 'Unable to find component'.";
             }
         }
     }

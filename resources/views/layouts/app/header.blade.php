@@ -4,7 +4,7 @@
     <body class="min-h-screen bg-white dark:bg-zinc-800">
         @include('numerosis::partials.toasts')
 
-        <livewire:layouts::header />
+        <livewire:numerosis-layouts::header />
         {{ $slot }}
 
         <x-numerosis::footer/>

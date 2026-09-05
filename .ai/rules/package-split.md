@@ -174,9 +174,8 @@ came after — right up until three of them folded back into core.
   appears in the `numerosis::` hint list, and the path it registers really
   contains a file it owns) and `tests/Feature/Support/SatelliteRouteContributionTest`
   (contributed routes are bound to a central domain *and* the `web` group —
-  a satellite using a plain `Route::get()` instead of
-  `Numerosis::addCentralRoutes()` would answer on every tenant subdomain, and
-  nothing would fail). Both were verified to fail when broken. Copy this pair
+  a satellite using a plain `Route::get()` outside the group `Numerosis::routes()`
+  opens would answer on every tenant subdomain, and nothing would fail). Both were verified to fail when broken. Copy this pair
   forward: add a row to the first one's data provider per new package.
 
 - **The assertion count moved again, and `ArchTest` is the usual culprit.**

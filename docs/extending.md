@@ -1,14 +1,22 @@
 # Extending Numerosis
 
-Every seam is additive and lives on `Nvade\Numerosis\Support\{Numerosis,Features}`.
-A **host** application calls these — as of the scope-reduction plan
+Numerosis adds tenancy, auth, billing, subscriptions and onboarding to an app
+you already have. Every default it supplies is replaceable, and adopting it
+deletes nothing you already wrote. As of the scope-reduction plan
 (`.claude/plans/archive/humming-nibbling-flame.md`), `nvade/numerosis` is one package
 (tenancy, Fortify-backed auth, billing, onboarding, views); the only other
 split, `nvade/numerosis-ui`, is a reusable Flux component library with no
 features or routes of its own, so these seams have exactly one caller: your
-app. Reach for an `add*()` seam first — the `registerXUsing()` methods at the
-bottom replace a whole mechanism and exist for a host that genuinely wants
-none of the defaults.
+app.
+
+There are three tiers, in the order to reach for them:
+
+1. **Convention** — put the file where the package looks (`routes/web.php`,
+   `database/migrations/tenant`).
+2. **A container binding** — `bind()` your class over the package's in your
+   own `AppServiceProvider`. No config key, no opt-in seam.
+3. **`registerXUsing()`** — replace a whole mechanism, for a host that wants
+   none of the defaults.
 
 `tests/Feature/PackageBoundariesTest.php` enforces the one boundary left:
 `nvade/numerosis-ui` may not reference core, `Filament\`, `tenancy()` or a
@@ -16,20 +24,35 @@ named `route()` — it has to stay installable on its own.
 
 ## The seams
 
-| To contribute | Call | Notes |
+| To contribute | How | Notes |
 |---|---|---|
-| central-domain routes | `Numerosis::addCentralRoutes(Closure)` | The callback runs **once per configured central domain**, inside that domain's own `Route::middleware('web')->domain($domain)` group. A plain `Route::get()` instead would answer on every tenant subdomain, and nothing would fail |
-| tenant routes | `Numerosis::addTenantRoutes(Closure)` | Same, inside the single `Route::middleware('tenant')` group |
+| central-domain routes | `routes/web.php` | Loaded by `Numerosis::routes()` **once per configured central domain**, inside that domain's own `Route::middleware('web')->domain($domain)` group, after the package's own file. Your own `Route::get()` outside that group would answer on every tenant subdomain, and nothing would fail |
+| tenant routes | `routes/tenant.php` | Same, inside the single `Route::middleware('tenant')` group. `php artisan vendor:publish --tag=numerosis-routes` writes an empty one |
+| API routes | `routes/api.php` | Loaded outside the domain groups, under `Route::middleware('api')->prefix($apiPrefix)`. `withRouting(using: …)` skips everything `ApplicationBuilder` would have built, so without this an app with an API loses it on adoption |
 | a feature | `Features::register(class-string<Feature>)` | Merges with `config('numerosis.features')`. `Features::registered()` tells a contributed feature from a host-configured one |
-| tenant migrations | `Numerosis::addTenantMigrationPath(string)` | `tenancy.migration_parameters['--path']` is an array; this is the supported way in |
-| seed data | `Numerosis::addTenantSeeder()` / `addCentralSeeder()` | Run by the package's own `TenantDatabaseSeeder` / `DatabaseSeeder` |
-| permissions | `Numerosis::addPermissionContext(string)` | **A missing permission row is a 500, not a 403** — Spatie throws `PermissionDoesNotExist` rather than returning false, so any navigation that gates its own visibility on a check breaks every page carrying it, not just its own screen |
+| tenant migrations | `database/migrations/tenant` | Stancl's conventional directory, seeded into `tenancy.migration_parameters['--path']` alongside the package's. Setting that key yourself in `config/tenancy.php` replaces the default outright |
+| seed data | publish `--tag numerosis-seeders`, or bind over a package seeder | `Seeder::resolve()` goes through the container, so `bind(PackageSeeder::class, YourSeeder::class)` swaps any seeder the package's own `DatabaseSeeder`/`TenantDatabaseSeeder` calls, and you keep inheriting seeders core adds later |
+| permissions | subclass `RoleAndPermissionSeeder` (central) or `Tenant\PermissionAndRoleSeeder`, override `contexts()`, bind it | **A missing permission row is a 500, not a 403** — Spatie throws `PermissionDoesNotExist` rather than returning false, so any navigation that gates its own visibility on a check breaks every page carrying it, not just its own screen |
 | non-CRUD permission verbs | override `Permission::additionalActions()` on a subclass | Empty in core, read through `Permission::actionsFor()`. See the two caveats below |
 | views | `->hasViews('numerosis')` from your own provider | `FileViewFinder::addNamespace()` *appends*, so several packages can serve one namespace. Paths are searched in registration order, so a view must be **moved, never copied** |
-| single-file Livewire pages | your own key in `livewire.component_namespaces` | Unlike views, a prefix maps to exactly **one** directory — two packages cannot join the same key. Set the key from `register()`, and set *one key*, never the whole array: replacing it drops every other package's |
-| the `home` page | `numerosis.routes.home_view` | Core always registers the `home` route and declares it first, so a second route on `/` never matches. Point this at your own view instead |
-| tenant model columns | `Numerosis::addTenantColumns(array)` | Adding a column to the `tenants` table is only half the job. Name it here too, from a provider's `register()` and before any tenant is loaded or saved, or the value is folded into the `data` JSON column and the real column stays NULL. The model still reads it back correctly, so the failure only shows up in SQL — a `where` on that column matching nothing, or a join finding no rows |
+| single-file Livewire pages | your own key in `livewire.component_namespaces` | Unlike views, a prefix maps to exactly **one** directory — two packages cannot join the same key. Core's own are `numerosis-layouts` and `numerosis-pages`; the generic `layouts`/`pages` keys are yours and core never touches them. Set the key from `register()`, and set *one key*, never the whole array |
+| the `home` page | `numerosis.routes.home_view`, or declare `/` in your `routes/web.php` | Your file loads after core's, and `RouteCollection` keys on method + domain + URI, so your `/` replaces core's. Name it `home` (or point `numerosis.routes.names.home` at your name), or `route('home')` stops resolving once `RouteServiceProvider` rebuilds the name lookup |
+| tenant model columns | a migration on the `tenants` table | `Tenant::getCustomColumns()` reads the schema, so a real column is recognised with no registration. The listing is memoized per boot and flushed by `Numerosis::resetModelCache()` |
 | a model | publish `--tag numerosis-models`, or set `numerosis.models.<FQCN>` | Convention (`App\Models\<suffix>`) is found automatically; the config key is for a non-conventional location |
+
+### What a container binding swaps
+
+`bind()` these from your own `AppServiceProvider`, which registers after the
+package's:
+
+| Bind | Over | Because |
+|---|---|---|
+| a middleware class | `Http\Middleware\InitializeTenancy` and friends | `Pipeline` resolves every pipe with `$container->make($name)`. The replacement need not extend the package class; the pipeline only calls `handle()` |
+| a seeder class | any seeder core's `DatabaseSeeder`/`TenantDatabaseSeeder` calls | `Seeder::resolve()` resolves through the container |
+| a feature class | any `Features::all()` entry | `bootstrapFeatures()` does `$app->make($feature)->bootstrap()`; `numerosis.features` still decides whether it runs at all |
+| `Contracts\Exceptions\ProvidesExceptionContext` | `Services\Exceptions\TenantAwareExceptionContext` | Adds your keys to every reported exception. Depend on the default in your constructor to decorate rather than replace it |
+| a policy class | any `Gate::policy()` pair core registers | `Gate` resolves policies through the container |
+| any `numerosis.{billing,tenancy}.implementations` contract | its concrete | See "Swapping an implementation" below |
 
 ### Overriding `Permission::additionalActions()`
 
@@ -43,8 +66,8 @@ Two things about that seam are easy to get wrong, and both fail silently:
   so there is no `Numerosis::model()` indirection resolving your subclass, and
   both seeders name the package class literally. `actionsFor()` binds late
   (`static::`, not `self::`), so an override applies when *you* call
-  `YourPermission::actionsFor()` — from a seeder registered through
-  `Numerosis::addTenantSeeder()`.
+  `YourPermission::actionsFor()` — from a `Tenant\PermissionAndRoleSeeder`
+  subclass bound over the package's.
 
 ### Swapping an implementation
 
@@ -150,9 +173,22 @@ button list and the OAuth routes' `->where('provider', …)` constraint read.
 
 | Call | Replaces |
 |---|---|
-| `Numerosis::registerRoutesUsing(Closure)` | all of `Numerosis::routes()`, including both `add*Routes()` sets |
+| `Numerosis::registerRoutesUsing(Closure)` | all of `Numerosis::routes()`, including the host route files |
 | `Numerosis::registerMiddlewareUsing(Closure)` | all alias and group registration |
-| `Numerosis::registerBroadcastingUsing(Closure)` | channel registration |
+| `Numerosis::registerExceptionsUsing(Closure)` | the context callback, duplicate suppression and throttle `Numerosis::exceptions()` registers. Receives the `Exceptions` instance |
+
+### The `Numerosis` facade
+
+`Nvade\Numerosis\Facades\Numerosis` resolves `Support\Numerosis` out of the
+container, so a test can `swap()` or `spy()` it. Every method on the support
+class stays `static`; the facade forwards through the instance.
+
+**It is unusable from `bootstrap/app.php`.** `routes()`, `middleware()`,
+`exceptions()` and `configure()` run while `ApplicationBuilder` is being
+built, before `RegisterFacades` — the facade root is null there and every call
+throws `RuntimeException: A facade root has not been set`. Import
+`Nvade\Numerosis\Support\Numerosis` directly in that file, as the examples
+above do.
 | `Numerosis::routes(withAuth: false)` | narrower: still registers `routes/web.php` and `routes/tenant.php`, but skips loading Fortify's own route file into either group. Use this if you keep your own auth system — `login`, `register`, `logout` and `verification.verify` are otherwise Fortify's, registered behind no feature flag, so a host running its own auth gets a silent route-name collision resolved by provider order. Passing `false` hands you those four names: everything core generates from them, including the guest redirect and the email verification link, then resolves against your routes |
 
 ## Events
@@ -184,7 +220,7 @@ touching core.
 | `Auth\UserAccountDeleting` | Before `Actions\Auth\DeleteUserAccount` deletes the row | `user`, `globalId`. Listen synchronously — a queued listener unserializes `user` after the delete committed and gets a `ModelNotFoundException` | A host purging or exporting its own rows before the account is gone |
 | `Auth\UserAccountDeleted` | After the row is deleted | `globalId`, `email` (scalars only, the model no longer exists) | Cleanup that only needs the identifiers |
 | `Auth\AdminGranted` | `Actions\Auth\PromoteFirstCentralUserToAdmin` or `Actions\Tenancy\PromoteFirstUserToAdmin` grants the admin role | `globalId`, `grantedBy` (always `null` today — both dispatch sites are automatic first-user promotion), `tenantId` (`null` for the central role) | Privilege-escalation audit |
-| `Billing\PaymentSettled` | A payment settles after having previously failed or the tenant was suspended | `tenant`, `ownerId`. Broadcasts on `user.{ownerId}` | Clearing a payment-status banner |
+| `Billing\PaymentSettled` | A payment settles after having previously failed or the tenant was suspended | `tenant`, `ownerId` | Clearing a payment-status banner |
 | `Billing\PaymentFailed` | `invoice.payment_failed` webhook | `tenant` | The dunning notice |
 | `Billing\TenantSuspended` | `Actions\Tenancy\SuspendTenant` | `tenant` | Access-revoked notification |
 | `Billing\SubscriptionPlanChanged` | The `customer.subscription.updated` webhook, when the price actually changed. The only site — a host calling `SwapSubscriptionPlan` and an edit made in the Stripe dashboard both surface here, so neither fires twice | `tenant`, `tenantId`, `fromPriceId`, `toPriceId`, `direction` (`PlanChangeDirection::Upgrade`/`Downgrade`, falling back to `Upgrade` when a price matches no configured plan) | Entitlement recomputation, upgrade/downgrade emails |
@@ -193,10 +229,10 @@ touching core.
 | `Billing\CheckoutCompleted` | `Actions\Billing\Checkout\SettleCheckout` — the one point the card/Link path, the redirect return route and the `payment_method.attached` webhook all funnel through | `domain`, `planId`, `stripeSubscriptionId`. Fires whether or not the subscription settled immediately (a trial collects nothing upfront) | Funnel analytics; do not infer settlement from this alone |
 | `Invitations\InvitationCreated` | `Actions\Invitations\SendInvitation`, which reuses the row for `(tenant_id, email)` | `invitation`, `invitationId` | The invitation email (`Listeners\Invitations\SendInvitationNotification`) |
 | `Invitations\InvitationAccepted` | `Actions\Invitations\AcceptInvitation`, after the membership is attached | `invitation`, `invitationId`, `invitedByUserId`, `secondsUnaccepted`. Carries only what `Tenancy\MemberJoined` does not. That event fires automatically from `MembershipObserver::created()`, since acceptance attaches through the `tenants()` relation instead of dispatching it itself | Analytics on invite-to-accept latency; anything that needs the inviter, not just the joiner |
-| `Tenancy\TenantProvisioned` | `Actions\Tenancy\MarkTenantProvisioned` | `tenant`, `ownerId`. Broadcasts on `user.{ownerId}` | The registration wizard's own poll for "ready" |
-| `Tenancy\TenantProvisioningStarted` | `Actions\Tenancy\MarkProvisionInProgress` | `domain`, `globalId` | Progress UI, timing metrics. Not broadcast — nothing client-side listens for it |
-| `Tenancy\TenantProvisioningFailed` | A provisioning step exhausts its retries | `domain`, `globalId`. Broadcasts on `user.{ownerId}` | Surfacing the failure to the user waiting on it |
-| `Tenancy\TenantProvisioningCancelled` | A pending provision is cancelled | `globalId`. Broadcasts on `user.{ownerId}` | Same |
+| `Tenancy\TenantProvisioned` | `Actions\Tenancy\MarkTenantProvisioned` | `tenant`, `ownerId` | ⚡mine's `wire:poll` picks this up on its next tick |
+| `Tenancy\TenantProvisioningStarted` | `Actions\Tenancy\MarkProvisionInProgress` | `domain`, `globalId` | Progress UI, timing metrics |
+| `Tenancy\TenantProvisioningFailed` | A provisioning step exhausts its retries | `domain`, `globalId` | Surfacing the failure to the user waiting on it |
+| `Tenancy\TenantProvisioningCancelled` | A pending provision is cancelled | `globalId` | Same |
 | `Tenancy\TenantRestored` | `Actions\Tenancy\RestoreTenant` clears a suspension | `tenant`, `ownerId`, `tenantId` | The "access restored" notification |
 | `Tenancy\MemberJoined` | `Observers\MembershipObserver::created()` | `tenantId`, `globalUserId`, `role` (an `Enums\Tenancy\MembershipRole`), `invitedBy` | Seat-based billing, audit. Match `MembershipRole::Owner` instead of the string `'owner'` |
 | `Tenancy\MemberRemoved` | `Observers\MembershipObserver::deleted()` | `tenantId`, `globalUserId`, `role` (an `Enums\Tenancy\MembershipRole`) | Seat-based billing, offboarding |

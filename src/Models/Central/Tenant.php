@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Invoice;
 use Nvade\Numerosis\Concerns\Billing\Billable;
@@ -83,43 +85,68 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
     /** Clears the cached domain lookup when a domain or tenant changes. */
     use InvalidatesResolverCache;
 
-    /** @var list<string> */
-    protected static array $additionalCustomColumns = [];
-
     /**
-     * @param  list<string>  $columns
+     * The columns the package itself relies on, whether or not the `tenants`
+     * table has been migrated yet.
+     *
+     * @var list<string>
      */
-    public static function addCustomColumns(array $columns): void
-    {
-        static::$additionalCustomColumns = array_values(array_unique([
-            ...static::$additionalCustomColumns,
-            ...$columns,
-        ]));
-    }
+    private const array KNOWN_COLUMNS = [
+        'id',
+        'created_at',
+        'updated_at',
+        'stripe_id',
+        'pm_type',
+        'pm_last_four',
+        'trial_ends_at',
+        'provisioned_at',
+        'suspended_at',
+    ];
+
+    /** @var list<string>|null */
+    private static ?array $introspectedColumns = null;
 
     /**
      * The attributes stored in real columns. Everything else is folded into
-     * the `data` JSON column, so a new `tenants` column that is not named here
-     * through {@see Numerosis::addTenantColumns()} stays NULL while the model
-     * still reads its value back correctly.
+     * the `data` JSON column. A column added by a host's own migration is
+     * picked up from the schema, so it needs no registration.
      *
      * @return list<string>
      */
     public static function getCustomColumns(): array
     {
-        return [
-            'id',
-            'created_at',
-            'updated_at',
-            'stripe_id',
-            'pm_type',
-            'pm_last_four',
-            'trial_ends_at',
-            'provisioned_at',
-            'suspended_at',
-            ...static::$additionalCustomColumns,
-            ...Numerosis::tenantColumns(),
-        ];
+        return [...self::KNOWN_COLUMNS, ...self::introspectedColumns()];
+    }
+
+    /** Clears {@see self::getCustomColumns()}'s schema memoization. */
+    public static function flushColumnCache(): void
+    {
+        self::$introspectedColumns = null;
+    }
+
+    /**
+     * Every other real column on `tenants`. `data` is excluded because it is
+     * the store itself. Nothing is memoized while the table is missing, so
+     * the first call after `migrate` sees the real schema.
+     *
+     * @return list<string>
+     */
+    private static function introspectedColumns(): array
+    {
+        if (self::$introspectedColumns !== null) {
+            return self::$introspectedColumns;
+        }
+
+        $connection = Schema::connection(Config::string('tenancy.database.central_connection', 'central'));
+
+        if (! $connection->hasTable('tenants')) {
+            return [];
+        }
+
+        return self::$introspectedColumns = array_values(array_diff(
+            $connection->getColumnListing('tenants'),
+            ['data', ...self::KNOWN_COLUMNS],
+        ));
     }
 
     #[Override]

@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Models\Central;
 
 use App\Models\Central\Tenant;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Nvade\Numerosis\Models\Central\Tenant as PackageTenant;
 use Nvade\Numerosis\Tests\TestCase;
 
 class TenantColumnsTest extends TestCase
@@ -69,29 +72,78 @@ class TenantColumnsTest extends TestCase
         $this->assertFalse($provisioned->contains($pending->id));
     }
 
-    // Process-wide static state — reset so it doesn't bleed into other tests.
-    protected function tearDown(): void
+    public function test_a_column_added_by_migration_is_recognised_without_registration(): void
     {
-        (function (): void {
-            static::$additionalCustomColumns = [];
-        })->call(new Tenant);
-
-        parent::tearDown();
-    }
-
-    public function test_a_consumer_can_register_additional_custom_columns(): void
-    {
-        Tenant::addCustomColumns(['favorite_color']);
+        $this->addColumn('favorite_color');
 
         $this->assertContains('favorite_color', Tenant::getCustomColumns());
         $this->assertContains('provisioned_at', Tenant::getCustomColumns());
     }
 
-    public function test_registering_the_same_column_twice_does_not_duplicate_it(): void
+    public function test_a_column_added_by_migration_is_written_to_its_own_column(): void
     {
-        Tenant::addCustomColumns(['favorite_color']);
-        Tenant::addCustomColumns(['favorite_color']);
+        $this->addColumn('favorite_color');
 
-        $this->assertSame(1, array_count_values(Tenant::getCustomColumns())['favorite_color']);
+        $tenant = Tenant::create(['id' => 'introspect-'.uniqid()]);
+
+        $tenant->setAttribute('favorite_color', 'green');
+        $tenant->saveQuietly();
+
+        $row = DB::connection($this->centralConnection())
+            ->table('tenants')
+            ->where('id', $tenant->id)
+            ->first();
+
+        $this->assertNotNull($row);
+        $this->assertSame('green', $row->favorite_color);
+
+        /** @var array<string, mixed> $data */
+        $data = json_decode((string) $row->data, true) ?: [];
+
+        $this->assertArrayNotHasKey('favorite_color', $data);
+    }
+
+    /**
+     * The `data` column is the store the rest are folded into, so naming it as
+     * a real column would make VirtualColumn overwrite the blob with itself.
+     */
+    public function test_the_data_column_is_never_a_custom_column(): void
+    {
+        $this->assertNotContains('data', Tenant::getCustomColumns());
+    }
+
+    private function centralConnection(): string
+    {
+        return Config::string('tenancy.database.central_connection', 'central');
+    }
+
+    private function addColumn(string $column): void
+    {
+        Schema::connection($this->centralConnection())
+            ->table('tenants', function (Blueprint $table) use ($column): void {
+                $table->string($column)->nullable();
+            });
+
+        PackageTenant::flushColumnCache();
+    }
+
+    /**
+     * The added column and the memoized listing both outlive this test — DDL
+     * commits through RefreshDatabase's open transaction, and the cache is a
+     * process-lifetime static.
+     */
+    protected function tearDown(): void
+    {
+        $schema = Schema::connection($this->centralConnection());
+
+        if ($schema->hasTable('tenants') && $schema->hasColumn('tenants', 'favorite_color')) {
+            $schema->table('tenants', function (Blueprint $table): void {
+                $table->dropColumn('favorite_color');
+            });
+        }
+
+        PackageTenant::flushColumnCache();
+
+        parent::tearDown();
     }
 }

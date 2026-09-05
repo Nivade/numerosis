@@ -14,7 +14,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Nvade\Numerosis\Concerns\HasGlobalIdentity;
 use Nvade\Numerosis\Contracts\Auth\TenantUserModel;
-use Nvade\Numerosis\Enums\Tenant\DisplayStatus;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\User as BaseUser;
 use Nvade\Numerosis\Observers\TenantUserObserver;
@@ -39,8 +38,6 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
  * @property string $email
  * @property string $password
  * @property string $global_id
- * @property DisplayStatus|null $display_status
- * @property string|null $custom_status_text
  * @property Carbon|null $email_verified_at
  * @property string|null $remember_token
  * @property bool $is_bot
@@ -56,8 +53,6 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
     'password',
     'global_id',
     'email_verified_at',
-    'display_status',
-    'custom_status_text',
     'is_bot',
 ])]
 #[ObservedBy(TenantUserObserver::class)]
@@ -79,7 +74,6 @@ class User extends BaseUser implements TenantUserModel
     {
         return [
             'email_verified_at' => 'datetime',
-            'display_status' => DisplayStatus::class,
             'is_bot' => 'boolean',
         ];
     }

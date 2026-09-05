@@ -55,7 +55,7 @@ class ProvisionTenantTest extends TestCase
         $this->assertSame(1, $user->tenants()->where('tenants.id', 'twicetenant')->count());
     }
 
-    public function test_it_marks_the_pending_row_failed_and_broadcasts_when_the_job_fails(): void
+    public function test_it_marks_the_pending_row_failed_and_dispatches_when_the_job_fails(): void
     {
         Event::fake([TenantProvisioningFailed::class]);
 

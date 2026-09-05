@@ -57,27 +57,31 @@ class NumerosisServiceProviderDefaultsTest extends TestCase
         $this->assertSame(storage_path('app/private'), Config::get('filesystems.disks.livewire.root'));
     }
 
-    public function test_it_defaults_component_namespaces_when_unset_or_still_livewires_stock_default(): void
+    public function test_it_registers_its_own_component_namespaces(): void
     {
-        Config::set('livewire.component_namespaces.layouts');
-        Config::set('livewire.component_namespaces.pages', resource_path('views/pages'));
-
         $this->rebootPackage();
 
-        $layouts = Config::string('livewire.component_namespaces.layouts');
-        $pages = Config::string('livewire.component_namespaces.pages');
+        $layouts = Config::string('livewire.component_namespaces.numerosis-layouts');
+        $pages = Config::string('livewire.component_namespaces.numerosis-pages');
 
         $this->assertSame(realpath(__DIR__.'/../../resources/views/layouts'), realpath($layouts));
         $this->assertSame(realpath(__DIR__.'/../../resources/views/pages'), realpath($pages));
     }
 
-    public function test_it_does_not_override_a_hosts_custom_component_namespace(): void
+    /**
+     * A Livewire namespace maps one prefix to one directory, so claiming the
+     * generic names would make a host's own layouts unreachable rather than
+     * merging with them.
+     */
+    public function test_it_leaves_the_hosts_layouts_and_pages_namespaces_alone(): void
     {
         Config::set('livewire.component_namespaces.layouts', '/tmp/custom-layouts');
+        Config::set('livewire.component_namespaces.pages', resource_path('views/pages'));
 
         $this->rebootPackage();
 
         $this->assertSame('/tmp/custom-layouts', Config::get('livewire.component_namespaces.layouts'));
+        $this->assertSame(resource_path('views/pages'), Config::get('livewire.component_namespaces.pages'));
     }
 
     /**

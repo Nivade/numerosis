@@ -1,5 +1,5 @@
-<x-layouts::app.header :title="$title ?? null">
+<x-numerosis-layouts::app.header :title="$title ?? null">
     <flux:main>
         {{ $slot }}
     </flux:main>
-</x-layouts::app.header>
+</x-numerosis-layouts::app.header>

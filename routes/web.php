@@ -42,9 +42,10 @@ $centralAuth = 'auth:'.Config::string('numerosis.auth.guards.central');
 // *product's*, not the framework's, and live in the host app; core shipping
 // them was what made "does this belong in core?" unanswerable.
 //
-// Point `numerosis.routes.home_view` at your own view to replace the page.
-// Registering a second route named `home` does not work: this one is declared
-// first, so it wins the path match.
+// Point `numerosis.routes.home_view` at your own view to replace the page, or
+// declare `/` in your own `routes/web.php` — loaded after this file, so it
+// replaces this route. Name it `home` there, or `route('home')` stops
+// resolving once `RouteServiceProvider` rebuilds the name lookup.
 Route::get('/', fn () => view(Config::string('numerosis.routes.home_view')))
     ->name(RouteNames::home());
 
@@ -113,8 +114,8 @@ Route::middleware([$centralAuth])->group(function () {
             ->name('social.destroy');
     }
 
-    // `pages::`, core's own Livewire full-page namespace.
-    Route::livewire('/tenants/mine', 'pages::tenant.mine')->name(RouteNames::tenantsMine());
+    // `numerosis-pages::`, core's own Livewire full-page namespace.
+    Route::livewire('/tenants/mine', 'numerosis-pages::tenant.mine')->name(RouteNames::tenantsMine());
 
     Route::get('/user/invoice/{invoice}', function (Request $request, string $invoiceId) {
         $user = $request->user();

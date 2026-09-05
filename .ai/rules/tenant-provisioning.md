@@ -216,7 +216,7 @@ paths:
   after owner synced in, before subscription reconciliation. Reads users out
   of tenant DB, so can't run before that DB seeded *and* before owner synced
   into it. Also sole emitter of "provisioning finished" signal
-  (`provisioned_at`, pending-row deletion, `TenantProvisioned` broadcast, and
+  (`provisioned_at`, pending-row deletion, `TenantProvisioned` dispatch, and
   now the chain-lock release from fix 3 above), so if it silently exhausts
   retries UI spins forever. Hence `$tries = 20` and `failed()` handler
   marking pending row `failed` (`Nvade\Numerosis\Actions\Tenancy\MarkProvisionFailed`).

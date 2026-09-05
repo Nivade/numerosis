@@ -9,10 +9,9 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\On;
 use Livewire\Component;
 
-new #[Layout('layouts::app')]
+new #[Layout('numerosis-layouts::app')]
 class extends Component
 {
     public ?CentralUser $user = null;
@@ -44,9 +43,6 @@ class extends Component
      * unprovisioned tenant would otherwise render as ready and link to a
      * database that does not exist yet.
      */
-    #[On('echo-private:user.{user.id},.tenant.provisioned')]
-    #[On('echo-private:user.{user.id},.tenant.provisioning-failed')]
-    #[On('echo-private:user.{user.id},.tenant.provisioning-cancelled')]
     public function refreshTenants(): void
     {
         if (! $this->user) {
@@ -95,8 +91,8 @@ class extends Component
     }
 
     /**
-     * The broadcast is the fast path, but a dropped websocket must not leave
-     * the user staring at a spinner forever, so poll while work is outstanding.
+     * Polled while true so a still-provisioning tenant surfaces without a
+     * manual refresh.
      */
     public function isWorkOutstanding(): bool
     {

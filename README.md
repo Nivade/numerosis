@@ -63,12 +63,42 @@ Composer path repositories are not transitive, which is why a host names
 `packages/*` itself rather than inheriting it from core — `packages/ui` is
 what that glob resolves to today.
 
+Adopting numerosis into an app you already have changes one line of
+`bootstrap/app.php` — `web:` becomes `using:`, because the package needs
+per-central-domain route groups and that is the one thing `web:` cannot
+express. Your `routes/web.php`, `routes/tenant.php` and `routes/api.php` all
+still load, and whatever you configure after `Numerosis::middleware()` wins:
+
 ```php
 // bootstrap/app.php
 use Nvade\Numerosis\Support\Numerosis;
 
-return Numerosis::configure(basePath: dirname(__DIR__))->create();
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(using: Numerosis::routes(...), commands: __DIR__.'/../routes/console.php')
+    ->withMiddleware(function (Middleware $middleware) {
+        Numerosis::middleware($middleware);
+        // yours, unchanged
+    })
+    ->withExceptions(function (Exceptions $exceptions) {
+        Numerosis::exceptions($exceptions);
+        // yours, unchanged
+    })
+    ->create();
 ```
+
+For a greenfield app, `Numerosis::configure()` is the same three calls in one
+line:
+
+```php
+return Numerosis::configure(
+    basePath: dirname(__DIR__),
+    commands: __DIR__.'/../routes/console.php',
+)->create();
+```
+
+Write the chain out to reach `health:` or `then:`. Never pass a callable
+`then:` alongside `using:` — `withRouting()`'s guard overwrites `$using` with
+its own callback and discards the package's routing entirely.
 
 Set `APP_URL`, `STRIPE_KEY` / `STRIPE_SECRET` / `STRIPE_WEBHOOK_SECRET` and
 MySQL credentials in `.env`, then:
@@ -90,7 +120,7 @@ packages/ui/            the one other split — shared Blade + design tokens
 config/numerosis/       every knob, one file per top-level key
 config/numerosis.php    assembles those partials — never published
 config/stubs/           the small override file a host publishes instead
-routes/                 web.php (central) · tenant.php · channels.php
+routes/                 web.php (central) · tenant.php
 database/migrations/{central,tenant}/
 resources/              views, translations, JS/CSS sources
 dist/                   prebuilt JS/CSS, shipped so a host need not build

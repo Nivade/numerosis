@@ -140,9 +140,9 @@ return [
             'checkout_subscription' => 'checkout.subscription',
         ],
 
-        // Core registers 'home' unconditionally. Point this at your own
-        // view rather than registering a second route on the same path —
-        // core's route is declared first and would always win.
+        // Core registers 'home' unconditionally. Point this at your own view
+        // to keep core's route, or declare `/` in your own `routes/web.php`,
+        // which is loaded afterwards and replaces it.
         'home_view' => 'numerosis::home',
     ],
 
@@ -164,27 +164,6 @@ return [
         // '{tenant}.'.apex, not APP_URL's host — APP_URL may carry a central
         // subdomain too, which would put every tenant one level too deep.
         'tenant_pattern' => env('NUMEROSIS_TENANT_DOMAIN') ?: '{tenant}.'.$apex,
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Broadcasting
-    |--------------------------------------------------------------------------
-    |
-    | Read server-side at request time rather than baked in at Vite build
-    | time, so a prebuilt JS bundle works against any host's Reverb.
-    | NUMEROSIS_BROADCAST_HOST/PORT/SCHEME exist for a host fronting Reverb
-    | with a reverse proxy, where the browser must connect somewhere
-    | different from where Reverb itself binds.
-    */
-
-    'broadcasting' => [
-        'reverb' => [
-            'key' => env('REVERB_APP_KEY'),
-            'host' => env('NUMEROSIS_BROADCAST_HOST', env('REVERB_HOST', 'localhost')),
-            'port' => (int) env('NUMEROSIS_BROADCAST_PORT', env('REVERB_PORT', 8080)),
-            'scheme' => env('NUMEROSIS_BROADCAST_SCHEME', env('REVERB_SCHEME', 'http')),
-        ],
     ],
 
     /*

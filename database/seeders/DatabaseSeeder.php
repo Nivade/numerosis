@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Nvade\Numerosis\Support\Numerosis;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,7 +16,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PaymentPlanSeeder::class,
             RoleAndPermissionSeeder::class,
-            ...Numerosis::centralSeeders(),
         ]);
     }
 }

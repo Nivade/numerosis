@@ -18,8 +18,6 @@ use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\Middleware\TrustHosts;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Route as RoutingRoute;
-use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -51,6 +49,7 @@ use Nvade\Numerosis\Console\Commands\DeleteTenants;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedStripeCustomers;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
+use Nvade\Numerosis\Contracts\Exceptions\ProvidesExceptionContext;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder as PackageDatabaseSeeder;
 use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
@@ -93,6 +92,7 @@ use Nvade\Numerosis\Policies\TenantPolicy;
 use Nvade\Numerosis\Policies\UserPolicy;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
+use Nvade\Numerosis\Services\Exceptions\TenantAwareExceptionContext;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Support\Assets;
 use Nvade\Numerosis\Support\Features;
@@ -163,6 +163,12 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->app->singleton(FortifyLoginResponse::class, NumerosisLoginResponse::class);
         $this->app->singleton(FortifyLogoutResponse::class, NumerosisLogoutResponse::class);
 
+        $this->app->singleton(ProvidesExceptionContext::class, TenantAwareExceptionContext::class);
+
+        // The `Numerosis` facade's accessor. Parameterless, so `swap()` and
+        // `spy()` work without the static class being instantiable elsewhere.
+        $this->app->singleton(Numerosis::class);
+
         // `db:seed` resolves this class by name, so an app without one of its
         // own would never run the package's seeders. Define the class and
         // this binding steps aside.
@@ -176,18 +182,17 @@ class NumerosisServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Points `layouts::` and `pages::` at this package's views, leaving
-     * anything a host already set. Livewire bakes these into the view finder
-     * during its boot(), so a host has to set them in register().
+     * A Livewire namespace maps one prefix to exactly one directory, so these
+     * carry the package's own name: claiming `layouts`/`pages` would make a
+     * host's views of that name unreachable.
      */
     protected function registerLivewireComponentNamespaces(): void
     {
         foreach (['layouts', 'pages'] as $namespace) {
-            $configured = Config::get("livewire.component_namespaces.{$namespace}");
-
-            if ($configured === null || $configured === resource_path("views/{$namespace}")) {
-                Config::set("livewire.component_namespaces.{$namespace}", __DIR__."/../resources/views/{$namespace}");
-            }
+            Config::set(
+                "livewire.component_namespaces.numerosis-{$namespace}",
+                __DIR__."/../resources/views/{$namespace}"
+            );
         }
     }
 
@@ -235,8 +240,6 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->registerFortify();
 
         $this->registerGuestRedirect();
-
-        $this->registerBroadcasting();
 
         $this->registerExceptionHandling();
 
@@ -299,6 +302,18 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->publishGroup([
             __DIR__.'/../database/migrations/tenant' => database_path('migrations/tenant'),
         ], 'numerosis-tenant-migrations');
+
+        // An empty `routes/tenant.php`, the file `Numerosis::routes()` loads
+        // into the tenant group. `routes/web.php` ships with every skeleton.
+        $this->publishGroup([
+            __DIR__.'/../stubs/routes/tenant.php' => base_path('routes/tenant.php'),
+        ], 'numerosis-routes');
+
+        // The tenant entry point `db:seed --class` reaches, published so a
+        // host can add its own calls to it.
+        $this->publishGroup([
+            __DIR__.'/../database/seeders/TenantDatabaseSeeder.php' => database_path('seeders/TenantDatabaseSeeder.php'),
+        ], 'numerosis-seeders');
 
         // Publishes resources/js/numerosis.js for editing. Add it to your
         // Vite config and your build replaces the prebuilt bundle.
@@ -445,12 +460,19 @@ class NumerosisServiceProvider extends PackageServiceProvider
      * {@see Numerosis::middleware()}, for an app that never calls it from
      * `bootstrap/app.php`. {@see Numerosis::registerMiddlewareUsing()}
      * replaces this entirely.
+     *
+     * A host that did call it keeps whatever it configured afterwards; running
+     * again here would revert its trust settings and alias swaps.
      */
     protected function registerMiddleware(): void
     {
         if (Numerosis::$registerMiddlewareCallback instanceof Closure) {
             (Numerosis::$registerMiddlewareCallback)($this->app);
 
+            return;
+        }
+
+        if (Numerosis::middlewareRegistered()) {
             return;
         }
 
@@ -594,34 +616,6 @@ class NumerosisServiceProvider extends PackageServiceProvider
         if ($priorities !== []) {
             $kernel->setMiddlewarePriority($priorities);
         }
-    }
-
-    /**
-     * Registers `/broadcasting/auth` and the package's channels, so calling
-     * `withBroadcasting()` yourself is optional; do both and the route is
-     * still only registered once. {@see Numerosis::registerBroadcastingUsing()}
-     * replaces this entirely.
-     */
-    protected function registerBroadcasting(): void
-    {
-        if (Numerosis::$registerBroadcastingCallback instanceof Closure) {
-            (Numerosis::$registerBroadcastingCallback)($this->app);
-
-            return;
-        }
-
-        $alreadyRegistered = array_any(
-            Route::getRoutes()->getRoutes(),
-            fn (RoutingRoute $route): bool => $route->uri() === 'broadcasting/auth',
-        );
-
-        if (! $alreadyRegistered) {
-            Broadcast::routes(['middleware' => Numerosis::broadcasting()]);
-        }
-
-        // `require_once` would leave channels unregistered on the second and
-        // later application boots within one process.
-        require Numerosis::broadcastChannelsPath();
     }
 
     /**

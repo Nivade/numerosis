@@ -155,17 +155,19 @@ final class HostConfig
     }
 
     /**
-     * Adds the package's tenant migrations, plus any registered via
-     * {@see Numerosis::addTenantMigrationPath()}, to whatever paths are
-     * already configured, keeping yours. `--realpath` is forced on, since
-     * the added paths are absolute.
+     * Adds the package's tenant migrations to whatever paths are already
+     * configured, keeping yours. `--realpath` is forced on, since the added
+     * paths are absolute.
+     *
+     * The default seed is stancl's own implicit `database/migrations/tenant`,
+     * which writing `--path` at all would otherwise discard.
      */
     private static function tenantMigrationParameters(): void
     {
         /** @var array<string, mixed> $parameters */
         $parameters = Config::array('tenancy.migration_parameters', []);
 
-        $paths = $parameters['--path'] ?? [];
+        $paths = $parameters['--path'] ?? [database_path('migrations/tenant')];
         $paths = is_array($paths) ? array_values($paths) : [];
 
         $changed = false;

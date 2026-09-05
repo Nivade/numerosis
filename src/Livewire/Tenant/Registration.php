@@ -25,7 +25,7 @@ class Registration extends WizardComponent
     #[Url(as: 'step', history: false)]
     public ?string $currentStepName = null;
 
-    #[Layout('layouts::app.none')]
+    #[Layout('numerosis-layouts::app.none')]
     #[Override]
     public function render(): View
     {

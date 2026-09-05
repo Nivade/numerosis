@@ -9,10 +9,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
-use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Tests\TestCase;
 
 class EnsureTenantSubscriptionActiveTest extends TestCase
@@ -29,23 +29,34 @@ class EnsureTenantSubscriptionActiveTest extends TestCase
      */
     protected function defineRoutes($router): void
     {
-        // Contributed rather than added after the fact: route registration
-        // has already happened by the time a test body runs, so a
-        // `Route::get()` in setUp() would land outside every group core
-        // built and prove nothing about the real stack.
+        // Written as the host's own `routes/tenant.php` rather than added
+        // after the fact: route registration has already happened by the time
+        // a test body runs, so a `Route::get()` in setUp() would land outside
+        // every group core built and prove nothing about the real stack.
         //
         // No `tenancy.auth:tenant` here on purpose. The gate reads `tenant()`
         // and never the user, so auth is not a precondition — and an auth
         // redirect for an unauthenticated request would mask the very
         // redirect under test.
-        Numerosis::addTenantRoutes(function (): void {
+        File::ensureDirectoryExists(base_path('routes'));
+        File::put(base_path('routes/tenant.php'), <<<'PHP'
+            <?php
+
+            use Illuminate\Support\Facades\Route;
+
             Route::middleware('tenancy.subscription')->group(function (): void {
-                Route::get('gated-probe', fn (): string => 'through')
-                    ->name('tenant.gated-probe');
+                Route::get('gated-probe', fn (): string => 'through')->name('tenant.gated-probe');
             });
-        }, source: 'test');
+            PHP);
 
         parent::defineRoutes($router);
+    }
+
+    protected function tearDown(): void
+    {
+        File::delete(base_path('routes/tenant.php'));
+
+        parent::tearDown();
     }
 
     public function test_it_lets_an_active_tenant_through(): void

@@ -8,10 +8,12 @@ use Illuminate\Support\Collection;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Auth\UpdateUserPassword;
 use Nvade\Numerosis\Concerns\RequiresAuthenticatedUser;
 
+#[Layout('numerosis-layouts::app')]
 class Password extends Component
 {
     use RequiresAuthenticatedUser;

@@ -1,4 +1,4 @@
-<x-layouts::auth :title="__('Team invitation')">
+<x-numerosis-layouts::auth :title="__('Team invitation')">
     <div class="flex flex-col gap-6">
         <x-numerosis::auth-header
             :title="__('You have been invited')"
@@ -16,4 +16,4 @@
             </flux:button>
         </form>
     </div>
-</x-layouts::auth>
+</x-numerosis-layouts::auth>

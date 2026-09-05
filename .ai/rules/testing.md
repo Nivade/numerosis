@@ -969,7 +969,7 @@ by dropping every `testing_test_%` and `tenant%` database first.
 ## PHPStan patch releases decide baseline entries (2026-09-05)
 
 `phpstan/phpstan` 2.2.12 reports 9 `argument.templateType` errors for
-`Livewire::test('pages::tenant.mine')` in `tests/Feature/Livewire/TenantsMineTest.php`;
+`Livewire::test('numerosis-pages::tenant.mine')` in `tests/Feature/Livewire/TenantsMineTest.php`;
 2.2.13 reports none, so the baseline entry covering them fails CI with
 *"Ignored error pattern … was not matched"*. `composer.lock` is gitignored and
 CI runs `composer update`, so CI is always on the newer patch. **Update the

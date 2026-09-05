@@ -1,3 +1,3 @@
-<x-layouts::auth.card :title="$title ?? null">
+<x-numerosis-layouts::auth.card :title="$title ?? null">
     {{ $slot }}
-</x-layouts::auth.card>
+</x-numerosis-layouts::auth.card>

@@ -36,7 +36,7 @@ class HomeRouteTest extends TestCase
 
     /**
      * Core must not ship the product's marketing site. A host registers these
-     * itself, through `Numerosis::addCentralRoutes()`.
+     * itself, in its own `routes/web.php`.
      */
     public function test_core_registers_no_marketing_routes(): void
     {

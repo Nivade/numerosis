@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Livewire\Settings;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\View\View;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -17,6 +18,7 @@ use Nvade\Numerosis\Models\Central\SocialAccount;
  * component is client-invokable regardless of prior state, and `throttle:`
  * middleware never covers `/livewire/update`.
  */
+#[Layout('numerosis-layouts::app')]
 class ConnectedAccounts extends Component
 {
     public function render(): View

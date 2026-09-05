@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Livewire\Settings;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Auth\ResendVerificationNotification;
 use Nvade\Numerosis\Actions\Auth\UpdateUserProfile;
@@ -14,6 +15,7 @@ use Nvade\Numerosis\Concerns\RequiresAuthenticatedUser;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 
+#[Layout('numerosis-layouts::app')]
 class Profile extends Component
 {
     use RequiresAuthenticatedUser;

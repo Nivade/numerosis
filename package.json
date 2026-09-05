@@ -8,12 +8,9 @@
     "build": "npm run build:app-css && npm run build:app-js"
   },
   "devDependencies": {
-    "@laravel/echo-vue": "^2.3.4",
     "@stripe/stripe-js": "^4.10.0",
     "@tailwindcss/cli": "^4.1.17",
-    "laravel-echo": "^2.3.4",
     "playwright": "^1.62.1",
-    "pusher-js": "^8.5.0",
     "tailwindcss": "^4.1.17",
     "vite": "^7.0.5"
   }

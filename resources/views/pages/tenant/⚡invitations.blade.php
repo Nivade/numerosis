@@ -6,7 +6,7 @@ use Livewire\Component;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Support\Numerosis;
 
-new #[Layout('layouts::app')]
+new #[Layout('numerosis-layouts::app')]
 class extends Component
 {
     public Collection $invitations;

@@ -8,7 +8,7 @@
 --}}
 @php($passwordless = \Nvade\Numerosis\Features\Auth\OneTimePasswordFeature::available())
 
-<x-layouts::auth :title="__('Log in')">
+<x-numerosis-layouts::auth :title="__('Log in')">
     <div class="flex flex-col gap-6">
         <x-numerosis::auth-header
             :title="__('Log in to your account')"
@@ -75,4 +75,4 @@
             @endif
         @endunless
     </div>
-</x-layouts::auth>
+</x-numerosis-layouts::auth>

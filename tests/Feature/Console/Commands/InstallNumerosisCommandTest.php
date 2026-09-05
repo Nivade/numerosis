@@ -301,10 +301,10 @@ class InstallNumerosisCommandTest extends TestCase
     /** @verifies verifyLivewireComponentNamespaces */
     public function test_it_fails_when_a_livewire_component_namespace_points_at_a_missing_directory(): void
     {
-        config()->set('livewire.component_namespaces.layouts', '/no/such/directory');
+        config()->set('livewire.component_namespaces.numerosis-layouts', '/no/such/directory');
 
         $this->install()
-            ->expectsOutputToContain("config('livewire.component_namespaces.layouts') must point at an existing directory")
+            ->expectsOutputToContain("config('livewire.component_namespaces.numerosis-layouts') must point at an existing directory")
             ->assertFailed();
     }
 

@@ -12,13 +12,13 @@ use Nvade\Numerosis\Tests\TestCase;
 /**
  * The header was a class-based Nvade\Numerosis\Livewire\Layout\Header and is now the
  * single-file component `resources/views/layouts/⚡header.blade.php`, rendered
- * as `<livewire:layouts::header />` and addressed by that name here.
+ * as `<livewire:numerosis-layouts::header />` and addressed by that name here.
  */
 class HeaderTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const string COMPONENT = 'layouts::header';
+    private const string COMPONENT = 'numerosis-layouts::header';
 
     public function test_it_renders_successfully(): void
     {

@@ -70,12 +70,10 @@ staleness" failure mode and worth the same caution.
   ->withMiddleware(fn (Middleware $middleware) => Numerosis::middleware($middleware))
   ```
   **The ambiguity that caused this**: `NumerosisServiceProvider::registerMiddleware()`'s
-  and `registerBroadcasting()`'s docblocks describe the corresponding
-  *static* `Numerosis::middleware()` / `Numerosis::broadcasting()` /
-  `Numerosis::broadcastChannelsPath()` helpers as "now optional" — true,
-  since `packageBooted()` redoes that registration automatically. But the
-  underlying **framework** calls, `->withMiddleware()` and
-  `->withBroadcasting()` themselves, are a different thing — `->withRouting()`
+  docblock describes the corresponding *static* `Numerosis::middleware()`
+  helper as "now optional" — true, since `packageBooted()` redoes that
+  registration automatically. But the underlying **framework** call,
+  `->withMiddleware()` itself, is a different thing — `->withRouting()`
   and `->withMiddleware()` still have no provider-level equivalent
   (`->withRouting()`'s registration must happen at `ApplicationBuilder`
   build time, before any provider boots, full stop) or their only purpose
@@ -276,3 +274,11 @@ binding is normally made by `ApplicationBuilder::withExceptions()` itself. It
 binds one, skips a host that replaced Laravel's handler with its own, and runs
 unconditionally because `Numerosis::exceptions()` is idempotent per handler
 instance.
+
+## `Facades\Numerosis` exists, and must never appear in `bootstrap/app.php`
+
+Added 2026-09-05. `Nvade\Numerosis\Facades\Numerosis` accessors `Support\Numerosis::class`, bound as a parameterless singleton in `packageRegistered()`, so a host gets `swap()`/`spy()`/`shouldReceive()`. `Support\Numerosis` needed no change: `Facade::__callStatic()` does `$instance->$method(...)` and PHP permits calling a `static` method through an instance, so every method stays static and every internal call site keeps calling it directly.
+
+Measured 2026-09-05: **Mockery does intercept originally-`static` methods reached this way** — it generates an instance method on a subclass, which wins over the inherited static one. `tests/Feature/Facades/NumerosisFacadeTest.php` asserts it, so a Mockery upgrade changing that is loud rather than silent.
+
+`routes()`, `middleware()`, `exceptions()` and `configure()` must not go through the facade. They run while `ApplicationBuilder` is being built, before `RegisterFacades`, where `Facade::getFacadeRoot()` is null and the call throws `RuntimeException: A facade root has not been set` — the crash-loop this file already documents twice, reached through a third door.
