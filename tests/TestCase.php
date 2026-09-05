@@ -11,6 +11,7 @@ use App\Models\Tenant\User;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\URL;
@@ -26,6 +27,7 @@ use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Testing\CleansUpTenancyDatabases;
 use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
 use Orchestra\Testbench\TestCase as Orchestra;
+use PDO;
 use Pdo\Mysql;
 use Spatie\Activitylog\Models\Activity;
 use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
@@ -37,6 +39,8 @@ use Stancl\Tenancy\UUIDGenerator;
 abstract class TestCase extends Orchestra
 {
     use CleansUpTenancyDatabases;
+
+    private static bool $workerDatabaseMigrated = false;
 
     protected function getPackageProviders($app): array
     {
@@ -209,6 +213,7 @@ abstract class TestCase extends Orchestra
         // `Connection: central, Database: testing`, because nothing ever
         // migrated the database those queries land in.
         $database = static::parallelAwareDatabase('testing');
+        static::ensureDatabaseExists($database);
 
         $mysql = [
             'driver' => 'mysql',
@@ -565,16 +570,36 @@ abstract class TestCase extends Orchestra
     /**
      * A database name suffixed with this worker's parallel token, matching the
      * `{name}_test_{token}` shape `TestDatabases::testDatabase()` uses for the
-     * default connection — so every connection in this suite lands in the one
-     * database Laravel actually created and migrated for this worker.
-     *
-     * Returns `$name` unchanged when not running in parallel.
+     * default connection, so every connection in this suite lands in one
+     * database per worker. Returns `$name` unchanged when not in parallel.
      */
     public static function parallelAwareDatabase(string $name): string
     {
         $token = ParallelTesting::token();
 
         return $token ? $name.'_test_'.$token : $name;
+    }
+
+    /**
+     * Create this worker's database, because nothing else will.
+     *
+     * `TestDatabases`'s setUpProcess hook is what creates `{name}_test_{token}`
+     * in an application, and only `Illuminate\Testing\ParallelRunner` invokes
+     * it. Pest installs that runner only when `Orchestra\Testbench\TestCase` is
+     * absent, so in a package it never runs: `Unknown database` on every query.
+     */
+    protected static function ensureDatabaseExists(string $database): void
+    {
+        static $ensured = [];
+
+        if (isset($ensured[$database]) || ! extension_loaded('pdo_mysql')) {
+            return;
+        }
+
+        $connection = new PDO('mysql:host=127.0.0.1;port=3306', 'root', 'root');
+        $connection->exec("create database if not exists `{$database}` character set utf8mb4 collate utf8mb4_0900_ai_ci");
+
+        $ensured[$database] = true;
     }
 
     /**
@@ -610,6 +635,34 @@ abstract class TestCase extends Orchestra
         });
 
         parent::setUp();
+
+        $this->migrateWorkerDatabaseOnce();
+    }
+
+    /**
+     * Migrate this worker's database, once per process.
+     *
+     * `RefreshDatabase` migrates only for the tests that use it, and the
+     * class-based half of this suite does not. So whichever test a worker
+     * happens to start with decides whether the schema exists at all — and
+     * `keepDatabaseSchema()` then pins that answer, empty or not, for every
+     * test the process runs after it.
+     */
+    private function migrateWorkerDatabaseOnce(): void
+    {
+        if (self::$workerDatabaseMigrated) {
+            return;
+        }
+
+        self::$workerDatabaseMigrated = true;
+
+        if (RefreshDatabaseState::$migrated) {
+            return;
+        }
+
+        $this->artisan('migrate:fresh', ['--force' => true]);
+
+        RefreshDatabaseState::$migrated = true;
     }
 
     protected function tearDown(): void

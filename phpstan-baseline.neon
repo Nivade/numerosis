@@ -800,12 +800,6 @@ parameters:
 			path: tests/Feature/Livewire/Tenant/Registration/RegistrationCheckoutHandoffTest.php
 
 		-
-			message: '#^Unable to resolve the template type TComponent in call to method Livewire\\LivewireManager\:\:test\(\)$#'
-			identifier: argument.templateType
-			count: 9
-			path: tests/Feature/Livewire/TenantsMineTest.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertSeeLivewire\(\)\.$#'
 			identifier: method.notFound
 			count: 1

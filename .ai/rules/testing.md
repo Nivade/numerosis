@@ -936,3 +936,42 @@ actually broke in the incident `.ai/rules/auth-login.md` records. What it
 cannot prove is that the file exists. **Never argue "the tenant migration is
 covered" from a passing tenant test** — same family as the stale-template trap
 above, but worse, because purging the templates does not clear it.
+
+## Nothing creates or migrates a worker database in a package (2026-09-05)
+
+CI has never had a green `run-tests` job, since long before this branch. Two
+reasons, both invisible locally because a developer's MySQL already carries
+`testing_test_1..8` from some earlier era.
+
+- **Pest installs Laravel's `ParallelRunner` only for applications.**
+  `Pest\Plugins\Parallel\Handlers\Laravel::whenUsingLaravel()` requires
+  `laravel/framework` present **and** `Orchestra\Testbench\TestCase` absent. So
+  in this repo the runner never loads, and with it neither does
+  `TestDatabases`'s `setUpProcess` hook — the thing that creates
+  `{name}_test_{token}` in an app. Every worker but a pre-seeded one dies on
+  `Unknown database 'testing_test_N'`. `TestCase::ensureDatabaseExists()` issues
+  the `CREATE DATABASE` itself, once per process.
+
+- **`keepDatabaseSchema()` will pin an *empty* schema.** It sets
+  `RefreshDatabaseState::$migrated = true` in every `tearDown()`, but only tests
+  that use `RefreshDatabase` ever migrate, and roughly half of `tests/Feature`
+  is class-based and does not. Whichever test the worker happened to start with
+  therefore decided whether the schema existed: start on a class-based one and
+  the flag is pinned true against a database with zero tables, so every
+  `RefreshDatabase` test after it fails `Table 'testing_test_N.users' doesn't
+  exist` — a whole worker's worth, and a different worker each run.
+  `TestCase::migrateWorkerDatabaseOnce()` runs `migrate:fresh` after
+  `parent::setUp()` when nothing else has, which makes the flag's claim true.
+
+**A green local run proves nothing about a worker database here.** Reproduce CI
+by dropping every `testing_test_%` and `tenant%` database first.
+
+## PHPStan patch releases decide baseline entries (2026-09-05)
+
+`phpstan/phpstan` 2.2.12 reports 9 `argument.templateType` errors for
+`Livewire::test('pages::tenant.mine')` in `tests/Feature/Livewire/TenantsMineTest.php`;
+2.2.13 reports none, so the baseline entry covering them fails CI with
+*"Ignored error pattern … was not matched"*. `composer.lock` is gitignored and
+CI runs `composer update`, so CI is always on the newer patch. **Update the
+analyser locally before trusting a baseline diff**, and treat an unmatched
+pattern as a version gap, not as dead code.
