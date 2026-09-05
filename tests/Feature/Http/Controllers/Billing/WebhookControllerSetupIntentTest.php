@@ -131,7 +131,7 @@ class WebhookControllerSetupIntentTest extends TestCase
     {
         $fake = Billing::fake();
 
-        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
+        $priceId = getenv('STRIPE_STARTER_MONTHLY_PLAN') ?: '';
 
         if ($priceId === '') {
             $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');
@@ -188,7 +188,7 @@ class WebhookControllerSetupIntentTest extends TestCase
     {
         $fake = Billing::fake();
 
-        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
+        $priceId = getenv('STRIPE_STARTER_MONTHLY_PLAN') ?: '';
 
         if ($priceId === '') {
             $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');
@@ -249,7 +249,7 @@ class WebhookControllerSetupIntentTest extends TestCase
      */
     public function test_payment_method_attached_is_a_noop_once_already_completed(): void
     {
-        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
+        $priceId = getenv('STRIPE_STARTER_MONTHLY_PLAN') ?: '';
 
         if ($priceId === '') {
             $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');

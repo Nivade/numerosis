@@ -22,8 +22,7 @@ use Nvade\Numerosis\Support\Numerosis;
  * is the single choke point every checkout path shares, and
  * `StartCheckoutRequest` validates the submitted plan with
  * `exists:central.payment_plans,slug`, so a faker slug leaves no checkout URL
- * anybody can write down and no row for the config keys below
- * (`numerosis.billing.plans.starter`, …) to line up with.
+ * anybody can write down.
  */
 class PaymentPlanSeeder extends Seeder
 {
@@ -84,11 +83,8 @@ class PaymentPlanSeeder extends Seeder
     {
         $features = $this->seedFeatures();
 
-        /** @var array<string, array{monthly_id?: string|null, yearly_id?: string|null}> $configured */
-        $configured = collect(config('numerosis.billing.plans', []))->keyBy('slug')->all();
-
         foreach (self::PLANS as $plan) {
-            $this->seedPlan($plan, $features, $configured[$plan['slug']] ?? []);
+            $this->seedPlan($plan, $features);
         }
     }
 
@@ -112,9 +108,8 @@ class PaymentPlanSeeder extends Seeder
     /**
      * @param  array{name: string, slug: string, description: string, monthly_price: int, yearly_price: int, trial_days: int, features: int}  $attributes
      * @param  Collection<int, PlanFeature>  $features
-     * @param  array{monthly_id?: string|null, yearly_id?: string|null}  $configured
      */
-    private function seedPlan(array $attributes, Collection $features, array $configured): void
+    private function seedPlan(array $attributes, Collection $features): void
     {
         /** @var class-string<PaymentPlan> $planClass */
         $planClass = Numerosis::model(PaymentPlan::class);
@@ -128,8 +123,8 @@ class PaymentPlanSeeder extends Seeder
                 'yearly_price' => $attributes['yearly_price'],
                 'trial_days' => $attributes['trial_days'],
                 'available' => true,
-                'monthly_id' => $configured['monthly_id'] ?? null,
-                'yearly_id' => $configured['yearly_id'] ?? null,
+                'monthly_id' => null,
+                'yearly_id' => null,
             ],
         );
 

@@ -4,15 +4,14 @@ includes:
 parameters:
     level: 9
     treatPhpDocTypesAsCertain: false
-    # A plan's metadata is the raw `numerosis.billing.plans` entry, or the
-    # `metadata` JSON column that mirrors it. Four files declare `PlanMetadata`
-    # in a docblock; without this alias each resolved it as a class in its own
-    # namespace, so `Plan::metadata()` reported `invalid return type` and every
-    # offset read reported `Access to offset on an unknown class` — ten entries
-    # in `phpstan-baseline.neon`, all one missing declaration.
+    # A plan's metadata is the `metadata` JSON column on `payment_plans`. Two
+    # files declare `PlanMetadata` in a docblock; without this alias each
+    # resolved it as a class in its own namespace, so `Plan::metadata()`
+    # reported `invalid return type` and every offset read reported `Access
+    # to offset on an unknown class`.
     #
-    # Every key is optional: config partials are host-editable and consumers
-    # all read through `??`.
+    # Every key is optional: the column is host-editable and consumers all
+    # read through `??`.
     typeAliases:
         PlanMetadata: 'array{slug?: string, name?: string, short_description?: string, monthly_id?: string, yearly_id?: string, monthly_incentive?: string, yearly_incentive?: string, trial_days?: int|null, features?: list<string>, options?: array<string, mixed>, additional_prices?: list<string>, archived?: bool}'
     paths:

@@ -8,7 +8,6 @@ use App\Models\Central\CentralUser;
 use App\Models\Central\PaymentPlan;
 use App\Models\Central\PendingTenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Facades\Billing;
@@ -29,7 +28,7 @@ class CompleteRedirectCheckoutTest extends TestCase
     {
         $fake = Billing::fake();
 
-        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
+        $priceId = getenv('STRIPE_STARTER_MONTHLY_PLAN') ?: '';
 
         if ($priceId === '') {
             $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');
@@ -107,7 +106,7 @@ class CompleteRedirectCheckoutTest extends TestCase
     {
         $fake = Billing::fake();
 
-        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
+        $priceId = getenv('STRIPE_STARTER_MONTHLY_PLAN') ?: '';
 
         if ($priceId === '') {
             $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');

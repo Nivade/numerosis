@@ -8,7 +8,6 @@ use App\Models\Central\CentralUser;
 use App\Models\Central\PaymentPlan;
 use App\Models\Central\PendingTenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Actions\Billing\Checkout\CreateInlineSubscription;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
@@ -28,7 +27,7 @@ class CreateInlineSubscriptionTest extends TestCase
 
     public function test_it_creates_a_subscription_from_a_confirmed_setup_intent(): void
     {
-        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
+        $priceId = getenv('STRIPE_STARTER_MONTHLY_PLAN') ?: '';
 
         if ($priceId === '') {
             $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');
