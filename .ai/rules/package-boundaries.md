@@ -4,6 +4,7 @@ paths:
   - 'src/Http/Middleware/**'
   - 'packages/**'
 ---
+
 # Package Boundaries
 
 > **Rewritten 2026-09-03 (Phase 7 of `.claude/plans/archive/humming-nibbling-flame.md`),
@@ -150,3 +151,15 @@ and hand `tenancy.migration_parameters` the same path several times.
   `flushMigrationAndSeederContributions()` stay two methods rather than one
   `flush()` so each caller clears only what it meant to; `PackageContributionSeamsTest`
   calls them separately.
+
+## HostConfig's preference/correction split, and its one deliberate asymmetry
+HostConfig is organized on one axis: what a host may legitimately choose, not which vendor config file a key lands in.
+
+- **Preference** (host might want another value): projects from `numerosis.*` onto its vendor key unconditionally, no destination sniffing. Examples: `auth.providers.users.model` (from `numerosis.models.<CentralUser>`), `tenancy.database.central_connection` (from `numerosis.tenancy.central_connection`), `tenancy.seeder_parameters.--class` (from `numerosis.tenancy.seeder`).
+- **Correction** (the package does not work otherwise): written only while the vendor key is unset or still holding a stock value, collected in `HostConfig::corrections()`/`applyCorrections()`.
+
+A correction's guard is not a plain `=== null` check, because two vendor keys never resolve to null: `tenancy.filesystem.root_override.local` (stancl ships `'%storage_path%/app/'`) and `queue.failed.database` (Laravel ships `env('DB_CONNECTION', 'sqlite')`, so it silently rides `database.default` until the guard fires). `corrections()` stores `[stock values, corrected value]` per key and the loop checks `null || in_array($current, $stockValues, true)`.
+
+**Deliberate asymmetry, do not "fix" into consistency:** `tenancy.{tenant,domain,central_user,tenant_user}_model` keep their original null-or-stancl-stock guard (`tenancyModels()`) — a host may set one of these four vendor keys directly and have it survive. `auth.providers.users.model` does not: it always projects from `numerosis.models.<CentralUser>` (`centralAuthProviderModelPreference()`) and overwrites a directly-set vendor value. Both read from the same `numerosis.models.*` config section; the difference is which vendor key each one owns.
+
+When adding a new normalization: decide preference vs correction first. If correction, check whether the vendor default can be null before writing a plain null check — grep the vendor package's own shipped config for the key's default.
