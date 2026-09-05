@@ -14,7 +14,9 @@ use Illuminate\Support\ServiceProvider;
 use Livewire;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
+use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
 use Nvade\Numerosis\Http\Middleware\NullMiddleware;
+use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
 use Nvade\Numerosis\Jobs\SeedTenantDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
@@ -299,9 +301,18 @@ class TenancyServiceProvider extends ServiceProvider
     protected function makeTenancyMiddlewareHighestPriority(): void
     {
         $tenancyMiddleware = [
-            // Even higher priority than the initialization middleware
+            // Even higher priority than the initialization middleware. The
+            // `tenancy.route` alias resolves to TenantRouteGuard, which
+            // delegates to this at request time; both need to be listed here
+            // since Laravel's priority sort runs against the alias's literal
+            // target class, not what that class delegates to.
+            TenantRouteGuard::class,
             PreventAccessFromCentralDomains::class,
 
+            // The `tenancy.identification` alias resolves to InitializeTenancy,
+            // which delegates to whichever of the classes below matches
+            // IdentificationMode::current() — same reasoning as above.
+            InitializeTenancy::class,
             InitializeTenancyByDomain::class,
             InitializeTenancyBySubdomain::class,
             InitializeTenancyByDomainOrSubdomain::class,

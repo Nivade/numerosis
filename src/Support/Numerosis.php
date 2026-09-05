@@ -27,11 +27,12 @@ use Nvade\Numerosis\Http\Controllers\Auth\OneTimePasswordChallengeController;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
+use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
 use Nvade\Numerosis\Http\Middleware\RequirePasswordIfSet;
+use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
 use Nvade\Numerosis\Models\Central;
 use Nvade\Numerosis\Models\Tenant as TenantModels;
 use Nvade\Numerosis\Models\User as NumerosisUser;
-use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use ReflectionClass;
 use Stancl\Tenancy\Contracts\Tenant;
 use Stancl\Tenancy\Resolvers\PathTenantResolver;
@@ -363,6 +364,14 @@ class Numerosis
      * alias present in only one of the two works in this repo and fails in a
      * host, or the reverse.
      *
+     * This array must stay pure class-string literals with no config or
+     * container read: `Numerosis::middleware()` runs from a host's
+     * `bootstrap/app.php`, before `RegisterFacades`, so anything evaluated
+     * here that touches `Config`/`Facade` fatals or silently defaults on a
+     * real boot. `tenancy.identification`/`tenancy.route` therefore alias to
+     * delegating middleware that picks the real class from
+     * `IdentificationMode::current()` at request time instead.
+     *
      * @return array<string, string>
      */
     public static function middlewareAliases(): array
@@ -380,8 +389,8 @@ class Numerosis
             // `tenant` group as a whole loops.
             'tenancy.subscription' => EnsureTenantSubscriptionActive::class,
 
-            'tenancy.identification' => TenancyServiceProvider::identificationMiddleware(),
-            'tenancy.route' => TenancyServiceProvider::tenancyRouteMiddleware(),
+            'tenancy.identification' => InitializeTenancy::class,
+            'tenancy.route' => TenantRouteGuard::class,
             'tenancy.session' => EnsureSessionMatchesTenant::class,
         ];
     }

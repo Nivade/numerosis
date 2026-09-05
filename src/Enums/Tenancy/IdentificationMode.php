@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Enums\Tenancy;
 
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Facade;
 
 /**
  * How a request is matched to a tenant, selected by
@@ -17,19 +16,8 @@ enum IdentificationMode: string
     case CustomDomain = 'custom_domain';
     case Path = 'path';
 
-    /**
-     * Reached from `bootstrap/app.php`'s `withMiddleware(...)` before
-     * `RegisterFacades` has run, so `Config::string()` would throw `A facade
-     * root has not been set` fatally. The default is safe to fall back to,
-     * because `NumerosisServiceProvider::registerMiddleware()` re-registers
-     * the real value from `packageBooted()` once config is loaded.
-     */
     public static function current(): self
     {
-        if (Facade::getFacadeApplication() === null) {
-            return self::Subdomain;
-        }
-
         return self::from(Config::string(
             'numerosis.tenancy.identification.mode',
             self::Subdomain->value,

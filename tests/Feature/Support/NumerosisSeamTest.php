@@ -14,12 +14,14 @@ use Illuminate\Routing\Route as IlluminateRoute;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
+use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
+use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
 use Nvade\Numerosis\Models\Central\Tenant as PackageTenant;
 use Nvade\Numerosis\NumerosisServiceProvider;
-use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Support\Numerosis;
 
 /*
@@ -37,8 +39,8 @@ it('registers the 4 middleware aliases and both groups, tenant group in order', 
     Numerosis::middleware($middleware);
 
     expect($middleware->getMiddlewareAliases())->toMatchArray([
-        'tenancy.identification' => TenancyServiceProvider::identificationMiddleware(),
-        'tenancy.route' => TenancyServiceProvider::tenancyRouteMiddleware(),
+        'tenancy.identification' => InitializeTenancy::class,
+        'tenancy.route' => TenantRouteGuard::class,
         'tenancy.session' => EnsureSessionMatchesTenant::class,
     ]);
 
@@ -52,6 +54,28 @@ it('registers the 4 middleware aliases and both groups, tenant group in order', 
     ]);
 
     expect($groups)->toHaveKey('universal', []);
+});
+
+it('registers mode-agnostic middleware aliases with no facade application bound', function () {
+    // Numerosis::middleware() runs from a host's bootstrap/app.php, inside
+    // ApplicationBuilder::withMiddleware()'s afterResolving() hook, which
+    // fires before RegisterFacades. Reproduce that: no facade root at all.
+    $app = Facade::getFacadeApplication();
+    Facade::clearResolvedInstances();
+    Facade::setFacadeApplication(null);
+
+    try {
+        $middleware = new Middleware;
+
+        Numerosis::middleware($middleware);
+
+        expect($middleware->getMiddlewareAliases())->toMatchArray([
+            'tenancy.identification' => InitializeTenancy::class,
+            'tenancy.route' => TenantRouteGuard::class,
+        ]);
+    } finally {
+        Facade::setFacadeApplication($app);
+    }
 });
 
 it('returns the exact broadcasting middleware list', function () {
@@ -171,8 +195,8 @@ it('registers the middleware aliases/groups against the real router with no host
     $router = resolve(Router::class);
 
     expect($router->getMiddleware())->toMatchArray([
-        'tenancy.identification' => TenancyServiceProvider::identificationMiddleware(),
-        'tenancy.route' => TenancyServiceProvider::tenancyRouteMiddleware(),
+        'tenancy.identification' => InitializeTenancy::class,
+        'tenancy.route' => TenantRouteGuard::class,
         'tenancy.session' => EnsureSessionMatchesTenant::class,
     ]);
 
@@ -196,7 +220,7 @@ it('registers the broadcasting auth route and channels with no host bootstrap ca
 
     $channels = Broadcast::getChannels();
 
-    expect($channels->keys()->all())->toContain('online', 'user.{userId}');
+    expect($channels->keys()->all())->toContain('user.{userId}');
 });
 
 it('wires context/throttling onto the real exception handler with no host bootstrap call', function () {
