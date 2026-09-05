@@ -654,15 +654,24 @@ abstract class TestCase extends Orchestra
             return;
         }
 
-        self::$workerDatabaseMigrated = true;
-
-        if (RefreshDatabaseState::$migrated) {
-            return;
+        if (! $this->workerDatabaseHasSchema()) {
+            $this->artisan('migrate:fresh', ['--force' => true]);
         }
 
-        $this->artisan('migrate:fresh', ['--force' => true]);
+        // Read back rather than assume: a migration that did not happen leaves
+        // the flag false, so the next test tries again instead of pinning an
+        // empty database for the rest of the process.
+        self::$workerDatabaseMigrated = $this->workerDatabaseHasSchema();
 
-        RefreshDatabaseState::$migrated = true;
+        RefreshDatabaseState::$migrated = self::$workerDatabaseMigrated;
+    }
+
+    private function workerDatabaseHasSchema(): bool
+    {
+        return $this->app?->make('db')
+            ->connection(Config::string('tenancy.database.central_connection'))
+            ->getSchemaBuilder()
+            ->hasTable('users') ?? false;
     }
 
     protected function tearDown(): void
