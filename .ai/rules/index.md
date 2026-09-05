@@ -39,8 +39,9 @@ and `internachi/modular` — which is now not even a `suggest`. Gone with it:
 `tenants:*-module` commands, the `modules` permission context,
 `ImpersonationFeature`, `Actions/Tenancy/ImpersonateTenantUser`,
 `Exceptions/Tenancy/TenantHasNoOwner` and the `impersonate/{token}` route.
-`config/numerosis.php` assembles **thirteen** partials now, `numerosis.models`
-lists **eight** models, and `Permission::additionalActions()` returns `[]` —
+`config/numerosis.php` is one publishable file with eleven top-level keys
+now, `numerosis.models` lists **nine** models, and
+`Permission::additionalActions()` returns `[]` —
 it was the module system's only caller, and it stays as the seam
 `actionsFor()` reads. The `tenant_user_impersonation_tokens` migration
 **stays**: it is stancl's, and a host may still register
@@ -81,7 +82,7 @@ measurement it qualifies — which is what the rules that matter already do.
 | --- | --- |
 | `src/Contracts/**`, `src/Services/**`, `src/Actions/**`, `src/Data/**` | [architecture-conventions.md](architecture-conventions.md) — Contracts/Services interface-implementation split; Actions use `handle()`; DTOs are `spatie/laravel-data`. |
 | `src/{Events,Listeners,Observers}/**`, `src/Notifications/**` | [events-listeners-observers.md](events-listeners-observers.md) — events carry scalars + `ShouldDispatchAfterCommit`; listeners are unordered and reactions only; core registers them by explicit `Event::listen()` map; the membership-to-tenant-user sync chain. |
-| `src/**/Auth/**`, `src/Policies/**`, `config/numerosis/auth.php` | [auth-guards.md](auth-guards.md) — guard follows tenancy; `web` = central; tenant guard outside tenancy reads central `users`; don't bind models. |
+| `src/**/Auth/**`, `src/Policies/**`, `config/numerosis.php` | [auth-guards.md](auth-guards.md) — guard follows tenancy; `web` = central; tenant guard outside tenancy reads central `users`; don't bind models. |
 | `src/Actions/Auth/**`, `src/Livewire/**`, `resources/views/auth/**` | [auth-login.md](auth-login.md) — auth is Fortify's since Phase 4; core keeps the tenancy-specific pipeline steps and the actions bound against Fortify's contracts. Livewire method order is not enforced. Four audit findings (2026-09-04): no `route:cache`, request-time vs registration-time config, bootstrappers must be singletons, limiter tests need `tenancy()->end()`. Also covers OAuth identity matching (`Actions\Auth\Social\**`, rebuilt 2026-09-04): `(provider, provider_id)` only, never email alone; conditional email link. |
 | `src/**/Billing/**`, `src/Http/Controllers/Billing/**` | [billing-checkout.md](billing-checkout.md) — `subscribable_id` is the owner's primary key not `global_id`; wizard bypasses StartCheckoutRequest; stale stripe_status. |
 | `src/Exceptions/**`, `src/Concerns/TagsSentryScopeWithTenant.php`, `src/Jobs/**`, `database/migrations/**` | [exception-handling.md](exception-handling.md) — DomainException/ShowsMessageToUser split; TagsSentryScopeWithTenant fix tenant-less job-failure reports; failed_jobs trap. |
@@ -89,7 +90,7 @@ measurement it qualifies — which is what the rules that matter already do.
 | `packages/**`, `composer.json` | [package-split.md](package-split.md) — **historical**: how the six-package split was done and why three of those packages later folded back into core; the mechanisms (shared view namespace, vacuous-not-red scanning tests, constant autoload, config-write phase) are what `packages/ui` still relies on. |
 | `src/Support/**`, `packages/**` | [package-boundaries.md](package-boundaries.md) — **the seam map**, rewritten for the two-package (core + `numerosis-ui`) world: what a host contributes through and the boundary facts that still bite. |
 | `src/NumerosisServiceProvider.php`, `src/Support/HostConfig.php`, `src/Support/Domains.php`, `src/Enums/Tenancy/IdentificationMode.php` | [package-host-bootstrap.md](package-host-bootstrap.md) — `Domains.php` can't call facades; host `bootstrap/app.php`/`providers.php` staleness; `HostConfig::apply()` register-vs-booting race; `Numerosis::middleware()` fatal on a real (non-Testbench) boot. |
-| `src/**Tenancy**`, `config/numerosis/tenancy.php` | [stancl-tenancy-v4.md](stancl-tenancy-v4.md) — **historical, 2026-09-04**: v4 port is permanently off the table, not deferred. No inline pointer to this file should exist in `src/` any more. |
+| `src/**Tenancy**`, `config/numerosis.php` | [stancl-tenancy-v4.md](stancl-tenancy-v4.md) — **historical, 2026-09-04**: v4 port is permanently off the table, not deferred. No inline pointer to this file should exist in `src/` any more. |
 | `phpstan.neon.dist`, `phpstan-baseline.neon`, `composer.json` | [static-analysis.md](static-analysis.md) — level 9, one config + baseline; warm result cache hides errors (compare cold-vs-cold); green doesn't survive `composer install`. |
 | `src/Http/Middleware/**`, `routes/**` | [middleware-registration.md](middleware-registration.md) — deleting a package deletes its middleware registrations and nothing goes red; `tenancy.subscription` must stay off the `tenant` group or it loops; two alias registries that drift. |
 | `src/Policies/**`, `src/Http/Controllers/**`, `src/Actions/Invitations/**`, `routes/tenant.php` | [central-rows-on-tenant-routes.md](central-rows-on-tenant-routes.md) — binding a `CentralConnection` model on a tenant route has no tenant scope and `deleteAny` is seeded to every tenant's admin; scope in the policy. Signed-link/row expiry interplay; two silent invitation-row traps. |
@@ -99,7 +100,7 @@ measurement it qualifies — which is what the rules that matter already do.
 | `tests/**` | [testing.md](testing.md) — no Sail (`vendor/bin/pest`); Playwright now required for *every* run; central rows escape RefreshDatabase; make a repaired assertion fail. |
 | `resources/views/**` | [views.md](views.md) — `x-turnstile` compiles `@this` to `$_instance`, so passing `wire:model` from a plain Blade form is a 500, not a degraded widget. |
 | `src/NumerosisServiceProvider.php`, `src/Support/HostConfig.php` | [tenant-filesystem.md](tenant-filesystem.md) — `local` disk root tenant-suffixed but Livewire upload route never tenant-identified; dedicated `livewire` disk fixes it. |
-| `src/Resolvers/**`, `src/Http/Middleware/InitializeLivewireTenancyByPath.php`, `config/numerosis/tenancy.php` | [identification-modes.md](identification-modes.md) — subdomain/custom-domain/path; slug ≠ domain; `{tenant}` literal enables dots; `/livewire/update` has no `{tenant}`, so path mode reads `Referer`. |
+| `src/Resolvers/**`, `src/Http/Middleware/InitializeLivewireTenancyByPath.php`, `config/numerosis.php` | [identification-modes.md](identification-modes.md) — subdomain/custom-domain/path; slug ≠ domain; `{tenant}` literal enables dots; `/livewire/update` has no `{tenant}`, so path mode reads `Referer`. |
 | `config/**`, `src/Commands/InstallNumerosisCommand.php` | [host-integration-quickstart.md](host-integration-quickstart.md) — 7 silent traps integrating into a pre-existing host app (tabellio); all 7 fixed 2026-08-13 — read for the mechanism to reach for now. |
 | `**/*.php` | [general.md](general.md) — comment style: default to zero, hard caps of 5 docblock prose lines and 3 `//` lines with no exemption for public seams, one fact per comment, no em-dash/"rather than" cadence, never cite `.ai/rules`, `.claude` or `docs/`. Validate preservation when shortening. |
 | `**` (execution constraint) | [subagents.md](subagents.md) — execution constraint, not a codebase fact: never spawn sub-agents; the `.claude/agents/`+`.codex/agents/` that contradicted it were deleted 2026-09-01. |

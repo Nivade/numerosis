@@ -2,7 +2,7 @@
 paths:
   - 'src/Resolvers/**'
   - 'src/Http/Middleware/InitializeLivewireTenancyByPath.php'
-  - 'config/numerosis/tenancy.php'
+  - 'config/numerosis.php'
 ---
 > **Header note, 2026-09-03.** Every reference below to
 > `.ai/rules/filament-tenancy.md`, to a panel, or to Filament's own tenancy is

@@ -93,21 +93,18 @@ for a host that genuinely wants none of the defaults.
   core does — `Models\User` composes the OTP trait, `Tenant\User` composes
   `LogsActivity`, both `require` since 2026-09-05, no compat shim.
 
-- **Core's config is split by *key*, not by package** (2026-09-01):
-  `config/numerosis/<key>.php`, thirteen partials that `config/numerosis.php`
-  `array_merge`s. Splitting per package would be wrong even in the six-package
-  world, and there is now only one package to split along anyway — a host's
-  override file only needs to name the keys it changes.
+- **Core's config is split by *key*, not by package.** One publishable file,
+  `config/numerosis.php`, eleven top-level keys (collapsed from thirteen
+  partials 2026-09-05 — publishing them was impossible, since their
+  `require __DIR__` paths would have resolved against the host's own config
+  directory the moment the file was copied there). Splitting per package
+  would be wrong even in the six-package world, and there is now only one
+  package to split along anyway — a host's override file only needs to name
+  the keys it changes.
 
-  Two traps the split introduced, both still live. **The root file can never
-  be published** — its `require __DIR__` paths would resolve against the
-  *host's* config directory — which is why `NumerosisServiceProvider` no
-  longer calls `hasConfigFile('numerosis')` (that registers the real file for
-  publishing) and instead does `mergeConfigFrom()` in `packageRegistered()`
-  plus a `publishGroup()` of `config/stubs/numerosis.php`. And **a new
-  partial is invisible until it is listed in that root `array_merge`**, with
-  nothing failing: the key just defaults away through `HostConfig`'s
-  deep-fill.
+  `NumerosisServiceProvider::packageRegistered()` deep-merges the package's
+  defaults under whatever a host already published, since Laravel's own
+  config merge is one level deep only.
 
 ## Contribution readers
 

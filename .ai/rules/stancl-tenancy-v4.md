@@ -1,7 +1,7 @@
 ---
 paths:
   - 'src/**Tenancy**'
-  - 'config/numerosis/tenancy.php'
+  - 'config/numerosis.php'
 ---
 # Port map: stancl/tenancy v3 → dev-master ("v4")
 
