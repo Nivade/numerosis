@@ -26,9 +26,12 @@ class PasswordResetDisabledTest extends TestCase
 
     /**
      * password.confirm is deliberately not part of this feature — it backs
-     * Filament's own sensitive-action confirmation flow, a different
-     * concern from resetting a forgotten password. See the feature class
-     * docblock.
+     * the sensitive-action confirmation flow, a different concern from
+     * resetting a forgotten password. See the feature class docblock.
+     *
+     * Fortify registers it from its own `routes/routes.php`, outside
+     * `fortify.features` entirely, which is why turning this feature off
+     * leaves it standing.
      */
     public function test_password_confirm_still_registers_when_disabled(): void
     {

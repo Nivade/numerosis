@@ -12,7 +12,7 @@ use Nvade\Numerosis\Tests\TestCase;
 /**
  * `resources/views/partials/script-config.blade.php` is what makes
  * `resources/js/numerosis.js` prebuildable at all (see that file's own
- * docblock and `.claude/plans/better-dx.md` Phase 3): the browser's Reverb
+ * docblock and `.claude/plans/archive/better-dx.md` Phase 3): the browser's Reverb
  * connection details and current tenant id have to come from PHP at
  * request time, not from `import.meta.env.VITE_REVERB_*` baked in at the
  * package maintainer's build time.

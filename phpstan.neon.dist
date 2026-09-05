@@ -4,10 +4,36 @@ includes:
 parameters:
     level: 9
     treatPhpDocTypesAsCertain: false
+    # A plan's metadata is the `metadata` JSON column on `payment_plans`. Two
+    # files declare `PlanMetadata` in a docblock; without this alias each
+    # resolved it as a class in its own namespace, so `Plan::metadata()`
+    # reported `invalid return type` and every offset read reported `Access
+    # to offset on an unknown class`.
+    #
+    # Every key is optional: the column is host-editable and consumers all
+    # read through `??`.
+    typeAliases:
+        PlanMetadata: 'array{slug?: string, name?: string, short_description?: string, monthly_id?: string, yearly_id?: string, monthly_incentive?: string, yearly_incentive?: string, trial_days?: int|null, features?: list<string>, options?: array<string, mixed>, additional_prices?: list<string>, archived?: bool}'
     paths:
         - src
+        - packages
         - config
         - database
         - tests
         - workbench
+    # Blade templates are outside analysis scope, the same way core's own
+    # `resources/views` has always been: `@props()` and Livewire's single-file
+    # `new class extends Component` are directives PHPStan cannot see through,
+    # so every such file reports undefined variables and an unused `new`.
+    # Only `packages/*` needs saying out loud — `paths` above names core's PHP
+    # directories individually and never reaches its views.
+    excludePaths:
+        analyse:
+            - packages/*/resources/views/*
+    # `larastan.noEnvCallsOutsideOfConfig` defaults to the *application's*
+    # config_path(), which under Testbench is the skeleton's, never this
+    # package's — so every `env()` in config/numerosis.php reported, and 23
+    # of them sat in the baseline.
+    configDirectories:
+        - config
     tmpDir: build/phpstan

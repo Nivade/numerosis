@@ -4,27 +4,20 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Listeners\Billing;
 
-use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
-use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
+use Nvade\Numerosis\Listeners\Concerns\NotifiesTenantOwnerWhenEnabled;
 use Nvade\Numerosis\Notifications\Billing\PaymentFailed as PaymentFailedNotification;
-use Nvade\Numerosis\Support\Features;
 
-/**
- * Auto-discovered by Laravel's event discovery, so BillingNotificationsFeature
- * cannot un-discover it — see the feature class's own docblock for the named
- * exception this early return is.
- */
 class SendPaymentFailedNotification
 {
+    use NotifiesTenantOwnerWhenEnabled;
+
     public function handle(PaymentFailed $event): void
     {
-        if (! Features::enabled(BillingNotificationsFeature::NAME)) {
+        if ($event->tenant->isSuspended()) {
             return;
         }
 
-        if (! $event->tenant->isSuspended()) {
-            resolve(NotifiesTenantOwner::class)->notify($event->tenant, new PaymentFailedNotification($event->tenant));
-        }
+        $this->notifyTenantOwner($event->tenant, new PaymentFailedNotification($event->tenant));
     }
 }

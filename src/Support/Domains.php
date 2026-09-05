@@ -5,18 +5,12 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Support;
 
 /**
- * Derives this package's domain defaults from `APP_URL`, so a host that
- * configures nothing still boots with correct values.
- *
- * These are only defaults. Set `NUMEROSIS_APEX_DOMAIN` or
- * `NUMEROSIS_CENTRAL_DOMAIN` and none of this is consulted.
+ * Derives this package's domain defaults from `APP_URL`, for a host that sets
+ * neither `NUMEROSIS_APEX_DOMAIN` nor `NUMEROSIS_CENTRAL_DOMAIN`.
  *
  * Called from `config/numerosis.php` while the config repository is still
- * being built, which constrains everything here: no facades, no `config()`,
- * no `env()`, and nothing may throw — an exception at that point takes the
- * application down before any handler exists, reported against the config
- * file rather than the missing value. The environment is read through the
- * superglobals for the same reason.
+ * being built, so nothing here may use a facade, `config()`, `env()`, or
+ * throw: an exception at that point has no handler to reach.
  */
 final class Domains
 {
@@ -30,7 +24,7 @@ final class Domains
     private function __construct() {}
 
     /**
-     * The hostname the app itself answers on — `APP_URL`'s host, verbatim.
+     * The hostname the app itself answers on: `APP_URL`'s host, verbatim.
      */
     public static function hostFromAppUrl(): string
     {
@@ -58,13 +52,11 @@ final class Domains
     }
 
     /**
-     * The domain tenant subdomains hang off.
-     *
-     * Three or more labels are read as an apex plus a central subdomain
-     * (`app.example.com` gives `example.com`); two labels are already the
-     * apex. Counting labels cannot recognise a multi-part suffix, so
-     * `example.co.uk` would wrongly reduce to `co.uk` — set
-     * `NUMEROSIS_APEX_DOMAIN` explicitly on such a domain.
+     * The domain tenant subdomains hang off. Three or more labels are read as
+     * an apex plus a central subdomain (`app.example.com` gives
+     * `example.com`); two labels are already the apex. Counting labels cannot
+     * recognise a multi-part suffix, so `example.co.uk` wrongly reduces to
+     * `co.uk`; set `NUMEROSIS_APEX_DOMAIN` explicitly there.
      */
     public static function apexFromAppUrl(): string
     {

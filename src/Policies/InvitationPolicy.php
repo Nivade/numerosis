@@ -5,10 +5,17 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Policies;
 
 use Illuminate\Auth\Access\HandlesAuthorization;
-use Nvade\Numerosis\Models\Tenant\Invitation;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Policies\Concerns\ChecksContextPermissions;
+use Nvade\Numerosis\Support\Numerosis;
+use Stancl\Tenancy\Contracts\Tenant as TenancyTenant;
 
+/**
+ * Typed against the tenant `User`, because issuing happens in tenant context
+ * where `hasPermissionTo()` resolves. Acceptance is not a policy check.
+ */
 class InvitationPolicy
 {
     use ChecksContextPermissions;
@@ -20,32 +27,32 @@ class InvitationPolicy
     }
 
     /**
-     * Any member of the tenant may see who has been invited.
-     */
-    public function viewAny(User $user): bool
-    {
-        return true;
-    }
-
-    public function view(User $user, Invitation $invitation): bool
-    {
-        return true;
-    }
-
-    /**
-     * Without `deleteAny invitations`, `delete invitations` only revokes an
-     * invitation the user sent themselves.
+     * `tenant_invitations` is a central table, so route-model binding on the
+     * tenant domain resolves any ULID regardless of which tenant owns it, and
+     * every tenant's `admin` holds `deleteAny invitations`. The tenant check
+     * below is what stops one tenant's admin revoking another's invitation.
      */
     public function delete(User $user, Invitation $invitation): bool
     {
+        $tenant = tenant();
+
+        if (! $tenant instanceof TenancyTenant || $invitation->tenant_id !== (string) $tenant->getTenantKey()) {
+            return false;
+        }
+
         if ($user->hasPermissionTo('deleteAny invitations')) {
             return true;
         }
 
-        if ($invitation->invited_by === $user->id) {
-            return $user->hasPermissionTo('delete invitations');
+        if (! $user->hasPermissionTo('delete invitations')) {
+            return false;
         }
 
-        return false;
+        $centralUserClass = Numerosis::model(CentralUser::class);
+
+        return $invitation->invited_by_user_id !== null
+            && $centralUserClass::where('id', $invitation->invited_by_user_id)
+                ->where('global_id', $user->global_id)
+                ->exists();
     }
 }

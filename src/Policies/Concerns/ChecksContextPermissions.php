@@ -8,19 +8,10 @@ use Nvade\Numerosis\Models\User;
 
 /**
  * Standard CRUD policy over permissions named `"<action> <context>"`, drawn
- * from the same vocabulary {@see \Nvade\Numerosis\Models\Permission::actionsFor()}
- * seeds. Compose it and declare {@see self::permissionContext()}.
- *
- * Two behaviours are built in rather than left to each policy:
- *
- * - `updateAny`/`deleteAny` short-circuit ahead of the per-record check, so
- *   an admin granted the blanket permission is never refused a single record.
- * - Permissions are resolved against the *model's* guard, never the ambient
- *   one. The two agree on every ordinary path and diverge exactly where it
- *   matters — a central user evaluated inside tenant context would otherwise
- *   be checked against tenant roles they could never hold.
- *
- * Policies with real domain logic of their own should not build on this.
+ * from the vocabulary {@see \Nvade\Numerosis\Models\Permission::actionsFor()}
+ * seeds. Compose it and declare {@see self::permissionContext()}. Each check
+ * resolves against the model's own guard, and `updateAny`/`deleteAny`
+ * short-circuit the per-record check.
  */
 trait ChecksContextPermissions
 {

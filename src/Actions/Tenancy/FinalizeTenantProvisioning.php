@@ -9,18 +9,15 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Lorisleiva\Actions\Decorators\JobDecorator;
 use Nvade\Numerosis\Concerns\TagsSentryScopeWithTenant;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant as CentralTenant;
-use Stancl\Tenancy\Contracts\Tenant;
+use Nvade\Numerosis\Models\Central\Tenant;
 use Throwable;
 
 /**
  * Final provisioning step: promotes the first non-bot user to admin, then
- * signals that provisioning finished.
- *
- * Must stay last. It reads users out of the tenant database, and it is the
- * only emitter of the "ready" signal the UI waits on — if it never completes,
- * that UI spins forever, which is why it retries generously.
+ * signals that provisioning finished. Must stay last, since it reads users out
+ * of the tenant database. It is the only emitter of the "ready" signal the UI
+ * waits on, so it retries generously; a silent exhaustion spins that UI
+ * forever.
  */
 class FinalizeTenantProvisioning implements ShouldQueue
 {
@@ -46,15 +43,12 @@ class FinalizeTenantProvisioning implements ShouldQueue
 
     public function jobFailed(Throwable $e, Tenant $tenant): void
     {
-        $this->tagSentryScopeWithTenant((string) $tenant->getTenantKey());
+        $tenantKey = (string) $tenant->getTenantKey();
 
-        MarkProvisionFailed::run((string) $tenant->getTenantKey(), $e->getMessage());
+        $this->tagSentryScopeWithTenant($tenantKey);
 
-        event(new TenantProvisioningFailed((string) $tenant->getTenantKey(), $this->owner($tenant)?->global_id));
-    }
+        MarkProvisionFailed::run($tenantKey, $e->getMessage());
 
-    private function owner(Tenant $tenant): ?CentralUser
-    {
-        return $tenant instanceof CentralTenant ? $tenant->owner() : null;
+        event(new TenantProvisioningFailed($tenantKey, $tenant->owner()?->global_id));
     }
 }

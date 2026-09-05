@@ -9,16 +9,47 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Route;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
+use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Tests\TestCase;
 
 class EnsureTenantSubscriptionActiveTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * The three tests below this one instantiate the middleware and call
+     * `handle()` directly, which is why deleting `packages/filament` — the
+     * only thing that ever registered this middleware — left every one of
+     * them green while suspension enforcement was switched off entirely.
+     * The route-level tests at the bottom of this file are the ones that
+     * fail if the `tenancy.subscription` alias stops being applied.
+     */
+    protected function defineRoutes($router): void
+    {
+        // Contributed rather than added after the fact: route registration
+        // has already happened by the time a test body runs, so a
+        // `Route::get()` in setUp() would land outside every group core
+        // built and prove nothing about the real stack.
+        //
+        // No `tenancy.auth:tenant` here on purpose. The gate reads `tenant()`
+        // and never the user, so auth is not a precondition — and an auth
+        // redirect for an unauthenticated request would mask the very
+        // redirect under test.
+        Numerosis::addTenantRoutes(function (): void {
+            Route::middleware('tenancy.subscription')->group(function (): void {
+                Route::get('gated-probe', fn (): string => 'through')
+                    ->name('tenant.gated-probe');
+            });
+        }, source: 'test');
+
+        parent::defineRoutes($router);
+    }
+
     public function test_it_lets_an_active_tenant_through(): void
     {
-        Tenant::unsetEventDispatcher();
         $tenant = Tenant::factory()->create();
 
         $tenant->run(function () {
@@ -32,7 +63,6 @@ class EnsureTenantSubscriptionActiveTest extends TestCase
 
     public function test_it_redirects_a_suspended_tenant_to_the_suspended_page(): void
     {
-        Tenant::unsetEventDispatcher();
         $tenant = Tenant::factory()->create(['suspended_at' => now()]);
 
         $tenant->run(function () {
@@ -54,7 +84,6 @@ class EnsureTenantSubscriptionActiveTest extends TestCase
      */
     public function test_it_closes_the_trial_expiry_gap(): void
     {
-        Tenant::unsetEventDispatcher();
         $tenant = Tenant::factory()->create([
             'trial_ends_at' => now()->subDay(),
             'suspended_at' => now(),
@@ -67,5 +96,44 @@ class EnsureTenantSubscriptionActiveTest extends TestCase
 
             $this->assertInstanceOf(RedirectResponse::class, $response);
         });
+    }
+
+    public function test_a_real_request_to_a_gated_route_passes_for_an_active_tenant(): void
+    {
+        $tenant = Tenant::factory()->create();
+        CreateTenantDomain::run($tenant, $tenant->id);
+
+        $this->get('http://'.$this->tenantDomain($tenant->id).'/gated-probe')
+            ->assertOk()
+            ->assertSee('through');
+    }
+
+    /**
+     * The regression this file was missing. Asserted through the HTTP kernel,
+     * not against the class: what broke was the *registration*, and a
+     * middleware nobody applies passes every unit test it has.
+     */
+    public function test_a_real_request_to_a_gated_route_bounces_a_suspended_tenant(): void
+    {
+        $tenant = Tenant::factory()->create(['suspended_at' => now()]);
+        CreateTenantDomain::run($tenant, $tenant->id);
+
+        $this->get('http://'.$this->tenantDomain($tenant->id).'/gated-probe')
+            ->assertRedirectToRoute('tenant.suspended');
+    }
+
+    /**
+     * The loop guard. `tenant.suspended` is where this middleware redirects,
+     * and it is itself a tenant route — so registering the gate on the
+     * `tenant` middleware group, rather than on the nested group inside it,
+     * would redirect the redirect target to itself forever.
+     */
+    public function test_the_suspended_page_is_not_itself_gated(): void
+    {
+        $route = Route::getRoutes()->getByName('tenant.suspended');
+
+        $this->assertNotNull($route);
+        $this->assertNotContains('tenancy.subscription', $route->gatherMiddleware());
+        $this->assertNotContains(EnsureTenantSubscriptionActive::class, $route->gatherMiddleware());
     }
 }

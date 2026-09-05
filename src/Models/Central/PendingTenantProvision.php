@@ -10,21 +10,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Nvade\Numerosis\Database\Factories\Central\PendingTenantProvisionFactory;
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
- * A tenant that has been claimed but does not exist yet.
- *
- * The row is written when the checkout session is created (status `reserved`),
- * promoted to `provisioning` once payment is confirmed, and deleted once
- * provisioning succeeds. It exists purely so `tenants.mine` can render a
- * placeholder before the Tenant record itself exists — once the Tenant row is
- * there, readiness is tracked by `tenants.provisioned_at` instead.
+ * A tenant that has been claimed but does not exist yet. Written when the
+ * checkout session is created (status `reserved`), promoted to `provisioning`
+ * once payment is confirmed, and deleted once provisioning succeeds. It exists
+ * so `tenants.mine` can render a placeholder before the Tenant row does;
+ * afterwards readiness is `tenants.provisioned_at`.
  *
  * @property string $domain
+ * @property string|null $custom_domain
  * @property string $company_name
  * @property string $global_id
  * @property string|null $payment_plan

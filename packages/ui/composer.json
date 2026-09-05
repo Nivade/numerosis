@@ -1,0 +1,71 @@
+{
+    "name": "nvade/numerosis-ui",
+    "description": "Shared Blade primitives for the Numerosis packages: UI components, icons and Flux icon fallbacks.",
+    "keywords": [
+        "nvade",
+        "laravel",
+        "numerosis",
+        "blade",
+        "ui"
+    ],
+    "homepage": "https://github.com/Nivade/numerosis-ui",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Niels van Deursen",
+            "email": "nhavandeursen@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.4",
+        "illuminate/contracts": "^13.0",
+        "illuminate/support": "^13.0",
+        "illuminate/view": "^13.0",
+        "livewire/flux": "^2.15",
+        "livewire/livewire": "^4.2",
+        "spatie/laravel-package-tools": "^1.16"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.14",
+        "nunomaduro/collision": "^8.8",
+        "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nvade\\NumerosisUi\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Nvade\\NumerosisUi\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@clear",
+            "@prepare"
+        ],
+        "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
+        "prepare": "@php vendor/bin/testbench package:discover --ansi",
+        "test": "@php vendor/bin/pest",
+        "format": "vendor/bin/pint"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Nvade\\NumerosisUi\\NumerosisUiServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

@@ -15,17 +15,24 @@ use Nvade\Numerosis\Support\Routes\RouteNames;
 use PHPUnit\Framework\Assert as PHPUnit;
 
 /**
- * Records checkouts and provisioning requests instead of touching Stripe or
- * queuing real tenant provisioning. Bound in place of both CheckoutGateway
- * and ProvisionsTenant by Billing::fake().
+ * Records checkouts and provisioning requests, touching neither Stripe nor
+ * the queue. Bound in place of both CheckoutGateway and ProvisionsTenant by
+ * Billing::fake().
  */
 class FakeCheckoutGateway implements CheckoutGateway, ProvisionsTenant
 {
-    /** @var Collection<int, TenantRegistrationData> */
-    private readonly Collection $checkoutsStarted;
+    /**
+     * Not `readonly`: that pins the property to the type of the expression
+     * assigned in the constructor, and `new Collection` infers
+     * `Collection<*NEVER*, *NEVER*>`, which makes every later `isNotEmpty()`
+     * look statically impossible even though `push()` fills it at runtime.
+     *
+     * @var Collection<int, TenantRegistrationData>
+     */
+    private Collection $checkoutsStarted;
 
     /** @var Collection<int, TenantProvisionData> */
-    private readonly Collection $provisioned;
+    private Collection $provisioned;
 
     public function __construct()
     {

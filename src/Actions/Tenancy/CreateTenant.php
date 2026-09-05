@@ -12,8 +12,8 @@ use Nvade\Numerosis\Support\Numerosis;
 use RuntimeException;
 
 /**
- * Creates the tenant row and its domain — the first provisioning step, and
- * the only one that runs synchronously.
+ * Creates the tenant row and its domain: the first provisioning step, and the
+ * only one that runs synchronously.
  *
  * Creates no database: that happens later in the provisioning chain, so a
  * tenant returned from here is not yet usable.
@@ -28,15 +28,13 @@ class CreateTenant
     {
         $tenantClass = Numerosis::model(Tenant::class);
 
-        // Locked and re-entrant: a run that died halfway is finished by the
-        // next attempt rather than failing on what it already created.
+        // A run that died halfway is finished by the next attempt.
         $tenant = Cache::lock("tenant-provision:{$registration->domain}", 10)->block(5, function () use ($registration, $tenantClass) {
-            // Events are suppressed because the provisioning chain creates the
-            // database itself; letting tenancy's own pipeline fire too would
-            // race it into TenantDatabaseAlreadyExistsException.
             /** @var Tenant|null $existing */
             $existing = $tenantClass::find($registration->domain);
 
+            // The provisioning chain creates the database. Letting tenancy's
+            // pipeline fire too throws TenantDatabaseAlreadyExistsException.
             $tenant = $existing ?? $tenantClass::withoutEvents(function () use ($tenantClass, $registration): Tenant {
                 /** @var Tenant */
                 return $tenantClass::create([
@@ -47,7 +45,7 @@ class CreateTenant
                 ]);
             });
 
-            CreateTenantDomain::run($tenant, $registration->domain);
+            CreateTenantDomain::run($tenant, $registration->domain, $registration->custom_domain);
 
             return $tenant;
         });

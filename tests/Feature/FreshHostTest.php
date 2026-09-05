@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature;
 
+use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
@@ -23,10 +24,10 @@ use Stancl\Tenancy\Jobs\MigrateDatabase;
 /**
  * Proves docs/host-requirements.md §1's own claim: a host supplying only the
  * six irreducible obligations (`APP_URL`, Stripe keys, DB credentials +
- * `migrate`, the `bootstrap/app.php` routing/middleware hook, `filament:assets`,
+ * `migrate`, the `bootstrap/app.php` routing/middleware hook, asset publishing,
  * a provisioning worker) gets a fully working multi-tenant SaaS with zero
  * `numerosis.*`/`tenancy.*`/`auth.*` config of its own — this is the test
- * `.claude/plans/better-dx.md`'s "Verification" section calls for and the
+ * `.claude/plans/archive/better-dx.md`'s "Verification" section calls for and the
  * whole plan otherwise has no automated check for.
  *
  * Deliberately does **not** extend `Tests\TestCase`: that class exists to
@@ -38,7 +39,7 @@ use Stancl\Tenancy\Jobs\MigrateDatabase;
  *
  * `APP_URL`/`DB_*`/`STRIPE_*` are set via `putenv()` in `setUp()`, *before*
  * `parent::setUp()` — not via `Config::set()` in `getEnvironmentSetUp()`.
- * `.claude/rules/testing.md`'s "`TestCase::getEnvironmentSetUp()` runs after
+ * `.ai/rules/testing.md`'s "`TestCase::getEnvironmentSetUp()` runs after
  * providers register" section is exactly why: `HostConfig::apply()` (and
  * `config/numerosis.php`'s own `Domains::apexFromAppUrl()`, and
  * `config/database.php`'s `env('DB_*')` reads) all resolve during
@@ -69,6 +70,26 @@ class FreshHostTest extends Orchestra
 
     private ?string $provisionedTenantDatabase = null;
 
+    /**
+     * The real `putenv()` calls in `setUp()` below never got reversed —
+     * `forgetMemoizedEnvironmentRepository()` only resets Laravel's own
+     * cached view of the environment, not the process environment itself,
+     * so `CACHE_STORE=array`/`QUEUE_CONNECTION=sync` silently stayed real
+     * for the rest of the PHP process once this test had run once. Under
+     * v3 nothing downstream cared; on `stancl/tenancy:dev-master`,
+     * `CacheTenancyBootstrapper` rejects an `array`-driver store outright,
+     * so *every* later test in the same process that enters tenant context
+     * started throwing "Cache store [array] is not supported by this
+     * bootstrapper." — order-dependent, only after this test had run.
+     * `$envKeysSet` records exactly the keys this test's `setUp()` put into
+     * the real environment, so `tearDown()` can `putenv($key)` (unset form)
+     * and clear `$_ENV`/`$_SERVER` for each, undoing the leak rather than
+     * only its symptom.
+     *
+     * @var list<string>
+     */
+    private array $envKeysSet = [];
+
     protected function getPackageProviders($app): array
     {
         return [NumerosisServiceProvider::class];
@@ -94,10 +115,10 @@ class FreshHostTest extends Orchestra
      * (`APP_URL`, Stripe keys, DB credentials) as real process environment
      * variables — see the class docblock for why `putenv()` here, before
      * `parent::setUp()`, rather than `Config::set()` in
-     * `getEnvironmentSetUp()`. `filament:assets`/migrate/the routing hook/
+     * `getEnvironmentSetUp()`. Asset publishing/migrate/the routing hook/
      * DNS+worker obligations are satisfied by this method's other lines
      * (migrate below), `defineRoutes()`, and `QUEUE_CONNECTION=sync`
-     * (already Testbench's own skeleton default — see below) respectively.
+     * respectively.
      */
     protected function setUp(): void
     {
@@ -113,10 +134,32 @@ class FreshHostTest extends Orchestra
             'STRIPE_KEY' => 'pk_test_dummy',
             'STRIPE_SECRET' => 'sk_test_dummy',
             'STRIPE_WEBHOOK_SECRET' => 'whsec_test_dummy',
+
+            // The two below are infrastructure choices, in the same category
+            // as this file's `docs/host-requirements.md` §1 obligation #6
+            // ("a queue worker runs on the `provisioning` queue") — not
+            // `numerosis.*`/`tenancy.*`/`auth.*` config, which is what this
+            // test exists to prove unnecessary. Both are set explicitly
+            // because Testbench's own skeleton `.env` picks `database` for
+            // each, and neither is what this harness can run against:
+            //
+            // - `sync` because this test asserts the provisioning pipeline's
+            //   *result* inline and no worker process exists to drain a real
+            //   queue. Note this is NOT Testbench's default — its `.env` says
+            //   `QUEUE_CONNECTION=database`, matching a fresh Laravel install.
+            // - `array` because `CacheTenancyBootstrapper` isolates tenants
+            //   with cache *tags*, and Laravel's `database` store is not
+            //   taggable (see `.ai/rules/tenant-caching.md`). A host on
+            //   `CACHE_STORE=database` is already outside what this package
+            //   supports, so pinning it here changes nothing a real host
+            //   would have gotten away with.
+            'QUEUE_CONNECTION' => 'sync',
+            'CACHE_STORE' => 'array',
         ] as $key => $value) {
             putenv("{$key}={$value}");
             $_ENV[$key] = $value;
             $_SERVER[$key] = $value;
+            $this->envKeysSet[] = $key;
         }
 
         // The physical database has to exist before Laravel can even connect
@@ -141,6 +184,11 @@ class FreshHostTest extends Orchestra
             MigrateDatabase::class,
             SeedTenantDatabase::class,
         ];
+
+        // Without this, every putenv() above is silently reverted to
+        // Testbench's own `.env` value on the second and later boots in a
+        // process — so this test passes run alone and fails run in the suite.
+        self::forgetMemoizedEnvironmentRepository();
 
         parent::setUp();
 
@@ -170,6 +218,57 @@ class FreshHostTest extends Orchestra
         // every other test in the suite.
         $pdo = new PDO('mysql:host=127.0.0.1;port=3306', 'root', 'root');
         $pdo->exec('DROP DATABASE IF EXISTS `'.self::DB_DATABASE.'`');
+
+        // Undo the real putenv() calls setUp() made, not just Laravel's
+        // cached view of them — see $envKeysSet's docblock.
+        foreach ($this->envKeysSet as $key) {
+            putenv($key);
+            unset($_ENV[$key], $_SERVER[$key]);
+        }
+
+        // Same reset on the way out, so this test's own env does not become
+        // the stale `$loaded` state that breaks whichever test boots next.
+        self::forgetMemoizedEnvironmentRepository();
+    }
+
+    /**
+     * Drops `Illuminate\Support\Env`'s memoized repository so the next read
+     * treats this test's `putenv()` values as externally defined again.
+     *
+     * `Env::$repository` is **static**, built once per process, and wrapped
+     * in phpdotenv's `ImmutableWriter`. That writer keeps a `$loaded` array
+     * of every key it has written, and its `isExternallyDefined()` check is
+     * `$this->reader->read($name)->isDefined() && ! isset($this->loaded[$name])`
+     * — so a key it has already written once is no longer considered
+     * externally defined, and `Dotenv::load()` is free to overwrite it on
+     * the next call.
+     *
+     * Every Testbench boot runs `LoadEnvironmentVariables`, which loads
+     * `vendor/orchestra/testbench-core/laravel/.env` (`DB_CONNECTION=sqlite`,
+     * `QUEUE_CONNECTION=database`, `CACHE_STORE=database`). On the *first*
+     * boot in a process the `putenv()` calls above win, because `$loaded` is
+     * empty and the values genuinely are external. On every boot after that
+     * `$loaded` still carries those keys from the previous boot, so the
+     * `.env` silently clobbers them.
+     *
+     * That is exactly why this file used to pass under `--filter=FreshHostTest`
+     * and fail in the full suite: `DB_CONNECTION` reverted to `sqlite`,
+     * Testbench's `LoadConfiguration::configureDefaultDatabaseConnection()`
+     * then saw `sqlite` with no database file and rewrote `database.default`
+     * to its in-memory `testing` connection, and `HostConfig` cloned *that*
+     * into the `central` connection. `DB_DATABASE` was never in the `.env`,
+     * so it alone survived — which is what made the failure read as an
+     * incoherent mix of MySQL and SQLite rather than as one env problem.
+     *
+     * `Env::enablePutenv()` is the public way to discard the repository (it
+     * nulls it so the next `getRepository()` rebuilds with a fresh, empty
+     * `ImmutableWriter`). Enabling the putenv adapter is also exactly what
+     * this test wants on its own terms, since `setUp()` sets its environment
+     * through `putenv()`.
+     */
+    private static function forgetMemoizedEnvironmentRepository(): void
+    {
+        Env::enablePutenv();
     }
 
     /**
@@ -179,6 +278,13 @@ class FreshHostTest extends Orchestra
      *
      * @vite() needs a stub manifest — a harness need, not something
      * HostConfig is responsible for.
+     *
+     * Duplicated from `Tests\TestCase::stubViteManifest()` rather than
+     * inherited, because this class extends Orchestra directly. Written
+     * through a temp file plus `rename()` for the same reason as that copy:
+     * under `--parallel`, every worker targets this one path, and a plain
+     * `file_put_contents()` lets a concurrent reader see truncated JSON.
+     * See that method's docblock for how the failure presents.
      */
     private function stubViteManifest(): void
     {
@@ -198,9 +304,20 @@ class FreshHostTest extends Orchestra
             ];
         }
 
-        file_put_contents($buildDir.'/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+        $path = $buildDir.'/manifest.json';
+        $temporary = $path.'.'.getmypid().'.tmp';
+
+        file_put_contents($temporary, json_encode($manifest, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+        rename($temporary, $path);
     }
 
+    /**
+     * `login` is Fortify's route, loaded into this host's central-domain
+     * group by `Numerosis::routes()` — so this also covers 4a's per-group
+     * `require` of `routes/routes.php` against a host that configured
+     * nothing.
+     */
     public function test_login_renders_with_zero_explicit_numerosis_tenancy_or_auth_config(): void
     {
         $response = $this->get(self::APP_URL.'/login');
@@ -237,10 +354,10 @@ class FreshHostTest extends Orchestra
         $prefix = Config::string('tenancy.database.prefix', 'tenant');
         $this->provisionedTenantDatabase = $prefix.$tenant->getTenantKey();
 
-        // QUEUE_CONNECTION=sync (Testbench's own skeleton default — never
-        // set by this test) is what makes the TenantCreated pipeline this
-        // setUp() restored to the real CreateDatabase+MigrateDatabase+
-        // SeedTenantDatabase jobs run synchronously, inline, right here.
+        // QUEUE_CONNECTION=sync, forced in setUp() above, is what makes the
+        // TenantCreated pipeline this setUp() restored to the real
+        // CreateDatabase+MigrateDatabase+SeedTenantDatabase jobs run
+        // synchronously, inline, right here.
         $this->assertTrue(
             DB::connection('central')->getSchemaBuilder()->hasTable('tenants'),
         );

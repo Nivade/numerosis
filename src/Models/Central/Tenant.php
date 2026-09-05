@@ -18,10 +18,12 @@ use Laravel\Cashier\Invoice;
 use Nvade\Numerosis\Concerns\Billing\Billable;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Database\Factories\Central\TenantFactory;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Tenant\User;
 use Nvade\Numerosis\Observers\TenantObserver;
 use Nvade\Numerosis\Policies\TenantPolicy;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
+use Nvade\Numerosis\Support\Cache\GlobalCache;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
@@ -97,16 +99,9 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
 
     /**
      * The attributes stored in real columns. Everything else is folded into
-     * the `data` JSON column.
-     *
-     * Adding a column to the tenants table is only half the job: name it here
-     * too, via {@see Numerosis::addTenantColumns()}, or it is written to
-     * `data` and the column stays NULL. The model still reads the value back
-     * correctly, so the failure only shows up in SQL — a `where` on that
-     * column matching nothing, or a join finding no rows.
-     *
-     * Register additions from a service provider's `register()`, before any
-     * tenant is loaded or saved.
+     * the `data` JSON column, so a new `tenants` column that is not named here
+     * through {@see Numerosis::addTenantColumns()} stays NULL while the model
+     * still reads its value back correctly.
      *
      * @return list<string>
      */
@@ -140,6 +135,11 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
         return $this->suspended_at !== null;
     }
 
+    public function isProvisioned(): bool
+    {
+        return $this->provisioned_at !== null;
+    }
+
     /**
      * @return BelongsToMany<CentralUser, $this, Membership>
      */
@@ -158,27 +158,17 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
             ->withTimestamps();
     }
 
-    /**
-     * @return BelongsToMany<CentralUser, $this, Membership>
-     */
-    public function members(): BelongsToMany
-    {
-        return $this->users();
-    }
-
     /** The user who created this tenant and owns its subscription. */
     public function owner(): ?CentralUser
     {
-        $membership = $this->users()
-            ->wherePivot('role', 'owner')
+        return $this->users()
+            ->wherePivot('role', MembershipRole::Owner->value)
             ->first();
-
-        return $membership;
     }
 
     public function primaryDomain(): ?Domain
     {
-        return global_cache()->remember(
+        return GlobalCache::store()->remember(
             CacheKeys::tenantPrimaryDomain($this->id),
             now()->addHour(),
             fn () => $this->domains()
@@ -190,8 +180,7 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
 
     public function latestInvoice(): ?Invoice
     {
-        // latestSubscription() is a method, not a relation — reading it as a
-        // property throws.
+        // latestSubscription() is a method; reading it as a property throws.
         return $this->latestSubscription()?->latestInvoice([
             'download' => true,
         ]);

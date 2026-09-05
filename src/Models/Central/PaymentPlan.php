@@ -18,11 +18,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Database\Factories\Central\PaymentPlanFactory;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Observers\PaymentPlanObserver;
 use Nvade\Numerosis\Policies\PaymentPlanPolicy;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
+use Nvade\Numerosis\Support\Cache\GlobalCache;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
@@ -88,14 +89,12 @@ class PaymentPlan extends Model implements Plan
     }
 
     /**
-     * Get all features for this payment plan through the pivot table.
-     *
-     * @return BelongsToMany<Feature, $this, PaymentPlanFeature>
+     * @return BelongsToMany<PlanFeature, $this, PaymentPlanFeature>
      */
     public function features(): BelongsToMany
     {
         return $this->belongsToMany(
-            Feature::class,
+            PlanFeature::class,
             'payment_plan_features',
             'payment_plan_id',
             'feature_id'
@@ -113,7 +112,7 @@ class PaymentPlan extends Model implements Plan
     }
 
     /**
-     * @return BelongsToMany<Feature, $this, PaymentPlanFeature>
+     * @return BelongsToMany<PlanFeature, $this, PaymentPlanFeature>
      */
     public function availableFeatures(): BelongsToMany
     {
@@ -172,26 +171,15 @@ class PaymentPlan extends Model implements Plan
     }
 
     /**
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    #[Scope]
-    protected function tieredAscending(Builder $query): Builder
-    {
-        return $query->where('available', true)
-            ->orderBy('monthly_price', 'asc');
-    }
-
-    /**
      * The plan/subscription tables are central data, so this must be computed
-     * once for every tenant rather than once per tenant: a plain Cache::
-     * call, in tenant context, is Stancl's tenant-tagged manager, which both
-     * duplicates the computation per tenant and requires a taggable cache
+     * once for all tenants together: a plain Cache:: call, in tenant context,
+     * is stancl's tenant-tagged manager, which both duplicates the computation
+     * per tenant and requires a taggable cache
      * store for something that has nothing to do with any one tenant.
      */
     public function popular(): bool
     {
-        $popularPlanId = global_cache()->remember(
+        $popularPlanId = GlobalCache::store()->remember(
             CacheKeys::popularPaymentPlanId(),
             now()->addMinutes(5),
             fn () => Numerosis::model(Subscription::class)::select('payment_plan_id')
@@ -201,12 +189,9 @@ class PaymentPlan extends Model implements Plan
                 ->first()?->payment_plan_id
         );
 
-        // The cache round-trip does not preserve the int type the query
-        // itself returns — this store's driver hands back a string on
-        // read, so a strict `===` against `$this->id` (always int, cast by
-        // Eloquent) was silently always false. "Popular" has never actually
-        // matched a real plan through this path; only a loose comparison
-        // makes the cached value and the live id comparable again.
+        // The cache round-trip loses the int type the query returns: the
+        // driver hands back a string, so a strict `===` against the
+        // Eloquent-cast `$this->id` was silently always false.
         return $popularPlanId !== null && (int) $popularPlanId === $this->id;
     }
 

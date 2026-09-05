@@ -12,9 +12,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Actions\Billing\Subscriptions\LinkSubscriptionToTenant;
 use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
-use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
+use Nvade\Numerosis\Tests\Concerns\DisablesWebhookSignature;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -22,20 +21,13 @@ use Nvade\Numerosis\Tests\TestCase;
  * via parent::) and LinkSubscriptionToTenant's manual write both target the
  * same `subscriptions` row for a given stripe_id. Neither ordering should
  * ever produce two rows or duplicate items — see
- * .claude/plans/vendor-duplication-cleanup.md #1.
+ * .claude/plans/archive/vendor-duplication-cleanup.md #1.
  */
 class SubscriptionDualWriterTest extends TestCase
 {
+    use BuildsTenantProvisionData;
+    use DisablesWebhookSignature;
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        // VerifyWebhookSignature is a route middleware, bound at controller
-        // construction time, so it has to be off before that happens.
-        config(['cashier.webhook.secret' => null]);
-    }
 
     public function test_redirect_then_webhook_produces_one_row_and_one_item_per_price(): void
     {
@@ -107,27 +99,6 @@ class SubscriptionDualWriterTest extends TestCase
         $this->assertCount(1, $subscription->items);
         $this->assertEquals($tenant->id, $subscription->subscribable_id);
         $this->assertEquals(Tenant::class, $subscription->subscribable_type);
-    }
-
-    private function provisionData(
-        CentralUser $user,
-        string $domain,
-        string $paymentPlan,
-        string $stripeCustomerId,
-        string $stripeSubscriptionId,
-    ): TenantProvisionData {
-        return new TenantProvisionData(
-            registration: TenantRegistrationData::from([
-                'company_name' => 'Test Company',
-                'domain' => $domain,
-                'payment_plan' => $paymentPlan,
-                'billing_cycle' => BillingCycle::Monthly,
-                'global_id' => $user->global_id,
-            ]),
-            stripeCustomerId: $stripeCustomerId,
-            stripeSubscriptionId: $stripeSubscriptionId,
-            centralUserId: (string) $user->id,
-        );
     }
 
     private function stripeSubscriptionData(

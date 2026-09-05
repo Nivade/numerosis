@@ -10,12 +10,12 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 
 class StartCheckoutRequest extends FormRequest
 {
     /**
-     * Refuses a checkout started in someone else's name — the request names
+     * Refuses a checkout started in someone else's name: the request names
      * the user it is for, so it has to match whoever is signed in.
      */
     public function authorize(): bool
@@ -29,7 +29,7 @@ class StartCheckoutRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'company_name' => ['required', 'string', 'max:255'],
+            ...TenantRegistrationData::rules(),
             'domain' => [
                 'required',
                 'string',

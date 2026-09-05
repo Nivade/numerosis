@@ -28,14 +28,7 @@ class UserPolicy
      */
     public function view(User $user, User $model): bool
     {
-        if ($user->hasPermissionTo('viewAny users')) {
-            return true;
-        }
-        if ($user->is($model)) {
-            return true;
-        }
-
-        return $user->hasPermissionTo('view users');
+        return $user->is($model) || $this->allowsAnyOr($user, 'viewAny', 'view');
     }
 
     /**
@@ -43,13 +36,6 @@ class UserPolicy
      */
     public function update(User $user, User $model): bool
     {
-        if ($user->hasPermissionTo('updateAny users')) {
-            return true;
-        }
-        if ($user->is($model)) {
-            return true;
-        }
-
-        return $user->hasPermissionTo('update users');
+        return $user->is($model) || $this->allowsAnyOr($user, 'updateAny', 'update');
     }
 }

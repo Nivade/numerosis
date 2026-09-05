@@ -16,13 +16,11 @@ use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
-use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Models\Central\Tenant as PackageTenant;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Support\Numerosis;
-use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 /*
  * Every host-seam bug this extraction found lived in these methods (see
@@ -39,9 +37,8 @@ it('registers the 4 middleware aliases and both groups, tenant group in order', 
     Numerosis::middleware($middleware);
 
     expect($middleware->getMiddlewareAliases())->toMatchArray([
-        'invitation.status' => CheckInvitationStatus::class,
-        'tenancy.identification' => TenancyServiceProvider::TENANCY_IDENTIFICATION,
-        'tenancy.route' => PreventAccessFromCentralDomains::class,
+        'tenancy.identification' => TenancyServiceProvider::identificationMiddleware(),
+        'tenancy.route' => TenancyServiceProvider::tenancyRouteMiddleware(),
         'tenancy.session' => EnsureSessionMatchesTenant::class,
     ]);
 
@@ -72,14 +69,21 @@ it('returns the exact csrf exceptions list', function () {
 it('binds a web-middleware route per central domain and a tenant group', function () {
     // routes() already ran once for the whole suite via TestCase::defineRoutes();
     // this asserts the outcome of that call, not a fresh invocation.
-    $central = Route::getRoutes()->getByName('terms');
-    throw_unless($central instanceof IlluminateRoute, RuntimeException::class, 'route [terms] not registered');
+    // `home`, not one of the old marketing routes: those moved to the host
+    // app. `home` is the one central route core always registers.
+    $central = Route::getRoutes()->getByName('home');
+    throw_unless($central instanceof IlluminateRoute, RuntimeException::class, 'route [home] not registered');
 
     expect($central->getDomain())->toBe(Config::array('tenancy.central_domains')[0]);
     expect($central->middleware())->toContain('web');
 
-    $tenant = Route::getRoutes()->getByName('verification.notice');
-    throw_unless($tenant instanceof IlluminateRoute, RuntimeException::class, 'route [verification.notice] not registered');
+    // 'tenant.suspended', not 'verification.notice': that route belonged to
+    // nvade/numerosis-auth-ui, which folded into core in Phase 3 of
+    // .claude/plans/archive/humming-nibbling-flame.md and had its Livewire screens
+    // deleted rather than moved (Phase 4 rebuilds them on Fortify), so it
+    // does not register right now.
+    $tenant = Route::getRoutes()->getByName('tenant.suspended');
+    throw_unless($tenant instanceof IlluminateRoute, RuntimeException::class, 'route [tenant.suspended] not registered');
 
     expect($tenant->middleware())->toContain('tenant');
 });
@@ -167,9 +171,8 @@ it('registers the middleware aliases/groups against the real router with no host
     $router = resolve(Router::class);
 
     expect($router->getMiddleware())->toMatchArray([
-        'invitation.status' => CheckInvitationStatus::class,
-        'tenancy.identification' => TenancyServiceProvider::TENANCY_IDENTIFICATION,
-        'tenancy.route' => PreventAccessFromCentralDomains::class,
+        'tenancy.identification' => TenancyServiceProvider::identificationMiddleware(),
+        'tenancy.route' => TenancyServiceProvider::tenancyRouteMiddleware(),
         'tenancy.session' => EnsureSessionMatchesTenant::class,
     ]);
 
@@ -245,8 +248,8 @@ it('assetTags() renders the prebuilt CSS+JS tags when nothing is published', fun
     // Pest\Mixins\Expectation trait, not that outer class) loses visibility
     // of it. A fresh expect() call keeps ->not resolvable.
     expect($html)
-        ->toContain('css/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.css')
-        ->toContain('js/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js');
+        ->toContain('vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.css')
+        ->toContain('vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js');
 
     expect($html)->not->toContain('/build/assets/');
 });
@@ -257,7 +260,7 @@ it('assetTags() falls back to the prebuilt JS tag when published but absent from
 
     $html = Numerosis::assetTags()->toHtml();
 
-    expect($html)->toContain('js/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js');
+    expect($html)->toContain('vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js');
 });
 
 it('assetTags() prefers vite() when the host has published and built its own copy', function () {
@@ -288,7 +291,7 @@ it('assetTags() prefers vite() when the host has published and built its own cop
     $html = Numerosis::assetTags()->toHtml();
 
     expect($html)->toContain('assets/numerosis-hashed.js');
-    expect($html)->not->toContain('js/nvade/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js');
+    expect($html)->not->toContain('vendor/numerosis/'.NumerosisServiceProvider::ASSET_ID.'.js');
 });
 
 afterEach(function () {
@@ -306,7 +309,7 @@ afterEach(function () {
 
 afterEach(function () {
     // These three statics persist for the life of the PHP process, not per
-    // Application instance (see .claude/rules/testing.md's general warning
+    // Application instance (see .ai/rules/testing.md's general warning
     // about static state) — a callback left set here would fire again for
     // every later test's own registerMiddleware()/registerBroadcasting()/
     // routes() call, most of which don't expect one.
@@ -321,7 +324,7 @@ it('replaces middleware registration entirely when registerMiddlewareUsing is se
     // body runs — a presence check can't tell "replaced" from "ran twice".
     // Count the alias table instead: a second, overridden run must add
     // nothing to it.
-    $aliasCountBefore = count(Route::getFacadeRoot()->getMiddleware());
+    $aliasCountBefore = count(resolve(Router::class)->getMiddleware());
 
     $called = null;
 
@@ -333,7 +336,7 @@ it('replaces middleware registration entirely when registerMiddlewareUsing is se
     new ReflectionMethod($provider, 'registerMiddleware')->invoke($provider);
 
     expect($called)->toBe(app())
-        ->and(Route::getFacadeRoot()->getMiddleware())->toHaveCount($aliasCountBefore);
+        ->and(resolve(Router::class)->getMiddleware())->toHaveCount($aliasCountBefore);
 });
 
 it('replaces broadcasting registration entirely when registerBroadcastingUsing is set', function () {
@@ -356,9 +359,9 @@ it('replaces broadcasting registration entirely when registerBroadcastingUsing i
 
 it('replaces route registration entirely when registerRoutesUsing is set', function () {
     // Same reasoning: routes() already ran once (with no callback) during
-    // the real boot, so 'terms'/'verification.notice' already exist —
-    // proving replacement means the override adds nothing further, not
-    // that the defaults are absent.
+    // the real boot, so 'home'/'tenant.suspended' already exist — proving
+    // replacement means the override adds nothing further, not that the
+    // defaults are absent.
     $routeCountBefore = count(Route::getRoutes()->getRoutes());
 
     $called = null;

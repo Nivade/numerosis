@@ -26,13 +26,6 @@ return [
         'expires' => 'Expires :month/:year',
     ],
 
-    'modules' => [
-        'purchase_not_authorized' => 'You are not allowed to purchase modules for this workspace. Ask the workspace owner.',
-        'cancel_not_authorized' => 'You are not allowed to cancel modules for this workspace. Ask the workspace owner.',
-        'cancel_unavailable' => 'Modules can only be cancelled from inside a workspace, signed in as a workspace user.',
-        'purchase_unavailable' => 'Modules can only be purchased from inside a workspace, signed in as a workspace user.',
-    ],
-
     'awaiting_payment' => [
         'title' => 'Payment settling',
         'description' => "Your payment method needs a few days to clear. We'll email you once it's confirmed — everything works in the meantime.",

@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Database\Factories\Tenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Database\Factories\Concerns\GeneratesUniqueEmails;
 use Nvade\Numerosis\Models\Tenant\User;
 
 /**
@@ -19,13 +20,14 @@ use Nvade\Numerosis\Models\Tenant\User;
  *
  * @extends Factory<User>
  */
-// No `protected $model` override: User is abstract (see
-// .claude/plans/package-extraction.md Phase 4.4) — a hardcoded $model here
-// bypasses Numerosis::modelNameFor()'s global resolver and forces `new
-// static` inside Eloquent's create()/make() to instantiate the abstract
-// class directly, which throws.
+// No `protected $model` override: User is abstract. A hardcoded $model
+// bypasses Numerosis::modelNameFor()'s global resolver, so `new static`
+// inside Eloquent's create()/make() instantiates the abstract class and
+// throws.
 class UserFactory extends Factory
 {
+    use GeneratesUniqueEmails;
+
     /**
      * The current password being used by the factory.
      */
@@ -38,11 +40,10 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            // Tenant users are synced from a central user, so a global_id that
-            // collides across tenants is the bug documented in
-            // .claude/rules/tenant-caching.md. Always unique.
+            // Tenant users are synced from a central user by global_id, so a
+            // value colliding across tenants cross-wires two users.
             'global_id' => (string) Str::uuid(),
-            'email' => fake()->unique()->safeEmail(),
+            'email' => static::uniqueEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),

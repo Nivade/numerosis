@@ -1,12 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Called ''env'' outside of the config directory which returns null when the config is cached, use ''config''\.$#'
-			identifier: larastan.noEnvCallsOutsideOfConfig
-			count: 22
-			path: config/numerosis.php
-
-		-
 			message: '#^Method Nvade\\Numerosis\\Database\\Factories\\PaymentPlanFeatureFactory\:\:boolean\(\) should return \$this\(Nvade\\Numerosis\\Database\\Factories\\PaymentPlanFeatureFactory\) but returns static\(Nvade\\Numerosis\\Database\\Factories\\PaymentPlanFeatureFactory\)\.$#'
 			identifier: return.type
 			count: 1
@@ -47,12 +41,6 @@ parameters:
 			identifier: property.phpDocType
 			count: 1
 			path: database/factories/PaymentPlanFeatureFactory.php
-
-		-
-			message: '#^Cannot call method getTenantKey\(\) on mixed\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: database/factories/Tenant/InvitationFactory.php
 
 		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Schema\\ForeignKeyDefinition\:\:nullable\(\)\.$#'
@@ -445,99 +433,15 @@ parameters:
 			path: database/migrations/tenant/2026_05_06_145658_upgrade_activitylog.php
 
 		-
-			message: '#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\.$#'
-			identifier: foreach.nonIterable
-			count: 1
-			path: database/seeders/Central/ModuleOfferingSeeder.php
-
-		-
-			message: '#^Cannot access offset ''slug'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: database/seeders/Central/ModuleOfferingSeeder.php
-
-		-
-			message: '#^Parameter \#2 \$values of static method Illuminate\\Database\\Eloquent\\Builder\<Nvade\\Numerosis\\Models\\Central\\ModuleOffering\>\:\:updateOrCreate\(\) expects array\<string, mixed\>\|Closure, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: database/seeders/Central/ModuleOfferingSeeder.php
-
-		-
-			message: '#^Parameter \#1 \$value of function collect expects Illuminate\\Contracts\\Support\\Arrayable\<\(int\|string\), mixed\>\|iterable\<\(int\|string\), mixed\>\|null, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: database/seeders/PaymentPlanSeeder.php
-
-		-
-			message: '#^Unable to resolve the template type TKey in call to function collect$#'
-			identifier: argument.templateType
-			count: 1
-			path: database/seeders/PaymentPlanSeeder.php
-
-		-
-			message: '#^Unable to resolve the template type TValue in call to function collect$#'
-			identifier: argument.templateType
-			count: 1
-			path: database/seeders/PaymentPlanSeeder.php
-
-		-
-			message: '#^Call to method getDescription\(\) on an unknown class Nwidart\\Modules\\Module\.$#'
-			identifier: class.notFound
-			count: 1
-			path: database/seeders/Tenant/ModuleSeeder.php
-
-		-
-			message: '#^Call to method getLowerName\(\) on an unknown class Nwidart\\Modules\\Module\.$#'
-			identifier: class.notFound
-			count: 1
-			path: database/seeders/Tenant/ModuleSeeder.php
-
-		-
-			message: '#^Call to static method all\(\) on an unknown class Nwidart\\Modules\\Facades\\Module\.$#'
-			identifier: class.notFound
-			count: 1
-			path: database/seeders/Tenant/ModuleSeeder.php
-
-		-
-			message: '#^Parameter \$m of anonymous function has invalid type Nwidart\\Modules\\Module\.$#'
-			identifier: class.notFound
-			count: 1
-			path: database/seeders/Tenant/ModuleSeeder.php
-
-		-
-			message: '#^Unable to resolve the template type TKey in call to function collect$#'
-			identifier: argument.templateType
-			count: 1
-			path: database/seeders/Tenant/ModuleSeeder.php
-
-		-
-			message: '#^Unable to resolve the template type TValue in call to function collect$#'
-			identifier: argument.templateType
-			count: 1
-			path: database/seeders/Tenant/ModuleSeeder.php
-
-		-
-			message: '#^Parameter \#1 \$message of static method Illuminate\\Log\\Logger\:\:info\(\) expects array\|Illuminate\\Contracts\\Support\\Arrayable\|Illuminate\\Contracts\\Support\\Jsonable\|Illuminate\\Support\\Stringable\|string, Nvade\\Numerosis\\Models\\Tenant\\User\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: database/seeders/Tenant/PermissionAndRoleSeeder.php
-
-		-
 			message: '#^Access to an undefined property Laravel\\Cashier\\Subscription\:\:\$stripe_id\.$#'
 			identifier: property.notFound
 			count: 1
 			path: src/Actions/Billing/Checkout/CreateInlineSubscription.php
 
 		-
-			message: '#^Parameter \#1 \$price of method Laravel\\Cashier\\SubscriptionBuilder\:\:price\(\) expects array\|string, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Actions/Billing/Checkout/CreateInlineSubscription.php
-
-		-
 			message: '#^Access to an undefined property Laravel\\Cashier\\Subscription\:\:\$stripe_id\.$#'
 			identifier: property.notFound
-			count: 2
+			count: 1
 			path: src/Actions/Billing/Checkout/SettleCheckout.php
 
 		-
@@ -545,12 +449,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: src/Actions/Billing/Checkout/SettleCheckout.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Cashier\\SubscriptionItem\:\:\$stripe_price\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Actions/Modules/CancelModule.php
 
 		-
 			message: '#^Argument of an invalid type array\|bool\|float\|int\|string\|null supplied for foreach, only iterables are supported\.$#'
@@ -563,42 +461,6 @@ parameters:
 			identifier: method.notFound
 			count: 1
 			path: src/Console/Commands/DeleteTenants.php
-
-		-
-			message: '#^Cannot cast array\|bool\|float\|int\|string\|null to string\.$#'
-			identifier: cast.string
-			count: 1
-			path: src/Console/Commands/MigrateTenantModule.php
-
-		-
-			message: '#^Cannot cast array\|bool\|float\|int\|string\|null to string\.$#'
-			identifier: cast.string
-			count: 1
-			path: src/Console/Commands/RollbackTenantModule.php
-
-		-
-			message: '#^Cannot cast array\|bool\|float\|int\|string\|null to string\.$#'
-			identifier: cast.string
-			count: 1
-			path: src/Console/Commands/SeedTenantModule.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Contracts\\Billing\\Plan\:\:metadata\(\) has invalid return type Nvade\\Numerosis\\Contracts\\Billing\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Contracts/Billing/Plan.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Contracts\\Billing\\Plan\:\:metadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Contracts/Billing/Plan.php
-
-		-
-			message: '#^PHPDoc tag @return with type Nvade\\Numerosis\\Contracts\\Billing\\PlanMetadata is incompatible with native type array\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: src/Contracts/Billing/Plan.php
 
 		-
 			message: '#^Type static\(Nvade\\Numerosis\\Contracts\\Subscribable\) in generic type Illuminate\\Database\\Eloquent\\Relations\\MorphMany\<Nvade\\Numerosis\\Models\\Central\\Subscription, static\(Nvade\\Numerosis\\Contracts\\Subscribable\)\> in PHPDoc tag @return is not subtype of template type TDeclaringModel of Illuminate\\Database\\Eloquent\\Model of class Illuminate\\Database\\Eloquent\\Relations\\MorphMany\.$#'
@@ -616,154 +478,19 @@ parameters:
 			message: '#^Call to method extendSocialite\(\) on an unknown class SocialiteProviders\\Manager\\SocialiteWasCalled\.$#'
 			identifier: class.notFound
 			count: 1
-			path: src/Features/Social/SocialLoginFeature.php
-
-		-
-			message: '#^Class SocialiteProviders\\Discord\\Provider not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Features/Social/SocialLoginFeature.php
+			path: src/Features/Auth/SocialLoginFeature.php
 
 		-
 			message: '#^Parameter \$event of anonymous function has invalid type SocialiteProviders\\Manager\\SocialiteWasCalled\.$#'
 			identifier: class.notFound
 			count: 1
-			path: src/Features/Social/SocialLoginFeature.php
+			path: src/Features/Auth/SocialLoginFeature.php
 
 		-
-			message: '''
-				#^Call to deprecated method bulkActions\(\) of class Filament\\Tables\\Table\:
-				Use `toolbarActions\(\)` instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Filament/Admin/Resources/Central/Features/Tables/FeaturesTable.php
-
-		-
-			message: '''
-				#^Call to method content\(\) of deprecated class Filament\\Forms\\Components\\Placeholder\:
-				Use `TextEntry` with the `state\(\)` method instead\.$#
-			'''
-			identifier: method.deprecatedClass
-			count: 1
-			path: src/Filament/Admin/Resources/Central/PaymentPlans/Schemas/PaymentPlanForm.php
-
-		-
-			message: '''
-				#^Call to static method make\(\) on deprecated class Filament\\Forms\\Components\\Placeholder\:
-				Use `TextEntry` with the `state\(\)` method instead\.$#
-			'''
-			identifier: staticMethod.deprecatedClass
-			count: 1
-			path: src/Filament/Admin/Resources/Central/PaymentPlans/Schemas/PaymentPlanForm.php
-
-		-
-			message: '''
-				#^Call to deprecated method bulkActions\(\) of class Filament\\Tables\\Table\:
-				Use `toolbarActions\(\)` instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Filament/Admin/Resources/Central/Subscriptions/Tables/SubscriptionsTable.php
-
-		-
-			message: '''
-				#^Call to deprecated method bulkActions\(\) of class Filament\\Tables\\Table\:
-				Use `toolbarActions\(\)` instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Filament/Admin/Resources/Tenants/RelationManagers/DomainsRelationManager.php
-
-		-
-			message: '''
-				#^Call to deprecated method bulkActions\(\) of class Filament\\Tables\\Table\:
-				Use `toolbarActions\(\)` instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Filament/Admin/Resources/Tenants/TenantResource.php
-
-		-
-			message: '''
-				#^Call to deprecated method actions\(\) of class Filament\\Tables\\Table\:
-				Use `recordActions\(\)` instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Filament/App/Resources/Roles/RelationManagers/PermissionsRelationManager.php
-
-		-
-			message: '''
-				#^Call to deprecated method bulkActions\(\) of class Filament\\Tables\\Table\:
-				Use `toolbarActions\(\)` instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Filament/App/Resources/Roles/RelationManagers/PermissionsRelationManager.php
-
-		-
-			message: '#^Parameter \#1 \$view of method Filament\\Support\\Components\\ViewComponent\:\:view\(\) expects view\-string\|null, string given\.$#'
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/Filament/TenantAdmin/Clusters/Profile/Pages/DeleteAccount.php
-
-		-
-			message: '#^Parameter \#1 \$view of method Filament\\Support\\Components\\ViewComponent\:\:view\(\) expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Filament/TenantAdmin/Clusters/Profile/Pages/General.php
-
-		-
-			message: '#^Parameter \#1 \$view of method Filament\\Support\\Components\\ViewComponent\:\:view\(\) expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Filament/TenantAdmin/Clusters/Profile/Pages/SocialAccounts.php
-
-		-
-			message: '''
-				#^Call to deprecated method bulkActions\(\) of class Filament\\Tables\\Table\:
-				Use `toolbarActions\(\)` instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Filament/TenantAdmin/Clusters/Team/Resources/Users/UserResource.php
-
-		-
-			message: '#^Access to an undefined property Workbench\\App\\Models\\User\:\:\$global_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Filament/TenantAdmin/Pages/Billing.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Cashier\\Subscription\:\:\$stripe_status\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Filament/TenantAdmin/Pages/Modules/Marketplace.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Cashier\\Subscription\:\:\$stripe_status\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Filament/TenantAdmin/Pages/Modules/ModuleDetail.php
-
-		-
-			message: '#^Access to an undefined property Workbench\\App\\Models\\User\:\:\$global_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Filament/TenantAdmin/Resources/Invitations/Pages/CreateInvitation.php
-
-		-
-			message: '#^Parameter \#1 \$user of class Illuminate\\Auth\\Events\\Verified constructor expects Illuminate\\Contracts\\Auth\\MustVerifyEmail, Workbench\\App\\Models\\User given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Http/Controllers/Auth/VerifyEmailController.php
-
-		-
-			message: '#^Cannot access property \$name on mixed\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: src/Http/Middleware/ApplyDefaultBranding.php
+			path: src/Http/Controllers/Auth/OneTimePasswordChallengeController.php
 
 		-
 			message: '#^Access to an undefined property Nvade\\Numerosis\\Models\\Tenant\\User\:\:\$is_bot\.$#'
@@ -772,70 +499,34 @@ parameters:
 			path: src/Http/Middleware/Authenticate.php
 
 		-
+			message: '#^Call to an undefined method Workbench\\App\\Models\\User\:\:getGlobalIdentifierKey\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Http/Requests/Auth/NumerosisVerifyEmailRequest.php
+
+		-
 			message: '#^Access to an undefined property Workbench\\App\\Models\\User\:\:\$global_id\.$#'
 			identifier: property.notFound
 			count: 1
 			path: src/Http/Requests/Billing/StartCheckoutRequest.php
 
 		-
-			message: '#^Call to an undefined method Workbench\\App\\Models\\User\:\:getGlobalIdentifierKey\(\)\.$#'
-			identifier: method.notFound
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
 			count: 1
-			path: src/Http/Requests/EmailVerificationRequest.php
-
-		-
-			message: '#^Access to an undefined property Workbench\\App\\Models\\User\:\:\$email\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Livewire/Auth/ConfirmPassword.php
+			path: src/Livewire/Billing/Checkout.php
 
 		-
 			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/Livewire/Auth/ConfirmPassword.php
+			path: src/Http/Controllers/Invitations/ShowInvitationController.php
 
 		-
 			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/Livewire/Auth/ForgotPassword.php
-
-		-
-			message: '#^PHPDoc tag @var with type view\-string is not subtype of native type non\-falsy\-string\.$#'
-			identifier: varTag.nativeType
-			count: 1
-			path: src/Livewire/Auth/PasswordlessLogin.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Auth/Register.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Auth/ResetPassword.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Auth/VerifyEmail.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Invitations/Accept.php
-
-		-
-			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/Settings/Appearance.php
+			path: src/Livewire/Settings/ConnectedAccounts.php
 
 		-
 			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
@@ -859,7 +550,7 @@ parameters:
 			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/Livewire/Tenant/Registration/Registration.php
+			path: src/Livewire/Tenant/Registration.php
 
 		-
 			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
@@ -898,142 +589,16 @@ parameters:
 			path: src/Models/Central/CentralUser.php
 
 		-
-			message: '#^Access to offset ''monthly_incentive''\|''yearly_incentive'' on an unknown class Nvade\\Numerosis\\Models\\Central\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Models/Central/PaymentPlan.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Models\\Central\\PaymentPlan\:\:metadata\(\) has invalid return type Nvade\\Numerosis\\Models\\Central\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Models/Central/PaymentPlan.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Models\\Central\\PaymentPlan\:\:metadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Models/Central/PaymentPlan.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Models\\Central\\PaymentPlan\:\:metadata\(\) should return array but returns array\|Nvade\\Numerosis\\Models\\Central\\PlanMetadata\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Models/Central/PaymentPlan.php
-
-		-
-			message: '#^PHPDoc tag @property for property Nvade\\Numerosis\\Models\\Central\\PaymentPlan\:\:\$metadata contains unknown class Nvade\\Numerosis\\Models\\Central\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Models/Central/PaymentPlan.php
-
-		-
-			message: '#^PHPDoc tag @return with type Nvade\\Numerosis\\Models\\Central\\PlanMetadata is incompatible with native type array\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: src/Models/Central/PaymentPlan.php
-
-		-
 			message: '#^Return type \(Illuminate\\Database\\Eloquent\\Relations\\MorphMany\<Nvade\\Numerosis\\Models\\Central\\Subscription, \$this\(Nvade\\Numerosis\\Models\\Central\\Tenant\)\>\) of method Nvade\\Numerosis\\Models\\Central\\Tenant\:\:subscriptions\(\) should be compatible with return type \(Illuminate\\Database\\Eloquent\\Relations\\MorphMany\<Nvade\\Numerosis\\Models\\Central\\Subscription, static\(Nvade\\Numerosis\\Contracts\\Subscribable\)\>\) of method Nvade\\Numerosis\\Contracts\\Subscribable\:\:subscriptions\(\)$#'
 			identifier: method.childReturnType
 			count: 1
 			path: src/Models/Central/Tenant.php
 
 		-
-			message: '#^Cannot cast mixed to string\.$#'
-			identifier: cast.string
-			count: 1
-			path: src/Rules/DomainIsAvailable.php
-
-		-
-			message: '#^Access to offset ''archived'' on an unknown class Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 2
-			path: src/Services/Billing/Plans/ConfigPaymentPlanRepository.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPaymentPlanRepository\:\:plans\(\) has invalid return type Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPaymentPlanRepository.php
-
-		-
-			message: '#^PHPDoc tag @var for variable \$plans contains unknown class Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPaymentPlanRepository.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata\>\:\:first\(\) expects \(callable\(Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata, int\)\: bool\)\|null, Closure\(array\)\: bool given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPaymentPlanRepository.php
-
-		-
-			message: '#^Parameter \#1 \$data of class Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPlan constructor expects array, Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata given\.$#'
-			identifier: argument.type
-			count: 4
-			path: src/Services/Billing/Plans/ConfigPaymentPlanRepository.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPlan\:\:__construct\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPlan\:\:metadata\(\) has invalid return type Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPlan\:\:metadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
-			message: '#^PHPDoc tag @param for parameter \$data with type Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata is incompatible with native type array\.$#'
-			identifier: parameter.phpDocType
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
-			message: '#^PHPDoc tag @return with type Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata is incompatible with native type array\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
-			message: '#^PHPDoc type for property Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPlan\:\:\$data with type Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata is incompatible with native type array\.$#'
-			identifier: property.phpDocType
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
-			message: '#^Parameter \$data of method Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPlan\:\:__construct\(\) has invalid type Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
-			message: '#^Property Nvade\\Numerosis\\Services\\Billing\\Plans\\ConfigPlan\:\:\$data has unknown class Nvade\\Numerosis\\Services\\Billing\\Plans\\PlanMetadata as its type\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Services/Billing/Plans/ConfigPlan.php
-
-		-
 			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:expect\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: tests/ArchTest.php
-
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Actions/Auth/LoginUserTest.php
 
 		-
 			message: '#^Call to an undefined method App\\Models\\Central\\CentralUser\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Central\\CentralUser\>\:\:hasRole\(\)\.$#'
@@ -1064,18 +629,6 @@ parameters:
 			identifier: method.alreadyNarrowedType
 			count: 1
 			path: tests/Feature/Actions/Billing/Checkout/StartSubscriptionCheckoutTest.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$subscribable_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: tests/Feature/Actions/Billing/Subscriptions/LinkSubscriptionToTenantTest.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$subscribable_type\.$#'
-			identifier: property.notFound
-			count: 1
-			path: tests/Feature/Actions/Billing/Subscriptions/LinkSubscriptionToTenantTest.php
 
 		-
 			message: '#^Property Stripe\\Subscription\:\:\$items \(Stripe\\Collection\<Stripe\\SubscriptionItem\>\) does not accept object\{data\: array\{object\{id\: ''si_123'', price\: object\{id\: ''price_123'', product\: ''prod_123''\}&stdClass, quantity\: 1\}&stdClass\}\}&stdClass\.$#'
@@ -1114,18 +667,6 @@ parameters:
 			path: tests/Feature/Actions/Billing/Subscriptions/RecordSubscriptionTest.php
 
 		-
-			message: '#^Access to an undefined property Laravel\\Cashier\\SubscriptionItem\:\:\$stripe_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: tests/Feature/Actions/Modules/CancelModuleTest.php
-
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Actions/Queries/FindUserByGlobalIdTest.php
-
-		-
 			message: '#^Cannot access property \$error on App\\Models\\Central\\PendingTenantProvision\|null\.$#'
 			identifier: property.nonObject
 			count: 1
@@ -1156,12 +697,6 @@ parameters:
 			path: tests/Feature/Actions/Tenancy/TenantProvisioningSignalTest.php
 
 		-
-			message: '#^Cannot access property \$name on Illuminate\\Broadcasting\\Channel\|string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: tests/Feature/Actions/Tenancy/TenantProvisioningSignalTest.php
-
-		-
 			message: '#^Cannot access property \$provisioned_at on App\\Models\\Central\\Tenant\|null\.$#'
 			identifier: property.nonObject
 			count: 1
@@ -1176,7 +711,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:expect\(\)\.$#'
 			identifier: method.notFound
-			count: 3
+			count: 2
 			path: tests/Feature/ArchTest.php
 
 		-
@@ -1228,76 +763,16 @@ parameters:
 			path: tests/Feature/Console/PruneStalledTenantProvisionsTest.php
 
 		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
 			count: 1
-			path: tests/Feature/Events/Auth/SocialAccountDisconnectedTest.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: tests/Feature/Filament/Pages/InteractsWithRecordTraitTest.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertSet\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Feature/Filament/TenantAdmin/Pages/BillingPlanVisibilityTest.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Tests\\Feature\\Filament\\TenantAdmin\\Pages\\BillingTest\:\:getTenant\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: tests/Feature/Filament/TenantAdmin/Pages/BillingTest.php
-
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/GetTenantsByGlobalIdTest.php
-
-		-
-			message: '#^Cannot call method instance\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Http/Controllers/Socialite/LoginTest.php
-
-		-
-			message: '#^Call to an undefined method App\\Models\\Central\\CentralUser\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Central\\CentralUser\>\:\:getAttributes\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Feature/Http/Middleware/UpdateUserLastSeenMiddlewareTest.php
+			path: tests/Feature/Features/RegistrationWizardDisabledTest.php
 
 		-
 			message: '#^Cannot access property \$id on Nvade\\Numerosis\\Models\\Role\|null\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: tests/Feature/InterviewShowcaseTest.php
-
-		-
-			message: '#^Cannot call method instance\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Invitations/CheckInvitationStatusTest.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Contracts\\Invitations\\InvitationRepository@anonymous/tests/Feature/Invitations/CheckInvitationStatusTest\.php\:105\:\:find\(\) never returns null so it can be removed from the return type\.$#'
-			identifier: return.unusedType
-			count: 1
-			path: tests/Feature/Invitations/CheckInvitationStatusTest.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Contracts\\Invitations\\InvitationRepository@anonymous/tests/Feature/Invitations/CheckInvitationStatusTest\.php\:105\:\:findByToken\(\) never returns null so it can be removed from the return type\.$#'
-			identifier: return.unusedType
-			count: 1
-			path: tests/Feature/Invitations/CheckInvitationStatusTest.php
-
-		-
-			message: '#^Method Nvade\\Numerosis\\Tests\\Feature\\Invitations\\CheckInvitationStatusTest\:\:getTenantRoute\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: tests/Feature/Invitations/CheckInvitationStatusTest.php
 
 		-
 			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:fail\(\)\.$#'
@@ -1317,23 +792,6 @@ parameters:
 			count: 1
 			path: tests/Feature/Listeners/Tenancy/LogSyncedResourceChangedInForeignDatabaseTest.php
 
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: tests/Feature/Livewire/Auth/PasswordlessLoginTest.php
-
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Livewire/Auth/RegisterTest.php
-
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Livewire/Invitations/AcceptTest.php
 
 		-
 			message: '#^Method Nvade\\Numerosis\\Tests\\Feature\\Livewire\\Tenant\\Registration\\RegistrationCheckoutHandoffTest\:\:planStep\(\) return type with generic class Livewire\\Features\\SupportTesting\\Testable does not specify its types\: TComponent$#'
@@ -1342,40 +800,16 @@ parameters:
 			path: tests/Feature/Livewire/Tenant/Registration/RegistrationCheckoutHandoffTest.php
 
 		-
-			message: '#^Unable to resolve the template type TComponent in call to method Livewire\\LivewireManager\:\:test\(\)$#'
-			identifier: argument.templateType
-			count: 9
-			path: tests/Feature/Livewire/TenantsMineTest.php
-
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Models/Central/PaymentPlanPopularCacheTest.php
-
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Models/Central/TenantPrimaryDomainCacheTest.php
-
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Services/Billing/Modules/EloquentModuleCatalogTest.php
-
-		-
-			message: '#^Cannot call method singleton\(\) on Illuminate\\Foundation\\Application\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Feature/Services/Billing/Plans/EloquentPaymentPlanRepositoryTest.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertSeeLivewire\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: tests/Feature/SettingsProfilePageTest.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: tests/Feature/Support/NumerosisSeamTest.php
 
 		-
 			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertTrue\(\) with true will always evaluate to true\.$#'
@@ -1406,4 +840,3 @@ parameters:
 			identifier: assign.propertyType
 			count: 1
 			path: tests/Support/CloneTenantSchema.php
-

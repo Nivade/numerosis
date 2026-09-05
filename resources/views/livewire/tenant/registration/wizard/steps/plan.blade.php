@@ -9,17 +9,19 @@
     <div class="space-y-6">
         @php
             $maxSavings = $paymentPlans->map(fn($plan) => $plan->getSavingsPercentage())->max();
+            $cycle = $this->cycle();
+            $billing = resolve(\Nvade\Numerosis\Services\Billing\BillingService::class);
         @endphp
-        <x-numerosis::billing.cycle-toggle :billing-cycle="$billingCycle" :max-savings="$maxSavings" class="mb-8" />
+        <x-numerosis::billing.cycle-toggle :billing-cycle="$cycle" :max-savings="$maxSavings" class="mb-8" />
 
         <flux:field>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 @foreach($paymentPlans as $paymentPlan)
                     <x-numerosis::billing.plan-card
                         :plan="$paymentPlan"
-                        :billing-cycle="$billingCycle"
-                        :price="resolve(\Nvade\Numerosis\Services\Billing\BillingService::class)->formatAmount($paymentPlan->getPrice($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle : \Nvade\Numerosis\Enums\BillingCycle::from($billingCycle)))"
-                        :incentive="$paymentPlan->getIncentive($billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle : \Nvade\Numerosis\Enums\BillingCycle::from($billingCycle))"
+                        :billing-cycle="$cycle"
+                        :price="$billing->formatAmount($paymentPlan->getPrice($cycle))"
+                        :incentive="$paymentPlan->getIncentive($cycle)"
                         type="selectable"
                     />
                 @endforeach
@@ -59,7 +61,7 @@
             <flux:button
                 tag="a"
                 href="{{ route('checkout.subscription.dev', [
-                    'billing_cycle' => $billingCycle instanceof \Nvade\Numerosis\Enums\BillingCycle ? $billingCycle->value : $billingCycle,
+                    'billing_cycle' => $cycle->value,
                     'company_name' => $this->state()->get('company_name'),
                     'domain' => $this->state()->get('domain'),
                     'payment_plan' => $payment_plan,

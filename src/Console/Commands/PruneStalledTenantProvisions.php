@@ -9,7 +9,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Support\Numerosis;
 
@@ -30,8 +30,8 @@ class PruneStalledTenantProvisions extends Command
 
     /**
      * Reservations whose owner never completed checkout. Expected garbage
-     * rather than an incident, so these are dropped quietly and the domain
-     * becomes claimable again.
+     * and no incident, so these are dropped quietly and the domain becomes
+     * claimable again.
      */
     private function releaseAbandonedReservations(Carbon $cutoff, bool $dryRun): void
     {

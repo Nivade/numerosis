@@ -9,6 +9,9 @@ namespace Nvade\Numerosis\Concerns;
  * person across the central and tenant databases.
  *
  * Compose it into any model that syncs between the two.
+ *
+ * `stancl/tenancy` v3's `ResourceSyncing` trait calls both methods without
+ * declaring them, which is why they live here.
  */
 trait HasGlobalIdentity
 {

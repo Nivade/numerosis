@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace Nvade\Numerosis;
 
 use Closure;
-use Filament\Support\Assets\Css;
-use Filament\Support\Assets\Js;
-use Filament\Support\Assets\Theme;
-use Filament\Support\Facades\FilamentAsset;
+use Illuminate\Auth\Events\Logout;
+use Illuminate\Auth\Middleware\Authenticate;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Http\Kernel;
@@ -19,75 +18,94 @@ use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\Middleware\TrustHosts;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Blade;
+use Illuminate\Routing\Route as RoutingRoute;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
+use Laravel\Fortify\Actions\AttemptToAuthenticate;
+use Laravel\Fortify\Actions\CanonicalizeUsername;
+use Laravel\Fortify\Actions\EnsureLoginIsNotThrottled;
+use Laravel\Fortify\Actions\PrepareAuthenticatedSession;
+use Laravel\Fortify\Contracts\LoginResponse as FortifyLoginResponse;
+use Laravel\Fortify\Contracts\LogoutResponse as FortifyLogoutResponse;
+use Laravel\Fortify\Contracts\VerifyEmailResponse as FortifyVerifyEmailResponse;
+use Laravel\Fortify\Features as FortifyFeatures;
+use Laravel\Fortify\Fortify;
+use Laravel\Fortify\Http\Requests\LoginRequest as FortifyLoginRequest;
+use Laravel\Fortify\Http\Requests\VerifyEmailRequest as FortifyVerifyEmailRequest;
 use Livewire\Livewire;
-use Nvade\Numerosis\Actions\Auth\AuthenticateLoginCandidate;
 use Nvade\Numerosis\Actions\Auth\CreateRegisteredUser;
-use Nvade\Numerosis\Actions\Auth\FindLoginCandidate;
-use Nvade\Numerosis\Actions\Auth\ResolvePostLoginRedirectUrl;
-use Nvade\Numerosis\Actions\Auth\SendEmailVerificationNotification;
-use Nvade\Numerosis\Actions\Invitations\CreateInvitedUser;
+use Nvade\Numerosis\Actions\Auth\LogInToCentralGuard;
+use Nvade\Numerosis\Actions\Auth\RedirectIfOneTimePasswordAuthenticatable;
+use Nvade\Numerosis\Actions\Auth\ResetUserPassword;
+use Nvade\Numerosis\Actions\Auth\UpdateUserPassword;
+use Nvade\Numerosis\Actions\Auth\UpdateUserProfile;
 use Nvade\Numerosis\Commands\InstallNumerosisCommand;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
 use Nvade\Numerosis\Console\Commands\DeleteTenants;
-use Nvade\Numerosis\Console\Commands\MigrateTenantModule;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedStripeCustomers;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
-use Nvade\Numerosis\Console\Commands\RollbackTenantModule;
-use Nvade\Numerosis\Console\Commands\SeedTenantModule;
-use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
-use Nvade\Numerosis\Contracts\Auth\CreatesRegisteredUser;
-use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
-use Nvade\Numerosis\Contracts\Auth\ResolvesPostLoginRedirectUrl;
-use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
-use Nvade\Numerosis\Contracts\Auth\SocialAccountRepository;
-use Nvade\Numerosis\Contracts\Invitations\CreatesInvitedUser;
-use Nvade\Numerosis\Contracts\Invitations\InvitationRepository;
-use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder as PackageDatabaseSeeder;
-use Nvade\Numerosis\Events\Auth\SocialAccountConnected;
-use Nvade\Numerosis\Events\Auth\SocialAccountDisconnected;
+use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
+use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\TenantSuspended;
-use Nvade\Numerosis\Events\Invitations\InvitationIssued;
-use Nvade\Numerosis\Events\Modules\ModulePurchased;
-use Nvade\Numerosis\Http\Middleware\CheckInvitationStatus;
-use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
-use Nvade\Numerosis\Listeners\Auth\LogSocialAccountConnected;
-use Nvade\Numerosis\Listeners\Auth\LogSocialAccountDisconnected;
+use Nvade\Numerosis\Events\Invitations\InvitationCreated;
+use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
+use Nvade\Numerosis\Events\Tenancy\TenantRestored;
+use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
+use Nvade\Numerosis\Http\Requests\Auth\NumerosisLoginRequest;
+use Nvade\Numerosis\Http\Requests\Auth\NumerosisVerifyEmailRequest;
+use Nvade\Numerosis\Http\Responses\Auth\NumerosisLoginResponse;
+use Nvade\Numerosis\Http\Responses\Auth\NumerosisLogoutResponse;
+use Nvade\Numerosis\Http\Responses\Auth\NumerosisVerifyEmailResponse;
+use Nvade\Numerosis\Listeners\Auth\EndOtherGuardSession;
+use Nvade\Numerosis\Listeners\Auth\LogSocialAccountLinked;
+use Nvade\Numerosis\Listeners\Auth\LogSocialAccountUnlinked;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentConfirmedNotification;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentFailedNotification;
 use Nvade\Numerosis\Listeners\Billing\SendTenantSuspendedNotification;
 use Nvade\Numerosis\Listeners\Invitations\SendInvitationNotification;
-use Nvade\Numerosis\Listeners\Modules\QueueModuleMigration;
+use Nvade\Numerosis\Listeners\Tenancy\BackfillTenantUsers;
+use Nvade\Numerosis\Listeners\Tenancy\SendTenantRestoredNotification;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
+use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
 use Nvade\Numerosis\Livewire\Settings\DeleteUserForm;
+use Nvade\Numerosis\Models\Central;
+use Nvade\Numerosis\Models\Permission;
+use Nvade\Numerosis\Models\Role;
+use Nvade\Numerosis\Models\Tenant as TenantModels;
+use Nvade\Numerosis\Policies\InvitationPolicy;
+use Nvade\Numerosis\Policies\PaymentPlanPolicy;
+use Nvade\Numerosis\Policies\PermissionPolicy;
+use Nvade\Numerosis\Policies\PlanFeaturePolicy;
+use Nvade\Numerosis\Policies\RolePolicy;
+use Nvade\Numerosis\Policies\SocialAccountPolicy;
+use Nvade\Numerosis\Policies\SubscriptionPolicy;
+use Nvade\Numerosis\Policies\TenantPolicy;
+use Nvade\Numerosis\Policies\UserPolicy;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
-use Nvade\Numerosis\Providers\Filament\NumerosisAdminPanelProvider;
-use Nvade\Numerosis\Providers\Filament\NumerosisTenantPanelProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
-use Nvade\Numerosis\Support\Defaults\EloquentInvitationRepository;
-use Nvade\Numerosis\Support\Defaults\EloquentSocialAccountRepository;
-use Nvade\Numerosis\Support\Defaults\NotifiesTenantOwnerDirectly;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
+use Nvade\Numerosis\Support\Assets;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Support\Routes\RouteNames;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
+use Stancl\Tenancy\Contracts\Tenant;
 
 class NumerosisServiceProvider extends PackageServiceProvider
 {
     use PublishesPackageAssets;
-
-    /** Filament theme asset id, applied by both panel plugins. */
-    public const string THEME_ID = 'numerosis-filament-theme';
 
     /** Asset id for the package's own JS and CSS bundles. */
     public const string ASSET_ID = 'numerosis';
@@ -96,16 +114,12 @@ class NumerosisServiceProvider extends PackageServiceProvider
     {
         $package
             ->name('numerosis')
-            ->hasConfigFile('numerosis')
             ->hasViews()
             ->hasTranslations()
             ->discoversMigrations(true, '/database/migrations/central')
             ->runsMigrations()
             ->hasCommand(InstallNumerosisCommand::class)
             ->hasCommand(DeleteTenants::class)
-            ->hasCommand(MigrateTenantModule::class)
-            ->hasCommand(RollbackTenantModule::class)
-            ->hasCommand(SeedTenantModule::class)
             ->hasCommand(PruneOrphanedStripeCustomers::class)
             ->hasCommand(PruneOrphanedTenantDatabases::class)
             ->hasCommand(PruneStalledTenantProvisions::class);
@@ -113,11 +127,19 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
+        // Not `mergeConfigFrom()`: Laravel merges published config only one
+        // level deep, so a host file naming `billing` at all would shadow
+        // every sibling key the package later adds under it.
+        /** @var array<string, mixed> $current */
+        $current = Config::get('numerosis', []);
+        /** @var array<string, mixed> $defaults */
+        $defaults = require __DIR__.'/../config/numerosis.php';
+        Config::set('numerosis', $this->fillMissingKeys($defaults, $current));
+
         Numerosis::resetModelCache();
 
         // Deferred until every provider has registered, so config shipped by
-        // stancl/tenancy and Laravel itself is normalized after it is merged
-        // rather than before.
+        // stancl/tenancy and Laravel itself is normalized once it is merged.
         $this->app->booting(function (): void {
             HostConfig::apply();
         });
@@ -125,15 +147,21 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->app->register(TenancyServiceProvider::class);
         $this->app->register(BillingServiceProvider::class);
 
-        $this->app->bind(ResolvesLoginCandidate::class, FindLoginCandidate::class);
-        $this->app->bind(AuthenticatesLoginCandidate::class, AuthenticateLoginCandidate::class);
-        $this->app->bind(ResolvesPostLoginRedirectUrl::class, ResolvePostLoginRedirectUrl::class);
-        $this->app->bind(CreatesRegisteredUser::class, CreateRegisteredUser::class);
-        $this->app->bind(SendsEmailVerificationNotification::class, SendEmailVerificationNotification::class);
-        $this->app->bind(CreatesInvitedUser::class, CreateInvitedUser::class);
-        $this->app->bind(InvitationRepository::class, EloquentInvitationRepository::class);
-        $this->app->bind(SocialAccountRepository::class, EloquentSocialAccountRepository::class);
-        $this->app->bind(NotifiesTenantOwner::class, NotifiesTenantOwnerDirectly::class);
+        // Fortify registers its routes on one domain/prefix group. This
+        // package needs them per central domain and in the tenant group, so
+        // `Numerosis::routes()` loads `routes/routes.php` itself.
+        Fortify::ignoreRoutes();
+
+        // `Tenancy::getBootstrappers()` resolves through `app()` on both
+        // initialize and end, so a bootstrapper that remembers anything
+        // between `bootstrap()` and `revert()` needs one shared instance.
+        $this->app->singleton(PasswordBrokerBootstrapper::class);
+
+        // Interface-to-concrete mappings, exactly like Fortify's own. A host's
+        // `AppServiceProvider` registers after package providers, so
+        // overriding either is free, with no opt-in seam to build.
+        $this->app->singleton(FortifyLoginResponse::class, NumerosisLoginResponse::class);
+        $this->app->singleton(FortifyLogoutResponse::class, NumerosisLogoutResponse::class);
 
         // `db:seed` resolves this class by name, so an app without one of its
         // own would never run the package's seeders. Define the class and
@@ -142,26 +170,34 @@ class NumerosisServiceProvider extends PackageServiceProvider
             $this->app->bind('Database\Seeders\DatabaseSeeder', PackageDatabaseSeeder::class);
         }
 
-        // Points the `layouts::` and `pages::` Livewire namespaces at the
-        // views this package ships. Set either yourself to use your own —
-        // from your own provider's register(), not boot(): Livewire reads this
-        // config once in its own boot() and bakes the result into the view
-        // finder's hints, so a later config change is accepted and has no
-        // effect on how views actually resolve. App providers register after
-        // package providers, so a register()-phase override wins here (this
-        // loop only writes an unset or still-stock value) while a boot()-phase
-        // one silently loses. See docs/host-requirements.md.
-        foreach (['layouts', 'pages'] as $namespace) {
-            $current = Config::get("livewire.component_namespaces.{$namespace}");
+        $this->registerLivewireComponentNamespaces();
 
-            if ($current === null || $current === resource_path("views/{$namespace}")) {
+        $this->registerLivewireUploadDisk();
+    }
+
+    /**
+     * Points `layouts::` and `pages::` at this package's views, leaving
+     * anything a host already set. Livewire bakes these into the view finder
+     * during its boot(), so a host has to set them in register().
+     */
+    protected function registerLivewireComponentNamespaces(): void
+    {
+        foreach (['layouts', 'pages'] as $namespace) {
+            $configured = Config::get("livewire.component_namespaces.{$namespace}");
+
+            if ($configured === null || $configured === resource_path("views/{$namespace}")) {
                 Config::set("livewire.component_namespaces.{$namespace}", __DIR__."/../resources/views/{$namespace}");
             }
         }
+    }
 
-        // Gives Livewire's temporary uploads a disk whose root never moves.
-        // Its upload route runs outside tenancy, so a tenant-suffixed disk
-        // would write and validate the same file in different directories.
+    /**
+     * Gives Livewire's temporary uploads a disk whose root never moves. Its
+     * upload route runs outside tenancy, so a tenant-suffixed disk would write
+     * and validate the same file in different directories.
+     */
+    protected function registerLivewireUploadDisk(): void
+    {
         if (Config::get('filesystems.disks.livewire') === null) {
             Config::set('filesystems.disks.livewire', [
                 'driver' => 'local',
@@ -174,55 +210,17 @@ class NumerosisServiceProvider extends PackageServiceProvider
         if (Config::get('livewire.temporary_file_upload.disk') === null) {
             Config::set('livewire.temporary_file_upload.disk', 'livewire');
         }
-
-        $this->registerFilamentPanels();
-    }
-
-    /**
-     * Registers the admin and tenant panels. Name your own provider in
-     * `numerosis.panels.{admin,tenant}.provider` to replace either.
-     *
-     * Whether a panel registers at all is each provider's own decision;
-     * this only chooses the class.
-     */
-    protected function registerFilamentPanels(): void
-    {
-        $this->app->booting(function (): void {
-            $admin = Config::get('numerosis.panels.admin.provider');
-            $tenant = Config::get('numerosis.panels.tenant.provider');
-
-            // A host naming its own provider is trusted to have Filament
-            // installed — only the package's own default classes need the
-            // guard, since NumerosisAdminPanelProvider/NumerosisTenantPanelProvider
-            // extend Filament\PanelProvider and would fatal on autoload
-            // otherwise (filament/filament is suggest, not require).
-            if (is_string($admin)) {
-                $this->app->register($admin);
-            } elseif (class_exists(\Filament\PanelProvider::class)) {
-                $this->app->register(NumerosisAdminPanelProvider::class);
-            }
-
-            if (is_string($tenant)) {
-                $this->app->register($tenant);
-            } elseif (class_exists(\Filament\PanelProvider::class)) {
-                $this->app->register(NumerosisTenantPanelProvider::class);
-            }
-        });
     }
 
     public function packageBooted(): void
     {
         Config::set('numerosis.views.path', __DIR__.'/../resources/views');
 
-        // Factories ship with this package even when the model is a subclass
-        // in your app namespace, so both directions of Laravel's default
-        // model/factory guessing need replacing.
-        Factory::guessFactoryNamesUsing(Numerosis::factoryNameFor(...));
-        Factory::guessModelNamesUsing(fn (Factory $factory): string => Numerosis::modelNameFor($factory::class));
+        $this->registerFactoryResolvers();
 
-        foreach (Features::all() as $feature) {
-            $this->app->make($feature)->bootstrap();
-        }
+        $this->bootstrapFeatures();
+
+        $this->registerPolicies();
 
         $this->registerRoutesFallback();
 
@@ -234,22 +232,67 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         $this->registerMiddleware();
 
-        $this->registerFilamentTheme();
+        $this->registerFortify();
+
+        $this->registerGuestRedirect();
 
         $this->registerBroadcasting();
 
         $this->registerExceptionHandling();
 
-        // Components addressed by dotted name from this package's own Blade
-        // views. Livewire cannot discover package classes on its own.
+        $this->registerLivewireComponents();
+
+        $this->registerPublishing();
+    }
+
+    /**
+     * Factories ship with this package even when the model is a subclass in a
+     * host's own namespace, so both directions of Laravel's default
+     * model/factory guessing need replacing.
+     */
+    protected function registerFactoryResolvers(): void
+    {
+        Factory::guessFactoryNamesUsing(Numerosis::factoryNameFor(...));
+        Factory::guessModelNamesUsing(fn (Factory $factory): string => Numerosis::modelNameFor($factory::class));
+    }
+
+    /**
+     * A configured feature whose class is not installed logs one warning and
+     * is skipped. It also reads as disabled through `Features::enabled()`, so
+     * the warning is the only symptom.
+     */
+    protected function bootstrapFeatures(): void
+    {
+        foreach (Features::all() as $feature) {
+            if (! class_exists($feature)) {
+                Log::warning("Numerosis: configured feature [{$feature}] does not exist; skipping.");
+
+                continue;
+            }
+
+            $this->app->make($feature)->bootstrap();
+        }
+    }
+
+    /**
+     * Components addressed by dotted name from this package's own Blade views.
+     * Livewire cannot discover package classes on its own.
+     */
+    protected function registerLivewireComponents(): void
+    {
         Livewire::addComponent(name: 'billing.checkout', class: Checkout::class);
         Livewire::addComponent(name: 'settings.delete-user-form', class: DeleteUserForm::class);
+        Livewire::addComponent(name: 'settings.connected-accounts', class: ConnectedAccounts::class);
+    }
 
-        // Lucide icons this package's views use that Flux does not ship.
-        // Registered after Flux's own paths, so yours still take precedence.
-        $this->app->booted(function (): void {
-            Blade::anonymousComponentPath(__DIR__.'/../resources/views/flux', 'flux');
-        });
+    protected function registerPublishing(): void
+    {
+        // The deep-fill backfills every key an override omits, at any depth,
+        // so publishing the full file is safe: a host only has to edit what
+        // it actually changes.
+        $this->publishGroup([
+            __DIR__.'/../config/numerosis.php' => config_path('numerosis.php'),
+        ], 'numerosis-config');
 
         // Tenant migrations run per-tenant, never centrally. Publish them
         // only to customize one; tenancy config points at the package copy.
@@ -261,21 +304,50 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // Vite config and your build replaces the prebuilt bundle.
         $this->publishGroup(Numerosis::assetSourcePaths(), 'numerosis-assets');
 
+        // The prebuilt bundles themselves, which `Assets::tags()` links to
+        // from public/vendor/numerosis. `numerosis:install` checks that same
+        // public path to report whether they have been published.
+        $publishedAssets = Assets::publishedPaths();
+
+        $this->publishGroup([
+            __DIR__.'/../dist/numerosis.css' => $publishedAssets['css'],
+            __DIR__.'/../dist/numerosis.js' => $publishedAssets['js'],
+        ], 'numerosis-public-assets');
+
         // Optional subclasses of the package's models, for apps that want to
         // extend them. Every package model is concrete and usable as-is.
-        $modelStubs = [
-            __DIR__.'/../stubs/Models/Central/Tenant.stub' => app_path('Models/Central/Tenant.php'),
-            __DIR__.'/../stubs/Models/Central/Domain.stub' => app_path('Models/Central/Domain.php'),
-            __DIR__.'/../stubs/Models/Central/CentralUser.stub' => app_path('Models/Central/CentralUser.php'),
-            __DIR__.'/../stubs/Models/Central/Subscription.stub' => app_path('Models/Central/Subscription.php'),
-            __DIR__.'/../stubs/Models/Central/PaymentPlan.stub' => app_path('Models/Central/PaymentPlan.php'),
-            __DIR__.'/../stubs/Models/Central/PendingTenantProvision.stub' => app_path('Models/Central/PendingTenantProvision.php'),
-            __DIR__.'/../stubs/Models/Tenant/User.stub' => app_path('Models/Tenant/User.php'),
-            __DIR__.'/../stubs/Models/Tenant/Invitation.stub' => app_path('Models/Tenant/Invitation.php'),
-            __DIR__.'/../stubs/Models/Tenant/Module.stub' => app_path('Models/Tenant/Module.php'),
-        ];
+        $modelStubs = [];
+
+        foreach (Numerosis::modelStubs() as $relative) {
+            $modelStubs[__DIR__."/../stubs/Models/{$relative}.stub"] = app_path("Models/{$relative}.php");
+        }
 
         $this->publishGroup($modelStubs, 'numerosis-models');
+    }
+
+    /**
+     * Binds each model to its policy explicitly, because the `#[UsePolicy]`
+     * each one carries does not reach a host's subclass. Registers the package
+     * class, never `Numerosis::model()`'s resolved one, so a host's own
+     * `App\Policies\*` convention still wins.
+     */
+    protected function registerPolicies(): void
+    {
+        $policies = [
+            Central\Invitation::class => InvitationPolicy::class,
+            Central\PaymentPlan::class => PaymentPlanPolicy::class,
+            Central\PlanFeature::class => PlanFeaturePolicy::class,
+            Central\SocialAccount::class => SocialAccountPolicy::class,
+            Central\Subscription::class => SubscriptionPolicy::class,
+            Central\Tenant::class => TenantPolicy::class,
+            Permission::class => PermissionPolicy::class,
+            Role::class => RolePolicy::class,
+            TenantModels\User::class => UserPolicy::class,
+        ];
+
+        foreach ($policies as $model => $policy) {
+            Gate::policy($model, $policy);
+        }
     }
 
     /**
@@ -328,13 +400,13 @@ class NumerosisServiceProvider extends PackageServiceProvider
                 $schedule->command('tenancy:prune-stalled-provisions')->hourly();
             }
 
-            // torann/geoip's MaxMind database driver (backs ResolveCheckoutRegion)
-            // needs its local .mmdb file refreshed periodically — MaxMind
-            // rotates license keys and update cadence. Only registered when
-            // that service is actually configured, since geoip:update no-ops
-            // (with a log line, not an error) for every other driver.
-            if (Config::string('geoip.service') === 'maxmind_database') {
-                $schedule->command('geoip:update')->weekly();
+            // Resolved through Numerosis::model() so a host that subclassed
+            // Invitation prunes its own class. Invitation::prunable() keeps
+            // accepted and expired rows for 30 days.
+            if (Config::boolean('numerosis.schedule.prune_invitations')) {
+                $schedule->command('model:prune', [
+                    '--model' => [Numerosis::model(Central\Invitation::class)],
+                ])->daily();
             }
         });
     }
@@ -349,13 +421,18 @@ class NumerosisServiceProvider extends PackageServiceProvider
     protected function registerEventListeners(): void
     {
         $listeners = [
-            SocialAccountConnected::class => LogSocialAccountConnected::class,
-            SocialAccountDisconnected::class => LogSocialAccountDisconnected::class,
+            SocialAccountLinked::class => LogSocialAccountLinked::class,
+            SocialAccountUnlinked::class => LogSocialAccountUnlinked::class,
+            InvitationCreated::class => SendInvitationNotification::class,
             PaymentSettled::class => SendPaymentConfirmedNotification::class,
             PaymentFailed::class => SendPaymentFailedNotification::class,
             TenantSuspended::class => SendTenantSuspendedNotification::class,
-            InvitationIssued::class => SendInvitationNotification::class,
-            ModulePurchased::class => QueueModuleMigration::class,
+            TenantRestored::class => SendTenantRestoredNotification::class,
+            TenantProvisioned::class => BackfillTenantUsers::class,
+            // Auto-discovery only scans a host's `app/Listeners`, never a
+            // package's `src/`, so this explicit registration is the only
+            // thing that makes {@see EndOtherGuardSession} fire.
+            Logout::class => EndOtherGuardSession::class,
         ];
 
         foreach ($listeners as $event => $listener) {
@@ -379,23 +456,117 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         $this->seedMiddlewareBaselineIfMissing();
 
-        Route::aliasMiddleware('invitation.status', CheckInvitationStatus::class);
-        Route::aliasMiddleware('tenancy.identification', TenancyServiceProvider::TENANCY_IDENTIFICATION);
-        Route::aliasMiddleware('tenancy.route', PreventAccessFromCentralDomains::class);
-        Route::aliasMiddleware('tenancy.session', EnsureSessionMatchesTenant::class);
+        foreach (Numerosis::middlewareAliases() as $alias => $middleware) {
+            Route::aliasMiddleware($alias, $middleware);
+        }
 
-        Route::middlewareGroup('tenant', [
-            'web',
-            'tenancy.identification',
-            'tenancy.route',
-            'tenancy.session',
-        ]);
-        Route::middlewareGroup('universal', []);
+        foreach (Numerosis::middlewareGroups() as $name => $stack) {
+            Route::middlewareGroup($name, $stack);
+        }
 
         TrustProxies::at('*');
 
         $this->app->make(Kernel::class)->prependMiddleware(TrustHosts::class);
+    }
 
+    /**
+     * Replaces the `redirectUsing(fn () => route('login'))` that
+     * `ApplicationBuilder::withMiddleware()` always registers, which throws
+     * `RouteNotFoundException` until Fortify registers `login`. Falls back to
+     * `home` until then, and is inert once that route exists.
+     */
+    protected function registerGuestRedirect(): void
+    {
+        Authenticate::redirectUsing(
+            fn () => Route::has('login') ? route('login') : route(RouteNames::home())
+        );
+    }
+
+    /**
+     * Wires this package's own actions into Fortify's published seams,
+     * customized the way Fortify's own docs describe. `numerosis.features`
+     * and `fortify.features` stay separate: numerosis's gates
+     * tenancy/billing surfaces, Fortify's gates auth screens.
+     */
+    protected function registerFortify(): void
+    {
+        Fortify::viewPrefix('numerosis::auth.');
+
+        // `fortify.features` is defaulted by `HostConfig::fortifyFeatures()`,
+        // under the stock-value rule every backfill follows. Setting it here
+        // would discard a host's published `config/fortify.php` on every boot.
+        $this->app->bind(FortifyLoginRequest::class, NumerosisLoginRequest::class);
+
+        Fortify::createUsersUsing(CreateRegisteredUser::class);
+        Fortify::updateUserProfileInformationUsing(UpdateUserProfile::class);
+        Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
+        Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
+
+        // Order is load-bearing: `CanonicalizeUsername` has to precede the
+        // OTP step, which looks its candidate up by exact email match, and
+        // `LogInToCentralGuard` has to run last.
+        Fortify::authenticateThrough(fn (Request $request): array => array_filter([
+            Config::get('fortify.limiters.login') ? null : EnsureLoginIsNotThrottled::class,
+            Config::get('fortify.lowercase_usernames') ? CanonicalizeUsername::class : null,
+            OneTimePasswordFeature::available() ? RedirectIfOneTimePasswordAuthenticatable::class : null,
+            AttemptToAuthenticate::class,
+            PrepareAuthenticatedSession::class,
+            LogInToCentralGuard::class,
+        ]));
+
+        $this->registerAuthRateLimiters();
+
+        // `VerifyEmailController` type-hints Fortify's concrete
+        // `VerifyEmailRequest`, and binding a subclass to it is the only way
+        // to compare against `getGlobalIdentifierKey()`.
+        $this->app->bind(FortifyVerifyEmailRequest::class, NumerosisVerifyEmailRequest::class);
+        $this->app->singleton(FortifyVerifyEmailResponse::class, NumerosisVerifyEmailResponse::class);
+    }
+
+    /**
+     * Both limiters replace Fortify's default, which keys on
+     * `lower(username).'|'.$request->ip()` and so shares one lockout counter
+     * between two tenants holding a user at the same address. Regression-test
+     * either one with two tenants; a single-tenant test passes whether or not
+     * the tenant key is in the bucket.
+     */
+    protected function registerAuthRateLimiters(): void
+    {
+        Config::set('fortify.limiters.login', 'login');
+
+        RateLimiter::for('login', fn (Request $request): Limit => Limit::perMinute(5)->by(
+            $this->authThrottleKey($request, (string) $request->string(Fortify::username()))
+        ));
+
+        RateLimiter::for(OneTimePasswordFeature::LIMITER, fn (Request $request): Limit => Limit::perMinute(5)->by(
+            $this->authThrottleKey($request, $this->pendingLoginAddress($request))
+        ));
+
+        RateLimiter::for('social', fn (Request $request): Limit => Limit::perMinute(10)->by($request->ip()));
+    }
+
+    /**
+     * The address the OTP send leg stashed, which is what keys the challenge's
+     * limiter. The challenge form deliberately does not carry it, so a caller
+     * cannot choose whose bucket to spend.
+     */
+    protected function pendingLoginAddress(Request $request): string
+    {
+        $email = $request->hasSession() ? $request->session()->get('login.email') : null;
+
+        return is_string($email) ? $email : '';
+    }
+
+    /**
+     * Tenant + address + IP. The tenant key is what keeps two tenants holding
+     * the same address off one another's lockout counter.
+     */
+    protected function authThrottleKey(Request $request, string $email): string
+    {
+        $tenant = tenancy()->tenant;
+        $tenantKey = $tenant instanceof Tenant ? (string) $tenant->getTenantKey() : 'central';
+
+        return $tenantKey.'|'.Str::lower($email).'|'.$request->ip();
     }
 
     /**
@@ -426,26 +597,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Registers the prebuilt Filament theme, JS and CSS as Filament assets,
-     * served by the `filament:assets` command you already run. No Vite step
-     * of your own is needed.
-     */
-    protected function registerFilamentTheme(): void
-    {
-        if (! class_exists(FilamentAsset::class)) {
-            return;
-        }
-
-        FilamentAsset::register([
-            Theme::make(self::THEME_ID, __DIR__.'/../dist/filament-theme.css'),
-            Js::make(self::ASSET_ID, __DIR__.'/../dist/numerosis.js'),
-            Css::make(self::ASSET_ID, __DIR__.'/../dist/numerosis.css'),
-        ], package: 'nvade/numerosis');
-    }
-
-    /**
      * Registers `/broadcasting/auth` and the package's channels, so calling
-     * `withBroadcasting()` yourself is optional — do both and the route is
+     * `withBroadcasting()` yourself is optional; do both and the route is
      * still only registered once. {@see Numerosis::registerBroadcastingUsing()}
      * replaces this entirely.
      */
@@ -456,28 +609,25 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
             return;
         }
-        $alreadyRegistered = collect(Route::getRoutes()->getRoutes())
-            ->contains(fn ($route): bool => $route->uri() === 'broadcasting/auth');
+
+        $alreadyRegistered = array_any(
+            Route::getRoutes()->getRoutes(),
+            fn (RoutingRoute $route): bool => $route->uri() === 'broadcasting/auth',
+        );
 
         if (! $alreadyRegistered) {
             Broadcast::routes(['middleware' => Numerosis::broadcasting()]);
         }
 
-        // require, not require_once: channels are re-registered on every
-        // application boot within a process.
+        // `require_once` would leave channels unregistered on the second and
+        // later application boots within one process.
         require Numerosis::broadcastChannelsPath();
     }
 
     /**
-     * Applies {@see Numerosis::exceptions()} for an app that never calls it
-     * from `bootstrap/app.php` — including one that never calls
-     * `->withExceptions()` at all, which leaves `ExceptionHandler::class`
-     * unbound (that binding is normally made by `ApplicationBuilder::
-     * withExceptions()` itself, the one framework call this self-heal can't
-     * assume happened). Skipped if you have replaced Laravel's exception
-     * handler with one of your own. {@see Numerosis::exceptions()} is
-     * idempotent, so this runs unconditionally without double-registering
-     * against a host that also calls it from its own bootstrap file.
+     * Applies {@see Numerosis::exceptions()} for an app that never called it,
+     * binding `ExceptionHandler::class` first if `->withExceptions()` never
+     * ran either. Skipped for a host that replaced Laravel's handler.
      */
     protected function registerExceptionHandling(): void
     {
@@ -490,5 +640,35 @@ class NumerosisServiceProvider extends PackageServiceProvider
         if ($handler instanceof Handler) {
             Numerosis::exceptions(new Exceptions($handler));
         }
+    }
+
+    /**
+     * Backfills `config/numerosis.php` defaults at every depth. Only keyed
+     * arrays are filled, so a list such as `features` is left exactly as the
+     * host set it, including empty.
+     *
+     * @param  array<array-key, mixed>  $default
+     * @param  array<array-key, mixed>  $current
+     * @return array<array-key, mixed>
+     */
+    private function fillMissingKeys(array $default, array $current): array
+    {
+        $merged = $current;
+
+        foreach ($default as $key => $value) {
+            if (! array_key_exists($key, $current)) {
+                $merged[$key] = $value;
+
+                continue;
+            }
+
+            $existing = $current[$key];
+
+            if (is_array($value) && is_array($existing) && ! array_is_list($value) && ! array_is_list($existing)) {
+                $merged[$key] = $this->fillMissingKeys($value, $existing);
+            }
+        }
+
+        return $merged;
     }
 }

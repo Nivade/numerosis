@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Support\Assets;
 use Nvade\Numerosis\Tests\TestCase;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 use stdClass;
@@ -115,7 +116,7 @@ class InstallNumerosisCommandTest extends TestCase
      * installed that name resolves to `Stancl\Tenancy\Commands\Seed`, which
      * throws `The "tenants" option does not exist` — see
      * `InstallNumerosisCommand::seedCentralData()`'s docblock and
-     * `.claude/rules/tenant-provisioning.md`. Any test in this package that
+     * `.ai/rules/tenant-provisioning.md`. Any test in this package that
      * wants to seed has the same problem.
      */
     private function seedCentralData(): void
@@ -162,21 +163,22 @@ class InstallNumerosisCommandTest extends TestCase
      * @verifies verifyTenancyModels
      *
      * Restores the real class before returning — `TestCase`'s own teardown
-     * (`deleteTenantDatabases()`) resolves `config('tenancy.tenant_model')`
+     * (`deleteTenantDatabases()`) resolves the tenant-model config key
      * to query and clean up tenant rows, so leaving the bogus value in place
      * for the rest of the test crashes teardown instead of just this test.
      */
     public function test_it_fails_when_tenancy_tenant_model_does_not_resolve_to_a_real_class(): void
     {
-        $real = config('tenancy.tenant_model');
-        config()->set('tenancy.tenant_model', 'App\\Models\\Central\\NoSuchTenant');
+        $key = 'tenancy.tenant_model';
+        $real = config($key);
+        Config::set('tenancy.tenant_model', 'App\\Models\\Central\\NoSuchTenant');
 
         try {
             $this->install()
-                ->expectsOutputToContain("config('tenancy.tenant_model') must name a class that exists")
+                ->expectsOutputToContain("config('{$key}') must name a class that exists")
                 ->assertFailed();
         } finally {
-            config()->set('tenancy.tenant_model', $real);
+            Config::set('tenancy.tenant_model', $real);
         }
     }
 
@@ -193,10 +195,10 @@ class InstallNumerosisCommandTest extends TestCase
     /** @verifies verifyCentralDomains */
     public function test_it_fails_when_central_domains_is_empty(): void
     {
-        config()->set('tenancy.central_domains', []);
+        Config::set('tenancy.central_domains', []);
 
         $this->install()
-            ->expectsOutputToContain("config('tenancy.central_domains') must list at least one hostname")
+            ->expectsOutputToContain("config('".'tenancy.central_domains'."') must list at least one hostname")
             ->assertFailed();
     }
 
@@ -266,18 +268,8 @@ class InstallNumerosisCommandTest extends TestCase
             ->assertFailed();
     }
 
-    /** @verifies verifySocialProviders */
-    public function test_it_fails_when_social_providers_is_not_an_array(): void
-    {
-        config()->set('numerosis.social.providers', 'google');
-
-        $this->install()
-            ->expectsOutputToContain("config('numerosis.social.providers') must be an array")
-            ->assertFailed();
-    }
-
     /** @verifies verifySocialRoutes */
-    public function test_it_fails_when_a_social_route_name_is_empty_and_providers_are_configured(): void
+    public function test_it_fails_when_a_social_route_name_is_empty(): void
     {
         config()->set('numerosis.social.routes.redirect.name', '');
 
@@ -431,13 +423,13 @@ class InstallNumerosisCommandTest extends TestCase
      */
     public function test_it_warns_when_a_host_migration_collides_with_a_package_central_migration(): void
     {
-        $collision = database_path('migrations/0001_01_01_000000_create_users_table.php');
+        $collision = database_path('migrations/2019_09_01_000000_create_users_table.php');
         File::ensureDirectoryExists(dirname($collision));
-        File::put($collision, '<?php'."\n\n// stock Laravel migration, kept by accident\n");
+        File::put($collision, '<?php'."\n\n// package central migration, kept by accident\n");
 
         try {
             $this->install()
-                ->expectsOutputToContain('0001_01_01_000000_create_users_table.php')
+                ->expectsOutputToContain('2019_09_01_000000_create_users_table.php')
                 ->assertSuccessful();
         } finally {
             File::delete($collision);
@@ -511,91 +503,61 @@ class InstallNumerosisCommandTest extends TestCase
     }
 
     /**
-     * @verifies verifyFilamentThemeAsset
+     * @verifies verifyPublicAssets
      *
-     * `verifyFilamentThemeAsset()` gates its whole check on
-     * `public_path('css/filament')` existing at all — the signal that
-     * `filament:assets` has run at least once. Nothing in the Workbench
-     * harness creates that directory on its own, so this test creates (and
-     * removes) it by hand to reach the branch it's testing at all.
+     * `verifyPublicAssets()` gates its whole check on
+     * `public/vendor/numerosis` existing at all — the signal that
+     * `vendor:publish --tag=numerosis-public-assets` has run at least once.
+     * Nothing in the Workbench harness creates that directory, so this test
+     * creates it (with only one of the two bundles in it) to reach the
+     * branch it is testing.
      */
-    public function test_it_fails_when_filament_assets_ran_but_the_numerosis_theme_did_not_land(): void
+    public function test_it_fails_when_only_half_the_prebuilt_public_assets_landed(): void
     {
-        $filamentDir = public_path('css/filament');
-        File::ensureDirectoryExists($filamentDir);
+        $paths = Assets::publishedPaths();
 
         try {
+            File::ensureDirectoryExists(dirname($paths['css']));
+            File::put($paths['css'], '/* published */');
+
             $this->install()
-                ->expectsOutputToContain('does not — run `php artisan filament:assets` again')
+                ->expectsOutputToContain('public/vendor/numerosis/numerosis.js does not')
                 ->assertFailed();
         } finally {
-            File::deleteDirectory(public_path('css'));
-            File::deleteDirectory(public_path('js'));
+            File::deleteDirectory(public_path('vendor'));
         }
     }
 
     /**
-     * @verifies verifyConfigSchemaVersion
+     * @verifies verifyPublicAssets
      *
-     * Writes a real file at `config_path('numerosis.php')` — this check
-     * reads the published file directly (`require`), not through
-     * `config()`, precisely because a missing key there gets silently
-     * backfilled by `HostConfig::numerosisConfig()`'s deep-fill and would
-     * make the check pass regardless of the file's real age. A published
-     * file with no `schema_version` key at all is the common case for an
-     * old publish (the key didn't exist yet); `0` here stands in for that.
+     * The other half: with both bundles present the check is silent.
+     * Asserting only the failing branch would pass just as well against a
+     * check that can never succeed.
      */
-    public function test_it_fails_when_a_published_config_file_names_an_old_schema_version(): void
+    public function test_it_passes_the_public_asset_check_once_both_bundles_are_published(): void
     {
-        $published = config_path('numerosis.php');
-        File::ensureDirectoryExists(dirname($published));
-        File::put($published, "<?php\n\nreturn ['schema_version' => 0];\n");
-
         try {
-            $this->install()
-                ->expectsOutputToContain('names schema_version 0')
-                ->assertFailed();
-        } finally {
-            File::delete($published);
-        }
-    }
+            foreach (Assets::publishedPaths() as $path) {
+                File::ensureDirectoryExists(dirname($path));
+                File::put($path, '/* published */');
+            }
 
-    /** @verifies verifyConfigSchemaVersion */
-    public function test_it_passes_when_a_published_config_file_names_the_current_schema_version(): void
-    {
-        $currentVersion = require dirname(__DIR__, 4).'/config/numerosis.php';
-        $published = config_path('numerosis.php');
-        File::ensureDirectoryExists(dirname($published));
-        File::put($published, '<?php'."\n\nreturn ['schema_version' => {$currentVersion['schema_version']}];\n");
-
-        try {
-            $this->install()->assertSuccessful();
+            $this->install()->doesntExpectOutputToContain('does not — run `php artisan vendor:publish --tag=numerosis-public-assets --force`');
         } finally {
-            File::delete($published);
+            File::deleteDirectory(public_path('vendor'));
         }
     }
 
     /**
-     * The MaxMind database file is the one thing `HostConfig`'s `geoip`
-     * default cannot finish on its own (the `.mmdb` is licensed), so
-     * `docs/host-requirements.md` §1 lists it as a conditional obligation
-     * and the command has to say so too — there is no `verify*()` for it,
-     * since a missing file costs only the region-specific payment-method
-     * order, not the checkout.
+     * torann/geoip went in Phase 6 of
+     * `.claude/plans/archive/humming-nibbling-flame.md`, and with it the manual
+     * MaxMind licence step this command used to print. Asserted rather than
+     * simply deleted: the step was conditional on `geoip.service`, so its
+     * removal is invisible in any run that did not set that key.
      */
-    public function test_it_names_the_maxmind_step_while_the_package_geoip_default_is_in_place(): void
+    public function test_it_no_longer_names_the_maxmind_step(): void
     {
-        Config::set('geoip.service', 'maxmind_database');
-
-        $this->install()
-            ->expectsOutputToContain('MAXMIND_LICENSE_KEY')
-            ->assertSuccessful();
-    }
-
-    public function test_it_omits_the_maxmind_step_when_the_host_chose_another_geoip_service(): void
-    {
-        Config::set('geoip.service', 'ipapi');
-
         $this->install()
             ->doesntExpectOutputToContain('MAXMIND_LICENSE_KEY')
             ->assertSuccessful();

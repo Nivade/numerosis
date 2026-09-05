@@ -6,16 +6,41 @@ namespace Nvade\Numerosis\Livewire\Tenant\Registration\Steps;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Unique;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
+use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
+use Nvade\Numerosis\Rules\CustomDomainIsAvailable;
 use Nvade\Numerosis\Rules\DomainIsAvailable;
+use Override;
 use Spatie\LivewireWizard\Components\StepComponent;
 
-class TechnicalSetup extends StepComponent
+class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
 {
+    /**
+     * Always the tenant's safe id/slug, whatever the mode.
+     *
+     * @see \Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain
+     */
     public string $domain = '';
+
+    /**
+     * Only used under IdentificationMode::CustomDomain.
+     *
+     * @see IdentificationMode::current()
+     */
+    public string $customDomain = '';
+
+    #[Override]
+    public function tenantIdentityStateKeys(): array
+    {
+        return IdentificationMode::current() === IdentificationMode::CustomDomain
+            ? ['domain', 'customDomain']
+            : ['domain'];
+    }
 
     /**
      * wire:model.blur.live only syncs the value to the server; it does not
@@ -27,6 +52,11 @@ class TechnicalSetup extends StepComponent
         $this->validateOnly('domain');
     }
 
+    public function updatedCustomDomain(): void
+    {
+        $this->validateOnly('customDomain');
+    }
+
     /**
      * @return array<string, list<mixed>>
      */
@@ -34,25 +64,41 @@ class TechnicalSetup extends StepComponent
     {
         $user = GetAuthenticatedUser::run();
 
-        return [
+        $rules = [
             'domain' => [
                 'required',
                 'string',
                 new DomainIsAvailable,
-                // Excludes the current user's own reservation so re-submitting
-                // this step (e.g. Back then Continue again) doesn't self-block
-                // on the row this same action creates below. See
-                // Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain.
-                Rule::unique('pending_tenant_provisions', 'domain')
-                    ->where(fn ($query) => $query->where('global_id', '!=', $user?->global_id)),
+                $this->unreservedByAnyoneElse('domain', $user?->global_id),
             ],
         ];
+
+        if (IdentificationMode::current() === IdentificationMode::CustomDomain) {
+            $rules['customDomain'] = [
+                'required',
+                'string',
+                new CustomDomainIsAvailable,
+                $this->unreservedByAnyoneElse('custom_domain', $user?->global_id),
+            ];
+        }
+
+        return $rules;
     }
 
     /**
-     * Reserves the domain here rather than at checkout, so a domain someone
-     * else claims mid-wizard is caught before the user picks a plan and
-     * starts paying. Checkout reserves it again, harmlessly.
+     * Excludes the caller's own reservation, so re-submitting this step does
+     * not self-block on the row {@see ReserveTenantDomain} already created.
+     */
+    private function unreservedByAnyoneElse(string $column, ?string $globalId): Unique
+    {
+        return Rule::unique('pending_tenant_provisions', $column)
+            ->where(fn ($query) => $query->where('global_id', '!=', $globalId));
+    }
+
+    /**
+     * Reserves the domain here, well before checkout, so a domain someone else
+     * claims mid-wizard is caught before the user picks a plan and starts
+     * paying. Checkout reserves it again, harmlessly.
      */
     public function continue(): void
     {
@@ -75,6 +121,7 @@ class TechnicalSetup extends StepComponent
                 company_name: (string) $companyName,
                 domain: $this->domain,
                 global_id: $user->global_id,
+                custom_domain: $this->customDomain !== '' ? $this->customDomain : null,
             ));
         } catch (ShowsMessageToUser $e) {
             $this->addError('domain', $e->getMessage());

@@ -7,7 +7,7 @@ use App\Models\Central\Tenant;
 use Illuminate\Database\Seeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Jobs\SeedTenantDatabase;
 use Nvade\Numerosis\Models\Role;
 
@@ -50,11 +50,10 @@ it('marks the pending provision as failed when the job fails', function () {
     $domain = 'test-tenant-'.uniqid();
     $tenant = Tenant::forceCreate(['id' => $domain]);
 
-    PendingTenantProvision::create([
+    PendingTenantProvision::factory()->provisioning()->create([
         'domain' => $domain,
         'company_name' => 'Acme',
         'global_id' => 'user-global-id',
-        'status' => TenantProvisionStatus::Provisioning,
     ]);
 
     $job = new SeedTenantDatabase($tenant);

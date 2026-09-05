@@ -9,16 +9,24 @@ use App\Models\Central\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Livewire\Livewire;
+use Nvade\Numerosis\Actions\Auth\UpdateUserPassword;
+use Nvade\Numerosis\Actions\Auth\UpdateUserProfile;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
-use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\General;
-use Nvade\Numerosis\Filament\TenantAdmin\Clusters\Profile\Pages\Security;
+use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\TestCase;
 
+/**
+ * Editing a tenant user writes through to the central row, via stancl's
+ * `Syncable` machinery.
+ *
+ * Drives the two core actions directly rather than a settings screen: the
+ * sync is what this covers, and it happens on `save()` regardless of which
+ * surface called it. The screens that call them are covered by their own
+ * component tests.
+ */
 class ProfileSyncTest extends TestCase
 {
+    use BuildsTenantProvisionData;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -32,7 +40,7 @@ class ProfileSyncTest extends TestCase
     public function test_profile_update_syncs_to_central(): void
     {
         $tenant = Tenant::factory()->create([
-            'id' => 'test'.uniqid('', true),
+            'id' => 'test'.str_replace('.', '', uniqid('', true)),
         ]);
 
         $centralUser = CentralUser::factory()->create([
@@ -41,22 +49,21 @@ class ProfileSyncTest extends TestCase
             'global_id' => 'global-1',
         ]);
 
-        AddTenantOwner::run($tenant, $this->provisionData($tenant, $centralUser));
+        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $centralUser));
 
-        $tenant->run(function () use ($tenant) {
+        $tenant->run(function () {
             $tenantUser = TenantUser::where('global_id', 'global-1')->first();
             $this->assertNotNull($tenantUser, 'Tenant user was not created/synced');
 
-            $this->actingAsTenantPanelUser($tenant, $tenantUser);
+            $this->actingAsTenantUser($tenantUser);
 
             // Pre-condition: Tenant user should exist and have same data
             $this->assertEquals('Old Name', $tenantUser->name);
 
-            Livewire::test(General::class)
-                ->set('data.name', 'New Name')
-                ->set('data.email', 'new@example.com')
-                ->call('save')
-                ->assertHasNoFormErrors();
+            UpdateUserProfile::run($tenantUser, [
+                'name' => 'New Name',
+                'email' => 'new@example.com',
+            ]);
 
             // Verify tenant DB updated
             $tenantUser->refresh();
@@ -73,7 +80,7 @@ class ProfileSyncTest extends TestCase
     public function test_password_update_syncs_to_central(): void
     {
         $tenant = Tenant::factory()->create([
-            'id' => 'test'.uniqid('', true),
+            'id' => 'test'.str_replace('.', '', uniqid('', true)),
         ]);
 
         $centralUser = CentralUser::factory()->create([
@@ -81,20 +88,15 @@ class ProfileSyncTest extends TestCase
             'global_id' => 'global-2',
         ]);
 
-        AddTenantOwner::run($tenant, $this->provisionData($tenant, $centralUser));
+        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $centralUser));
 
-        $tenant->run(function () use ($tenant) {
+        $tenant->run(function () {
             $tenantUser = TenantUser::where('global_id', 'global-2')->first();
             $this->assertNotNull($tenantUser, 'Tenant user was not created/synced');
 
-            $this->actingAsTenantPanelUser($tenant, $tenantUser);
+            $this->actingAsTenantUser($tenantUser);
 
-            Livewire::test(Security::class)
-                ->set('data.current_password', 'old-password')
-                ->set('data.password', 'new-password')
-                ->set('data.password_confirmation', 'new-password')
-                ->call('save')
-                ->assertHasNoFormErrors();
+            UpdateUserPassword::run($tenantUser, 'new-password');
 
             // Verify tenant DB updated
             $tenantUser->refresh();
@@ -104,16 +106,5 @@ class ProfileSyncTest extends TestCase
         // Verify central DB updated
         $centralUser->refresh();
         $this->assertTrue(Hash::check('new-password', $centralUser->password));
-    }
-
-    private function provisionData(Tenant $tenant, CentralUser $user): TenantProvisionData
-    {
-        return new TenantProvisionData(
-            registration: TenantRegistrationData::from([
-                'company_name' => 'Test Co',
-                'domain' => (string) $tenant->getTenantKey(),
-                'global_id' => $user->global_id,
-            ]),
-        );
     }
 }

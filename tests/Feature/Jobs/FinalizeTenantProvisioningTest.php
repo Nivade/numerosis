@@ -18,9 +18,9 @@ it('assigns admin role to the first non-bot user and ignores bots', function () 
     ]);
 
     // Run migrations for the tenant
-    Artisan::call('tenants:migrate', ['--tenants' => $tenant->id]);
+    Artisan::call('tenants:migrate', ['--tenants' => [$tenant->id]]);
 
-    $tenant->run(function () {
+    $tenant->run(function () use ($tenant) {
         // Create the 'admin' role in tenant context
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'tenant']);
 
@@ -43,7 +43,7 @@ it('assigns admin role to the first non-bot user and ignores bots', function () 
         ]);
 
         // 4. Act: Run the action
-        FinalizeTenantProvisioning::run(tenancy()->tenant);
+        FinalizeTenantProvisioning::run($tenant);
 
         // 5. Assert
         expect($bot->refresh()->hasRole('admin', 'tenant'))->toBeFalse();
@@ -56,9 +56,9 @@ it('fails if only bots exist', function () {
         'id' => 'bot-only-tenant-'.uniqid(),
     ]);
 
-    Artisan::call('tenants:migrate', ['--tenants' => $tenant->id]);
+    Artisan::call('tenants:migrate', ['--tenants' => [$tenant->id]]);
 
-    $tenant->run(function () {
+    $tenant->run(function () use ($tenant) {
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'tenant']);
 
         TenantUser::create([
@@ -70,7 +70,7 @@ it('fails if only bots exist', function () {
         ]);
 
         try {
-            FinalizeTenantProvisioning::run(tenancy()->tenant);
+            FinalizeTenantProvisioning::run($tenant);
             $this->fail('Job should have failed when only bots are present');
         } catch (Throwable $e) {
             expect($e->getMessage())->toContain('No non-bot users found');

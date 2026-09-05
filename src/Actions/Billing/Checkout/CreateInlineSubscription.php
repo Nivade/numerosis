@@ -11,23 +11,21 @@ use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\TrialResolver;
 use Nvade\Numerosis\Exceptions\Billing\BillingCycleRequired;
-use Nvade\Numerosis\Exceptions\Billing\PaymentPlanNotFound;
 use Nvade\Numerosis\Exceptions\Billing\StripePriceNotConfigured;
 use Nvade\Numerosis\Exceptions\Billing\UnsupportedBillable;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Stripe\Exception\ApiErrorException;
 
 /**
- * Creates the Stripe subscription for a checkout.
- *
- * Takes an explicit billable for callers with no session of their own — the
- * Stripe webhook, in particular. Everyone else resolves it from the request.
- *
- * On an incomplete payment, the subscription id is recorded before the
- * exception propagates, so a replay cannot create a second subscription
- * while the challenge is still pending.
+ * Creates the Stripe subscription for a checkout. Takes an explicit billable
+ * for callers with no session of their own, the Stripe webhook in particular;
+ * everyone else resolves it from the request. On an incomplete payment the
+ * subscription id is recorded before the exception propagates, so a replay
+ * cannot create a second subscription while the challenge is pending.
  *
  * @throws IncompletePayment
+ * @throws ApiErrorException the Stripe call underneath `newSubscription()->create()`
  *
  * @method static Subscription run(PendingTenantProvision $pending, string $paymentMethodId, ?CentralUser $billable = null)
  */
@@ -43,11 +41,7 @@ class CreateInlineSubscription
 
     public function handle(PendingTenantProvision $pending, string $paymentMethodId, ?CentralUser $billable = null): Subscription
     {
-        $plan = $this->plans->findBySlug((string) $pending->payment_plan);
-
-        if (! $plan) {
-            throw new PaymentPlanNotFound("Payment plan not found: {$pending->payment_plan}");
-        }
+        $plan = $this->plans->findBySlugOrFail((string) $pending->payment_plan);
 
         $billingCycle = $pending->billing_cycle;
 

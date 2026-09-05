@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Features\Invitations;
 use Nvade\Numerosis\Contracts\NamedFeature;
 
 /**
- * Team invitations: the invitation route, its Filament resource, and the
+ * Team invitations: the invitation route, its screens, and the
  * invitation notification.
  *
  * Remove it from `numerosis.features` and nobody can invite or accept new

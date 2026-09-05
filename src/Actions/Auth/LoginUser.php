@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
+use Illuminate\Auth\EloquentUserProvider;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Session;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Queries\FindUserByGlobalId;
@@ -26,7 +26,7 @@ class LoginUser
 
         $this->loginToGuard($guardName, $user, $remember);
 
-        $centralGuard = Config::string('numerosis.auth.guards.central', 'web');
+        $centralGuard = Context::Central->guard();
 
         if ($guardName !== $centralGuard) {
             $this->loginToGuard($centralGuard, $user, $remember);
@@ -42,12 +42,16 @@ class LoginUser
 
     protected function resolveUserForGuard(string $guardName, User $user): User
     {
-        $guardInstance = Auth::guard($guardName);
+        $provider = Auth::guard($guardName)->getProvider();
 
-        // @phpstan-ignore method.notFound
-        $provider = $guardInstance->getProvider();
-
-        throw_if($provider === null, RuntimeException::class, "No provider found for guard: {$guardName}");
+        // Narrowed to the Eloquent provider, never null-checked: only that
+        // one exposes getModel(), so a guard backed by anything else is a
+        // configuration error.
+        throw_unless(
+            $provider instanceof EloquentUserProvider,
+            RuntimeException::class,
+            "Guard [{$guardName}] is not backed by an Eloquent user provider."
+        );
 
         $expectedModel = $provider->getModel();
 

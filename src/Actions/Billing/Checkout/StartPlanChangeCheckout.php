@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 

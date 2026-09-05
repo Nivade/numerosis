@@ -9,9 +9,14 @@ use App\Models\Central\Subscription;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Nvade\Numerosis\Actions\Billing\SyncTenantToStripe;
+use Nvade\Numerosis\Events\Billing\SubscriptionCancelled;
+use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
 use Nvade\Numerosis\Notifications\Billing\PaymentFailed;
 use Nvade\Numerosis\Notifications\Billing\TenantSuspended;
+use Nvade\Numerosis\Tests\Concerns\DisablesWebhookSignature;
 use Nvade\Numerosis\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -24,15 +29,25 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 class WebhookControllerLifecycleTest extends TestCase
 {
+    use DisablesWebhookSignature;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // VerifyWebhookSignature is bound at controller construction time,
-        // so it has to be off before that happens.
-        config(['cashier.webhook.secret' => null]);
+        // Tenant::save() is no longer event-suppressed (see
+        // tenantWithStripeCustomer() below — dev-master's DatabaseTenancyBootstrapper
+        // now eagerly checks the tenant database exists, so CreateDatabase
+        // must actually run), which means the real `TenantSaved` ->
+        // SyncTenantToStripeOnSave -> SyncTenantToStripe chain fires for any
+        // tenant with a stripe_id. `Bus::fake()` doesn't reach it — laravel-actions
+        // dispatches a `JobDecorator` wrapper, not `SyncTenantToStripe`
+        // itself, so a class-keyed queue fake never matches. Use the
+        // package's own fake instead, which mocks `handle()` directly.
+        // `configureJob()` also has to be stubbed — `JobDecorator` calls it
+        // unconditionally on every dispatch, mock or not.
+        SyncTenantToStripe::mock()->shouldReceive('handle', 'configureJob')->andReturnNull();
     }
 
     /**
@@ -40,8 +55,6 @@ class WebhookControllerLifecycleTest extends TestCase
      */
     private function tenantWithStripeCustomer(string $customerId): array
     {
-        Tenant::unsetEventDispatcher();
-
         $owner = CentralUser::factory()->create();
         $tenant = Tenant::factory()->create(['stripe_id' => $customerId]);
         $tenant->users()->attach($owner->global_id, ['role' => 'owner']);
@@ -52,7 +65,7 @@ class WebhookControllerLifecycleTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function subscriptionUpdatedPayload(string $subscriptionId, string $customerId, string $status): array
+    private function subscriptionUpdatedPayload(string $subscriptionId, string $customerId, string $status, string $priceId = 'price_test'): array
     {
         return [
             'id' => 'evt_'.$subscriptionId,
@@ -67,7 +80,7 @@ class WebhookControllerLifecycleTest extends TestCase
                         'data' => [
                             [
                                 'id' => 'si_'.$subscriptionId,
-                                'price' => ['id' => 'price_test', 'product' => 'prod_test'],
+                                'price' => ['id' => $priceId, 'product' => 'prod_test'],
                                 'quantity' => 1,
                             ],
                         ],
@@ -116,6 +129,7 @@ class WebhookControllerLifecycleTest extends TestCase
     public function test_subscription_deleted_suspends_the_tenant(): void
     {
         Notification::fake();
+        Event::fake([SubscriptionCancelled::class]);
 
         $customerId = 'cus_deleted';
         ['tenant' => $tenant, 'owner' => $owner] = $this->tenantWithStripeCustomer($customerId);
@@ -127,6 +141,8 @@ class WebhookControllerLifecycleTest extends TestCase
             'subscribable_type' => Tenant::class,
         ]);
 
+        $periodEnd = now()->addDays(3)->getTimestamp();
+
         $payload = [
             'id' => 'evt_sub_deleted',
             'type' => 'customer.subscription.deleted',
@@ -134,6 +150,7 @@ class WebhookControllerLifecycleTest extends TestCase
                 'object' => [
                     'id' => 'sub_deleted',
                     'customer' => $customerId,
+                    'current_period_end' => $periodEnd,
                 ],
             ],
         ];
@@ -142,6 +159,10 @@ class WebhookControllerLifecycleTest extends TestCase
 
         $this->assertTrue($tenant->refresh()->isSuspended());
         Notification::assertSentTo($owner, TenantSuspended::class);
+
+        Event::assertDispatched(fn (SubscriptionCancelled $e): bool => $e->tenant->id === $tenant->id
+            && $e->tenantId === $tenant->id
+            && $e->gracePeriodEndsAt?->getTimestamp() === $periodEnd);
     }
 
     public function test_subscription_updated_to_active_restores_a_suspended_tenant(): void
@@ -161,6 +182,66 @@ class WebhookControllerLifecycleTest extends TestCase
             ->assertOk();
 
         $this->assertFalse($tenant->refresh()->isSuspended());
+    }
+
+    /**
+     * The one dispatch site for a plan change, wherever the change came from:
+     * a host calling `SwapSubscriptionPlan`, or an edit in the Stripe
+     * dashboard, both surface as this webhook.
+     */
+    public function test_subscription_updated_to_a_new_price_dispatches_a_plan_change(): void
+    {
+        Event::fake([SubscriptionPlanChanged::class]);
+
+        $customerId = 'cus_swapped';
+        ['tenant' => $tenant] = $this->tenantWithStripeCustomer($customerId);
+
+        Subscription::factory()->create([
+            'stripe_id' => 'sub_swapped',
+            'stripe_status' => 'active',
+            'stripe_price' => 'price_old',
+            'subscribable_id' => $tenant->id,
+            'subscribable_type' => Tenant::class,
+        ]);
+
+        $this->postJson(
+            Config::string('numerosis.billing.webhook_path', 'billing/webhook'),
+            $this->subscriptionUpdatedPayload('sub_swapped', $customerId, 'active', 'price_new'),
+        )->assertOk();
+
+        Event::assertDispatchedTimes(SubscriptionPlanChanged::class, 1);
+        Event::assertDispatched(fn (SubscriptionPlanChanged $e): bool => $e->tenant->id === $tenant->id
+            && $e->tenantId === $tenant->id
+            && $e->fromPriceId === 'price_old'
+            && $e->toPriceId === 'price_new');
+    }
+
+    /**
+     * Stripe raises `customer.subscription.updated` for a status change, a
+     * period rollover, a cancellation flag — most of them leave the price
+     * alone, and none of those is a plan change.
+     */
+    public function test_subscription_updated_without_a_price_change_dispatches_nothing(): void
+    {
+        Event::fake([SubscriptionPlanChanged::class]);
+
+        $customerId = 'cus_unchanged';
+        ['tenant' => $tenant] = $this->tenantWithStripeCustomer($customerId);
+
+        Subscription::factory()->create([
+            'stripe_id' => 'sub_unchanged',
+            'stripe_status' => 'past_due',
+            'stripe_price' => 'price_same',
+            'subscribable_id' => $tenant->id,
+            'subscribable_type' => Tenant::class,
+        ]);
+
+        $this->postJson(
+            Config::string('numerosis.billing.webhook_path', 'billing/webhook'),
+            $this->subscriptionUpdatedPayload('sub_unchanged', $customerId, 'active', 'price_same'),
+        )->assertOk();
+
+        Event::assertNotDispatched(SubscriptionPlanChanged::class);
     }
 
     /**

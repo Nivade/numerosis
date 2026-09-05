@@ -7,17 +7,19 @@ namespace Nvade\Numerosis\Database\Factories\Central;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Database\Factories\Concerns\GeneratesUniqueEmails;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\Nvade\Numerosis\Models\Central\CentralUser>
  */
-// No `protected $model` override: CentralUser is abstract (see
-// .claude/plans/package-extraction.md Phase 4.4) — a hardcoded $model here
-// bypasses Numerosis::modelNameFor()'s global resolver and forces `new
-// static` inside Eloquent's create()/make() to instantiate the abstract
-// class directly, which throws.
+// No `protected $model` override: CentralUser is abstract. A hardcoded
+// $model bypasses Numerosis::modelNameFor()'s global resolver, so `new
+// static` inside Eloquent's create()/make() instantiates the abstract class
+// and throws.
 class CentralUserFactory extends Factory
 {
+    use GeneratesUniqueEmails;
+
     /**
      * The current password being used by the factory.
      */
@@ -32,7 +34,7 @@ class CentralUserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
+            'email' => static::uniqueEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),

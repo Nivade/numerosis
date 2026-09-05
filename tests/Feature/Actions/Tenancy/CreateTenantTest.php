@@ -15,7 +15,8 @@ use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Tests\TestCase;
 
 class CreateTenantTest extends TestCase
@@ -25,7 +26,7 @@ class CreateTenantTest extends TestCase
     /**
      * `CreateTenant` only creates the tenant row and domain —
      * database creation and owner attachment moved into `ProvisionTenant`'s
-     * queued chain. See .claude/rules/tenant-provisioning.md.
+     * queued chain. See .ai/rules/tenant-provisioning.md.
      */
     public function test_it_creates_only_the_tenant_row_and_domain(): void
     {
@@ -44,7 +45,7 @@ class CreateTenantTest extends TestCase
 
         // Tenant/Domain live on the `central` connection (Tenant model's
         // CentralConnection trait), a separate PDO session from the default
-        // connection RefreshDatabase transacts — see .claude/rules/testing.md
+        // connection RefreshDatabase transacts — see .ai/rules/testing.md
         // on why central-connection writes need the connection named
         // explicitly rather than relying on incidental query ordering.
         $this->assertDatabaseHas('tenants', ['id' => $tenantId], 'central');
@@ -62,14 +63,9 @@ class CreateTenantTest extends TestCase
             'global_id' => 'test-global-id-'.uniqid(),
         ]);
 
-        $paymentPlan = PaymentPlan::create([
-            'name' => 'Test Plan',
+        $paymentPlan = PaymentPlan::factory()->create([
             'slug' => 'test-plan',
-            'description' => 'Test description',
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
             'trial_days' => 14,
-            'available' => true,
         ]);
 
         $tenantId = 'test-tenant-'.uniqid();
@@ -111,7 +107,7 @@ class CreateTenantTest extends TestCase
         ]);
 
         $this->assertTrue($user->refresh()->tenants->contains($tenant));
-        $this->assertEquals('owner', $user->tenants()->firstOrFail()->pivot->role);
+        $this->assertSame(MembershipRole::Owner, $user->tenants()->firstOrFail()->pivot->role);
 
         $this->assertDatabaseHas('subscriptions', [
             'subscribable_id' => $tenantId,

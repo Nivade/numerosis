@@ -11,7 +11,7 @@ use Nvade\Numerosis\Support\Cache\CacheKeys;
 
 /**
  * Keeps {@see \Nvade\Numerosis\Actions\Queries\FindUserByGlobalId}'s cached entry from
- * outliving the row it describes — a stale `is_bot` or renamed user would
+ * outliving the row it describes: a stale `is_bot` or renamed user would
  * otherwise be authenticated by {@see \Nvade\Numerosis\Actions\Auth\LoginUser}. Runs
  * inside tenant context, so {@see CacheKeys::userModel()} resolves the
  * same tenant-scoped key the read used.

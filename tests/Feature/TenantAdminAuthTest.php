@@ -5,33 +5,32 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Schema;
 use Nvade\Numerosis\Tests\TestCase;
 
+/**
+ * The `tenancy.auth` middleware's reason for existing: a central user who
+ * belongs to a tenant is signed in on the *tenant* guard on the way through,
+ * rather than bounced to a login screen for an account they already hold.
+ *
+ * Drives `/account-suspended` because it is the one core route inside the
+ * authenticated tenant group; the tenant root is deliberately public.
+ */
 class TenantAdminAuthTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_central_user_can_access_tenant_admin_panel_as_tenant_user(): void
+    private const AUTHENTICATED_TENANT_PATH = '/account-suspended';
+
+    public function test_central_user_reaching_an_authenticated_tenant_route_is_signed_in_on_the_tenant_guard(): void
     {
         $id = 'test-'.uniqid();
         $domain = $this->tenantDomain($id);
 
-        // 1. Create a tenant. forceCreate, as production does: `id` is not
-        // fillable, so Tenant::create() drops it and UUIDGenerator assigns a
-        // uuid instead — the subdomain then no longer matches the panel's
-        // {tenant} route parameter and Filament answers 404.
-        $tenant = Tenant::forceCreate(['id' => $id, 'name' => 'Test Tenant']);
-        $tenant->domains()->create([
-            'id' => $id,
-            'domain' => $domain,
-        ]);
+        $tenant = $this->createTenantWithDomain($id);
 
-        // 2. Create a central user
         $centralUser = CentralUser::create([
             'global_id' => 'global-'.uniqid(),
             'name' => 'Test User',
@@ -39,70 +38,45 @@ class TenantAdminAuthTest extends TestCase
             'password' => 'password',
         ]);
 
-        // 3. Associate central user with tenant (Membership)
         $centralUser->tenants()->attach($tenant, [
             'role' => 'admin',
             'joined_at' => now(),
         ]);
 
-        // 4. Create the corresponding tenant user in the tenant's database.
-        // The global_id must match the central user's: Filament resolves the
-        // panel tenant through User::canAccessTenant(), which looks the
-        // membership up by global_id, and answers 404 when it finds none.
-        $tenant->run(function () use ($centralUser) {
-            // Create modules table if it doesn't exist
-            Schema::dropIfExists('modules');
-            Schema::create('modules', function ($table) {
-                $table->id();
-                $table->string('name');
-                $table->string('description')->nullable();
-                $table->boolean('enabled')->default(true);
-                $table->timestamps();
-            });
+        // The global_id must match the central user's: the promotion goes
+        // through User::canAccessTenant(), which looks the membership up by
+        // global_id and refuses when it finds none.
+        $this->createTenantUser($tenant, [
+            'global_id' => $centralUser->global_id,
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+        ]);
 
-            TenantUser::create([
-                'global_id' => $centralUser->global_id,
-                'name' => 'Test User',
-                'email' => 'test@example.com',
-            ]);
-        });
-
-        // 5. Authenticate central user on 'web' guard
         Auth::guard('web')->login($centralUser);
 
-        // 6. Access the tenant admin panel (this should trigger the SSO in Authenticate middleware)
-        $response = $this->actingAs($centralUser, 'web')
-            ->get('http://'.$domain.'/');
+        $this->actingAs($centralUser, 'web')
+            ->get('http://'.$domain.self::AUTHENTICATED_TENANT_PATH)
+            ->assertOk();
 
-        // 7. Assertions
-        $response->assertOk();
-
-        // Verify that the user is now also logged in via the 'tenant' guard as a Tenant\User
         $tenant->run(function () use ($centralUser) {
             $this->assertTrue(Auth::guard('tenant')->check());
             $this->assertInstanceOf(TenantUser::class, Auth::guard('tenant')->user());
             $this->assertEquals($centralUser->global_id, Auth::guard('tenant')->user()->global_id);
         });
 
-        // 8. Second request should NOT re-trigger login (we can check this by spying on Auth guard if needed, but for now we just check it still works)
-        $response2 = $this->actingAs($centralUser, 'web')
-            ->get('http://'.$domain.'/');
-        $response2->assertOk();
+        // A second request must not re-trigger the promotion.
+        $this->actingAs($centralUser, 'web')
+            ->get('http://'.$domain.self::AUTHENTICATED_TENANT_PATH)
+            ->assertOk();
     }
 
-    public function test_central_user_without_access_to_tenant_cannot_access_panel(): void
+    public function test_central_user_without_access_to_tenant_is_not_promoted_onto_the_tenant_guard(): void
     {
         $id = 'test-'.uniqid();
         $domain = $this->tenantDomain($id);
 
-        // 1. Create a tenant
-        $tenant = Tenant::forceCreate(['id' => $id, 'name' => 'Other Tenant']);
-        $tenant->domains()->create([
-            'id' => $id,
-            'domain' => $domain,
-        ]);
+        $tenant = $this->createTenantWithDomain($id, 'Other Tenant');
 
-        // 2. Create a central user (NOT associated with the tenant)
         $centralUser = CentralUser::create([
             'global_id' => 'global-'.uniqid(),
             'name' => 'Other User',
@@ -110,12 +84,14 @@ class TenantAdminAuthTest extends TestCase
             'password' => 'password',
         ]);
 
-        // 3. Try to access the tenant admin panel
-        $response = $this->actingAs($centralUser, 'web')
-            ->get('http://'.$domain.'/');
+        // No promotion happens, so the tenant guard is still empty and the
+        // middleware throws AuthenticationException, which redirects.
+        $this->actingAs($centralUser, 'web')
+            ->get('http://'.$domain.self::AUTHENTICATED_TENANT_PATH)
+            ->assertRedirect();
 
-        // 4. Assertion (should be redirected or 403, depending on Authenticate middleware)
-        // Authenticate middleware throws AuthenticationException which redirects to login by default
-        $response->assertRedirect();
+        $tenant->run(function (): void {
+            $this->assertFalse(Auth::guard('tenant')->check());
+        });
     }
 }

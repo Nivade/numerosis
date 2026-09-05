@@ -10,7 +10,7 @@ use Nvade\Numerosis\Support\Cache\CacheKeys;
 
 /**
  * Features are rendered alongside their plan, so an edit here must bust
- * the cached plan payload too — see {@see PaymentPlanObserver}.
+ * the cached plan payload too. {@see PaymentPlanObserver}
  */
 class PaymentPlanFeatureObserver
 {

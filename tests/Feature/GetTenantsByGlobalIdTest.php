@@ -81,7 +81,7 @@ class GetTenantsByGlobalIdTest extends TestCase
 
     /**
      * Deleting a tenant must not leave it in a member's cached tenant list —
-     * User::canAccessTenant() and the Filament tenant switcher both read
+     * User::canAccessTenant() and every workspace switcher read
      * straight off that cache, so a stale entry would keep offering access to
      * (or navigation toward) a tenant that no longer exists.
      */

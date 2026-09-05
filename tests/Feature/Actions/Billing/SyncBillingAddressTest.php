@@ -10,6 +10,7 @@ use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
 use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
 use Nvade\Numerosis\Testing\FakesStripe;
+use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
 use Nvade\Numerosis\Tests\TestCase;
 use Stripe\PaymentMethod;
 
@@ -17,12 +18,13 @@ use Stripe\PaymentMethod;
  * Creates a PaymentMethod with a billing address attached (standing in for
  * what the Address Element produces client-side), then asserts the address
  * lands on the Stripe customer and an EU VAT number becomes a tax id of the
- * right type. See .claude/plans/module-marketplace.md. Runs against
+ * right type. See .claude/plans/archive/module-marketplace.md. Runs against
  * FakesStripe's in-memory fake, not live Stripe test mode — see D9 in
- * .claude/plans/package-extraction.md.
+ * .claude/plans/archive/package-extraction.md.
  */
 class SyncBillingAddressTest extends TestCase
 {
+    use CreatesCheckoutFixtures;
     use FakesStripe;
     use RefreshDatabase;
 
@@ -83,18 +85,7 @@ class SyncBillingAddressTest extends TestCase
 
     private function paymentMethodWithAddress(string $customerId, string $country): PaymentMethod
     {
-        $paymentMethod = Cashier::stripe()->paymentMethods->create([
-            'type' => 'card',
-            'card' => ['token' => 'tok_visa'],
-            'billing_details' => [
-                'address' => [
-                    'line1' => '123 Main St',
-                    'city' => 'Amsterdam',
-                    'postal_code' => '1000AA',
-                    'country' => $country,
-                ],
-            ],
-        ]);
+        $paymentMethod = $this->cardWithBillingAddress($country);
 
         Cashier::stripe()->paymentMethods->attach($paymentMethod->id, ['customer' => $customerId]);
 

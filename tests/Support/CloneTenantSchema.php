@@ -47,8 +47,12 @@ class CloneTenantSchema implements ShouldQueue
 
     /**
      * Tenant id of the template. The physical database name is this prefixed
-     * with `tenancy.database.prefix`, so under `--parallel` each process gets
-     * its own template without further wiring.
+     * with `tenancy.database.prefix`.
+     *
+     * Each parallel worker gets its own physical template because
+     * `tenancy.database.prefix` carries the worker's token (see
+     * `TestCase::parallelAwareTenantPrefix()`) — not because of anything here.
+     * This id is identical in every worker.
      */
     public const TEMPLATE_ID = 'phpunittemplate';
 
@@ -127,12 +131,12 @@ class CloneTenantSchema implements ShouldQueue
 
         self::central()->statement("DROP DATABASE IF EXISTS `{$database}`");
 
-        // Tenant is abstract (see .claude/plans/package-extraction.md Phase
+        // Tenant is abstract (see .claude/plans/archive/package-extraction.md Phase
         // 4.4) — forceCreate() calls `new static`, which late static binding
         // resolves to whatever class the call was written against. Written
         // as Tenant::forceCreate(...) that would be the abstract class
         // itself; going through the configured concrete class instead is
-        // what a real request does via config('tenancy.tenant_model').
+        // what a real request does via the tenant-model config key.
         /** @var class-string<Tenant> $tenantClass */
         $tenantClass = Config::string('tenancy.tenant_model');
 

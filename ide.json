@@ -1,0 +1,19 @@
+{
+    "$schema": "https://laravel-ide.com/schema/laravel-ide-v2.json",
+    "eloquent": {
+        "modelTables": [
+            {
+                "model": "Nvade\\Numerosis\\Models\\Central\\CentralUser",
+                "table": "users"
+            },
+            {
+                "model": "App\\Models\\Central\\CentralUser",
+                "table": "users"
+            },
+            {
+                "model": "Nvade\\Numerosis\\Tests\\Support\\PermissionWithExtraActions",
+                "table": "permissions"
+            }
+        ]
+    }
+}

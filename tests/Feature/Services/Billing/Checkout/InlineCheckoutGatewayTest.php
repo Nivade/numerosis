@@ -10,14 +10,14 @@ use App\Models\Central\PendingTenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Services\Billing\Checkout\InlineCheckoutGateway;
 use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
  * Runs against FakesStripe's in-memory fake, not live Stripe test mode —
- * see D9 in .claude/plans/package-extraction.md.
+ * see D9 in .claude/plans/archive/package-extraction.md.
  */
 class InlineCheckoutGatewayTest extends TestCase
 {
@@ -33,15 +33,11 @@ class InlineCheckoutGatewayTest extends TestCase
         // InlineCheckoutGateway::begin() only checks a price is configured
         // locally — it never sends it to Stripe (that happens later, in
         // CreateInlineSubscription) — so a placeholder id is fine here.
-        PaymentPlan::create([
-            'name' => 'Basic',
+        PaymentPlan::factory()->create([
             'slug' => 'basic',
-            'description' => 'Basic Plan',
             'monthly_id' => 'price_test_monthly',
             'yearly_id' => 'price_test_yearly',
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
-            'available' => true,
+            'trial_days' => 0,
         ]);
 
         PendingTenantProvision::factory()->create([

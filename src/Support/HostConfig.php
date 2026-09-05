@@ -5,13 +5,15 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Support;
 
 use Illuminate\Support\Facades\Config;
-use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
+use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
+use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
 use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
@@ -20,15 +22,13 @@ use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
  * Fills in the config this package needs, so an app only has to supply
  * ordinary Laravel database credentials to get a working install.
  *
- * Nothing here overrides a deliberate choice. Each key is only written when
- * it is unset or still holds the stock value shipped by Laravel or
- * stancl/tenancy — several of those never resolve to null, so "untouched"
- * has to be judged against the stock value rather than against null.
- * Anything you set yourself is left alone.
- *
- * Every key actually written is recorded and reported by `numerosis:install`,
- * so you can see what was configured for you without diffing defaults by
- * hand. Running twice changes nothing the second time.
+ * A **preference** (`numerosis.*` names a value a host might legitimately
+ * want another value for) is projected onto its vendor key unconditionally.
+ * A **correction** (the package does not work otherwise) is written only
+ * while its vendor key is unset or still holding a stock value Laravel or
+ * stancl/tenancy shipped, several of which never resolve to null. Every
+ * write is recorded and reported by `numerosis:install`, and running twice
+ * is inert.
  */
 final class HostConfig
 {
@@ -40,24 +40,18 @@ final class HostConfig
         self::$applied = [];
 
         self::tenancyModels();
+        self::centralAuthProviderModelPreference();
         self::centralDomains();
         self::tenancyBootstrappers();
         self::tenantMigrationParameters();
-        self::tenantSeederParameters();
-        self::livewireDiskExclusion();
-        self::filesystemRootOverride();
-        self::tenancyCentralConnection();
+        self::tenantSeederPreference();
+        self::filesystemDisks();
+        self::centralConnectionPreference();
         self::centralDatabaseConnection();
-        self::databaseLockOptions();
         self::sessionDomain();
-        self::failedJobsConnection();
-        self::tenantAuthGuard();
-        self::tenantAuthProvider();
-        self::centralAuthProviderModel();
         self::authPasswordBroker();
-        self::activityLogTable();
-        self::geoipService();
-        self::numerosisConfig();
+        self::applyCorrections();
+        self::fortifyFeatures();
     }
 
     /**
@@ -76,39 +70,54 @@ final class HostConfig
         self::$applied[] = $key;
     }
 
-    /**
-     * Points tenancy at this package's tenant, domain and user models.
-     * Left alone once any of them names a class of your own.
-     */
-    private static function tenancyModels(): void
+    /** Writes a preference only when it would actually change the key. */
+    private static function project(string $key, mixed $value): void
     {
-        $map = [
-            'tenancy.tenant_model' => [StanclTenant::class, Numerosis::model(Tenant::class)],
-            'tenancy.domain_model' => [StanclDomain::class, Numerosis::model(Domain::class)],
-            'tenancy.central_user_model' => [null, Numerosis::model(CentralUser::class)],
-            'tenancy.tenant_user_model' => [null, Numerosis::model(TenantUser::class)],
-        ];
-
-        foreach ($map as $key => [$stock, $default]) {
-            $current = Config::get($key);
-
-            if ($current === null || $current === $stock) {
-                self::set($key, $default);
-            }
+        if (Config::get($key) !== $value) {
+            self::set($key, $value);
         }
     }
 
     /**
-     * Derives the central domain from `APP_URL` (override with
-     * `NUMEROSIS_CENTRAL_DOMAIN`). Central routes are bound per hostname
-     * listed here, so leaving stancl's stock `127.0.0.1`/`localhost` in
-     * place would scope every central URL to the wrong host.
+     * Points tenancy at this package's tenant, domain and user models.
+     * Left alone once any of them names a class of your own — unlike
+     * `auth.providers.users.model` below, a host may set one of these four
+     * directly rather than through `numerosis.models.*`.
+     */
+    private static function tenancyModels(): void
+    {
+        self::applyWhileStock([
+            'tenancy.tenant_model' => [[StanclTenant::class], Numerosis::model(Tenant::class)],
+            'tenancy.domain_model' => [[StanclDomain::class], Numerosis::model(Domain::class)],
+
+            // The last two are in no stancl config stub, so there is no stock
+            // value to compare against and unset is the only signal.
+            'tenancy.central_user_model' => [[], Numerosis::model(CentralUser::class)],
+            'tenancy.tenant_user_model' => [[], Numerosis::model(TenantUser::class)],
+        ]);
+    }
+
+    /**
+     * Projects `numerosis.models.*`'s `CentralUser` entry onto
+     * `auth.providers.users.model`, always.
+     */
+    private static function centralAuthProviderModelPreference(): void
+    {
+        self::project('auth.providers.users.model', Numerosis::model(CentralUser::class));
+    }
+
+    /**
+     * Derives the central domain from `numerosis.domains.central`. Stays a
+     * method rather than a plain projection: the vendor key is a list (a
+     * host serving several central hostnames sets more than one), so an
+     * unconditional projection would flatten that list to one value.
      */
     private static function centralDomains(): void
     {
         /** @var list<string> $stock */
         $stock = ['127.0.0.1', 'localhost'];
-        $domains = Config::array('tenancy.central_domains', []);
+        $key = 'tenancy.central_domains';
+        $domains = Config::array($key, []);
 
         if ($domains !== [] && $domains !== $stock) {
             return;
@@ -117,16 +126,14 @@ final class HostConfig
         $central = Config::string('numerosis.domains.central', '');
 
         if ($central !== '') {
-            self::set('tenancy.central_domains', [$central]);
+            self::set($key, [$central]);
         }
     }
 
     /**
-     * Appends the two bootstrappers this package relies on:
-     * `AuthGuardBootstrapper` switches the default guard to match the
-     * current context, and `SpatiePermissionsBootstrapper` keeps role and
-     * permission lookups pointed at the right database. Your own
-     * bootstrappers are kept.
+     * Appends the three bootstrappers this package relies on, for the default
+     * guard, spatie's permission lookups and Fortify's password broker. A
+     * host's own bootstrappers are kept.
      */
     private static function tenancyBootstrappers(): void
     {
@@ -134,7 +141,11 @@ final class HostConfig
         $bootstrappers = Config::array('tenancy.bootstrappers', []);
 
         $missing = array_values(array_diff(
-            [SpatiePermissionsBootstrapper::class, AuthGuardBootstrapper::class],
+            [
+                SpatiePermissionsBootstrapper::class,
+                AuthGuardBootstrapper::class,
+                PasswordBrokerBootstrapper::class,
+            ],
             $bootstrappers,
         ));
 
@@ -144,9 +155,10 @@ final class HostConfig
     }
 
     /**
-     * Adds the package's tenant migrations to whatever paths are already
-     * configured, keeping yours. `--realpath` is forced on, since the added
-     * path is absolute.
+     * Adds the package's tenant migrations, plus any registered via
+     * {@see Numerosis::addTenantMigrationPath()}, to whatever paths are
+     * already configured, keeping yours. `--realpath` is forced on, since
+     * the added paths are absolute.
      */
     private static function tenantMigrationParameters(): void
     {
@@ -156,12 +168,13 @@ final class HostConfig
         $paths = $parameters['--path'] ?? [];
         $paths = is_array($paths) ? array_values($paths) : [];
 
-        $vendorPath = Numerosis::tenantMigrationPath();
         $changed = false;
 
-        if (! in_array($vendorPath, $paths, true)) {
-            $paths[] = $vendorPath;
-            $changed = true;
+        foreach (Numerosis::tenantMigrationPaths() as $vendorPath) {
+            if (! in_array($vendorPath, $paths, true)) {
+                $paths[] = $vendorPath;
+                $changed = true;
+            }
         }
 
         if (($parameters['--realpath'] ?? null) !== true) {
@@ -178,21 +191,17 @@ final class HostConfig
     }
 
     /**
-     * Seeds new tenant databases with this package's tenant seeder instead
-     * of stancl's stock `DatabaseSeeder`, which is your central-database
-     * root seeder and knows nothing about tenant data.
+     * Projects `numerosis.tenancy.seeder` onto `tenancy.seeder_parameters`,
+     * always — set the numerosis key to choose a seeder, not this one.
      */
-    private static function tenantSeederParameters(): void
+    private static function tenantSeederPreference(): void
     {
         /** @var array<string, mixed> $parameters */
         $parameters = Config::array('tenancy.seeder_parameters', []);
-        $class = $parameters['--class'] ?? null;
+        $class = Config::string('numerosis.tenancy.seeder', TenantDatabaseSeeder::class);
 
-        if ($class === null || $class === 'DatabaseSeeder') {
-            self::set('tenancy.seeder_parameters', [
-                ...$parameters,
-                '--class' => TenantDatabaseSeeder::class,
-            ]);
+        if (($parameters['--class'] ?? null) !== $class) {
+            self::set('tenancy.seeder_parameters', [...$parameters, '--class' => $class]);
         }
     }
 
@@ -200,9 +209,9 @@ final class HostConfig
      * Keeps the `livewire` disk out of the tenant-suffixed list. Livewire's
      * temporary-upload route is never tenant-identified, so suffixing that
      * disk makes validation look for the file in a directory the upload was
-     * never written to — surfacing as a bogus "invalid file type" error.
+     * never written to, surfacing as a bogus "invalid file type" error.
      */
-    private static function livewireDiskExclusion(): void
+    private static function filesystemDisks(): void
     {
         /** @var list<string> $disks */
         $disks = Config::array('tenancy.filesystem.disks', []);
@@ -213,32 +222,15 @@ final class HostConfig
     }
 
     /**
-     * Corrects stancl's stock tenant root for the `local` disk, which
-     * predates Laravel 11 moving that disk to `storage/app/private`.
+     * Projects `numerosis.tenancy.central_connection` onto
+     * `tenancy.database.central_connection`, always.
      */
-    private static function filesystemRootOverride(): void
+    private static function centralConnectionPreference(): void
     {
-        $current = Config::get('tenancy.filesystem.root_override.local');
-
-        if ($current === null || $current === '%storage_path%/app/') {
-            self::set('tenancy.filesystem.root_override.local', '%storage_path%/app/private/');
-        }
-    }
-
-    /**
-     * Names the central connection `central`, which is what this package
-     * assumes throughout. Skipped once it names anything other than
-     * `database.default` — stancl's stock value resolves to `DB_CONNECTION`,
-     * so matching the default means it was never chosen deliberately.
-     */
-    private static function tenancyCentralConnection(): void
-    {
-        $current = Config::get('tenancy.database.central_connection');
-        $default = Config::get('database.default');
-
-        if ($current === null || $current === $default) {
-            self::set('tenancy.database.central_connection', 'central');
-        }
+        self::project(
+            'tenancy.database.central_connection',
+            Config::string('numerosis.tenancy.central_connection', 'central'),
+        );
     }
 
     /**
@@ -264,59 +256,11 @@ final class HostConfig
     }
 
     /**
-     * Mirrors any MySQL `lock_wait_timeout` you set into
-     * `innodb_lock_wait_timeout`. The first bounds waits on schema locks
-     * only; without the second, a blocked `INSERT` or `DELETE` still waits
-     * out MySQL's 50-second default while appearing to be bounded.
-     */
-    private static function databaseLockOptions(): void
-    {
-        /** @var array<string, mixed> $connections */
-        $connections = Config::array('database.connections', []);
-        $changed = false;
-
-        foreach ($connections as $name => $connection) {
-            if (! is_array($connection) || ($connection['driver'] ?? null) !== 'mysql') {
-                continue;
-            }
-
-            /** @var array<int|string, mixed> $options */
-            $options = is_array($connection['options'] ?? null) ? $connection['options'] : [];
-            $updatedOptions = $options;
-
-            foreach ($options as $optionKey => $optionValue) {
-                if (! is_string($optionValue) || ! str_contains($optionValue, 'lock_wait_timeout')) {
-                    continue;
-                }
-
-                if (str_contains($optionValue, 'innodb_lock_wait_timeout')) {
-                    continue;
-                }
-
-                if (preg_match('/(?<!innodb_)lock_wait_timeout\s*=\s*(\d+)/', $optionValue, $matches) !== 1) {
-                    continue;
-                }
-
-                $updatedOptions[$optionKey] = rtrim($optionValue, '; ')
-                    .", innodb_lock_wait_timeout = {$matches[1]}";
-                $changed = true;
-            }
-
-            if ($updatedOptions !== $options) {
-                $connection['options'] = $updatedOptions;
-                $connections[$name] = $connection;
-            }
-        }
-
-        if ($changed) {
-            self::set('database.connections', $connections);
-        }
-    }
-
-    /**
      * Scopes the session cookie to the apex domain, so one session spans the
      * central app and every tenant subdomain. Left null, each subdomain gets
-     * its own separate session.
+     * its own separate session. The null check stays even though the value
+     * is a preference: overwriting a host's own `session.domain` /
+     * `SESSION_DOMAIN` unconditionally would break login silently.
      */
     private static function sessionDomain(): void
     {
@@ -330,67 +274,11 @@ final class HostConfig
     }
 
     /**
-     * Pins failed jobs to the central connection. Left on a connection that
-     * moves under tenancy, a job failing inside tenant context writes its
-     * `failed_jobs` row into that tenant's database, where nothing looks
-     * for it.
-     */
-    private static function failedJobsConnection(): void
-    {
-        $current = Config::get('queue.failed.database');
-        $default = Config::get('database.default');
-
-        if ($current === null || $current === $default) {
-            self::set('queue.failed.database', 'central');
-        }
-    }
-
-    /**
-     * Adds the `tenant` session guard, paired with the `tenant` provider
-     * defined below. Laravel's stock `config/auth.php` ships neither.
-     */
-    private static function tenantAuthGuard(): void
-    {
-        if (Config::get('auth.guards.tenant') === null) {
-            self::set('auth.guards.tenant', [
-                'driver' => 'session',
-                'provider' => 'tenant',
-            ]);
-        }
-    }
-
-    private static function tenantAuthProvider(): void
-    {
-        if (Config::get('auth.providers.tenant') === null) {
-            self::set('auth.providers.tenant', [
-                'driver' => 'eloquent',
-                'model' => Numerosis::model(TenantUser::class),
-            ]);
-        }
-    }
-
-    /**
-     * Points central auth at a user model that implements
-     * {@see CentralUserModel}, which Laravel's stock `App\Models\User` does
-     * not. Any model of yours that satisfies the contract is left alone.
-     */
-    private static function centralAuthProviderModel(): void
-    {
-        $model = Config::get('auth.providers.users.model');
-
-        $valid = is_string($model) && class_exists($model) && is_a($model, CentralUserModel::class, true);
-
-        if (! $valid) {
-            self::set('auth.providers.users.model', Numerosis::model(CentralUser::class));
-        }
-    }
-
-    /**
      * Defines the default password broker against the `users` provider.
-     * `Password::sendResetLink()` resolves its model through the broker
-     * rather than through `auth.providers`, and with no broker entry falls
-     * back to a model that cannot be notified — reported as "Call to
-     * undefined method ...User::notify()" rather than as missing config.
+     * `Password::sendResetLink()` resolves its model through the broker and
+     * never through `auth.providers`, so with no broker entry it falls back to
+     * a model that cannot be notified. That surfaces as "Call to undefined
+     * method ...User::notify()", giving no hint that config is missing.
      */
     private static function authPasswordBroker(): void
     {
@@ -413,80 +301,85 @@ final class HostConfig
     }
 
     /**
-     * Names the activity-log table. Current spatie/laravel-activitylog
-     * ships no default for it, and the activity-log migrations read the key
-     * directly — unset, they fail with `Incorrect table name ''`.
-     */
-    private static function activityLogTable(): void
-    {
-        if (Config::get('activitylog.table_name') === null) {
-            self::set('activitylog.table_name', 'activity_log');
-        }
-    }
-
-    /**
-     * torann/geoip's own stock config ships `service` as `null`, and its
-     * `GeoIP::getService()` throws `Exception('No GeoIP service is
-     * configured.')` if left that way — every checkout page load would
-     * fatal the moment {@see \Nvade\Numerosis\Actions\Billing\Checkout\ResolveCheckoutRegion}
-     * calls it. Backfills the local MaxMind database driver, which needs no
-     * outbound request per lookup, unless you've already chosen a service.
-     */
-    private static function geoipService(): void
-    {
-        if (Config::get('geoip.service') === null) {
-            self::set('geoip.service', 'maxmind_database');
-        }
-    }
-
-    /**
-     * Backfills `config/numerosis.php` defaults at every depth. Laravel
-     * merges published config only one level deep, so overriding a single
-     * nested key such as `modules.catalogue` would otherwise drop every
-     * sibling under `modules`.
+     * Guarded key => value corrections: written while a key is unset or
+     * still holding a stock value. `tenancy.filesystem.root_override.local`
+     * and `queue.failed.database` never resolve to null, so a plain null
+     * check would silently stop correcting them once a host's other config
+     * happened to match their vendor default.
      *
-     * Only keyed arrays are filled. Lists such as `features` are left
-     * exactly as you set them, including empty, since a list's meaning is
-     * its contents and order rather than which keys are present.
+     * @return array<string, array{0: list<mixed>, 1: mixed}>
      */
-    private static function numerosisConfig(): void
+    private static function corrections(): array
     {
-        /** @var array<string, mixed> $packageDefaults */
-        $packageDefaults = require dirname(__DIR__, 2).'/config/numerosis.php';
+        return [
+            'auth.guards.tenant' => [[], [
+                'driver' => 'session',
+                'provider' => 'tenant',
+            ]],
+            'auth.providers.tenant' => [[], [
+                'driver' => 'eloquent',
+                'model' => Numerosis::model(TenantUser::class),
+            ]],
+            'auth.passwords.tenant' => [[], [
+                'provider' => 'tenant',
+                'table' => 'password_reset_tokens',
+                'expire' => 60,
+                'throttle' => 60,
+            ]],
+            'activitylog.table_name' => [[], 'activity_log'],
 
-        /** @var array<string, mixed> $current */
-        $current = Config::array('numerosis', []);
+            // Corrects stancl's stock tenant root, which predates Laravel 11
+            // moving the `local` disk to `storage/app/private`.
+            'tenancy.filesystem.root_override.local' => [['%storage_path%/app/'], '%storage_path%/app/private/'],
 
-        $merged = self::fillMissingKeys($packageDefaults, $current);
+            'queue.failed.database' => [[Config::get('database.default')], 'central'],
+        ];
+    }
 
-        if ($merged !== $current) {
-            self::set('numerosis', $merged);
+    private static function applyCorrections(): void
+    {
+        self::applyWhileStock(self::corrections());
+    }
+
+    /**
+     * Writes each key while it is unset or still holds one of the stock values
+     * listed against it, leaving a host's own value alone.
+     *
+     * @param  array<string, array{0: list<mixed>, 1: mixed}>  $table
+     */
+    private static function applyWhileStock(array $table): void
+    {
+        foreach ($table as $key => [$stockValues, $value]) {
+            $current = Config::get($key);
+
+            if ($current === null || in_array($current, $stockValues, true)) {
+                self::set($key, $value);
+            }
         }
     }
 
     /**
-     * @param  array<array-key, mixed>  $default
-     * @param  array<array-key, mixed>  $current
-     * @return array<array-key, mixed>
+     * The auth screens Fortify registers, dropping two-factor and passkeys,
+     * which have neither views nor columns here. Written only while
+     * `numerosis.auth.manage_fortify_features` is true; set it false once you
+     * have edited `fortify.features` yourself.
      */
-    private static function fillMissingKeys(array $default, array $current): array
+    private static function fortifyFeatures(): void
     {
-        $merged = $current;
-
-        foreach ($default as $key => $value) {
-            if (! array_key_exists($key, $current)) {
-                $merged[$key] = $value;
-
-                continue;
-            }
-
-            $existing = $current[$key];
-
-            if (is_array($value) && is_array($existing) && ! array_is_list($value) && ! array_is_list($existing)) {
-                $merged[$key] = self::fillMissingKeys($value, $existing);
-            }
+        if (! Config::boolean('numerosis.auth.manage_fortify_features')) {
+            return;
         }
 
-        return $merged;
+        $features = array_values(array_filter([
+            FortifyFeatures::registration(),
+            Features::enabled(PasswordResetFeature::NAME) ? FortifyFeatures::resetPasswords() : null,
+            FortifyFeatures::updateProfileInformation(),
+            FortifyFeatures::updatePasswords(),
+            FortifyFeatures::emailVerification(),
+        ]));
+
+        if (Config::array('fortify.features') !== $features) {
+            self::set('fortify.features', $features);
+        }
     }
 }

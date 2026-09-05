@@ -17,7 +17,7 @@ use Stripe\PaymentMethod;
  *
  * The Stripe customer is the source of truth for billing address; nothing is
  * stored locally. A Stripe outage surfaces to the customer as checkout copy
- * rather than a 500.
+ * in place of a 500.
  *
  * @method static void run(CentralUser $billable, PaymentMethod $paymentMethod, ?string $vatNumber = null)
  */

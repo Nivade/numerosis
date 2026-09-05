@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Checkout;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PaymentPlan;
 use App\Models\Central\PendingTenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -23,66 +22,22 @@ use Nvade\Numerosis\Tests\TestCase;
  */
 class CompleteRedirectCheckoutTest extends TestCase
 {
+    use CreatesCheckoutFixtures;
     use RefreshDatabase;
 
     public function test_it_provisions_once_for_the_owning_customer(): void
     {
         $fake = Billing::fake();
 
-        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
+        $this->createStarterPlan($this->starterPriceIdOrSkip());
 
-        if ($priceId === '') {
-            $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');
-        }
+        $user = $this->signedInCustomer();
 
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
+        $setupIntent = $this->confirmedSetupIntentFor($user, $this->cardWithBillingAddress()->id);
 
-        PaymentPlan::create([
-            'name' => 'Starter',
-            'slug' => 'starter',
-            'description' => 'Starter Plan',
-            'monthly_id' => $priceId,
-            'yearly_id' => $priceId,
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
-            'available' => true,
-            'trial_days' => 0,
-        ]);
-
-        $customer = $user->createOrGetStripeCustomer();
-
-        // Automatic tax (on by default — Cashier::calculateTaxes()) requires
-        // a customer address, which SyncBillingAddress writes from the
-        // PaymentMethod's billing_details. pm_card_visa carries none, so a
-        // real payment method with an address stands in for what the
-        // Address Element would have produced.
-        $paymentMethod = Cashier::stripe()->paymentMethods->create([
-            'type' => 'card',
-            'card' => ['token' => 'tok_visa'],
-            'billing_details' => [
-                'address' => [
-                    'line1' => '123 Main St',
-                    'city' => 'Amsterdam',
-                    'postal_code' => '1000AA',
-                    'country' => 'NL',
-                ],
-            ],
-        ]);
-
-        $setupIntent = Cashier::stripe()->setupIntents->create([
-            'customer' => $customer->id,
-            'payment_method' => $paymentMethod->id,
-            'payment_method_types' => ['card'],
-            'confirm' => true,
-        ]);
-
-        PendingTenantProvision::factory()->create([
-            'domain' => 'return-route-test',
-            'global_id' => $user->global_id,
+        $this->reserve('return-route-test', $user, $setupIntent->id, [
             'payment_plan' => 'starter',
             'billing_cycle' => BillingCycle::Monthly,
-            'stripe_setup_intent_id' => $setupIntent->id,
         ]);
 
         $this->get(route('checkout.subscription.return', ['setup_intent' => $setupIntent->id]))
@@ -101,61 +56,21 @@ class CompleteRedirectCheckoutTest extends TestCase
      * bank redirect — must not run CreateInlineSubscription a second time
      * and charge the customer twice. It should land the already-paid
      * customer on their tenant, not surface a refusal. See
-     * .claude/rules/billing-checkout.md.
+     * .ai/rules/billing-checkout.md.
      */
     public function test_a_replayed_return_visit_does_not_create_a_second_subscription(): void
     {
         $fake = Billing::fake();
 
-        $priceId = Config::string('numerosis.billing.plans.0.monthly_id');
+        $this->createStarterPlan($this->starterPriceIdOrSkip());
 
-        if ($priceId === '') {
-            $this->markTestSkipped('No Stripe test-mode price configured (STRIPE_STARTER_MONTHLY_PLAN).');
-        }
+        $user = $this->signedInCustomer();
 
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
+        $setupIntent = $this->confirmedSetupIntentFor($user, $this->cardWithBillingAddress()->id);
 
-        PaymentPlan::create([
-            'name' => 'Starter',
-            'slug' => 'starter',
-            'description' => 'Starter Plan',
-            'monthly_id' => $priceId,
-            'yearly_id' => $priceId,
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
-            'available' => true,
-            'trial_days' => 0,
-        ]);
-
-        $customer = $user->createOrGetStripeCustomer();
-
-        $paymentMethod = Cashier::stripe()->paymentMethods->create([
-            'type' => 'card',
-            'card' => ['token' => 'tok_visa'],
-            'billing_details' => [
-                'address' => [
-                    'line1' => '123 Main St',
-                    'city' => 'Amsterdam',
-                    'postal_code' => '1000AA',
-                    'country' => 'NL',
-                ],
-            ],
-        ]);
-
-        $setupIntent = Cashier::stripe()->setupIntents->create([
-            'customer' => $customer->id,
-            'payment_method' => $paymentMethod->id,
-            'payment_method_types' => ['card'],
-            'confirm' => true,
-        ]);
-
-        PendingTenantProvision::factory()->create([
-            'domain' => 'replay-return-test',
-            'global_id' => $user->global_id,
+        $this->reserve('replay-return-test', $user, $setupIntent->id, [
             'payment_plan' => 'starter',
             'billing_cycle' => BillingCycle::Monthly,
-            'stripe_setup_intent_id' => $setupIntent->id,
         ]);
 
         $this->get(route('checkout.subscription.return', ['setup_intent' => $setupIntent->id]))
@@ -176,7 +91,7 @@ class CompleteRedirectCheckoutTest extends TestCase
         $pending = PendingTenantProvision::find('replay-return-test');
         $this->assertSame($subscriptionId, $pending?->stripe_subscription_id);
 
-        $subscriptions = Cashier::stripe()->subscriptions->all(['customer' => $customer->id]);
+        $subscriptions = Cashier::stripe()->subscriptions->all(['customer' => $user->stripeIdOrFail()]);
         $this->assertCount(1, $subscriptions->data);
     }
 
@@ -185,11 +100,7 @@ class CompleteRedirectCheckoutTest extends TestCase
         $victim = CentralUser::factory()->create();
         $attacker = CentralUser::factory()->create();
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'stolen-reservation',
-            'global_id' => $victim->global_id,
-            'stripe_setup_intent_id' => 'seti_not_the_attackers',
-        ]);
+        $this->reserve('stolen-reservation', $victim, 'seti_not_the_attackers');
 
         $this->actingAs($attacker)
             ->get(route('checkout.subscription.return', ['setup_intent' => 'seti_not_the_attackers']))
@@ -209,11 +120,7 @@ class CompleteRedirectCheckoutTest extends TestCase
         $victim = CentralUser::factory()->create();
         $attacker = CentralUser::factory()->create();
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'stolen-reservation-wizard-off',
-            'global_id' => $victim->global_id,
-            'stripe_setup_intent_id' => 'seti_not_the_attackers_wizard_off',
-        ]);
+        $this->reserve('stolen-reservation-wizard-off', $victim, 'seti_not_the_attackers_wizard_off');
 
         $this->actingAs($attacker)
             ->get(route('checkout.subscription.return', ['setup_intent' => 'seti_not_the_attackers_wizard_off']))

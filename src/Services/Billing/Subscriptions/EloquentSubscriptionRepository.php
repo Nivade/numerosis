@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Services\Billing\Subscriptions;
 
 use Illuminate\Database\UniqueConstraintViolationException;
-use Laravel\Cashier\Subscription as CashierSubscription;
 use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Nvade\Numerosis\Models\Central\Subscription;
@@ -14,7 +13,7 @@ use RuntimeException;
 
 class EloquentSubscriptionRepository implements SubscriptionRepository
 {
-    public function findByStripeId(string $stripeId): ?CashierSubscription
+    public function findByStripeId(string $stripeId): ?Subscription
     {
         $subscriptionClass = Numerosis::model(Subscription::class);
 
@@ -22,24 +21,17 @@ class EloquentSubscriptionRepository implements SubscriptionRepository
     }
 
     /**
-     * `updateOrCreate()` is a plain select-then-insert, not an atomic
-     * upsert, and this is one of two writers of a `subscriptions` row for a
-     * given `stripe_id`: `CreateInlineSubscription` also inserts one,
-     * synchronously and unlocked, from the checkout web request — via
-     * Cashier's own `SubscriptionBuilder::create()`, not this repository.
-     * The two can't share a lock keyed by `stripe_id`, because Stripe hasn't
-     * generated that id yet at the point `CreateInlineSubscription` starts.
-     * A live `UniqueConstraintViolationException` here (both inserts firing
-     * within the same select-then-insert window) means the row now exists —
-     * fall back to the update this call would have taken had it lost the
-     * race by a few milliseconds more, instead of surfacing a 500.
+     * `updateOrCreate()` is a select-then-insert, and `CreateInlineSubscription`
+     * writes the same `stripe_id` row unlocked from the checkout request, so a
+     * `UniqueConstraintViolationException` here means the row landed inside
+     * that window. Updating it is what this call would have done had it lost
+     * the race by a few more milliseconds.
      */
-    public function record(SubscriptionData $data): CashierSubscription
+    public function record(SubscriptionData $data): Subscription
     {
         $subscriptionClass = Numerosis::model(Subscription::class);
 
         try {
-            /** @var Subscription $subscription */
             $subscription = $subscriptionClass::query()->updateOrCreate(
                 ['stripe_id' => $data->stripe_id],
                 $data->except('items', 'stripe_id')->toArray(),

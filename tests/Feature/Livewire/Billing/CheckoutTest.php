@@ -12,91 +12,69 @@ use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
+use Nvade\Numerosis\Actions\Billing\Checkout\ResolveCheckoutRegion;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
 use Nvade\Numerosis\Testing\FakesStripe;
+use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
 use Nvade\Numerosis\Tests\TestCase;
-use Torann\GeoIP\Facades\GeoIP;
-use Torann\GeoIP\Location;
 
 class CheckoutTest extends TestCase
 {
+    use CreatesCheckoutFixtures;
     use FakesStripe;
     use RefreshDatabase;
 
     public function test_it_renders_the_element_for_a_resumable_checkout(): void
     {
         $this->fakeStripe();
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
+        $user = $this->signedInCustomer();
 
-        $customer = $user->createOrGetStripeCustomer();
+        $setupIntent = $this->openSetupIntentFor($user);
 
-        $setupIntent = Cashier::stripe()->setupIntents->create([
-            'customer' => $customer->id,
-            'payment_method_types' => ['card'],
-        ]);
-
-        PendingTenantProvision::factory()->create([
-            'domain' => 'resume-render-test',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => $setupIntent->id,
-        ]);
+        $this->reserve('resume-render-test', $user, $setupIntent->id);
 
         Livewire::test(Checkout::class, ['domain' => 'resume-render-test'])
             ->assertSet('checkoutClientSecret', $setupIntent->client_secret)
             ->assertSet('paymentError', null);
     }
 
+    /**
+     * The curated per-region order is still live code — a host that binds a
+     * region lookup back in gets it — even though `ResolveCheckoutRegion`
+     * itself always answers null since torann/geoip was dropped in Phase 6 of
+     * `.claude/plans/archive/humming-nibbling-flame.md`. Mocking the action rather
+     * than a GeoIP facade is what keeps that path covered without the
+     * dependency.
+     */
     public function test_it_exposes_the_curated_payment_method_order_for_a_resolved_region(): void
     {
         $this->fakeStripe();
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
+        $user = $this->signedInCustomer();
 
-        $customer = $user->createOrGetStripeCustomer();
+        $setupIntent = $this->openSetupIntentFor($user);
 
-        $setupIntent = Cashier::stripe()->setupIntents->create([
-            'customer' => $customer->id,
-            'payment_method_types' => ['card'],
-        ]);
+        $this->reserve('region-hit-test', $user, $setupIntent->id);
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'region-hit-test',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => $setupIntent->id,
-        ]);
-
-        GeoIP::shouldReceive('getLocation')
-            ->once()
-            ->andReturn(new Location(['iso_code' => 'NL', 'default' => false]));
+        ResolveCheckoutRegion::mock()->shouldReceive('handle')->andReturn('NL');
 
         Livewire::test(Checkout::class, ['domain' => 'region-hit-test'])
             ->assertSet('detectedCountry', 'NL')
             ->assertSet('paymentMethodOrder', Config::array('numerosis.billing.payment_methods.regions.NL'));
     }
 
+    /**
+     * With no lookup wired in this is now the only path production takes,
+     * which is exactly why it is asserted against the real action rather
+     * than a mock.
+     */
     public function test_it_falls_back_to_the_default_payment_method_order_when_the_region_is_unresolved(): void
     {
         $this->fakeStripe();
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
+        $user = $this->signedInCustomer();
 
-        $customer = $user->createOrGetStripeCustomer();
+        $setupIntent = $this->openSetupIntentFor($user);
 
-        $setupIntent = Cashier::stripe()->setupIntents->create([
-            'customer' => $customer->id,
-            'payment_method_types' => ['card'],
-        ]);
-
-        PendingTenantProvision::factory()->create([
-            'domain' => 'region-miss-test',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => $setupIntent->id,
-        ]);
-
-        GeoIP::shouldReceive('getLocation')
-            ->once()
-            ->andReturn(new Location(['iso_code' => 'US', 'default' => true]));
+        $this->reserve('region-miss-test', $user, $setupIntent->id);
 
         Livewire::test(Checkout::class, ['domain' => 'region-miss-test'])
             ->assertSet('detectedCountry', null)
@@ -110,11 +88,7 @@ class CheckoutTest extends TestCase
         $attacker = CentralUser::factory()->create();
         $this->actingAs($attacker);
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'not-yours-render',
-            'global_id' => $victim->global_id,
-            'stripe_setup_intent_id' => 'seti_not_the_attackers',
-        ]);
+        $this->reserve('not-yours-render', $victim, 'seti_not_the_attackers');
 
         Livewire::test(Checkout::class, ['domain' => 'not-yours-render'])
             ->assertSet('checkoutClientSecret', null)
@@ -128,26 +102,16 @@ class CheckoutTest extends TestCase
      * a user who already held an unrelated active subscription (an existing,
      * already-paid tenant) could call confirmed() on a brand new pending
      * reservation and get a second tenant provisioned for free. See
-     * .claude/rules/billing-checkout.md.
+     * .ai/rules/billing-checkout.md.
      */
     public function test_confirming_does_not_settle_an_unrelated_active_subscription(): void
     {
         $this->fakeStripe();
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
+        $user = $this->signedInCustomer();
 
-        $customer = $user->createOrGetStripeCustomer();
+        $setupIntent = $this->openSetupIntentFor($user);
 
-        $setupIntent = Cashier::stripe()->setupIntents->create([
-            'customer' => $customer->id,
-            'payment_method_types' => ['card'],
-        ]);
-
-        PendingTenantProvision::factory()->create([
-            'domain' => 'confirm-unrelated-test',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => $setupIntent->id,
-        ]);
+        $this->reserve('confirm-unrelated-test', $user, $setupIntent->id);
 
         Subscription::create([
             'subscribable_id' => $user->id,
@@ -191,8 +155,7 @@ class CheckoutTest extends TestCase
     public function test_it_refuses_a_setup_intent_belonging_to_a_different_reservation(): void
     {
         $this->fakeStripe();
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
+        $user = $this->signedInCustomer();
 
         $customer = $user->createOrGetStripeCustomer();
 
@@ -211,17 +174,8 @@ class CheckoutTest extends TestCase
             'payment_method_types' => ['card'],
         ]);
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'cross-row-a',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => $intentForA->id,
-        ]);
-
-        PendingTenantProvision::factory()->create([
-            'domain' => 'cross-row-b',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => $intentForB->id,
-        ]);
+        $this->reserve('cross-row-a', $user, $intentForA->id);
+        $this->reserve('cross-row-b', $user, $intentForB->id);
 
         Livewire::test(Checkout::class, ['domain' => 'cross-row-b'])
             ->call('subscribe', $intentForA->id)
@@ -246,8 +200,7 @@ class CheckoutTest extends TestCase
     public function test_it_prefills_the_saved_billing_address_for_a_returning_customer(): void
     {
         $this->fakeStripe();
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
+        $user = $this->signedInCustomer();
 
         $customer = $user->createOrGetStripeCustomer();
 
@@ -263,16 +216,9 @@ class CheckoutTest extends TestCase
             ],
         ]);
 
-        $setupIntent = $stripe->setupIntents->create([
-            'customer' => $customer->id,
-            'payment_method_types' => ['card'],
-        ]);
+        $setupIntent = $this->openSetupIntentFor($user);
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'prefill-test',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => $setupIntent->id,
-        ]);
+        $this->reserve('prefill-test', $user, $setupIntent->id);
 
         Livewire::test(Checkout::class, ['domain' => 'prefill-test'])
             ->assertSet('savedBillingAddress', [
@@ -291,21 +237,11 @@ class CheckoutTest extends TestCase
     public function test_it_leaves_the_saved_billing_address_null_for_a_brand_new_customer(): void
     {
         $this->fakeStripe();
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
+        $user = $this->signedInCustomer();
 
-        $customer = $user->createOrGetStripeCustomer();
+        $setupIntent = $this->openSetupIntentFor($user);
 
-        $setupIntent = Cashier::stripe()->setupIntents->create([
-            'customer' => $customer->id,
-            'payment_method_types' => ['card'],
-        ]);
-
-        PendingTenantProvision::factory()->create([
-            'domain' => 'no-prefill-test',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => $setupIntent->id,
-        ]);
+        $this->reserve('no-prefill-test', $user, $setupIntent->id);
 
         Livewire::test(Checkout::class, ['domain' => 'no-prefill-test'])
             ->assertSet('savedBillingAddress', null)
@@ -318,11 +254,7 @@ class CheckoutTest extends TestCase
         $user = CentralUser::factory()->create(['stripe_id' => 'cus_invalid']);
         $this->actingAs($user);
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'fetch-fail-test',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => 'seti_test',
-        ]);
+        $this->reserve('fetch-fail-test', $user, 'seti_test');
 
         Livewire::test(Checkout::class, ['domain' => 'fetch-fail-test'])
             ->assertSet('savedBillingFetchFailed', true);
@@ -331,8 +263,7 @@ class CheckoutTest extends TestCase
     public function test_it_lists_reusable_payment_methods_for_a_returning_customer(): void
     {
         $this->fakeStripe();
-        $user = CentralUser::factory()->create();
-        $this->actingAs($user);
+        $user = $this->signedInCustomer();
 
         $customer = $user->createOrGetStripeCustomer();
         $stripe = Cashier::stripe();
@@ -344,16 +275,9 @@ class CheckoutTest extends TestCase
 
         $stripe->paymentMethods->attach($pm->id, ['customer' => $customer->id]);
 
-        $setupIntent = $stripe->setupIntents->create([
-            'customer' => $customer->id,
-            'payment_method_types' => ['card'],
-        ]);
+        $setupIntent = $this->openSetupIntentFor($user);
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'payment-methods-test',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => $setupIntent->id,
-        ]);
+        $this->reserve('payment-methods-test', $user, $setupIntent->id);
 
         Livewire::test(Checkout::class, ['domain' => 'payment-methods-test'])
             ->assertSet('savedPaymentMethodsFetchFailed', false);
@@ -365,11 +289,7 @@ class CheckoutTest extends TestCase
         $user = CentralUser::factory()->create(['stripe_id' => 'cus_invalid']);
         $this->actingAs($user);
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'payment-methods-fetch-fail-test',
-            'global_id' => $user->global_id,
-            'stripe_setup_intent_id' => 'seti_test',
-        ]);
+        $this->reserve('payment-methods-fetch-fail-test', $user, 'seti_test');
 
         Livewire::test(Checkout::class, ['domain' => 'payment-methods-fetch-fail-test'])
             ->assertSet('savedPaymentMethodsFetchFailed', true);
@@ -393,10 +313,7 @@ class CheckoutTest extends TestCase
 
         $stripe->paymentMethods->attach($pm->id, ['customer' => $victimCustomer->id]);
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'cross-customer-test',
-            'global_id' => $attacker->global_id,
-        ]);
+        $this->reserve('cross-customer-test', $attacker, null);
 
         Livewire::test(Checkout::class, ['domain' => 'cross-customer-test'])
             ->call('subscribeWithSavedPaymentMethod', $pm->id)

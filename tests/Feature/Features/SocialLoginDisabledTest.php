@@ -17,9 +17,11 @@ class SocialLoginDisabledTest extends TestCase
         parent::setUp();
     }
 
-    public function test_it_registers_no_oauth_routes_when_disabled(): void
+    public function test_it_registers_no_social_route_when_disabled(): void
     {
-        $this->assertFalse(Route::has('oauth'));
-        $this->assertFalse(Route::has('oauth.callback'));
+        $this->assertFalse(Route::has('social.redirect'));
+        $this->assertFalse(Route::has('social.callback'));
+        $this->assertFalse(Route::has('social.destroy'));
+        $this->assertFalse(Route::has('settings.connected-accounts'));
     }
 }

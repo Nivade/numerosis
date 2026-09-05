@@ -12,71 +12,42 @@
             </div>
 
             <div class="grid grid-cols-2 gap-8 md:col-span-2 md:grid-cols-3">
-                <div>
-                    <h3 class="text-sm font-semibold mb-3">Product</h3>
-                    <ul class="space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
-                        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\MarketingPagesFeature::NAME))
-                            <li>
-                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('features') }}" wire:navigate aria-label="Features">
-                                    Features
-                                </a>
-                            </li>
-                        @endif
-                        @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::NAME))
-                            <li>
-                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('tenants.create') }}" wire:navigate aria-label="Create workspace">
-                                    Create workspace
-                                </a>
-                            </li>
-                        @endif
-                        <li>
-                            <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('login') }}" wire:navigate aria-label="Sign in">
-                                Sign in
-                            </a>
-                        </li>
-                        @auth
-                            @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\AccountPagesFeature::NAME))
-                                <li>
-                                    <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('tenants.mine') }}" wire:navigate aria-label="My Tenants">
-                                        {{ __('My Tenants') }}
-                                    </a>
-                                </li>
-                            @endif
-                        @endauth
-                    </ul>
-                </div>
+                <x-numerosis::footer.column heading="Product">
+                    {{-- Marketing pages belong to the host app, so link to
+                         one only when the host actually registered it. --}}
+                    @if (Route::has('features'))
+                        <x-numerosis::footer.link :href="route('features')">Features</x-numerosis::footer.link>
+                    @endif
+                    @if (\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::available())
+                        <x-numerosis::footer.link :href="route('tenants.create')">Create workspace</x-numerosis::footer.link>
+                    @endif
+                    @if (Route::has('login'))
+                        <x-numerosis::footer.link :href="route('login')">Sign in</x-numerosis::footer.link>
+                    @endif
+                    @auth
+                        <x-numerosis::footer.link :href="route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine())">
+                            {{ __('My Tenants') }}
+                        </x-numerosis::footer.link>
+                    @endauth
+                </x-numerosis::footer.column>
 
-                <div>
-                    <h3 class="text-sm font-semibold mb-3">Resources</h3>
-                    <ul class="space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
-                        <li>
-                            <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="https://laravel.com/docs/starter-kits#livewire" target="_blank" rel="noreferrer" aria-label="Documentation (opens in a new tab)" title="Opens in a new tab">
-                                Documentation
-                            </a>
-                        </li>
-                        <li>
-                            <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="https://github.com/laravel/livewire-starter-kit" target="_blank" rel="noreferrer" aria-label="Repository (opens in a new tab)" title="Opens in a new tab">
-                                Repository
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+                <x-numerosis::footer.column heading="Resources">
+                    <x-numerosis::footer.link external href="https://laravel.com/docs/starter-kits#livewire">Documentation</x-numerosis::footer.link>
+                    <x-numerosis::footer.link external href="https://github.com/laravel/livewire-starter-kit">Repository</x-numerosis::footer.link>
+                </x-numerosis::footer.column>
 
-                @if (\Nvade\Numerosis\Support\Features::enabled(\Nvade\Numerosis\Features\Ui\MarketingPagesFeature::NAME))
-                    <div>
-                        <h3 class="text-sm font-semibold mb-3">Company</h3>
-                        <ul class="space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
-                            <li>
-                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('about') }}" wire:navigate aria-label="About us">About</a>
-                            </li>
-                            <li>
-                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('privacy') }}" wire:navigate aria-label="Privacy policy">Privacy</a>
-                            </li>
-                            <li>
-                                <a class="hover:text-zinc-900 dark:hover:text-white rounded-sm focus-ring" href="{{ route('terms') }}" wire:navigate aria-label="Terms of service">Terms</a>
-                            </li>
-                        </ul>
-                    </div>
+                @if (Route::has('about') || Route::has('privacy') || Route::has('terms'))
+                    <x-numerosis::footer.column heading="Company">
+                        @if (Route::has('about'))
+                            <x-numerosis::footer.link :href="route('about')">About</x-numerosis::footer.link>
+                        @endif
+                        @if (Route::has('privacy'))
+                            <x-numerosis::footer.link :href="route('privacy')">Privacy</x-numerosis::footer.link>
+                        @endif
+                        @if (Route::has('terms'))
+                            <x-numerosis::footer.link :href="route('terms')">Terms</x-numerosis::footer.link>
+                        @endif
+                    </x-numerosis::footer.column>
                 @endif
             </div>
         </div>

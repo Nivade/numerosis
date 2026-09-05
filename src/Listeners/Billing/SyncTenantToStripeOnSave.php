@@ -11,7 +11,7 @@ use Stancl\Tenancy\Events\TenantSaved;
 class SyncTenantToStripeOnSave
 {
     /**
-     * Not named `handle()` deliberately — Laravel auto-discovers any
+     * Deliberately not named `handle()`: Laravel auto-discovers any
      * `handle*`/`__invoke` method in app/Listeners and would wire this
      * unconditionally, bypassing the `billing.sync.stripe_customer` gate
      * that {@see \Nvade\Numerosis\Providers\BillingServiceProvider::configureStripeSync()}

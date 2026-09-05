@@ -11,16 +11,24 @@ use Nvade\Numerosis\Tests\TestCase;
 use Override;
 
 /**
- * `routes/auth.php` registers `login`, `register`, `logout` and
- * `verification.verify` behind no feature flag at all (only the OAuth and
- * password-reset routes inside it are gated), so a host keeping its own auth
- * system — Fortify, Breeze, anything — used to get a silent route-name
- * collision on those four: Laravel's router keeps whichever was registered
- * last, making "which system serves /login" a function of provider order.
+ * `login`, `register`, `logout` and `verification.verify` are registered
+ * behind no feature flag at all, so a host keeping its own auth system —
+ * Fortify, Breeze, anything — used to get a silent route-name collision on
+ * those four: Laravel's router keeps whichever was registered last, making
+ * "which system serves /login" a function of provider order.
  * `Numerosis::routes(withAuth: false)` is the opt-out; everything else in
  * `routes/web.php` still has to register, which is the half worth testing —
  * the previous answer was "skip Numerosis::routes() entirely and hand-roll a
  * replacement", i.e. duplicate the billing and checkout wiring.
+ *
+ * Since Phase 4 of `.claude/plans/archive/humming-nibbling-flame.md` the flag covers
+ * Fortify's whole route file, not just the handful of names core declared
+ * itself: `Numerosis::routes(withAuth: false)` skips the per-group `require`
+ * of `vendor/laravel/fortify/routes/routes.php` entirely. That is a much
+ * wider surface than the four names this test was written for, so every name
+ * the file registers under the enabled features is asserted absent — a
+ * partial opt-out (say, `login` gone but `password.email` still posting into
+ * Fortify) is the failure worth catching.
  */
 class AuthRoutesOptOutTest extends TestCase
 {
@@ -32,7 +40,23 @@ class AuthRoutesOptOutTest extends TestCase
 
     public function test_it_registers_none_of_the_auth_route_names(): void
     {
-        foreach (['login', 'register', 'logout', 'verification.verify'] as $name) {
+        $names = [
+            'login',
+            'login.store',
+            'logout',
+            'register',
+            'register.store',
+            'password.request',
+            'password.reset',
+            'password.email',
+            'password.update',
+            'password.confirm',
+            'verification.notice',
+            'verification.verify',
+            'verification.send',
+        ];
+
+        foreach ($names as $name) {
             $this->assertFalse(Route::has($name), "Route [{$name}] was registered despite withAuth: false.");
         }
     }

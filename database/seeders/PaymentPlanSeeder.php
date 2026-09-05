@@ -6,29 +6,23 @@ namespace Nvade\Numerosis\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
-use Nvade\Numerosis\Models\Central\Feature;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
+use Nvade\Numerosis\Models\Central\PlanFeature;
 use Nvade\Numerosis\Support\Numerosis;
 
 /**
  * Example plans, shipped so a fresh install has something purchasable. A
  * consumer is expected to replace the prices and Stripe ids; the shape is the
- * point, not the numbers.
+ * point.
  *
- * Re-runnable. `numerosis:install --seed` calls this, and an install command
- * that cannot be run twice is not one anybody will run at all — so every write
- * below is keyed on a natural key (`features.slug`, `payment_plans.slug`)
- * rather than created unconditionally.
+ * Re-runnable, because `numerosis:install --seed` calls it: every write below
+ * is keyed on a natural key (`features.slug`, `payment_plans.slug`).
  *
- * It also no longer builds plans through `PaymentPlan::factory()`. That gave
- * every seeded plan a **faker** slug and a lorem-ipsum description, which is
- * worse than untidy: `.claude/rules/billing-checkout.md` records that
- * `PaymentPlanRepository::findBySlug()` is the single choke point every
- * checkout path shares, and `StartCheckoutRequest` validates the submitted
- * plan with `exists:central.payment_plans,slug`. A random slug means no
- * checkout URL for the plan can be written down, and the config keys below
- * (`numerosis.billing.plans.starter`, …) had no row they could ever line up
- * with. Factories belong in tests, where a random slug is a feature.
+ * Slugs are written out here for the same reason. `PaymentPlanRepository::findBySlug()`
+ * is the single choke point every checkout path shares, and
+ * `StartCheckoutRequest` validates the submitted plan with
+ * `exists:central.payment_plans,slug`, so a faker slug leaves no checkout URL
+ * anybody can write down.
  */
 class PaymentPlanSeeder extends Seeder
 {
@@ -51,8 +45,7 @@ class PaymentPlanSeeder extends Seeder
     ];
 
     /**
-     * Prices are minor currency units (cents), matching
-     * `config('numerosis.modules.catalogue')` and Stripe itself.
+     * Prices are minor currency units (cents), matching Stripe itself.
      *
      * @var list<array{name: string, slug: string, description: string, monthly_price: int, yearly_price: int, trial_days: int, features: int}>
      */
@@ -90,25 +83,22 @@ class PaymentPlanSeeder extends Seeder
     {
         $features = $this->seedFeatures();
 
-        /** @var array<string, array{monthly_id?: string|null, yearly_id?: string|null}> $configured */
-        $configured = collect(config('numerosis.billing.plans', []))->keyBy('slug')->all();
-
         foreach (self::PLANS as $plan) {
-            $this->seedPlan($plan, $features, $configured[$plan['slug']] ?? []);
+            $this->seedPlan($plan, $features);
         }
     }
 
     /**
-     * @return Collection<int, Feature> in the declared order, which is what
-     *                                  makes "the first N features" meaningful
+     * @return Collection<int, PlanFeature> in the declared order, which is what
+     *                                      makes "the first N features" meaningful
      */
     private function seedFeatures(): Collection
     {
-        /** @var class-string<Feature> $featureClass */
-        $featureClass = Numerosis::model(Feature::class);
+        /** @var class-string<PlanFeature> $featureClass */
+        $featureClass = Numerosis::model(PlanFeature::class);
 
         return collect(self::FEATURES)->map(
-            fn (array $feature): Feature => $featureClass::firstOrCreate(
+            fn (array $feature): PlanFeature => $featureClass::firstOrCreate(
                 ['slug' => $feature['slug']],
                 ['description' => $feature['description']],
             ),
@@ -117,10 +107,9 @@ class PaymentPlanSeeder extends Seeder
 
     /**
      * @param  array{name: string, slug: string, description: string, monthly_price: int, yearly_price: int, trial_days: int, features: int}  $attributes
-     * @param  Collection<int, Feature>  $features
-     * @param  array{monthly_id?: string|null, yearly_id?: string|null}  $configured
+     * @param  Collection<int, PlanFeature>  $features
      */
-    private function seedPlan(array $attributes, Collection $features, array $configured): void
+    private function seedPlan(array $attributes, Collection $features): void
     {
         /** @var class-string<PaymentPlan> $planClass */
         $planClass = Numerosis::model(PaymentPlan::class);
@@ -134,8 +123,8 @@ class PaymentPlanSeeder extends Seeder
                 'yearly_price' => $attributes['yearly_price'],
                 'trial_days' => $attributes['trial_days'],
                 'available' => true,
-                'monthly_id' => $configured['monthly_id'] ?? null,
-                'yearly_id' => $configured['yearly_id'] ?? null,
+                'monthly_id' => null,
+                'yearly_id' => null,
             ],
         );
 
@@ -144,7 +133,7 @@ class PaymentPlanSeeder extends Seeder
         // table renders from.
         $plan->features()->sync(
             $features
-                ->mapWithKeys(fn (Feature $feature, int $index): array => [
+                ->mapWithKeys(fn (PlanFeature $feature, int $index): array => [
                     $feature->id => ['available' => $index < $attributes['features']],
                 ])
                 ->all()

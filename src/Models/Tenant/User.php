@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Tenant;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -20,27 +19,26 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\User as BaseUser;
 use Nvade\Numerosis\Observers\TenantUserObserver;
 use Nvade\Numerosis\Policies\UserPolicy;
-use Nvade\Numerosis\Support\Compat\LogsActivityIfInstalled;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 
 /**
  * A user inside a tenant database, paired with a central user by `global_id`.
  *
- * Modules add their own relations to this model through
- * `Model::resolveRelationUsing()` rather than by editing it, so a module can
- * be removed without breaking the class. Such relations are invisible to
- * static analysis and IDE completion.
+ * A host adds its own relations to this model through
+ * `Model::resolveRelationUsing()`, never by editing it, so the package copy
+ * stays upgradable. Such relations are invisible to static analysis and IDE
+ * completion.
  *
  * @property int $id
  * @property string $name
  * @property string $email
  * @property string $password
  * @property string $global_id
- * @property Carbon|null $last_seen_at
  * @property DisplayStatus|null $display_status
  * @property string|null $custom_status_text
  * @property Carbon|null $email_verified_at
@@ -56,7 +54,6 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
     'email',
     'password',
     'global_id',
-    'last_seen_at',
     'email_verified_at',
     'display_status',
     'custom_status_text',
@@ -73,7 +70,7 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 class User extends BaseUser implements TenantUserModel
 {
     use HasGlobalIdentity;
-    use LogsActivityIfInstalled;
+    use LogsActivity;
     use ResourceSyncing;
 
     #[Override]

@@ -9,14 +9,11 @@ use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * Single source of truth for every cache key used by the app. Every reader and
- * every invalidator must go through here — a key shape (e.g. the tenant suffix
- * on a tenant-context user model) is easy to redrive by hand in a second file
- * and get subtly wrong.
- *
- * Most of these are read through `global_cache()`, which is not tenant-scoped;
- * the ones documented as tenant-scoped go through the `Cache` facade, which
- * inside tenant context is Stancl's tenant-prefixing manager.
+ * Single source of truth for every cache key. Every reader and every
+ * invalidator goes through here, since a key shape rebuilt by hand in a second
+ * file is easy to get subtly wrong. Most are read through `global_cache()`,
+ * which is not tenant-scoped; the ones documented as tenant-scoped go through
+ * the `Cache` facade, which inside tenant context is stancl's prefixing manager.
  */
 final class CacheKeys
 {
@@ -24,8 +21,8 @@ final class CacheKeys
 
     /**
      * The configurable prefix every key below is built on. Its own value is
-     * never cached (each call reads config fresh), so changing it at runtime
-     * — e.g. between tests — takes effect immediately.
+     * never cached (each call reads config fresh), so changing it at runtime,
+     * between tests for instance, takes effect immediately.
      */
     private static function prefix(): string
     {
@@ -69,26 +66,9 @@ final class CacheKeys
         return self::prefix().':billing:popular_plan_id';
     }
 
-    public static function availableModules(): string
-    {
-        return self::prefix().':billing:available_modules';
-    }
-
-    /**
-     * Tenant-scoped throttle marker, not a value cache — see
-     * {@see \Nvade\Numerosis\Http\Middleware\UpdateUserLastSeenMiddleware}. The guard is
-     * part of the key because tenant and central user ids are unrelated
-     * sequences that would otherwise collide on small integers.
-     */
-    public static function lastSeenThrottle(string $guard, int|string $userId): string
-    {
-        return self::prefix().":last-seen:{$guard}:{$userId}";
-    }
-
     /*
-     * Module-owned keys deliberately do not live here. The branding module
-     * keeps its own (Nvade\Branding\Support\BrandingCache) so core carries no
-     * reference to an optional app-modules package — the same discipline, one
-     * registry per owner.
+     * Keys owned by something other than core deliberately do not live here:
+     * one registry per owner, so core carries no reference to a class it does
+     * not ship.
      */
 }

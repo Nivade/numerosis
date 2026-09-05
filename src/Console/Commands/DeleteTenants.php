@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
 
-#[Description('Command description')]
+#[Description('Delete tenants by id, or every tenant, dropping each database with the row')]
 #[Signature('tenants:delete
                             {tenants?* : Tenant IDs to delete}
                             {--all : Delete all tenants}')]

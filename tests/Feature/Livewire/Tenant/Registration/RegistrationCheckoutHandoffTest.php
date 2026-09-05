@@ -9,9 +9,9 @@ use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Registration;
+use Nvade\Numerosis\Livewire\Tenant\Registration;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
-use Nvade\Numerosis\Support\State\RegistrationState;
+use Nvade\Numerosis\Support\Tenancy\RegistrationState;
 use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -66,15 +66,11 @@ class RegistrationCheckoutHandoffTest extends TestCase
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
-        PaymentPlan::create([
-            'name' => 'Starter',
+        PaymentPlan::factory()->create([
             'slug' => 'starter',
-            'description' => 'Starter Plan',
             'monthly_id' => 'price_test_monthly',
             'yearly_id' => 'price_test_yearly',
-            'monthly_price' => 1000,
-            'yearly_price' => 10000,
-            'available' => true,
+            'trial_days' => 0,
         ]);
 
         $this->planStep([

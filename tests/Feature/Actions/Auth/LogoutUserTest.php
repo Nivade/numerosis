@@ -36,7 +36,7 @@ class LogoutUserTest extends TestCase
      *
      * Same exception, same cause (a tenant model reached through the wrong
      * context) as `LoginUserTest`'s own regression, on the opposite half of
-     * the session. See .claude/rules/auth-guards.md.
+     * the session. See .ai/rules/auth-guards.md.
      */
     public function test_it_never_resolves_a_tenant_user_when_logging_out_on_the_central_domain(): void
     {

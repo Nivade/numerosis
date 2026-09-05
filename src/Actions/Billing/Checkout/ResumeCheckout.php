@@ -6,9 +6,7 @@ namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
 use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Services\Billing\Checkout\ResumedCheckout;
 use Nvade\Numerosis\Support\Numerosis;
@@ -16,7 +14,7 @@ use Stripe\Exception\ApiErrorException;
 
 /**
  * Reopens a checkout against its stored SetupIntent, so a refresh or a
- * direct visit to `/checkout/{domain}` resumes rather than starting over.
+ * direct visit to `/checkout/{domain}` resumes, never starting over.
  *
  * Ownership is checked the same way {@see ResolveSetupIntent} checks it.
  *
@@ -25,8 +23,6 @@ use Stripe\Exception\ApiErrorException;
 class ResumeCheckout
 {
     use AsAction;
-
-    public function __construct(private readonly BillableResolver $billables) {}
 
     public function handle(string $domain): ResumedCheckout
     {
@@ -37,11 +33,7 @@ class ResumeCheckout
             throw new CheckoutSessionExpired(__('numerosis::billing.checkout.session_expired'));
         }
 
-        $billable = $this->billables->resolve();
-
-        if (! $billable instanceof CentralUser || $billable->global_id !== $pending->global_id) {
-            throw new CheckoutSessionExpired(__('numerosis::billing.checkout.foreign_session'));
-        }
+        $billable = AssertReservationIsOwned::run($pending);
 
         if (! $pending->stripe_setup_intent_id) {
             throw new CheckoutSessionExpired(__('numerosis::billing.checkout.session_expired'));

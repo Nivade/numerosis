@@ -11,6 +11,7 @@ use Illuminate\Notifications\Notification as NotificationBase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
+use Nvade\Numerosis\Features\Auth\EmailVerificationFeature;
 use Nvade\Numerosis\Notifications\Auth\VerifyEmail;
 use Nvade\Numerosis\Tests\TestCase;
 use RuntimeException;
@@ -34,6 +35,34 @@ class EmailVerificationTest extends TestCase
 
         // Assert
         Notification::assertSentTo($user, VerifyEmail::class);
+    }
+
+    /**
+     * With no `createUrlCallback` registered, `VerifyEmail` builds the link
+     * itself. It has to agree with what
+     * `NumerosisVerifyEmailRequest::authorize()` compares against — the global
+     * identifier and `sha1()` of the address — or the link 403s. A salted hash
+     * there can never compare equal.
+     */
+    public function test_the_built_in_verification_url_matches_what_the_verify_route_checks(): void
+    {
+        $user = CentralUser::factory()->create([
+            'email_verified_at' => null,
+            'global_id' => 'verify-url-'.uniqid(),
+        ]);
+
+        VerifyEmail::$createUrlCallback = null;
+
+        try {
+            $url = (new VerifyEmail)->toMail($user)->actionUrl;
+        } finally {
+            (new EmailVerificationFeature)->bootstrap();
+        }
+
+        $this->assertStringContainsString(
+            $user->global_id.'/'.sha1($user->email),
+            (string) parse_url((string) $url, PHP_URL_PATH),
+        );
     }
 
     /**
@@ -153,6 +182,11 @@ class EmailVerificationTest extends TestCase
         $this->assertFalse($user->fresh()->hasVerifiedEmail());
     }
 
+    /**
+     * Fortify's verify route carries `auth:<guard>` ahead of `signed`, so an
+     * unauthenticated hit never reaches the signature check — it redirects to
+     * `login`, which is Fortify's own route now.
+     */
     public function test_guest_cannot_verify_email(): void
     {
         // Arrange
@@ -161,7 +195,6 @@ class EmailVerificationTest extends TestCase
             'global_id' => 'test-global-id-'.uniqid(),
         ]);
 
-        // Generate a signed URL for email verification
         $verificationUrl = URL::temporarySignedRoute(
             'verification.verify',
             now()->addMinutes(60),
@@ -171,7 +204,7 @@ class EmailVerificationTest extends TestCase
             ]
         );
 
-        // Act - visit the verification URL without authentication
+        // Act — visit the verification URL without authenticating first.
         $response = $this->get($verificationUrl);
 
         // Assert

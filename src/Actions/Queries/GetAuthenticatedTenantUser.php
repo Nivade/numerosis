@@ -11,7 +11,7 @@ use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 /**
  * The authenticated tenant user, or null.
  *
- * Names the tenant guard explicitly rather than trusting the ambient default,
+ * Names the tenant guard explicitly, never trusting the ambient default,
  * which any code calling `Auth::shouldUse()` can move mid-request. Use this
  * for anything that writes to a tenant table.
  *

@@ -6,12 +6,11 @@ namespace Nvade\Numerosis\Tests\Feature;
 
 use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
  * Regression for the convention-registration audit
- * (.claude/plans/package-extraction.md, step 2): `settings/profile.blade.php`
+ * (.claude/plans/archive/package-extraction.md, step 2): `settings/profile.blade.php`
  * embeds `<livewire:settings.delete-user-form />`, which Livewire's Finder
  * only resolves via `Livewire::addComponent()` since the class lives under
  * `Nvade\Numerosis\Livewire\Settings`, not the host's `App\Livewire`
@@ -27,7 +26,7 @@ class SettingsProfilePageTest extends TestCase
     {
         $user = CentralUser::factory()->create();
 
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
+        $this->actingAsCentralUser($user);
 
         $this->get(route('settings.profile'))
             ->assertOk()

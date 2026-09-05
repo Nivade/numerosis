@@ -9,8 +9,7 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Support\Broadcasting\OwnerChannel;
 
 class TenantProvisioningFailed implements ShouldBroadcast
 {
@@ -23,18 +22,12 @@ class TenantProvisioningFailed implements ShouldBroadcast
         public readonly ?string $globalId,
     ) {}
 
+    /**
+     * @return list<PrivateChannel>
+     */
     public function broadcastOn(): array
     {
-        // The channel is keyed on the CentralUser id, but failures are raised
-        // from contexts that only carry the global_id, so resolve it here.
-        $centralUserClass = Numerosis::model(CentralUser::class);
-
-        /** @var int|null $ownerId */
-        $ownerId = $this->globalId
-            ? $centralUserClass::where('global_id', $this->globalId)->value('id')
-            : null;
-
-        return $ownerId !== null ? [new PrivateChannel("user.{$ownerId}")] : [];
+        return OwnerChannel::forGlobalId($this->globalId);
     }
 
     public function broadcastAs(): string

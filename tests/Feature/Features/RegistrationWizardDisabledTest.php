@@ -4,21 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Features;
 
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Nvade\Numerosis\Features\Auth\EmailVerificationFeature;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
+use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
-use Nvade\Numerosis\Features\Modules\ModuleSystemFeature;
-use Nvade\Numerosis\Features\Observability\ActivityLogFeature;
-use Nvade\Numerosis\Features\Social\SocialLoginFeature;
 use Nvade\Numerosis\Features\Tenancy\MembershipsFeature;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
-use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
-use Nvade\Numerosis\Features\Ui\AdminPanelFeature;
-use Nvade\Numerosis\Features\Ui\MarketingPagesFeature;
-use Nvade\Numerosis\Features\Ui\TenantPanelFeature;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -26,23 +21,14 @@ class RegistrationWizardDisabledTest extends TestCase
 {
     protected function setUp(): void
     {
-        // Every feature except RegistrationWizardFeature — forceForTesting([])
-        // disabled MarketingPagesFeature too, which is what gates the
-        // 'features' route test_the_features_page_still_renders() below
-        // asserts still works with the wizard off.
+        // Every feature except RegistrationWizardFeature.
         Features::forceForTesting([
             TurnstileFeature::class,
             SocialLoginFeature::class,
-            ModuleSystemFeature::class,
             InvitationsFeature::class,
             EmailVerificationFeature::class,
             BillingNotificationsFeature::class,
             PasswordResetFeature::class,
-            ActivityLogFeature::class,
-            MarketingPagesFeature::class,
-            AccountPagesFeature::class,
-            AdminPanelFeature::class,
-            TenantPanelFeature::class,
             MembershipsFeature::class,
         ]);
 
@@ -62,18 +48,20 @@ class RegistrationWizardDisabledTest extends TestCase
     }
 
     /**
-     * welcome.blade.php, features.blade.php, and the footer all call
-     * route('tenants.create') unconditionally in earlier revisions — that
-     * throws RouteNotFoundException the moment the route stops being
-     * registered. Each call site is now wrapped in the same feature check,
-     * so this page must render regardless of this toggle.
+     * Core's own views call `route('tenants.create')`, which throws
+     * RouteNotFoundException the moment the wizard stops registering it. Every
+     * call site is wrapped in the same feature check, so core's remaining
+     * page must still render with the wizard off.
      *
-     * Not testing '/' here — StaticPagesTest deliberately excludes it too;
-     * the panel's own unscoped route wins over the domain-scoped `home`
-     * route for a bare test request, unrelated to this feature.
+     * Rendered directly rather than through `route('home')`: the panel's own
+     * unscoped route wins over the domain-scoped `home` route for a bare test
+     * request, which is unrelated to this feature.
      */
-    public function test_the_features_page_still_renders(): void
+    public function test_the_home_view_still_renders(): void
     {
-        $this->get(route('features'))->assertOk();
+        $this->assertStringContainsString(
+            Config::string('app.name'),
+            view('numerosis::home')->render(),
+        );
     }
 }

@@ -7,10 +7,15 @@ namespace Nvade\Numerosis\Listeners\Tenancy;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Override;
-use Stancl\Tenancy\Events\SyncedResourceSaved;
 use Stancl\Tenancy\Listeners\UpdateSyncedResource as BaseListener;
 
+/**
+ * Adds retry/backoff and makes the listener queueable. The sync logic stays
+ * entirely in the parent's `handle()`, inherited as-is and never overridden.
+ * `handle()` runs as a queued job (tries/backoff below),
+ * so a failure (e.g. the tenant DB/migrations aren't ready yet) is handled
+ * by the job retrying.
+ */
 class UpdateSyncedResource extends BaseListener
 {
     use InteractsWithQueue;
@@ -20,13 +25,4 @@ class UpdateSyncedResource extends BaseListener
     public int $tries = 20;
 
     public int $backoff = 20;
-
-    #[Override]
-    public function handle(SyncedResourceSaved $event): void
-    {
-        // Runs as a queued job with retries/backoff above, so a failure here
-        // (e.g. the tenant DB/migrations aren't ready yet) is handled by
-        // letting the job retry rather than catching anything locally.
-        parent::handle($event);
-    }
 }

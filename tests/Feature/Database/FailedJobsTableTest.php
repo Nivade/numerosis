@@ -16,7 +16,7 @@ use RuntimeException;
  * `failed_jobs` table was dropped in 2026_01_07_195854_remove_redundant_tables
  * and never recreated, while QUEUE_FAILED_DRIVER (default database-uuids)
  * still tried to write to it — so `queue:work`'s own failure-handling code
- * threw on every exhausted job. See .claude/plans/exception-handling.md,
+ * threw on every exhausted job. See .claude/plans/archive/exception-handling.md,
  * Phase 6.
  */
 class FailedJobsTableTest extends TestCase

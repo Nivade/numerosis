@@ -19,8 +19,17 @@ return RectorConfig::configure()
         __DIR__.'/database/migrations',
         // Strips @return PlanMetadata-style aliases that carry real generic
         // info beyond the native `array` return type — see
-        // .claude/rules/static-analysis.md.
+        // .ai/rules/static-analysis.md.
         RemoveReturnTagIncompatibleWithNativeTypeRector::class,
+        // Domains.php reads raw superglobals deliberately, called from inside
+        // config/numerosis.php while the config repository is still being
+        // built — before facades are registered. A rector pass
+        // (ServerVariableToRequestFacadeRector) once rewrote the superglobal
+        // read to Request::server(...) here and caused a real boot-time
+        // crash-loop (facade root not set). Skip the whole file rather than
+        // one rule at a time — see .ai/rules/package-host-bootstrap.md's
+        // first bullet.
+        __DIR__.'/src/Support/Domains.php',
     ])
     ->withPhpSets()
     ->withPreparedSets(

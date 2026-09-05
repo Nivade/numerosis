@@ -1,9 +1,7 @@
 {{--
     Mounts in the same Stripe `elements` group as payment-element.blade.php,
     so confirmSetup() attaches this address to the PaymentMethod's
-    billing_details automatically — nothing client-supplied to trust. See
-    .claude/plans/module-marketplace.md, "Automatic tax, the billing address,
-    and VAT numbers".
+    billing_details itself. Nothing client-supplied is trusted.
 --}}
 <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm p-6 h-full">
     <div class="flex items-center gap-2 mb-4">

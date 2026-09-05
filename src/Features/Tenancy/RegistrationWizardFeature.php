@@ -6,48 +6,121 @@ namespace Nvade\Numerosis\Features\Tenancy;
 
 use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
+use LogicException;
 use Nvade\Numerosis\Contracts\NamedFeature;
-use Nvade\Numerosis\Livewire\Tenant as Tenants;
+use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
+use Nvade\Numerosis\Livewire\Tenant\Registration as WizardRegistration;
+use Nvade\Numerosis\Livewire\Tenant\Registration\Steps as Wizard;
+use Nvade\Numerosis\Support\Features;
 
 /**
  * The self-serve tenant registration wizard and its route.
  *
  * Remove it from `numerosis.features` and there is no self-serve signup.
- * Provisioning itself is unaffected — the wizard is only one caller of it,
- * so creating tenants from an admin screen or a job keeps working.
+ * Provisioning itself is unaffected, since the wizard is only one caller of
+ * it, so creating tenants from an admin screen or a job keeps working.
  */
 class RegistrationWizardFeature implements NamedFeature
 {
     public const NAME = 'registration_wizard';
+
+    /**
+     * Written and read by the wizard, cleared by core's two checkout
+     * completion paths (`CompleteRedirectCheckout`,
+     * `Livewire\Billing\Checkout::settle()`).
+     */
+    public const SESSION_KEY = 'registration.wizard_state';
+
+    /**
+     * Alias each shipped step registers under, and the view file that alias
+     * resolves to. Written out by hand, never derived: `Steps\Payment` is
+     * absent because its natural alias collides with Cashier's published
+     * `payment.blade.php`, so it resolves by FQCN. A host-supplied step is not
+     * auto-registered here; register your own component for it.
+     *
+     * @var array<class-string, string>
+     */
+    private const SHIPPED_STEP_ALIASES = [
+        Wizard\CompanyInfo::class => 'company-info',
+        Wizard\TechnicalSetup::class => 'technical-setup',
+        Wizard\Plan::class => 'plan',
+    ];
 
     public static function featureName(): string
     {
         return self::NAME;
     }
 
+    public static function available(): bool
+    {
+        return Features::enabled(self::NAME);
+    }
+
     public function bootstrap(): void
     {
-        $viewsPath = Config::string('numerosis.views.path');
+        // Fills an unset key only, so a host's own step list wins. Every
+        // feature's bootstrap() runs after config publishing and a host
+        // provider's register(), so there is no order race to guard.
+        if (Config::get('numerosis.tenancy.registration.steps') === null) {
+            Config::set('numerosis.tenancy.registration.steps', [
+                Wizard\CompanyInfo::class,
+                Wizard\TechnicalSetup::class,
+                Wizard\Plan::class,
+                Wizard\Payment::class,
+            ]);
+        }
+
+        // Livewire::addComponent() takes an absolute path, so it is built
+        // from `numerosis.views.path`, which
+        // NumerosisServiceProvider::packageBooted() sets.
+        $wizardViews = Config::string('numerosis.views.path').'/livewire/tenant/registration/wizard';
+
+        /** @var list<class-string> $steps */
+        $steps = Config::array('numerosis.tenancy.registration.steps');
+
+        $this->assertAStepProvidesTenantIdentity($steps);
 
         Livewire::addComponent(
             name: 'tenant-registration',
-            viewPath: $viewsPath.'/livewire/tenant/registration/wizard/index.blade.php',
-            class: Tenants\Registration\Registration::class,
+            viewPath: $wizardViews.'/index.blade.php',
+            class: WizardRegistration::class,
         );
-        Livewire::addComponent(
-            name: 'plan',
-            viewPath: $viewsPath.'/livewire/tenant/registration/wizard/steps/plan.blade.php',
-            class: Tenants\Registration\Steps\Plan::class,
-        );
-        Livewire::addComponent(
-            name: 'technical-setup',
-            viewPath: $viewsPath.'/livewire/tenant/registration/wizard/steps/technical-setup.blade.php',
-            class: Tenants\Registration\Steps\TechnicalSetup::class,
-        );
-        Livewire::addComponent(
-            name: 'company-info',
-            viewPath: $viewsPath.'/livewire/tenant/registration/wizard/steps/company-info.blade.php',
-            class: Tenants\Registration\Steps\CompanyInfo::class,
+
+        foreach ($steps as $step) {
+            if (! isset(self::SHIPPED_STEP_ALIASES[$step])) {
+                continue;
+            }
+
+            $alias = self::SHIPPED_STEP_ALIASES[$step];
+
+            Livewire::addComponent(
+                name: $alias,
+                viewPath: $wizardViews.'/steps/'.$alias.'.blade.php',
+                class: $step,
+            );
+        }
+    }
+
+    /**
+     * A step list with no identity source still renders a working wizard, so
+     * the missing identifier or display name only surfaces once
+     * `ProvisionTenant`'s queued chain tries to build the tenant, far from
+     * whoever misconfigured this key. Fail here instead.
+     *
+     * @param  list<class-string>  $steps
+     */
+    private function assertAStepProvidesTenantIdentity(array $steps): void
+    {
+        foreach ($steps as $step) {
+            if (is_subclass_of($step, ProvidesTenantIdentity::class)) {
+                return;
+            }
+        }
+
+        throw new LogicException(
+            'numerosis.tenancy.registration.steps must include at least one step implementing '
+            .ProvidesTenantIdentity::class.', or the provisioning pipeline has no source for '
+            .'the tenant\'s identifier or display name.'
         );
     }
 }

@@ -24,7 +24,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property int $payment_plan_id
  * @property bool $available
  * @property-read PaymentPlan $paymentPlan
- * @property-read Feature $feature
+ * @property-read PlanFeature $feature
  *
  * @mixin Model
  */
@@ -38,7 +38,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
 #[ObservedBy(PaymentPlanFeatureObserver::class)]
 class PaymentPlanFeature extends Pivot
 {
-    /** @see Feature::$connection — same reasoning, pivot side. */
+    /** @see PlanFeature::$connection — same reasoning, pivot side. */
     use CentralConnection;
 
     /** @use HasFactory<PaymentPlanFeatureFactory> */
@@ -53,8 +53,6 @@ class PaymentPlanFeature extends Pivot
     }
 
     /**
-     * Get the payment plan that owns this feature.
-     *
      * @return BelongsTo<PaymentPlan, $this>
      */
     public function paymentPlan(): BelongsTo
@@ -63,12 +61,10 @@ class PaymentPlanFeature extends Pivot
     }
 
     /**
-     * Get the feature for this pivot.
-     *
-     * @return BelongsTo<Feature, $this>
+     * @return BelongsTo<PlanFeature, $this>
      */
     public function feature(): BelongsTo
     {
-        return $this->belongsTo(Feature::class);
+        return $this->belongsTo(PlanFeature::class);
     }
 }

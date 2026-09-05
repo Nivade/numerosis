@@ -5,15 +5,14 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Database\Factories\Central;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 
-// No `protected $model` override: PendingTenantProvision is abstract (see
-// .claude/plans/package-extraction.md Phase 4.4) — a hardcoded $model here
-// bypasses Numerosis::modelNameFor()'s global resolver and forces `new
-// static` inside Eloquent's create()/make() to instantiate the abstract
-// class directly, which throws.
+// No `protected $model` override: PendingTenantProvision is abstract. A
+// hardcoded $model bypasses Numerosis::modelNameFor()'s global resolver, so
+// `new static` inside Eloquent's create()/make() instantiates the abstract
+// class and throws.
 /** @extends Factory<PendingTenantProvision> */
 class PendingTenantProvisionFactory extends Factory
 {
@@ -31,7 +30,7 @@ class PendingTenantProvisionFactory extends Factory
         ];
     }
 
-    public function forCheckout(string $paymentPlan, BillingCycle $billingCycle): self
+    public function forCheckout(string $paymentPlan, BillingCycle $billingCycle): static
     {
         return $this->state(fn (): array => [
             'payment_plan' => $paymentPlan,
@@ -39,14 +38,14 @@ class PendingTenantProvisionFactory extends Factory
         ]);
     }
 
-    public function provisioning(): self
+    public function provisioning(): static
     {
         return $this->state(fn (): array => [
             'status' => TenantProvisionStatus::Provisioning,
         ]);
     }
 
-    public function failed(): self
+    public function failed(): static
     {
         return $this->state(fn (): array => [
             'status' => TenantProvisionStatus::Failed,

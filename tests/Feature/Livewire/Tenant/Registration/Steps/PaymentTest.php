@@ -9,9 +9,10 @@ use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Registration;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Livewire\Tenant\Registration;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
-use Nvade\Numerosis\Support\State\RegistrationState;
+use Nvade\Numerosis\Support\Tenancy\RegistrationState;
 use Nvade\Numerosis\Tests\TestCase;
 
 class PaymentTest extends TestCase
@@ -37,9 +38,25 @@ class PaymentTest extends TestCase
     }
 
     /**
+     * The Plan step's property is `billingCycle`, which is the key Livewire
+     * dehydrates it under. `RegistrationState` read `billing_cycle` instead,
+     * so the cycle reached this step as null and every order summary showed
+     * monthly whatever the customer picked.
+     */
+    public function test_it_carries_the_billing_cycle_chosen_on_the_plan_step(): void
+    {
+        $this->actingAs(CentralUser::factory()->create());
+
+        $plan = PaymentPlan::factory()->create(['slug' => 'starter']);
+
+        $this->paymentStep(domain: 'cycle-carry-test', paymentPlan: $plan->slug, billingCycle: 'yearly')
+            ->assertViewHas('billingCycle', BillingCycle::Yearly);
+    }
+
+    /**
      * @return Testable<Payment>
      */
-    private function paymentStep(?string $domain, ?string $paymentPlan = null)
+    private function paymentStep(?string $domain, ?string $paymentPlan = null, string $billingCycle = 'monthly')
     {
         $paymentAlias = resolve('livewire.finder')->normalizeName(Payment::class);
 
@@ -49,7 +66,7 @@ class PaymentTest extends TestCase
             'allStepNames' => ['company-info', 'technical-setup', 'plan', $paymentAlias],
             'allStepsState' => [
                 'technical-setup' => ['domain' => $domain],
-                'plan' => ['payment_plan' => $paymentPlan, 'billing_cycle' => 'monthly'],
+                'plan' => ['payment_plan' => $paymentPlan, 'billingCycle' => $billingCycle],
             ],
         ]);
     }

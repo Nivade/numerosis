@@ -12,11 +12,14 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use Livewire;
+use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
+use Nvade\Numerosis\Http\Middleware\NullMiddleware;
 use Nvade\Numerosis\Jobs\SeedTenantDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Resolvers\PreservingPathTenantResolver;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Stancl\JobPipeline\JobPipeline;
@@ -63,19 +66,58 @@ use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
 use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
+use Stancl\Tenancy\Resolvers\PathTenantResolver;
 
 class TenancyServiceProvider extends ServiceProvider
 {
     // By default, no namespace is used to support the callable array syntax.
     public static string $controllerNamespace = '';
 
-    public const TENANCY_IDENTIFICATION = \Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain::class;
+    /**
+     * The middleware that identifies a tenant from the request, chosen by
+     * {@see IdentificationMode::current()}.
+     */
+    public static function identificationMiddleware(): string
+    {
+        return match (IdentificationMode::current()) {
+            IdentificationMode::Subdomain => \Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain::class,
+            IdentificationMode::CustomDomain => InitializeTenancyByDomain::class,
+            IdentificationMode::Path => InitializeTenancyByPath::class,
+        };
+    }
+
+    /**
+     * The Livewire update route carries no `{tenant}` parameter, so
+     * `InitializeTenancyByPath` cannot be applied to it. Every other mode
+     * identifies by domain, which needs no route parameter.
+     *
+     * @see \Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath
+     */
+    public static function livewireUpdateIdentificationMiddleware(): string
+    {
+        return IdentificationMode::current() === IdentificationMode::Path
+            ? \Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath::class
+            : static::identificationMiddleware();
+    }
+
+    /**
+     * The central-domain-block gate used inside the `tenant` middleware
+     * group. Under `IdentificationMode::Path`, tenant routes deliberately
+     * live on the central domain (path-prefixed), so the ordinary block
+     * would 404 every tenant request.
+     */
+    public static function tenancyRouteMiddleware(): string
+    {
+        return IdentificationMode::current() === IdentificationMode::Path
+            ? NullMiddleware::class
+            : PreventAccessFromCentralDomains::class;
+    }
 
     /**
      * The jobs that build a tenant's database, in order.
      *
-     * Replace this only from a test bootstrap — swapping migrate and seed for
-     * a copy of a prepared template database is worth roughly ten times the
+     * Replace this only from a test bootstrap. Swapping migrate and seed for a
+     * copy of a prepared template database is worth roughly ten times the
      * speed per tenant. Application code should leave it alone.
      *
      * @var list<class-string>
@@ -167,25 +209,25 @@ class TenancyServiceProvider extends ServiceProvider
         }
 
         $this->registerCachedDomainResolver();
+
+        // See PreservingPathTenantResolver's docblock: only matters when
+        // IdentificationMode::Path is selected and InitializeTenancyByPath
+        // is actually used, harmless otherwise.
+        $this->app->bind(PathTenantResolver::class, PreservingPathTenantResolver::class);
     }
 
     /**
-     * Caches the domain-to-tenant lookup, which every tenant request would
-     * otherwise pay against the central database before anything else runs.
-     * Invalidated whenever a tenant or domain changes.
-     *
-     * Given a cache manager of its own rather than the container's, which
-     * becomes tenant-scoped inside tenant context — a resolver built there
-     * would write to one namespace while invalidation cleared another, so a
-     * domain change would appear not to take effect. Bound as a singleton so
-     * the resolver and its invalidators share one store.
+     * Caches the domain-to-tenant lookup, invalidated whenever a tenant or
+     * domain changes. The container's cache manager becomes tenant-scoped
+     * inside tenant context, so a resolver built with it would write to one
+     * namespace while invalidation cleared another and a domain change would
+     * appear not to take effect; it gets a `new CacheManager($app)` instead.
      */
     protected function registerCachedDomainResolver(): void
     {
-        // Decided from a booting() callback rather than here: the allowlist
-        // check reads `tenancy.tenant_model`, which HostConfig::apply() fills
-        // in from its own booting() callback — registered earlier, so it runs
-        // first. Nothing reads the flag until a request resolves a domain.
+        // Deferred to booting(): the allowlist check reads `tenancy.tenant_model`,
+        // which HostConfig::apply() fills in from an earlier-registered booting()
+        // callback. Nothing reads the flag until a request resolves a domain.
         $this->app->booting(function (): void {
             DomainTenantResolver::$shouldCache = self::shouldCacheResolvedTenants();
         });
@@ -197,25 +239,11 @@ class TenancyServiceProvider extends ServiceProvider
     }
 
     /**
-     * Whether the resolver's tenant cache can be trusted on this host.
-     *
-     * `DomainTenantResolver` caches a whole tenant *model*, and Laravel's own
-     * `cache.serializable_classes` decides whether any cache store may
-     * `unserialize()` an object at all. A fresh Laravel app ships `false`
-     * there — hardening against gadget chains — which does not make the read
-     * fail: it silently returns `__PHP_Incomplete_Class` instead of the
-     * object, with no exception and no log line. The first request after a
-     * cache clear then resolves fine (cache miss) and every request after it
-     * dies on `DomainTenantResolver::resolved(): Argument #1 ($tenant) must be
-     * of type Tenant, __PHP_Incomplete_Class given`, which reads like a
-     * tenancy bug and is two config defaults disagreeing.
-     *
-     * So the cache follows what the host's cache config can actually store: an
-     * allowlist has to name the tenant model, `false` disables the cache, and
-     * `numerosis.tenancy.cache_resolved_tenants` overrides the lot in either
-     * direction. `numerosis:install`'s `verifyTenantResolverCache()` reports
-     * when this has turned the cache off, since losing it costs a central
-     * lookup per tenant request.
+     * `DomainTenantResolver` caches a whole tenant model, so the cache follows
+     * what `cache.serializable_classes` can store: an allowlist has to name the
+     * tenant model, `false` disables the cache, and
+     * `numerosis.tenancy.cache_resolved_tenants` overrides either way. A store
+     * that cannot unserialize it returns `__PHP_Incomplete_Class` silently.
      */
     public static function shouldCacheResolvedTenants(): bool
     {
@@ -252,7 +280,7 @@ class TenancyServiceProvider extends ServiceProvider
             ->middleware(
                 'web',
                 'universal',
-                static::TENANCY_IDENTIFICATION,
+                static::livewireUpdateIdentificationMiddleware(),
                 EnsureSessionMatchesTenant::class,
             ));
     }

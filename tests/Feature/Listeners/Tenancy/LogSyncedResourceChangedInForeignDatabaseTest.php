@@ -24,7 +24,7 @@ class LogSyncedResourceChangedInForeignDatabaseTest extends TestCase
         $tenant = Tenant::factory()->make(['id' => 'acme']);
 
         (new LogSyncedResourceChangedInForeignDatabase)->handle(
-            new SyncedResourceChangedInForeignDatabase($user, $tenant),
+            new SyncedResourceChangedInForeignDatabase($user, $tenant)
         );
 
         Log::shouldHaveReceived('warning')

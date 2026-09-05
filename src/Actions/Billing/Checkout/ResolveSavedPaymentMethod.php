@@ -32,13 +32,11 @@ class ResolveSavedPaymentMethod
 
         $customerId = is_string($paymentMethod->customer) ? $paymentMethod->customer : $paymentMethod->customer?->id;
 
-        if (! $billable->hasStripeId() || $customerId !== $billable->stripe_id) {
-            throw new SavedPaymentMethodUnavailable(__('numerosis::billing.checkout.saved_payment_method_unavailable'));
-        }
+        $isOwnedAndReusable = $billable->hasStripeId()
+            && $customerId === $billable->stripe_id
+            && in_array($paymentMethod->type, self::REUSABLE_TYPES, true);
 
-        if (! in_array($paymentMethod->type, self::REUSABLE_TYPES, true)) {
-            throw new SavedPaymentMethodUnavailable(__('numerosis::billing.checkout.saved_payment_method_unavailable'));
-        }
+        throw_unless($isOwnedAndReusable, SavedPaymentMethodUnavailable::class, __('numerosis::billing.checkout.saved_payment_method_unavailable'));
 
         return $paymentMethod;
     }

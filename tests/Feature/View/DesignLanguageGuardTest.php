@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\View;
 
+use Illuminate\View\FileViewFinder;
 use Nvade\Numerosis\Tests\TestCase;
 use Symfony\Component\Finder\Finder;
 
 /**
- * Phase 3 guard (.claude/plans/design-system-unification.md): the 57-view
+ * Phase 3 guard (.claude/plans/archive/design-system-unification.md): the 57-view
  * gray/neutral/stone → zinc sweep and the 8-value → 5-token radius collapse
  * are mechanical edits with nothing structural stopping them from
  * regressing the next time someone pastes a class from an old file or a
@@ -30,9 +31,12 @@ class DesignLanguageGuardTest extends TestCase
      * collapsed.
      */
     private const ROUNDED_2XL_ALLOWED_IN = [
-        'about.blade.php',
-        'features.blade.php',
-        'welcome.blade.php',
+        // Empty on purpose. The three files that held the media-panel
+        // exception (about/features/welcome) are the host app's now — they
+        // were the product's marketing pages, not the framework's — so no
+        // view this scan reaches is allowed to use `rounded-2xl` any more.
+        // Re-add a filename here, with a reason, if a genuine media/hero panel
+        // ever lands back in a package view.
     ];
 
     /**
@@ -65,17 +69,54 @@ class DesignLanguageGuardTest extends TestCase
         'components/registration/navigation.blade.php',
         'livewire/tenant/registration/wizard/index.blade.php',
         'pages/tenant/⚡suspended.blade.php',
-        'welcome.blade.php',
+        // `welcome.blade.php`'s entry (macOS-style window-chrome illustration)
+        // is gone with the file: marketing pages moved to the host app.
     ];
 
-    /** @return list<\Symfony\Component\Finder\SplFileInfo> */
+    /**
+     * Every path serving the `numerosis::` view namespace, not just this
+     * package's own `resources/views`.
+     *
+     * The namespace is shared: `nvade/numerosis-ui` registers its own path
+     * under the same name (see that package's provider for why), so a scan
+     * hardcoded to one directory silently stops covering the components it
+     * was written to guard the moment they move. It does not fail — the
+     * per-file loop just runs fewer times, and the only tell is the assertion
+     * count dropping. Reading the finder's hints keeps this honest as further
+     * packages split out, with no edit here.
+     *
+     * @return list<\Symfony\Component\Finder\SplFileInfo>
+     */
     private function viewFiles(): array
     {
-        $root = dirname(__DIR__, 3).'/resources/views';
+        $roots = array_filter(
+            $this->viewNamespacePaths(),
+            static fn (string $path): bool => is_dir($path)
+        );
 
-        $finder = (new Finder)->files()->in($root)->name('*.blade.php');
+        $finder = (new Finder)->files()->in($roots)->name('*.blade.php');
 
         return iterator_to_array($finder, false);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function viewNamespacePaths(): array
+    {
+        $finder = view()->getFinder();
+
+        // ViewFinderInterface declares no getHints(); FileViewFinder is what
+        // is actually bound, and is the only implementation that can answer
+        // "which paths serve this namespace".
+        if (! $finder instanceof FileViewFinder) {
+            return [];
+        }
+
+        /** @var array<string, list<string>> $hints */
+        $hints = $finder->getHints();
+
+        return array_values($hints['numerosis'] ?? []);
     }
 
     private function stripComments(string $contents): string
@@ -89,7 +130,7 @@ class DesignLanguageGuardTest extends TestCase
     {
         $files = $this->viewFiles();
 
-        $this->assertNotEmpty($files, 'Scanned no view files — the resources/views path above is wrong.');
+        $this->assertNotEmpty($files, 'Scanned no view files — the numerosis:: namespace resolved no readable path.');
 
         foreach ($files as $file) {
             $code = $this->stripComments($file->getContents());
@@ -107,6 +148,12 @@ class DesignLanguageGuardTest extends TestCase
     public function test_rounded_2xl_only_survives_on_the_documented_media_panels(): void
     {
         $files = $this->viewFiles();
+
+        // Without this the test asserts nothing at all once no scanned file
+        // uses `rounded-2xl` — which is exactly what happened when the three
+        // allowlisted marketing views moved to the host app, and PHPUnit
+        // reported it as risky rather than as lost coverage.
+        $this->assertNotEmpty($files, 'Scanned no view files — the numerosis:: namespace resolved no readable path.');
 
         foreach ($files as $file) {
             $code = $this->stripComments($file->getContents());
@@ -159,32 +206,12 @@ class DesignLanguageGuardTest extends TestCase
     }
 
     /**
-     * Phase 6: `->emptyStateIcon()` took a mix of raw `'heroicon-o-*'`
-     * strings and the `Heroicon` enum across the Filament resources — one
-     * vocabulary, the CLAUDE.md-documented convention
-     * (`Filament\Support\Icons\Heroicon` enum), not two spellings of the
-     * same icon.
-     */
-    public function test_no_filament_resource_uses_a_raw_heroicon_string_for_empty_state_icon(): void
-    {
-        $finder = (new Finder)->files()->in(dirname(__DIR__, 3).'/src')->name('*.php');
-
-        foreach ($finder as $file) {
-            $this->assertDoesNotMatchRegularExpression(
-                "/emptyStateIcon\\(\\s*['\"]heroicon-/",
-                $file->getContents(),
-                "{$file->getRelativePathname()} passes a raw 'heroicon-o-*' string to emptyStateIcon() — use the Heroicon enum instead.",
-            );
-        }
-    }
-
-    /**
      * Phase 7: `focus-ring` (tokens.css's `@utility focus-ring`) is the one
      * focus-visible treatment resources/views uses — two files had their
      * own hand-rolled `focus-visible:ring-*` before this (a subtle
      * black/white ring on the OAuth buttons, a raw `--primary-500` ring on
-     * a Filament-panel view), same drift class Phase 0 already fixed once
-     * for `ui/alert`'s own focus ring.
+     * a panel view), same drift class Phase 0 already fixed once for
+     * `ui/alert`'s own focus ring.
      */
     public function test_no_view_hand_rolls_its_own_focus_visible_ring(): void
     {
@@ -198,38 +225,6 @@ class DesignLanguageGuardTest extends TestCase
                 $code,
                 "{$file->getRelativePathname()} hand-rolls a focus ring instead of using the shared `focus-ring` utility.",
             );
-        }
-    }
-
-    /**
-     * Phase 6: `<x-filament::button>` already derives `wire:target` from its
-     * own `wire:click` and renders `wire:loading.attr="disabled"` plus a
-     * real spinner (`Filament\Support\generate_loading_indicator_html()`) —
-     * `vendor/filament/support/resources/views/components/button/index.blade.php`.
-     * A manual `wire:loading.attr="disabled"` on the same tag is not just
-     * redundant, it's *worse*: it disables the button with no spinner,
-     * which is exactly the "no shared spinner" divergence this phase
-     * closes. Two Numerosis-owned pages had this before the fix
-     * (marketplace, module-detail); this stops a third.
-     */
-    public function test_no_filament_button_manually_duplicates_its_own_loading_indicator(): void
-    {
-        $files = $this->viewFiles();
-
-        foreach ($files as $file) {
-            $code = $this->stripComments($file->getContents());
-
-            if (! preg_match_all('/<x-filament::button\b.*?>/s', $code, $matches)) {
-                continue;
-            }
-
-            foreach ($matches[0] as $tag) {
-                $this->assertStringNotContainsString(
-                    'wire:loading',
-                    $tag,
-                    "{$file->getRelativePathname()} sets wire:loading manually on an <x-filament::button> — the component already handles it (and renders a spinner the manual version doesn't). Remove the manual attribute.",
-                );
-            }
         }
     }
 }

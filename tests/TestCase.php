@@ -6,10 +6,14 @@ namespace Nvade\Numerosis\Tests;
 
 use App\Models\Central\CentralUser;
 use App\Models\Central\Domain;
+use App\Models\Central\Tenant;
 use App\Models\Tenant\User;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\URL;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
@@ -21,7 +25,6 @@ use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Testing\CleansUpTenancyDatabases;
-use Nvade\Numerosis\Testing\InteractsWithTenantPanel;
 use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
 use Orchestra\Testbench\TestCase as Orchestra;
 use PDO;
@@ -36,22 +39,79 @@ use Stancl\Tenancy\UUIDGenerator;
 abstract class TestCase extends Orchestra
 {
     use CleansUpTenancyDatabases;
-    use InteractsWithTenantPanel;
 
-    /**
-     * `NumerosisServiceProvider::registerFilamentPanels()` registers both
-     * panels itself now (Phase 2, package-host-bootstrap) — Workbench used
-     * to carry its own stand-in copies of `AdminPanelProvider`/
-     * `TenantAdminPanelProvider` for exactly what the package now supplies
-     * by default, and registering both would have silently double-registered
-     * the same panel ids (Filament's `PanelRegistry` keys by id and the
-     * second registration just overwrites the first — no error, no signal).
-     */
+    private static bool $workerDatabaseMigrated = false;
+
     protected function getPackageProviders($app): array
     {
         return [
             NumerosisServiceProvider::class,
         ];
+    }
+
+    /**
+     * Authenticate on the tenant guard, the way a request inside a tenant
+     * route group would.
+     *
+     * `actingAs()`'s default guard is the central one, so a bare call leaves
+     * every tenant-guard check false and the failure surfaces as an
+     * unrelated 403/redirect. Replaces the panel-aware helper the deleted
+     * Filament package used to supply.
+     */
+    protected function actingAsTenantUser(Authenticatable $user): static
+    {
+        $this->actingAs($user, Config::string('numerosis.auth.guards.tenant'));
+
+        return $this;
+    }
+
+    /**
+     * Authenticate on the central guard by its configured name.
+     *
+     * `actingAs()`'s default is whatever `auth.defaults.guard` says, and the
+     * central guard is renameable (`RenamedCentralGuardTest` boots it as
+     * `host_central`), so spelling `'web'` at a call site pins a name the
+     * host owns.
+     */
+    protected function actingAsCentralUser(Authenticatable $user): static
+    {
+        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
+
+        return $this;
+    }
+
+    /**
+     * A tenant reachable at its own subdomain.
+     *
+     * `forceCreate`, as production does: `id` is not fillable, so
+     * `Tenant::create()` drops it and `UUIDGenerator` assigns a uuid instead
+     * — the subdomain then no longer matches and identification 404s.
+     */
+    protected function createTenantWithDomain(string $id, string $name = 'Test Tenant'): Tenant
+    {
+        $tenant = Tenant::forceCreate(['id' => $id, 'name' => $name]);
+        $tenant->domains()->create(['id' => $id, 'domain' => $this->tenantDomain($id)]);
+
+        return $tenant;
+    }
+
+    /**
+     * A user inside the tenant's own database, returned already resolved on
+     * the tenant connection so `actingAsTenantUser()` takes it directly.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    protected function createTenantUser(Tenant $tenant, array $attributes = []): User
+    {
+        /** @var User $user */
+        $user = $tenant->run(fn (): User => User::create([
+            'global_id' => 'global-'.uniqid(),
+            'name' => 'Tenant User',
+            'email' => 'tenant-'.uniqid().'@example.com',
+            ...$attributes,
+        ]));
+
+        return $user;
     }
 
     /**
@@ -61,7 +121,7 @@ abstract class TestCase extends Orchestra
      * vendor package's discovered providers *and* aliases, silently, no
      * error at boot. Every vendor dependency this package relies on
      * (`livewire/livewire`'s `Livewire` facade alias and `livewire.finder`
-     * binding, `filament/filament`'s facades, …) is reached through Laravel's
+     * binding, …) is reached through Laravel's
      * own auto-discovery, exactly like a real consuming app — nothing here
      * hand-registers a provider or alias that discovery already supplies, so
      * this one override is the fix, not a per-package alias list.
@@ -140,14 +200,26 @@ abstract class TestCase extends Orchestra
         $app->make(Repository::class)->set('database.lock_wait_timeout', $lockWaitTimeout);
 
         $mysqlOptions = extension_loaded('pdo_mysql') ? [
-            (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_INIT_COMMAND : PDO::MYSQL_ATTR_INIT_COMMAND) => "SET SESSION lock_wait_timeout = {$lockWaitTimeout}, innodb_lock_wait_timeout = {$lockWaitTimeout}",
+            Mysql::ATTR_INIT_COMMAND => "SET SESSION lock_wait_timeout = {$lockWaitTimeout}, innodb_lock_wait_timeout = {$lockWaitTimeout}",
         ] : [];
+
+        // `central` and `tenant` have to follow the parallel token themselves.
+        // Laravel's own parallel wiring (Illuminate\Testing\Concerns\
+        // TestDatabases) switches exactly one connection — the default — and it
+        // does so *after* this method has run, so a hardcoded 'testing' here
+        // leaves every central-connection read pointed at the shared database
+        // while the default correctly moved to the worker's own. That is not a
+        // slow or flaky run: it is 376 failures reading
+        // `Connection: central, Database: testing`, because nothing ever
+        // migrated the database those queries land in.
+        $database = static::parallelAwareDatabase('testing');
+        static::ensureDatabaseExists($database);
 
         $mysql = [
             'driver' => 'mysql',
             'host' => '127.0.0.1',
             'port' => '3306',
-            'database' => 'testing',
+            'database' => $database,
             'username' => 'root',
             'password' => 'root',
             'unix_socket' => '',
@@ -188,13 +260,13 @@ abstract class TestCase extends Orchestra
         // tenancy.central_domains, a bogus stock tenant-migration path).
         // 319 of 526 tests failed. Restored, with this note so the same
         // experiment isn't repeated the same way — see
-        // .claude/rules/testing.md for the recorded version.
-        $app->make(Repository::class)->set('tenancy.tenant_model', \App\Models\Central\Tenant::class);
-        $app->make(Repository::class)->set('tenancy.id_generator', UUIDGenerator::class);
-        $app->make(Repository::class)->set('tenancy.domain_model', Domain::class);
+        // .ai/rules/testing.md for the recorded version.
+        Config::set('tenancy.tenant_model', Tenant::class);
+        Config::set('tenancy.id_generator', UUIDGenerator::class);
+        Config::set('tenancy.domain_model', Domain::class);
         $app->make(Repository::class)->set('tenancy.central_user_model', CentralUser::class);
         $app->make(Repository::class)->set('tenancy.tenant_user_model', User::class);
-        $app->make(Repository::class)->set('tenancy.central_domains', ['central.numerosistest.test']);
+        Config::set('tenancy.central_domains', ['central.numerosistest.test']);
         $app->make(Repository::class)->set('tenancy.bootstrappers', [
             DatabaseTenancyBootstrapper::class,
             CacheTenancyBootstrapper::class,
@@ -204,7 +276,14 @@ abstract class TestCase extends Orchestra
             AuthGuardBootstrapper::class,
         ]);
         $app->make(Repository::class)->set('tenancy.database.central_connection', 'central');
-        $app->make(Repository::class)->set('tenancy.database.prefix', 'tenant');
+        // Tenant database names are derived from this prefix plus the tenant
+        // id, and tenant ids here come from the faker — so with one shared
+        // prefix, two workers that happen to generate the same id share one
+        // physical database, and whichever finishes first drops it out from
+        // under the other. The token belongs in the prefix rather than in each
+        // caller: it is the single point every tenant database name, including
+        // CloneTenantSchema's template, is built from.
+        $app->make(Repository::class)->set('tenancy.database.prefix', static::parallelAwareTenantPrefix());
         $app->make(Repository::class)->set('tenancy.database.suffix', '');
         $app->make(Repository::class)->set('tenancy.filesystem.suffix_base', 'tenant');
         $app->make(Repository::class)->set('tenancy.filesystem.disks', ['local', 'public']);
@@ -247,12 +326,10 @@ abstract class TestCase extends Orchestra
             'driver' => 'eloquent',
             'model' => User::class,
         ]);
-        // numerosis.social.providers/routes (config/numerosis.php) already
-        // carry this same five-provider metadata and the oauth/oauth.callback
-        // route names — nothing to override here. `Support\Social\
-        // ConfiguredProviders` intersects that list against config('services')
-        // credentials, so SocialLoginButtonsTest's "no client id, no button"
-        // assertion still depends only on the services.* block below.
+        // `Enums\Auth\SocialProvider::isConfigured()` tests
+        // `services.{provider}.client_id` directly — the block below is what
+        // makes google/discord "configured" in tests, everything else stays
+        // unconfigured on purpose.
         foreach (['google', 'discord'] as $driver) {
             $app->make(Repository::class)->set("services.{$driver}", [
                 'client_id' => "{$driver}-test-client-id",
@@ -283,7 +360,7 @@ abstract class TestCase extends Orchestra
         // default — but `database/migrations/central/2026_01_07_195854_remove_
         // redundant_tables.php` deliberately drops the `cache`/`cache_locks`
         // tables that store needs, on the assumption a real host runs Redis in
-        // production (see .claude/rules/exception-handling.md's `failed_jobs`
+        // production (see .ai/rules/exception-handling.md's `failed_jobs`
         // bullet for the sibling case). Left unset, every write through the
         // default cache store — including CentralUserObserver's
         // ForgetsCacheKey — throws `Base table or view not found: 1146 …
@@ -291,6 +368,17 @@ abstract class TestCase extends Orchestra
         // than a harness pinned to the wrong store. `session.driver` above
         // gets the same treatment for the same reason.
         $app->make(Repository::class)->set('cache.default', 'array');
+
+        // dev-master only: CacheTenancyBootstrapper::getCacheStores() throws
+        // ("Cache store [array] is not supported by this bootstrapper.") the
+        // moment it tries to scope a cache-backed session whose driver is
+        // `array` — v3's equivalent bootstrapper has no such check. Every
+        // test entering tenant context hits this, since `session.driver`
+        // above is always `array` here. No key on v3 (harmless no-op there,
+        // see .ai/rules/stancl-tenancy-v4.md); this package's tests
+        // exercise tenant *cache* scoping directly, never session scoping,
+        // so turning it off costs nothing.
+        $app->make(Repository::class)->set('tenancy.cache.scope_sessions', false);
 
         $app->make(Repository::class)->set('filesystems.disks.local', [
             'driver' => 'local',
@@ -319,10 +407,21 @@ abstract class TestCase extends Orchestra
         // and resources/views/layouts/app/header.blade.php's
         // `<livewire:layouts::header />`). See docs/host-requirements.md's
         // `config/livewire.php` row.
-        $app->make(Repository::class)->set('livewire.component_namespaces', [
-            'layouts' => dirname(__DIR__).'/resources/views/layouts',
-            'pages' => dirname(__DIR__).'/resources/views/pages',
-        ]);
+        //
+        // Set one key at a time, never the whole array: a satellite provider
+        // used to contribute its own namespace here (nvade/numerosis-account's
+        // `account-pages`, folded into core's own `pages::` in Phase 3 of
+        // `.claude/plans/archive/humming-nibbling-flame.md`). Replacing the array
+        // wholesale dropped it silently, and the only symptom was
+        // `Unable to find component: [account-pages::tenant.mine]`.
+        $app->make(Repository::class)->set(
+            'livewire.component_namespaces.layouts',
+            dirname(__DIR__).'/resources/views/layouts',
+        );
+        $app->make(Repository::class)->set(
+            'livewire.component_namespaces.pages',
+            dirname(__DIR__).'/resources/views/pages',
+        );
 
         $app->make(Repository::class)->set('permission.models.permission', Permission::class);
         $app->make(Repository::class)->set('permission.models.role', Role::class);
@@ -336,7 +435,7 @@ abstract class TestCase extends Orchestra
         ]);
         $app->make(Repository::class)->set('permission.cache.store', 'array');
 
-        $app->make(Repository::class)->set('cashier.model', \App\Models\Central\Tenant::class);
+        $app->make(Repository::class)->set('cashier.model', Tenant::class);
         $app->make(Repository::class)->set('cashier.key', 'pk_test_dummy');
         $app->make(Repository::class)->set('cashier.secret', 'sk_test_dummy');
         $app->make(Repository::class)->set('cashier.currency', 'usd');
@@ -344,7 +443,7 @@ abstract class TestCase extends Orchestra
         $app->make(Repository::class)->set('queue.default', 'sync');
 
         // Gated by QUEUE_FAILED_DRIVER, not by queue.default — see
-        // .claude/rules/exception-handling.md. The package ships the central
+        // .ai/rules/exception-handling.md. The package ships the central
         // `failed_jobs` migration, so the host has to point this at a
         // connection that carries it; Testbench's skeleton points at sqlite,
         // and the failure is `Database file at path […]/database.sqlite does
@@ -360,12 +459,6 @@ abstract class TestCase extends Orchestra
         ]);
         $app->make(Repository::class)->set('mail.default', 'array');
 
-        // spatie/laravel-activitylog is a "suggest" in composer.json (moved
-        // there so it isn't forced on every consumer — see
-        // Nvade\Numerosis\Support\Compat\LogsActivityIfInstalled), but the
-        // package's own require-dev pulls it in for the test suite, so this
-        // config/migration must exist here regardless of ActivityLogFeature
-        // (which only gates the Filament UI on top of it).
         $app->make(Repository::class)->set('activitylog.database_connection', null);
         $app->make(Repository::class)->set('activitylog.table_name', 'activity_log');
         $app->make(Repository::class)->set('activitylog.activity_model', Activity::class);
@@ -387,6 +480,17 @@ abstract class TestCase extends Orchestra
      * assets — they render server-side HTML and assert against that, so a
      * manifest entry only needs to resolve to *some* file path, never a real
      * built one.
+     *
+     * **Written atomically, and that is not tidiness.** This runs on every
+     * test's application boot, and `--parallel` gives eight worker processes
+     * that all target this one path under `workbench/public`. A plain
+     * `file_put_contents()` truncates before it writes, so a worker reading
+     * the file during another worker's write gets partial JSON;
+     * `json_decode()` returns null and `Illuminate\Foundation\Vite` reports
+     * it as `Unable to locate file in Vite manifest: resources/css/app.css`
+     * — pointing at whichever view happened to render, never at this method.
+     * A `rename()` on the same filesystem is atomic, so a reader sees either
+     * the old complete file or the new one.
      */
     private function stubViteManifest(Application $app): void
     {
@@ -410,7 +514,22 @@ abstract class TestCase extends Orchestra
             ];
         }
 
-        file_put_contents($buildDir.'/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+        self::writeManifestAtomically($buildDir.'/manifest.json', $manifest);
+    }
+
+    /**
+     * Temp name carries the pid: two workers renaming the *same* temp file
+     * would reintroduce the race this exists to remove.
+     *
+     * @param  array<string, array{file: string, src: string, isEntry: bool}>  $manifest
+     */
+    protected static function writeManifestAtomically(string $path, array $manifest): void
+    {
+        $temporary = $path.'.'.getmypid().'.tmp';
+
+        file_put_contents($temporary, json_encode($manifest, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+        rename($temporary, $path);
     }
 
     /**
@@ -448,6 +567,57 @@ abstract class TestCase extends Orchestra
         return str_replace('{tenant}', $id, Config::string('numerosis.domains.tenant_pattern'));
     }
 
+    /**
+     * A database name suffixed with this worker's parallel token, matching the
+     * `{name}_test_{token}` shape `TestDatabases::testDatabase()` uses for the
+     * default connection, so every connection in this suite lands in one
+     * database per worker. Returns `$name` unchanged when not in parallel.
+     */
+    public static function parallelAwareDatabase(string $name): string
+    {
+        $token = ParallelTesting::token();
+
+        return $token ? $name.'_test_'.$token : $name;
+    }
+
+    /**
+     * Create this worker's database, because nothing else will.
+     *
+     * `TestDatabases`'s setUpProcess hook is what creates `{name}_test_{token}`
+     * in an application, and only `Illuminate\Testing\ParallelRunner` invokes
+     * it. Pest installs that runner only when `Orchestra\Testbench\TestCase` is
+     * absent, so in a package it never runs: `Unknown database` on every query.
+     */
+    protected static function ensureDatabaseExists(string $database): void
+    {
+        static $ensured = [];
+
+        if (isset($ensured[$database]) || ! extension_loaded('pdo_mysql')) {
+            return;
+        }
+
+        $connection = new PDO('mysql:host=127.0.0.1;port=3306', 'root', 'root');
+        $connection->exec("create database if not exists `{$database}` character set utf8mb4 collate utf8mb4_0900_ai_ci");
+
+        $ensured[$database] = true;
+    }
+
+    /**
+     * The `tenancy.database.prefix` this worker builds tenant database names
+     * from. `tenant` when serial, `tenant{token}_` under `--parallel`.
+     *
+     * Everything that drops tenant databases in this suite derives the names it
+     * drops from per-worker state — surviving `tenants` rows on the worker's own
+     * central connection, plus `CloneTenantSchema::takeCreatedDatabases()` —
+     * so a per-worker prefix does not need a matching change in teardown.
+     */
+    public static function parallelAwareTenantPrefix(): string
+    {
+        $token = ParallelTesting::token();
+
+        return $token ? 'tenant'.$token.'_' : 'tenant';
+    }
+
     protected function setUp(): void
     {
         // Registered before parent::setUp() so that under Testbench — whose
@@ -465,6 +635,43 @@ abstract class TestCase extends Orchestra
         });
 
         parent::setUp();
+
+        $this->migrateWorkerDatabaseOnce();
+    }
+
+    /**
+     * Migrate this worker's database, once per process.
+     *
+     * `RefreshDatabase` migrates only for the tests that use it, and the
+     * class-based half of this suite does not. So whichever test a worker
+     * happens to start with decides whether the schema exists at all — and
+     * `keepDatabaseSchema()` then pins that answer, empty or not, for every
+     * test the process runs after it.
+     */
+    private function migrateWorkerDatabaseOnce(): void
+    {
+        if (self::$workerDatabaseMigrated) {
+            return;
+        }
+
+        if (! $this->workerDatabaseHasSchema()) {
+            $this->artisan('migrate:fresh', ['--force' => true]);
+        }
+
+        // Read back rather than assume: a migration that did not happen leaves
+        // the flag false, so the next test tries again instead of pinning an
+        // empty database for the rest of the process.
+        self::$workerDatabaseMigrated = $this->workerDatabaseHasSchema();
+
+        RefreshDatabaseState::$migrated = self::$workerDatabaseMigrated;
+    }
+
+    private function workerDatabaseHasSchema(): bool
+    {
+        return $this->app?->make('db')
+            ->connection(Config::string('tenancy.database.central_connection'))
+            ->getSchemaBuilder()
+            ->hasTable('users') ?? false;
     }
 
     protected function tearDown(): void
@@ -477,7 +684,7 @@ abstract class TestCase extends Orchestra
         // container-scoped, so a test that calls forceForTesting() would
         // otherwise leak its override into whichever test runs next in the
         // same process — same class of trap as Tenant::unsetEventDispatcher()
-        // (see .claude/rules/testing.md).
+        // (see .ai/rules/testing.md).
         TurnstileFeature::forceForTesting(null);
     }
 

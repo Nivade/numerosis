@@ -10,15 +10,11 @@ use Nvade\Numerosis\Contracts\Feature;
 use Nvade\Numerosis\Contracts\NamedFeature;
 
 /**
- * Answers "is this feature enabled?" from `config('numerosis.features')` —
- * the single place features are switched on and off.
- *
- * Route files, service providers and Blade views all need that answer at
- * points where the feature-boot loop has not run or has already finished,
- * which is why it is asked here rather than tracked as boot state.
- *
- * In tests, {@see self::forceForTesting()} overrides the config, and must be
- * called before the application boots — routes are registered during boot.
+ * Answers "is this feature enabled?" from `config('numerosis.features')`, the
+ * single place features are switched on and off. Route files, providers and
+ * Blade views need that answer where the feature-boot loop has not run or has
+ * finished, so it is read from config and never tracked as boot state.
+ * {@see self::forceForTesting()} must be called before routes are registered.
  */
 final class Features
 {
@@ -29,6 +25,15 @@ final class Features
     private static ?array $nameMap = null;
 
     /**
+     * Features contributed via {@see self::register()}, kept separate from
+     * `config('numerosis.features')` so a second package can add itself
+     * without the host editing that array by hand.
+     *
+     * @var list<class-string<Feature>>
+     */
+    private static array $registered = [];
+
+    /**
      * @return list<class-string<Feature>>
      */
     public static function all(): array
@@ -37,10 +42,52 @@ final class Features
             return self::$forcedForTesting;
         }
 
+        // Defaulted because a satellite provider can reach this before core's
+        // `mergeConfigFrom()` runs, as under Larastan. `self::$registered` is
+        // still honoured in that state.
         /** @var list<class-string<Feature>> $features */
-        $features = Config::array('numerosis.features');
+        $features = Config::array('numerosis.features', []);
 
-        return $features;
+        return array_values(array_unique([...$features, ...self::$registered]));
+    }
+
+    /**
+     * Register a feature outside `config('numerosis.features')`: the seam a
+     * second package uses to contribute its own {@see Feature} without the host
+     * having to edit that array. Duplicate registration, or a class already
+     * listed in config, is a no-op and never a second `bootstrap()` call.
+     *
+     * @param  class-string<Feature>  $feature
+     */
+    public static function register(string $feature): void
+    {
+        if (! in_array($feature, self::$registered, true)) {
+            self::$registered[] = $feature;
+            self::$nameMap = null;
+        }
+    }
+
+    /**
+     * The contributions made through {@see self::register()}, without the
+     * host's own `numerosis.features` entries. Exists so a caller can tell
+     * "the host asked for this" from "an installed satellite package brought
+     * it along", a distinction {@see self::all()} deliberately erases.
+     *
+     * @return list<class-string<Feature>>
+     */
+    public static function registered(): array
+    {
+        return self::$registered;
+    }
+
+    /**
+     * Clears {@see self::register()} contributions. For tests only: a real
+     * host or package registers once, for the application's lifetime.
+     */
+    public static function resetRegisteredForTesting(): void
+    {
+        self::$registered = [];
+        self::$nameMap = null;
     }
 
     /**
@@ -57,8 +104,8 @@ final class Features
     }
 
     /**
-     * Built once per resolved feature list rather than scanned per call —
-     * enabled() is called from inside Blade loops.
+     * Built once per resolved feature list, since enabled() is called from
+     * inside Blade loops.
      *
      * @return array<string, class-string<Feature>>
      */

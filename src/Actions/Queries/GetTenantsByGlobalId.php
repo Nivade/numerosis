@@ -10,6 +10,7 @@ use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
+use Nvade\Numerosis\Support\Cache\GlobalCache;
 
 /**
  * @method static Collection<int, Tenant> run(string $globalId)
@@ -23,7 +24,14 @@ class GetTenantsByGlobalId
      */
     public function handle(string $globalId): Collection
     {
-        return global_cache()->remember(
+        /**
+         * `tenants()->get()` is typed against the relation's own declaration
+         * (`Model`), and the cache round-trip widens it further, so the shape
+         * is asserted once here, sparing every caller.
+         *
+         * @var Collection<int, Tenant>
+         */
+        return GlobalCache::store()->remember(
             CacheKeys::userTenants($globalId),
             now()->addHour(),
             function () use ($globalId) {

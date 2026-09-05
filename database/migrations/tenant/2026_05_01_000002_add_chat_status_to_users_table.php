@@ -11,7 +11,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('display_status', 50)->nullable()->after('last_seen_at');
+            // No `->after()`: this used to sit after `last_seen_at`, whose
+            // migration was deleted along with the presence tracking it fed.
+            // Naming a column that no longer exists is a hard MySQL error on
+            // a fresh migrate, and column order is cosmetic anyway.
+            $table->string('display_status', 50)->nullable();
             $table->string('custom_status_text', 100)->nullable()->after('display_status');
         });
     }

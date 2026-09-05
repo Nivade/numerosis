@@ -12,7 +12,7 @@ use Nvade\Numerosis\Tests\TestCase;
 /**
  * `NumerosisServiceProvider::packageRegistered()` supplies defaults for
  * three Livewire/filesystem config keys a host previously had to wire by
- * hand (see .claude/plans/cleanup-package-extraction.md, item H) — but only
+ * hand (see .claude/plans/archive/cleanup-package-extraction.md, item H) — but only
  * when the host hasn't already set something. They live in the *register*
  * phase, not `packageBooted()`, because `LivewireServiceProvider::boot()`
  * reads `component_namespaces` eagerly to register a Blade view-finder

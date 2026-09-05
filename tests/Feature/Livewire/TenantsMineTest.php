@@ -9,7 +9,6 @@ use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
 use Nvade\Numerosis\Tests\TestCase;
 
 class TenantsMineTest extends TestCase
@@ -48,11 +47,10 @@ class TenantsMineTest extends TestCase
     {
         $user = CentralUser::factory()->create();
 
-        PendingTenantProvision::create([
+        PendingTenantProvision::factory()->provisioning()->create([
             'domain' => 'waiting',
             'company_name' => 'Waiting Co',
             'global_id' => $user->global_id,
-            'status' => TenantProvisionStatus::Provisioning,
         ]);
 
         Livewire::actingAs($user)
@@ -65,12 +63,10 @@ class TenantsMineTest extends TestCase
     {
         $user = CentralUser::factory()->create();
 
-        PendingTenantProvision::create([
+        PendingTenantProvision::factory()->failed()->create([
             'domain' => 'brokenone',
             'company_name' => 'Broken Co',
             'global_id' => $user->global_id,
-            'status' => TenantProvisionStatus::Failed,
-            'failed_at' => now(),
             'error' => 'seeding blew up',
         ]);
 
@@ -84,11 +80,10 @@ class TenantsMineTest extends TestCase
     {
         $user = CentralUser::factory()->create();
 
-        PendingTenantProvision::create([
+        PendingTenantProvision::factory()->create([
             'domain' => 'reservedone',
             'company_name' => 'Reserved Co',
             'global_id' => $user->global_id,
-            'status' => TenantProvisionStatus::Reserved,
         ]);
 
         Livewire::actingAs($user)
@@ -103,11 +98,10 @@ class TenantsMineTest extends TestCase
         $user = CentralUser::factory()->create();
         $other = CentralUser::factory()->create();
 
-        PendingTenantProvision::create([
+        PendingTenantProvision::factory()->provisioning()->create([
             'domain' => 'someoneelse',
             'company_name' => 'Someone Else Co',
             'global_id' => $other->global_id,
-            'status' => TenantProvisionStatus::Provisioning,
         ]);
 
         Livewire::actingAs($user)
@@ -126,11 +120,10 @@ class TenantsMineTest extends TestCase
         $tenant = Tenant::factory()->create(['provisioned_at' => null]);
         $this->attach($user, $tenant);
 
-        PendingTenantProvision::create([
+        PendingTenantProvision::factory()->provisioning()->create([
             'domain' => $tenant->id,
             'company_name' => 'Duplicated Co',
             'global_id' => $user->global_id,
-            'status' => TenantProvisionStatus::Provisioning,
         ]);
 
         Livewire::actingAs($user)
@@ -143,11 +136,10 @@ class TenantsMineTest extends TestCase
     {
         $user = CentralUser::factory()->create();
 
-        PendingTenantProvision::create([
+        PendingTenantProvision::factory()->create([
             'domain' => 'cancelme',
             'company_name' => 'Cancel Co',
             'global_id' => $user->global_id,
-            'status' => TenantProvisionStatus::Reserved,
         ]);
 
         Livewire::actingAs($user)
@@ -168,11 +160,10 @@ class TenantsMineTest extends TestCase
         $user = CentralUser::factory()->create();
         $other = CentralUser::factory()->create();
 
-        PendingTenantProvision::create([
+        PendingTenantProvision::factory()->create([
             'domain' => 'notyours',
             'company_name' => 'Not Yours Co',
             'global_id' => $other->global_id,
-            'status' => TenantProvisionStatus::Reserved,
         ]);
 
         Livewire::actingAs($user)

@@ -1,62 +1,48 @@
 ---
 description: Run tests related to current changes
-maintainer: Laravel Altitude
 ---
 
-# Test - Run Related Tests
+# Test — Run Related Tests
 
-Identify and run tests related to current changes.
+This is a package, not an app — no `artisan`, no `app/`. Tests run through
+Pest + Orchestra Testbench against `workbench/`.
 
 ## Usage
 
 ```
-/test [path] [--all] [--coverage]
+/test [path] [--all]
 ```
 
-## Arguments
+## Commands
 
-- `path`: Specific test file or directory
-- `--all`: Run entire suite
-- `--coverage`: Include coverage report
+```bash
+composer test                              # full suite, parallel
+composer test-serial                       # full suite, serial (debugging flaky/order-dependent failures)
+composer test:impact                       # only tests touching uncommitted changes (pest --dirty)
+composer test-browser                      # Browser suite only — needs Playwright, see .ai/rules/testing.md
+vendor/bin/pest tests/Feature/FooTest.php  # specific file
+vendor/bin/pest --filter=testCreatesUser   # filtered
+```
 
-## File-to-Test Mapping
-
-Discovery order: `tests/Feature/` then `tests/Unit/`
-
-| Source | Test |
-|--------|------|
-| `app/Models/User.php` | `tests/Feature/Models/UserTest.php` |
-| `app/Livewire/Dashboard.php` | `tests/Feature/Livewire/DashboardTest.php` |
-| `app/Services/Payment.php` | `tests/Unit/Services/PaymentTest.php` |
-
-Non-standard: Check `phpunit.xml` for custom suites.
+Run the narrowest set that covers the change. Source is under `src/` and
+`packages/*/src/`, not `app/` — map `src/Actions/Foo/Bar.php` to
+`tests/Feature/Actions/Foo/BarTest.php`, falling back to `tests/Unit/`; a
+change under `packages/filament/src/**` maps to
+`packages/filament/tests/**` instead.
 
 ## Workflow
 
-1. Get changed files: `git diff --name-only HEAD`
-2. Map to test paths
-3. Search Feature first, then Unit
-4. Run with 120s timeout per file
-5. Limit to 50 failing assertions
+1. `git diff --name-only HEAD` for changed files.
+2. Map to test paths per above, or reach for `composer test:impact` directly.
+3. Re-run after each fix.
 
-## Failure Format
+## Preconditions
 
-```
-FAILED: tests/Feature/UserTest.php::it_creates_user
-  - Expected 201, got 422
-  - Line 45
-  - Fix: Check validation in UserRequest
-```
+Browser tests need `npx playwright install chromium` first
+(`.ai/rules/testing.md`) — only relevant for `composer test-browser` or
+`--testsuite=Browser`, not the default suites.
 
-## No Tests Found
+## No tests found
 
-- Suggest test creation
-- Offer @pest agent
-
-## Examples
-
-```
-/test
-/test tests/Feature/UserTest.php
-/test --all
-```
+Suggest a new test and offer to write it, following an existing sibling
+test's structure. Do not delegate to a subagent (`.ai/rules/subagents.md`).

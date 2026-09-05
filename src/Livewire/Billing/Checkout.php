@@ -25,10 +25,9 @@ use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Concerns\Billing\ConfirmsPayments;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
-use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
+use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 
@@ -76,8 +75,8 @@ class Checkout extends Component
 
     /**
      * ISO country code from {@see ResolveCheckoutRegion}, null on an
-     * unresolved lookup (private/local IP, database miss). Only pre-fills
-     * the Address Element's default and picks $paymentMethodOrder — never
+     * unresolved lookup (private/local IP, database miss). Only pre-fills the
+     * Address Element's default and picks $paymentMethodOrder. It never
      * restricts what Stripe is willing to show.
      */
     #[Locked]
@@ -86,7 +85,7 @@ class Checkout extends Component
     /**
      * Display order for the Payment Element, in Stripe's `paymentMethodOrder`
      * shape. A method absent here still appears if Stripe considers it
-     * eligible — this only reorders, per
+     * eligible, since this only reorders, per
      * config('numerosis.billing.payment_methods').
      *
      * @var list<string>
@@ -161,9 +160,8 @@ class Checkout extends Component
             $resolved = ResolveSetupIntent::run($setupIntentId);
         } catch (CheckoutAlreadyCompleted) {
             // Replayed subscribe() for a SetupIntent already turned into a
-            // subscription — a double-click, or a retry after the browser
-            // never saw the first response. Settle from what already exists
-            // instead of surfacing a refusal for something that succeeded.
+            // subscription: a double-click, or a retry the browser never saw
+            // answered. Settle from what exists, refusing nothing.
             $this->settleFromPendingSubscription();
 
             return;
@@ -173,13 +171,9 @@ class Checkout extends Component
             return;
         }
 
-        // ResolveSetupIntent proves the row belongs to whoever is asking, but
-        // not that it is the row *this component was mounted for* — and
-        // $setupIntentId is client input, while settle() below re-reads by
-        // $pendingDomain. A user holding two reservations could otherwise
-        // confirm domain-a's SetupIntent here and have domain-b provisioned
-        // from it, leaving domain-a still resumable off the same
-        // subscription: two tenants, one payment.
+        // ResolveSetupIntent proves only that the row belongs to the caller,
+        // leaving open whether it is the row this component mounted for.
+        // Without this, two reservations become two tenants for one payment.
         if ($resolved->pending->domain !== $this->pendingDomain) {
             $this->paymentError = __('numerosis::billing.checkout.session_expired');
 
@@ -213,10 +207,7 @@ class Checkout extends Component
             return;
         }
 
-        $pendingClass = Numerosis::model(PendingTenantProvision::class);
-
-        /** @var PendingTenantProvision|null $pending */
-        $pending = $pendingClass::find($this->pendingDomain);
+        $pending = $this->pendingReservation();
 
         if (! $pending || $pending->global_id !== $billable->global_id) {
             $this->paymentError = __('numerosis::billing.checkout.session_expired');
@@ -277,34 +268,32 @@ class Checkout extends Component
     /**
      * The curated payment method display order for a resolved country, or
      * the config default when the country is null (unresolved) or has no
-     * curated entry of its own. Ordering only, never eligibility — see
-     * ResolveCheckoutRegion.
+     * curated entry of its own. Ordering only, never eligibility.
+     *
+     * @see ResolveCheckoutRegion
      *
      * @return list<string>
      */
     private function resolvePaymentMethodOrder(?string $country): array
     {
-        $key = $country !== null ? "numerosis.billing.payment_methods.regions.{$country}" : null;
+        $default = Config::array('numerosis.billing.payment_methods.default_order');
 
         /** @var array<mixed> $order */
-        $order = $key !== null
-            ? Config::array($key, Config::array('numerosis.billing.payment_methods.default_order'))
-            : Config::array('numerosis.billing.payment_methods.default_order');
+        $order = $country !== null
+            ? Config::array("numerosis.billing.payment_methods.regions.{$country}", $default)
+            : $default;
 
         return array_values(array_filter($order, is_string(...)));
     }
 
     /**
      * Settles the subscription this checkout created, found by the id stored
-     * on its own pending row — never the billable's newest subscription,
-     * which may belong to an entirely different workspace.
+     * on its own pending row. Never the billable's newest subscription, which
+     * may belong to an entirely different workspace.
      */
     private function settleFromPendingSubscription(): void
     {
-        $pendingClass = Numerosis::model(PendingTenantProvision::class);
-
-        /** @var PendingTenantProvision|null $pending */
-        $pending = $pendingClass::find($this->pendingDomain);
+        $pending = $this->pendingReservation();
         $billable = GetAuthenticatedUser::run();
 
         $subscription = $pending?->stripe_subscription_id !== null && $billable instanceof CentralUser
@@ -320,12 +309,20 @@ class Checkout extends Component
         $this->settle($subscription);
     }
 
-    private function settle(Subscription $subscription): void
+    /** The reservation this component mounted for, by its `#[Locked]` domain. */
+    private function pendingReservation(): ?PendingTenantProvision
     {
         $pendingClass = Numerosis::model(PendingTenantProvision::class);
 
         /** @var PendingTenantProvision|null $pending */
         $pending = $pendingClass::find($this->pendingDomain);
+
+        return $pending;
+    }
+
+    private function settle(Subscription $subscription): void
+    {
+        $pending = $this->pendingReservation();
         $billable = GetAuthenticatedUser::run();
 
         // Ownership is re-checked here as well as being #[Locked]: the lock
@@ -339,13 +336,12 @@ class Checkout extends Component
 
         SettleCheckout::run($pending, $subscription, $billable->stripe_id, (string) $billable->id);
 
-        // The registration wizard's session-persisted step state (see
-        // Registration::showStep() in Part 2 of this plan) is only useful
-        // while a registration is in progress. Clearing it here is a no-op
-        // when Checkout was reached standalone (nothing set the key).
-        session()->forget('registration.wizard_state');
+        // The wizard's session-persisted step state is only useful while a
+        // registration is in progress. A no-op when Checkout was reached
+        // standalone, since nothing set the key.
+        session()->forget(RegistrationWizardFeature::SESSION_KEY);
 
-        $this->redirectRoute(Features::enabled(AccountPagesFeature::NAME) ? RouteNames::tenantsMine() : RouteNames::home());
+        $this->redirectRoute(RouteNames::tenantsMine());
     }
 
     public function render(): View

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -15,7 +14,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Subscription;
 use Nvade\Numerosis\Concerns\Billing\Billable;
@@ -23,7 +21,6 @@ use Nvade\Numerosis\Concerns\HasGlobalIdentity;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
-use Nvade\Numerosis\Models\SocialiteLogin;
 use Nvade\Numerosis\Models\Tenant as Workspace;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Observers\CentralUserObserver;
@@ -38,7 +35,6 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
  * @property string $email
  * @property string $password
  * @property string $global_id
- * @property Carbon|null $last_seen_at
  * @property Carbon|null $email_verified_at
  * @property string|null $remember_token
  * @property Carbon|null $deleted_at
@@ -46,12 +42,12 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
  * @property string|null $pm_type
  * @property string|null $pm_last_four
  * @property Carbon|null $trial_ends_at
- * @property-read \Illuminate\Database\Eloquent\Collection<int, SocialiteLogin> $socialiteLogins
- * @property-read int|null $socialite_logins_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, Tenant> $tenants
  * @property-read int|null $tenants_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, Subscription> $subscriptions
  * @property-read int|null $subscriptions_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, SocialAccount> $socialAccounts
+ * @property-read int|null $social_accounts_count
  *
  * @mixin Model
  */
@@ -62,7 +58,6 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
     'email',
     'password',
     'global_id',
-    'last_seen_at',
     'email_verified_at',
     'display_status',
     'stripe_id',
@@ -90,11 +85,11 @@ class CentralUser extends User implements CentralUserModel, HasTenants, Subscrib
     ];
 
     /**
-     * @return HasMany<SocialiteLogin, $this>
+     * @return HasMany<SocialAccount, $this>
      */
-    public function socialiteLogins(): HasMany
+    public function socialAccounts(): HasMany
     {
-        return $this->hasMany(SocialiteLogin::class);
+        return $this->hasMany(Numerosis::model(SocialAccount::class));
     }
 
     /**
@@ -113,7 +108,6 @@ class CentralUser extends User implements CentralUserModel, HasTenants, Subscrib
         )
             ->using(Membership::class)
             ->withPivot(['role', 'invited_by', 'invited_at', 'joined_at']);
-
     }
 
     public function initials(): string
@@ -153,15 +147,6 @@ class CentralUser extends User implements CentralUserModel, HasTenants, Subscrib
     public function guardName(): string|array
     {
         return 'web';
-    }
-
-    /**
-     * @return array<int, Tenant>|Collection<int, Tenant>
-     */
-    #[Override]
-    public function getTenants(Panel $panel): array|Collection
-    {
-        return $this->tenants;
     }
 
     #[Override]

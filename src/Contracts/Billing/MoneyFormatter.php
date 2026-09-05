@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Contracts\Billing;
 interface MoneyFormatter
 {
     /**
-     * @param  int  $amount  Minor currency units (cents) — what Cashier's own formatting expects.
+     * @param  int  $amount  Minor currency units (cents), as Cashier's own formatting expects.
      */
     public function format(int $amount, ?string $currency = null): string;
 }

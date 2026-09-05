@@ -2,16 +2,18 @@
     'plan',
     'billingCycle',
     'domain',
+    'customDomain' => null,
 ])
 
 @php
     /** @var \Nvade\Numerosis\Models\Central\PaymentPlan $plan */
-    /** @var \Nvade\Numerosis\Enums\BillingCycle $billingCycle */
+    /** @var \Nvade\Numerosis\Enums\Billing\BillingCycle $billingCycle */
     $billing = resolve(\Nvade\Numerosis\Services\Billing\BillingService::class);
     $price = $billing->formatAmount($plan->getPrice($billingCycle));
     $trialDays = $plan->trialDays();
     $onTrial = $trialDays !== null && $trialDays > 0;
     $dueToday = $onTrial ? $billing->formatAmount(0) : $price;
+    $mode = \Nvade\Numerosis\Enums\Tenancy\IdentificationMode::current();
 @endphp
 
 {{--
@@ -33,7 +35,13 @@
                 {{ $plan->name }} plan
             </x-numerosis::ui.text>
             <x-numerosis::ui.text variant="subtle" size="xs" class="mt-1 truncate">
-                {{ $domain }}.{{ config('numerosis.domains.apex') }}
+                @if($mode === \Nvade\Numerosis\Enums\Tenancy\IdentificationMode::Subdomain)
+                    {{ $domain }}.{{ config('numerosis.domains.apex') }}
+                @elseif($mode === \Nvade\Numerosis\Enums\Tenancy\IdentificationMode::CustomDomain)
+                    {{ $customDomain }}
+                @else
+                    {{ config('numerosis.domains.central') }}/{{ $domain }}
+                @endif
             </x-numerosis::ui.text>
         </div>
 

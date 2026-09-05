@@ -11,7 +11,7 @@
 
 @php
     /** @var \Nvade\Numerosis\Models\Central\PaymentPlan $plan */
-    /** @var \Nvade\Numerosis\Enums\BillingCycle $billingCycle */
+    /** @var \Nvade\Numerosis\Enums\Billing\BillingCycle $billingCycle */
     $isPopular = $plan->is_popular;
 
     // `$price` arrives already formatted ("€ 10,00"), so it cannot be compared
@@ -77,7 +77,7 @@
                         </div>
 
                         {{-- Savings Message --}}
-                        @if($billingCycle === \Nvade\Numerosis\Enums\BillingCycle::Yearly && $plan->getSavingsPercentage() > 0)
+                        @if($billingCycle === \Nvade\Numerosis\Enums\Billing\BillingCycle::Yearly && $plan->getSavingsPercentage() > 0)
                             <p class="text-[11px] font-semibold text-success-icon mt-1 uppercase tracking-wider">
                                 Save {{ $plan->getSavingsPercentage() }}% with annual billing
                             </p>
@@ -156,7 +156,7 @@
         {{-- Active/Popular Badge --}}
         @if($isCurrentCycle)
             <div class="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-success-icon text-white text-xs font-bold rounded-full tracking-wider uppercase shadow-md flex items-center gap-1.5">
-                <x-filament::icon icon="heroicon-m-check-badge" class="size-3.5"/>
+                <flux:icon.check-badge class="size-3.5" variant="micro" />
                 Your Active Plan
             </div>
         @elseif($isPopular)
@@ -224,7 +224,7 @@
                     variant="{{ $isPopular ? 'filled' : 'outline' }}"
                 >
                     @if($isCurrentPlan)
-                        Switch to {{ $billingCycle === \Nvade\Numerosis\Enums\BillingCycle::Monthly ? 'Monthly' : 'Yearly' }}
+                        Switch to {{ $billingCycle === \Nvade\Numerosis\Enums\Billing\BillingCycle::Monthly ? 'Monthly' : 'Yearly' }}
                     @else
                         {{ $subscription ? 'Change Plan' : 'Get Started' }}
                     @endif

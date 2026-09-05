@@ -9,10 +9,9 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Must be a real column, not left to fold into `data`:
-     * `Tenant::getCustomColumns()` has to name it or `EnsureTenantSubscriptionActive`
-     * and `tenancy:prune-orphaned-databases` (both SQL-level reads) silently
-     * see nothing — see .claude/rules/tenant-provisioning.md.
+     * `Tenant::getCustomColumns()` has to name this column. Left to fold into
+     * `data`, it is invisible to `EnsureTenantSubscriptionActive` and
+     * `tenancy:prune-orphaned-databases`, which both read it at SQL level.
      */
     public function up(): void
     {

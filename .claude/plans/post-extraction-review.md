@@ -1,17 +1,57 @@
 # Plan: post-extraction review — what the extraction left behind
 
+> ## Status correction, 2026-09-04 — read this instead of the Live status block
+>
+> Re-validated against the tree. **Phases 1, 2, 3, 5 and 6 are closed.** The
+> Live status block below is 3+ weeks stale: it names a `docker compose up -d`
+> prerequisite this repo does not have, `.claude/rules/` (moved to
+> `.ai/rules/`), and `filament-tenancy.md` (deleted).
+>
+> Closed since it was written:
+>
+> - **4.1** shipped as `numerosis:install --verify-only`, not `--check`. Every
+>   task below that names `--check` means `--verify-only`.
+> - **4.3** shipped — `schema_version` is in `config/numerosis/schema-version.php`,
+>   `config/stubs/numerosis.php`, and checked in `InstallNumerosisCommand:749`.
+> - **5.3** is **moot, not done.** It was a test for
+>   `NumerosisTenantPlugin::shouldRegisterPanel()`; `packages/filament` and both
+>   panels were deleted 2026-09-03 (Phase 1 of `archive/humming-nibbling-flame.md`).
+>   The `PHP_SAPI` root-cause writeup in the Live status block is still a good
+>   read, but nothing it describes exists any more.
+> - **5.4** shipped as `tests/Browser/RegistrationWizardTest.php`, minus its
+>   "log into the tenant panel" leg, which went with the panels.
+> - **5.5** shipped — `thin-app/.github/workflows/smoke-test.yml`, green on
+>   GitHub Actions (see `archive/better-dx.md`).
+> - **6.1** shipped — `CHANGELOG.md` and `UPGRADING.md` both exist.
+> - **6.3** moot — saas-m is archived.
+>
+> **Genuinely still open, and still worth doing — 4.2, 4.4, 6.2.** Nothing
+> below them has changed in a way that invalidates them:
+>
+> - **4.2** — failure-path tests for the ~20 untested `verify*()` methods. The
+>   count has grown; `InstallNumerosisCommand::handle()` now runs 14+ named
+>   verifications and most still have no test that corrupts their key.
+> - **4.4** — fold `verifyPublishedAssetsMatchSource()`'s warning into
+>   `--verify-only` so it is reachable outside an install run.
+> - **6.2** — the second-consumer smoke test (`laravel new` → path repo →
+>   `numerosis:install`, by documentation alone). thin-app cannot prove the
+>   documented path works; it was configured by hand.
+>
+> Ignore the phase headers' own DONE markers where they conflict with this
+> block. Everything else in the file is preserved as written.
+
 **Third plan in the series, and the last one that should be needed.**
-`.claude/plans/package-extraction.md` is the extraction itself (phases 0-10)
+`archive/package-extraction.md` is the extraction itself (phases 0-10)
 and stays canonical for its own history.
-`.claude/plans/cleanup-package-extraction.md` closed the "things a consumer
+`archive/cleanup-package-extraction.md` closed the "things a consumer
 had to wire by hand" follow-up (items A-I, all done). This file is a
 post-execution review of both, written 2026-08-07 against the real tree, and
 holds **only the remaining work** — nothing here is a restatement of
 something already done.
 
-**Audience: an executing agent with no prior context.** Read the Live status
-block, then the phase you are on. Every task states goal, files, reasoning,
-dependencies, and what "done" looks like. Tasks inside a phase are
+**Audience: an executing agent with no prior context.** Read the status
+correction above, then the phase you are on. Every task states goal, files,
+reasoning, dependencies, and what "done" looks like. Tasks inside a phase are
 independently completable unless a dependency is named.
 
 ---
@@ -157,7 +197,7 @@ All 5 items already resolved by the time this was rechecked: 2.1
 `numerosis-{tenancy,billing}.php` comment found in
 `NumerosisServiceProvider`), 2.4 (only one publish tag, `numerosis-models`,
 exists). 2.5's actual complaint — README pointing at
-`saas-m/.claude/plans/package-extraction.md` for remaining work — was
+`saas-m/.claude/plans/archive/package-extraction.md` for remaining work — was
 already fixed (points at `.claude/plans/post-extraction-review.md` in this
 repo). The remaining `saas-m` mentions in README are the repo-role table,
 accurate given the 2026-08-10 decision (`package-extraction.md`) to keep
@@ -215,7 +255,7 @@ All independent of Phase 1 and of each other. Safe to do first if 1.1 stalls.
 ### 2.5 Rewrite `README.md`'s status block
 
 - **Goal:** stop pointing consumers at
-  `saas-m/.claude/plans/package-extraction.md`.
+  `saas-m/.claude/plans/archive/package-extraction.md`.
 - **Reasoning:** contradicts D11 (numerosis's `.claude/` is canonical) and
   points into the repo about to be archived. Also drop "Under extraction from
   the saas-m monolith" once Phase 6 lands — the extraction is finished.

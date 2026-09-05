@@ -29,7 +29,7 @@ class LoginUserTest extends TestCase
      * `Tenant\User` through the central guard's machinery, and the queued
      * `SyncedResourceSaved` listener threw `ModelNotSyncMasterException`
      * (a `Tenant\User` is never a `SyncMaster`) — captured live in
-     * `failed_jobs`. See .claude/rules/auth-guards.md.
+     * `failed_jobs`. See .ai/rules/auth-guards.md.
      */
     public function test_logging_into_the_tenant_guard_with_remember_also_logs_the_matching_central_user_in(): void
     {

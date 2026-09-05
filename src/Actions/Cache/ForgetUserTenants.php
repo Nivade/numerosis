@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Cache;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
+use Nvade\Numerosis\Support\Cache\GlobalCache;
 
 class ForgetUserTenants
 {
@@ -13,6 +14,6 @@ class ForgetUserTenants
 
     public function handle(string $globalId): void
     {
-        global_cache()->forget(CacheKeys::userTenants($globalId));
+        GlobalCache::store()->forget(CacheKeys::userTenants($globalId));
     }
 }

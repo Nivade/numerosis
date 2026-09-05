@@ -79,11 +79,12 @@ class BotBlockingAuthTest extends TestCase
         // 5. Authenticate the REAL central user on 'web' guard
         Auth::guard('web')->login($centralUser);
 
-        // 6. Access the tenant admin panel
-        // If the bug exists, the Authenticate middleware will see that someone (the bot)
-        // is already logged into the 'tenant' guard and will NOT log in the real user.
+        // 6. Reach a route behind the `tenancy.auth` middleware — the tenant
+        // root is public and never runs it. If the bug exists, that middleware
+        // sees that someone (the bot) is already logged into the 'tenant'
+        // guard and will NOT log in the real user.
         $this->actingAs($centralUser, 'web')
-            ->get('http://'.$domain.'/');
+            ->get('http://'.$domain.'/account-suspended');
 
         // 7. Assertions
         // If the bot is logged in, and the bot doesn't have access (or is just not the right user),

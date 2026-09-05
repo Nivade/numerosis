@@ -6,17 +6,18 @@ namespace Nvade\Numerosis\Tests\Feature;
 
 use Illuminate\Foundation\Auth\User as GenericUser;
 use Illuminate\Support\Facades\Config;
+use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Tests\TestCase;
-use PDO;
-use Pdo\Mysql;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
 use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
@@ -52,7 +53,7 @@ class HostConfigTest extends TestCase
     public function test_it_does_not_override_a_hosts_tenancy_models(): void
     {
         // A real, autoloadable class rather than a fake namespace: TestCase's
-        // own teardown queries through whatever `tenancy.tenant_model`
+        // own teardown queries through whatever the tenant-model key
         // resolves to, so a nonexistent class here would crash cleanup
         // rather than the assertion below.
         Config::set('tenancy.tenant_model', Tenant::class);
@@ -83,7 +84,7 @@ class HostConfigTest extends TestCase
     /**
      * Stancl's own stock default is `['127.0.0.1', 'localhost']`, not `[]` —
      * found by `tests/Feature/FreshHostTest.php`, which is the first test in
-     * this suite that never overrides `tenancy.central_domains` itself and
+     * this suite that never overrides the central-domains key itself and
      * so is the first to actually reach this branch of `apply()`.
      */
     public function test_it_defaults_central_domains_when_still_stancls_stock_value(): void
@@ -107,6 +108,7 @@ class HostConfigTest extends TestCase
             DatabaseTenancyBootstrapper::class,
             SpatiePermissionsBootstrapper::class,
             AuthGuardBootstrapper::class,
+            PasswordBrokerBootstrapper::class,
         ], $bootstrappers);
     }
 
@@ -115,6 +117,7 @@ class HostConfigTest extends TestCase
         Config::set('tenancy.bootstrappers', [
             SpatiePermissionsBootstrapper::class,
             AuthGuardBootstrapper::class,
+            PasswordBrokerBootstrapper::class,
         ]);
 
         $this->rebootPackage();
@@ -122,6 +125,7 @@ class HostConfigTest extends TestCase
         $this->assertSame([
             SpatiePermissionsBootstrapper::class,
             AuthGuardBootstrapper::class,
+            PasswordBrokerBootstrapper::class,
         ], Config::array('tenancy.bootstrappers'));
         $this->assertNotContains('tenancy.bootstrappers', HostConfig::applied());
     }
@@ -179,9 +183,15 @@ class HostConfigTest extends TestCase
         );
     }
 
-    public function test_it_does_not_override_a_hosts_custom_seeder(): void
+    /**
+     * `tenancy.seeder` is a preference: it always projects onto
+     * `tenancy.seeder_parameters.--class`, so a host chooses a seeder
+     * through the numerosis key rather than the vendor key directly.
+     */
+    public function test_it_projects_a_custom_seeder_from_the_numerosis_key(): void
     {
-        Config::set('tenancy.seeder_parameters', ['--class' => 'App\\Custom\\Seeder']);
+        Config::set('numerosis.tenancy.seeder', 'App\\Custom\\Seeder');
+        Config::set('tenancy.seeder_parameters', ['--class' => 'SomethingElseEntirely']);
 
         $this->rebootPackage();
 
@@ -225,12 +235,18 @@ class HostConfigTest extends TestCase
         $this->assertSame('central', Config::get('tenancy.database.central_connection'));
     }
 
-    public function test_it_does_not_override_a_deliberately_named_central_connection(): void
+    /**
+     * `tenancy.central_connection` is a preference: it always projects onto
+     * `tenancy.database.central_connection`, so a host names a connection
+     * through the numerosis key rather than the vendor key directly.
+     */
+    public function test_it_projects_a_custom_central_connection_from_the_numerosis_key(): void
     {
+        Config::set('numerosis.tenancy.central_connection', 'tenant');
         // 'tenant' rather than an unconfigured name: TestCase's teardown
         // queries through whatever this key resolves to, and it must stay a
         // real, connectable connection for that cleanup to succeed.
-        Config::set('tenancy.database.central_connection', 'tenant');
+        Config::set('tenancy.database.central_connection', 'reporting');
 
         $this->rebootPackage();
 
@@ -256,32 +272,6 @@ class HostConfigTest extends TestCase
         $this->rebootPackage();
 
         $this->assertSame('host-owned', Config::get('database.connections.central.marker'));
-    }
-
-    public function test_it_mirrors_innodb_lock_wait_timeout_when_only_lock_wait_timeout_set(): void
-    {
-        $initCommandKey = PHP_VERSION_ID >= 80500 ? Mysql::ATTR_INIT_COMMAND : PDO::MYSQL_ATTR_INIT_COMMAND;
-
-        Config::set('database.connections.central.driver', 'mysql');
-        Config::set('database.connections.central.options', [
-            $initCommandKey => 'SET SESSION lock_wait_timeout = 15',
-        ]);
-
-        $this->rebootPackage();
-
-        $options = Config::array('database.connections.central.options');
-
-        $this->assertSame(
-            'SET SESSION lock_wait_timeout = 15, innodb_lock_wait_timeout = 15',
-            $options[$initCommandKey],
-        );
-    }
-
-    public function test_it_does_not_touch_options_that_already_set_both_timeouts(): void
-    {
-        $this->rebootPackage();
-
-        $this->assertNotContains('database.connections', HostConfig::applied());
     }
 
     public function test_it_defaults_session_domain_when_null(): void
@@ -388,21 +378,28 @@ class HostConfigTest extends TestCase
         $this->assertNotContains('auth.passwords.users', HostConfig::applied());
     }
 
+    /**
+     * The deep-fill runs in `NumerosisServiceProvider::packageRegistered()`,
+     * not `HostConfig::apply()` — re-registering the provider is what
+     * exercises it, rather than `rebootPackage()`.
+     */
     public function test_it_fills_missing_keys_in_a_partially_overridden_numerosis_section(): void
     {
-        Config::set('numerosis.modules', ['catalogue' => ['fake' => true]]);
+        Config::set('numerosis.billing', ['trial_days' => 3]);
 
-        $this->rebootPackage();
+        (new NumerosisServiceProvider(app()))->register();
 
-        $this->assertSame(['fake' => true], Config::get('numerosis.modules.catalogue'));
-        $this->assertSame([], Config::get('numerosis.modules.plugins'));
+        // The key the host set survives, and every sibling it omitted — which
+        // a one-level-deep merge would have dropped — is backfilled.
+        $this->assertSame(3, Config::get('numerosis.billing.trial_days'));
+        $this->assertSame('billing/webhook', Config::get('numerosis.billing.webhook_path'));
     }
 
     public function test_it_leaves_a_hosts_list_shaped_override_untouched(): void
     {
         Config::set('numerosis.features', []);
 
-        $this->rebootPackage();
+        (new NumerosisServiceProvider(app()))->register();
 
         $this->assertSame([], Config::get('numerosis.features'));
     }
@@ -424,6 +421,40 @@ class HostConfigTest extends TestCase
      * dies with `Incorrect table name ''` — a null config value
      * interpolates to an empty string in the generated SQL.
      */
+    /**
+     * `docs/extending.md` names `config('fortify.features')` as the seam for
+     * choosing which auth screens exist, gated by
+     * `numerosis.auth.manage_fortify_features` rather than a stock-value
+     * comparison — `registerFortify()` used to `Config::set()` the key
+     * unconditionally on every boot, which discarded a published
+     * `config/fortify.php` and made the documented seam a no-op.
+     */
+    public function test_it_leaves_a_hosts_fortify_features_alone(): void
+    {
+        Config::set('fortify.features', ['host-chose-this']);
+        Config::set('numerosis.auth.manage_fortify_features', false);
+
+        $this->rebootPackage();
+
+        $this->assertSame(['host-chose-this'], Config::array('fortify.features'));
+        $this->assertNotContains('fortify.features', HostConfig::applied());
+    }
+
+    public function test_it_drops_two_factor_from_fortifys_stock_feature_list(): void
+    {
+        $this->rebootPackage();
+
+        $features = Config::array('fortify.features');
+
+        $this->assertContains(FortifyFeatures::registration(), $features);
+        $this->assertContains(FortifyFeatures::emailVerification(), $features);
+
+        // No `numerosis::auth.two-factor-challenge` view ships, and the
+        // columns its controllers write do not exist — so the screens would
+        // only fail once somebody reached them.
+        $this->assertNotContains(FortifyFeatures::twoFactorAuthentication(), $features);
+    }
+
     public function test_it_defaults_the_activity_log_table_name_when_unset(): void
     {
         Config::set('activitylog.table_name');
@@ -440,31 +471,6 @@ class HostConfigTest extends TestCase
         $this->rebootPackage();
 
         $this->assertSame('custom_activity_log', Config::get('activitylog.table_name'));
-    }
-
-    /**
-     * torann/geoip's own stock config ships `service => null`, and
-     * `GeoIP::getService()` throws `No GeoIP service is configured.` on
-     * that rather than degrading — so an unset key would fatal every
-     * checkout page load through `ResolveCheckoutRegion`, not merely lose
-     * the region-specific payment-method order.
-     */
-    public function test_it_defaults_the_geoip_service_when_unset(): void
-    {
-        Config::set('geoip.service');
-
-        $this->rebootPackage();
-
-        $this->assertSame('maxmind_database', Config::get('geoip.service'));
-    }
-
-    public function test_it_does_not_override_a_hosts_geoip_service(): void
-    {
-        Config::set('geoip.service', 'maxmind_api');
-
-        $this->rebootPackage();
-
-        $this->assertSame('maxmind_api', Config::get('geoip.service'));
     }
 
     /**

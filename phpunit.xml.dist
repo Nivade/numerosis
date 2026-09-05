@@ -17,7 +17,7 @@
 >
     <php>
         <!-- turbo-ext is broken in this environment (see R7 in
-             .claude/plans/package-extraction.md) and the default 128M
+             .claude/plans/archive/package-extraction.md) and the default 128M
              exhausts under the full suite. Baked in here so a bare
              `vendor/bin/pest` no longer needs `php -d memory_limit=1G`
              re-derived every session. -->
@@ -27,6 +27,27 @@
     <testsuites>
         <testsuite name="Nvade Test Suite">
             <directory>tests</directory>
+            <!-- Its own suite below, so it can be run alone by name; it is
+                 slow relative to everything else and needs a real browser.
+                 This exclusion does NOT make Playwright optional. See
+                 tests/Browser/README.md: pest-plugin-browser's own
+                 Plugin::terminate() starts the Playwright server on every Pest
+                 run regardless of which tests ran, so installing that plugin
+                 makes npm plus a downloaded Chromium a prerequisite for the
+                 whole suite. (No double hyphens in this comment: XML forbids
+                 them, and PHPUnit reports it as an unparseable config file
+                 rather than as a comment problem.) -->
+            <exclude>tests/Browser</exclude>
+        </testsuite>
+        <testsuite name="Browser">
+            <directory>tests/Browser</directory>
+        </testsuite>
+        <!-- One repo, one suite. Each package under packages/* keeps its own
+             tests, and they are autoloaded through the root composer.json's
+             autoload-dev — a path-installed dependency's own autoload-dev is
+             never loaded, so the namespaces have to be mapped here. -->
+        <testsuite name="Packages">
+            <directory>packages/*/tests</directory>
         </testsuite>
     </testsuites>
     <logging>
@@ -35,6 +56,11 @@
     <source>
         <include>
             <directory suffix=".php">./src</directory>
+            <directory suffix=".php">./packages/account/src</directory>
+            <directory suffix=".php">./packages/ui/src</directory>
+            <directory suffix=".php">./packages/auth-ui/src</directory>
+            <directory suffix=".php">./packages/filament/src</directory>
+            <directory suffix=".php">./packages/onboarding/src</directory>
         </include>
     </source>
 </phpunit>

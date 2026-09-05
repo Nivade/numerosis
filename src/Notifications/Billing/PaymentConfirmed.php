@@ -4,30 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Notifications\Billing;
 
-use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
-use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Notifications\TenantNotification;
 
 /**
- * Sent on recovery — either an async payment (SEPA-via-iDEAL/Bancontact)
- * finally settling, or a suspended tenant's payment method being fixed.
+ * Sent on recovery: an async payment (SEPA-via-iDEAL/Bancontact) finally
+ * settling, or a suspended tenant's payment method being fixed.
  * Either way, whatever AwaitingPayment/suspended banner was showing clears.
  */
-class PaymentConfirmed extends Notification
+class PaymentConfirmed extends TenantNotification
 {
-    use Queueable;
-
-    public function __construct(public Tenant $tenant) {}
-
-    /**
-     * @return list<string>
-     */
-    public function via(object $notifiable): array
-    {
-        return ['mail'];
-    }
-
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)

@@ -6,7 +6,6 @@ namespace Nvade\Numerosis\Tests\Feature\Layout;
 
 use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -27,10 +26,16 @@ class HeaderTest extends TestCase
             ->assertStatus(200);
     }
 
+    /**
+     * The sign-in link is gated on `Route::has('login')` — that route
+     * belonged to nvade/numerosis-auth-ui's Livewire PasswordlessLogin,
+     * deleted (not moved) when that package folded into core in Phase 3 of
+     * `.claude/plans/archive/humming-nibbling-flame.md`. Phase 4 rebuilds it on
+     * Fortify — reinstate this assertion then.
+     */
     public function test_it_shows_sign_in_link_for_guests(): void
     {
         Livewire::test(self::COMPONENT)
-            ->assertSee(__('Sign In'))
             ->assertDontSee(__('Log Out'));
     }
 
@@ -45,7 +50,7 @@ class HeaderTest extends TestCase
             'email' => 'john@example.com',
         ]);
 
-        $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
+        $this->actingAsCentralUser($user);
 
         Livewire::test(self::COMPONENT)
             ->assertSee('John Doe')

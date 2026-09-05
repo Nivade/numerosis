@@ -1,0 +1,114 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Subscriptions;
+
+use App\Models\Central\PaymentPlan;
+use App\Models\Central\Subscription;
+use App\Models\Central\Tenant;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Validation\ValidationException;
+use Nvade\Numerosis\Actions\Billing\Subscriptions\SwapSubscriptionPlan;
+use Nvade\Numerosis\Contracts\Billing\Plan;
+use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
+use Nvade\Numerosis\Contracts\Subscribable;
+use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
+use Nvade\Numerosis\Tests\TestCase;
+
+class SwapSubscriptionPlanTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_it_records_the_new_plan_against_the_subscription(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $from = PaymentPlan::factory()->create(['monthly_price' => 1000]);
+        $to = PaymentPlan::factory()->create(['monthly_price' => 2000]);
+        $subscription = $this->subscriptionWithoutStripe($tenant, $from, 'price_old');
+
+        SwapSubscriptionPlan::run($tenant, $subscription, $from, $to, 'price_new');
+
+        // Re-read through the real model, not `$subscription->refresh()`: the
+        // anonymous subclass below makes Eloquent guess a foreign key off its
+        // basename, which breaks any relation reload.
+        $this->assertSame($to->id, Subscription::where('stripe_id', $subscription->stripe_id)->value('payment_plan_id'));
+    }
+
+    public function test_it_refuses_a_swap_the_plan_policy_rejects(): void
+    {
+        app()->bind(PlanPolicy::class, fn (): PlanPolicy => new class implements PlanPolicy
+        {
+            public function assertEligible(Subscribable $for, Plan $plan): void {}
+
+            public function canSwap(Subscribable $for, Plan $from, Plan $to): bool
+            {
+                return false;
+            }
+        });
+
+        $tenant = Tenant::factory()->create();
+        $from = PaymentPlan::factory()->create(['monthly_price' => 1000]);
+        $to = PaymentPlan::factory()->create(['monthly_price' => 2000]);
+        $subscription = $this->subscriptionWithoutStripe($tenant, $from, 'price_old');
+
+        $this->expectException(ValidationException::class);
+
+        SwapSubscriptionPlan::run($tenant, $subscription, $from, $to, 'price_new');
+    }
+
+    /**
+     * `SubscriptionPlanChanged` belongs to the `customer.subscription.updated`
+     * webhook, which sees this swap too. Dispatching here as well would fire
+     * it twice for one change — see
+     * `WebhookControllerLifecycleTest::test_subscription_updated_to_a_new_price_dispatches_a_plan_change`.
+     */
+    public function test_it_does_not_dispatch_the_plan_change_event_itself(): void
+    {
+        Event::fake([SubscriptionPlanChanged::class]);
+
+        $tenant = Tenant::factory()->create();
+        $from = PaymentPlan::factory()->create(['monthly_price' => 1000]);
+        $to = PaymentPlan::factory()->create(['monthly_price' => 2000]);
+        $subscription = $this->subscriptionWithoutStripe($tenant, $from, 'price_old');
+
+        SwapSubscriptionPlan::run($tenant, $subscription, $from, $to, 'price_new');
+
+        Event::assertNotDispatched(SubscriptionPlanChanged::class);
+    }
+
+    /**
+     * A real, persisted row backed by an anonymous subclass whose
+     * `swapAndInvoice()` skips the real Stripe call. `SwapSubscriptionPlan`
+     * still runs its own `update()` against this row.
+     */
+    private function subscriptionWithoutStripe(Tenant $tenant, PaymentPlan $plan, string $stripePrice): Subscription
+    {
+        /** @var array<string, mixed> $attributes */
+        $attributes = Subscription::factory()->for($tenant, 'subscribable')->raw([
+            'payment_plan_id' => $plan->id,
+            'stripe_price' => $stripePrice,
+        ]);
+
+        $subscription = new class extends Subscription
+        {
+            // Eloquent guesses the table from the class basename, which for
+            // an anonymous class is not "subscriptions".
+            protected $table = 'subscriptions';
+
+            /**
+             * @param  string|array<int, string>  $prices
+             * @param  array<string, mixed>  $options
+             */
+            public function swapAndInvoice($prices, $options = []): static
+            {
+                return $this;
+            }
+        };
+
+        $subscription->forceFill($attributes)->save();
+
+        return $subscription;
+    }
+}

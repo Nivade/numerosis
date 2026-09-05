@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\View\Components;
 use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestView;
-use Nvade\Numerosis\Enums\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Services\Billing\BillingService;
 use Nvade\Numerosis\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;

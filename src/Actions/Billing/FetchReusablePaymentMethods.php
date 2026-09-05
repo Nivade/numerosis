@@ -4,38 +4,40 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing;
 
-use Illuminate\Support\Collection;
 use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Data\Billing\ReusablePaymentMethods;
 use Nvade\Numerosis\Data\Billing\SavedPaymentMethodOption;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentMethod;
 
 /**
- * @method static FetchReusablePaymentMethodsResult run(CentralUser $billable)
+ * @method static ReusablePaymentMethods run(CentralUser $billable)
  */
 class FetchReusablePaymentMethods
 {
     use AsAction;
 
-    public function handle(CentralUser $billable): FetchReusablePaymentMethodsResult
+    public function handle(CentralUser $billable): ReusablePaymentMethods
     {
         if (! $billable->hasStripeId()) {
-            return new FetchReusablePaymentMethodsResult(collect());
+            return new ReusablePaymentMethods(collect());
         }
+
+        $stripeId = $billable->stripeIdOrFail();
 
         try {
             $stripe = Cashier::stripe();
             $paymentMethods = $stripe->customers->allPaymentMethods(
-                $billable->stripeIdOrFail(),
+                $stripeId,
                 ['type' => 'card', 'limit' => 10],
             );
-            $customer = $stripe->customers->retrieve($billable->stripeIdOrFail());
+            $customer = $stripe->customers->retrieve($stripeId);
         } catch (ApiErrorException $e) {
             report($e);
 
-            return new FetchReusablePaymentMethodsResult(collect(), fetchFailed: true);
+            return new ReusablePaymentMethods(collect(), fetchFailed: true);
         }
 
         $defaultId = $customer->invoice_settings->default_payment_method ?? null;
@@ -49,17 +51,6 @@ class FetchReusablePaymentMethods
             isDefault: $pm->id === $defaultId,
         ));
 
-        return new FetchReusablePaymentMethodsResult($options);
+        return new ReusablePaymentMethods($options);
     }
-}
-
-class FetchReusablePaymentMethodsResult
-{
-    /**
-     * @param  Collection<int, SavedPaymentMethodOption>  $options
-     */
-    public function __construct(
-        public Collection $options,
-        public bool $fetchFailed = false,
-    ) {}
 }

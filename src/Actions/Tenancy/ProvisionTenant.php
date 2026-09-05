@@ -10,20 +10,18 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
+use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Throwable;
 
 /**
  * Provisions a tenant: creates the tenant row synchronously, then runs the
- * database, ownership, subscription and finalization work as a queued chain
- * on the `provisioning` queue.
- *
- * Reach it through {@see ProvisionsTenant::queue()} rather than dispatching
- * it directly. Add your own steps via `numerosis.tenancy.provisioning.steps`;
- * every step must be idempotent, since the chain can be retried.
+ * database, ownership, subscription and finalization work as a queued chain on
+ * the `provisioning` queue. Reach it through {@see ProvisionsTenant::queue()}
+ * and never by dispatching it directly. Add your own steps via
+ * `numerosis.tenancy.provisioning.steps`; each must be idempotent on retry.
  */
 class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
 {
@@ -36,6 +34,8 @@ class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
     public int $jobUniqueFor = 300;
 
     public string $jobQueue = 'provisioning';
+
+    public function __construct(private readonly TenantDatabaseManager $databases) {}
 
     public function queue(TenantProvisionData $data): void
     {
@@ -100,16 +100,14 @@ class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
 
     /**
      * The database-creation jobs, included only when the tenant database does
-     * not exist yet — all of them or none, since gating them individually
+     * not exist yet: all of them or none, since gating them individually
      * would re-seed a database that is already populated.
      *
      * @return array<int, ShouldQueue>
      */
     private function databaseJobs(Tenant $tenant): array
     {
-        $database = $tenant->database()->getName() ?? '';
-
-        if ($database !== '' && $tenant->database()->manager()->databaseExists($database)) {
+        if ($this->databases->databaseExists($tenant)) {
             return [];
         }
 
@@ -119,6 +117,6 @@ class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
             assert($job instanceof ShouldQueue);
 
             return $job;
-        }, TenancyServiceProvider::$tenantCreatedJobs);
+        }, $this->databases->creationJobs());
     }
 }

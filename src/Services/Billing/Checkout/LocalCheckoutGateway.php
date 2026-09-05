@@ -12,8 +12,6 @@ use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Features\Ui\AccountPagesFeature;
-use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 
 /**
@@ -30,15 +28,17 @@ class LocalCheckoutGateway implements CheckoutGateway
     {
         MarkProvisionInProgress::run($registration);
 
-        $userId = GetAuthenticatedUser::run()?->id;
+        // Kept as two statements: PHPStan does not credit `?->` with
+        // handling the null when it is chained straight onto an action's
+        // `::run()`, and reports `Cannot access property $id on User|null`.
+        $user = GetAuthenticatedUser::run();
+        $userId = $user?->id;
 
         $this->provisioning->queue(new TenantProvisionData(
             registration: $registration,
             centralUserId: $userId !== null ? (string) $userId : null,
         ));
 
-        $route = Features::enabled(AccountPagesFeature::NAME) ? RouteNames::tenantsMine() : RouteNames::home();
-
-        return new RedirectCheckout(route($route));
+        return new RedirectCheckout(route(RouteNames::tenantsMine()));
     }
 }

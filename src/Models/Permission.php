@@ -62,32 +62,37 @@ class Permission extends \Spatie\Permission\Models\Permission
     }
 
     /**
-     * Actions that only make sense for one context, keyed by context.
+     * Actions that only make sense for one context, keyed by context. Empty in
+     * core, since every context it ships wants exactly
+     * {@see self::defaultActions()}. Only the tenant seeder reads it, and a
+     * subclass's override only takes effect through a seeder of your own, since
+     * both package seeders name this class literally.
      *
-     * `purchase`/`cancel modules` spend and stop the tenant's money, which no
-     * CRUD action on the `modules` rows describes — see
-     * Nvade\Numerosis\Policies\ModulePolicy. Not in defaultActions() because that list is
-     * applied to every context, and `purchase users` is not a thing.
+     * @see self::actionsFor()
+     * @see \Nvade\Numerosis\Database\Seeders\Tenant\PermissionAndRoleSeeder
+     * @see \Nvade\Numerosis\Support\Numerosis::addTenantSeeder()
      *
      * @return array<string, list<string>>
      */
     public static function additionalActions(): array
     {
-        return [
-            'modules' => ['purchase', 'cancel'],
-        ];
+        return [];
     }
 
     /**
      * Every action that exists for a context, in permission-name order.
+     *
+     * Resolves `static::additionalActions()` late, so calling this as
+     * `YourPermission::actionsFor()` reaches a subclass's override. That is
+     * the only way that seam is reachable at all.
      *
      * @return list<string>
      */
     public static function actionsFor(string $context): array
     {
         return [
-            ...self::defaultActions(),
-            ...(self::additionalActions()[$context] ?? []),
+            ...static::defaultActions(),
+            ...(static::additionalActions()[$context] ?? []),
         ];
     }
 }

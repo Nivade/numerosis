@@ -11,11 +11,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
-use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\BillingCycle;
-use Nvade\Numerosis\Enums\TenantProvisionStatus;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
+use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\TestCase;
 use RuntimeException;
 
@@ -26,17 +24,17 @@ use RuntimeException;
  */
 class TenantProvisioningSignalTest extends TestCase
 {
+    use BuildsTenantProvisionData;
     use RefreshDatabase;
 
     public function test_it_stamps_provisioned_at_and_clears_the_pending_row(): void
     {
         $user = CentralUser::factory()->create();
 
-        PendingTenantProvision::create([
+        PendingTenantProvision::factory()->provisioning()->create([
             'domain' => 'signaltenant',
             'company_name' => 'Signal Co',
             'global_id' => $user->global_id,
-            'status' => TenantProvisionStatus::Provisioning,
         ]);
 
         ProvisionTenant::run($this->provisionData($user, 'signaltenant'));
@@ -85,11 +83,10 @@ class TenantProvisioningSignalTest extends TestCase
         $user = CentralUser::factory()->create();
         $tenant = Tenant::factory()->create();
 
-        PendingTenantProvision::create([
+        PendingTenantProvision::factory()->provisioning()->create([
             'domain' => $tenant->id,
             'company_name' => 'Broken Co',
             'global_id' => $user->global_id,
-            'status' => TenantProvisionStatus::Provisioning,
         ]);
 
         (new FinalizeTenantProvisioning)->jobFailed(new RuntimeException('seeding blew up'), $tenant);
@@ -99,18 +96,5 @@ class TenantProvisioningSignalTest extends TestCase
         $this->assertSame(TenantProvisionStatus::Failed, $pending->status);
         $this->assertSame('seeding blew up', $pending->error);
         $this->assertNotNull($pending->failed_at);
-    }
-
-    private function provisionData(CentralUser $user, string $domain): TenantProvisionData
-    {
-        return new TenantProvisionData(
-            registration: TenantRegistrationData::from([
-                'company_name' => 'Test Company',
-                'domain' => $domain,
-                'billing_cycle' => BillingCycle::Monthly,
-                'global_id' => $user->global_id,
-            ]),
-            centralUserId: (string) $user->id,
-        );
     }
 }

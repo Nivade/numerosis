@@ -10,13 +10,11 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Refuses panel access to a suspended tenant — the gate that stops a tenant
- * whose trial ended and whose card failed from working indefinitely.
- *
- * Registered on the tenant Filament panel, after tenancy identification and
- * auth so `tenant()` and the guard are both resolved. A suspended tenant is
- * bounced to the ⚡suspended page — a plain route outside the panel, so this
- * middleware (scoped to the panel) never runs against it and can't loop.
+ * Refuses access to a suspended tenant, so a tenant whose trial ended and
+ * whose card failed cannot keep working indefinitely. Aliased as
+ * `tenancy.subscription` and applied to the authenticated group in
+ * `routes/tenant.php`. Never register it on the `tenant` group itself: it
+ * redirects to `tenant.suspended`, which that group would re-gate into a loop.
  */
 class EnsureTenantSubscriptionActive
 {
