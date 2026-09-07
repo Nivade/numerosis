@@ -10,7 +10,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Auth\ResendVerificationNotification;
 use Nvade\Numerosis\Actions\Auth\UpdateUserProfile;
-use Nvade\Numerosis\Concerns\RequiresAuthenticatedUser;
+use Nvade\Numerosis\Concerns\Auth\RequiresAuthenticatedUser;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 
 #[Layout('numerosis-layouts::app')]

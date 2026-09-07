@@ -477,7 +477,7 @@ class Numerosis
      * `withExceptions()`. Adds the current tenant, guard and user to every
      * report, and no-ops on a `Handler` it has already registered against. A
      * job that failed inside `$tenant->run()` needs
-     * {@see \Nvade\Numerosis\Concerns\TagsSentryScopeWithTenant} to be tagged.
+     * {@see ConcernsTenancy\TagsSentryScopeWithTenant} to be tagged.
      */
     public static function exceptions(Exceptions $exceptions): void
     {

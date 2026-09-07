@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Concerns;
+namespace Nvade\Numerosis\Concerns\Tenancy;
 
 /**
  * Identifies a model by `global_id`, the column that recognises the same

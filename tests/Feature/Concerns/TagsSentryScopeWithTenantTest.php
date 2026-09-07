@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Nvade\Numerosis\Concerns\TagsSentryScopeWithTenant;
+use Nvade\Numerosis\Concerns\Tenancy\TagsSentryScopeWithTenant;
 use Sentry\Event;
 use Sentry\State\Scope;
 

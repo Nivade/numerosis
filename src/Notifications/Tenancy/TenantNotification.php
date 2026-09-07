@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Notifications;
+namespace Nvade\Numerosis\Notifications\Tenancy;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;

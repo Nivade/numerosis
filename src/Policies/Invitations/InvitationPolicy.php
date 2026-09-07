@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Policies;
+namespace Nvade\Numerosis\Policies\Invitations;
 
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Nvade\Numerosis\Models\Central\Invitation;

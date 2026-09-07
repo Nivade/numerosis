@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Concerns;
+namespace Nvade\Numerosis\Concerns\Tenancy;
 
 use Nvade\Numerosis\Services\Tenancy\UserModelResolver;
 

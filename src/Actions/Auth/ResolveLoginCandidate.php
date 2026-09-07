@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Actions\Auth;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Nvade\Numerosis\Concerns\TenancyAwareUserModel;
+use Nvade\Numerosis\Concerns\Tenancy\TenancyAwareUserModel;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
 
 /**

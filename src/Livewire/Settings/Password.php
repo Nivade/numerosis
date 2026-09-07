@@ -9,7 +9,7 @@ use Illuminate\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Auth\UpdateUserPassword;
-use Nvade\Numerosis\Concerns\RequiresAuthenticatedUser;
+use Nvade\Numerosis\Concerns\Auth\RequiresAuthenticatedUser;
 
 #[Layout('numerosis-layouts::app')]
 class Password extends Component

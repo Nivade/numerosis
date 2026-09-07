@@ -11,7 +11,7 @@ use Illuminate\Queue\Attributes\Queue;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Support\Facades\Notification;
 use Nvade\Numerosis\Events\Invitations\InvitationCreated;
-use Nvade\Numerosis\Notifications\InvitationNotification;
+use Nvade\Numerosis\Notifications\Invitations\InvitationNotification;
 
 /**
  * Always registered and always fires: invitations sit behind no feature gate

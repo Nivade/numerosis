@@ -18,7 +18,7 @@ use Nvade\Numerosis\Numerosis;
  * `ResourceSyncing` trait from firing a `SyncedResourceSaved` back at the
  * central database.
  *
- * @see \Nvade\Numerosis\Observers\MembershipObserver
+ * @see \Nvade\Numerosis\Observers\Tenancy\MembershipObserver
  * @see \Nvade\Numerosis\Listeners\Tenancy\BackfillTenantUsers
  */
 class EnsureTenantUserExists

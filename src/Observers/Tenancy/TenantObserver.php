@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Observers;
+namespace Nvade\Numerosis\Observers\Tenancy;
 
 use Illuminate\Support\Collection;
 use Nvade\Numerosis\Actions\Cache\ForgetUserTenants;

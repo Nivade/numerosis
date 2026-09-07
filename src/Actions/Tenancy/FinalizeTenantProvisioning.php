@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Lorisleiva\Actions\Decorators\JobDecorator;
-use Nvade\Numerosis\Concerns\TagsSentryScopeWithTenant;
+use Nvade\Numerosis\Concerns\Tenancy\TagsSentryScopeWithTenant;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Throwable;

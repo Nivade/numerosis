@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Notifications\Billing;
 
 use Illuminate\Notifications\Messages\MailMessage;
-use Nvade\Numerosis\Notifications\TenantNotification;
+use Nvade\Numerosis\Notifications\Tenancy\TenantNotification;
 
 /**
  * Dunning notice sent while the tenant is still in the grace period.

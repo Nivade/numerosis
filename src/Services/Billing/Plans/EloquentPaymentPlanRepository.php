@@ -52,8 +52,8 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
     /**
      * The plan catalogue changes only when an operator edits it in an admin UI,
      * which busts this key through
-     * {@see \Nvade\Numerosis\Observers\PaymentPlanObserver} and
-     * {@see \Nvade\Numerosis\Observers\PaymentPlanFeatureObserver}, so the TTL
+     * {@see \Nvade\Numerosis\Observers\Billing\PaymentPlanObserver} and
+     * {@see \Nvade\Numerosis\Observers\Billing\PaymentPlanFeatureObserver}, so the TTL
      * is only a backstop behind that invalidation.
      *
      * @return Collection<int, Plan>

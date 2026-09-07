@@ -23,7 +23,7 @@ use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationAlreadyAccepted;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationExpired;
 use Nvade\Numerosis\Numerosis;
-use Nvade\Numerosis\Policies\InvitationPolicy;
+use Nvade\Numerosis\Policies\Invitations\InvitationPolicy;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 

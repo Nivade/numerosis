@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Observers;
+namespace Nvade\Numerosis\Observers\Auth;
 
 use Nvade\Numerosis\Actions\Auth\PromoteFirstCentralUserToAdmin;
 use Nvade\Numerosis\Enums\Tenancy\Context;

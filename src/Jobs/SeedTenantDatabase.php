@@ -11,7 +11,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Nvade\Numerosis\Actions\Tenancy\MarkProvisionFailed;
-use Nvade\Numerosis\Concerns\TagsSentryScopeWithTenant;
+use Nvade\Numerosis\Concerns\Tenancy\TagsSentryScopeWithTenant;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
 use RuntimeException;

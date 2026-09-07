@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Concerns;
+namespace Nvade\Numerosis\Concerns\Auth;
 
 use Illuminate\Auth\AuthenticationException;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;

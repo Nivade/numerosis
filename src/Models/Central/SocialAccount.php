@@ -17,7 +17,7 @@ use Illuminate\Support\Carbon;
 use Nvade\Numerosis\Database\Factories\Central\SocialAccountFactory;
 use Nvade\Numerosis\Enums\Auth\SocialProvider;
 use Nvade\Numerosis\Numerosis;
-use Nvade\Numerosis\Policies\SocialAccountPolicy;
+use Nvade\Numerosis\Policies\Auth\SocialAccountPolicy;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 

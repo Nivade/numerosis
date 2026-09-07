@@ -15,7 +15,7 @@ use Nvade\Numerosis\Numerosis;
  * tenant is provisioned, since before that its database may not exist.
  * `AddTenantOwner` and `Listeners\Tenancy\BackfillTenantUsers` cover that gap.
  *
- * @see \Nvade\Numerosis\Observers\MembershipObserver::created()
+ * @see \Nvade\Numerosis\Observers\Tenancy\MembershipObserver::created()
  */
 class SyncTenantUserForMembership
 {

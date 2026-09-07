@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Notifications\Tenancy;
 
 use Illuminate\Notifications\Messages\MailMessage;
-use Nvade\Numerosis\Notifications\TenantNotification;
 
 /**
  * Sent when a suspended tenant is un-suspended. Restoration is not

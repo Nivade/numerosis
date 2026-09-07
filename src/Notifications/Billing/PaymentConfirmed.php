@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Notifications\Billing;
 
 use Illuminate\Notifications\Messages\MailMessage;
-use Nvade\Numerosis\Notifications\TenantNotification;
+use Nvade\Numerosis\Notifications\Tenancy\TenantNotification;
 
 /**
  * Sent on recovery: an async payment (SEPA-via-iDEAL/Bancontact) finally

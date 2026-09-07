@@ -16,7 +16,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Request;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
-use Nvade\Numerosis\Observers\DomainObserver;
+use Nvade\Numerosis\Observers\Tenancy\DomainObserver;
 use Stancl\Tenancy\Database\Concerns\InvalidatesTenantsResolverCache;
 
 /**

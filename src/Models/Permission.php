@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use Nvade\Numerosis\Policies\PermissionPolicy;
+use Nvade\Numerosis\Policies\Auth\PermissionPolicy;
 
 /**
  * @property int $id

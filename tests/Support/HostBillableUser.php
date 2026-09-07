@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Nvade\Numerosis\Concerns\Billing\Billable;
-use Nvade\Numerosis\Concerns\HasGlobalIdentity;
+use Nvade\Numerosis\Concerns\Tenancy\HasGlobalIdentity;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
 use Nvade\Numerosis\Models\Central\Membership;

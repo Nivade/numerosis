@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Observers;
+namespace Nvade\Numerosis\Observers\Billing;
 
 use Nvade\Numerosis\Models\Central\PaymentPlanFeature;
 use Nvade\Numerosis\Observers\Concerns\ForgetsCacheKey;

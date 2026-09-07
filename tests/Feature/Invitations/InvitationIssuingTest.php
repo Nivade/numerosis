@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Notification;
 use Nvade\Numerosis\Models\Central\Invitation;
-use Nvade\Numerosis\Notifications\InvitationNotification;
+use Nvade\Numerosis\Notifications\Invitations\InvitationNotification;
 use Nvade\Numerosis\Tests\TestCase;
 
 class InvitationIssuingTest extends TestCase

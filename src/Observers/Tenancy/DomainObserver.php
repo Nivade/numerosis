@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Observers;
+namespace Nvade\Numerosis\Observers\Tenancy;
 
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Observers\Concerns\ForgetsCacheKey;

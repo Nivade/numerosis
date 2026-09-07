@@ -18,15 +18,15 @@ use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Numerosis;
-use Nvade\Numerosis\Policies\InvitationPolicy;
-use Nvade\Numerosis\Policies\PaymentPlanPolicy;
-use Nvade\Numerosis\Policies\PermissionPolicy;
-use Nvade\Numerosis\Policies\PlanFeaturePolicy;
-use Nvade\Numerosis\Policies\RolePolicy;
-use Nvade\Numerosis\Policies\SocialAccountPolicy;
-use Nvade\Numerosis\Policies\SubscriptionPolicy;
-use Nvade\Numerosis\Policies\TenantPolicy;
-use Nvade\Numerosis\Policies\UserPolicy;
+use Nvade\Numerosis\Policies\Auth\PermissionPolicy;
+use Nvade\Numerosis\Policies\Auth\RolePolicy;
+use Nvade\Numerosis\Policies\Auth\SocialAccountPolicy;
+use Nvade\Numerosis\Policies\Auth\UserPolicy;
+use Nvade\Numerosis\Policies\Billing\PaymentPlanPolicy;
+use Nvade\Numerosis\Policies\Billing\PlanFeaturePolicy;
+use Nvade\Numerosis\Policies\Billing\SubscriptionPolicy;
+use Nvade\Numerosis\Policies\Invitations\InvitationPolicy;
+use Nvade\Numerosis\Policies\Tenancy\TenantPolicy;
 use Nvade\Numerosis\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -161,7 +161,7 @@ class CentralModelPolicyResolutionTest extends TestCase
         // Calling the seeder directly sidesteps the console layer.
         (new RoleAndPermissionSeeder)->run();
 
-        // A decoy user first: Nvade\Numerosis\Observers\CentralUserObserver::created()
+        // A decoy user first: Nvade\Numerosis\Observers\Auth\CentralUserObserver::created()
         // runs PromoteFirstCentralUserToAdmin on every new CentralUser, which
         // auto-assigns the (now fully-permissioned) 'admin' role to whichever
         // user is the *only* row in the central `users` table — exactly the
