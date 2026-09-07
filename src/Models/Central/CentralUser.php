@@ -19,6 +19,7 @@ use Laravel\Cashier\Subscription;
 use Nvade\Numerosis\Concerns\Billing\Billable;
 use Nvade\Numerosis\Concerns\HasGlobalIdentity;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
+use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
 use Nvade\Numerosis\Models\Tenant as Workspace;
@@ -71,7 +72,7 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
     'password',
     'remember_token',
 ])]
-class CentralUser extends User implements CentralUserModel, HasTenants, Subscribable
+class CentralUser extends User implements BillableUser, CentralUserModel, HasTenants, Subscribable
 {
     use Billable;
     use CentralConnection;

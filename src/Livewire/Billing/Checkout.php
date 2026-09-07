@@ -12,6 +12,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Billing\Checkout\AssertPendingReservationIsFresh;
+use Nvade\Numerosis\Actions\Billing\Checkout\AssertReservationIsOwned;
 use Nvade\Numerosis\Actions\Billing\Checkout\CreateInlineSubscription;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveCheckoutRegion;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveSavedPaymentMethod;
@@ -23,10 +24,11 @@ use Nvade\Numerosis\Actions\Billing\FetchSavedBillingDetails;
 use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Concerns\Billing\ConfirmsPayments;
+use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
+use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Support\Numerosis;
@@ -105,9 +107,9 @@ class Checkout extends Component
         $this->paymentMethodOrder = $this->resolvePaymentMethodOrder($this->detectedCountry);
 
         $billable = GetAuthenticatedUser::run();
-        $this->customerEmail = $billable instanceof CentralUser ? $billable->email : null;
+        $this->customerEmail = $billable instanceof BillableUser ? $billable->email : null;
 
-        if ($billable instanceof CentralUser && $billable->hasStripeId()) {
+        if ($billable instanceof BillableUser && $billable->hasStripeId()) {
             $saved = FetchSavedBillingDetails::run($billable);
 
             if ($saved->fetchFailed) {
@@ -182,36 +184,42 @@ class Checkout extends Component
             return;
         }
 
-        $billable = GetAuthenticatedUser::run();
+        $billable = $this->billableFor($resolved->pending);
 
-        if ($billable instanceof CentralUser) {
-            try {
-                SyncBillingAddress::run($billable, $resolved->paymentMethod, $this->vatNumber);
-            } catch (ShowsMessageToUser $e) {
-                $this->paymentError = $e->getMessage();
-
-                return;
-            }
+        if ($billable === null) {
+            return;
         }
 
-        $this->createSubscriptionAndSettle($resolved->pending, $resolved->paymentMethodId());
+        try {
+            SyncBillingAddress::run($billable, $resolved->paymentMethod, $this->vatNumber);
+        } catch (ShowsMessageToUser $e) {
+            $this->paymentError = $e->getMessage();
+
+            return;
+        }
+
+        $this->createSubscriptionAndSettle($resolved->pending, $billable, $resolved->paymentMethodId());
     }
 
     public function subscribeWithSavedPaymentMethod(string $paymentMethodId): void
     {
         $this->paymentError = null;
 
-        $billable = GetAuthenticatedUser::run();
+        $pending = $this->pendingReservation();
 
-        if (! $billable instanceof CentralUser || ! $billable->hasStripeId()) {
+        if ($pending === null) {
             $this->paymentError = __('numerosis::billing.checkout.session_expired');
 
             return;
         }
 
-        $pending = $this->pendingReservation();
+        $billable = $this->billableFor($pending);
 
-        if (! $pending || $pending->global_id !== $billable->global_id) {
+        if ($billable === null) {
+            return;
+        }
+
+        if (! $billable->hasStripeId()) {
             $this->paymentError = __('numerosis::billing.checkout.session_expired');
 
             return;
@@ -233,7 +241,7 @@ class Checkout extends Component
             return;
         }
 
-        $this->createSubscriptionAndSettle($pending, $paymentMethod->id, $billable);
+        $this->createSubscriptionAndSettle($pending, $billable, $paymentMethod->id);
     }
 
     /**
@@ -249,8 +257,8 @@ class Checkout extends Component
 
     private function createSubscriptionAndSettle(
         PendingTenantProvision $pending,
+        BillableUser $billable,
         string $paymentMethodId,
-        ?CentralUser $billable = null,
     ): void {
         try {
             $subscription = CreateInlineSubscription::run($pending, $paymentMethodId, $billable);
@@ -264,7 +272,7 @@ class Checkout extends Component
             return;
         }
 
-        $this->settle($subscription);
+        $this->settle($subscription, $pending, $billable);
     }
 
     /**
@@ -296,19 +304,52 @@ class Checkout extends Component
     private function settleFromPendingSubscription(): void
     {
         $pending = $this->pendingReservation();
-        $billable = GetAuthenticatedUser::run();
 
-        $subscription = $pending?->stripe_subscription_id !== null && $billable instanceof CentralUser
-            ? $billable->subscriptions()->where('stripe_id', $pending->stripe_subscription_id)->first()
-            : null;
-
-        if (! $subscription || ! $this->hasSettled($subscription)) {
+        if ($pending === null) {
             $this->paymentError = __('numerosis::billing.checkout.confirmation_failed');
 
             return;
         }
 
-        $this->settle($subscription);
+        $billable = $this->billableFor($pending);
+
+        if ($billable === null) {
+            return;
+        }
+
+        $subscription = $pending->stripe_subscription_id !== null
+            ? $billable->subscriptions()->where('stripe_id', $pending->stripe_subscription_id)->first()
+            : null;
+
+        if (! $subscription instanceof Subscription || ! $this->hasSettled($subscription)) {
+            $this->paymentError = __('numerosis::billing.checkout.confirmation_failed');
+
+            return;
+        }
+
+        $this->settle($subscription, $pending, $billable);
+    }
+
+    /**
+     * The billable paying for a reservation, or null with `$paymentError`
+     * already set.
+     *
+     * Ownership is re-checked here as well as `$pendingDomain` being
+     * `#[Locked]`: the lock stops the client changing the value, but only this
+     * proves the reservation belongs to whoever is paying. It goes through
+     * {@see AssertReservationIsOwned} — the same rule `ResolveSetupIntent` and
+     * `ResumeCheckout` apply — so a new entry point on this component cannot
+     * reach a stranger's reservation by re-deciding it.
+     */
+    private function billableFor(PendingTenantProvision $pending): ?BillableUser
+    {
+        try {
+            return AssertReservationIsOwned::run($pending);
+        } catch (CheckoutSessionExpired $e) {
+            $this->paymentError = $e->getMessage();
+
+            return null;
+        }
     }
 
     /** The reservation this component mounted for, by its `#[Locked]` domain. */
@@ -322,21 +363,9 @@ class Checkout extends Component
         return $pending;
     }
 
-    private function settle(Subscription $subscription): void
+    private function settle(Subscription $subscription, PendingTenantProvision $pending, BillableUser $billable): void
     {
-        $pending = $this->pendingReservation();
-        $billable = GetAuthenticatedUser::run();
-
-        // Ownership is re-checked here as well as being #[Locked]: the lock
-        // stops the client changing the value, but only this check proves the
-        // reservation belongs to whoever is paying.
-        if (! $pending || ! $billable instanceof CentralUser || $pending->global_id !== $billable->global_id) {
-            $this->paymentError = __('numerosis::billing.checkout.session_expired');
-
-            return;
-        }
-
-        SettleCheckout::run($pending, $subscription, $billable->stripe_id, (string) $billable->id);
+        SettleCheckout::run($pending, $subscription, $billable->stripeId(), (string) $billable->getKey());
 
         // The wizard's session-persisted step state is only useful while a
         // registration is in progress. A no-op when Checkout was reached

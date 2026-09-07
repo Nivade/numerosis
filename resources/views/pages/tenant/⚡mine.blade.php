@@ -223,7 +223,7 @@ class extends Component
                             // "ready", so the subscription itself is the only signal
                             // that survives.
                             $subscription = $tenant->subscriptions->first();
-                            $awaitingPayment = $subscription && ! in_array($subscription->stripe_status, ['active', 'trialing'], true);
+                            $awaitingPayment = $subscription && ! $subscription->isSettled();
                         @endphp
                         <x-numerosis::tenant.list-item
                             :initials="$tenant->initials ?: 'T'"

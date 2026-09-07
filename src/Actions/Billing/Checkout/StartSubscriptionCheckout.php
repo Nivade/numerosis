@@ -8,16 +8,17 @@ use Illuminate\Contracts\Support\Responsable;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
+use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
 use Nvade\Numerosis\Contracts\Billing\UnpaidTenantQuota;
 use Nvade\Numerosis\Contracts\Subscribable;
+use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Events\Billing\CheckoutStarted;
 use Nvade\Numerosis\Http\Requests\Billing\StartCheckoutRequest;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Services\Billing\Checkout\CheckoutIntentResponse;
 
 class StartSubscriptionCheckout
@@ -42,7 +43,7 @@ class StartSubscriptionCheckout
             $this->planPolicy->assertEligible($billable, $plan);
         }
 
-        if ($billable instanceof CentralUser) {
+        if ($billable instanceof BillableUser && $billable instanceof HasTenants) {
             $this->unpaidTenantQuota->assertAvailable($billable);
         }
 

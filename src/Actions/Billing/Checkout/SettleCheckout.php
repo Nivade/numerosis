@@ -33,7 +33,7 @@ class SettleCheckout
         ?string $stripeCustomerId,
         ?string $centralUserId,
     ): void {
-        $settled = in_array($subscription->stripe_status, ['active', 'trialing'], true);
+        $settled = $subscription->isSettled();
         $stripeSubscriptionId = $subscription->stripe_id;
 
         $pending->update([

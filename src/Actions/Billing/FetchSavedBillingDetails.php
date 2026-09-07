@@ -6,18 +6,18 @@ namespace Nvade\Numerosis\Actions\Billing;
 
 use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Data\Billing\SavedBillingDetails;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Stripe\Exception\ApiErrorException;
 
 /**
- * @method static SavedBillingDetails run(CentralUser $billable)
+ * @method static SavedBillingDetails run(BillableUser $billable)
  */
 class FetchSavedBillingDetails
 {
     use AsAction;
 
-    public function handle(CentralUser $billable): SavedBillingDetails
+    public function handle(BillableUser $billable): SavedBillingDetails
     {
         if (! $billable->hasStripeId()) {
             return new SavedBillingDetails;

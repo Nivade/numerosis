@@ -9,11 +9,11 @@ use Laravel\Cashier\Exceptions\IncompletePayment;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
+use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Http\Requests\Billing\CheckoutReturnRequest;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 use Stripe\Exception\ApiErrorException;
@@ -43,7 +43,7 @@ class CompleteRedirectCheckout
 
         $billable = $this->billables->resolve();
 
-        if ($billable instanceof CentralUser) {
+        if ($billable instanceof BillableUser) {
             try {
                 SyncBillingAddress::run($billable, $resolved->paymentMethod);
             } catch (ShowsMessageToUser $e) {
@@ -51,7 +51,7 @@ class CompleteRedirectCheckout
             }
         }
 
-        $stripeCustomerId = $billable instanceof CentralUser ? $billable->stripe_id : null;
+        $stripeCustomerId = $billable instanceof BillableUser ? $billable->stripeId() : null;
 
         if ($resolved->paymentMethod->customer !== $stripeCustomerId) {
             return $this->tenantsMine('info', 'numerosis::billing.checkout.confirming_payment');
@@ -61,7 +61,7 @@ class CompleteRedirectCheckout
             FinalizeCheckoutSubscription::run(
                 $resolved->pending,
                 $resolved->paymentMethod,
-                $billable instanceof CentralUser ? $billable : null,
+                $billable instanceof BillableUser ? $billable : null,
             );
         } catch (IncompletePayment) {
             return $this->tenantsMine('error', 'numerosis::billing.checkout.requires_verification');

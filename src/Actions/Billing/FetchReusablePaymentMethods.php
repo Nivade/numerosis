@@ -6,20 +6,20 @@ namespace Nvade\Numerosis\Actions\Billing;
 
 use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Data\Billing\ReusablePaymentMethods;
 use Nvade\Numerosis\Data\Billing\SavedPaymentMethodOption;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentMethod;
 
 /**
- * @method static ReusablePaymentMethods run(CentralUser $billable)
+ * @method static ReusablePaymentMethods run(BillableUser $billable)
  */
 class FetchReusablePaymentMethods
 {
     use AsAction;
 
-    public function handle(CentralUser $billable): ReusablePaymentMethods
+    public function handle(BillableUser $billable): ReusablePaymentMethods
     {
         if (! $billable->hasStripeId()) {
             return new ReusablePaymentMethods(collect());

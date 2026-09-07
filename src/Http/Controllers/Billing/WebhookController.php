@@ -264,9 +264,9 @@ class WebhookController extends CashierWebhookController
         $tenant = FindTenantByStripeCustomer::run(is_string($customerId) ? $customerId : null);
 
         if ($tenant !== null) {
-            match ($status) {
-                'past_due', 'unpaid', 'incomplete_expired' => SuspendTenant::run($tenant),
-                'active', 'trialing' => RestoreTenant::run($tenant),
+            match (true) {
+                in_array($status, ['past_due', 'unpaid', 'incomplete_expired'], true) => SuspendTenant::run($tenant),
+                Numerosis::model(CentralSubscription::class)::isSettledStatus(is_string($status) ? $status : null) => RestoreTenant::run($tenant),
                 default => null,
             };
         }

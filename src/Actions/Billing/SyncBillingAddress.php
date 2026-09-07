@@ -6,8 +6,8 @@ namespace Nvade\Numerosis\Actions\Billing;
 
 use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Support\Billing\TaxIdType;
 use Stripe\PaymentMethod;
 
@@ -19,13 +19,13 @@ use Stripe\PaymentMethod;
  * stored locally. A Stripe outage surfaces to the customer as checkout copy
  * in place of a 500.
  *
- * @method static void run(CentralUser $billable, PaymentMethod $paymentMethod, ?string $vatNumber = null)
+ * @method static void run(BillableUser $billable, PaymentMethod $paymentMethod, ?string $vatNumber = null)
  */
 class SyncBillingAddress
 {
     use AsAction;
 
-    public function handle(CentralUser $billable, PaymentMethod $paymentMethod, ?string $vatNumber = null): void
+    public function handle(BillableUser $billable, PaymentMethod $paymentMethod, ?string $vatNumber = null): void
     {
         $address = $paymentMethod->billing_details->address ?? null;
         $country = $address?->country;

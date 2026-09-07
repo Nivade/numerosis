@@ -51,7 +51,7 @@ class ResolveSetupIntent
 
         $customerId = is_string($setupIntent->customer) ? $setupIntent->customer : $setupIntent->customer?->id;
 
-        if (! $billable->hasStripeId() || $customerId !== $billable->stripe_id) {
+        if (! $billable->hasStripeId() || $customerId !== $billable->stripeId()) {
             throw new CheckoutSessionExpired(__('numerosis::billing.checkout.foreign_session'));
         }
 

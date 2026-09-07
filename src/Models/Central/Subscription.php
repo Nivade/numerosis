@@ -53,8 +53,29 @@ class Subscription extends \Laravel\Cashier\Subscription
         ];
     }
 
+    /**
+     * The one allowlist of Stripe statuses that count as paid for. Every guard
+     * on payment state reads it, because a denylist provisions an unpaid
+     * tenant for each state nobody thought to exclude. Cashier's `valid()`
+     * answers a different question — it counts a cancelled subscription still
+     * inside its grace period.
+     *
+     * @var list<string>
+     */
+    public const SETTLED_STATUSES = ['active', 'trialing'];
+
     /** @var list<string> */
     protected $with = ['items', 'subscribable'];
+
+    public static function isSettledStatus(?string $status): bool
+    {
+        return in_array($status, self::SETTLED_STATUSES, true);
+    }
+
+    public function isSettled(): bool
+    {
+        return self::isSettledStatus($this->stripe_status);
+    }
 
     /**
      * @return BelongsTo<PaymentPlan, $this>

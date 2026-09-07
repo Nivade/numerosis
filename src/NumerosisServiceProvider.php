@@ -96,6 +96,7 @@ use Nvade\Numerosis\Services\Exceptions\TenantAwareExceptionContext;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Support\Assets;
+use Nvade\Numerosis\Support\ConfiguredSteps;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
@@ -225,6 +226,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         $this->registerFactoryResolvers();
 
+        $this->assertConfiguredStepsAreWellShaped();
+
         $this->bootstrapFeatures();
 
         $this->registerPolicies();
@@ -259,6 +262,25 @@ class NumerosisServiceProvider extends PackageServiceProvider
     {
         Factory::guessFactoryNamesUsing(Numerosis::factoryNameFor(...));
         Factory::guessModelNamesUsing(fn (Factory $factory): string => Numerosis::modelNameFor($factory::class));
+    }
+
+    /**
+     * The provisioning list's shape, on console boots only.
+     *
+     * The registration list is checked the same way from
+     * {@see \Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::bootstrap()},
+     * which is where its default is filled in.
+     */
+    protected function assertConfiguredStepsAreWellShaped(): void
+    {
+        if (! $this->app->runningInConsole()) {
+            return;
+        }
+
+        /** @var list<class-string> $steps */
+        $steps = Config::array('numerosis.tenancy.provisioning.steps', []);
+
+        ConfiguredSteps::assertTheFirstProvisioningStepCreatesTenant($steps);
     }
 
     /**

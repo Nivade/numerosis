@@ -6,12 +6,11 @@ namespace Nvade\Numerosis\Features\Tenancy;
 
 use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
-use LogicException;
 use Nvade\Numerosis\Contracts\NamedFeature;
-use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
 use Nvade\Numerosis\Features\Concerns\IsNamedFeature;
 use Nvade\Numerosis\Livewire\Tenant\Registration as WizardRegistration;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps as Wizard;
+use Nvade\Numerosis\Support\ConfiguredSteps;
 
 /**
  * The self-serve tenant registration wizard and its route.
@@ -70,7 +69,9 @@ class RegistrationWizardFeature implements NamedFeature
         /** @var list<class-string> $steps */
         $steps = Config::array('numerosis.tenancy.registration.steps');
 
-        $this->assertAStepProvidesTenantIdentity($steps);
+        if (app()->runningInConsole()) {
+            ConfiguredSteps::assertARegistrationStepProvidesTenantIdentity($steps);
+        }
 
         Livewire::addComponent(
             name: 'tenant-registration',
@@ -91,28 +92,5 @@ class RegistrationWizardFeature implements NamedFeature
                 class: $step,
             );
         }
-    }
-
-    /**
-     * A step list with no identity source still renders a working wizard, so
-     * the missing identifier or display name only surfaces once
-     * `ProvisionTenant`'s queued chain tries to build the tenant, far from
-     * whoever misconfigured this key. Fail here instead.
-     *
-     * @param  list<class-string>  $steps
-     */
-    private function assertAStepProvidesTenantIdentity(array $steps): void
-    {
-        foreach ($steps as $step) {
-            if (is_subclass_of($step, ProvidesTenantIdentity::class)) {
-                return;
-            }
-        }
-
-        throw new LogicException(
-            'numerosis.tenancy.registration.steps must include at least one step implementing '
-            .ProvidesTenantIdentity::class.', or the provisioning pipeline has no source for '
-            .'the tenant\'s identifier or display name.'
-        );
     }
 }

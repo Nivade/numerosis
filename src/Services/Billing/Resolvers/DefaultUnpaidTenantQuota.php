@@ -27,6 +27,10 @@ class DefaultUnpaidTenantQuota implements UnpaidTenantQuota
             ->with('subscriptions')
             ->get();
 
+        // Deliberately narrower than Subscription::isSettled(): a trial counts
+        // as unpaid here, because it collects nothing upfront and the quota
+        // exists to stop free tenant databases. Settlement asks whether to
+        // provision; this asks whether anything has been paid for.
         $unpaid = $owned
             ->filter(fn (Tenant $tenant): bool => $tenant->subscriptions->first()?->stripe_status !== 'active')
             ->count();

@@ -96,6 +96,44 @@ class CheckoutTest extends TestCase
     }
 
     /**
+     * Every public entry point on the component reaches a reservation, and
+     * each used to re-decide ownership for itself with a hand-rolled
+     * `global_id` comparison. They all go through `AssertReservationIsOwned`
+     * now, so this pins them together: a new entry point that skips it is the
+     * failure this catches.
+     */
+    public function test_every_entry_point_refuses_a_foreign_reservation(): void
+    {
+        $this->fakeStripe();
+        $victim = CentralUser::factory()->create();
+        $attacker = CentralUser::factory()->create();
+        $this->actingAs($attacker);
+
+        $setupIntent = $this->openSetupIntentFor($victim);
+
+        $this->reserve('not-yours-entry-points', $victim, $setupIntent->id);
+
+        foreach (['subscribeWithSavedPaymentMethod', 'confirmed'] as $method) {
+            $component = Livewire::test(Checkout::class, ['domain' => 'not-yours-entry-points']);
+
+            $method === 'confirmed'
+                ? $component->call('confirmed')
+                : $component->call($method, 'pm_card_visa');
+
+            $component
+                ->assertSet('paymentError', __('numerosis::billing.checkout.foreign_session'))
+                ->assertNoRedirect();
+        }
+
+        Livewire::test(Checkout::class, ['domain' => 'not-yours-entry-points'])
+            ->call('subscribe', $setupIntent->id)
+            ->assertSet('paymentError', __('numerosis::billing.checkout.foreign_session'))
+            ->assertNoRedirect();
+
+        $this->assertNull(PendingTenantProvision::find('not-yours-entry-points')?->stripe_subscription_id);
+    }
+
+    /**
      * confirmed() is a public Livewire method reachable with no 3DS ever
      * having happened. Before this fix it settled via
      * Billable::latestSubscription(), which has no link to $pendingDomain —

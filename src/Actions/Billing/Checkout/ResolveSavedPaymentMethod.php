@@ -6,13 +6,13 @@ namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
 use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Exceptions\Billing\SavedPaymentMethodUnavailable;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentMethod;
 
 /**
- * @method static PaymentMethod run(CentralUser $billable, string $paymentMethodId)
+ * @method static PaymentMethod run(BillableUser $billable, string $paymentMethodId)
  */
 class ResolveSavedPaymentMethod
 {
@@ -20,7 +20,7 @@ class ResolveSavedPaymentMethod
 
     private const array REUSABLE_TYPES = ['card'];
 
-    public function handle(CentralUser $billable, string $paymentMethodId): PaymentMethod
+    public function handle(BillableUser $billable, string $paymentMethodId): PaymentMethod
     {
         try {
             $paymentMethod = Cashier::stripe()->paymentMethods->retrieve($paymentMethodId);
@@ -33,7 +33,7 @@ class ResolveSavedPaymentMethod
         $customerId = is_string($paymentMethod->customer) ? $paymentMethod->customer : $paymentMethod->customer?->id;
 
         $isOwnedAndReusable = $billable->hasStripeId()
-            && $customerId === $billable->stripe_id
+            && $customerId === $billable->stripeId()
             && in_array($paymentMethod->type, self::REUSABLE_TYPES, true);
 
         throw_unless($isOwnedAndReusable, SavedPaymentMethodUnavailable::class, __('numerosis::billing.checkout.saved_payment_method_unavailable'));

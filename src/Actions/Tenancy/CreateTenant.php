@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Illuminate\Support\Facades\Cache;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Tenancy\CreatesTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
@@ -20,7 +21,7 @@ use RuntimeException;
  *
  * @method static Tenant run(TenantRegistrationData $registration)
  */
-class CreateTenant
+class CreateTenant implements CreatesTenant
 {
     use AsAction;
 

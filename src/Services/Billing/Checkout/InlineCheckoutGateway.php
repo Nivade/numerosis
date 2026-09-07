@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Services\Billing\Checkout;
 
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
+use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
@@ -15,7 +16,6 @@ use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\Billing\BillingCycleRequired;
 use Nvade\Numerosis\Exceptions\Billing\StripePriceNotConfigured;
 use Nvade\Numerosis\Exceptions\Billing\UnsupportedBillable;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Support\Numerosis;
 
@@ -40,7 +40,7 @@ class InlineCheckoutGateway implements CheckoutGateway
 
         $billable = $this->billables->resolve();
 
-        throw_unless($billable instanceof CentralUser, UnsupportedBillable::class, 'Billable must be a CentralUser to start an inline checkout.');
+        throw_unless($billable instanceof BillableUser, UnsupportedBillable::class, 'Billable must be a central user to start an inline checkout.');
 
         $billable->createOrGetStripeCustomer();
 

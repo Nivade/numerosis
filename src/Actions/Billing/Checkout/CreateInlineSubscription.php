@@ -7,12 +7,12 @@ namespace Nvade\Numerosis\Actions\Billing\Checkout;
 use Laravel\Cashier\Exceptions\IncompletePayment;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
+use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\TrialResolver;
 use Nvade\Numerosis\Exceptions\Billing\BillingCycleRequired;
 use Nvade\Numerosis\Exceptions\Billing\StripePriceNotConfigured;
 use Nvade\Numerosis\Exceptions\Billing\UnsupportedBillable;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Subscription;
 use RuntimeException;
@@ -28,7 +28,7 @@ use Stripe\Exception\ApiErrorException;
  * @throws IncompletePayment
  * @throws ApiErrorException the Stripe call underneath `newSubscription()->create()`
  *
- * @method static Subscription run(PendingTenantProvision $pending, string $paymentMethodId, ?CentralUser $billable = null)
+ * @method static Subscription run(PendingTenantProvision $pending, string $paymentMethodId, ?BillableUser $billable = null)
  */
 class CreateInlineSubscription
 {
@@ -40,7 +40,7 @@ class CreateInlineSubscription
         private readonly TrialResolver $trials,
     ) {}
 
-    public function handle(PendingTenantProvision $pending, string $paymentMethodId, ?CentralUser $billable = null): Subscription
+    public function handle(PendingTenantProvision $pending, string $paymentMethodId, ?BillableUser $billable = null): Subscription
     {
         $plan = $this->plans->findBySlugOrFail((string) $pending->payment_plan);
 
@@ -56,7 +56,7 @@ class CreateInlineSubscription
 
         $billable ??= $this->billables->resolve();
 
-        throw_unless($billable instanceof CentralUser, UnsupportedBillable::class, 'Billable must be a CentralUser to create an inline subscription.');
+        throw_unless($billable instanceof BillableUser, UnsupportedBillable::class, 'Billable must be a central user to create an inline subscription.');
 
         $stripeSubscription = $billable->newSubscription('default', $priceId)
             ->withMetadata(['domain' => $pending->domain]);

@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 
 /**
- * @method static void run(PendingTenantProvision $pending, CentralUser $billable)
+ * @method static void run(PendingTenantProvision $pending, BillableUser $billable)
  */
 class AssertPendingReservationIsFresh
 {
     use AsAction;
 
-    public function handle(PendingTenantProvision $pending, CentralUser $billable): void
+    public function handle(PendingTenantProvision $pending, BillableUser $billable): void
     {
         if ($pending->stripe_subscription_id === null) {
             return;

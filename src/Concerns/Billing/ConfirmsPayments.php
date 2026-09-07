@@ -33,9 +33,7 @@ trait ConfirmsPayments
      * Called once the challenge is resolved in the browser.
      *
      * Asks Stripe, since the local subscription row is still `incomplete`
-     * until the webhook lands. Judge the result by an allowlist of settled
-     * statuses: a denylist provisions an unpaid tenant for every state nobody
-     * thought to exclude.
+     * until the webhook lands.
      */
     protected function hasSettled(Subscription $subscription): bool
     {
@@ -47,6 +45,6 @@ trait ConfirmsPayments
             return false;
         }
 
-        return in_array($subscription->stripe_status, ['active', 'trialing'], true);
+        return $subscription->isSettled();
     }
 }
