@@ -27,9 +27,16 @@ parameters:
     # so every such file reports undefined variables and an unused `new`.
     # Only `packages/*` needs saying out loud — `paths` above names core's PHP
     # directories individually and never reaches its views.
+    #
+    # `workbench/storage` is a symlink into testbench-core's own storage, so
+    # `composer serve` and the browser suite fill it with compiled Blade that
+    # `paths: workbench` would otherwise analyse — errors in generated files,
+    # against whatever the source looked like when they were compiled.
     excludePaths:
         analyse:
             - packages/*/resources/views/*
+            - workbench/storage/*
+            - vendor/orchestra/testbench-core/laravel/storage/*
     # `larastan.noEnvCallsOutsideOfConfig` defaults to the *application's*
     # config_path(), which under Testbench is the skeleton's, never this
     # package's — so every `env()` in config/numerosis.php reported, and 23
