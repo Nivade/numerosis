@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Concerns;
 
 use Illuminate\Cache\CacheManager;
+use Nvade\Numerosis\Support\Cache\GlobalCache;
 
 /**
  * `globalCache` is bound, not singletoned, so under CACHE_STORE=array every
@@ -19,5 +20,7 @@ trait PinsGlobalCache
     protected function pinGlobalCache(): void
     {
         app()->singleton('globalCache', fn ($app) => new CacheManager($app));
+
+        GlobalCache::flush();
     }
 }

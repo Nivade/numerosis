@@ -21,6 +21,7 @@ use Nvade\Numerosis\Actions\Billing\Checkout\ResumeCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\SettleCheckout;
 use Nvade\Numerosis\Actions\Billing\FetchReusablePaymentMethods;
 use Nvade\Numerosis\Actions\Billing\FetchSavedBillingDetails;
+use Nvade\Numerosis\Actions\Billing\FetchStripeCustomer;
 use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Concerns\Billing\ConfirmsPayments;
@@ -110,7 +111,21 @@ class Checkout extends Component
         $this->customerEmail = $billable instanceof BillableUser ? $billable->email : null;
 
         if ($billable instanceof BillableUser && $billable->hasStripeId()) {
-            $saved = FetchSavedBillingDetails::run($billable);
+            // One retrieve for both readers below. They each did their own,
+            // serially, which cost the page a second Stripe round trip for
+            // the same customer.
+            $customer = FetchStripeCustomer::run($billable);
+
+            if ($customer === null) {
+                $this->savedBillingFetchFailed = true;
+                $this->savedPaymentMethodsFetchFailed = true;
+
+                $this->resume($domain);
+
+                return;
+            }
+
+            $saved = FetchSavedBillingDetails::run($billable, $customer);
 
             if ($saved->fetchFailed) {
                 $this->savedBillingFetchFailed = true;
@@ -130,11 +145,20 @@ class Checkout extends Component
 
             $this->vatNumber = $saved->vatNumber;
 
-            $result = FetchReusablePaymentMethods::run($billable);
+            $result = FetchReusablePaymentMethods::run($billable, $customer);
             $this->savedPaymentMethods = $result->options->map->toArray()->all();
             $this->savedPaymentMethodsFetchFailed = $result->fetchFailed;
         }
 
+        $this->resume($domain);
+    }
+
+    /**
+     * Picks the checkout back up where it was left, or settles it when it
+     * already succeeded.
+     */
+    private function resume(string $domain): void
+    {
         try {
             $resumed = ResumeCheckout::run($domain);
         } catch (ShowsMessageToUser $e) {

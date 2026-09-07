@@ -30,6 +30,14 @@ class FakeStripeHttpClient implements ClientInterface
     private int $sequence = 0;
 
     /**
+     * Every call the SDK made, in order, so a test can assert how many times a
+     * path was hit rather than only what came back.
+     *
+     * @var list<array{method: string, path: string}>
+     */
+    public array $requests = [];
+
+    /**
      * @param  list<string>  $headers
      * @param  array<string, mixed>  $params
      * @return array{0: string, 1: int, 2: array<string, mixed>}
@@ -40,6 +48,8 @@ class FakeStripeHttpClient implements ClientInterface
         $segments = array_values(array_filter(explode('/', $path)));
         // ['v1', 'customers', 'cus_1', 'tax_ids'] etc. Drop the leading 'v1'.
         array_shift($segments);
+
+        $this->requests[] = ['method' => (string) $method, 'path' => $path];
 
         try {
             $body = match (true) {

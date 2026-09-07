@@ -4,33 +4,30 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing;
 
-use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Data\Billing\SavedBillingDetails;
-use Stripe\Exception\ApiErrorException;
+use Stripe\Customer;
 
 /**
- * @method static SavedBillingDetails run(BillableUser $billable)
+ * Takes an already-retrieved customer when the caller has one, so the checkout
+ * screen pays for a single Stripe round trip rather than one per reader.
+ *
+ * @method static SavedBillingDetails run(BillableUser $billable, ?Customer $customer = null)
  */
 class FetchSavedBillingDetails
 {
     use AsAction;
 
-    public function handle(BillableUser $billable): SavedBillingDetails
+    public function handle(BillableUser $billable, ?Customer $customer = null): SavedBillingDetails
     {
         if (! $billable->hasStripeId()) {
             return new SavedBillingDetails;
         }
 
-        try {
-            $customer = Cashier::stripe()->customers->retrieve(
-                $billable->stripeIdOrFail(),
-                ['expand' => ['tax_ids']],
-            );
-        } catch (ApiErrorException $e) {
-            report($e);
+        $customer ??= FetchStripeCustomer::run($billable);
 
+        if ($customer === null) {
             return new SavedBillingDetails(fetchFailed: true);
         }
 

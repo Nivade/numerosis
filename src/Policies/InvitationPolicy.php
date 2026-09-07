@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Policies;
 
 use Illuminate\Auth\Access\HandlesAuthorization;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Policies\Concerns\ChecksContextPermissions;
-use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Contracts\Tenant as TenancyTenant;
 
 /**
@@ -48,11 +46,10 @@ class InvitationPolicy
             return false;
         }
 
-        $centralUserClass = Numerosis::model(CentralUser::class);
+        // Through the relation, not a per-row exists(): the listing eager
+        // loads `invitedBy`, so an N-row list costs one query rather than N.
+        $inviterGlobalId = $invitation->invitedBy?->global_id;
 
-        return $invitation->invited_by_user_id !== null
-            && $centralUserClass::where('id', $invitation->invited_by_user_id)
-                ->where('global_id', $user->global_id)
-                ->exists();
+        return $inviterGlobalId !== null && $inviterGlobalId === $user->global_id;
     }
 }

@@ -235,6 +235,36 @@ class CheckoutTest extends TestCase
             ->assertNoRedirect();
     }
 
+    /**
+     * `FetchSavedBillingDetails` and `FetchReusablePaymentMethods` each
+     * retrieved the customer for themselves, serially, in `mount()` — two
+     * round trips for the same object, roughly 150-400ms of wall clock on
+     * every checkout page load.
+     */
+    public function test_mounting_retrieves_the_stripe_customer_once(): void
+    {
+        $stripe = $this->fakeStripe();
+        $user = $this->signedInCustomer();
+
+        $user->createOrGetStripeCustomer();
+
+        $setupIntent = $this->openSetupIntentFor($user);
+
+        $this->reserve('one-retrieve-test', $user, $setupIntent->id);
+
+        $before = count($stripe->requests);
+
+        Livewire::test(Checkout::class, ['domain' => 'one-retrieve-test'])->assertOk();
+
+        $retrieves = array_filter(
+            array_slice($stripe->requests, $before),
+            fn (array $request): bool => $request['method'] === 'get'
+                && preg_match('#^/v1/customers/[^/]+$#', $request['path']) === 1,
+        );
+
+        $this->assertCount(1, $retrieves, 'The checkout page should retrieve the Stripe customer once.');
+    }
+
     public function test_it_prefills_the_saved_billing_address_for_a_returning_customer(): void
     {
         $this->fakeStripe();

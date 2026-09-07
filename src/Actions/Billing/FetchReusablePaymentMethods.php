@@ -9,31 +9,37 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Data\Billing\ReusablePaymentMethods;
 use Nvade\Numerosis\Data\Billing\SavedPaymentMethodOption;
+use Stripe\Customer;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentMethod;
 
 /**
- * @method static ReusablePaymentMethods run(BillableUser $billable)
+ * Takes an already-retrieved customer when the caller has one, so the checkout
+ * screen pays for a single Stripe round trip rather than one per reader.
+ *
+ * @method static ReusablePaymentMethods run(BillableUser $billable, ?Customer $customer = null)
  */
 class FetchReusablePaymentMethods
 {
     use AsAction;
 
-    public function handle(BillableUser $billable): ReusablePaymentMethods
+    public function handle(BillableUser $billable, ?Customer $customer = null): ReusablePaymentMethods
     {
         if (! $billable->hasStripeId()) {
             return new ReusablePaymentMethods(collect());
         }
 
-        $stripeId = $billable->stripeIdOrFail();
+        $customer ??= FetchStripeCustomer::run($billable);
+
+        if ($customer === null) {
+            return new ReusablePaymentMethods(collect(), fetchFailed: true);
+        }
 
         try {
-            $stripe = Cashier::stripe();
-            $paymentMethods = $stripe->customers->allPaymentMethods(
-                $stripeId,
+            $paymentMethods = Cashier::stripe()->customers->allPaymentMethods(
+                $billable->stripeIdOrFail(),
                 ['type' => 'card', 'limit' => 10],
             );
-            $customer = $stripe->customers->retrieve($stripeId);
         } catch (ApiErrorException $e) {
             report($e);
 

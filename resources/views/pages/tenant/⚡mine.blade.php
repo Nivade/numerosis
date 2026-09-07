@@ -224,23 +224,27 @@ class extends Component
                             // that survives.
                             $subscription = $tenant->subscriptions->first();
                             $awaitingPayment = $subscription && ! $subscription->isSettled();
+
+                            // Read once for the three uses below: primaryDomain()
+                            // is a cache round trip, and on a cold cache a query.
+                            $primaryDomain = $tenant->primaryDomain();
                         @endphp
                         <x-numerosis::tenant.list-item
                             :initials="$tenant->initials ?: 'T'"
                             :title="$tenant->name"
                             class="focus-within:ring-2 focus-within:ring-black/10 dark:focus-within:ring-white/15"
                         >
-                            <x-slot:subtitle>{{ $tenant->primaryDomain()->domain ?? 'No domain configured' }}</x-slot:subtitle>
+                            <x-slot:subtitle>{{ $primaryDomain->domain ?? 'No domain configured' }}</x-slot:subtitle>
 
                             @if($awaitingPayment)
                                 <x-numerosis::billing.awaiting-payment-card class="mt-2" />
                             @endif
 
                             <x-slot:actions>
-                                @if($tenant->primaryDomain())
+                                @if($primaryDomain)
                                     <flux:button
                                         tag="a"
-                                        href="{{ $tenant->primaryDomain()->url }}"
+                                        href="{{ $primaryDomain->url }}"
                                         target="_blank"
                                         rel="noopener"
                                         variant="primary"

@@ -19,6 +19,12 @@
     // every currency symbol sorts above "0" — which made "€ 0,00" > 0 true and
     // left the free branch below unreachable. Ask the plan for the number.
     $isFree = ! ($plan->getPrice($billingCycle) > 0);
+
+    // One read of the relation for all three uses below. Asking through
+    // availableFeatures()/features() instead ran three queries per card, one
+    // of them for a modal that is usually never opened.
+    $features = $plan->features;
+    $availableFeatures = $features->filter(fn ($feature) => (bool) $feature->pivot->available);
 @endphp
 
 @if($type === 'selectable')
@@ -104,13 +110,13 @@
                     </h4>
 
                     <ul class="text-sm text-zinc-600 dark:text-zinc-400 space-y-3">
-                        @foreach($plan->availableFeatures()->take(6)->get() as $feature)
+                        @foreach($availableFeatures->take(6) as $feature)
                             <x-numerosis::feature-line :feature="$feature"/>
                         @endforeach
                     </ul>
 
                     {{-- All Features Modal --}}
-                    @if($plan->availableFeatures()->count() > 6)
+                    @if($availableFeatures->count() > 6)
                         <div class="mt-3">
                             <flux:modal.trigger name="features-{{ $plan->slug }}">
                                 <flux:button variant="subtle" size="sm" class="-ml-2">
@@ -123,7 +129,7 @@
                                     <flux:heading size="lg">{{ $plan->name }} Features</flux:heading>
 
                                     <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                                        @foreach($plan->features()->get() as $feature)
+                                        @foreach($features as $feature)
                                             <x-numerosis::feature-line
                                                 :feature="$feature"
                                                 :available="$feature->pivot->available"
@@ -197,7 +203,7 @@
 
         {{-- Features List --}}
         <div class="flex-1 space-y-4 mb-8">
-            @foreach ($plan->availableFeatures as $feature)
+            @foreach ($availableFeatures as $feature)
                 <x-numerosis::feature-line :feature="$feature" />
             @endforeach
         </div>

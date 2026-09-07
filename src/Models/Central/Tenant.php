@@ -193,6 +193,12 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
             ->first();
     }
 
+    /**
+     * Deliberately not memoized on the instance: the global key is forgotten
+     * whenever a domain is added or removed, and callers within the same
+     * request are expected to see that. A view reading it more than once holds
+     * the result in a local instead.
+     */
     public function primaryDomain(): ?Domain
     {
         return GlobalCache::store()->remember(

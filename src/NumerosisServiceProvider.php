@@ -43,6 +43,7 @@ use Nvade\Numerosis\Actions\Auth\RedirectIfOneTimePasswordAuthenticatable;
 use Nvade\Numerosis\Actions\Auth\ResetUserPassword;
 use Nvade\Numerosis\Actions\Auth\UpdateUserPassword;
 use Nvade\Numerosis\Actions\Auth\UpdateUserProfile;
+use Nvade\Numerosis\Actions\Queries\GetTenantsByGlobalId;
 use Nvade\Numerosis\Commands\InstallNumerosisCommand;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
 use Nvade\Numerosis\Console\Commands\DeleteTenants;
@@ -96,6 +97,7 @@ use Nvade\Numerosis\Services\Exceptions\TenantAwareExceptionContext;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Support\Assets;
+use Nvade\Numerosis\Support\Cache\GlobalCache;
 use Nvade\Numerosis\Support\ConfiguredSteps;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\HostConfig;
@@ -129,16 +131,26 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
-        // Not `mergeConfigFrom()`: Laravel merges published config only one
-        // level deep, so a host file naming `billing` at all would shadow
-        // every sibling key the package later adds under it.
-        /** @var array<string, mixed> $current */
-        $current = Config::get('numerosis', []);
-        /** @var array<string, mixed> $defaults */
-        $defaults = require __DIR__.'/../config/numerosis.php';
-        Config::set('numerosis', $this->fillMissingKeys($defaults, $current));
+        // Skipped under `config:cache`, where the cached `numerosis` key is
+        // already complete and filling it is a guaranteed no-op — the require
+        // below executes a 373-line array with ten env() calls on every boot,
+        // and env() reads unloaded $_ENV in that state. Standard Laravel
+        // config-cache semantics follow: a host upgrading the package picks up
+        // new default keys when it re-runs `config:cache`, not before.
+        if (! $this->app->configurationIsCached()) {
+            // Not `mergeConfigFrom()`: Laravel merges published config only one
+            // level deep, so a host file naming `billing` at all would shadow
+            // every sibling key the package later adds under it.
+            /** @var array<string, mixed> $current */
+            $current = Config::get('numerosis', []);
+            /** @var array<string, mixed> $defaults */
+            $defaults = require __DIR__.'/../config/numerosis.php';
+            Config::set('numerosis', $this->fillMissingKeys($defaults, $current));
+        }
 
         Numerosis::resetModelCache();
+        GlobalCache::flush();
+        GetTenantsByGlobalId::flushMemo();
 
         // Deferred until every provider has registered, so config shipped by
         // stancl/tenancy and Laravel itself is normalized once it is merged.

@@ -85,6 +85,36 @@ class NumerosisServiceProviderDefaultsTest extends TestCase
     }
 
     /**
+     * Under `config:cache` the cached `numerosis` key is already complete, so
+     * filling it is a guaranteed no-op — and the require it skips executes a
+     * 373-line array with ten env() calls that read unloaded $_ENV in exactly
+     * that state.
+     *
+     * `config_loaded_from_cache` is the binding `configurationIsCached()`
+     * consults first, and is how the framework itself reports the state.
+     */
+    public function test_the_defaults_are_not_rebuilt_when_configuration_is_cached(): void
+    {
+        $this->app?->instance('config_loaded_from_cache', true);
+
+        Config::set('numerosis', ['features' => []]);
+
+        $this->rebootPackage();
+
+        $this->assertSame(['features' => []], Config::get('numerosis'));
+    }
+
+    public function test_the_defaults_are_filled_when_configuration_is_not_cached(): void
+    {
+        Config::set('numerosis', ['features' => []]);
+
+        $this->rebootPackage();
+
+        $this->assertIsArray(Config::get('numerosis.billing'));
+        $this->assertSame([], Config::get('numerosis.features'));
+    }
+
+    /**
      * `Database\Seeders\DatabaseSeeder` (Laravel's skeleton default, what
      * `php artisan db:seed` resolves) genuinely doesn't exist under that
      * literal FQCN anywhere in this Testbench harness — the workbench

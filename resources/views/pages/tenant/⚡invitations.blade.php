@@ -20,9 +20,12 @@ class extends Component
     {
         $invitationClass = Numerosis::model(Invitation::class);
 
+        // invitedBy is eager loaded for InvitationPolicy::delete()'s ownership
+        // fallback, which is a per-row exists() query on the non-admin path.
         $this->invitations = $invitationClass::query()
             ->pending()
             ->where('tenant_id', tenant()->getKey())
+            ->with('invitedBy:id,global_id')
             ->latest()
             ->get();
     }

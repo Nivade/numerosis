@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Support\Cache;
 
 use Illuminate\Contracts\Cache\Factory;
 use Illuminate\Contracts\Cache\Repository;
+use Illuminate\Contracts\Container\Container;
 use RuntimeException;
 
 /**
@@ -13,10 +14,24 @@ use RuntimeException;
  * {@see CacheKeys} documents as *global* is read and invalidated through. The
  * binding is not tenant-scoped and carries no tenant tag or prefix, so
  * anything derived from a tenant database must put the tenant in its own key.
- * It is a `bind`, so each call constructs a fresh manager.
  */
 final class GlobalCache
 {
+    /**
+     * The resolved store, and the container it was resolved from.
+     *
+     * `globalCache` is a `bind`, so every resolve built a fresh `CacheManager`
+     * and a fresh store behind it. The callers are hot — `Authenticate`
+     * reaches `GetTenantsByGlobalId` on every authenticated tenant request —
+     * and a five-tenant list page built roughly sixteen managers. Keyed on the
+     * container so an Octane worker, or a test that rebinds the binding and
+     * calls {@see self::flush()}, never reads a store built for a different
+     * application.
+     */
+    private static ?Repository $store = null;
+
+    private static ?Container $resolvedFor = null;
+
     private function __construct() {}
 
     /**
@@ -26,19 +41,35 @@ final class GlobalCache
      */
     public static function store(): Repository
     {
-        $cache = app('globalCache');
+        $container = app();
 
-        if ($cache instanceof Repository) {
-            return $cache;
+        if (self::$store !== null && self::$resolvedFor === $container) {
+            return self::$store;
         }
 
-        if ($cache instanceof Factory) {
-            return $cache->store();
-        }
+        $cache = $container->make('globalCache');
 
-        throw new RuntimeException(
-            'The [globalCache] container binding must resolve to a cache '
-            .'repository or factory; got '.get_debug_type($cache).'.'
-        );
+        $store = match (true) {
+            $cache instanceof Repository => $cache,
+            $cache instanceof Factory => $cache->store(),
+            default => throw new RuntimeException(
+                'The [globalCache] container binding must resolve to a cache '
+                .'repository or factory; got '.get_debug_type($cache).'.'
+            ),
+        };
+
+        self::$resolvedFor = $container;
+
+        return self::$store = $store;
+    }
+
+    /**
+     * Drops the memo. `NumerosisServiceProvider` calls this on every boot; a
+     * test that rebinds `globalCache` has to call it too.
+     */
+    public static function flush(): void
+    {
+        self::$store = null;
+        self::$resolvedFor = null;
     }
 }

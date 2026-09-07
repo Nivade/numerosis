@@ -64,7 +64,7 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
         return GlobalCache::store()->remember(
             CacheKeys::availablePaymentPlans(),
             now()->addHour(),
-            fn () => Numerosis::model(PaymentPlan::class)::available()->orderBy('monthly_price')->get()
+            fn () => Numerosis::model(PaymentPlan::class)::available()->with('features')->orderBy('monthly_price')->get()
         );
     }
 }
