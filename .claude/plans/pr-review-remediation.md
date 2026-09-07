@@ -17,44 +17,73 @@ phase names the test that would have caught it.
 **Line numbers in this file drift.** Grep for the symbol; treat a mismatch as
 drift, not as a missing thing.
 
-## Execution status, re-audited 2026-09-05 against `1798bab`
+## Execution status, re-audited 2026-09-07 against `3c3de4e`
 
-`86ecb9e`'s message says it "works through the eight phases". Measured against
-the tree, four defect phases are untouched and their claimed fixes are not
-there. Every row below was checked by reading the code at HEAD, not by reading
-that commit message.
+Nineteen commits landed after the `1798bab` audit — a `src/` reorganization,
+a central-migration squash, a webhook/wizard refactor, and the
+"layer over a host app" change. **None of them executed a phase of this plan.**
+Two phases closed as a side effect of that other work (7.2, 8.6) and one
+regressed. Every row below was checked by reading the code at `3c3de4e`.
 
-Baseline re-measured at `1798bab`: `pint --test` passes, `phpstan analyse`
+Baseline re-measured at `3c3de4e`: `pint --test` passes, `phpstan analyse`
 clean from a cold cache (`rm -rf build/phpstan` first), `composer test`
-585 passed / 6 skipped / 0 failed. The tooling claims hold; the gap is between
-the commit message and the tree.
+649 passed / 6 skipped / 0 failed, `phpstan-baseline.neon` still 5 entries.
 
-| Phase | State at `1798bab` |
+### Paths in this file drifted at `7197177`/`5862566`/`bc1c664`/`0c3c5b6`
+
+Every phase below that names a file may name the old one. The renames that
+matter here:
+
+| This file says | Now |
+|---|---|
+| `src/Support/Numerosis.php` | `src/Numerosis.php` |
+| `src/Support/Features.php` | `src/Support/FeatureRegistry.php` |
+| `src/Commands/InstallNumerosisCommand.php` | `src/Console/Commands/InstallNumerosisCommand.php` |
+| `src/Actions/Billing/CreateInlineSubscription.php` | `src/Actions/Billing/Checkout/CreateInlineSubscription.php` |
+| `Observers\MembershipObserver` | `Observers\Tenancy\MembershipObserver` |
+| `src/Support/Contributions.php` | deleted (see 7.2) |
+
+`067e623` squashed the central migrations, so Phase 2's
+`2025_06_04_100837_nullable_password_in_users.php` and Phase 8.1's
+`2026_01_07_003825_new_plan_tables.php` no longer exist. Both facts they were
+cited for still hold — `users.email` is `string()->unique()` with no
+`nullable()` at `2019_09_01_000000_create_users_table.php:26`, and
+`payment_plan_features` is `id`/`payment_plan_id`/`feature_id`/`available` at
+`2025_06_23_213023_create_payment_plan_tables.php:44`.
+
+| Phase | State at `3c3de4e` |
 |---|---|
 | 1 middleware identification mode | **Fixed, verified on a real boot.** `Numerosis::middlewareAliases()` now aliases `tenancy.identification`/`tenancy.route` to two new delegating classes, `Http\Middleware\InitializeTenancy`/`TenantRouteGuard`, which resolve `IdentificationMode::current()` at `handle()` time instead of alias-build time. Both are pure class-string literals with no facade/config read, so `Numerosis::middleware()` no longer touches `Config`/`Facade` before `RegisterFacades`. `IdentificationMode::current()`'s facade-null fallback is deleted — nothing calls it early any more. `TenancyServiceProvider::makeTenancyMiddlewareHighestPriority()` had to gain both new classes too: Laravel's priority sort runs against the alias's literal target, not what it delegates to, and missing this broke tenant-session ordering (`TenantAdminAuthTest`, `BotBlockingAuthTest`, `LoginRateLimitTest` all failed until added). New regression test: `NumerosisSeamTest`'s "registers mode-agnostic middleware aliases with no facade application bound" — confirmed failing (fatal facade crash) against the code before this fix. Verified end-to-end on `numerosis-thin-app`: booted its Sail stack (stale composer.lock needed `composer update nvade/numerosis --with-all-dependencies`; its `welcome.blade.php` also needed a stale `Support\Tenancy\SelfServeRegistration::FEATURE` reference updated to `Features\Tenancy\RegistrationWizardFeature::NAME`, both host-side fixes, not committed here), set `NUMEROSIS_TENANCY_IDENTIFICATION_MODE=path`, confirmed no crash-loop at boot, provisioned a tenant, and confirmed `/acme` resolves `window.Numerosis.tenantId === "acme"` — the exact request path that crash-looped before. Suite: 586 passed / 6 skipped here; PHPStan clean cold; baseline unchanged. |
-| 2 OAuth null email | **Open.** `createUser()` still writes `'email' => $data->email` against a NOT NULL unique column. The refresh-path defect is now *worse*: `refreshTokens()` calls `$data->accountAttributes()`, which always carries `email`, so one array feeds both write paths |
-| 3 `AcceptInvitation` transaction | **Open.** `AddTenantMember::run()` still inside `DB::transaction()`; `MembershipObserver::created()` still writes the tenant database and fires `MemberJoined` inside it; neither `MemberJoined` nor `MemberRemoved` implements `ShouldDispatchAfterCommit`. Only `assertClaimable()` was extracted |
-| 4 webhook payload guard | **Open.** `handleCustomerSubscriptionDeleted` still passes `$stripeSubscription['customer'] ?? null` into a `?string` parameter, twelve lines above `handleCustomerSubscriptionUpdated`'s `is_string(...)` guard. `current_period_end` unverified, multi-item skip still unexplained |
-| 5.1 line-number citations | **Open.** All nine still present, and staler: `HostConfig` lost 401 lines |
-| 5.2 two alias registries | **Open, and now wrong rather than stale.** The rule still says two registries exist; this branch unified them. It names `NumerosisServiceProvider::registerMiddlewareAliases()`, which does not exist — the method is `registerMiddleware()` and it iterates `Numerosis::middlewareAliases()` |
-| 5.3 plans README | **Open.** All three rows still say "Not executed"; all three shipped and all three files are still loose. The Abandoned row is now wrong too: it says `--parallel` was dropped, while `composer test` is `pest --parallel` and `c1c47ea`/`52119dc` fix parallel workers |
-| 5.4 deleted-config instructions | **Open** (follows 5.3) |
-| 5.5 `comment-destyle.md` status | **Open.** Still claims one remaining over-cap docblock, named as `InitializeTenancyByDomainOrSubdomain.php`. Two remain and neither is that file |
-| 6.1 two `src/` docblocks | **Open.** Same counts as when this plan was written: `HostConfig` 9, `TenantRegistrationData::rules()` 7. The `HostConfig` rewrite kept the decorative bold |
-| 6.2 `//` runs outside `src/` | **Open.** Counts byte-identical to this plan's: `routes/tenant.php` 13/11/8/5, `routes/web.php` 13/4/4, `config/numerosis.php` 5/4/4 — and all three files were edited in this range |
-| 6.3 stale symbols | **Partial.** Cleared from `InstallNumerosisCommand`, `MembershipsFeature`, `PromoteFirstCentralUserToAdmin`, `routes/web.php`, `docs/host-requirements.md`. Still live: `routes/tenant.php:26` (Filament), `routes/tenant.php:29` (`Socialite\Login`), and the invitations migration's `updateOrCreate` against `SendInvitation`'s `firstOrNew`+`save` |
-| 7.1 `ModelResolver::modelFor()` | **Open.** Still ignores `numerosis.models`, still no `is_subclass_of` |
-| 7.2 `Contributions` middle man | **Open.** Decision not recorded either way |
-| 7.3 small ones | **1 of 4.** `permissionContexts()` moved above `appendOnce()`. Still open: `flushMigrationAndSeederContributions()` clears `$permissionContexts` under that name, `HostConfig::set()` has no dedupe, `SendInvitation` is not atomic |
-| 8.1 `PaymentPlanFeatureFactory` | **Open, and the file was edited without the break being seen.** `1798bab` touched it for a `Config` typing change while `definition()` still returns seven columns the table does not have, and never sets the NOT NULL `feature_id`. No factory-instantiation test |
-| 8.2 zero-reference states | **Open** |
-| 8.3 stub/workbench parity | **Open.** `Invitation.stub` and `SocialAccount.stub` still have no workbench twin; no parity test |
-| 8.4 workbench `welcome` view | **Open.** `workbench/routes/web.php` still renders it; no `welcome.blade.php` exists |
-| 8.5 `rector.php` skip | **Open** |
-| 8.6 npm dependencies | **Closed by decision.** Left as-is, which this phase permits |
+| 2 OAuth null email | **Open, unchanged.** `LoginWithSocialAccount::createUser()` still writes `'email' => $data->email` against a NOT NULL unique column. `refreshTokens()` still calls `$data->accountAttributes()`, which always carries `email`, and `createSocialAccount()` spreads the same array — one array feeds all three write paths |
+| 3 `AcceptInvitation` transaction | **Open, unchanged.** `AddTenantMember::run()` still inside `DB::transaction()`; `Observers\Tenancy\MembershipObserver::created()` still calls `SyncTenantUserForMembership::run()` (tenant-database write) and fires `MemberJoined` inside it; neither `MemberJoined` nor `MemberRemoved` implements `ShouldDispatchAfterCommit`, while `InvitationAccepted` in the same closure does |
+| 4 webhook payload guard | **Open, and the phase text is stale in two ways.** `5f13e85` deleted `suspendBillableFor()`, so that half of the fix has no target. `current_period_end` gained an `is_int()` guard, so the `TypeError` is gone — the API-version question (field moved to subscription items in `2025-03-31.basil`) is still unverified. Three unguarded `customer` reads remain: `:91` into `TenantProvisionData::$stripeCustomerId`, `:174` and `:273` into `FindTenantByStripeCustomer`'s `?string`. The multi-item skip is still unexplained |
+| 5.1 line-number citations | **Partial, 7 of 9 left.** `middleware-registration.md`'s two are gone. Still live: `tenant-filesystem.md:12`/`:15`, `tenant-registration-wizard.md:25`/`:27`, `package-boundaries.md:57` (now citing the renamed `FeatureRegistry.php:127`)/`:64`, `host-integration-quickstart.md:130` |
+| 5.2 two alias registries | **Partial, and the leftover half is now actively wrong.** `middleware-registration.md` gained a correct "One alias registry" bullet naming `registerMiddleware()`. But the bullet below it still says `tenancy.identification`/`tenancy.route` "resolve through `TenancyServiceProvider`, not to a class literal" — Phase 1 made them class literals (`InitializeTenancy::class`, `TenantRouteGuard::class`), which is the opposite claim, and the new trap (this method is evaluated before facades bind, so literals *only*) is stated in `Numerosis.php`'s docblock and nowhere in the rules |
+| 5.3 plans README | **Partial.** Re-sorted 2026-09-07: `config-consolidation.md` and `simplification-followups.md` archived. Two Live rows still wrong — `domain-events-expansion.md` says "Confirmed unstarted: no `src/Actions/Tenancy/EnsureTenantUserExists.php`" (that file exists), `invitations-social-redesign.md` says "Not executed" (`Models/Central/{Invitation,SocialAccount}`, `Enums/Auth/SocialProvider`, two migrations and three controllers all ship). The Abandoned row still says `--parallel` was dropped; `composer.json:106` is `pest --parallel` |
+| 5.4 deleted-config instructions | **Open.** `invitations-social-redesign.md:221` and `post-extraction-review.md:14` both still point at `config/numerosis/schema-version.php`. No `schema_version` key exists in `config/` at all |
+| 5.5 `comment-destyle.md` status | **Open, and much further from true.** Its table claims 1 over-budget docblock and 0 over-cap `//` runs in `src/`. Measured at `3c3de4e` with its own `awk`: **18 docblocks and 4 `//` runs in `src/` alone.** The reorg commits reintroduced them |
+| 6.1 over-cap docblocks | **Open, and the scope grew ~10x.** The two originals stand (`HostConfig` 9 with the decorative bold intact, `TenantRegistrationData` 7). Repo-wide there are now **37**, worst first: `packages/ui/.../toast.blade.php` 16, `RoleAndPermissionSeeder` 14, `NumerosisUiServiceProvider` 13, `Contracts/Billing/BillableUser` 12, `GeneratesUniqueEmails` 12, `SubscriptionFactory` 12, `Numerosis.php:335` 11, `ConfiguredSteps` 10, `PaymentPlanSeeder` 10 |
+| 6.2 `//` runs over cap | **Open, and moved.** Repo-wide **30**. `routes/web.php` 14/4/4, `routes/tenant.php` 13/11/8/5, `config/numerosis.php` 5/4/4 all persist. New since this plan: `packages/ui` blade components (12/12/12/7/6/4/4), `database/factories/Tenant/UserFactory` 8/4, `Central/TenantFactory` 8/5, and four in `src/` (`NumerosisServiceProvider:133` 6, `TenancyServiceProvider:304` 5, `AuthenticateLoginCandidate:145` 5, `DefaultUnpaidTenantQuota:30` 4) |
+| 6.3 stale symbols | **Partial, 2 of 9 left.** Still live: `routes/tenant.php:27` (Filament tenant panel) and `routes/tenant.php:30` (`Socialite\Login`). `routes/web.php:38` also still says "the tenant panel documents 'home' as the one route name guaranteed to exist" — a tenth occurrence this plan missed. The invitations migration `updateOrCreate` comment (`:28`) against `SendInvitation`'s `firstOrNew`+`save` is unchanged. The `docs/architecture.md` and `docs/extending.md` mentions are deliberate records of the deletion, not stale references |
+| 7.1 `ModelResolver::modelFor()` | **Open, unchanged.** Still `class_exists($hostModel)` with no `is_subclass_of` and no `numerosis.models` read, while `resolve()` twelve lines up does both |
+| 7.2 `Contributions` middle man | **Closed.** `src/Support/Contributions.php` no longer exists; the state folded back. Nothing left to decide |
+| 7.3 small ones | **2 of 4.** The two `Contributions` items went with the class. Still open: `HostConfig::set()` appends to `$applied` with no dedupe (`src/Support/HostConfig.php:71`), `SendInvitation::handle()` is still `firstOrNew` + `save()` against `unique(tenant_id, email)` |
+| 8.1 `PaymentPlanFeatureFactory` | **Open, unchanged.** `definition()` still returns `feature_key` and six other columns the table does not have, still never sets the NOT NULL `feature_id`, still the only factory outside `database/factories/Central/`. No factory-instantiation test |
+| 8.2 zero-reference states | **Open, unchanged.** All seven states still have zero callers across `tests/`, `workbench/`, `resources/`, `packages/` and `src/` |
+| 8.3 stub/workbench parity | **Open, unchanged.** 8 stubs under `stubs/Models/Central/`, 6 twins under `workbench/app/Models/Central/`; `Invitation` and `SocialAccount` are the gap. No parity test |
+| 8.4 workbench `welcome` view | **Open, and the measurement this phase asked for is done: `composer serve` opens a 500.** `php artisan route:list` shows exactly one `/` and it is `workbench/routes/web.php:7`. The package's own `/` never registers here at all — no `home` route, no `get-started`, no `billing/webhook` in the list — because `routes/web.php` is domain-scoped inside `Numerosis::routes()` and workbench does not call it. So the "delete it as dead code" branch is off the table; the view has to exist |
+| 8.5 `rector.php` skip | **Open, unchanged.** `withSkip()` still lists `database/migrations`; `withPaths()` is still `src` and `tests` only |
+| 8.6 npm dependencies | **Closed, by removal rather than by decision.** `package.json` no longer declares `laravel-echo`, `pusher-js` or `@laravel/echo-vue`, and no file under `resources/js/` imports any of them |
+| 9.1 `static` widened to `Model` | **Open, unchanged.** `Concerns\Billing\Billable::subscriptionsRelation(Model)` and `Models\Central\CentralUser::tenantsRelation(Model)` both still there |
+| 9.2 post-charge `RuntimeException` | **Open.** Now at `src/Actions/Billing/Checkout/CreateInlineSubscription.php:92`, still after the Stripe call and before `$pending->update()` |
+| 9.3 two fallbacks for one session value | **Open, unchanged.** `Steps/Plan.php:82` `tryFrom() ?? Monthly` against `Steps/Payment.php:33` `BillingCycle::from()` |
+| 9.4 `socialiteproviders/manager` | **Open.** `composer.json` still requires `socialiteproviders/discord` only |
+| 9.5 four copies of `available()` | **Closed.** One copy, in `src/Features/Concerns/IsNamedFeature.php` |
+| 9.6 comment regressions | **Open,** and folded into the 6.1/6.2 counts above. `RoleAndPermissionSeeder` went 14→14 and 9, `SeedsAdminRole` 9 plus a 6-line `//` run, `SubscriptionFactory` 12 and 9 plus a 6-line run |
+| 9.7 naming and placement | **1 of 4.** `HostConfig::filesystemDisks()` now *removes* `livewire` from the tenant-suffixed disk list rather than appending it, and its docblock matches, so that item is moot. Still open: `CompleteRedirectCheckout::tenantsMine(string $level, string $message)` where `$message` is a translation key; `numerosis.tenancy.implementations` (`config/numerosis.php:357`) still binding four non-tenancy auth contracts; `TestCase::ensureDatabaseExists()` still hardcoding a second copy of the MySQL credentials at `tests/TestCase.php:579` |
 
-Scope delivered that this plan never asked for, so a later reader does not
-mistake it for one of the phases above: Turnstile and Discord promoted to
+Scope delivered before `1798bab` that this plan never asked for, kept so a
+later reader does not mistake it for a phase: Turnstile and Discord promoted to
 `require` with both `class_exists` seams deleted; the PHPStan baseline cut from
 109 entries to 5; the CI parallel-worker database fix; `Context::guard()`
 adopted across the auth surface; eight class extractions; `Numerosis::modelStubs()`
@@ -104,7 +133,7 @@ options; do not pick one and proceed:
 
 - **2** — refuse the null-email login, or make `users.email` nullable. This
   file recommends refusing, but the second option changes the auth surface.
-- **7.2** — fold `Contributions` back, or promote it to the public seam.
+- ~~**7.2**~~ — settled: `Contributions` was folded back before 2026-09-07.
 - **8.2** — write the missing tests for `bot()` /
   `forCheckout()`/`provisioning()`/`failed()`, or delete the states.
 - **9.1** — try `static` on both sides once and run `analyse` cold. If real
@@ -987,6 +1016,41 @@ new before each edit lands.
   the package is installed.
 - 9.5: none — a trait extraction with four call sites already under test.
 
+## Phase 10 — findings new to the 2026-09-07 re-audit
+
+Turned up while checking the phases above at `3c3de4e`. Recorded, not fixed.
+
+### 10.1 The workbench app never calls `Numerosis::routes()`
+
+`php artisan route:list` at `3c3de4e` has 61 routes and none of the package's
+own central ones: no `home`, no `get-started`, no `billing/webhook`. The only
+caller of `Numerosis::routes()` in the repo is `tests/TestCase.php:536`.
+
+So the dev harness `composer serve` boots is not a host that has wired the
+package in — it is Fortify, Livewire, Flux and one workbench route. That is
+what makes 8.4 a certain 500 rather than a maybe, and it means the harness
+cannot be used to check anything route-level by hand.
+
+Decide whether that is intended (the harness exists to boot the package, and a
+host wires routes itself) or an omission. If intended, say so in
+`workbench/routes/web.php` next to the fix for 8.4, because the next person to
+open `composer serve` looking for `/get-started` will lose an hour.
+
+### 10.2 `resources/js/app.js` and `bootstrap.js` are unreachable from the build
+
+`vite.config.js` has one entry, `resources/js/numerosis.js`, which imports
+`stripe-checkout.js` and `stripe-confirm.js` and nothing else. `app.js` and
+`bootstrap.js` are in neither that graph nor any other.
+
+`bootstrap.js` imports `axios`; `package.json` does not declare it (its
+`devDependencies` are `@stripe/stripe-js`, `@tailwindcss/cli`, `playwright`,
+`tailwindcss`, `vite`). `app.js` imports `virtual:livewire-hot-reload`. Adding
+either to an entry today breaks `npm run build`.
+
+This is the same class as 8.6 and became visible once 8.6's packages were
+removed. Either delete both files or declare what they are for; do not leave a
+file that fails the build the moment it is used.
+
 ## Sequencing
 
 Phases 1 and 2 are independent and both ship user-visible breakage; do them
@@ -1013,10 +1077,19 @@ whenever those files are open, but re-run `phpstan analyse` cold, because the
 whole point of both is what Larastan accepts. 9.3 goes with any wizard work.
 9.5 and 9.7 are opportunistic.
 
-Ordering aside, take the four defect phases (1, 2, 3, 4) before any
+Phase 10 is opportunistic. 10.1 should be answered before 8.4 is fixed, since
+it decides what the workbench `/` is for.
+
+Ordering aside, take the three open defect phases (2, 3, 4) before any
 documentation or cleanup phase. They are the reason this file exists, they are
-the ones a previous run skipped, and 5 and 6 are pleasant work that will
+the ones two previous runs skipped, and 5 and 6 are pleasant work that will
 absorb a whole session if allowed to go first.
+
+**Phase 6 has outgrown "documentation".** At the 2026-09-07 re-audit it is 37
+docblocks and 30 `//` runs across five directories, not the four files this
+plan described, and the `packages/ui` blade components are new scope nobody has
+looked at. Budget it as its own session or scope it explicitly to `src/`; do
+not let it ride along with a defect phase.
 
 ## Verification
 
