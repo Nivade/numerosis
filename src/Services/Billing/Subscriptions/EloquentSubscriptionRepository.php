@@ -8,7 +8,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Nvade\Numerosis\Models\Central\Subscription;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 use RuntimeException;
 
 class EloquentSubscriptionRepository implements SubscriptionRepository

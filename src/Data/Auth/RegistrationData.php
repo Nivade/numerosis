@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Data\Auth;
 
 use Illuminate\Validation\Rules\Password;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 use SensitiveParameter;
 use Spatie\LaravelData\Data;
 

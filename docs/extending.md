@@ -179,7 +179,7 @@ button list and the OAuth routes' `->where('provider', …)` constraint read.
 
 ### The `Numerosis` facade
 
-`Nvade\Numerosis\Facades\Numerosis` resolves `Support\Numerosis` out of the
+`Nvade\Numerosis\Facades\Numerosis` resolves `Numerosis` out of the
 container, so a test can `swap()` or `spy()` it. Every method on the support
 class stays `static`; the facade forwards through the instance.
 
@@ -187,7 +187,7 @@ class stays `static`; the facade forwards through the instance.
 `exceptions()` and `configure()` run while `ApplicationBuilder` is being
 built, before `RegisterFacades` — the facade root is null there and every call
 throws `RuntimeException: A facade root has not been set`. Import
-`Nvade\Numerosis\Support\Numerosis` directly in that file, as the examples
+`Nvade\Numerosis\Numerosis` directly in that file, as the examples
 above do.
 | `Numerosis::routes(withAuth: false)` | narrower: still registers `routes/web.php` and `routes/tenant.php`, but skips loading Fortify's own route file into either group. Use this if you keep your own auth system — `login`, `register`, `logout` and `verification.verify` are otherwise Fortify's, registered behind no feature flag, so a host running its own auth gets a silent route-name collision resolved by provider order. Passing `false` hands you those four names: everything core generates from them, including the guest redirect and the email verification link, then resolves against your routes |
 

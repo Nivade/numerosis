@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 use Stripe\Exception\InvalidRequestException;
 
 #[Description('Delete Stripe customers created during abandoned checkouts that never converted to a subscription')]

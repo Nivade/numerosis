@@ -107,7 +107,7 @@ class FreshHostTest extends Orchestra
         // call Numerosis::configure()/withRouting() from. Everything this
         // call reads (tenancy.central_domains) is HostConfig-derived, not
         // hand-set anywhere in this file.
-        \Nvade\Numerosis\Support\Numerosis::routes();
+        \Nvade\Numerosis\Numerosis::routes();
     }
 
     /**

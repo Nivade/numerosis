@@ -38,7 +38,7 @@ paths:
   driver, which `AuthGuardBootstrapper` already switches per context, so
   `config('fortify.guard') === ''` is the thread to pull.
 
-- **What `Support\Numerosis::loadFortifyRoutes()` swaps, and why each one.**
+- **What `Numerosis::loadFortifyRoutes()` swaps, and why each one.**
   It runs once per central domain and once for the tenant group, with
   `Fortify::ignoreRoutes()` in `packageRegistered()` having disabled Fortify's
   own single-group `configureRoutes()`. Two keys are set for the duration:
@@ -275,7 +275,7 @@ any of it.
   `Http\Middleware\RequirePasswordIfSet` passes a passwordless user through
   and behaves as Laravel's `RequirePassword` for everyone else. Its alias is
   registered in **both** `NumerosisServiceProvider::registerMiddleware()` and
-  `Support\Numerosis::middleware()` (see `middleware-registration.md`). The
+  `Numerosis::middleware()` (see `middleware-registration.md`). The
   same trap is why `routes/web.php` gates `settings/password` on
   `PasswordResetFeature`; reach for this middleware before adding
   `password.confirm` to any other route a passwordless account can hit.

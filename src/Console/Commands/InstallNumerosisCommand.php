@@ -15,12 +15,12 @@ use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Nvade\Numerosis\Support\Assets;
 use Nvade\Numerosis\Support\HostConfig;
-use Nvade\Numerosis\Support\Numerosis;
 use ReflectionProperty;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 

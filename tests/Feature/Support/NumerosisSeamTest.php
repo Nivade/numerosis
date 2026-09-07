@@ -20,8 +20,8 @@ use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
 use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
 use Nvade\Numerosis\Models\Central\Tenant as PackageTenant;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\NumerosisServiceProvider;
-use Nvade\Numerosis\Support\Numerosis;
 
 /*
  * Every host-seam bug this extraction found lived in these methods (see

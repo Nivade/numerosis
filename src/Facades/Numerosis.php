@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Facades;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * Post-boot access to {@see \Nvade\Numerosis\Support\Numerosis}, for `swap()`
+ * Post-boot access to {@see \Nvade\Numerosis\Numerosis}, for `swap()`
  * and `spy()` in tests.
  *
  * `routes()`, `middleware()`, `exceptions()` and `configure()` must not be
@@ -16,12 +16,12 @@ use Illuminate\Support\Facades\Facade;
  * `RuntimeException: A facade root has not been set`. `bootstrap/app.php`
  * imports `Support\Numerosis` directly.
  *
- * @see \Nvade\Numerosis\Support\Numerosis
+ * @see \Nvade\Numerosis\Numerosis
  */
 class Numerosis extends Facade
 {
     protected static function getFacadeAccessor(): string
     {
-        return \Nvade\Numerosis\Support\Numerosis::class;
+        return \Nvade\Numerosis\Numerosis::class;
     }
 }

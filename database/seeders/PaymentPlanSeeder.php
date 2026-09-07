@@ -8,7 +8,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\PlanFeature;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * Example plans, shipped so a fresh install has something purchasable. A

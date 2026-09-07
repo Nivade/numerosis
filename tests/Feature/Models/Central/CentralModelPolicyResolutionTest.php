@@ -17,6 +17,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Policies\InvitationPolicy;
 use Nvade\Numerosis\Policies\PaymentPlanPolicy;
 use Nvade\Numerosis\Policies\PermissionPolicy;
@@ -26,7 +27,6 @@ use Nvade\Numerosis\Policies\SocialAccountPolicy;
 use Nvade\Numerosis\Policies\SubscriptionPolicy;
 use Nvade\Numerosis\Policies\TenantPolicy;
 use Nvade\Numerosis\Policies\UserPolicy;
-use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 

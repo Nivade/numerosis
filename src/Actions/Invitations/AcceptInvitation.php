@@ -14,7 +14,7 @@ use Nvade\Numerosis\Exceptions\Invitations\InvitationEmailMismatch;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * Runs entirely on the central connection. Acceptance is claimed with a

@@ -10,7 +10,7 @@ use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Exceptions\Tenancy\DomainAlreadyClaimed;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * Claims a domain for a user before they are sent to Stripe, so two people

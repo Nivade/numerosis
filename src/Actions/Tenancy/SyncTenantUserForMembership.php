@@ -8,7 +8,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Membership;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * Creates the tenant-side `User` row for a new membership, but only once the

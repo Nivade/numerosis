@@ -8,7 +8,7 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 #[Description('Delete tenants by id, or every tenant, dropping each database with the row')]
 #[Signature('tenants:delete

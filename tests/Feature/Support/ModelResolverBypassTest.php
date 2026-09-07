@@ -61,7 +61,7 @@ test('every package call site resolves the 9 config-overridable models through N
     // The resolver itself only reads config and returns a class-string — it
     // never constructs or calls a static method on the models it resolves.
     $exemptFiles = [
-        $srcRoot.'/Support/Numerosis.php',
+        $srcRoot.'/Numerosis.php',
     ];
 
     // A model referencing itself is definitionally not a bypass; excluded

@@ -22,8 +22,8 @@ use Nvade\Numerosis\Database\Factories\Central\InvitationFactory;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationAlreadyAccepted;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationExpired;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Policies\InvitationPolicy;
-use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 

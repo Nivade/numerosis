@@ -13,7 +13,7 @@ use Nvade\Numerosis\Http\Controllers\Controller;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 
 class AcceptInvitationController extends Controller

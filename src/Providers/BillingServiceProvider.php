@@ -14,7 +14,7 @@ use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Listeners\Billing\SyncTenantToStripeOnSave;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 use Override;
 use Stancl\Tenancy\Events\TenantSaved;
 

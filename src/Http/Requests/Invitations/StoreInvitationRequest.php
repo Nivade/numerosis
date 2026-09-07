@@ -11,7 +11,7 @@ use Illuminate\Validation\Validator;
 use Nvade\Numerosis\Data\Invitations\InvitationData;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * No `#[RedirectToRoute]`. In path identification mode the tenant group is

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use LogicException;
 use Nvade\Numerosis\Models\Central\Subscription;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * Cashier's billable behaviour with a polymorphic subscription relation, since

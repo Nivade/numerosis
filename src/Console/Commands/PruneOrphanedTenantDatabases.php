@@ -11,7 +11,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 #[Description('Drop tenant databases that have no matching tenant record, and tenants suspended and never paid for too long')]
 #[Signature('tenancy:prune-orphaned-databases

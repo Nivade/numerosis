@@ -13,8 +13,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Nvade\Numerosis\Database\Factories\PaymentPlanFeatureFactory;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Observers\PaymentPlanFeatureObserver;
-use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 

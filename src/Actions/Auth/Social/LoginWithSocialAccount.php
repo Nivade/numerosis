@@ -13,7 +13,7 @@ use Nvade\Numerosis\Data\Auth\SocialUserData;
 use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\SocialAccount;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * The guest path: resolve-or-create the {@see CentralUser}, create the

@@ -14,8 +14,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Nvade\Numerosis\Database\Factories\Central\PlanFeatureFactory;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Policies\PlanFeaturePolicy;
-use Nvade\Numerosis\Support\Numerosis;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**

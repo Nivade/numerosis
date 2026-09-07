@@ -10,7 +10,7 @@ use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Exceptions\Auth\SocialAccountAlreadyLinked;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\SocialAccount;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * The authed path, attaching the identity to the already-logged-in user.

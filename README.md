@@ -71,7 +71,7 @@ still load, and whatever you configure after `Numerosis::middleware()` wins:
 
 ```php
 // bootstrap/app.php
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(using: Numerosis::routes(...), commands: __DIR__.'/../routes/console.php')

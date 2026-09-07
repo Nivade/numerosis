@@ -101,7 +101,6 @@ use Nvade\Numerosis\Support\Cache\GlobalCache;
 use Nvade\Numerosis\Support\ConfiguredSteps;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\HostConfig;
-use Nvade\Numerosis\Support\Numerosis;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;

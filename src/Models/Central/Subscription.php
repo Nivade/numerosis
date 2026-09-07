@@ -14,8 +14,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Laravel\Cashier\SubscriptionItem;
 use Nvade\Numerosis\Database\Factories\Central\SubscriptionFactory;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Policies\SubscriptionPolicy;
-use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 

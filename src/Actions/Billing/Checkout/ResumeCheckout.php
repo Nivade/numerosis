@@ -8,8 +8,8 @@ use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Services\Billing\Checkout\ResumedCheckout;
-use Nvade\Numerosis\Support\Numerosis;
 use Stripe\Exception\ApiErrorException;
 
 /**

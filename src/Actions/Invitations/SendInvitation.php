@@ -11,7 +11,7 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\User;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * Re-inviting an address reuses its row, which `unique(tenant_id, email)`

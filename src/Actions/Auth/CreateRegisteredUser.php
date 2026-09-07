@@ -9,7 +9,7 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Auth\RegistrationData;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * Fortify's `CreatesNewUsers` slot, bound via `Fortify::createUsersUsing()`

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Support;
+namespace Nvade\Numerosis;
 
 use Closure;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -32,6 +32,8 @@ use Nvade\Numerosis\Http\Middleware\RequirePasswordIfSet;
 use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
 use Nvade\Numerosis\Models\Central;
 use Nvade\Numerosis\Models\Tenant as TenantModels;
+use Nvade\Numerosis\Support\Assets;
+use Nvade\Numerosis\Support\ModelResolver;
 use ReflectionClass;
 use Stancl\Tenancy\Resolvers\PathTenantResolver;
 use WeakMap;
@@ -145,7 +147,7 @@ class Numerosis
             return;
         }
 
-        $routes = dirname(__DIR__, 2).'/routes';
+        $routes = dirname(__DIR__).'/routes';
         $hostWeb = base_path('routes/web.php');
         $hostTenant = base_path('routes/tenant.php');
 
@@ -435,7 +437,7 @@ class Numerosis
      */
     public static function tenantMigrationPath(): string
     {
-        return dirname(__DIR__, 2).'/database/migrations/tenant';
+        return dirname(__DIR__).'/database/migrations/tenant';
     }
 
     /**

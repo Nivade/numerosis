@@ -210,7 +210,7 @@ came after — right up until three of them folded back into core.
   expired-invitation link, i.e. a **core** route reached with no panel
   anywhere — now `class_exists()`-guarded with a session flash fallback.
   `ApplyDefaultBranding` moved (its only consumer is the tenant plugin).
-  `Support\Numerosis::assetTags()` stayed: it is core's public API and the
+  `Numerosis::assetTags()` stayed: it is core's public API and the
   registration behind it is already guarded.
 
 - **A string containing an escaped namespace is invisible to a

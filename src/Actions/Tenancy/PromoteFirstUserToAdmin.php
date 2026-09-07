@@ -9,7 +9,7 @@ use Nvade\Numerosis\Events\Auth\AdminGranted;
 use Nvade\Numerosis\Exceptions\Tenancy\NoPromotableUser;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 class PromoteFirstUserToAdmin
 {

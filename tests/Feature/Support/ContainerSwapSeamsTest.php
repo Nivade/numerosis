@@ -6,8 +6,8 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Exceptions\Handler;
 use Nvade\Numerosis\Contracts\Exceptions\ProvidesExceptionContext;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Services\Exceptions\TenantAwareExceptionContext;
-use Nvade\Numerosis\Support\Numerosis;
 
 /*
  * One swap mechanism, the container: every default numerosis supplies is

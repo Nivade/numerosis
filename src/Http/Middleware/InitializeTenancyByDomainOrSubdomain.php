@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 use Override;
 
 /**

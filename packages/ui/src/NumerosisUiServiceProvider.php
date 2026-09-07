@@ -18,7 +18,7 @@ use Spatie\LaravelPackageTools\PackageServiceProvider;
  * That leaf property is what decided its contents, and it is narrower than
  * the plan's original list. `resources/views/layouts` and
  * `resources/views/partials` were moved here and moved straight back: they
- * name `Nvade\Numerosis\Support\{Numerosis,Features,Routes\RouteNames}`,
+ * name `Nvade\Numerosis\Numerosis`, `Support\{Features,Routes\RouteNames}`,
  * `Models\Central\CentralUser` and `tenancy()`, so shipping them here would
  * have inverted the dependency this package exists to avoid. What is here is
  * `components/ui`, `components/icons`, `flux` and `placeholder-pattern` —

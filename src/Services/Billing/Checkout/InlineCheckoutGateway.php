@@ -17,7 +17,7 @@ use Nvade\Numerosis\Exceptions\Billing\BillingCycleRequired;
 use Nvade\Numerosis\Exceptions\Billing\StripePriceNotConfigured;
 use Nvade\Numerosis\Exceptions\Billing\UnsupportedBillable;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 class InlineCheckoutGateway implements CheckoutGateway
 {

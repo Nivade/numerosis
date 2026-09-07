@@ -133,7 +133,7 @@ what stops the next normalization from shipping undocumented.
 
 - **`php artisan route:cache` does not work, and fails loudly.** Fortify's
   route file is loaded once per central domain *and* once inside the tenant
-  group (`Support\Numerosis::routes()`), because `guest:<guard>` is baked
+  group (`Numerosis::routes()`), because `guest:<guard>` is baked
   into route middleware at registration time and the two groups need
   different guards. Route *names* are therefore duplicated — `login`,
   `register`, `password.*`, `verification.*` — and Laravel refuses to

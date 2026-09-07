@@ -9,7 +9,7 @@ use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Models\User;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * The one place a tenant-side `User` row is created for a central user who

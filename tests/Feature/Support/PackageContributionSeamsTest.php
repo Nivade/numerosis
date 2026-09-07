@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use Nvade\Numerosis\Contracts\Feature;
 use Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Support\HostConfig;
-use Nvade\Numerosis\Support\Numerosis;
 
 use function Pest\Laravel\assertDatabaseHas;
 use function Pest\Laravel\seed;

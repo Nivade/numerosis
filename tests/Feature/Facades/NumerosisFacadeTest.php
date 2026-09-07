@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Nvade\Numerosis\Facades\Numerosis as NumerosisFacade;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 /*
  * Post-boot access only. routes()/middleware()/exceptions()/configure() run

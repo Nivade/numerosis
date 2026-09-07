@@ -11,7 +11,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 #[Description('Release abandoned domain reservations and alert on tenant provisioning that never completed')]
 #[Signature('tenancy:prune-stalled-provisions

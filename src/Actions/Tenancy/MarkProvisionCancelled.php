@@ -8,7 +8,7 @@ use DomainException;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningCancelled;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 class MarkProvisionCancelled
 {

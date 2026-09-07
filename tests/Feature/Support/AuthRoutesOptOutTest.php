@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Tests\Feature\Support;
 
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Tests\TestCase;
 use Override;
 

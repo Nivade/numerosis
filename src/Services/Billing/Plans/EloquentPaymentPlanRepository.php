@@ -9,9 +9,9 @@ use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Exceptions\Billing\PaymentPlanNotFound;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
 use Nvade\Numerosis\Support\Cache\GlobalCache;
-use Nvade\Numerosis\Support\Numerosis;
 
 class EloquentPaymentPlanRepository implements PaymentPlanRepository
 {

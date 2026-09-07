@@ -19,11 +19,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Database\Factories\Central\PaymentPlanFactory;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Observers\PaymentPlanObserver;
 use Nvade\Numerosis\Policies\PaymentPlanPolicy;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
 use Nvade\Numerosis\Support\Cache\GlobalCache;
-use Nvade\Numerosis\Support\Numerosis;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 

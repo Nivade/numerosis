@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Data\Auth;
 use Illuminate\Validation\Rule;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\User;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Optional;
 

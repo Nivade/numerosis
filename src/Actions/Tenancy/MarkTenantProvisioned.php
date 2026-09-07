@@ -9,7 +9,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Tenant as CentralTenant;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 use Stancl\Tenancy\Contracts\Tenant;
 
 /**

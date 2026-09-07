@@ -6,8 +6,8 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Routing\Router;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\NumerosisServiceProvider;
-use Nvade\Numerosis\Support\Numerosis;
 
 /*
  * NumerosisServiceProvider::registerMiddleware() used to re-apply the

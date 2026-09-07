@@ -277,7 +277,7 @@ instance.
 
 ## `Facades\Numerosis` exists, and must never appear in `bootstrap/app.php`
 
-Added 2026-09-05. `Nvade\Numerosis\Facades\Numerosis` accessors `Support\Numerosis::class`, bound as a parameterless singleton in `packageRegistered()`, so a host gets `swap()`/`spy()`/`shouldReceive()`. `Support\Numerosis` needed no change: `Facade::__callStatic()` does `$instance->$method(...)` and PHP permits calling a `static` method through an instance, so every method stays static and every internal call site keeps calling it directly.
+Added 2026-09-05. `Nvade\Numerosis\Facades\Numerosis` accessors `Numerosis::class`, bound as a parameterless singleton in `packageRegistered()`, so a host gets `swap()`/`spy()`/`shouldReceive()`. `Numerosis` needed no change: `Facade::__callStatic()` does `$instance->$method(...)` and PHP permits calling a `static` method through an instance, so every method stays static and every internal call site keeps calling it directly.
 
 Measured 2026-09-05: **Mockery does intercept originally-`static` methods reached this way** — it generates an instance method on a subclass, which wins over the inherited static one. `tests/Feature/Facades/NumerosisFacadeTest.php` asserts it, so a Mockery upgrade changing that is loud rather than silent.
 

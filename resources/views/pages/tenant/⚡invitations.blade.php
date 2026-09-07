@@ -4,7 +4,7 @@ use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Nvade\Numerosis\Models\Central\Invitation;
-use Nvade\Numerosis\Support\Numerosis;
+use Nvade\Numerosis\Numerosis;
 
 new #[Layout('numerosis-layouts::app')]
 class extends Component
