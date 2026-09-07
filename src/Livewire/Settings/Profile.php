@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Livewire\Settings;
 
 use Illuminate\Support\Facades\Session;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Auth\ResendVerificationNotification;
 use Nvade\Numerosis\Actions\Auth\UpdateUserProfile;
 use Nvade\Numerosis\Concerns\RequiresAuthenticatedUser;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 
 #[Layout('numerosis-layouts::app')]
@@ -36,20 +34,10 @@ class Profile extends Component
     {
         $user = $this->authenticatedUser();
 
-        $validated = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
-
-            'email' => [
-                'required',
-                'string',
-                'lowercase',
-                'email',
-                'max:255',
-                Rule::unique(CentralUser::class)->ignore($user->id),
-            ],
+        UpdateUserProfile::run($user, [
+            'name' => $this->name,
+            'email' => $this->email,
         ]);
-
-        UpdateUserProfile::run($user, $validated);
 
         $this->dispatch('profile-updated', name: $user->name);
     }

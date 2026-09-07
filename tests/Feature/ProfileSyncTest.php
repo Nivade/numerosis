@@ -96,7 +96,11 @@ class ProfileSyncTest extends TestCase
 
             $this->actingAsTenantUser($tenantUser);
 
-            UpdateUserPassword::run($tenantUser, 'new-password');
+            UpdateUserPassword::run($tenantUser, [
+                'current_password' => 'old-password',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ]);
 
             // Verify tenant DB updated
             $tenantUser->refresh();

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Settings;
 
-use Illuminate\Support\Collection;
-use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
@@ -26,26 +24,19 @@ class Password extends Component
 
     public function updatePassword(): void
     {
-        /** @var Collection<string, array<int, PasswordRule|string>> $rules */
-        $rules = new Collection([
-            'password' => ['required', 'string', PasswordRule::defaults(), 'confirmed'],
-        ]);
-
         $user = $this->authenticatedUser();
 
-        if ($user->password) {
-            $rules->prepend(['required', 'string', 'current_password'], 'current_password');
-        }
-
         try {
-            $validated = $this->validate($rules->all());
+            UpdateUserPassword::run($user, [
+                'current_password' => $this->current_password,
+                'password' => $this->password,
+                'password_confirmation' => $this->password_confirmation,
+            ]);
         } catch (ValidationException $e) {
             $this->reset('current_password', 'password', 'password_confirmation');
 
             throw $e;
         }
-
-        UpdateUserPassword::run($user, $validated['password']);
 
         $this->reset('current_password', 'password', 'password_confirmation');
 

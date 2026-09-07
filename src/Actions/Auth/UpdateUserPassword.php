@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Auth;
 
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\UpdatesUserPasswords;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Auth\UpdatePasswordData;
@@ -13,17 +14,20 @@ use Nvade\Numerosis\Models\User;
 /**
  * Fortify's `UpdatesUserPasswords` slot, bound via
  * `Fortify::updateUserPasswordsUsing()`. `PasswordController` validates
- * nothing itself, so `update()` must, which `UpdatePasswordData` does on
- * entry, including the `current_password` check the Livewire settings screen
- * already performs inline for itself.
+ * nothing itself, so this must, and `handle()` forwards to `update()` so
+ * `::run()` cannot reach the write without the `current_password` and strength
+ * checks.
  */
 class UpdateUserPassword implements UpdatesUserPasswords
 {
     use AsAction;
 
-    public function handle(User $user, string $password): void
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    public function handle(User $user, array $input): void
     {
-        $this->applyPassword($user, $password);
+        $this->update($user, $input);
     }
 
     /**
@@ -31,15 +35,13 @@ class UpdateUserPassword implements UpdatesUserPasswords
      */
     public function update(User $user, array $input): void
     {
-        $data = UpdatePasswordData::validateAndCreate($input);
+        /** @var array<string, mixed> $validated */
+        $validated = Validator::make($input, UpdatePasswordData::rulesFor($user))->validate();
 
-        $this->applyPassword($user, $data->password);
-    }
+        $data = UpdatePasswordData::from($validated);
 
-    private function applyPassword(User $user, string $password): void
-    {
         $user->update([
-            'password' => Hash::make($password),
+            'password' => Hash::make($data->password),
         ]);
     }
 }

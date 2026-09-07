@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\UpdatesUserProfileInformation;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Auth\UpdateProfileData;
@@ -14,8 +14,8 @@ use Spatie\LaravelData\Optional;
 /**
  * Fortify's `UpdatesUserProfileInformation` slot, bound via
  * `Fortify::updateUserProfileInformationUsing()`. `ProfileInformationController`
- * validates nothing itself, so `update()` must, which `UpdateProfileData` does
- * on entry.
+ * validates nothing itself, so this must, and `handle()` forwards to `update()`
+ * so `::run()` cannot reach the write unvalidated.
  */
 class UpdateUserProfile implements UpdatesUserProfileInformation
 {
@@ -34,15 +34,16 @@ class UpdateUserProfile implements UpdatesUserProfileInformation
      */
     public function update(User $user, array $input): void
     {
-        $data = UpdateProfileData::validateAndCreate($input);
+        /** @var array<string, mixed> $validated */
+        $validated = Validator::make($input, UpdateProfileData::rulesFor($user))->validate();
+
+        $data = UpdateProfileData::from($validated);
 
         if (! $data->name instanceof Optional) {
             $user->name = $data->name;
         }
 
         if (! $data->email instanceof Optional) {
-            $this->ensureEmailIsAvailable($user, $data->email);
-
             $user->email = $data->email;
         }
 
@@ -52,17 +53,5 @@ class UpdateUserProfile implements UpdatesUserProfileInformation
         }
 
         $user->save();
-    }
-
-    private function ensureEmailIsAvailable(User $user, string $email): void
-    {
-        $taken = $user->newQuery()
-            ->where('email', $email)
-            ->whereKeyNot($user->getKey())
-            ->exists();
-
-        throw_if($taken, ValidationException::withMessages([
-            'email' => trans('validation.unique', ['attribute' => 'email']),
-        ]));
     }
 }
