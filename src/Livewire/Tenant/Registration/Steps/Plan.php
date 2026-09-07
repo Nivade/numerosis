@@ -11,6 +11,7 @@ use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\Plan as PlanContract;
+use Nvade\Numerosis\Contracts\Tenancy\HasTransientState;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
@@ -18,9 +19,27 @@ use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Spatie\LivewireWizard\Components\StepComponent;
 
-class Plan extends StepComponent
+class Plan extends StepComponent implements HasTransientState
 {
     public string $payment_plan = '';
+
+    /**
+     * The Stripe secrets and the UI flags. Checkout re-derives the secrets
+     * from the pending provision row, so a session copy would only ever be
+     * stale, and one fewer secret in the session is one fewer to tamper with.
+     *
+     * @return list<string>
+     */
+    public static function transientStateKeys(): array
+    {
+        return [
+            'checkoutClientSecret',
+            'checkoutPublishableKey',
+            'isSubmitting',
+            'checkoutError',
+            'wizardCompleted',
+        ];
+    }
 
     /**
      * Cannot be narrowed to `BillingCycle`. The wizard re-mounts each step with

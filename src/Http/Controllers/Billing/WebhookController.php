@@ -10,32 +10,27 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Laravel\Cashier\Cashier;
-use Laravel\Cashier\Exceptions\IncompletePayment;
 use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookController;
 use Laravel\Cashier\Subscription;
-use Nvade\Numerosis\Actions\Billing\Checkout\FinalizeCheckoutSubscription;
-use Nvade\Numerosis\Actions\Billing\Checkout\ResolveAttachedPaymentMethod;
+use Nvade\Numerosis\Actions\Billing\Checkout\SettleAttachedPaymentMethod;
 use Nvade\Numerosis\Actions\Billing\FindTenantByStripeCustomer;
-use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
+use Nvade\Numerosis\Actions\Billing\ResolvePlanChangeDirection;
 use Nvade\Numerosis\Actions\Tenancy\RestoreTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
+use Nvade\Numerosis\Actions\Tenancy\SuspendUnlessEntitled;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\Billing\BillingCycle;
-use Nvade\Numerosis\Enums\Billing\PlanChangeDirection;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\SubscriptionCancelled;
 use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
-use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Subscription as CentralSubscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Numerosis;
 use Override;
-use Stripe\Exception\ApiErrorException;
 use Symfony\Component\HttpFoundation\Response;
 
 class WebhookController extends CashierWebhookController
@@ -150,7 +145,7 @@ class WebhookController extends CashierWebhookController
 
         $handle = function () use ($candidates, $billable, $paymentMethodId): Response {
             foreach ($candidates as $pending) {
-                if ($this->finalizeIfPaymentMethodMatches($pending, $billable, $paymentMethodId)) {
+                if (SettleAttachedPaymentMethod::run($pending, $billable, $paymentMethodId)) {
                     break;
                 }
             }
@@ -168,47 +163,6 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * Settles one open checkout if the attached PaymentMethod is the one its
-     * SetupIntent generated. Returns whether this checkout was the match, so
-     * the caller stops at the first one.
-     */
-    private function finalizeIfPaymentMethodMatches(
-        PendingTenantProvision $pending,
-        CentralUser $billable,
-        string $paymentMethodId,
-    ): bool {
-        if ($pending->stripe_setup_intent_id === null) {
-            return false;
-        }
-
-        $setupIntent = Cashier::stripe()->setupIntents->retrieve(
-            $pending->stripe_setup_intent_id,
-            ['expand' => ['payment_method']],
-        );
-
-        $paymentMethod = ResolveAttachedPaymentMethod::run($setupIntent);
-
-        if ($paymentMethod === null || $paymentMethod->id !== $paymentMethodId) {
-            return false;
-        }
-
-        SyncBillingAddress::run($billable, $paymentMethod);
-
-        try {
-            FinalizeCheckoutSubscription::run($pending, $paymentMethod, $billable);
-        } catch (IncompletePayment $e) {
-            // The first invoice needs a 3DS challenge and there is no browser
-            // to show it in. Acknowledge; the customer is prompted on their
-            // next visit.
-            report($e);
-        } catch (ApiErrorException $e) {
-            report($e);
-        }
-
-        return true;
-    }
-
-    /**
      * @param  array{data: array{object: array{id?: string, customer?: string, current_period_end?: int}}}  $payload
      */
     #[Override]
@@ -220,7 +174,7 @@ class WebhookController extends CashierWebhookController
         $tenant = FindTenantByStripeCustomer::run($stripeSubscription['customer'] ?? null);
 
         if ($tenant !== null) {
-            $this->suspendUnlessStillEntitled($tenant);
+            SuspendUnlessEntitled::run($tenant);
 
             $periodEnd = $stripeSubscription['current_period_end'] ?? null;
 
@@ -281,7 +235,7 @@ class WebhookController extends CashierWebhookController
                 $tenant,
                 $previousPriceId,
                 $newPriceId,
-                $this->planChangeDirection($previousPriceId, $newPriceId),
+                ResolvePlanChangeDirection::run($previousPriceId, $newPriceId),
                 (string) $tenant->getTenantKey(),
             ));
         }
@@ -308,30 +262,6 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * Compared within whichever billing cycle the new price belongs to, so a
-     * monthly figure is never weighed against a yearly one. Falls back to
-     * `Upgrade` when either price resolves to no configured plan, since every
-     * consumer of this is copy or a heuristic and a directionless event serves
-     * them worse than an optimistic one.
-     */
-    private function planChangeDirection(string $fromPriceId, string $toPriceId): PlanChangeDirection
-    {
-        $from = Billing::planForPrice($fromPriceId);
-        $to = Billing::planForPrice($toPriceId);
-
-        $cycle = $to?->priceId(BillingCycle::Yearly) === $toPriceId
-            ? BillingCycle::Yearly
-            : BillingCycle::Monthly;
-
-        $fromPrice = $from?->price($cycle);
-        $toPrice = $to?->price($cycle);
-
-        return $fromPrice !== null && $toPrice !== null && $toPrice < $fromPrice
-            ? PlanChangeDirection::Downgrade
-            : PlanChangeDirection::Upgrade;
-    }
-
-    /**
      * The dunning notice, sent while still in Stripe's retry/grace period.
      * Suspension itself happens in handleCustomerSubscriptionUpdated once
      * Stripe gives up.
@@ -347,26 +277,6 @@ class WebhookController extends CashierWebhookController
         ]);
 
         return $this->successMethod();
-    }
-
-    /**
-     * Suspends only once no subscription still grants access.
-     *
-     * The question is whether anything valid remains, never whether something
-     * just ended: a tenant holding several subscriptions must not be locked out
-     * of a workspace they are still paying for.
-     */
-    private function suspendUnlessStillEntitled(Tenant $tenant): void
-    {
-        $stillEntitled = $tenant->subscriptions()
-            ->get()
-            ->contains(fn (Subscription $subscription): bool => $subscription->valid());
-
-        if ($stillEntitled) {
-            return;
-        }
-
-        SuspendTenant::run($tenant);
     }
 
     private function notifyOfFailedPaymentFor(?string $customerId): void

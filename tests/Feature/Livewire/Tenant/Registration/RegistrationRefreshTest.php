@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Tests\Feature\Livewire\Tenant\Registration;
 
 use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
 use Nvade\Numerosis\Livewire\Tenant\Registration;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
@@ -13,7 +14,9 @@ use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\TechnicalSetup;
 use Nvade\Numerosis\Support\Tenancy\RegistrationState;
+use Nvade\Numerosis\Tests\Support\HostSecretStep;
 use Nvade\Numerosis\Tests\TestCase;
+use ReflectionMethod;
 
 class RegistrationRefreshTest extends TestCase
 {
@@ -92,6 +95,35 @@ class RegistrationRefreshTest extends TestCase
         $this->assertArrayNotHasKey('checkoutPublishableKey', $planState);
         $this->assertArrayNotHasKey('isSubmitting', $planState);
         $this->assertArrayNotHasKey('checkoutError', $planState);
+    }
+
+    /**
+     * The parent asks each configured step which of its own state is
+     * transient, so a host step gets the same treatment as the shipped one.
+     * Against the old code — five `Plan` property names hardcoded in the
+     * parent — `hostSecret` reached the session.
+     */
+    public function test_a_host_step_declares_its_own_transient_state(): void
+    {
+        Livewire::component('host-secret-step', HostSecretStep::class);
+
+        Config::set('numerosis.tenancy.registration.steps', [
+            CompanyInfo::class,
+            TechnicalSetup::class,
+            HostSecretStep::class,
+        ]);
+
+        $wizard = new Registration;
+        $wizard->allStepState = [
+            'host-secret-step' => ['keep_me' => 'kept', 'hostSecret' => 'sk_live_do_not_persist'],
+        ];
+
+        $persist = new ReflectionMethod($wizard, 'stateToPersist');
+
+        /** @var array<string, array<string, mixed>> $state */
+        $state = $persist->invoke($wizard);
+
+        $this->assertSame(['keep_me' => 'kept'], $state['host-secret-step']);
     }
 
     /**

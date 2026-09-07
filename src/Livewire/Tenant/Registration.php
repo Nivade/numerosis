@@ -10,8 +10,8 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Nvade\Numerosis\Contracts\Tenancy\HasTransientState;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
 use Nvade\Numerosis\Support\Tenancy\RegistrationState;
 use Override;
 use Spatie\LivewireWizard\Components\WizardComponent;
@@ -107,27 +107,31 @@ class Registration extends WizardComponent
     }
 
     /**
-     * The wizard state worth persisting: everything except Stripe secrets and
-     * request-local UI flags. Checkout re-derives those from the pending
-     * provision row, so a session copy would only ever be stale, and one fewer
-     * thing in the session is one fewer thing to tamper with.
+     * The wizard state worth persisting: everything each step declares
+     * transient is dropped. Which state that is belongs to the step, not to
+     * this component — see {@see HasTransientState}.
      *
      * @return array<string, array<string, mixed>>
      */
     private function stateToPersist(): array
     {
         $state = $this->allStepState;
+        $finder = resolve('livewire.finder');
 
-        $planAlias = resolve('livewire.finder')->normalizeName(Plan::class);
+        foreach ($this->steps() as $step) {
+            if (! is_a($step, HasTransientState::class, true)) {
+                continue;
+            }
 
-        if ($planAlias !== null && isset($state[$planAlias]) && is_array($state[$planAlias])) {
-            unset(
-                $state[$planAlias]['checkoutClientSecret'],
-                $state[$planAlias]['checkoutPublishableKey'],
-                $state[$planAlias]['isSubmitting'],
-                $state[$planAlias]['checkoutError'],
-                $state[$planAlias]['wizardCompleted'],
-            );
+            $alias = $finder->normalizeName($step);
+
+            if ($alias === null || ! isset($state[$alias]) || ! is_array($state[$alias])) {
+                continue;
+            }
+
+            foreach ($step::transientStateKeys() as $key) {
+                unset($state[$alias][$key]);
+            }
         }
 
         return $state;
