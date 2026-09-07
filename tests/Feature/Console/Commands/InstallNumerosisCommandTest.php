@@ -10,8 +10,10 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Testing\PendingCommand;
+use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Support\Assets;
 use Nvade\Numerosis\Tests\TestCase;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
@@ -561,6 +563,73 @@ class InstallNumerosisCommandTest extends TestCase
         $this->install()
             ->doesntExpectOutputToContain('MAXMIND_LICENSE_KEY')
             ->assertSuccessful();
+    }
+
+    /** @verifies verifyTenancyBootstrappers */
+    public function test_it_fails_when_a_package_bootstrapper_is_missing(): void
+    {
+        /** @var list<string> $bootstrappers */
+        $bootstrappers = Config::array('tenancy.bootstrappers');
+
+        Config::set('tenancy.bootstrappers', array_values(array_diff(
+            $bootstrappers,
+            [AuthGuardBootstrapper::class],
+        )));
+
+        $this->install()
+            ->expectsOutputToContain('tenancy.bootstrappers')
+            ->assertFailed();
+    }
+
+    /** @verifies verifyTenantAuthProvider */
+    public function test_it_fails_when_the_tenant_provider_names_no_class(): void
+    {
+        Config::set('auth.providers.tenant.model', 'App\Models\NotAClass');
+
+        $this->install()
+            ->expectsOutputToContain('auth.providers.tenant.model')
+            ->assertFailed();
+    }
+
+    /** @verifies verifyTenantAuthProvider */
+    public function test_it_fails_when_the_tenant_password_broker_is_missing(): void
+    {
+        Config::set('auth.passwords.tenant', null);
+
+        $this->install()
+            ->expectsOutputToContain('auth.passwords.tenant')
+            ->assertFailed();
+    }
+
+    /** @verifies verifyActivityLogTable */
+    public function test_it_fails_when_the_activity_log_table_does_not_exist(): void
+    {
+        Config::set('activitylog.table_name', 'no_such_activity_table');
+
+        $this->install()
+            ->expectsOutputToContain('no_such_activity_table')
+            ->assertFailed();
+    }
+
+    /** @verifies verifyTenantFilesystemRoot */
+    public function test_it_fails_when_the_tenant_filesystem_root_drops_the_placeholder(): void
+    {
+        Config::set('tenancy.filesystem.root_override.local', '/var/www/storage/app/private/');
+
+        $this->install()
+            ->expectsOutputToContain('%storage_path%')
+            ->assertFailed();
+    }
+
+    /** @verifies verifyFortifyFeatures */
+    public function test_it_fails_when_fortify_enables_a_feature_with_no_views(): void
+    {
+        Config::set('numerosis.auth.manage_fortify_features', false);
+        Config::set('fortify.features', [FortifyFeatures::twoFactorAuthentication()]);
+
+        $this->install()
+            ->expectsOutputToContain('two-factor-authentication')
+            ->assertFailed();
     }
 
     /**

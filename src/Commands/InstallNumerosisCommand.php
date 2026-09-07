@@ -10,10 +10,14 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Nvade\Numerosis\Support\Assets;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Numerosis;
@@ -33,6 +37,44 @@ class InstallNumerosisCommand extends Command
                         {--no-seed : Skip the package\'s central seeders (roles/permissions and example plans) — run by default}';
 
     public $description = 'Publish Numerosis config and model stubs, then verify the host is wired correctly';
+
+    /**
+     * Every config key `HostConfig` can write, mapped to the check that
+     * covers it.
+     *
+     * The doctor and `HostConfig` are two hand-written surfaces over the same
+     * key set, and a key added to one was silently unverified by the other.
+     * `HostConfigDoctorCoverageTest` drives `HostConfig::apply()` from a blank
+     * slate and fails when anything it writes is missing here, so the drift is
+     * caught rather than discovered.
+     *
+     * `auth.passwords.*` is listed by prefix: the default broker's name is the
+     * host's to choose.
+     *
+     * @var array<string, string>
+     */
+    public const array VERIFIED_CONFIG_KEYS = [
+        'activitylog.table_name' => 'verifyActivityLogTable',
+        'auth.guards.tenant' => 'verifyAuthGuards',
+        'auth.passwords.' => 'verifyAuthPasswordBroker',
+        'auth.providers.tenant' => 'verifyTenantAuthProvider',
+        'auth.providers.users.model' => 'verifyTenancyModels',
+        'database.connections.central' => 'verifyDatabaseConnections',
+        'fortify.features' => 'verifyFortifyFeatures',
+        'queue.failed.database' => 'verifyFailedJobsConnection',
+        'session.domain' => 'verifySessionDomain',
+        'tenancy.bootstrappers' => 'verifyTenancyBootstrappers',
+        'tenancy.central_domains' => 'verifyCentralDomains',
+        'tenancy.central_user_model' => 'verifyTenancyModels',
+        'tenancy.database.central_connection' => 'verifyDatabaseConnections',
+        'tenancy.domain_model' => 'verifyTenancyModels',
+        'tenancy.filesystem.disks' => 'verifyLivewireUploadDisk',
+        'tenancy.filesystem.root_override.local' => 'verifyTenantFilesystemRoot',
+        'tenancy.migration_parameters' => 'verifyTenantMigrationPath',
+        'tenancy.seeder_parameters' => 'verifyTenancyModels',
+        'tenancy.tenant_model' => 'verifyTenancyModels',
+        'tenancy.tenant_user_model' => 'verifyTenancyModels',
+    ];
 
     /** @var list<string> */
     private array $failures = [];
@@ -54,12 +96,17 @@ class InstallNumerosisCommand extends Command
         $this->components->info('Verifying host configuration');
 
         $this->verifyTenancyModels();
+        $this->verifyTenancyBootstrappers();
         $this->verifyCentralDomains();
         $this->verifyDatabaseConnections();
         $this->verifyLockWaitTimeout();
         $this->verifySessionDomain();
         $this->verifyAuthGuards();
         $this->verifyAuthPasswordBroker();
+        $this->verifyTenantAuthProvider();
+        $this->verifyActivityLogTable();
+        $this->verifyTenantFilesystemRoot();
+        $this->verifyFortifyFeatures();
         $this->verifySocialRoutes();
         $this->verifyFailedJobsConnection();
         $this->verifyLivewireUploadDisk();
@@ -232,6 +279,114 @@ class InstallNumerosisCommand extends Command
 
         if (is_string($seeder) && ! class_exists($seeder)) {
             $this->failures[] = "config('tenancy.seeder_parameters')['--class'] names '{$seeder}', which does not exist — tenant provisioning then fails inside the queued chain, so the tenant row appears and provisioned_at never gets set.";
+        }
+    }
+
+    /**
+     * The three bootstrappers this package cannot run without. Each failure is
+     * silent and looks like something else: the tenant guard resolving central
+     * users, permission lookups reading the central tables, and password
+     * resets going to the wrong broker.
+     */
+    private function verifyTenancyBootstrappers(): void
+    {
+        /** @var list<string> $bootstrappers */
+        $bootstrappers = Config::array('tenancy.bootstrappers', []);
+
+        $required = [
+            SpatiePermissionsBootstrapper::class => 'permission lookups then read the central roles and permissions inside tenant context',
+            AuthGuardBootstrapper::class => 'the tenant guard then resolves against the central users table',
+            PasswordBrokerBootstrapper::class => 'password resets in tenant context then use the central broker',
+        ];
+
+        foreach ($required as $class => $consequence) {
+            if (! in_array($class, $bootstrappers, true)) {
+                $this->failures[] = "config('tenancy.bootstrappers') is missing {$class} — {$consequence}.";
+            }
+        }
+    }
+
+    /**
+     * The tenant guard's own provider and broker. `verifyAuthPasswordBroker()`
+     * only covers whichever broker `auth.defaults.passwords` names, which is
+     * the central one.
+     */
+    private function verifyTenantAuthProvider(): void
+    {
+        $provider = Config::get('auth.providers.tenant');
+        $model = is_array($provider) ? ($provider['model'] ?? null) : null;
+
+        if (! is_string($model) || ! class_exists($model)) {
+            $this->failures[] = "config('auth.providers.tenant.model') must name a class that exists — the tenant guard otherwise resolves nobody, and every tenant route redirects to login.";
+        }
+
+        $broker = Config::get('auth.passwords.tenant');
+
+        if (! is_array($broker)) {
+            $this->failures[] = "config('auth.passwords.tenant') is missing — PasswordBrokerBootstrapper points tenant password resets at it, and an unset broker throws from Password::broker().";
+        }
+    }
+
+    /**
+     * spatie/laravel-activitylog reads its table name from config on every
+     * write, so a name with no table behind it fails at the first logged
+     * event rather than at boot.
+     */
+    private function verifyActivityLogTable(): void
+    {
+        $table = Config::get('activitylog.table_name');
+
+        if (! is_string($table) || $table === '') {
+            $this->failures[] = "config('activitylog.table_name') is unset — the activity log writes to a table named from this key.";
+
+            return;
+        }
+
+        $connection = Config::string('tenancy.database.central_connection', 'central');
+
+        if (! Schema::connection($connection)->hasTable($table)) {
+            $this->failures[] = "config('activitylog.table_name') is '{$table}', which does not exist on the '{$connection}' connection.";
+        }
+    }
+
+    /**
+     * stancl's stock tenant root predates Laravel 11 moving the `local` disk
+     * to `storage/app/private`. Pointed at the pre-11 path, every tenant read
+     * and write lands one directory above where the disk actually is.
+     */
+    private function verifyTenantFilesystemRoot(): void
+    {
+        $override = Config::get('tenancy.filesystem.root_override.local');
+
+        if (! is_string($override) || ! str_contains($override, '%storage_path%')) {
+            $this->failures[] = "config('tenancy.filesystem.root_override.local') must contain the '%storage_path%' placeholder — stancl substitutes the tenant's own storage path into it, and a literal path sends every tenant to the same directory.";
+
+            return;
+        }
+
+        $root = Config::string('filesystems.disks.local.root', '');
+
+        if ($root !== '' && ! str_ends_with(rtrim($override, '/'), rtrim(basename($root), '/'))) {
+            $this->failures[] = "config('tenancy.filesystem.root_override.local') is '{$override}', which does not end in the same directory as config('filesystems.disks.local.root') ('{$root}') — tenant reads and writes then land beside the disk rather than inside it.";
+        }
+    }
+
+    /**
+     * Two-factor and passkeys have neither views nor columns here, so enabling
+     * either registers routes that 500 on the first request.
+     */
+    private function verifyFortifyFeatures(): void
+    {
+        /** @var list<string> $features */
+        $features = Config::array('fortify.features', []);
+
+        $unsupported = array_values(array_intersect($features, [
+            FortifyFeatures::twoFactorAuthentication(),
+            FortifyFeatures::passkeys(),
+        ]));
+
+        if ($unsupported !== []) {
+            $this->failures[] = "config('fortify.features') enables ".implode(', ', $unsupported).', which this package ships neither views nor columns for. Remove them, or supply both yourself and set numerosis.auth.manage_fortify_features to false.';
         }
     }
 
