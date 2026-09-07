@@ -12,7 +12,7 @@ use Nvade\Numerosis\Contracts\Tenancy\CreatesTenant;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
-use Nvade\Numerosis\Support\ConfiguredSteps;
+use Nvade\Numerosis\Services\Tenancy\ConfiguredSteps;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

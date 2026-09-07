@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Contracts\Tenancy;
 
 /**
  * A registration wizard step contributing part of the tenant's identity into
- * the wizard's shared state. `Support\ConfiguredSteps` fails the boot
+ * the wizard's shared state. `Services\Tenancy\ConfiguredSteps` fails the boot
  * when no step in `numerosis.tenancy.registration.steps` implements this,
  * since such a list still renders and surfaces as a blank name or domain
  * inside the queued `ProvisionTenant` chain.

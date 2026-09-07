@@ -10,7 +10,7 @@ use Nvade\Numerosis\Contracts\NamedFeature;
 use Nvade\Numerosis\Features\Concerns\IsNamedFeature;
 use Nvade\Numerosis\Livewire\Tenant\Registration as WizardRegistration;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps as Wizard;
-use Nvade\Numerosis\Support\ConfiguredSteps;
+use Nvade\Numerosis\Services\Tenancy\ConfiguredSteps;
 
 /**
  * The self-serve tenant registration wizard and its route.

@@ -22,7 +22,7 @@ use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
-use Nvade\Numerosis\Resolvers\PreservingPathTenantResolver;
+use Nvade\Numerosis\Services\Tenancy\PreservingPathTenantResolver;
 use Override;
 use Stancl\JobPipeline\JobPipeline;
 use Stancl\Tenancy\Events\BootstrappingTenancy;

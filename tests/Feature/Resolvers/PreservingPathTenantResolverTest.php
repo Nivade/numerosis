@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Resolvers;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Route;
-use Nvade\Numerosis\Resolvers\PreservingPathTenantResolver;
+use Nvade\Numerosis\Services\Tenancy\PreservingPathTenantResolver;
 use Nvade\Numerosis\Tests\TestCase;
 use Stancl\Tenancy\Resolvers\PathTenantResolver;
 

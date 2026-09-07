@@ -19,7 +19,7 @@ uses(PathModeTestCase::class, RefreshDatabase::class);
  * package's identification middleware finds no `tenant` parameter left —
  * tenancy is initialized, the parameter is gone, and the route that needs it
  * to regenerate its own URL throws several layers from the cause.
- * `Nvade\Numerosis\Resolvers\PreservingPathTenantResolver` overrides both
+ * `Nvade\Numerosis\Services\Tenancy\PreservingPathTenantResolver` overrides both
  * methods to leave the parameter alone.
  *
  * Until now that necessity was source-derived and untested.

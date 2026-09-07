@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Resolvers;
+namespace Nvade\Numerosis\Services\Tenancy;
 
 use Override;
 use Stancl\Tenancy\Contracts\Tenant;

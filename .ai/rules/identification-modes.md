@@ -1,6 +1,6 @@
 ---
 paths:
-  - 'src/Resolvers/**'
+  - 'src/Services/Tenancy/**'
   - 'src/Http/Middleware/InitializeLivewireTenancyByPath.php'
   - 'config/numerosis.php'
 ---
@@ -102,7 +102,7 @@ so by the time Filament's own `Filament\Http\Middleware\IdentifyTenant` runs,
 `$request->route()->hasParameter('tenant')` is **false** — and that middleware
 returns `$next($request)` early on exactly that condition. Result: tenancy is
 initialized, `Filament::getTenant()` is null, and nothing errors at the point
-of the mistake. `Nvade\Numerosis\Resolvers\PreservingPathTenantResolver`
+of the mistake. `Nvade\Numerosis\Services\Tenancy\PreservingPathTenantResolver`
 overrides both methods to leave the parameter alone, bound over
 `PathTenantResolver` in `TenancyServiceProvider::register()`. Nothing in this
 package relies on stancl's removal of it.
