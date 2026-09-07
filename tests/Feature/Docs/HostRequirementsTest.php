@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Docs;
 
-use Nvade\Numerosis\Commands\InstallNumerosisCommand;
+use Nvade\Numerosis\Console\Commands\InstallNumerosisCommand;
 use Nvade\Numerosis\Tests\TestCase;
 use ReflectionClass;
 use ReflectionMethod;

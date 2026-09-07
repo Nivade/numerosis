@@ -1,7 +1,7 @@
 ---
 paths:
   - 'config/**'
-  - 'src/Commands/InstallNumerosisCommand.php'
+  - 'src/Console/Commands/InstallNumerosisCommand.php'
 ---
 # Integrating Numerosis Into an Existing Host
 

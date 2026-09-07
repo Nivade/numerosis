@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Commands;
+namespace Nvade\Numerosis\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
@@ -628,7 +628,7 @@ class InstallNumerosisCommand extends Command
         // Not allFiles(): the migrator globs each registered path without
         // recursing, so `database/migrations/tenant` (published tenant
         // migrations, a deliberate copy) is a different path with no clash.
-        foreach (File::files(dirname(__DIR__, 2).'/database/migrations/central') as $file) {
+        foreach (File::files(dirname(__DIR__, 3).'/database/migrations/central') as $file) {
             $packageMigrations[$file->getFilenameWithoutExtension()] = true;
         }
 
