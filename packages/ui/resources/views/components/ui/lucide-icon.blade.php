@@ -1,5 +1,11 @@
 {{-- Credit: Lucide (https://lucide.dev) --}}
 
+{{--
+    The Flux icon chrome every lucide fallback in `flux/icon/` shares: the
+    variant sizing, the stroke width, and the `<svg>` attribute block. Each
+    icon file passes only its own paths, as the slot.
+--}}
+
 @props([
     'variant' => 'outline',
 ])
@@ -38,6 +44,5 @@
     aria-hidden="true"
     data-slot="icon"
 >
-    <path d="m7 15 5 5 5-5" />
-    <path d="m7 9 5-5 5 5" />
+    {{ $slot }}
 </svg>

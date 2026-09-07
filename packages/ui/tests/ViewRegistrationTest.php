@@ -41,6 +41,24 @@ class ViewRegistrationTest extends TestCase
         $this->blade('<flux:icon.layout-grid />')->assertSee('svg', false);
     }
 
+    /**
+     * Each icon file is its own paths and nothing else; the svg chrome around
+     * them is `ui.lucide-icon`. Asserting a path, the stroke width the variant
+     * picks and the size class is what makes that split visible — before it,
+     * every icon repeated all three and nothing rendered them in a test.
+     */
+    public function test_an_icon_renders_its_paths_inside_the_shared_chrome(): void
+    {
+        $this->blade('<flux:icon.layout-grid variant="micro" />')
+            ->assertSee('<rect width="7" height="7" x="3" y="3" rx="1" />', false)
+            ->assertSee('stroke-width="2.5"', false)
+            ->assertSee('size-4', false);
+
+        $this->blade('<flux:icon.folder-git-2 />')
+            ->assertSee('<circle cx="20" cy="19" r="2" />', false)
+            ->assertSee('stroke-width="2"', false);
+    }
+
     /*
      * The property that decides what may live here at all — no view or class
      * here may name Nvade\Numerosis, call tenancy(), or generate a named route
