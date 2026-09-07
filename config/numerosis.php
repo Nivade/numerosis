@@ -74,8 +74,8 @@ return [
         TurnstileFeature::class,
 
         // OAuth login: provider buttons, connected-accounts, the callback
-        // route. Needs credentials in config/services.php plus an entry in
-        // numerosis.social.providers.
+        // route. Needs credentials in config/services.php; which providers
+        // exist is Enums\Auth\SocialProvider, not config.
         SocialLoginFeature::class,
 
         // Team invitations: invite/accept flow, InvitationResource, the

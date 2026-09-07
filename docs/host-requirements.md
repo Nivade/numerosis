@@ -164,15 +164,15 @@ what stops the next normalization from shipping undocumented.
   `runningInConsole()` stays true and the tenant panel's `{tenant}` wildcard
   is always registered; verify that one by hand against a real web server.
   See `.ai/rules/identification-modes.md`.
-- **`ryangjchandler/laravel-cloudflare-turnstile` is `suggest`, not
-  `require`.** Skip it and `TurnstileFeature::isEnabled()`'s `class_exists()`
-  check keeps the feature silently off — `<x-numerosis::turnstile-field />`
-  still resolves and renders nothing. `spatie/laravel-one-time-passwords` and
-  `spatie/laravel-activitylog` are `require`: `App\Models\User` (or your own
-  subclass) always composes `HasOneTimePasswords`/`LogsActivity` directly, no
-  compat shim involved. Passwordless (OTP) login is still gated by
-  `numerosis.features`'s `OneTimePasswordFeature`; activity logging on
-  `Tenant\User` runs unconditionally.
+- **You install no optional packages.** `ryangjchandler/laravel-cloudflare-turnstile`,
+  `spatie/laravel-one-time-passwords` and `spatie/laravel-activitylog` are all
+  `require`, so `App\Models\User` (or your own subclass) always composes
+  `HasOneTimePasswords`/`LogsActivity` directly, with no compat shim involved.
+  Turnstile and passwordless (OTP) login are gated by `numerosis.features`'s
+  `TurnstileFeature`/`OneTimePasswordFeature`; with Turnstile off,
+  `<x-numerosis::turnstile-field />` still resolves and renders nothing, so
+  forms need no conditional. Activity logging on `Tenant\User` runs
+  unconditionally.
 - **Don't name a guard literally `central` alongside `web`.** Two session
   guards over one model meant a user could authenticate under one and not
   the other. `web` *is* the central guard; `numerosis.auth.guards.central`

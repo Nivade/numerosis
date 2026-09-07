@@ -73,22 +73,23 @@ defaults.
   `test_core_names_no_filament_symbol()` for `src/`, `config/`, `routes/`,
   `resources/`, `database/` and `workbench/`. The asymmetry that used to
   matter here (`extends`/`implements`/`use <Trait>` resolve eagerly, type
-  hints do not) is still the live rule for
-  `ryangjchandler/laravel-cloudflare-turnstile`, the one package core still
-  `suggest`s — see `.ai/rules/optional-dependencies.md`.
+  hints do not) has no live instance: `ryangjchandler/laravel-cloudflare-turnstile`
+  became a `require` in 2026-09-05 and core `suggest`s nothing now. See
+  `.ai/rules/optional-dependencies.md` before adding one back.
 
 - **One seam per optional package, not one `class_exists()` per call site.**
   The module system was the worked example — seven consumers, all asking
   `ModuleSystemFeature::available()` — and it is deleted (Phase 2). The rule
-  is what survives: give an optional dependency exactly one `available()`/
-  `isEnabled()` predicate. `ryangjchandler/laravel-cloudflare-turnstile`
-  (since Phase 6) is the only remaining case — `spatie/laravel-one-time-passwords`
-  and `spatie/laravel-activitylog` moved to `require` 2026-09-05.
+  is what survives: give an optional dependency exactly one `available()`
+  predicate. There is no remaining case —
+  `ryangjchandler/laravel-cloudflare-turnstile` joined
+  `spatie/laravel-one-time-passwords` and `spatie/laravel-activitylog` in
+  `require` on 2026-09-05.
 
-- **80 migrations live in core** (63 central, 17 tenant), including
-  9 for `activity_log` (4 central, 5 tenant — **not** symmetrical;
-  the tenant side carries an `upgrade_activitylog` migration with no central
-  counterpart) and 2 for `one_time_passwords`. They stay in core even where
+- **37 migrations live in core** (24 central, 13 tenant), including
+  7 for `activity_log` (2 central since the 2026-09-07 squash, 5 tenant —
+  **not** symmetrical; the tenant side carries an `upgrade_activitylog`
+  migration with no central counterpart) and 2 for `one_time_passwords`. They stay in core even where
   the code that reads them moved, because the tables have to exist wherever
   core does — `Models\User` composes the OTP trait, `Tenant\User` composes
   `LogsActivity`, both `require` since 2026-09-05, no compat shim.

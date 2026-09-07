@@ -1,6 +1,7 @@
 # Simplification follow-ups
 
-**Status:** Not executed. Written 2026-09-05, from a whole-codebase review
+**Status:** Executed 2026-09-07, all eight phases. Written 2026-09-05, from a
+whole-codebase review
 (`src/`, `resources/`, `routes/`, `config/`, `database/`) across four angles —
 reuse, simplification, efficiency, altitude.
 
@@ -9,7 +10,38 @@ same session and is Phase 0 below. This file is the remainder: the findings
 whose fixes change behaviour, need their own tests, or reach well outside the
 area they were found in.
 
-Branch at the time of writing: `fix/pr-review-remediation`.
+Branch at the time of writing, and of execution: `fix/pr-review-remediation`.
+
+## What was executed differently
+
+Recorded so the diff and this file can be read together.
+
+- **2.1** — `DefaultUnpaidTenantQuota`'s `!== 'active'` turned out to be
+  deliberate, not the drift the finding assumed:
+  `.ai/rules/billing-checkout.md` already says "unpaid there means anything
+  short of a confirmed active subscription, trials included". It keeps its own
+  predicate and now says why. The other four sites read
+  `Subscription::SETTLED_STATUSES`.
+- **2.3** — narrowing on `User&CentralUserModel` was not enough: checkout also
+  calls Cashier's `Billable`, which no interface declares.
+  `Contracts\Billing\BillableUser` is what the sites narrow on instead.
+- **2.4 and 5.6** landed together, as 2.4 anticipated. Both assertions live in
+  `Support\ConfiguredSteps` and run on console boots only. 5.6's "not free"
+  note was wrong: nothing covered the `LogicException` path, so there was no
+  test to move.
+- **3.2** — the parent asks step *classes*, so `HasTransientState::transientStateKeys()`
+  is static.
+- **5.4** — the instance memo the finding asked for is not there: the global
+  cache key is invalidated when a domain changes and
+  `TenantPrimaryDomainCacheTest` pins that a caller sees it within the request.
+  The view reads once into a local instead. The eager load is also absent, and
+  the method says why — stancl's `InvalidatesResolverCache` loads `domains` on
+  `saved`, before the tenant has one.
+- **5.7** — dropped, as the finding itself suggested.
+- **6** — the table refactor was not done. The coverage test was, and writing
+  it found five keys the doctor did not check; those five checks were added.
+- **8.5** — `config-consolidation.md` had in fact been executed, so it moved to
+  `archive/` rather than being corrected in place.
 
 ## How to use this
 

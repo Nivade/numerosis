@@ -37,13 +37,17 @@ regenerates and discards. The facts are the same; only the home changed.
   auth is not a precondition; it sits inside the authenticated group because
   that is the surface worth gating, not because it needs a guard.
 
-- **There are two alias registries and they must not drift.**
-  `NumerosisServiceProvider::registerMiddlewareAliases()`
-  (`src/NumerosisServiceProvider.php:467-486`) calls `Route::aliasMiddleware()`
-  for the real boot; `Numerosis::middleware()` / `::middlewareAliases()`
-  (`src/Support/Numerosis.php:401-435`) return the same names for a host
-  wiring them into its own `bootstrap/app.php`. A middleware added to one and
-  not the other works in this repo and fails in a host, or the reverse. See
+- **One alias registry, and it is structured that way on purpose.**
+  `Numerosis::middlewareAliases()` / `::middlewareGroups()` are the single
+  source: `NumerosisServiceProvider::registerMiddleware()` iterates them for
+  the real boot, and `Numerosis::middleware()` iterates the same two for a host
+  wiring them into its own `bootstrap/app.php`. There is no second copy.
+
+  **Keep it that way.** These were two hand-written lists once, and a
+  middleware added to one and not the other worked in this repo and failed in
+  a host, or the reverse — with nothing red either way, since neither surface
+  is exercised by the other's tests. A new alias belongs in
+  `middlewareAliases()` and nowhere else. See
   `.ai/rules/package-host-bootstrap.md` for why `Numerosis::middleware()` is
   fatal on a real non-Testbench boot.
 

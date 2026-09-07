@@ -70,7 +70,7 @@
     "suggest": {
         "sentry/sentry-laravel": "Enables TagsSentryScopeWithTenant; guarded by app()->bound('sentry') where used.",
         "laravel/telescope": "Adds a scheduled telescope:prune entry and is why 'telescope/*' is CSRF-exempt; both are class_exists-guarded.",
-        "socialiteproviders/zoho": "A Zoho OAuth driver, since Socialite ships none. Gated the same as every other provider by numerosis.social.providers/Support\\Social\\ConfiguredProviders."
+        "socialiteproviders/zoho": "A Zoho OAuth driver, since Socialite ships none. Which providers exist and which are configured is Enums\\Auth\\SocialProvider, not config."
     },
     "autoload": {
         "psr-4": {

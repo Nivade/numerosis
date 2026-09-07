@@ -83,15 +83,17 @@ paths:
   **Ask which phase reads a key before deciding where to set it:** baked into
   a route = registration time, read by a controller = request time.
 
-- **(audit) A `TenancyBootstrapper` must be a container singleton if it
+- **A `TenancyBootstrapper` must be a container singleton if it
   remembers anything.** `Tenancy::getBootstrappers()` is
   `array_map('app', config('tenancy.bootstrappers'))`, resolved afresh on
   *both* initialize and end — so an unbound class hands `revert()` a
   different instance than `bootstrap()` wrote to, and whatever it captured is
-  gone. `AuthGuardBootstrapper` has never escaped this; it only looks
-  correct because `revert()` falls back to `?? Context::Central->guard()`.
-  `PasswordBrokerBootstrapper` is registered with `$this->app->singleton()`
-  in `packageRegistered()` for this reason.
+  gone. **Fixed 2026-09-07:** `AuthGuardBootstrapper` is registered with
+  `$this->app->singleton()` in `packageRegistered()`, next to
+  `PasswordBrokerBootstrapper`, which had been the only one bound that way.
+  Before that it only looked correct because `revert()` falls back to
+  `?? Context::Central->guard()`. Any new bootstrapper that remembers
+  anything needs the same registration.
 
 - **(audit) The login limiter is tenant-keyed, and the test for it needs
   `tenancy()->end()`.** `authThrottleKey()` mixes `tenancy()->tenant` into

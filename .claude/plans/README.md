@@ -24,17 +24,18 @@ code disagree, the code wins.
 
 Re-sorted 2026-09-04, validating every file against the tree rather than
 against its own Status line. 37 files moved to `archive/`, 1 to `abandoned/`,
-4 left live.
+4 left live. Re-checked 2026-09-07: `config-consolidation.md` was in fact
+executed — `config/` holds one `numerosis.php` and no `config/numerosis/`
+directory exists — so it moved to `archive/`, and
+`simplification-followups.md` joined it once its eight phases landed.
 
 ## Live
 
 | Plan | State |
 |---|---|
-| `config-consolidation.md` | **Not executed.** Written 2026-09-04. Thirteen `config/numerosis/*.php` partials collapse into one publishable file. `config/numerosis/` still holds the partials |
 | `domain-events-expansion.md` | **Not executed.** Approved 2026-09-04. Runs **before** `invitations-social-redesign.md`. Confirmed unstarted: no `src/Actions/Tenancy/EnsureTenantUserExists.php` |
 | `invitations-social-redesign.md` | **Not executed.** Approved 2026-09-04. Depends on `domain-events-expansion.md` landing first |
 | `post-extraction-review.md` | **Mostly done; three items survive.** Its Live status block is stale — read the correction at the top of the file, not the table |
-| `simplification-followups.md` | **Phase 0 applied, phases 1–8 not executed.** Written 2026-09-05 from a whole-codebase review. Phase 0 is the mechanical cleanup that already landed; the rest is behavioural, needs its own tests, or is doc/rule staleness. Its Phase 8.5 corrects the `config-consolidation.md` row below |
 
 ## Abandoned
 

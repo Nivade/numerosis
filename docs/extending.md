@@ -240,12 +240,13 @@ touching core.
 
 ## Optional dependencies core still leans on
 
-Core keeps a `class_exists()` seam for the one package it still `suggest`s
-rather than `require`s: `ryangjchandler/laravel-cloudflare-turnstile`
-(`TurnstileFeature::isEnabled()`). `spatie/laravel-one-time-passwords` and
-`spatie/laravel-activitylog` moved back to `require` 2026-09-05 — the package
-is always present, `numerosis.features`/`Tenant\User`'s trait use are the only
-switches. **One seam per optional package, not one per call site** — give the
+None, currently. `ryangjchandler/laravel-cloudflare-turnstile` was promoted to
+`require` alongside `spatie/laravel-one-time-passwords` and
+`spatie/laravel-activitylog` in 2026-09-05, so every package core names is
+always present and `numerosis.features`/`Tenant\User`'s trait use are the only
+switches. The rule below is what to follow when a `suggest` comes back.
+
+**One seam per optional package, not one per call site** — give the
 optional dependency exactly one predicate and have every consumer ask it. One
 unguarded call site is a fatal, not a disabled feature. `extends`,
 `implements` and `use <Trait>` resolve at class-declaration time, so never
