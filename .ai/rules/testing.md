@@ -744,6 +744,31 @@ rest of this file is read:
   databases with no matching tenant record. Written after ~300 had
   accumulated. Useful for cleaning up after crashed run.
 
+## `RefreshDatabase` fires after-commit callbacks one level early (2026-09-07)
+
+`Illuminate\Foundation\Testing\DatabaseTransactionsManager` overrides
+`afterCommitCallbacksShouldBeExecuted($level)` to `$level === 1`, not `0`, and
+`callbackApplicableTransactions()` skips the first
+`count($connectionsTransacting)` pending transactions. It assumes level 1 is
+the test's own wrapping transaction.
+
+**So you cannot test "an outer transaction rolled back, therefore the
+`ShouldDispatchAfterCommit` event never fired" by wrapping the call in your own
+`DB::transaction()`.** The inner application transaction commits at level 1 and
+the callbacks run right there; the outer rollback cannot take them back. Cost
+an hour on 2026-09-07 chasing what looked like a broken fix and was a correct
+one. Note also that `Event::fake()` routes deferral through
+`Container::getInstance()->make('db.transactions')`, which is a different
+question again — assert with a real `Event::listen()` closure.
+
+**Make the code's own transaction the one that fails.** For
+`AcceptInvitationTest` that is a `Membership::saved()` listener that throws,
+which leaves `AcceptInvitation`'s transaction as the root being rolled back.
+`Membership::created()` does *not* work: a listener registered from a test runs
+*before* the package's observer, because `Model::observe()` only runs when the
+model class boots, so the throw aborts before the code under test executes —
+and both tests passed against deliberately unfixed code until that was found.
+
 ## Why tenant creation is fast (`Tests\Support\CloneTenantSchema`)
 
 - **`QUEUE_CONNECTION=sync` makes tenant creation synchronous**, so every

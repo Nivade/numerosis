@@ -12,6 +12,20 @@ Every event under src/Events carries scalars (ids) alongside any model — Seria
 
 Events\Auth\UserAccountDeleting is the exception that proves the scalars rule: it carries the CentralUser deliberately so a listener can read $user->tenants before the delete, which only works synchronously. A queued listener on it unserializes after the delete committed and gets ModelNotFoundException.
 
+## `DB::transaction()` and `DB::afterCommit()` read the default connection, which is not the central one
+
+`tenancy.database.central_connection` defaults to `central` while `database.default` is the host's own (`mysql` here), and they are two `Connection` objects with two PDO handles and two transaction stacks even when they point at the same physical database. So `DB::transaction()` around a write to a `CentralConnection` model opens a transaction that does not cover it: the writes commit as they go and a throw rolls back nothing. Measured 2026-09-07 — `AcceptInvitation` had this shape, and a test that rolled its transaction back still found the membership row.
+
+**Take the transaction off the model, not off the facade**: `$invitation->getConnection()->transaction(...)`, and `$membership->getConnection()->afterCommit(...)`. `AcceptInvitation` does. `Actions\Auth\Social\LoginWithSocialAccount::handle()` still uses `DB::transaction()` as of 2026-09-07 and has the defect its own comment says the transaction prevents.
+
+Same trap for the deferral itself: `Connection::afterCommit()` hands the callback to *that connection's* transactions manager, so calling it on the default connection while the open transaction is on `central` runs the callback immediately.
+
+## The tenant-side write in `MembershipObserver::created()` waits for the commit
+
+`SyncTenantUserForMembership` writes the *tenant* database, which no rollback on the central connection can undo — so it is wrapped in `$membership->getConnection()->afterCommit()`. Outside a transaction that callback runs immediately, which is what `AddTenantOwner`'s provisioning step depends on (it needs the row before `PromoteFirstUserToAdmin` reads it).
+
+`MemberJoined` and `MemberRemoved` implement `ShouldDispatchAfterCommit` for the same reason, matching `InvitationAccepted`, which fires two statements later in the same transaction and always had it.
+
 ## Pivot events fire only from the Syncable side
 CentralUser::tenants() and Tenant::users() are both ->using(Membership::class), so attach() goes through attachUsingCustomClass() -> newPivot()->save() and Membership's model events fire either way. Stancl's sync does not: Membership extends TenantPivot, whose boot() hooks saved -> triggerSyncEvent() **only when $pivot->pivotParent instanceof Syncable**. CentralUser is (via ResourceSyncing); Tenant is not. So $user->tenants()->attach($tenant) reaches stancl's queued UpdateSyncedResource and $tenant->users()->attach($globalId) does not — a difference invisible at the call site and, in a test, the difference between Queue::fake() being load-bearing and being decorative. A raw DB::table('memberships')->insert() bypasses everything, observer included, silently.
 

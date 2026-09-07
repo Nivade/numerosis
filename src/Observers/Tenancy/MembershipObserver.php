@@ -19,7 +19,14 @@ class MembershipObserver
 
     public function created(Membership $membership): void
     {
-        SyncTenantUserForMembership::run($membership);
+        // The tenant database is a second connection, so a rollback on the
+        // central one cannot undo this write. Deferred on the membership's own
+        // connection, never `DB::afterCommit()`, which reads the default one
+        // and would fire immediately. Outside a transaction it still runs
+        // immediately, which is what provisioning relies on.
+        $membership->getConnection()->afterCommit(function () use ($membership): void {
+            SyncTenantUserForMembership::run($membership);
+        });
 
         // An attach() with no pivot attributes leaves `role` null on the
         // in-memory model, even though the column defaults to 'member'.

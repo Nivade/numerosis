@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Invitations;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantMember;
@@ -17,9 +16,11 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 
 /**
- * Runs entirely on the central connection. Acceptance is claimed with a
- * conditional `UPDATE ... WHERE accepted_at IS NULL` before the membership is
- * attached, so of two concurrent POSTs the loser matches zero rows and throws
+ * Runs entirely on the central connection, and takes its transaction on that
+ * connection rather than the default one, which is a different PDO handle with
+ * its own transaction stack. Acceptance is claimed with a conditional
+ * `UPDATE ... WHERE accepted_at IS NULL` before the membership is attached, so
+ * of two concurrent POSTs the loser matches zero rows and throws
  * `InvitationAlreadyAccepted`, rolling back inside this transaction rather
  * than reaching `AddTenantMember`.
  *
@@ -31,7 +32,7 @@ class AcceptInvitation
 
     public function handle(Invitation $invitation, CentralUser $user): Invitation
     {
-        return DB::transaction(function () use ($invitation, $user): Invitation {
+        return $invitation->getConnection()->transaction(function () use ($invitation, $user): Invitation {
             $invitation->assertClaimable();
 
             // An account with no address of its own matches no invitation.
