@@ -23,7 +23,11 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('global_id')->unique()->nullable();
-            $table->string('email')->unique();
+
+            // Nullable because an OAuth provider may return no address. The
+            // unique index permits many NULLs, so identity for those accounts
+            // is `(provider, provider_id)` on `social_accounts`.
+            $table->string('email')->nullable()->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
             $table->rememberToken();

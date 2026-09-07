@@ -23,7 +23,7 @@ use Stancl\Tenancy\Contracts\Syncable;
 /**
  * @property int $id
  * @property string $name
- * @property string $email
+ * @property string|null $email
  * @property string $password
  * @property string $global_id
  * @property Carbon|null $email_verified_at
@@ -62,6 +62,12 @@ abstract class User extends Authenticatable implements MustVerifyEmail, Syncable
     #[Override]
     public function sendEmailVerificationNotification(): void
     {
+        // Nothing to send to: the provider this account registered through
+        // returned no address.
+        if ($this->email === null) {
+            return;
+        }
+
         resolve(SendsEmailVerificationNotification::class)->send($this);
     }
 }

@@ -34,8 +34,9 @@ class AcceptInvitation
         return DB::transaction(function () use ($invitation, $user): Invitation {
             $invitation->assertClaimable();
 
+            // An account with no address of its own matches no invitation.
             throw_unless(
-                Str::lower($user->email) === Str::lower($invitation->email),
+                $user->email !== null && Str::lower($user->email) === Str::lower($invitation->email),
                 InvitationEmailMismatch::class,
                 'This invitation was sent to a different email address.',
             );

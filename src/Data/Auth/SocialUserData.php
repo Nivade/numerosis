@@ -35,8 +35,8 @@ class SocialUserData extends Data
     ) {}
 
     /**
-     * The profile and credential columns of a `SocialAccount` row, as every
-     * write path in `Actions\Auth\Social` sets them.
+     * The profile and credential columns of a `SocialAccount` row, as the
+     * create paths in `Actions\Auth\Social` set them.
      *
      * @return array{name: ?string, email: ?string, avatar_url: ?string, token: ?string, refresh_token: ?string, token_expires_at: ?CarbonImmutable}
      */
@@ -46,6 +46,20 @@ class SocialUserData extends Data
             'name' => $this->name,
             'email' => $this->email,
             'avatar_url' => $this->avatarUrl,
+            ...$this->credentialAttributes(),
+        ];
+    }
+
+    /**
+     * The credential columns alone. A returning login writes only these: a
+     * provider that omits a profile field it sent before would otherwise
+     * blank the stored copy.
+     *
+     * @return array{token: ?string, refresh_token: ?string, token_expires_at: ?CarbonImmutable}
+     */
+    public function credentialAttributes(): array
+    {
+        return [
             'token' => $this->token,
             'refresh_token' => $this->refreshToken,
             'token_expires_at' => $this->expiresAt,

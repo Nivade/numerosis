@@ -246,12 +246,48 @@ any of it.
   of authenticating them. Regression test:
   `tests/Feature/Auth/Social/SocialLoginTest::test_an_unverified_provider_email_refuses_to_link_and_redirects_to_login`.
 - **`$emailVerified` is per-provider, decided in `ResolveSocialUser`, and
-  defaults to `false`.** Only Google and GitHub expose whether the address
-  was verified in their raw payload (`isEmailVerified()`); every other
+  defaults to `false`.** Only Google reads a raw-payload key
+  (`email_verified`/`verified_email`). **GitHub proves it a different way, and
+  the arm that read `$raw['email_verified']` for it was dead:** GitHub's
+  `/user` response carries no such key — verification lives on `/user/emails`
+  — so that arm evaluated `false` for every GitHub login. It now reads
+  `$user->getEmail() !== null`, which is sound only because Socialite's
+  `GithubProvider` defaults to the `user:email` scope and its
+  `getEmailByToken()` returns an address only when `primary && verified`. **A
+  host that narrows GitHub's scopes breaks that inference**, and nothing in
+  this package can see the scopes from `ResolveSocialUser`. Every other
   provider — including Discord and Facebook — cannot prove it, so this stays
-  `false` for them. Adding a provider does not get free "verified" status
-  just because the provider *has* a verified-email field; wire the specific
-  raw-payload key `isEmailVerified()` reads before trusting it.
+  `false`. Adding a provider does not get free "verified" status just because
+  the provider *has* a verified-email field; wire the specific raw-payload key
+  before trusting it.
+
+- **`users.email` is nullable, on both connections.** A provider can return no
+  address at all (GitHub with no verified primary, a Facebook user who
+  declined the permission), and `LoginWithSocialAccount::createUser()` writes
+  whatever it got — so the column was a NOT NULL insert waiting to 500 the
+  callback. Three consequences worth knowing before you touch anything keyed
+  on the address:
+  - **The unique index no longer prevents duplicate accounts** for these
+    users. MySQL and Postgres both permit many NULLs. Identity for a
+    passwordless account is `(provider, provider_id)` on `social_accounts`,
+    which *is* unique, and that is the only thing holding "one identity, one
+    account" up.
+  - **`User::sendEmailVerificationNotification()` returns early on a null
+    address.** Both callers (`UpdateUserProfile`'s `isDirty('email')` branch,
+    `ResendVerificationNotification`) funnel through it, so the guard lives
+    there rather than at each site. No route carries the `verified`
+    middleware, so such an account is not locked out of anything.
+  - **`AcceptInvitation` refuses an account with no address.** It cannot
+    match `invitations.email`, which is NOT NULL, so it throws
+    `InvitationEmailMismatch` rather than comparing null.
+
+- **`LoginWithSocialAccount::refreshTokens()` writes
+  `SocialUserData::credentialAttributes()`, never `accountAttributes()`.** The
+  wider array carries `name`/`email`/`avatar_url`, so a returning login from a
+  provider that has since stopped sending a field blanked the stored copy —
+  the null-email case above turned that into silent data loss on an address
+  the account still depended on. Create paths (`createSocialAccount()`,
+  `LinkSocialAccount`) use the wide array; the refresh path must not.
 - **`SocialUserData` is the only shape anything downstream of
   `ResolveSocialUser` sees**; Socialite's own
   `Laravel\Socialite\Contracts\User` must not leak past that action. Its

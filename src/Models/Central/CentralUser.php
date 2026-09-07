@@ -33,7 +33,7 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 /**
  * @property int $id
  * @property string $name
- * @property string $email
+ * @property string|null $email
  * @property string $password
  * @property string $global_id
  * @property Carbon|null $email_verified_at

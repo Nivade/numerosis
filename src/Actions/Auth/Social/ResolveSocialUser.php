@@ -39,8 +39,7 @@ class ResolveSocialUser
     }
 
     /**
-     * Per-provider: GitHub and Google expose whether the address was
-     * verified, others do not; where it is not knowable, this is `false`.
+     * Per-provider, and `false` wherever verification is not knowable.
      * Getting this wrong is the account-takeover vector
      * {@see LoginWithSocialAccount} guards against.
      */
@@ -50,7 +49,10 @@ class ResolveSocialUser
 
         return match ($provider) {
             SocialProvider::Google => (bool) ($raw['email_verified'] ?? $raw['verified_email'] ?? false),
-            SocialProvider::GitHub => (bool) ($raw['email_verified'] ?? false),
+            // GitHub's `/user` payload has no verification field. Socialite's
+            // driver requests `user:email` and returns only the primary
+            // *verified* address, so a non-null one is verified.
+            SocialProvider::GitHub => $user->getEmail() !== null,
             default => false,
         };
     }

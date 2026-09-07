@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Tests\Feature\Auth\Social;
 
 use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Actions\Auth\Social\ResolveSocialUser;
@@ -91,6 +92,85 @@ class SocialLoginTest extends TestCase
         $response->assertRedirect(route('login'));
         $this->assertGuest(Config::string('numerosis.auth.guards.central'));
         $this->assertSame(0, SocialAccount::where('email', $email)->count());
+    }
+
+    /**
+     * A GitHub account with no verified primary address, or a Facebook user
+     * who declined the email permission, reaches the callback with a null
+     * address. `users.email` is nullable so this is an account rather than a
+     * 500 on a NOT NULL insert.
+     */
+    public function test_a_provider_that_returns_no_email_creates_an_account_and_logs_in(): void
+    {
+        $providerId = 'google-noemail-'.uniqid();
+
+        ResolveSocialUser::mock()->shouldReceive('handle')->andReturn(
+            $this->socialData(providerId: $providerId, email: null, emailVerified: false),
+        );
+
+        $this->get('/auth/google/callback')->assertRedirect();
+
+        $account = SocialAccount::where('provider_id', $providerId)->sole();
+        $user = CentralUser::findOrFail($account->user_id);
+
+        $this->assertAuthenticatedAs($user, Config::string('numerosis.auth.guards.central'));
+        $this->assertNull($user->email);
+        $this->assertNull($user->email_verified_at);
+    }
+
+    /**
+     * Two such accounts coexist: the unique index on a nullable column
+     * permits many NULLs, which is what makes the case above safe to repeat.
+     */
+    public function test_two_accounts_without_an_email_can_both_exist(): void
+    {
+        // One mock with two consecutive returns: a second `shouldReceive()`
+        // on the same mock never matches, the first expectation answers both.
+        ResolveSocialUser::mock()->shouldReceive('handle')->andReturn(
+            $this->socialData(providerId: 'google-noemail-a-'.uniqid(), email: null, emailVerified: false),
+            $this->socialData(providerId: 'google-noemail-b-'.uniqid(), email: null, emailVerified: false),
+        );
+
+        $this->get('/auth/google/callback')->assertRedirect();
+
+        // Still signed in, the callback would take its connect-a-provider
+        // branch instead of registering a second account.
+        Auth::guard(Config::string('numerosis.auth.guards.central'))->logout();
+
+        $this->get('/auth/google/callback')->assertRedirect();
+
+        $this->assertSame(2, CentralUser::whereNull('email')->count());
+    }
+
+    /**
+     * A provider that hands back an address on first login and omits it later
+     * must not blank the stored one: `refreshTokens()` writes credentials, not
+     * the profile.
+     */
+    public function test_a_later_callback_without_an_email_keeps_the_stored_address(): void
+    {
+        $providerId = 'google-refresh-'.uniqid();
+        $email = 'refresh-'.uniqid().'@example.com';
+
+        $user = CentralUser::factory()->create(['email' => $email]);
+        SocialAccount::create([
+            'user_id' => $user->getKey(),
+            'provider' => SocialProvider::Google,
+            'provider_id' => $providerId,
+            'email' => $email,
+            'name' => 'Original Name',
+        ]);
+
+        ResolveSocialUser::mock()->shouldReceive('handle')->andReturn(
+            $this->socialData(providerId: $providerId, email: null, emailVerified: false),
+        );
+
+        $this->get('/auth/google/callback')->assertRedirect();
+
+        $account = SocialAccount::where('provider_id', $providerId)->sole();
+
+        $this->assertSame($email, $account->email);
+        $this->assertSame($email, $user->fresh()?->email);
     }
 
     public function test_an_unconfigured_provider_404s_at_routing(): void

@@ -138,6 +138,6 @@ class LoginWithSocialAccount
 
     private function refreshTokens(SocialAccount $account, SocialUserData $data): void
     {
-        $account->update($data->accountAttributes());
+        $account->update($data->credentialAttributes());
     }
 }

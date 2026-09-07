@@ -15,6 +15,6 @@ class UserAccountDeleted
 
     public function __construct(
         public readonly string $globalId,
-        public readonly string $email,
+        public readonly ?string $email,
     ) {}
 }

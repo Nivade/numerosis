@@ -27,7 +27,9 @@ class Profile extends Component
         $user = $this->authenticatedUser();
 
         $this->name = $user->name;
-        $this->email = $user->email;
+        // Empty for an OAuth account whose provider returned no address. The
+        // field is `required` on submit, so saving one is how they gain it.
+        $this->email = $user->email ?? '';
     }
 
     public function updateProfileInformation(): void

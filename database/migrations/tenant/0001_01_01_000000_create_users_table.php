@@ -17,7 +17,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('global_id')->nullable();
-            $table->string('email')->unique();
+
+            // Nullable because the central user this row mirrors may have
+            // registered through a provider that returned no address.
+            $table->string('email')->nullable()->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
             $table->rememberToken();
