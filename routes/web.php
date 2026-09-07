@@ -24,7 +24,7 @@ use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
 use Nvade\Numerosis\Livewire\Settings\Password as PasswordSettings;
 use Nvade\Numerosis\Livewire\Settings\Profile as ProfileSettings;
 use Nvade\Numerosis\Livewire\Tenant\Registration;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\FeatureRegistry;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 
 // The central guard's name is a host-overridable config key, so it is read
@@ -58,11 +58,11 @@ Route::post(
 
 // Self-serve tenant registration wizard. Deliberately outside the `auth:web`
 // group below — signing up is how a user gets an account in the first place.
-if (Features::enabled(RegistrationWizardFeature::NAME)) {
+if (FeatureRegistry::enabled(RegistrationWizardFeature::NAME)) {
     Route::livewire('/get-started', Registration::class)->name('tenants.create');
 }
 
-if (Features::enabled(SocialLoginFeature::NAME)) {
+if (FeatureRegistry::enabled(SocialLoginFeature::NAME)) {
     // An unconfigured provider 404s at routing rather than exploding inside
     // a Socialite driver. With zero providers configured, `whereIn` would
     // otherwise receive an empty list and build an empty (invalid) regex —
@@ -81,7 +81,7 @@ if (Features::enabled(SocialLoginFeature::NAME)) {
     });
 }
 
-if (Features::enabled(InvitationsFeature::NAME)) {
+if (FeatureRegistry::enabled(InvitationsFeature::NAME)) {
     Route::middleware(['signed', 'throttle:6,1'])->group(function () use ($centralAuth): void {
         Route::get('/invitations/{invitation}', ShowInvitationController::class)
             ->name(RouteNames::invitationShow());
@@ -99,11 +99,11 @@ Route::middleware([$centralAuth])->group(function () {
     Route::livewire('settings/profile', ProfileSettings::class)->name('settings.profile');
 
     // The password page has nowhere to send a user who cannot set a password.
-    if (Features::enabled(PasswordResetFeature::NAME)) {
+    if (FeatureRegistry::enabled(PasswordResetFeature::NAME)) {
         Route::livewire('settings/password', PasswordSettings::class)->name('settings.password');
     }
 
-    if (Features::enabled(SocialLoginFeature::NAME)) {
+    if (FeatureRegistry::enabled(SocialLoginFeature::NAME)) {
         Route::livewire('settings/connected-accounts', ConnectedAccounts::class)
             ->name('settings.connected-accounts');
 

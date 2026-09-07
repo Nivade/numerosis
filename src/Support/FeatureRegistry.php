@@ -16,7 +16,7 @@ use Nvade\Numerosis\Contracts\NamedFeature;
  * finished, so it is read from config and never tracked as boot state.
  * {@see self::forceForTesting()} must be called before routes are registered.
  */
-final class Features
+final class FeatureRegistry
 {
     /** @var list<class-string<Feature>>|null */
     private static ?array $forcedForTesting = null;

@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Features;
 
 use Illuminate\Support\Facades\Route;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\FeatureRegistry;
 use Nvade\Numerosis\Tests\TestCase;
 
 class SocialLoginDisabledTest extends TestCase
 {
     protected function setUp(): void
     {
-        Features::forceForTesting([]);
+        FeatureRegistry::forceForTesting([]);
 
         parent::setUp();
     }

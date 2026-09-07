@@ -183,7 +183,7 @@ already use. Read the delegate for the seam, the owner for the mechanism.
 | `Support\ModelResolver` | model resolution, the model↔factory name mapping and its memoization cache. Behind `Numerosis::{model,factoryNameFor,modelNameFor,resetModelCache}()` |
 | `Support\Assets` | the `numerosis-assets` publish map, the published `public/vendor/numerosis` paths, and the `<link>`/`<script>` tags for the package's CSS/JS. Behind `Numerosis::{assetSourcePaths,assetTags}()`. The only one of these that reaches for `Vite` and the filesystem |
 | `Support\HostConfig` | every config value normalized for a host at boot. One row per key in `host-requirements.md` |
-| `Support\Features` | the feature registry — merges `config('numerosis.features')` with any `Features::register()` call a host makes from its own provider |
+| `Support\FeatureRegistry` | the feature registry — merges `config('numerosis.features')` with any `FeatureRegistry::register()` call a host makes from its own provider |
 | `Support\Domains` | apex / central / tenant hostname derivation from `APP_URL`. **Nothing in it may call a facade** — it is invoked from `config/numerosis.php`, during `LoadConfiguration`, before `RegisterFacades` |
 
 ## Configuration

@@ -14,7 +14,7 @@ use Nvade\Numerosis\Enums\Auth\SocialProvider;
 use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
 use Nvade\Numerosis\Models\Central\SocialAccount;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\FeatureRegistry;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -328,7 +328,7 @@ class SocialLoginTest extends TestCase
 
     public function test_the_guest_screens_render_neither_when_the_feature_is_off(): void
     {
-        Features::forceForTesting([]);
+        FeatureRegistry::forceForTesting([]);
 
         foreach (['/login', '/register'] as $uri) {
             $this->get($uri)

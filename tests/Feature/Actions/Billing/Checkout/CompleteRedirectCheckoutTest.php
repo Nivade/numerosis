@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Facades\Billing;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\FeatureRegistry;
 use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -115,7 +115,7 @@ class CompleteRedirectCheckoutTest extends TestCase
      */
     public function test_it_redirects_home_instead_of_the_wizard_when_the_wizard_is_disabled(): void
     {
-        Features::forceForTesting([]);
+        FeatureRegistry::forceForTesting([]);
 
         $victim = CentralUser::factory()->create();
         $attacker = CentralUser::factory()->create();

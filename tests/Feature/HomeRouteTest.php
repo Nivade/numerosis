@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Tests\Feature;
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\FeatureRegistry;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -24,7 +24,7 @@ class HomeRouteTest extends TestCase
 {
     protected function setUp(): void
     {
-        Features::forceForTesting([]);
+        FeatureRegistry::forceForTesting([]);
 
         parent::setUp();
     }

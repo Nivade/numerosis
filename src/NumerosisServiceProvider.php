@@ -99,7 +99,7 @@ use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Support\Assets;
 use Nvade\Numerosis\Support\Cache\GlobalCache;
 use Nvade\Numerosis\Support\ConfiguredSteps;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\FeatureRegistry;
 use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 use Spatie\LaravelPackageTools\Package;
@@ -279,7 +279,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
      * The provisioning list's shape, on console boots only.
      *
      * The registration list is checked the same way from
-     * {@see \Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::bootstrap()},
+     * {@see Features\Tenancy\RegistrationWizardFeature::bootstrap()},
      * which is where its default is filled in.
      */
     protected function assertConfiguredStepsAreWellShaped(): void
@@ -296,12 +296,12 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
     /**
      * A configured feature whose class is not installed logs one warning and
-     * is skipped. It also reads as disabled through `Features::enabled()`, so
+     * is skipped. It also reads as disabled through `FeatureRegistry::enabled()`, so
      * the warning is the only symptom.
      */
     protected function bootstrapFeatures(): void
     {
-        foreach (Features::all() as $feature) {
+        foreach (FeatureRegistry::all() as $feature) {
             if (! class_exists($feature)) {
                 Log::warning("Numerosis: configured feature [{$feature}] does not exist; skipping.");
 

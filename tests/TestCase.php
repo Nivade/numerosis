@@ -22,7 +22,7 @@ use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\FeatureRegistry;
 use Nvade\Numerosis\Testing\CleansUpTenancyDatabases;
 use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
 use Orchestra\Testbench\TestCase as Orchestra;
@@ -613,7 +613,7 @@ abstract class TestCase extends Orchestra
         $this->setUpCleansUpTenancyDatabases();
 
         $this->beforeApplicationDestroyed(function (): void {
-            Features::forceForTesting(null);
+            FeatureRegistry::forceForTesting(null);
         });
 
         parent::setUp();

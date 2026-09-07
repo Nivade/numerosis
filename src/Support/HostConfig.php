@@ -375,7 +375,7 @@ final class HostConfig
 
         $features = array_values(array_filter([
             FortifyFeatures::registration(),
-            Features::enabled(PasswordResetFeature::NAME) ? FortifyFeatures::resetPasswords() : null,
+            FeatureRegistry::enabled(PasswordResetFeature::NAME) ? FortifyFeatures::resetPasswords() : null,
             FortifyFeatures::updateProfileInformation(),
             FortifyFeatures::updatePasswords(),
             FortifyFeatures::emailVerification(),

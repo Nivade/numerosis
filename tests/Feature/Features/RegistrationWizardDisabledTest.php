@@ -13,7 +13,7 @@ use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\FeatureRegistry;
 use Nvade\Numerosis\Tests\TestCase;
 
 class RegistrationWizardDisabledTest extends TestCase
@@ -21,7 +21,7 @@ class RegistrationWizardDisabledTest extends TestCase
     protected function setUp(): void
     {
         // Every feature except RegistrationWizardFeature.
-        Features::forceForTesting([
+        FeatureRegistry::forceForTesting([
             TurnstileFeature::class,
             SocialLoginFeature::class,
             InvitationsFeature::class,

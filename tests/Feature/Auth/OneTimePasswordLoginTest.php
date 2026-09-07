@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\FeatureRegistry;
 use Nvade\Numerosis\Tests\TestCase;
 use Spatie\OneTimePasswords\Notifications\OneTimePasswordNotification;
 
@@ -20,7 +20,7 @@ use Spatie\OneTimePasswords\Notifications\OneTimePasswordNotification;
  * replaces the password step of Fortify's `authenticateThrough()` pipeline
  * rather than adding a factor after it.
  *
- * The feature is added through `Features::register()` rather than
+ * The feature is added through `FeatureRegistry::register()` rather than
  * `forceForTesting()` so the app boots with the **default** feature list plus
  * this one. `forceForTesting([OneTimePasswordFeature::class])` would silently
  * turn every other feature off, and an OTP screen that only works when
@@ -47,7 +47,7 @@ class OneTimePasswordLoginTest extends TestCase
 
     protected function setUp(): void
     {
-        Features::register(OneTimePasswordFeature::class);
+        FeatureRegistry::register(OneTimePasswordFeature::class);
 
         parent::setUp();
     }
@@ -56,9 +56,9 @@ class OneTimePasswordLoginTest extends TestCase
     {
         parent::tearDown();
 
-        // Features::$registered is a plain static, so without this the
+        // FeatureRegistry::$registered is a plain static, so without this the
         // feature leaks into whichever test class runs next in this process.
-        Features::resetRegisteredForTesting();
+        FeatureRegistry::resetRegisteredForTesting();
     }
 
     public function test_submitting_the_login_email_sends_a_code_and_redirects_to_the_challenge(): void

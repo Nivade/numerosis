@@ -8,7 +8,7 @@ use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Http\Controllers\Invitations\DestroyInvitationController;
 use Nvade\Numerosis\Http\Controllers\Invitations\StoreInvitationController;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\FeatureRegistry;
 
 /*
 |--------------------------------------------------------------------------
@@ -67,7 +67,7 @@ Route::middleware(['universal', 'tenancy.auth:'.Context::Tenant->guard()])->grou
     // for the same reason: a suspended tenant's user still has to be able to
     // verify an address and confirm a password.
     Route::middleware('tenancy.subscription')->group(function () {
-        if (Features::enabled(InvitationsFeature::NAME)) {
+        if (FeatureRegistry::enabled(InvitationsFeature::NAME)) {
             Route::livewire('team/invitations', 'numerosis-pages::tenant.invitations')->name('team.invitations.index');
             Route::post('team/invitations', StoreInvitationController::class)->name('team.invitations.store');
             Route::delete('team/invitations/{invitation}', DestroyInvitationController::class)->name('team.invitations.destroy');

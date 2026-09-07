@@ -14,7 +14,7 @@ use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Http\Requests\Billing\CheckoutReturnRequest;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\FeatureRegistry;
 use Nvade\Numerosis\Support\Routes\RouteNames;
 use Stripe\Exception\ApiErrorException;
 
@@ -93,7 +93,7 @@ class CompleteRedirectCheckout
      */
     private function registrationErrorRedirect(string $message): RedirectResponse
     {
-        $route = Features::enabled(RegistrationWizardFeature::NAME) ? 'tenants.create' : RouteNames::home();
+        $route = FeatureRegistry::enabled(RegistrationWizardFeature::NAME) ? 'tenants.create' : RouteNames::home();
 
         return to_route($route)->with('error', $message);
     }

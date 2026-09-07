@@ -14,7 +14,7 @@ use Nvade\Numerosis\Events\Billing\TenantSuspended;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentConfirmedNotification;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentFailedNotification;
 use Nvade\Numerosis\Listeners\Billing\SendTenantSuspendedNotification;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\FeatureRegistry;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -28,7 +28,7 @@ class BillingNotificationsFeatureTest extends TestCase
 
     public function test_payment_confirmed_sends_nothing_when_disabled(): void
     {
-        Features::forceForTesting([]);
+        FeatureRegistry::forceForTesting([]);
         Notification::fake();
         Tenant::unsetEventDispatcher();
 
@@ -43,7 +43,7 @@ class BillingNotificationsFeatureTest extends TestCase
 
     public function test_payment_failed_sends_nothing_when_disabled(): void
     {
-        Features::forceForTesting([]);
+        FeatureRegistry::forceForTesting([]);
         Notification::fake();
         Tenant::unsetEventDispatcher();
 
@@ -58,7 +58,7 @@ class BillingNotificationsFeatureTest extends TestCase
 
     public function test_tenant_suspended_sends_nothing_when_disabled(): void
     {
-        Features::forceForTesting([]);
+        FeatureRegistry::forceForTesting([]);
         Notification::fake();
         Tenant::unsetEventDispatcher();
 

@@ -8,7 +8,7 @@ use Illuminate\Support\ServiceProvider;
 use Nvade\Numerosis\Contracts\Feature;
 use Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder;
 use Nvade\Numerosis\Numerosis;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Support\FeatureRegistry;
 use Nvade\Numerosis\Support\HostConfig;
 
 use function Pest\Laravel\assertDatabaseHas;
@@ -21,11 +21,11 @@ use function Pest\Laravel\seed;
  * contexts, conventional paths for routes and tenant migrations, schema
  * introspection for tenant columns (`TenantColumnsTest`).
  *
- * `Features::register()` is a different seam and stays.
+ * `FeatureRegistry::register()` is a different seam and stays.
  */
 
 afterEach(function (): void {
-    Features::resetRegisteredForTesting();
+    FeatureRegistry::resetRegisteredForTesting();
 });
 
 it('keeps the host conventional tenant migration directory alongside the package own', function () {
@@ -145,10 +145,10 @@ it('lets a second package register a Feature without editing config', function (
         }
     };
 
-    Features::register($feature::class);
+    FeatureRegistry::register($feature::class);
 
-    expect(Features::all())->toContain($feature::class)
-        ->and(Features::enabledClass($feature::class))->toBeTrue();
+    expect(FeatureRegistry::all())->toContain($feature::class)
+        ->and(FeatureRegistry::enabledClass($feature::class))->toBeTrue();
 });
 
 it('does not register the same feature twice', function () {
@@ -157,10 +157,10 @@ it('does not register the same feature twice', function () {
         public function bootstrap(): void {}
     };
 
-    $before = count(Features::all());
+    $before = count(FeatureRegistry::all());
 
-    Features::register($feature::class);
-    Features::register($feature::class);
+    FeatureRegistry::register($feature::class);
+    FeatureRegistry::register($feature::class);
 
-    expect(Features::all())->toHaveCount($before + 1);
+    expect(FeatureRegistry::all())->toHaveCount($before + 1);
 });
