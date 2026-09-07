@@ -9,9 +9,9 @@ use Livewire\Livewire;
 use LogicException;
 use Nvade\Numerosis\Contracts\NamedFeature;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
+use Nvade\Numerosis\Features\Concerns\IsNamedFeature;
 use Nvade\Numerosis\Livewire\Tenant\Registration as WizardRegistration;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps as Wizard;
-use Nvade\Numerosis\Support\Features;
 
 /**
  * The self-serve tenant registration wizard and its route.
@@ -22,6 +22,8 @@ use Nvade\Numerosis\Support\Features;
  */
 class RegistrationWizardFeature implements NamedFeature
 {
+    use IsNamedFeature;
+
     public const NAME = 'registration_wizard';
 
     /**
@@ -45,16 +47,6 @@ class RegistrationWizardFeature implements NamedFeature
         Wizard\TechnicalSetup::class => 'technical-setup',
         Wizard\Plan::class => 'plan',
     ];
-
-    public static function featureName(): string
-    {
-        return self::NAME;
-    }
-
-    public static function available(): bool
-    {
-        return Features::enabled(self::NAME);
-    }
 
     public function bootstrap(): void
     {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Features\Turnstile;
 
 use Nvade\Numerosis\Contracts\NamedFeature;
+use Nvade\Numerosis\Features\Concerns\IsNamedFeature;
 use RyanChandler\LaravelCloudflareTurnstile\Rules\Turnstile as TurnstileRule;
 
 /**
@@ -17,35 +18,9 @@ use RyanChandler\LaravelCloudflareTurnstile\Rules\Turnstile as TurnstileRule;
  */
 class TurnstileFeature implements NamedFeature
 {
+    use IsNamedFeature;
+
     public const NAME = 'turnstile';
-
-    private static bool $bootstrapped = false;
-
-    private static ?bool $forcedForTesting = null;
-
-    public static function featureName(): string
-    {
-        return self::NAME;
-    }
-
-    public function bootstrap(): void
-    {
-        self::$bootstrapped = true;
-    }
-
-    public static function isEnabled(): bool
-    {
-        return self::$forcedForTesting ?? self::$bootstrapped;
-    }
-
-    /**
-     * Override the switch in a test. Pass null in teardown to restore it,
-     * since this is process-wide and otherwise leaks into the next test.
-     */
-    public static function forceForTesting(?bool $enabled): void
-    {
-        self::$forcedForTesting = $enabled;
-    }
 
     /**
      * The validation rule for every form's `turnstileResponse` field. Empty
@@ -55,6 +30,6 @@ class TurnstileFeature implements NamedFeature
      */
     public static function rules(): array
     {
-        return self::isEnabled() ? ['required', new TurnstileRule] : [];
+        return self::available() ? ['required', new TurnstileRule] : [];
     }
 }

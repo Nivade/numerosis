@@ -14,4 +14,6 @@ namespace Nvade\Numerosis\Contracts;
 interface NamedFeature extends Feature
 {
     public static function featureName(): string;
+
+    public static function available(): bool;
 }

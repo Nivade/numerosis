@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Features\Tenancy;
 
 use Nvade\Numerosis\Contracts\NamedFeature;
+use Nvade\Numerosis\Features\Concerns\IsNamedFeature;
 
 /**
  * The tenant panel's Team screens, where an owner manages who belongs to
@@ -16,15 +17,7 @@ use Nvade\Numerosis\Contracts\NamedFeature;
  */
 class MembershipsFeature implements NamedFeature
 {
+    use IsNamedFeature;
+
     public const NAME = 'tenancy.memberships';
-
-    public static function featureName(): string
-    {
-        return self::NAME;
-    }
-
-    public function bootstrap(): void
-    {
-        // Nothing to register: this feature is read at call time.
-    }
 }

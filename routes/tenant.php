@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Http\Controllers\Invitations\DestroyInvitationController;
 use Nvade\Numerosis\Http\Controllers\Invitations\StoreInvitationController;
@@ -43,7 +44,7 @@ Route::get('/', fn () => view(Config::string('numerosis.routes.home_view')))
 // central→tenant session promotion, so a central user who may access this
 // tenant is signed in on the tenant guard on the way through instead of being
 // bounced to a login screen they do not need.
-Route::middleware(['universal', 'tenancy.auth:'.Config::string('numerosis.auth.guards.tenant')])->group(function () {
+Route::middleware(['universal', 'tenancy.auth:'.Context::Tenant->guard()])->group(function () {
     // Deliberately outside the `tenancy.subscription` group below, and the
     // reason that gate is a nested group rather than a fourth entry in the
     // `tenant` middleware group: this is where EnsureTenantSubscriptionActive

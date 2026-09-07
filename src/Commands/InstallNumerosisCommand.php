@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Support\Assets;
@@ -298,11 +299,11 @@ class InstallNumerosisCommand extends Command
         /** @var array<string, mixed> $guards */
         $guards = Config::array('auth.guards');
 
-        foreach (['central', 'tenant'] as $context) {
-            $guardName = Config::get("numerosis.auth.guards.{$context}");
+        foreach (Context::cases() as $context) {
+            $guardName = Config::get("numerosis.auth.guards.{$context->value}");
 
             if (! is_string($guardName) || ! array_key_exists($guardName, $guards)) {
-                $this->failures[] = "config('numerosis.auth.guards.{$context}') does not resolve to a real guard in config('auth.guards') — see docs/host-requirements.md's config/auth.php row.";
+                $this->failures[] = "config('numerosis.auth.guards.{$context->value}') does not resolve to a real guard in config('auth.guards') — see docs/host-requirements.md's config/auth.php row.";
             }
         }
     }

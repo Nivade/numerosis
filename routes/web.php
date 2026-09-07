@@ -9,6 +9,7 @@ use Nvade\Numerosis\Actions\Billing\Checkout\CompleteRedirectCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartLocalCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
 use Nvade\Numerosis\Enums\Auth\SocialProvider;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
@@ -30,7 +31,7 @@ use Nvade\Numerosis\Support\Routes\RouteNames;
 // once here instead of spelled `auth:web` at each call site. Registration-time
 // read, which is correct: routes are built once per boot and the guard cannot
 // change per request.
-$centralAuth = 'auth:'.Config::string('numerosis.auth.guards.central');
+$centralAuth = 'auth:'.Context::Central->guard();
 
 // 'home' is registered unconditionally, behind no feature flag.
 // CompleteRedirectCheckout falls back to it on a checkout error, and the
@@ -131,7 +132,7 @@ Route::middleware([$centralAuth])->group(function () {
         return $user->redirectToBillingPortal();
     })->name('billing-portal');
 
-    Route::get('checkout/subscription/new', StartSubscriptionCheckout::class)->name('checkout.subscription');
+    Route::get('checkout/subscription/new', StartSubscriptionCheckout::class)->name(RouteNames::checkoutSubscription());
     Route::get('/checkout/subscription/return', CompleteRedirectCheckout::class)->name('checkout.subscription.return');
     Route::livewire('/checkout/{domain}', Nvade\Numerosis\Livewire\Billing\Checkout::class)->name('checkout.resume');
     // Provisions a paid resource without payment. The environment guard must

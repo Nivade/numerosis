@@ -10,20 +10,6 @@ enum BillingCycle: string
     case Yearly = 'yearly';
 
     /**
-     * Written as a match, never "{$this->value}_id", so the result is a
-     * literal type: callers index a typed plan-metadata array with it.
-     *
-     * @return 'monthly_id'|'yearly_id'
-     */
-    public function priceIdLabel(): string
-    {
-        return match ($this) {
-            self::Monthly => 'monthly_id',
-            self::Yearly => 'yearly_id',
-        };
-    }
-
-    /**
      * @return 'monthly_incentive'|'yearly_incentive'
      */
     public function incentiveLabel(): string

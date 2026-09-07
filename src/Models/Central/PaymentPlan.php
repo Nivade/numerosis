@@ -19,7 +19,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Database\Factories\Central\PaymentPlanFactory;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
-use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Observers\PaymentPlanObserver;
 use Nvade\Numerosis\Policies\PaymentPlanPolicy;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
@@ -117,14 +116,6 @@ class PaymentPlan extends Model implements Plan
     public function availableFeatures(): BelongsToMany
     {
         return $this->features()->wherePivot('available', true);
-    }
-
-    /**
-     * @param  int  $price  Minor currency units (cents).
-     */
-    public function formatCurrency(int $price): string
-    {
-        return Billing::formatAmount($price);
     }
 
     public function slug(): string

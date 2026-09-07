@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Features\Invitations;
 
 use Nvade\Numerosis\Contracts\NamedFeature;
+use Nvade\Numerosis\Features\Concerns\IsNamedFeature;
 
 /**
  * Team invitations: the invitation route, its screens, and the
@@ -15,15 +16,7 @@ use Nvade\Numerosis\Contracts\NamedFeature;
  */
 class InvitationsFeature implements NamedFeature
 {
+    use IsNamedFeature;
+
     public const NAME = 'invitations';
-
-    public static function featureName(): string
-    {
-        return self::NAME;
-    }
-
-    public function bootstrap(): void
-    {
-        // Nothing to register: this feature is read at call time.
-    }
 }

@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Billing;
 
-use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
-use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Billing\MoneyFormatter;
@@ -26,18 +24,10 @@ use Nvade\Numerosis\Testing\FakeCheckoutGateway;
 /**
  * Thin manager delegating to the billing contracts, and the one class a
  * consumer of this package types. Every method is a one-liner over a swappable
- * contract; swap through config('numerosis.billing.implementations') or the
- * closure hooks below, which are checked before the container binding and
- * mirror Cashier::useCustomerModel().
+ * contract; swap through config('numerosis.billing.implementations').
  */
 class BillingService
 {
-    private static ?Closure $billableResolver = null;
-
-    private static ?Closure $trialResolver = null;
-
-    private static ?Closure $amountFormatter = null;
-
     public function __construct(
         private readonly PaymentPlanRepository $plans,
         private readonly CheckoutGateway $gateway,
@@ -78,19 +68,11 @@ class BillingService
 
     public function billable(): ?Model
     {
-        if (self::$billableResolver) {
-            return (self::$billableResolver)();
-        }
-
         return $this->billables->resolve();
     }
 
     public function trialDaysFor(Plan $plan, ?Subscribable $for = null): ?int
     {
-        if (self::$trialResolver) {
-            return (self::$trialResolver)($plan, $for);
-        }
-
         return $this->trials->daysFor($plan, $for);
     }
 
@@ -104,55 +86,12 @@ class BillingService
      */
     public function formatAmount(int $amount, ?string $currency = null): string
     {
-        if (self::$amountFormatter) {
-            return (self::$amountFormatter)($amount, $currency);
-        }
-
         return $this->money->format($amount, $currency);
     }
 
     public function currency(): string
     {
         return Config::string('cashier.currency', 'usd');
-    }
-
-    public static function resolveBillableUsing(?Closure $callback): void
-    {
-        self::$billableResolver = $callback;
-    }
-
-    public static function resolveTrialUsing(?Closure $callback): void
-    {
-        self::$trialResolver = $callback;
-    }
-
-    public static function formatAmountUsing(?Closure $callback): void
-    {
-        self::$amountFormatter = $callback;
-    }
-
-    /**
-     * @param  class-string<Model>  $class
-     */
-    public static function useTenantModel(string $class): void
-    {
-        Cashier::useCustomerModel($class);
-    }
-
-    /**
-     * @param  class-string<Model>  $class
-     */
-    public static function useSubscriptionModel(string $class): void
-    {
-        Cashier::useSubscriptionModel($class);
-    }
-
-    /**
-     * @param  class-string<Model>  $class
-     */
-    public static function useSubscriptionItemModel(string $class): void
-    {
-        Cashier::useSubscriptionItemModel($class);
     }
 
     /**

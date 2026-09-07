@@ -27,6 +27,6 @@ class SocialAccountPolicy
             return true;
         }
 
-        return $user->socialAccounts()->count() > 1;
+        return $user->socialAccounts->count() > 1;
     }
 }

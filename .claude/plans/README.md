@@ -34,6 +34,7 @@ against its own Status line. 37 files moved to `archive/`, 1 to `abandoned/`,
 | `domain-events-expansion.md` | **Not executed.** Approved 2026-09-04. Runs **before** `invitations-social-redesign.md`. Confirmed unstarted: no `src/Actions/Tenancy/EnsureTenantUserExists.php` |
 | `invitations-social-redesign.md` | **Not executed.** Approved 2026-09-04. Depends on `domain-events-expansion.md` landing first |
 | `post-extraction-review.md` | **Mostly done; three items survive.** Its Live status block is stale — read the correction at the top of the file, not the table |
+| `simplification-followups.md` | **Phase 0 applied, phases 1–8 not executed.** Written 2026-09-05 from a whole-codebase review. Phase 0 is the mechanical cleanup that already landed; the rest is behavioural, needs its own tests, or is doc/rule staleness. Its Phase 8.5 corrects the `config-consolidation.md` row below |
 
 ## Abandoned
 

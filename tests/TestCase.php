@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\URL;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
-use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\NumerosisServiceProvider;
@@ -662,13 +661,6 @@ abstract class TestCase extends Orchestra
         parent::tearDown();
 
         $this->keepDatabaseSchema();
-
-        // TurnstileFeature::$forcedForTesting is a plain static, not
-        // container-scoped, so a test that calls forceForTesting() would
-        // otherwise leak its override into whichever test runs next in the
-        // same process — same class of trap as Tenant::unsetEventDispatcher()
-        // (see .ai/rules/testing.md).
-        TurnstileFeature::forceForTesting(null);
     }
 
     /**

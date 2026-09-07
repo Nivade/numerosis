@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Features\Billing;
 
 use Nvade\Numerosis\Contracts\NamedFeature;
+use Nvade\Numerosis\Features\Concerns\IsNamedFeature;
 
 /**
  * The payment-confirmed, payment-failed and tenant-suspended notifications.
@@ -15,15 +16,7 @@ use Nvade\Numerosis\Contracts\NamedFeature;
  */
 class BillingNotificationsFeature implements NamedFeature
 {
+    use IsNamedFeature;
+
     public const NAME = 'billing_notifications';
-
-    public static function featureName(): string
-    {
-        return self::NAME;
-    }
-
-    public function bootstrap(): void
-    {
-        // Nothing to register: this feature is read at call time.
-    }
 }

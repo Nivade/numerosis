@@ -93,6 +93,7 @@ use Nvade\Numerosis\Policies\UserPolicy;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Services\Exceptions\TenantAwareExceptionContext;
+use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Support\Assets;
 use Nvade\Numerosis\Support\Features;
@@ -156,6 +157,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // initialize and end, so a bootstrapper that remembers anything
         // between `bootstrap()` and `revert()` needs one shared instance.
         $this->app->singleton(PasswordBrokerBootstrapper::class);
+        $this->app->singleton(AuthGuardBootstrapper::class);
 
         // Interface-to-concrete mappings, exactly like Fortify's own. A host's
         // `AppServiceProvider` registers after package providers, so
@@ -290,6 +292,12 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
     protected function registerPublishing(): void
     {
+        // Every `publishGroup()` below is a console-only no-op, so the path
+        // and stub arrays it builds are pure waste on an HTTP request.
+        if (! $this->app->runningInConsole()) {
+            return;
+        }
+
         // The deep-fill backfills every key an override omits, at any depth,
         // so publishing the full file is safe: a host only has to edit what
         // it actually changes.

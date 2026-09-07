@@ -1,8 +1,8 @@
 <?php
 
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Illuminate\Support\Facades\Config;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -23,7 +23,7 @@ new class extends Component {
     public function user(): ?CentralUser
     {
         /** @var ?CentralUser */
-        return GetAuthenticatedUser::run(Config::string('numerosis.auth.guards.central'));
+        return GetAuthenticatedUser::run(Context::Central->guard());
     }
 };
 ?>

@@ -12,7 +12,7 @@
 --}}
 @props(['model' => null])
 
-@if (\Nvade\Numerosis\Features\Turnstile\TurnstileFeature::isEnabled())
+@if (\Nvade\Numerosis\Features\Turnstile\TurnstileFeature::available())
     @if ($model)
         <x-turnstile wire:model="{{ $model }}" data-theme="auto" data-size="flexible" />
     @else

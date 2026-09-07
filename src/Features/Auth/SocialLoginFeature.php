@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Features\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Contracts\NamedFeature;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Features\Concerns\IsNamedFeature;
 use SocialiteProviders\Discord\Provider as DiscordProvider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 
@@ -19,17 +19,9 @@ use SocialiteProviders\Manager\SocialiteWasCalled;
  */
 class SocialLoginFeature implements NamedFeature
 {
+    use IsNamedFeature;
+
     public const NAME = 'social';
-
-    public static function featureName(): string
-    {
-        return self::NAME;
-    }
-
-    public static function available(): bool
-    {
-        return Features::enabled(self::NAME);
-    }
 
     public function bootstrap(): void
     {

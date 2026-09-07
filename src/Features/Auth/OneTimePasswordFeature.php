@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Features\Auth;
 
 use Nvade\Numerosis\Contracts\NamedFeature;
-use Nvade\Numerosis\Support\Features;
+use Nvade\Numerosis\Features\Concerns\IsNamedFeature;
 
 /**
  * Passwordless email OTP, layered on Fortify and off by default. When enabled,
@@ -16,6 +16,8 @@ use Nvade\Numerosis\Support\Features;
  */
 class OneTimePasswordFeature implements NamedFeature
 {
+    use IsNamedFeature;
+
     public const NAME = 'one_time_password';
 
     /**
@@ -25,16 +27,4 @@ class OneTimePasswordFeature implements NamedFeature
      * why `fortify.limiters.login` is deliberately not used.
      */
     public const LIMITER = 'numerosis-one-time-password';
-
-    public static function featureName(): string
-    {
-        return self::NAME;
-    }
-
-    public static function available(): bool
-    {
-        return Features::enabled(self::NAME);
-    }
-
-    public function bootstrap(): void {}
 }

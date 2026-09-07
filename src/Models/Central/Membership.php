@@ -90,9 +90,4 @@ class Membership extends TenantPivot
     {
         return $this->role === MembershipRole::Owner;
     }
-
-    public function isAdmin(): bool
-    {
-        return in_array($this->role, [MembershipRole::Owner, MembershipRole::Admin], true);
-    }
 }

@@ -39,10 +39,9 @@ class LinkSubscriptionToTenant
             $tenant->update(['stripe_id' => $data->stripeCustomerId]);
 
             $subscription = $this->subscriptions->findByStripeId($stripeSubscription->id);
+            $planId = $this->planIdForSlug($data->registration->payment_plan);
 
             if (! $subscription) {
-                $planId = Numerosis::model(PaymentPlan::class)::firstWhere('slug', $data->registration->payment_plan)?->id;
-
                 $subscription = $this->subscriptions->record(new SubscriptionData(
                     user_id: $data->centralUserId,
                     payment_plan_id: $planId !== null ? (string) $planId : null,
@@ -70,7 +69,7 @@ class LinkSubscriptionToTenant
                 // exists only on this package's subscription model, which the
                 // repository returns but its contract cannot promise.
                 if ($subscription instanceof Subscription && $subscription->payment_plan_id === null) {
-                    $update['payment_plan_id'] = Numerosis::model(PaymentPlan::class)::firstWhere('slug', $data->registration->payment_plan)?->id;
+                    $update['payment_plan_id'] = $planId !== null ? (string) $planId : null;
                 }
 
                 $subscription->update($update);
@@ -81,5 +80,14 @@ class LinkSubscriptionToTenant
                 ]);
             }
         });
+    }
+
+    private function planIdForSlug(?string $slug): ?int
+    {
+        if ($slug === null) {
+            return null;
+        }
+
+        return Numerosis::model(PaymentPlan::class)::firstWhere('slug', $slug)?->id;
     }
 }

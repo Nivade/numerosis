@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Http\Middleware;
 
 use Closure;
-use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\Request;
+use Nvade\Numerosis\Support\Numerosis;
 use Override;
 
 /**
@@ -18,8 +18,6 @@ use Override;
  */
 class InitializeTenancyByDomainOrSubdomain extends \Stancl\Tenancy\Middleware\InitializeTenancyByDomainOrSubdomain
 {
-    public function __construct(private readonly Repository $repository) {}
-
     #[Override]
     public function handle($request, Closure $next): mixed
     {
@@ -32,6 +30,6 @@ class InitializeTenancyByDomainOrSubdomain extends \Stancl\Tenancy\Middleware\In
 
     public function shouldSkip(Request $request): bool
     {
-        return in_array($request->getHost(), (array) $this->repository->get('tenancy.central_domains', []), true);
+        return Numerosis::isCentralDomain($request);
     }
 }

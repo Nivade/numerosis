@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\URL;
 use Nvade\Numerosis\Contracts\NamedFeature;
+use Nvade\Numerosis\Features\Concerns\IsNamedFeature;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Notifications\Auth\VerifyEmail;
 
@@ -21,12 +22,9 @@ use Nvade\Numerosis\Notifications\Auth\VerifyEmail;
  */
 class EmailVerificationFeature implements NamedFeature
 {
-    public const NAME = 'email_verification';
+    use IsNamedFeature;
 
-    public static function featureName(): string
-    {
-        return self::NAME;
-    }
+    public const NAME = 'email_verification';
 
     public function bootstrap(): void
     {

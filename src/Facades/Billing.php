@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Facades;
 
-use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Facade;
@@ -28,12 +27,6 @@ use Nvade\Numerosis\Testing\FakeCheckoutGateway;
  * @method static PlanPolicy planPolicy()
  * @method static string formatAmount(int $amount, ?string $currency = null)
  * @method static string currency()
- * @method static void resolveBillableUsing(?Closure $callback)
- * @method static void resolveTrialUsing(?Closure $callback)
- * @method static void formatAmountUsing(?Closure $callback)
- * @method static void useTenantModel(string $class)
- * @method static void useSubscriptionModel(string $class)
- * @method static void useSubscriptionItemModel(string $class)
  * @method static FakeCheckoutGateway fake()
  *
  * @see BillingService
