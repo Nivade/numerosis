@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Enums\Tenancy;
 
 /**
  * The `memberships.role` column's vocabulary, a real database enum declared in
- * `2025_06_17_134918_create_tenant_users_table.php`. Unrelated to the
+ * `2025_06_17_134918_create_memberships_table.php`. Unrelated to the
  * tenant-side `roles` table `spatie/laravel-permission` owns.
  *
  * {@see self::assignable()} omits `Owner`, which `AddTenantOwner` grants during

@@ -12,7 +12,6 @@ use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
-use Nvade\Numerosis\Features\Tenancy\MembershipsFeature;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Support\Features;
 use Nvade\Numerosis\Tests\TestCase;
@@ -29,7 +28,6 @@ class RegistrationWizardDisabledTest extends TestCase
             EmailVerificationFeature::class,
             BillingNotificationsFeature::class,
             PasswordResetFeature::class,
-            MembershipsFeature::class,
         ]);
 
         parent::setUp();

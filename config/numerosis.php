@@ -30,7 +30,6 @@ use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
-use Nvade\Numerosis\Features\Tenancy\MembershipsFeature;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -100,10 +99,6 @@ return [
         // Passwordless email OTP login, layered on Fortify rather than
         // replacing it. Off by default.
         // \Nvade\Numerosis\Features\Auth\OneTimePasswordFeature::class,
-
-        // Tenant membership UI (Team cluster / Users resource). Does not
-        // gate InvitationsFeature.
-        MembershipsFeature::class,
     ],
 
     /*

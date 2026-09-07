@@ -6,15 +6,17 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateDomainsTable extends Migration
+/**
+ * stancl/tenancy's domains table, with a string key rather than the
+ * auto-incrementing one it ships: this package's `Domain` model is created
+ * alongside a tenant whose own key is a string.
+ */
+return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('domains', function (Blueprint $table) {
-            $table->increments('id');
+            $table->string('id')->primary();
             $table->string('domain', 255)->unique();
             $table->string('tenant_id');
 
@@ -23,11 +25,8 @@ class CreateDomainsTable extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('domains');
     }
-}
+};

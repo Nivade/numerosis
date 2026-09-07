@@ -42,6 +42,15 @@ class RoleAndPermissionSeeder extends Seeder
     }
 
     /**
+     * One context per policy, and no more: a context nothing authorizes
+     * against is nine seeded rows per install that no `can()` ever reads.
+     * `domains`, `memberships`, `subscription_items` and
+     * `payment_plan_features` were dropped in that audit — none has a policy,
+     * a route or a screen. The reverse is the dangerous direction:
+     * `.ai/rules/package-boundaries.md` records that a *missing* context is a
+     * `PermissionDoesNotExist`, so add the context here before the policy that
+     * reads it.
+     *
      * Add a context by subclassing and binding your subclass to this class.
      *
      * @return list<string>
@@ -49,16 +58,12 @@ class RoleAndPermissionSeeder extends Seeder
     protected function contexts(): array
     {
         return [
-            'domains',
             'features',
-            'memberships',
             'permissions',
             'roles',
             'tenants',
             'subscriptions',
-            'subscription_items',
             'payment_plans',
-            'payment_plan_features',
             'users',
         ];
     }

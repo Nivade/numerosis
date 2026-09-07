@@ -29,7 +29,6 @@ own; see the scope-reduction plan at
 | `BillingNotificationsFeature` | `billing_notifications` | Payment-confirmed, payment-failed, tenant-suspended notifications | Billing events still fire and still drive state such as suspension. Only the outbound mail is suppressed |
 | `PasswordResetFeature` | `password_reset` | Forgot- and reset-password routes | Fortify's own `password.confirm` route for sensitive actions, which this does not gate |
 | `OneTimePasswordFeature` | `one_time_password` | **Off by default.** Replaces Fortify's password step with an emailed one-time code: a pipeline step before `AttemptToAuthenticate`, the `/one-time-password-challenge` routes, its own rate limiter, and the password field disappearing from the login form | Fortify's password login, which is what runs when this is off. It gates the *login method*, not `PasswordResetFeature`, which stays a separate toggle |
-| `MembershipsFeature` | `tenancy.memberships` | The Team screens | Membership rows are still written by provisioning and invitation-accept. This gates only the screens. It does **not** gate `InvitationsFeature` |
 
 There is no marketing-pages feature. Terms, privacy, about and features are the
 *product's* pages, so they live in the host app's own `routes/web.php`, which

@@ -36,7 +36,7 @@ recommendation — match it, don't improve on it.
 - **Reach for an existing action before writing logic inline.** Before
   putting logic in a Livewire component, controller, listener, command or
   another action, look for one that already does it:
-  `grep -ril '<verb>' src/Actions/` — 62 classes across six domains
+  `grep -ril '<verb>' src/Actions/` — 67 classes across six domains
   (`Auth`, `Billing`, `Cache`, `Invitations`, `Queries`, `Tenancy`), so the
   odds are real. If one exists, call it: `Foo::run(...)`. If none exists and
   the logic is more than a couple of lines of framework glue, write a new

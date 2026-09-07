@@ -127,7 +127,7 @@ Two connections, two migration sets, never mixed:
 | | Central | Tenant |
 |---|---|---|
 | Connection | `central` (cloned from `database.default` if absent) | the default connection, repointed per request by stancl's bootstrappers |
-| Migrations | `database/migrations/central/` — 63 files, run by `php artisan migrate` | `database/migrations/tenant/` — 16 files, run per tenant at provision time |
+| Migrations | `database/migrations/central/` — 24 files, run by `php artisan migrate` | `database/migrations/tenant/` — 13 files, run per tenant at provision time |
 | Models | `src/Models/Central/` — `Tenant`, `Domain`, `CentralUser`, `Subscription`, `PaymentPlan`, `PendingTenantProvision`, `Invitation`, `SocialAccount` | `src/Models/Tenant/` — `User` only |
 
 Every package model is concrete and usable as-is. `Numerosis::model()` resolves
@@ -143,7 +143,7 @@ worker there, not just on `default`.
 
 ```
 src/
-  Actions/        62 files — lorisleiva/laravel-actions; the verbs of the system
+  Actions/        67 files — lorisleiva/laravel-actions; the verbs of the system
   Contracts/      26 — every swappable behaviour, bound in packageRegistered()
   Exceptions/     22
   Services/       24 — default implementations, grouped by domain:

@@ -37,6 +37,9 @@ class PermissionAndRoleSeeder extends Seeder
     }
 
     /**
+     * `clients` was dropped: it had no model, policy or route anywhere in the
+     * package, so it seeded nine rows per tenant that nothing could read.
+     *
      * Add a context by subclassing and binding your subclass to this class.
      *
      * @return list<string>
@@ -47,7 +50,6 @@ class PermissionAndRoleSeeder extends Seeder
             'invitations',
             'roles',
             'permissions',
-            'clients',
             'users',
         ];
     }
