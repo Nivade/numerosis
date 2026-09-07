@@ -1,6 +1,7 @@
 ---
 paths:
   - 'src/NumerosisServiceProvider.php'
+  - 'src/Numerosis.php'
   - 'src/Support/HostConfig.php'
   - 'src/Support/Domains.php'
   - 'src/Enums/Tenancy/IdentificationMode.php'
@@ -282,3 +283,27 @@ Added 2026-09-05. `Nvade\Numerosis\Facades\Numerosis` accessors `Numerosis::clas
 Measured 2026-09-05: **Mockery does intercept originally-`static` methods reached this way** — it generates an instance method on a subclass, which wins over the inherited static one. `tests/Feature/Facades/NumerosisFacadeTest.php` asserts it, so a Mockery upgrade changing that is loud rather than silent.
 
 `routes()`, `middleware()`, `exceptions()` and `configure()` must not go through the facade. They run while `ApplicationBuilder` is being built, before `RegisterFacades`, where `Facade::getFacadeRoot()` is null and the call throws `RuntimeException: A facade root has not been set` — the crash-loop this file already documents twice, reached through a third door.
+
+## Moving a file between namespaces here breaks two things silently
+
+Both hit during the 2026-09-07 `src/` reorganization, and neither is a syntax
+error — one is a runtime `DirectoryNotFoundException`, the other only appears
+under PHPStan or at the moment the call executes.
+
+**`dirname(__DIR__, N)` counts directory levels, so any move retargets it.**
+`Numerosis::routes()` and `::tenantMigrationPaths()` reach `routes/` and
+`database/migrations/tenant`, and `InstallNumerosisCommand` reaches
+`database/migrations/central`, by walking up from `__DIR__`. Moving
+`InstallNumerosisCommand` one level deeper made it look for
+`src/database/migrations/central`; 39 tests failed at once, all with the
+same `DirectoryNotFoundException`, none naming the move. Grep
+`dirname(__DIR__` across `src/` before and after any file move.
+
+**Same-namespace resolution means a working call site can have no import.**
+`Support\HostConfig` called `Numerosis::model()` and `Features::enabled()`
+with no `use` line, because both classes were then in
+`Nvade\Numerosis\Support` too. Moving either one leaves `HostConfig`
+resolving a class that no longer exists, and a grep for files *importing* the
+moved class finds nothing. Search for the bare `ClassName::` as well as the
+FQCN, and run `composer analyse` cold — PHPStan's `class.notFound` is what
+catches this, not the test suite.

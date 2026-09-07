@@ -54,7 +54,7 @@ defaults.
 - **A feature class listed in config but not installed disappears silently,
   from two places, and neither raises anything you will see.**
   `Features::names()`'s `is_a($class, NamedFeature::class, true)`
-  (`src/Support/Features.php:127`) autoloads and quietly returns `false` for a
+  (`src/Support/FeatureRegistry.php:127`) autoloads and quietly returns `false` for a
   missing class, so the entry drops out of the *name map* and every
   `Features::enabled('that-name')` reads `false`. It used to at least crash
   afterwards: `NumerosisServiceProvider`'s boot loop called
