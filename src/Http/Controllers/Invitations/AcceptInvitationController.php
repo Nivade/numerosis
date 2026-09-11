@@ -14,7 +14,7 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
-use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Routing\RouteNames;
 
 class AcceptInvitationController extends Controller
 {

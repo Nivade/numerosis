@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
-use Nvade\Numerosis\Support\FeatureRegistry;
+use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Tests\TestCase;
 use Spatie\OneTimePasswords\Notifications\OneTimePasswordNotification;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Support;
+namespace Nvade\Numerosis\Features;
 
 use Illuminate\Support\Facades\Config;
 use LogicException;

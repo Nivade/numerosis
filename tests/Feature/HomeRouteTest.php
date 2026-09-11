@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Tests\Feature;
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
-use Nvade\Numerosis\Support\FeatureRegistry;
+use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

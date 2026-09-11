@@ -7,8 +7,8 @@ namespace Nvade\Numerosis\Listeners\Concerns;
 use Illuminate\Notifications\Notification;
 use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
+use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Support\FeatureRegistry;
 
 /**
  * `BillingNotificationsFeature` is read here, at call time, because the

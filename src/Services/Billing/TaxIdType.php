@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Support\Billing;
+namespace Nvade\Numerosis\Services\Billing;
 
 /**
  * Maps a billing address country to the Stripe tax id "type" a VAT number

@@ -11,10 +11,10 @@ use Illuminate\Support\Facades\Notification;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\TenantSuspended;
+use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentConfirmedNotification;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentFailedNotification;
 use Nvade\Numerosis\Listeners\Billing\SendTenantSuspendedNotification;
-use Nvade\Numerosis\Support\FeatureRegistry;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

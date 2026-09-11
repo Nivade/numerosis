@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Support\Tenancy;
+namespace Nvade\Numerosis\Livewire\Tenant\Registration;
 
 use Illuminate\Support\Fluent;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;

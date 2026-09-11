@@ -12,6 +12,7 @@ use Nvade\Numerosis\Enums\Auth\SocialProvider;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
+use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Http\Controllers\Auth\Social\DestroySocialAccountController;
@@ -24,8 +25,7 @@ use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
 use Nvade\Numerosis\Livewire\Settings\Password as PasswordSettings;
 use Nvade\Numerosis\Livewire\Settings\Profile as ProfileSettings;
 use Nvade\Numerosis\Livewire\Tenant\Registration;
-use Nvade\Numerosis\Support\FeatureRegistry;
-use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Routing\RouteNames;
 
 // The central guard's name is a host-overridable config key, so it is read
 // once here instead of spelled `auth:web` at each call site. Registration-time

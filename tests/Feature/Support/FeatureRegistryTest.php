@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
-use Nvade\Numerosis\Support\FeatureRegistry;
 
 test('it reports a feature listed in config as enabled', function (): void {
     FeatureRegistry::forceForTesting([TurnstileFeature::class]);

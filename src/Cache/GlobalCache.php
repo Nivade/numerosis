@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Support\Cache;
+namespace Nvade\Numerosis\Cache;
 
 use Illuminate\Contracts\Cache\Factory;
 use Illuminate\Contracts\Cache\Repository;

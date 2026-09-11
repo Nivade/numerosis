@@ -1,7 +1,7 @@
 # What the host app must own
 
 `nvade/numerosis` normalizes almost everything it needs at boot time
-(`Nvade\Numerosis\Support\HostConfig::apply()`, run from a `booting()`
+(`Nvade\Numerosis\Boot\HostConfig::apply()`, run from a `booting()`
 callback that `NumerosisServiceProvider::packageRegistered()` registers —
 deferred to that phase on purpose, so config another package's own
 `mergeConfigFrom()` still has to merge into is normalized after it lands

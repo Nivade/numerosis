@@ -11,7 +11,7 @@ use Livewire\Component;
 use Nvade\Numerosis\Actions\Auth\ResendVerificationNotification;
 use Nvade\Numerosis\Actions\Auth\UpdateUserProfile;
 use Nvade\Numerosis\Concerns\Auth\RequiresAuthenticatedUser;
-use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Routing\RouteNames;
 
 #[Layout('numerosis-layouts::app')]
 class Profile extends Component

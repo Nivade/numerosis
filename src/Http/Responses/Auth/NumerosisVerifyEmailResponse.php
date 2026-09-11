@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Http\Responses\Auth;
 
 use Illuminate\Http\RedirectResponse;
 use Laravel\Fortify\Contracts\VerifyEmailResponse;
-use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Routing\RouteNames;
 
 /**
  * Bound against Fortify's `VerifyEmailResponse` contract in

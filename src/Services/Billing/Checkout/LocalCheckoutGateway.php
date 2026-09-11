@@ -12,7 +12,7 @@ use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Routing\RouteNames;
 
 /**
  * Provisions a tenant without touching Stripe.

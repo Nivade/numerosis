@@ -14,8 +14,8 @@ use Nvade\Numerosis\Data\Auth\SocialUserData;
 use Nvade\Numerosis\Enums\Auth\SocialProvider;
 use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
+use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Models\Central\SocialAccount;
-use Nvade\Numerosis\Support\FeatureRegistry;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

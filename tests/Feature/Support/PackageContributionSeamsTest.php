@@ -8,8 +8,8 @@ use Illuminate\Support\ServiceProvider;
 use Nvade\Numerosis\Boot\HostConfig;
 use Nvade\Numerosis\Contracts\Feature;
 use Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder;
+use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Numerosis;
-use Nvade\Numerosis\Support\FeatureRegistry;
 
 use function Pest\Laravel\assertDatabaseHas;
 use function Pest\Laravel\seed;

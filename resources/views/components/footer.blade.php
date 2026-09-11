@@ -25,7 +25,7 @@
                         <x-numerosis::footer.link :href="route('login')">Sign in</x-numerosis::footer.link>
                     @endif
                     @auth
-                        <x-numerosis::footer.link :href="route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine())">
+                        <x-numerosis::footer.link :href="route(\Nvade\Numerosis\Routing\RouteNames::tenantsMine())">
                             {{ __('My Tenants') }}
                         </x-numerosis::footer.link>
                     @endauth

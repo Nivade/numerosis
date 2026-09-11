@@ -11,7 +11,7 @@ use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Http\Controllers\Controller;
 use Nvade\Numerosis\Models\Central\Invitation;
-use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Routing\RouteNames;
 
 class ShowInvitationController extends Controller
 {

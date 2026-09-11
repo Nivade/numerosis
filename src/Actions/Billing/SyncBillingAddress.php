@@ -8,7 +8,7 @@ use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
-use Nvade\Numerosis\Support\Billing\TaxIdType;
+use Nvade\Numerosis\Services\Billing\TaxIdType;
 use Stripe\PaymentMethod;
 
 /**

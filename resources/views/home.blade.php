@@ -21,8 +21,8 @@
 
         <div class="flex flex-wrap justify-center gap-3">
             @auth
-                @if (Route::has(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine()))
-                    <flux:button :href="route(\Nvade\Numerosis\Support\Routes\RouteNames::tenantsMine())" wire:navigate variant="primary">
+                @if (Route::has(\Nvade\Numerosis\Routing\RouteNames::tenantsMine()))
+                    <flux:button :href="route(\Nvade\Numerosis\Routing\RouteNames::tenantsMine())" wire:navigate variant="primary">
                         {{ __('Your workspaces') }}
                     </flux:button>
                 @endif

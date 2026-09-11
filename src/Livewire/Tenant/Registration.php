@@ -12,7 +12,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Nvade\Numerosis\Contracts\Tenancy\HasTransientState;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
-use Nvade\Numerosis\Support\Tenancy\RegistrationState;
+use Nvade\Numerosis\Livewire\Tenant\Registration\RegistrationState;
 use Override;
 use Spatie\LivewireWizard\Components\WizardComponent;
 

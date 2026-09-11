@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Features\Concerns;
 
-use Nvade\Numerosis\Support\FeatureRegistry;
+use Nvade\Numerosis\Features\FeatureRegistry;
 
 /**
  * Supplies both halves of {@see \Nvade\Numerosis\Contracts\NamedFeature} from

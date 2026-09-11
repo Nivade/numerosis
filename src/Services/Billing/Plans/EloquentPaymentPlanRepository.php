@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Services\Billing\Plans;
 
 use Illuminate\Support\Collection;
+use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Exceptions\Billing\PaymentPlanNotFound;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Numerosis;
-use Nvade\Numerosis\Support\Cache\CacheKeys;
-use Nvade\Numerosis\Support\Cache\GlobalCache;
 
 class EloquentPaymentPlanRepository implements PaymentPlanRepository
 {

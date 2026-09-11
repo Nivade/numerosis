@@ -8,7 +8,7 @@ use App\Models\Central\Tenant;
 use DateTimeInterface;
 use Illuminate\Support\Facades\URL;
 use Nvade\Numerosis\Models\Central\Invitation;
-use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Routing\RouteNames;
 
 /**
  * An invitation and the emailed link that reaches it.

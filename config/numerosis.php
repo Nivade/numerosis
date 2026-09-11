@@ -211,7 +211,7 @@ return [
     | Cache
     |--------------------------------------------------------------------------
     |
-    | Prefix for every key in Nvade\Numerosis\Support\Cache\CacheKeys. Does
+    | Prefix for every key in Nvade\Numerosis\Cache\CacheKeys. Does
     | not decide which keys are tenant-scoped vs global.
     */
 

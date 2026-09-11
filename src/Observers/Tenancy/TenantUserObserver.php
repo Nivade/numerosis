@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Observers\Tenancy;
 
+use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Tenant\User;
 use Nvade\Numerosis\Observers\Concerns\ForgetsCacheKey;
-use Nvade\Numerosis\Support\Cache\CacheKeys;
 
 /**
  * Keeps {@see \Nvade\Numerosis\Actions\Queries\FindUserByGlobalId}'s cached entry from

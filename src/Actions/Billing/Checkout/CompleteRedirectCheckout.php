@@ -12,10 +12,10 @@ use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
+use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Http\Requests\Billing\CheckoutReturnRequest;
-use Nvade\Numerosis\Support\FeatureRegistry;
-use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Routing\RouteNames;
 use Stripe\Exception\ApiErrorException;
 
 /**

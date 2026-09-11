@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Facades\Billing;
-use Nvade\Numerosis\Support\FeatureRegistry;
+use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
 use Nvade\Numerosis\Tests\TestCase;
 

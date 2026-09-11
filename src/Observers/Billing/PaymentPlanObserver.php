@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Observers\Billing;
 
+use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Observers\Concerns\ForgetsCacheKey;
-use Nvade\Numerosis\Support\Cache\CacheKeys;
 
 /**
  * Keeps {@see \Nvade\Numerosis\Services\Billing\Plans\EloquentPaymentPlanRepository::available()}'s

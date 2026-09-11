@@ -11,8 +11,8 @@ use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Livewire\Tenant\Registration;
+use Nvade\Numerosis\Livewire\Tenant\Registration\RegistrationState;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
-use Nvade\Numerosis\Support\Tenancy\RegistrationState;
 use Nvade\Numerosis\Tests\TestCase;
 
 class PaymentTest extends TestCase

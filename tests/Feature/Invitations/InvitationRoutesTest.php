@@ -8,7 +8,7 @@ use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
-use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Routing\RouteNames;
 use Nvade\Numerosis\Tests\Concerns\BuildsInvitations;
 use Nvade\Numerosis\Tests\TestCase;
 

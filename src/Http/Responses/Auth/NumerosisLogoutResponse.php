@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Http\Responses\Auth;
 
 use Illuminate\Http\RedirectResponse;
 use Laravel\Fortify\Contracts\LogoutResponse;
-use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Routing\RouteNames;
 
 class NumerosisLogoutResponse implements LogoutResponse
 {

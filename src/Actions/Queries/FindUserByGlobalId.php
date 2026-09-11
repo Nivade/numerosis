@@ -6,10 +6,10 @@ namespace Nvade\Numerosis\Actions\Queries;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Boot\UserModels;
+use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\User;
-use Nvade\Numerosis\Support\Cache\CacheKeys;
-use Nvade\Numerosis\Support\Cache\GlobalCache;
 
 /**
  * @method static ?User run(string $globalId, ?Context $context = null)

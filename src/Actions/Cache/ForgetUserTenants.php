@@ -6,8 +6,8 @@ namespace Nvade\Numerosis\Actions\Cache;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Queries\GetTenantsByGlobalId;
-use Nvade\Numerosis\Support\Cache\CacheKeys;
-use Nvade\Numerosis\Support\Cache\GlobalCache;
+use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Cache\GlobalCache;
 
 class ForgetUserTenants
 {

@@ -5,10 +5,10 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Http\Controllers\Invitations\DestroyInvitationController;
 use Nvade\Numerosis\Http\Controllers\Invitations\StoreInvitationController;
-use Nvade\Numerosis\Support\FeatureRegistry;
 
 /*
 |--------------------------------------------------------------------------

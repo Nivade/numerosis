@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Observers\Concerns;
 
-use Nvade\Numerosis\Support\Cache\GlobalCache;
+use Nvade\Numerosis\Cache\GlobalCache;
 
 trait ForgetsCacheKey
 {

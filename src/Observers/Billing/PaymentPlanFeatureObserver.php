@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Observers\Billing;
 
+use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Models\Central\PaymentPlanFeature;
 use Nvade\Numerosis\Observers\Concerns\ForgetsCacheKey;
-use Nvade\Numerosis\Support\Cache\CacheKeys;
 
 /**
  * Features are rendered alongside their plan, so an edit here must bust

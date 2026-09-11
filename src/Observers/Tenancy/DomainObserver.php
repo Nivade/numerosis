@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Observers\Tenancy;
 
+use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Observers\Concerns\ForgetsCacheKey;
-use Nvade\Numerosis\Support\Cache\CacheKeys;
 
 /**
  * Keeps {@see \Nvade\Numerosis\Models\Central\Tenant::primaryDomain()}'s cached entry

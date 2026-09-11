@@ -63,7 +63,7 @@ class extends Component
         </p>
     @endif
 
-    <flux:button href="{{ route(\Nvade\Numerosis\Support\Routes\RouteNames::home()) }}" variant="ghost" size="sm">
+    <flux:button href="{{ route(\Nvade\Numerosis\Routing\RouteNames::home()) }}" variant="ghost" size="sm">
         Back to home
     </flux:button>
 </div>

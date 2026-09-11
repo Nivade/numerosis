@@ -33,7 +33,7 @@ use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Numerosis;
-use Nvade\Numerosis\Support\Routes\RouteNames;
+use Nvade\Numerosis\Routing\RouteNames;
 
 /**
  * The inline checkout, used two ways: standalone at `/checkout/{domain}`,

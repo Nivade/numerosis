@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Features;
 
 use Illuminate\Support\Facades\Route;
-use Nvade\Numerosis\Support\FeatureRegistry;
+use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Tests\TestCase;
 
 class SocialLoginDisabledTest extends TestCase

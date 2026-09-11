@@ -10,7 +10,7 @@ use Nvade\Numerosis\Exceptions\Billing\BillingAddressRequired;
 use Nvade\Numerosis\Exceptions\Billing\BillingAddressUnavailable;
 use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Support\Billing\TaxIdType;
+use Nvade\Numerosis\Services\Billing\TaxIdType;
 use Stripe\Exception\ApiErrorException;
 
 /**

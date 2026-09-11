@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Config;
 use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
+use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -16,7 +17,6 @@ use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
-use Nvade\Numerosis\Support\FeatureRegistry;
 use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
 use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
 

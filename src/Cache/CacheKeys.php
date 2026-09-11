@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Support\Cache;
+namespace Nvade\Numerosis\Cache;
 
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Enums\Tenancy\Context;
