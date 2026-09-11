@@ -65,6 +65,32 @@ rest of this file is read:
   earlier command was still going. It reads exactly like a real isolation bug.
   Confirm first: `ps -eo pid,cmd | grep '[p]est'`.
 
+- **Killing a `--parallel` run mid-migration leaves worker databases that
+  never repair themselves.** `TestCase::ensureDatabaseExists()` is
+  `create database if not exists`, so a `testing_test_N` that exists but was
+  never migrated is silently accepted on every later run. Measured
+  2026-09-11: `kill -9` on a run produced **225 failures**, almost all
+  `SQLSTATE[42S02] … Table 'testing_test_2.roles' doesn't exist`, and they
+  survived a clean checkout — it reads exactly like a broad code regression.
+  Fix is to drop them, not to re-run:
+
+  ```bash
+  for db in $(docker exec numerosis-mysql-1 mysql -uroot -proot -N \
+      -e "SHOW DATABASES;" | grep -E '^testing|^tenant'); do
+    docker exec numerosis-mysql-1 mysql -uroot -proot -e "DROP DATABASE \`$db\`;"
+  done
+  ```
+
+  Tell it apart from a real failure by the shape: a missing *table* on many
+  unrelated tests is infrastructure; a missing row or a wrong value is yours.
+
+- **Do not pipe a suite run through `tail` in an agent shell.** `composer test
+  > /tmp/out.txt 2>&1` instead. Observed 2026-09-11: `composer test | tail -20`
+  produced a 0-byte output file and a shell that sat at 0% CPU with `tail` as
+  its only child and no `pest` process at all — indistinguishable from a hung
+  suite, and it cost two false starts before `vendor/bin/pest --filter=…`
+  written straight to a file returned in 0.78s. Redirect, then read the file.
+
 - **Two teardown hooks do work `RefreshDatabase` cannot**, both registered
   from `Tests\TestCase::setUp()` via `beforeApplicationDestroyed()` so run
   *after* its rollback:
