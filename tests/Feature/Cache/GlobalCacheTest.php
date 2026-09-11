@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Tests\Feature\Support\Cache;
+namespace Nvade\Numerosis\Tests\Feature\Cache;
 
 use Illuminate\Cache\CacheManager;
 use Nvade\Numerosis\Cache\GlobalCache;

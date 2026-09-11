@@ -13,14 +13,28 @@ recommendation — match it, don't improve on it.
 - **Data-access and cross-cutting capabilities go behind a `Contracts`
   interface, bound to a `Services` implementation in
   `NumerosisServiceProvider::register()`.** Both live under the same
-  `<Domain>/` subfolder (`src/Contracts/Billing/*`, `src/Services/Billing/*`).
-  Interfaces are named by capability (`Resolves*`, `Creates*`, `Notifies*`,
-  `*Repository`, `*Gateway`, `*Policy`); concrete classes are named by
-  mechanism (`Eloquent*`, `Config*`, `Local*`, `Stancl*`, `*Directly`).
-  Consumers type-hint the interface and resolve through the container —
-  never reference the concrete class directly. Add new capabilities the same
-  way: interface in `Contracts/<Domain>`, implementation in
-  `Services/<Domain>`, bind in `NumerosisServiceProvider`.
+  `<Domain>/` subfolder, and **the two folders mirror each other flatly** —
+  `src/Contracts/Billing/*` and `src/Services/Billing/*` are both flat, so a
+  contract and its implementation are findable from each other. Do not
+  reintroduce a sub-grouping on one side only; `Services/Billing/` carried
+  `Checkout/`, `Plans/`, `Subscriptions/` *and* `Resolvers/` until
+  2026-09-11, i.e. two grouping axes at once, and only two of `Resolvers/`'s
+  five were resolvers. Interfaces are named by capability (`Resolves*`,
+  `Creates*`, `Notifies*`, `*Repository`, `*Gateway`, `*Policy`); concrete
+  classes are named by mechanism (`Eloquent*`, `Config*`, `Local*`,
+  `Stancl*`, `*Directly`). Consumers type-hint the interface and resolve
+  through the container — never reference the concrete class directly.
+
+- **`Services/` is only for that.** The rule above used to read as an
+  absolute while holding for 12 of 24 files. Four value objects and
+  `Responsable` wrappers lived under `Services/Billing/Checkout/` and moved
+  to `Data/Billing/Checkout/` and `Http/Responses/Billing/` on 2026-09-11.
+  Two residents implement nothing and are deliberate: `BillingService` (the
+  `Billing` facade's root) and `TaxIdType` (a static lookup table).
+  `tests/Feature/ArchTest.php` names those two and fails on a third, so
+  adding one is an edit to that list, not a drive-by. Classes that validate
+  or normalize the *host application* are not services either — they live in
+  `src/Boot/`.
 
 - **Business logic goes in `AsAction` classes under `src/Actions/**`,
   invoked via `handle()`.** No `__invoke()`/`execute()` alternates. This

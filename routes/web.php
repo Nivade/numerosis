@@ -143,7 +143,7 @@ Route::middleware([$centralAuth])->group(function () {
 });
 
 // `login`, `register`, `logout`, `password.request`, `password.reset` and
-// `verification.verify` are Fortify's, loaded by `Support\Numerosis::routes()`
+// `verification.verify` are Fortify's, loaded by `Routing\RouteLoader::load()`
 // into this same domain group, and again into the tenant group.
 // `Numerosis::authRoutesEnabled()` (the `withAuth` flag on
 // `Numerosis::routes()`) gates that load.

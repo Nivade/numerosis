@@ -2,8 +2,9 @@
 paths:
   - 'src/NumerosisServiceProvider.php'
   - 'src/Numerosis.php'
-  - 'src/Support/HostConfig.php'
-  - 'src/Support/Domains.php'
+  - 'src/Boot/HostConfig.php'
+  - 'src/Boot/Domains.php'
+  - 'src/Routing/RouteLoader.php'
   - 'src/Enums/Tenancy/IdentificationMode.php'
 ---
 # Package/Host Bootstrap Wiring
@@ -300,10 +301,17 @@ same `DirectoryNotFoundException`, none naming the move. Grep
 `dirname(__DIR__` across `src/` before and after any file move.
 
 **Same-namespace resolution means a working call site can have no import.**
-`Support\HostConfig` called `Numerosis::model()` and `Features::enabled()`
-with no `use` line, because both classes were then in
-`Nvade\Numerosis\Support` too. Moving either one leaves `HostConfig`
-resolving a class that no longer exists, and a grep for files *importing* the
-moved class finds nothing. Search for the bare `ClassName::` as well as the
-FQCN, and run `composer analyse` cold — PHPStan's `class.notFound` is what
-catches this, not the test suite.
+`HostConfig` called `FeatureRegistry::enabled()` with no `use` line, because
+both were then in `Nvade\Numerosis\Support`. Moving `HostConfig` to `Boot\`
+on 2026-09-11 left it resolving a class that no longer existed, and a grep
+for files *importing* `FeatureRegistry` did not list it. Search for the bare
+`ClassName::` as well as the FQCN, and run `composer analyse` cold —
+PHPStan's `class.notFound` is what catches this, not the test suite.
+
+**A path string naming a class's file is invisible to every FQCN grep.**
+`tests/Feature/Docs/HostRequirementsTest` read
+`$root.'/src/Support/HostConfig.php'` with `file_get_contents`, so the same
+move broke it in a way nothing in the move's own checklist could find. It
+resolves the path by reflection now. Grep moved files by *path* as well as by
+namespace, and prefer `(new ReflectionClass(X::class))->getFileName()` in any
+test that reads source.

@@ -37,7 +37,7 @@ Route::get('/', fn () => view(Config::string('numerosis.routes.home_view')))
     ->name('tenant.home');
 
 // `verification.notice` and `password.confirm` are Fortify's, loaded by
-// `Support\Numerosis::routes()` into this same tenant group. That load runs
+// `Routing\RouteLoader::load()` into this same tenant group. That load runs
 // after this file; see `loadFortifyRoutes()`.
 //
 // `tenancy.auth` rather than `auth`: it is Laravel's Authenticate plus the

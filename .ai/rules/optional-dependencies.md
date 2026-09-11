@@ -2,7 +2,6 @@
 paths:
   - 'src/Models/**'
   - 'src/Features/**'
-  - 'src/Support/Compat/**'
   - 'composer.json'
 ---
 > **Header note, 2026-09-05 (later).** `ryangjchandler/laravel-cloudflare-turnstile`

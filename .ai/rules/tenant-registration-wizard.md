@@ -18,8 +18,9 @@ paths:
 >   on `Features\Tenancy\RegistrationWizardFeature` now
 >   (`::FEATURE`, `::SESSION_KEY = 'registration.wizard_state'`), read by
 >   `Livewire\Billing\Checkout` and `Actions\Billing\Checkout\CompleteRedirectCheckout`.
-> - `RegistrationState` is `Support\Tenancy\RegistrationState`, not
->   `Support\State\`.
+> - `RegistrationState` is
+>   `Livewire\Tenant\Registration\RegistrationState`, moved there 2026-09-11
+>   from `Support\Tenancy\`.
 > - `/get-started` is a plain core route —
 >   `Route::livewire('/get-started', Registration::class)->name('tenants.create')`
 >   in `routes/web.php:49` — not a host contribution. The

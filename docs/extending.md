@@ -86,7 +86,7 @@ step 4). They are not speculative abstraction:
   `bind()` against.
 - **10 are role interfaces, not service bindings**, and are load-bearing as
   types: `CentralUserModel`/`TenantUserModel` are what `HostConfig` and
-  `UserModelResolver` `is_a()`-check a host's own model against,
+  `Boot\UserModels` `is_a()`-check a host's own model against,
   `Feature`/`NamedFeature` are the feature registry's contract, and
   `Subscribable`/`Plan`/`HasTenants`/
   `ProvidesTenantIdentity` are the shapes core's own services accept so a host

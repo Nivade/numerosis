@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Tests\Feature\Support;
+namespace Nvade\Numerosis\Tests\Feature\Boot;
 
 use Nvade\Numerosis\Boot\Domains;
 use Nvade\Numerosis\Tests\TestCase;

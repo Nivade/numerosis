@@ -16,7 +16,7 @@ paths:
 > the *next* extraction would need again, if there is one. Two things below
 > are stale facts rather than durable mechanism, corrected here rather than
 > in place: `tests/Feature/Support/SatelliteRouteContributionTest` is now
-> `tests/Feature/Support/PackageContributionSeamsTest`, and every mention of
+> `tests/Feature/Boot/PackageContributionSeamsTest`, and every mention of
 > `packages/{auth-ui,onboarding,filament}` describes a directory that no
 > longer exists. See `.ai/rules/package-boundaries.md` for the current,
 > two-package seam map, and `docs/architecture.md` for why each satellite
@@ -88,7 +88,7 @@ came after — right up until three of them folded back into core.
 - **"Which files belong in the leaf package" is answered by grep, not by the
   plan.** D4 assigned `layouts/` and `partials/` to `numerosis-ui`. They were
   moved, and moved straight back: they name
-  `Nvade\Numerosis\Support\{Numerosis,Features,Routes\RouteNames}`,
+  `Nvade\Numerosis\{Numerosis,Features\FeatureRegistry,Routing\RouteNames}`,
   `Models\Central\CentralUser`, `Actions\Queries\GetAuthenticatedUser`, and
   call `tenancy()` — a leaf package shipping them would depend on core, which
   is the exact property it exists to not have. `partials/script-config.blade.php`

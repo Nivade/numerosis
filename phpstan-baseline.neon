@@ -28,5 +28,5 @@ parameters:
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
 			count: 1
-			path: tests/Feature/Support/NumerosisSeamTest.php
+			path: tests/Feature/Boot/NumerosisSeamTest.php
 

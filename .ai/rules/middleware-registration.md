@@ -1,6 +1,7 @@
 ---
 paths:
   - 'src/Http/Middleware/**'
+  - 'src/Boot/MiddlewareRegistrar.php'
   - 'routes/**'
 ---
 # Middleware Registration
@@ -60,4 +61,4 @@ regenerates and discards. The facts are the same; only the home changed.
 
 - **`NumerosisServiceProvider::registerMiddleware()` stands down once `Numerosis::middleware()` has run.** Until 2026-09-05 it re-applied every alias, `TrustProxies::at('*')` and `prependMiddleware(TrustHosts::class)` unconditionally from `packageBooted()` — which runs *after* a host's `withMiddleware()` closure, so anything the host changed in that closure was reverted before the first request, silently. `Numerosis::middleware()` now sets a process-lifetime `$middlewareRegistered` flag (mirroring `$routesRegistered`), read back through `Numerosis::middlewareRegistered()`, and the provider returns early when it is set. The self-heal still runs for a host that never calls it at all.
 
-  Two consequences. **Order inside the closure is now load-bearing**: call `Numerosis::middleware($middleware)` first, then your own configuration, because nothing re-applies the package's afterwards. And **the flag leaks between tests** — one test calling `Numerosis::middleware()` would otherwise disable the provider's registration for every later test in the same worker, so `Tests\TestCase::setUp()` calls `Numerosis::resetMiddlewareRegisteredForTesting()` before `parent::setUp()`. `tests/Feature/Support/HostMiddlewareNotRevertedTest.php` holds both halves down.
+  Two consequences. **Order inside the closure is now load-bearing**: call `Numerosis::middleware($middleware)` first, then your own configuration, because nothing re-applies the package's afterwards. And **the flag leaks between tests** — one test calling `Numerosis::middleware()` would otherwise disable the provider's registration for every later test in the same worker, so `Tests\TestCase::setUp()` calls `Numerosis::resetMiddlewareRegisteredForTesting()` before `parent::setUp()`. `tests/Feature/Boot/HostMiddlewareNotRevertedTest.php` holds both halves down.

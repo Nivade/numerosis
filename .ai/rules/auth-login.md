@@ -77,7 +77,7 @@ paths:
   `Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper`, which swaps
   the key on tenancy initialization; the broker it swaps to,
   `auth.passwords.tenant`, is defaulted by
-  `Support\HostConfig::tenantPasswordBroker()`, and its tokens live in the
+  `Boot\HostConfig::tenantPasswordBroker()`, and its tokens live in the
   tenant database's own `password_reset_tokens` table, created by
   `database/migrations/tenant/0001_01_01_000000_create_users_table.php`.
   **Ask which phase reads a key before deciding where to set it:** baked into

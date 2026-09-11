@@ -144,47 +144,54 @@ worker there, not just on `default`.
 
 ```
 src/
-  Actions/        67 files — lorisleiva/laravel-actions; the verbs of the system
-  Contracts/      26 — every swappable behaviour, bound in packageRegistered()
-  Exceptions/     22
-  Services/       24 — default implementations, grouped by domain:
-                  Auth/ Billing/ Invitations/ Notifications/ Tenancy/
+  Actions/        68 files — lorisleiva/laravel-actions; the verbs of the system
+  Contracts/      27 — every swappable behaviour, bound in packageRegistered()
+  Exceptions/     20
+  Services/       19 — the concrete implementation of a contract, in a
+                  folder mirroring Contracts/: Billing/ Exceptions/
+                  Notifications/ Tenancy/
   Models/         16 — Central/ and Tenant/
-  Support/        6 top-level classes — Numerosis, ModelResolver,
-                  Assets, HostConfig, Features, Domains, + Billing/ Cache/
-                  Compat/ Routes/ Social/ Tenancy/
-  Http/           19 — controllers (auth, Socialite, billing webhook) and
-                  middleware
-  Features/        9 feature classes, grouped by domain (Auth/ Billing/
+  Boot/           8 — what the package reads from, writes to, or validates
+                  in the host application. Numerosis.php's backstage
+  Routing/        RouteNames and RouteLoader
+  Cache/          CacheKeys and GlobalCache
+  Http/           29 — controllers (auth, Socialite, billing webhook),
+                  middleware and responses
+  Features/       10 feature classes, grouped by domain (Auth/ Billing/
                   Invitations/ Tenancy/ Turnstile/) — see
                   docs/features.md
   Enums/          every enum under a domain namespace: Billing/ Tenancy/
                   Tenant/
   Policies/ Listeners/ Events/ Data/ Observers/ Concerns/ Livewire/
-  Console/ Notifications/ Testing/ Rules/ Providers/ Resolvers/
-  Jobs/ Facades/ Commands/
+  Console/ Notifications/ Testing/ Rules/ Providers/
+  Jobs/ Facades/
 ```
 
 Two naming decisions worth knowing before grepping: `Feature` in PHP means a
 capability toggle and nothing else — a plan's selling point is
 `Models\Central\PlanFeature` (its table is still `features`, deliberately) —
-and there is no `Support\Defaults`; every default implementation lives in
-`Services\`.
+and there is no `Support\Defaults` — nor a `Support\` at all, since
+2026-09-11. Every default implementation lives in `Services\`.
 
-Seven `Support` classes carry most of the surface area. The first four were
-one class until 2026-09-01, split by audience — **every moved method still
-exists on `Numerosis` and delegates**, because `Numerosis::` is the idiom
-`docs/extending.md`, every host's `config/numerosis.php` and ~200 call sites
-already use. Read the delegate for the seam, the owner for the mechanism.
+`src/Numerosis.php` is the only class a host imports, and every one of its
+methods delegates. The owners are below: **every method still exists on
+`Numerosis`**, because `Numerosis::` is the idiom `docs/extending.md`, every
+host's `config/numerosis.php` and ~200 call sites already use. Read
+`Numerosis` for the seam, the owner for the mechanism.
 
 | Class | Owns |
 |---|---|
 | `Numerosis` | application bootstrap and the front door to everything below: `configure()`, `routes()`, `middleware()`, `exceptions()`, and the three `registerXUsing()` wholesale overrides. `Facades\Numerosis` is the post-boot facade over it, never usable from `bootstrap/app.php` |
-| `Support\ModelResolver` | model resolution, the model↔factory name mapping and its memoization cache. Behind `Numerosis::{model,factoryNameFor,modelNameFor,resetModelCache}()` |
-| `Support\Assets` | the `numerosis-assets` publish map, the published `public/vendor/numerosis` paths, and the `<link>`/`<script>` tags for the package's CSS/JS. Behind `Numerosis::{assetSourcePaths,assetTags}()`. The only one of these that reaches for `Vite` and the filesystem |
-| `Support\HostConfig` | every config value normalized for a host at boot. One row per key in `host-requirements.md` |
-| `Support\FeatureRegistry` | the feature registry — merges `config('numerosis.features')` with any `FeatureRegistry::register()` call a host makes from its own provider |
-| `Support\Domains` | apex / central / tenant hostname derivation from `APP_URL`. **Nothing in it may call a facade** — it is invoked from `config/numerosis.php`, during `LoadConfiguration`, before `RegisterFacades` |
+| `Boot\ModelResolver` | model resolution, the model↔factory name mapping and its memoization cache. Behind `Numerosis::{model,factoryNameFor,modelNameFor,resetModelCache}()` |
+| `Boot\Assets` | the `numerosis-assets` publish map, the published `public/vendor/numerosis` paths, and the `<link>`/`<script>` tags for the package's CSS/JS. Behind `Numerosis::{assetSourcePaths,assetTags}()`. The only one of these that reaches for `Vite` and the filesystem |
+| `Boot\HostConfig` | every config value normalized for a host at boot. One row per key in `host-requirements.md` |
+| `Features\FeatureRegistry` | the feature registry — merges `config('numerosis.features')` with any `FeatureRegistry::register()` call a host makes from its own provider |
+| `Boot\Domains` | apex / central / tenant hostname derivation from `APP_URL`. **Nothing in it may call a facade** — it is invoked from `config/numerosis.php`, during `LoadConfiguration`, before `RegisterFacades` |
+| `Routing\RouteLoader` | the central-domain and `tenant` route groups, Fortify's route file and the one-time-password routes. Behind `Numerosis::{routes,routesRegistered,authRoutesEnabled}()` |
+| `Boot\MiddlewareRegistrar` | the one definition of the package's aliases and groups, read by both `Numerosis::middleware()` and the service provider. **Pure class-string literals** — it runs before `RegisterFacades` |
+| `Boot\ExceptionRegistrar` | report context, duplicate suppression and throttling. Behind `Numerosis::exceptions()` |
+| `Boot\UserModels` | which user model answers for the current guard, from the two `tenancy.*_user_model` keys `HostConfig` writes |
+| `Boot\ConfiguredSteps` | boot-time validation of the two host-editable step lists in `numerosis.tenancy` |
 
 ## Configuration
 
@@ -210,7 +217,7 @@ such as `features` is left exactly as the host set it, including empty.
 | `domains` | `apex`, `central`, `tenant_pattern` — all derived from `APP_URL` |
 | `auth` | guard indirection (`auth.guards.central` defaults to `'web'`) |
 | `social` | OAuth provider metadata and route names |
-| `cache` | the prefix for every key in `Support\Cache\CacheKeys`. Does **not** decide which keys are tenant-scoped — see `.ai/rules/tenant-caching.md` |
+| `cache` | the prefix for every key in `Cache\CacheKeys`. Does **not** decide which keys are tenant-scoped — see `.ai/rules/tenant-caching.md` |
 | `models` | explicit model overrides (step one of `Numerosis::model()`) |
 | `billing` | Stripe, payment-method ordering, checkout regions |
 | `tenancy` | identification mode, provisioning, implementations |

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Tests\Feature\Support;
+namespace Nvade\Numerosis\Tests\Feature\Routing;
 
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;

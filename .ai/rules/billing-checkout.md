@@ -88,7 +88,7 @@ paths:
 - **A second `owner` membership row corrupts billing, which is why
   `MembershipRole::assignable()` omits `Owner`.** `Actions\Tenancy\AddTenantOwner`
   grants ownership during provisioning, and both `Tenant::owner()` and
-  `Services\Billing\Resolvers\DefaultUnpaidTenantQuota` read that row as the
+  `Services\Billing\DefaultUnpaidTenantQuota` read that row as the
   billing subject. An invitation carrying `owner` would write a competing one.
 - **The redirect-checkout completion hangs off `payment_method.attached`, not
   `setup_intent.succeeded`.** That event fires before Stripe attaches the

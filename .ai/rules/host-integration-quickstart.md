@@ -233,7 +233,7 @@ original follow-up list, which this replaces.
    first-class-callable form (`Numerosis::routes(...)`) still includes them,
    because `RouteServiceProvider::loadRoutes()` invokes it through
    `$this->app->call()`, which fills an unbound primitive from its default
-   rather than injecting the router. `tests/Feature/Support/AuthRoutesOptOutTest`
+   rather than injecting the router. `tests/Feature/Routing/AuthRoutesOptOutTest`
    pins both halves.
 6. **`TenancyServiceProvider::shouldCacheResolvedTenants()`** decides
    `DomainTenantResolver::$shouldCache` from what the host's cache config can

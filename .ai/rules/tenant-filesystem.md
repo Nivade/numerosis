@@ -1,7 +1,7 @@
 ---
 paths:
   - 'src/NumerosisServiceProvider.php'
-  - 'src/Support/HostConfig.php'
+  - 'src/Boot/HostConfig.php'
 ---
 # Filesystem Tenancy
 
@@ -9,7 +9,7 @@ paths:
 > defensively** — this file used to read as a list of host `config/` edits, and
 > this repo has no `config/filesystems.php`, `config/livewire.php` or
 > `bootstrap/app.php` to edit. `HostConfig::filesystemRootOverride()`
-> (`src/Support/HostConfig.php:255-263`) sets
+> (`src/Boot/HostConfig.php:255-263`) sets
 > `tenancy.filesystem.root_override.local`, and only when the host left it null
 > or on stancl's stale `%storage_path%/app/` stub. `NumerosisServiceProvider`
 > (`src/NumerosisServiceProvider.php:218-230`) defines the `livewire` disk and

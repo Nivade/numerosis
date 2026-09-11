@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Tests\Feature;
+namespace Nvade\Numerosis\Tests\Feature\Boot;
 
 use Illuminate\Foundation\Auth\User as GenericUser;
 use Illuminate\Support\Facades\Config;

@@ -1,6 +1,6 @@
 ---
 paths:
-  - 'src/Support/**'
+  - 'src/Boot/**'
   - 'src/Http/Middleware/**'
   - 'packages/**'
 ---
@@ -28,7 +28,7 @@ nothing else.
 
 ## The seams
 
-All on `Nvade\Numerosis\Support\{Numerosis,Features}`, all additive. A host
+All on `Nvade\Numerosis\{Numerosis,Features\FeatureRegistry}`, all additive. A host
 calls these; core never names a host's classes. Full table, with notes, is in
 `docs/extending.md` — this file only records the boundary facts that are easy
 to get wrong.
@@ -54,7 +54,7 @@ defaults.
 - **A feature class listed in config but not installed disappears silently,
   from two places, and neither raises anything you will see.**
   `Features::names()`'s `is_a($class, NamedFeature::class, true)`
-  (`src/Support/FeatureRegistry.php:127`) autoloads and quietly returns `false` for a
+  (`src/Features/FeatureRegistry.php:127`) autoloads and quietly returns `false` for a
   missing class, so the entry drops out of the *name map* and every
   `Features::enabled('that-name')` reads `false`. It used to at least crash
   afterwards: `NumerosisServiceProvider`'s boot loop called
@@ -149,7 +149,7 @@ static contribution list is history. What each became:
 The general rule that outlives all of it: add the reader alongside the writer.
 A boundary test that can enumerate what a host contributed is strictly better
 than one that scans files for forbidden strings — which is why
-`tests/Feature/Support/PackageContributionSeamsTest.php` survived the deletion
+`tests/Feature/Boot/PackageContributionSeamsTest.php` survived the deletion
 rather than going with it.
 
 ## HostConfig's preference/correction split, and its one deliberate asymmetry
