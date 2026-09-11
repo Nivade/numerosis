@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Nvade\Numerosis\Boot\MiddlewareRegistrar;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Symfony\Component\Finder\Finder;
@@ -106,5 +107,92 @@ test('nothing reads the current user through the Auth facade', function (): void
                 "{$file->getRelativePathname()} reads the current user through {$needle} — use GetAuthenticatedUser::run() instead.",
             );
         }
+    }
+});
+
+/**
+ * `src/Support/` was deleted on 2026-09-11 because "support" named nothing:
+ * it was whatever no other folder had claimed, and it accumulated the
+ * package's highest-traffic classes. Recreating it starts that over.
+ */
+test('no class lives in a folder named after the absence of a category', function (): void {
+    $files = (new Finder)
+        ->files()
+        ->in(dirname(__DIR__, 2).'/src')
+        ->name('*.php');
+
+    expect(iterator_count($files))->toBeGreaterThan(0, 'Scanned no files — the path above is wrong.');
+
+    foreach ($files as $file) {
+        expect($file->getRelativePath())->not->toStartWith('Support');
+    }
+});
+
+/**
+ * `Numerosis::middleware()` runs from a host's `bootstrap/app.php`, before
+ * `RegisterFacades`. Anything in these two methods that reads `Config` or a
+ * facade fatals on a real boot — which is not reproducible under Testbench,
+ * where the facade root happens to be set. `NumerosisSeamTest` covers the
+ * behaviour; this covers the source, so the trap is visible where it is easy
+ * to reintroduce.
+ */
+test('the middleware registry stays pure class-string literals', function (): void {
+    $source = (string) file_get_contents(
+        (string) (new ReflectionClass(MiddlewareRegistrar::class))->getFileName()
+    );
+
+    $start = strpos($source, 'public static function aliases()');
+    $end = strpos($source, 'public static function csrfExceptions()');
+
+    expect($start)->not->toBeFalse()
+        ->and($end)->not->toBeFalse();
+
+    $registry = substr($source, (int) $start, (int) $end - (int) $start);
+
+    foreach (['Config::', 'config(', 'Facade', 'app(', 'resolve('] as $needle) {
+        expect($registry)->not->toContain(
+            $needle,
+            "MiddlewareRegistrar::aliases()/groups() reads {$needle} — it runs before RegisterFacades and will fatal on a real boot.",
+        );
+    }
+});
+
+/**
+ * `Services/` means "a concrete implementation of a contract", so that a
+ * contract and its implementation are findable from each other. The two
+ * exceptions are named rather than pattern-matched: adding a third should be
+ * a deliberate edit, not something a new file slips into.
+ */
+test('everything in Services implements something, or is a named exception', function (): void {
+    $exceptions = [
+        Nvade\Numerosis\Services\Billing\BillingService::class,
+        Nvade\Numerosis\Services\Billing\TaxIdType::class,
+    ];
+
+    $files = (new Finder)
+        ->files()
+        ->in(dirname(__DIR__, 2).'/src/Services')
+        ->name('*.php');
+
+    expect(iterator_count($files))->toBeGreaterThan(0, 'Scanned no files — the path above is wrong.');
+
+    foreach ($files as $file) {
+        $class = 'Nvade\\Numerosis\\Services\\'
+            .str_replace('/', '\\', (string) preg_replace('/\.php$/', '', $file->getRelativePathname()));
+
+        if (in_array($class, $exceptions, true)) {
+            continue;
+        }
+
+        if (! class_exists($class)) {
+            throw new RuntimeException(
+                "{$file->getRelativePathname()} does not declare {$class} — its namespace and its path disagree.",
+            );
+        }
+
+        expect((new ReflectionClass($class))->getInterfaceNames())->not->toBe(
+            [],
+            "{$class} implements nothing. Either give it a contract, or add it to this test's named exceptions.",
+        );
     }
 });
