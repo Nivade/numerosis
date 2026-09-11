@@ -1,10 +1,12 @@
+@use(\Nvade\Numerosis\Enums\Auth\SocialProvider)
+@use(\Nvade\Numerosis\Features\Auth\SocialLoginFeature)
 {{--
     Owns its own feature gate and the divider that separates it from the email
     form, so a guest screen calls one tag and needs no `@if` of its own.
 --}}
 @php
-    $providers = \Nvade\Numerosis\Features\Auth\SocialLoginFeature::available()
-        ? \Nvade\Numerosis\Enums\Auth\SocialProvider::configured()
+    $providers = SocialLoginFeature::available()
+        ? SocialProvider::configured()
         : [];
 @endphp
 

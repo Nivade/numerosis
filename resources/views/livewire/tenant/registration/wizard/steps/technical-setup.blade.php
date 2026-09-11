@@ -1,8 +1,9 @@
+@use(\Nvade\Numerosis\Enums\Tenancy\IdentificationMode)
 @php
-    $mode = \Nvade\Numerosis\Enums\Tenancy\IdentificationMode::current();
-    $isSubdomain = $mode === \Nvade\Numerosis\Enums\Tenancy\IdentificationMode::Subdomain;
-    $isCustomDomain = $mode === \Nvade\Numerosis\Enums\Tenancy\IdentificationMode::CustomDomain;
-    $isPath = $mode === \Nvade\Numerosis\Enums\Tenancy\IdentificationMode::Path;
+    $mode = IdentificationMode::current();
+    $isSubdomain = $mode === IdentificationMode::Subdomain;
+    $isCustomDomain = $mode === IdentificationMode::CustomDomain;
+    $isPath = $mode === IdentificationMode::Path;
 @endphp
 
 <div class="space-y-8">

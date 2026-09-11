@@ -1,3 +1,5 @@
+@use(\Nvade\Numerosis\Enums\Billing\BillingCycle)
+@use(\Nvade\Numerosis\Models\Central\PaymentPlan)
 @props([
     'plan',
     'billingCycle',
@@ -10,8 +12,8 @@
 ])
 
 @php
-    /** @var \Nvade\Numerosis\Models\Central\PaymentPlan $plan */
-    /** @var \Nvade\Numerosis\Enums\Billing\BillingCycle $billingCycle */
+    /** @var PaymentPlan $plan */
+    /** @var BillingCycle $billingCycle */
     $isPopular = $plan->is_popular;
 
     // `$price` arrives already formatted ("€ 10,00"), so it cannot be compared
@@ -83,7 +85,7 @@
                         </div>
 
                         {{-- Savings Message --}}
-                        @if($billingCycle === \Nvade\Numerosis\Enums\Billing\BillingCycle::Yearly && $plan->getSavingsPercentage() > 0)
+                        @if($billingCycle === BillingCycle::Yearly && $plan->getSavingsPercentage() > 0)
                             <p class="text-[11px] font-semibold text-success-icon mt-1 uppercase tracking-wider">
                                 Save {{ $plan->getSavingsPercentage() }}% with annual billing
                             </p>
@@ -230,7 +232,7 @@
                     variant="{{ $isPopular ? 'filled' : 'outline' }}"
                 >
                     @if($isCurrentPlan)
-                        Switch to {{ $billingCycle === \Nvade\Numerosis\Enums\Billing\BillingCycle::Monthly ? 'Monthly' : 'Yearly' }}
+                        Switch to {{ $billingCycle === BillingCycle::Monthly ? 'Monthly' : 'Yearly' }}
                     @else
                         {{ $subscription ? 'Change Plan' : 'Get Started' }}
                     @endif

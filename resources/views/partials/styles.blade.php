@@ -1,4 +1,5 @@
+@use(\Nvade\Numerosis\Numerosis)
 @vite(['resources/css/app.css', 'resources/js/app.js'])
-{!! \Nvade\Numerosis\Numerosis::assetTags() !!}
+{!! Numerosis::assetTags() !!}
 @fluxAppearance
 @livewireStyles

@@ -1,4 +1,5 @@
-@if (\Nvade\Numerosis\Features\Turnstile\TurnstileFeature::available())
+@use(\Nvade\Numerosis\Features\Turnstile\TurnstileFeature)
+@if (TurnstileFeature::available())
     <x-turnstile.scripts />
 
     <script>

@@ -1,3 +1,5 @@
+@use(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature)
+@use(\Nvade\Numerosis\Routing\RouteNames)
 <x-numerosis-layouts::app :title="config('app.name')">
     {{--
         The package's placeholder homepage.
@@ -21,8 +23,8 @@
 
         <div class="flex flex-wrap justify-center gap-3">
             @auth
-                @if (Route::has(\Nvade\Numerosis\Routing\RouteNames::tenantsMine()))
-                    <flux:button :href="route(\Nvade\Numerosis\Routing\RouteNames::tenantsMine())" wire:navigate variant="primary">
+                @if (Route::has(RouteNames::tenantsMine()))
+                    <flux:button :href="route(RouteNames::tenantsMine())" wire:navigate variant="primary">
                         {{ __('Your workspaces') }}
                     </flux:button>
                 @endif
@@ -33,7 +35,7 @@
                     </flux:button>
                 @endif
 
-                @if (\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::available())
+                @if (RegistrationWizardFeature::available())
                     <flux:button :href="route('tenants.create')" wire:navigate>
                         {{ __('Get started') }}
                     </flux:button>

@@ -1,3 +1,4 @@
+@use(\Nvade\Numerosis\Enums\Auth\SocialProvider)
 <section class="mt-10 space-y-6">
     <div class="relative mb-5">
         <flux:heading>{{ __('Connected accounts') }}</flux:heading>
@@ -7,7 +8,7 @@
     <x-numerosis::ui.auth-session-status :status="session('status')" />
 
     <div class="space-y-4">
-        @foreach (\Nvade\Numerosis\Enums\Auth\SocialProvider::configured() as $provider)
+        @foreach (SocialProvider::configured() as $provider)
             @php($account = $accounts->firstWhere('provider', $provider))
 
             <div class="flex items-center justify-between gap-4">

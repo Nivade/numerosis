@@ -1,3 +1,4 @@
+@use(\Nvade\Numerosis\Features\Turnstile\TurnstileFeature)
 {{--
     `model` is opt-in. The vendor component branches on `wire:model`, and its
     `@if ($model)` branch emits `@this.set(...)`, which Blade compiles to
@@ -12,7 +13,7 @@
 --}}
 @props(['model' => null])
 
-@if (\Nvade\Numerosis\Features\Turnstile\TurnstileFeature::available())
+@if (TurnstileFeature::available())
     @if ($model)
         <x-turnstile wire:model="{{ $model }}" data-theme="auto" data-size="flexible" />
     @else

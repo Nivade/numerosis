@@ -1,10 +1,11 @@
 <?php
 
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Livewire\Attributes\Layout;
-use Livewire\Attributes\Computed;
-use Livewire\Component;
+use Nvade\Numerosis\Routing\RouteNames;
 
 /**
  * Where EnsureTenantSubscriptionActive sends a suspended tenant's owner —
@@ -63,7 +64,7 @@ class extends Component
         </p>
     @endif
 
-    <flux:button href="{{ route(\Nvade\Numerosis\Routing\RouteNames::home()) }}" variant="ghost" size="sm">
+    <flux:button href="{{ route(RouteNames::home()) }}" variant="ghost" size="sm">
         Back to home
     </flux:button>
 </div>

@@ -1,3 +1,5 @@
+@use(\Nvade\Numerosis\Contracts\Billing\Plan)
+@use(\Nvade\Numerosis\Enums\Billing\BillingCycle)
 @props([
     'plan',
     'billingCycle',
@@ -5,7 +7,7 @@
 ])
 
 @php
-    /** @var \Nvade\Numerosis\Contracts\Billing\Plan $plan */
+    /** @var Plan $plan */
     $trialDays = $plan->trialDays();
 @endphp
 
@@ -27,7 +29,7 @@
         </div>
         <div class="flex items-center justify-between">
             <x-numerosis::ui.text variant="muted" size="sm">
-                Then, billed {{ $billingCycle === \Nvade\Numerosis\Enums\Billing\BillingCycle::Monthly ? 'monthly' : 'yearly' }}
+                Then, billed {{ $billingCycle === BillingCycle::Monthly ? 'monthly' : 'yearly' }}
             </x-numerosis::ui.text>
             <x-numerosis::ui.text variant="default" size="sm" class="font-medium">
                 {{ $price }}{{ $billingCycle->label() }}

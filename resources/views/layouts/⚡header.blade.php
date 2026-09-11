@@ -1,10 +1,12 @@
 <?php
 
+use Livewire\Attributes\Computed;
+use Livewire\Component;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Livewire\Attributes\Computed;
-use Livewire\Component;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Routing\RouteNames;
 
 new class extends Component {
     /**
@@ -30,7 +32,7 @@ new class extends Component {
 <flux:header container class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
     <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left"/>
     <a wire:navigate
-       href="{{ route(\Nvade\Numerosis\Routing\RouteNames::tenantsMine()) }}"
+       href="{{ route(RouteNames::tenantsMine()) }}"
        class="ms-2 me-5 flex items-center space-x-2 rtl:space-x-reverse lg:ms-0"
     >
         <x-numerosis::app-logo/>
@@ -145,13 +147,13 @@ new class extends Component {
     <flux:sidebar stashable sticky
                   class="lg:hidden border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
         <flux:sidebar.toggle class="lg:hidden" icon="x-mark"/>
-        <a href="{{ route(\Nvade\Numerosis\Routing\RouteNames::tenantsMine()) }}" class="ms-1 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
+        <a href="{{ route(RouteNames::tenantsMine()) }}" class="ms-1 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
             <x-numerosis::app-logo/>
         </a>
         <flux:navlist variant="outline">
             @if ($this->user && $this->user->tenants->isNotEmpty())
                 <flux:navlist.group :heading="__('Tenants')">
-                    @foreach ($this->user->tenants as /** @var \Nvade\Numerosis\Models\Central\Tenant */ $tenant)
+                    @foreach ($this->user->tenants as /** @var Tenant */ $tenant)
                         @php($route = tenant_route($tenant->id, 'home'))
                         <flux:navlist.item :href="$route" :target="str_starts_with($route, 'http') ? '_blank' : '_self'">
                             {{ $tenant->name }}

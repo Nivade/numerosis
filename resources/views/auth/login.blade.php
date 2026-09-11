@@ -1,3 +1,4 @@
+@use(\Nvade\Numerosis\Features\Auth\OneTimePasswordFeature)
 {{--
     `OneTimePasswordFeature` replaces the password step of Fortify's login
     pipeline rather than adding a factor after it, so this form must stop
@@ -6,7 +7,7 @@
     here the field's own `required` attribute is what blocks an email-only
     submission, and the feature is unreachable from a browser.
 --}}
-@php($passwordless = \Nvade\Numerosis\Features\Auth\OneTimePasswordFeature::available())
+@php($passwordless = OneTimePasswordFeature::available())
 
 <x-numerosis-layouts::auth :title="__('Log in')">
     <div class="flex flex-col gap-6">

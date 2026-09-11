@@ -1,3 +1,5 @@
+@use(\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature)
+@use(\Nvade\Numerosis\Routing\RouteNames)
 <flux:footer container {{ $attributes->class('border-t border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900') }}>
     <div class="px-4 sm:px-6 lg:px-8 py-10">
         <div class="grid gap-8 md:grid-cols-3">
@@ -18,14 +20,14 @@
                     @if (Route::has('features'))
                         <x-numerosis::footer.link :href="route('features')">Features</x-numerosis::footer.link>
                     @endif
-                    @if (\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::available())
+                    @if (RegistrationWizardFeature::available())
                         <x-numerosis::footer.link :href="route('tenants.create')">Create workspace</x-numerosis::footer.link>
                     @endif
                     @if (Route::has('login'))
                         <x-numerosis::footer.link :href="route('login')">Sign in</x-numerosis::footer.link>
                     @endif
                     @auth
-                        <x-numerosis::footer.link :href="route(\Nvade\Numerosis\Routing\RouteNames::tenantsMine())">
+                        <x-numerosis::footer.link :href="route(RouteNames::tenantsMine())">
                             {{ __('My Tenants') }}
                         </x-numerosis::footer.link>
                     @endauth

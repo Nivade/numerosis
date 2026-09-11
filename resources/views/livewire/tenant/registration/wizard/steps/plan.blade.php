@@ -1,3 +1,5 @@
+@use(\Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser)
+@use(\Nvade\Numerosis\Services\Billing\BillingService)
 <div class="space-y-8">
     <x-numerosis::registration.header
         icon="sparkles"
@@ -10,7 +12,7 @@
         @php
             $maxSavings = $paymentPlans->map(fn($plan) => $plan->getSavingsPercentage())->max();
             $cycle = $this->cycle();
-            $billing = resolve(\Nvade\Numerosis\Services\Billing\BillingService::class);
+            $billing = resolve(BillingService::class);
         @endphp
         <x-numerosis::billing.cycle-toggle :billing-cycle="$cycle" :max-savings="$maxSavings" class="mb-8" />
 
@@ -65,7 +67,7 @@
                     'company_name' => $this->state()->get('company_name'),
                     'domain' => $this->state()->get('domain'),
                     'payment_plan' => $payment_plan,
-                    'global_id' => \Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser::run()?->global_id,
+                    'global_id' => GetAuthenticatedUser::run()?->global_id,
                 ]) }}"
                 variant="ghost"
                 size="sm"

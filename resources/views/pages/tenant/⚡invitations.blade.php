@@ -3,6 +3,7 @@
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Numerosis;
 
@@ -63,7 +64,7 @@ class extends Component
 
                 <div class="w-40">
                     <flux:select name="role" :label="__('Role')">
-                        @foreach (\Nvade\Numerosis\Enums\Tenancy\MembershipRole::assignable() as $role)
+                        @foreach (MembershipRole::assignable() as $role)
                             <option value="{{ $role->value }}" @selected(old('role') === $role->value)>{{ $role->label() }}</option>
                         @endforeach
                     </flux:select>

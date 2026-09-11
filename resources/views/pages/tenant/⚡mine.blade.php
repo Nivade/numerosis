@@ -1,15 +1,16 @@
 <?php
 
+use Illuminate\Support\Collection;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Actions\Tenancy\MarkProvisionCancelled;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
+use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
-use Illuminate\Support\Collection;
-use Livewire\Attributes\Layout;
-use Livewire\Component;
 
 new #[Layout('numerosis-layouts::app')]
 class extends Component
@@ -118,7 +119,7 @@ class extends Component
                 <x-numerosis::ui.badge variant="default">
                     {{ $readyTenants->count() }} total
                 </x-numerosis::ui.badge>
-                @if (\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::available())
+                @if (RegistrationWizardFeature::available())
                     <flux:button href="{{ route('tenants.create') }}" wire:navigate icon="plus" variant="primary" size="sm">
                         New Tenant
                     </flux:button>
@@ -133,7 +134,7 @@ class extends Component
                     title="You're not a member of any tenants yet"
                     description="Create your first tenant to get started, or ask an owner to invite you."
                 >
-                    @if (\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::available())
+                    @if (RegistrationWizardFeature::available())
                         <x-slot:action>
                             <flux:button href="{{ route('tenants.create') }}" wire:navigate variant="primary">
                                 Create Tenant
@@ -156,7 +157,7 @@ class extends Component
 
                                 <x-slot:actions>
                                     @if($pending->hasFailed())
-                                        @if (\Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature::available())
+                                        @if (RegistrationWizardFeature::available())
                                             <flux:button href="{{ route('tenants.create') }}" wire:navigate variant="ghost" size="sm">
                                                 Try again
                                             </flux:button>
