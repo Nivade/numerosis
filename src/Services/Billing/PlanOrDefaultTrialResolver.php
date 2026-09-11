@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Services\Billing\Resolvers;
+namespace Nvade\Numerosis\Services\Billing;
 
 use Illuminate\Contracts\Config\Repository;
 use Nvade\Numerosis\Contracts\Billing\Plan;

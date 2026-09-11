@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Tests\Feature\Services\Billing\Checkout;
+namespace Nvade\Numerosis\Tests\Feature\Services\Billing;
 
 use App\Models\Central\CentralUser;
 use App\Models\Central\PaymentPlan;
@@ -11,7 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
-use Nvade\Numerosis\Services\Billing\Checkout\InlineCheckoutGateway;
+use Nvade\Numerosis\Services\Billing\InlineCheckoutGateway;
 use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 

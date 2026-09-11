@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
-use Nvade\Numerosis\Services\Billing\Checkout\LocalCheckoutGateway;
+use Nvade\Numerosis\Services\Billing\LocalCheckoutGateway;
 use Nvade\Numerosis\Tests\TestCase;
 use Pest\Browser\Playwright\Playwright;
 

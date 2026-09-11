@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Services\Billing\Checkout;
+namespace Nvade\Numerosis\Services\Billing;
 
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;

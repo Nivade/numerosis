@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Services\Billing\Subscriptions;
+namespace Nvade\Numerosis\Services\Billing;
 
 use Illuminate\Database\UniqueConstraintViolationException;
 use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;

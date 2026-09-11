@@ -19,7 +19,7 @@ use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Events\Billing\CheckoutStarted;
 use Nvade\Numerosis\Http\Requests\Billing\StartCheckoutRequest;
-use Nvade\Numerosis\Services\Billing\Checkout\CheckoutIntentResponse;
+use Nvade\Numerosis\Http\Responses\Billing\CheckoutIntentResponse;
 
 class StartSubscriptionCheckout
 {

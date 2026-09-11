@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Services\Billing\Checkout;
+namespace Nvade\Numerosis\Data\Billing\Checkout;
 
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 

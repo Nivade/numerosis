@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Tests\Feature\Services\Billing\Checkout;
+namespace Nvade\Numerosis\Tests\Feature\Http\Responses\Billing;
 
 use Illuminate\Http\RedirectResponse;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
-use Nvade\Numerosis\Services\Billing\Checkout\CheckoutIntentResponse;
+use Nvade\Numerosis\Http\Responses\Billing\CheckoutIntentResponse;
 use Nvade\Numerosis\Tests\TestCase;
 use RuntimeException;
 

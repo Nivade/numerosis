@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Tests\Feature\Services\Billing\Resolvers;
+namespace Nvade\Numerosis\Tests\Feature\Services\Billing;
 
 use App\Models\Central\CentralUser;
 use App\Models\Central\Subscription;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Exceptions\Billing\TooManyUnpaidTenants;
-use Nvade\Numerosis\Services\Billing\Resolvers\DefaultUnpaidTenantQuota;
+use Nvade\Numerosis\Services\Billing\DefaultUnpaidTenantQuota;
 use Nvade\Numerosis\Tests\TestCase;
 
 class DefaultUnpaidTenantQuotaTest extends TestCase

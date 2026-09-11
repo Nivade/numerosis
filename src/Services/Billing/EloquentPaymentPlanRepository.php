@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Services\Billing\Plans;
+namespace Nvade\Numerosis\Services\Billing;
 
 use Illuminate\Support\Collection;
 use Nvade\Numerosis\Cache\CacheKeys;

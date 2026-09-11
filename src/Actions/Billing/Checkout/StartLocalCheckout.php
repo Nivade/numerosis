@@ -10,8 +10,8 @@ use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Http\Requests\Billing\StartCheckoutRequest;
-use Nvade\Numerosis\Services\Billing\Checkout\LocalCheckoutGateway;
-use Nvade\Numerosis\Services\Billing\Checkout\RedirectResponsable;
+use Nvade\Numerosis\Http\Responses\Billing\RedirectResponsable;
+use Nvade\Numerosis\Services\Billing\LocalCheckoutGateway;
 
 /**
  * Provisions a tenant locally without taking payment, for development.

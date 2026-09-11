@@ -6,10 +6,10 @@ namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
 use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Data\Billing\Checkout\ResumedCheckout;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Numerosis;
-use Nvade\Numerosis\Services\Billing\Checkout\ResumedCheckout;
 use Stripe\Exception\ApiErrorException;
 
 /**
