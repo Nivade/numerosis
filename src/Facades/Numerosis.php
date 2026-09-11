@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Facade;
  * called through here: they run while `ApplicationBuilder` is being built,
  * where `Facade::getFacadeRoot()` is null and every call throws
  * `RuntimeException: A facade root has not been set`. `bootstrap/app.php`
- * imports `Support\Numerosis` directly.
+ * imports `Nvade\Numerosis\Numerosis` directly.
  *
  * @see \Nvade\Numerosis\Numerosis
  */

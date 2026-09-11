@@ -47,6 +47,7 @@ use Nvade\Numerosis\Actions\Queries\GetTenantsByGlobalId;
 use Nvade\Numerosis\Boot\Assets;
 use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Boot\HostConfig;
+use Nvade\Numerosis\Boot\MiddlewareRegistrar;
 use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
 use Nvade\Numerosis\Console\Commands\DeleteTenants;
@@ -507,8 +508,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
      */
     protected function registerMiddleware(): void
     {
-        if (Numerosis::$registerMiddlewareCallback instanceof Closure) {
-            (Numerosis::$registerMiddlewareCallback)($this->app);
+        if (MiddlewareRegistrar::$registerCallback instanceof Closure) {
+            (MiddlewareRegistrar::$registerCallback)($this->app);
 
             return;
         }

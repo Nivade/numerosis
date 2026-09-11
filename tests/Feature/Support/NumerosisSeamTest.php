@@ -319,9 +319,9 @@ afterEach(function () {
     // about static state) — a callback left set here would fire again for
     // every later test's own registerMiddleware()/routes() call, most of
     // which don't expect one.
-    Numerosis::$registerRoutesCallback = null;
-    Numerosis::$registerMiddlewareCallback = null;
-    Numerosis::$registerExceptionsCallback = null;
+    Numerosis::registerRoutesUsing(null);
+    Numerosis::registerMiddlewareUsing(null);
+    Numerosis::registerExceptionsUsing(null);
 });
 
 it('replaces middleware registration entirely when registerMiddlewareUsing is set', function () {

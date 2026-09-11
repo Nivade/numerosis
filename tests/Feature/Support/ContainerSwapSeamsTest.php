@@ -65,5 +65,5 @@ it('replaces exception registration entirely when registerExceptionsUsing is set
 });
 
 afterEach(function (): void {
-    Numerosis::$registerExceptionsCallback = null;
+    Numerosis::registerExceptionsUsing(null);
 });
