@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Services\Tenancy;
+namespace Nvade\Numerosis\Boot;
 
 use LogicException;
 use Nvade\Numerosis\Contracts\Tenancy\CreatesTenant;

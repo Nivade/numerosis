@@ -8,11 +8,11 @@ use Illuminate\Support\Facades\Config;
 use LogicException;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
+use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Contracts\Tenancy\CreatesTenant;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
-use Nvade\Numerosis\Services\Tenancy\ConfiguredSteps;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

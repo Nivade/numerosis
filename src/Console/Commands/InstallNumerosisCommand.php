@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Fortify\Features as FortifyFeatures;
+use Nvade\Numerosis\Boot\Assets;
+use Nvade\Numerosis\Boot\HostConfig;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
@@ -19,8 +21,6 @@ use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
-use Nvade\Numerosis\Support\Assets;
-use Nvade\Numerosis\Support\HostConfig;
 use ReflectionProperty;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 

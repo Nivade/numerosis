@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Support;
+namespace Nvade\Numerosis\Boot;
 
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Foundation\Vite;

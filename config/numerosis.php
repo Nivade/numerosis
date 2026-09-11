@@ -8,6 +8,7 @@ use Nvade\Numerosis\Actions\Auth\SendEmailVerificationNotification;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant as CreateTenantAction;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
+use Nvade\Numerosis\Boot\Domains;
 use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
@@ -53,7 +54,6 @@ use Nvade\Numerosis\Services\Billing\Subscriptions\EloquentSubscriptionRepositor
 use Nvade\Numerosis\Services\Notifications\NotifiesTenantOwnerDirectly;
 use Nvade\Numerosis\Services\Tenancy\DefaultTenantDomainPolicy;
 use Nvade\Numerosis\Services\Tenancy\StanclTenantDatabaseManager;
-use Nvade\Numerosis\Support\Domains;
 
 $apex = env('NUMEROSIS_APEX_DOMAIN') ?: Domains::apexFromAppUrl();
 

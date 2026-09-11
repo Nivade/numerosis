@@ -5,11 +5,11 @@ declare(strict_types=1);
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
+use Nvade\Numerosis\Boot\HostConfig;
 use Nvade\Numerosis\Contracts\Feature;
 use Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Support\FeatureRegistry;
-use Nvade\Numerosis\Support\HostConfig;
 
 use function Pest\Laravel\assertDatabaseHas;
 use function Pest\Laravel\seed;

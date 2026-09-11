@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Queries;
 
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Boot\UserModels;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\User;
-use Nvade\Numerosis\Services\Tenancy\UserModelResolver;
 use Nvade\Numerosis\Support\Cache\CacheKeys;
 use Nvade\Numerosis\Support\Cache\GlobalCache;
 
@@ -28,9 +28,7 @@ class FindUserByGlobalId
     public function handle(string $globalId, ?Context $context = null): ?User
     {
         $context ??= tenancy()->initialized ? Context::Tenant : Context::Central;
-        $model = $context === Context::Tenant
-            ? UserModelResolver::tenantUserModel()
-            : UserModelResolver::centralUserModel();
+        $model = UserModels::for($context);
 
         $attributes = GlobalCache::store()->remember(
             CacheKeys::userModel($globalId, $context),

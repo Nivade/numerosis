@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Support;
 
-use Nvade\Numerosis\Support\Domains;
+use Nvade\Numerosis\Boot\Domains;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**

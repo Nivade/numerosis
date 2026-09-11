@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Support;
+namespace Nvade\Numerosis\Boot;
 
 /**
  * Derives this package's domain defaults from `APP_URL`, for a host that sets

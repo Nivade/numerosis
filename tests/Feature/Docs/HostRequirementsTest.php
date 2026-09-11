@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Docs;
 
+use Nvade\Numerosis\Boot\HostConfig;
 use Nvade\Numerosis\Console\Commands\InstallNumerosisCommand;
 use Nvade\Numerosis\Tests\TestCase;
 use ReflectionClass;
@@ -120,7 +121,7 @@ class HostRequirementsTest extends TestCase
     public function test_every_config_key_host_config_touches_is_documented(): void
     {
         $root = dirname(__DIR__, 3);
-        $source = (string) file_get_contents($root.'/src/Support/HostConfig.php');
+        $source = (string) file_get_contents((string) (new ReflectionClass(HostConfig::class))->getFileName());
         $doc = (string) file_get_contents($root.'/docs/host-requirements.md');
 
         preg_match_all('/[\'"]([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)[\'"]/', $source, $matches);

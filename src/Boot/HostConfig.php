@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Support;
+namespace Nvade\Numerosis\Boot;
 
 use Illuminate\Support\Facades\Config;
 use Laravel\Fortify\Features as FortifyFeatures;
@@ -16,6 +16,7 @@ use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
+use Nvade\Numerosis\Support\FeatureRegistry;
 use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
 use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
 

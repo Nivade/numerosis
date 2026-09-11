@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Console\Commands;
 
 use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Boot\HostConfig;
 use Nvade\Numerosis\Console\Commands\InstallNumerosisCommand;
-use Nvade\Numerosis\Support\HostConfig;
 use Nvade\Numerosis\Tests\TestCase;
 use ReflectionClass;
 

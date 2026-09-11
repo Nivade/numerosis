@@ -6,11 +6,11 @@ namespace Nvade\Numerosis\Features\Tenancy;
 
 use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
+use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Contracts\NamedFeature;
 use Nvade\Numerosis\Features\Concerns\IsNamedFeature;
 use Nvade\Numerosis\Livewire\Tenant\Registration as WizardRegistration;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps as Wizard;
-use Nvade\Numerosis\Services\Tenancy\ConfiguredSteps;
 
 /**
  * The self-serve tenant registration wizard and its route.
