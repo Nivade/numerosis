@@ -1,5 +1,54 @@
 # Plan: delete `src/Support/`, tighten `src/Services/`, split the front door
 
+## Status — executed 2026-09-11, all seven phases
+
+`a4b806c` `2f23090` `cd6038e` `c29cec4` `deef2fa` `e381874` `b770fec`.
+
+Green at every phase: Pint clean, cold PHPStan `[OK] No errors`, baseline
+unchanged at 5 entries. Suite **654 passed / 6 skipped** at the start,
+**658 / 6** at the end (+4 new arch tests). `composer serve` returns **200**
+on `/` — the 500 that `pr-review-remediation.md` 8.4 recorded at `3c3de4e`
+does not reproduce.
+
+### Two deviations from the plan as approved
+
+- **Phase 5 shipped `@use`, not a `numerosis_route()` helper.** The helper
+  would have fixed route names only, at the cost of three global functions, a
+  `files` autoload entry, stringly-typed keys and a test keeping a `match` in
+  sync. `@use` is standard Blade, costs nothing, keeps `RouteNames::home()`
+  type-safe, and generalizes: all ~50 inline FQCNs across 22 views now go
+  through it, not just the five route names. The coupling the helper would
+  have removed is covered instead by `BladeClassReferencesTest`, which
+  asserts every class any view names actually exists — a wider net than the
+  helper offered, since it also covers the enums, models and feature classes
+  views reference.
+- **The planned "Boot/ may not reference Models" arch test was dropped.**
+  `ModelResolver` and `UserModels` both name `Models\User` in their return
+  types, legitimately. The rule would have been wrong rather than strict.
+
+### Not done here
+
+`numerosis-thin-app` imports `Numerosis` and `HostConfig` and needs its own
+pass. Out of scope by the plan; still outstanding.
+
+### Two traps worth knowing before the next move of this shape
+
+Both are recorded in `.ai/rules/package-host-bootstrap.md`:
+
+- Same-namespace resolution hides a missing import. `HostConfig` called
+  `FeatureRegistry::enabled()` with no `use` line. Cold PHPStan caught it;
+  no test would have.
+- A test reading a class's source by hardcoded path is invisible to an FQCN
+  grep. `HostRequirementsTest` read `'/src/Support/HostConfig.php'`.
+
+And one about the toolchain, already in `.ai/rules/static-analysis.md`: a
+`composer dump-autoload` regenerates Testbench's package-discovery cache and
+flips Larastan's host-subclass narrowing, producing a burst of
+`App\Models\Central\*` errors in `tests/` that vanish on the next cold run.
+Hit twice here (52 errors, then 21). Re-run cold before believing it.
+
+---
+
 ## Context
 
 `refactor/src-reorg` fixed the *obvious* contradictions in `src/` (two homes
