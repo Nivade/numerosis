@@ -57,16 +57,13 @@ class InlineCheckoutGateway implements CheckoutGateway
             'metadata' => ['slug' => $registration->slug],
         ]);
 
-        // Scoped to the owner as well as the domain. An unscoped write would
-        // overwrite a stranger's SetupIntent and lock them out of their
-        // reservation.
-        Numerosis::model(TenantProvision::class)::where('slug', $registration->slug)
-            ->where('global_id', $registration->contribution(OwnerContribution::class)?->global_id)
-            ->update([
-                'payment_plan' => $billing->payment_plan,
-                'billing_cycle' => $billing->billing_cycle->value,
-                'stripe_setup_intent_id' => $setupIntent->id,
-            ]);
+        Numerosis::model(TenantProvision::class)::claimSetupIntent(
+            slug: $registration->slug,
+            globalId: $registration->contribution(OwnerContribution::class)?->global_id,
+            paymentPlan: (string) $billing->payment_plan,
+            billingCycle: $billing->billing_cycle,
+            setupIntentId: (string) $setupIntent->id,
+        );
 
         return new InlineCheckout(
             clientSecret: (string) $setupIntent->client_secret,

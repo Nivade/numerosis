@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\WithoutIncrementing;
 use Illuminate\Database\Eloquent\Builder;
@@ -117,6 +118,64 @@ class TenantProvision extends Model
             ]);
 
         return $claimed === 1;
+    }
+
+    /**
+     * Records the plan and SetupIntent chosen for an inline checkout. Scoped
+     * to the owner as well as the slug — an unscoped write would overwrite a
+     * stranger's SetupIntent and lock them out of their reservation.
+     */
+    public static function claimSetupIntent(
+        string $slug,
+        ?string $globalId,
+        string $paymentPlan,
+        BillingCycle $billingCycle,
+        string $setupIntentId,
+    ): void {
+        static::query()
+            ->where('slug', $slug)
+            ->where('global_id', $globalId)
+            ->update([
+                'payment_plan' => $paymentPlan,
+                'billing_cycle' => $billingCycle->value,
+                'stripe_setup_intent_id' => $setupIntentId,
+            ]);
+    }
+
+    /**
+     * @param  Builder<TenantProvision>  $query
+     * @return Builder<TenantProvision>
+     */
+    #[Scope]
+    protected function completedBefore(Builder $query, Carbon $cutoff): Builder
+    {
+        return $query
+            ->where('status', TenantProvisionStatus::Completed)
+            ->where('completed_at', '<', $cutoff);
+    }
+
+    /**
+     * @param  Builder<TenantProvision>  $query
+     * @return Builder<TenantProvision>
+     */
+    #[Scope]
+    protected function reservedBefore(Builder $query, Carbon $cutoff): Builder
+    {
+        return $query
+            ->where('status', TenantProvisionStatus::Reserved)
+            ->where('created_at', '<', $cutoff);
+    }
+
+    /**
+     * @param  Builder<TenantProvision>  $query
+     * @return Builder<TenantProvision>
+     */
+    #[Scope]
+    protected function provisioningBefore(Builder $query, Carbon $cutoff): Builder
+    {
+        return $query
+            ->where('status', TenantProvisionStatus::Provisioning)
+            ->where('created_at', '<', $cutoff);
     }
 
     /**

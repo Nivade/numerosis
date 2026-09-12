@@ -9,7 +9,6 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
-use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
 
@@ -39,9 +38,7 @@ class PruneStalledTenantProvisions extends Command
      */
     private function forgetCompletedProvisions(Carbon $cutoff, bool $dryRun): void
     {
-        $finished = Numerosis::model(TenantProvision::class)::query()
-            ->where('status', TenantProvisionStatus::Completed)
-            ->where('completed_at', '<', $cutoff);
+        $finished = Numerosis::model(TenantProvision::class)::query()->completedBefore($cutoff);
 
         if ($dryRun) {
             $this->line("Would forget {$finished->count()} completed provision records");
@@ -64,9 +61,7 @@ class PruneStalledTenantProvisions extends Command
      */
     private function releaseAbandonedReservations(Carbon $cutoff, bool $dryRun): void
     {
-        $abandoned = Numerosis::model(TenantProvision::class)::query()
-            ->where('status', TenantProvisionStatus::Reserved)
-            ->where('created_at', '<', $cutoff);
+        $abandoned = Numerosis::model(TenantProvision::class)::query()->reservedBefore($cutoff);
 
         if ($dryRun) {
             $this->line("Would release {$abandoned->count()} abandoned domain reservations");
@@ -91,8 +86,7 @@ class PruneStalledTenantProvisions extends Command
     private function flagStalledProvisions(Carbon $cutoff, bool $dryRun): void
     {
         Numerosis::model(TenantProvision::class)::query()
-            ->where('status', TenantProvisionStatus::Provisioning)
-            ->where('created_at', '<', $cutoff)
+            ->provisioningBefore($cutoff)
             ->each(function ($pending) use ($dryRun) {
                 /** @var TenantProvision $pending */
                 if ($dryRun) {
