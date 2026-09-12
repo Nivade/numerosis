@@ -163,4 +163,20 @@ class ProvisionTenantCommandTest extends TestCase
 
         $this->assertNull(TenantProvision::find('www'));
     }
+
+    public function test_sync_runs_the_steps_inline_instead_of_queueing_them(): void
+    {
+        $owner = CentralUser::factory()->create();
+
+        // The output, not the tenant: the suite's queue is `sync`, so a queued
+        // chain would build the tenant here too and the two branches would be
+        // indistinguishable from their effects.
+        $this->command('tenancy:provision', [
+            'slug' => 'rightnow',
+            '--owner' => $owner->global_id,
+            '--sync' => true,
+        ])->expectsOutputToContain('Provisioned [rightnow].')->assertSuccessful();
+
+        $this->assertNotNull(Tenant::findOrFail('rightnow')->provisioned_at);
+    }
 }

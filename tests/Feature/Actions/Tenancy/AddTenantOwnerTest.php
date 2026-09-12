@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Queue;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin;
 use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 
 class AddTenantOwnerTest extends TestCase
@@ -27,7 +28,7 @@ class AddTenantOwnerTest extends TestCase
      */
     public function test_it_creates_the_owners_tenant_side_row_before_the_tenant_is_provisioned(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::withDatabaseOnly();
         $user = CentralUser::factory()->create();
 
         // After the factory, not before: creating a tenant queues its own
@@ -52,7 +53,7 @@ class AddTenantOwnerTest extends TestCase
      */
     public function test_the_owner_is_promotable_immediately_after_being_added(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::withDatabaseOnly();
         $user = CentralUser::factory()->create();
 
         // After the factory, not before: creating a tenant queues its own
@@ -73,7 +74,7 @@ class AddTenantOwnerTest extends TestCase
      */
     public function test_a_rerun_creates_the_tenant_side_row_when_only_the_pivot_exists(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::withDatabaseOnly();
         $user = CentralUser::factory()->create();
 
         // After the factory, not before: creating a tenant queues its own

@@ -8,6 +8,7 @@ use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -73,7 +74,7 @@ class LockWaitTimeoutTest extends TestCase
     #[DataProvider('variables')]
     public function test_the_tenant_connection_inherits_the_bound(string $variable): void
     {
-        $tenant = Tenant::forceCreate(['id' => 'lock-wait-'.uniqid()]);
+        $tenant = TestTenant::provisioned(['id' => 'lock-wait-'.uniqid()]);
 
         $tenant->run(function () use ($variable): void {
             $row = DB::connection('tenant')->selectOne("SELECT @@session.{$variable} AS timeout");

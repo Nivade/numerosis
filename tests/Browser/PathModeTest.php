@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Tests\Browser\PathModeTestCase;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Pest\Browser\Playwright\Playwright;
 
 uses(PathModeTestCase::class, RefreshDatabase::class);
@@ -25,7 +26,7 @@ uses(PathModeTestCase::class, RefreshDatabase::class);
  * Until now that necessity was source-derived and untested.
  */
 it('identifies a tenant from the path on an unauthenticated request', function (): void {
-    $tenant = Tenant::factory()->create();
+    $tenant = TestTenant::provisioned();
 
     Playwright::setHost('central.numerosistest.test');
 
@@ -36,7 +37,7 @@ it('identifies a tenant from the path on an unauthenticated request', function (
 });
 
 it('renders the tenant landing page under its path prefix for a signed-in user', function (): void {
-    $tenant = Tenant::factory()->create();
+    $tenant = TestTenant::provisioned();
 
     signInTenantUser($tenant);
 

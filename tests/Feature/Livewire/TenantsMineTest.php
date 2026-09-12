@@ -14,9 +14,11 @@ use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
 use Nvade\Numerosis\Actions\Tenancy\MigrateTenantDatabase;
 use Nvade\Numerosis\Enums\Tenancy\StepOutcome;
+use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
 use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
 use Nvade\Numerosis\Tests\Support\RecordSeatCountStep;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 
 class TenantsMineTest extends TestCase
@@ -26,7 +28,7 @@ class TenantsMineTest extends TestCase
     public function test_a_provisioned_tenant_is_listed_as_ready(): void
     {
         $user = CentralUser::factory()->create();
-        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
+        $tenant = TestTenant::provisioned(['provisioned_at' => now()]);
         $this->attach($user, $tenant);
 
         Livewire::actingAs($user)
@@ -42,7 +44,7 @@ class TenantsMineTest extends TestCase
     public function test_an_unprovisioned_tenant_is_not_listed_as_ready(): void
     {
         $user = CentralUser::factory()->create();
-        $tenant = Tenant::factory()->create(['provisioned_at' => null]);
+        $tenant = TestTenant::provisioned(['provisioned_at' => null]);
         $this->attach($user, $tenant);
 
         Livewire::actingAs($user)
@@ -107,14 +109,18 @@ class TenantsMineTest extends TestCase
     public function test_a_provisioning_tenant_names_the_step_in_flight(): void
     {
         $user = CentralUser::factory()->create();
-        $tenant = Tenant::factory()->create(['id' => 'halfbuilt', 'provisioned_at' => null]);
+        $tenant = TestTenant::provisioned(['id' => 'halfbuilt', 'provisioned_at' => null]);
         $this->attach($user, $tenant);
 
-        $provision = TenantProvision::factory()->provisioning()->create([
-            'slug' => 'halfbuilt',
+        // Amended, not created: building the tenant already left a row for
+        // this slug, and `slug` is the primary key.
+        $provision = TenantProvision::findOrFail('halfbuilt');
+        $provision->forceFill([
             'name' => 'Half Built Co',
             'global_id' => $user->global_id,
-        ]);
+            'status' => TenantProvisionStatus::Provisioning,
+            'step_records' => [],
+        ])->save();
 
         Config::set('numerosis.tenancy.provisioning.steps', [
             CreateTenant::class,
@@ -208,14 +214,14 @@ class TenantsMineTest extends TestCase
     public function test_a_pending_row_is_hidden_once_its_tenant_exists(): void
     {
         $user = CentralUser::factory()->create();
-        $tenant = Tenant::factory()->create(['provisioned_at' => null]);
+        $tenant = TestTenant::provisioned(['provisioned_at' => null]);
         $this->attach($user, $tenant);
 
-        TenantProvision::factory()->provisioning()->create([
-            'slug' => $tenant->id,
+        TenantProvision::findOrFail($tenant->id)->forceFill([
             'name' => 'Duplicated Co',
             'global_id' => $user->global_id,
-        ]);
+            'status' => TenantProvisionStatus::Provisioning,
+        ])->save();
 
         Livewire::actingAs($user)
             ->test('numerosis-pages::tenant.mine')

@@ -51,6 +51,12 @@ class FakeCheckoutGateway implements CheckoutGateway, ProvisionsTenant
         $this->provisioned->push($data);
     }
 
+    /** Recorded identically: the fake never runs a step either way. */
+    public function now(TenantProvisionData $data): void
+    {
+        $this->provisioned->push($data);
+    }
+
     public function assertCheckoutStarted(?string $domain = null): void
     {
         PHPUnit::assertTrue(

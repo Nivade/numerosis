@@ -16,4 +16,11 @@ use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 interface ProvisionsTenant
 {
     public function queue(TenantProvisionData $data): void;
+
+    /**
+     * The same steps, run inline, with a failure thrown at the call site
+     * rather than left in `failed_jobs`. For a console command, a seeder or
+     * tinker — never a web request, which is what `queue()` is for.
+     */
+    public function now(TenantProvisionData $data): void;
 }

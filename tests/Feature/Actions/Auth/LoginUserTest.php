@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Nvade\Numerosis\Actions\Auth\LoginUser;
 use Nvade\Numerosis\Tests\Concerns\PinsGlobalCache;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 
 class LoginUserTest extends TestCase
@@ -44,7 +45,7 @@ class LoginUserTest extends TestCase
             'password' => 'password',
         ]);
 
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::provisioned();
         tenancy()->initialize($tenant);
 
         $tenantUser = TenantUser::factory()->create([

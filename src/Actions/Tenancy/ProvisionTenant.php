@@ -32,15 +32,55 @@ class ProvisionTenant implements ProvisionsTenant
 
     public function queue(TenantProvisionData $data): void
     {
-        $provision = $this->recordRequest($data);
+        $slug = $this->claimFor($data);
 
-        // Not claimed means a chain already holds this slug — the checkout
-        // redirect and the Stripe webhook both arrive for the same tenant.
-        if (! Numerosis::model(TenantProvision::class)::claim($provision->slug)) {
+        if ($slug === null) {
             return;
         }
 
-        $this->dispatchChain($provision->slug);
+        Bus::chain($this->links($slug))
+            ->onQueue('provisioning')
+            // Scalars only: `->catch()` callbacks are wrapped in a
+            // SerializableClosure, which serializes the whole `use` scope, so
+            // capturing the model would drag it into the payload.
+            ->catch(static fn (Throwable $e) => self::recordFailure($slug, $e))
+            ->dispatch();
+    }
+
+    public function now(TenantProvisionData $data): void
+    {
+        $slug = $this->claimFor($data);
+
+        if ($slug === null) {
+            return;
+        }
+
+        // Not `Bus::chain(...)->onConnection('sync')`: a chain defers the
+        // links after the first, so the failure of a later one surfaces
+        // through the queue rather than out of this call.
+        foreach ($this->links($slug) as $link) {
+            try {
+                dispatch_sync($link);
+            } catch (Throwable $e) {
+                self::recordFailure($slug, $e);
+
+                throw $e;
+            }
+        }
+    }
+
+    /**
+     * @return string|null The claimed slug, or null when a chain already holds
+     *                     it — the checkout redirect and the Stripe webhook
+     *                     both arrive for the same tenant.
+     */
+    private function claimFor(TenantProvisionData $data): ?string
+    {
+        $provision = $this->recordRequest($data);
+
+        return Numerosis::model(TenantProvision::class)::claim($provision->slug)
+            ? $provision->slug
+            : null;
     }
 
     /**
@@ -66,28 +106,26 @@ class ProvisionTenant implements ProvisionsTenant
         return $provision;
     }
 
-    private function dispatchChain(string $slug): void
+    /**
+     * @return list<RunProvisioningStep>
+     */
+    private function links(string $slug): array
     {
         /** @var list<class-string<ProvisioningStep>> $steps */
         $steps = Config::array('numerosis.tenancy.provisioning.steps', []);
 
-        $links = array_map(
+        return array_map(
             static fn (string $step): RunProvisioningStep => new RunProvisioningStep($slug, $step),
             $steps,
         );
+    }
 
-        Bus::chain($links)
-            ->onQueue('provisioning')
-            // Scalars only: `->catch()` callbacks are wrapped in a
-            // SerializableClosure, which serializes the whole `use` scope, so
-            // capturing the model would drag it into the payload.
-            ->catch(function (Throwable $e) use ($slug): void {
-                MarkProvisionFailed::run($slug, $e->getMessage());
+    private static function recordFailure(string $slug, Throwable $e): void
+    {
+        MarkProvisionFailed::run($slug, $e->getMessage());
 
-                $globalId = Numerosis::model(TenantProvision::class)::where('slug', $slug)->value('global_id');
+        $globalId = Numerosis::model(TenantProvision::class)::where('slug', $slug)->value('global_id');
 
-                event(new TenantProvisioningFailed($slug, is_string($globalId) ? $globalId : null));
-            })
-            ->dispatch();
+        event(new TenantProvisioningFailed($slug, is_string($globalId) ? $globalId : null));
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 use Pest\Browser\Playwright\Playwright;
 
@@ -20,7 +21,7 @@ uses(TestCase::class, RefreshDatabase::class);
  * observable from the response.
  */
 it('renders the tenant landing page under its subdomain for a signed-in user', function (): void {
-    $tenant = Tenant::factory()->create();
+    $tenant = TestTenant::provisioned();
     CreateTenantDomain::run($tenant, $tenant->id);
 
     signInTenantUser($tenant);
@@ -31,7 +32,7 @@ it('renders the tenant landing page under its subdomain for a signed-in user', f
 });
 
 it('serves the tenant landing page on the subdomain for an unauthenticated visitor', function (): void {
-    $tenant = Tenant::factory()->create();
+    $tenant = TestTenant::provisioned();
     CreateTenantDomain::run($tenant, $tenant->id);
 
     Playwright::setHost("{$tenant->id}.numerosistest.test");

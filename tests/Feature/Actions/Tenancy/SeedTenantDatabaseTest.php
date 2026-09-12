@@ -2,29 +2,42 @@
 
 declare(strict_types=1);
 
-use App\Models\Central\Tenant;
 use App\Models\Central\TenantProvision;
 use Illuminate\Database\Seeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
+use Nvade\Numerosis\Actions\Tenancy\MigrateTenantDatabase;
 use Nvade\Numerosis\Actions\Tenancy\SeedTenantDatabase;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
 use Nvade\Numerosis\Models\Role;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function (): void {
+    // The real migrate step, not CloneTenantSchema: the clone seeds as well,
+    // and this file's subject is what seeding does to an unseeded database.
+    Config::set('numerosis.tenancy.provisioning.steps', [
+        CreateTenant::class,
+        CreateTenantDatabase::class,
+        MigrateTenantDatabase::class,
+    ]);
+});
 
 function seedProvisionFor(BaseTenant $tenant): TenantProvision
 {
     /** @var TenantProvision */
-    return TenantProvision::query()->forceCreate([
-        'slug' => (string) $tenant->getTenantKey(),
-        'name' => 'Seed Co',
-        'global_id' => 'seed-global-id',
-    ]);
+    return TenantProvision::query()->updateOrCreate(
+        ['slug' => (string) $tenant->getTenantKey()],
+        ['name' => 'Seed Co', 'global_id' => 'seed-global-id'],
+    );
 }
 
 it('throws when the seeder fails', function () {
-    $tenant = Tenant::factory()->create();
+    $tenant = TestTenant::provisioned();
 
     // Overriding the binding, not mocking Artisan: the step resolves
     // TenantDatabaseSeeder straight from the container — see its own
@@ -56,7 +69,7 @@ it('throws when the seeder fails', function () {
  * fixture threw with the default code of 0.
  */
 it('reports the real failure when the seeder throws a string exception code', function () {
-    $tenant = Tenant::factory()->create();
+    $tenant = TestTenant::provisioned();
 
     // `$code` is only a string once a driver has set it, so constructing a
     // bare PDOException leaves it at the default int 0 and proves nothing.
@@ -85,7 +98,7 @@ it('reports the real failure when the seeder throws a string exception code', fu
 });
 
 it('seeds the tenant database on success', function () {
-    $tenant = Tenant::factory()->create();
+    $tenant = TestTenant::provisioned();
 
     SeedTenantDatabase::run(seedProvisionFor($tenant));
 

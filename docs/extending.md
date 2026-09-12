@@ -189,24 +189,33 @@ a retry resumes from the first unrecorded step rather than restarting the
 whole chain — a step does not have to be idempotent for the retry's sake,
 only safe to run against whatever the step before it left behind.
 
-### Giving `Tenant::create()` a database in your test suite
+### Building a tenant outside a queue
 
-Provisioning is the only path that builds a tenant database; `TenantCreated`
-is deliberately empty, so a bare `Tenant::create()` in production hands back
-a tenant with no database. A test suite usually wants the opposite — a
-working tenant, without paying for a provisioning run — so compose
-`Testing\BuildsTenantDatabasesOnCreate` into your base `TestCase` and call
-`buildTenantDatabasesOnCreate()` from `setUp()`.
+`Tenant::create()` makes a tenant row and nothing else — no database, no
+migrations, no owner. That is not a gap; it is what a tenant *is* between the
+first provisioning step and the second, and there is no listener or flag that
+changes it. Anything that wants a usable tenant goes through
+`Contracts\Tenancy\ProvisionsTenant`, which offers the same steps two ways:
 
-| Override | To |
-|---|---|
-| `shouldBuildDatabaseFor(TenantWithDatabase $tenant): bool` | change when the convenience applies; it returns false when a provision row exists, so a real provisioning run still does its own work |
-| `afterTenantDatabaseCreated(TenantWithDatabase $tenant): void` | substitute a faster migrate-and-seed — this package's own suite clones a template database here |
+| Call | Runs | For |
+|---|---|---|
+| `queue($data)` | `Bus::chain` on the `provisioning` queue | web requests, checkout — resumable, and the progress UI reads `step_records` as it goes |
+| `now($data)` | each step inline, in order | console commands, seeders, tinker — a failure throws at the call site instead of landing in `failed_jobs` |
 
-It is `src/Testing/`, not `tests/`, for the same reason
-`CleansUpTenancyDatabases` is: a host inherits it rather than reinventing it.
-Do not reach for it in production code — that is the second creation path the
-pipeline redesign deleted.
+Both write the same provision row, take the same claim, run the same
+configured list and record the same outcomes. `now()` is what
+`php artisan tenancy:provision <slug> --owner=<global_id> --sync` uses, which
+is the quickest way to get a working tenant while developing:
+
+```
+php artisan tenancy:provision acme --owner=<global_id> --name="Acme Co" --sync
+```
+
+In a test suite, call `now()` from your own helper rather than expecting a
+tenant row to build itself. Swapping a slow step for a fast one is done
+through the same config list — this package's own suite replaces the migrate
+and seed steps with one that clones a template database, and thereby still
+exercises the real pipeline.
 
 ### Adding a social login provider
 

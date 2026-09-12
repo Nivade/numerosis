@@ -70,12 +70,30 @@ head/tail, no outer queued job. Everything below this section that predates
   `MigrateDatabase` jobs), configured in the same list as everything else.
   `CreateTenant` no longer needs `withoutEvents()` as a race guard — there is
   no second path left to race.
-- **`Tenant::create()` outside provisioning does not build a database.**
-  Production stays provisioning-only; a host's *test suite* wanting a cheap
-  working tenant composes `Testing\BuildsTenantDatabasesOnCreate` (what
-  `Tests\TestCase` does here, layered with `CloneTenantSchema`). Whether a
-  *production* opt-in should exist is `.claude/plans/glittery-growing-dewdrop.md`
-  Phase 9, specified but not built.
+- **`Tenant::create()` builds no database, anywhere, and nothing reinstates
+  it.** There is no listener and no flag: a tenant row without a database is
+  a real state, the one between step one and step two. Anything wanting a
+  usable tenant calls `ProvisionsTenant` — `queue()` for a request, `now()`
+  for a command, a seeder, tinker or a test. Both run the same configured
+  list and record the same outcomes; `now()` differs only in running the
+  links inline and throwing at the call site.
+
+  Written down because the obvious fix is to put a `TenantCreated` listener
+  back, and it was specified in full before being dropped: it makes
+  `Tenant::create()` mean two things depending on a flag, and needs a
+  stand-aside guard purely to tell which. `withoutEvents()` in `CreateTenant`
+  is not the alternative either — the race it would close is not
+  check-then-act, since `recordRequest()` commits the provision row before
+  `claim()` and before dispatch, and it would blind a host's own `Tenant`
+  observer for the whole of provisioning. Core's own `TenantObserver` handles
+  only `deleting`, so core would never notice.
+
+- **Swap a slow step, do not swap the mechanism.** `Tests\TestCase` puts
+  `CloneTenantSchema` in the configured list where migrate and seed would be,
+  so the suite runs the real pipeline against a template copy (~1.9s of
+  migrate-and-seed avoided per tenant). `tests/Concerns/ProvisionsTestTenants`
+  is the helper; `tenantWithDatabaseOnly()` truncates the list for a test
+  asserting on the state between steps.
 
 ### The `JobPipeline` seam is not a home for these steps
 

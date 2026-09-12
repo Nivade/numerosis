@@ -28,9 +28,9 @@ use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
-use Nvade\Numerosis\Testing\BuildsTenantDatabasesOnCreate;
 use Nvade\Numerosis\Testing\CleansUpTenancyDatabases;
 use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Orchestra\Testbench\TestCase as Orchestra;
 use PDO;
 use Pdo\Mysql;
@@ -39,32 +39,13 @@ use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;
-use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\UUIDGenerator;
 
 abstract class TestCase extends Orchestra
 {
-    use BuildsTenantDatabasesOnCreate {
-        shouldBuildDatabaseFor as private tenantIsNotFromAProvision;
-    }
     use CleansUpTenancyDatabases;
 
     private static bool $workerDatabaseMigrated = false;
-
-    /**
-     * The template is the database `CloneTenantSchema` copies from, so it
-     * builds itself and must not be built here.
-     */
-    protected function shouldBuildDatabaseFor(TenantWithDatabase $tenant): bool
-    {
-        return $tenant->getTenantKey() !== CloneTenantSchema::TEMPLATE_ID
-            && $this->tenantIsNotFromAProvision($tenant);
-    }
-
-    protected function afterTenantDatabaseCreated(TenantWithDatabase $tenant): void
-    {
-        CloneTenantSchema::cloneFor($tenant);
-    }
 
     protected function getPackageProviders($app): array
     {
@@ -105,16 +86,17 @@ abstract class TestCase extends Orchestra
     }
 
     /**
-     * A tenant reachable at its own subdomain.
-     *
-     * `forceCreate`, as production does: `id` is not fillable, so
-     * `Tenant::create()` drops it and `UUIDGenerator` assigns a uuid instead
-     * — the subdomain then no longer matches and identification 404s.
+     * A provisioned tenant reachable at its own subdomain.
      */
     protected function createTenantWithDomain(string $id, string $name = 'Test Tenant'): Tenant
     {
-        $tenant = Tenant::forceCreate(['id' => $id, 'name' => $name]);
-        $tenant->domains()->create(['id' => $id, 'domain' => $this->tenantDomain($id)]);
+        /** @var Tenant $tenant */
+        $tenant = TestTenant::provisioned(['id' => $id, 'name' => $name]);
+
+        // `CreateTenantDomain` already made one, but off the identification
+        // mode rather than off `tenant_pattern`, which is what the suite's
+        // own requests are built from.
+        $tenant->domains()->updateOrCreate(['id' => $id], ['domain' => $this->tenantDomain($id)]);
 
         return $tenant;
     }
@@ -193,8 +175,6 @@ abstract class TestCase extends Orchestra
         // carry real defaults derived from APP_URL, so this block only
         // overrides them to the harness's own hostname rather than rescuing
         // the package from a NULL.
-
-        $this->buildTenantDatabasesOnCreate();
 
         // Migrating and seeding a real tenant database costs ~1.9s, and
         // QUEUE_CONNECTION=sync makes every provision pay it inline. Copying a

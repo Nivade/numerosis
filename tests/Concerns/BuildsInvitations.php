@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Concerns;
 
-use App\Models\Central\Tenant;
 use DateTimeInterface;
 use Illuminate\Support\Facades\URL;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Routing\RouteNames;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 
 /**
  * An invitation and the emailed link that reaches it.
@@ -20,7 +20,7 @@ trait BuildsInvitations
 {
     protected function pendingInvitation(string $emailPrefix = 'invitee'): Invitation
     {
-        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
+        $tenant = TestTenant::provisioned(['provisioned_at' => now()]);
 
         return Invitation::factory()->for($tenant, 'tenant')->create([
             'email' => $emailPrefix.'-'.uniqid().'@example.com',
@@ -29,7 +29,7 @@ trait BuildsInvitations
 
     protected function expiredInvitation(string $emailPrefix = 'expired'): Invitation
     {
-        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
+        $tenant = TestTenant::provisioned(['provisioned_at' => now()]);
 
         return Invitation::factory()->for($tenant, 'tenant')->expired()->create([
             'email' => $emailPrefix.'-'.uniqid().'@example.com',

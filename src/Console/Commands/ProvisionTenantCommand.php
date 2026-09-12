@@ -30,7 +30,8 @@ use Nvade\Numerosis\Numerosis;
                             {slug : The tenant id, which is also its subdomain label}
                             {--owner= : global_id of the central user who will own it}
                             {--name= : Display name, defaulting to the slug}
-                            {--custom-domain= : Only under the custom-domain identification mode}')]
+                            {--custom-domain= : Only under the custom-domain identification mode}
+                            {--sync : Run the steps here and now instead of queueing them}')]
 class ProvisionTenantCommand extends Command
 {
     public function __construct(
@@ -98,17 +99,28 @@ class ProvisionTenantCommand extends Command
             }
         }
 
-        $this->provisioning->queue(new TenantProvisionData(
+        $data = new TenantProvisionData(
             slug: $slug,
             name: is_string($this->option('name')) && $this->option('name') !== ''
                 ? $this->option('name')
                 : $slug,
             global_id: $owner,
             contributions: $customDomain === '' ? [] : [new CustomDomainContribution($customDomain)],
-        ));
+        );
+
+        if ($this->option('sync')) {
+            $this->provisioning->now($data);
+
+            $this->info("Provisioned [{$slug}].");
+
+            return self::SUCCESS;
+        }
+
+        $this->provisioning->queue($data);
 
         $this->info("Queued provisioning for [{$slug}] on the `provisioning` queue.");
         $this->line('  php artisan queue:work --queue=provisioning');
+        $this->line('  ...or pass --sync to run the steps here.');
 
         return self::SUCCESS;
     }

@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Testing;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -78,7 +79,7 @@ class CleansUpTenancyDatabasesTest extends TestCase
      */
     public function test_it_drops_a_tenant_database_named_only_by_a_row_the_central_deletes_remove(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::provisioned();
         $database = $tenant->database()->getName();
         $this->assertNotNull($database);
 
@@ -103,7 +104,7 @@ class CleansUpTenancyDatabasesTest extends TestCase
      */
     public function test_it_ends_tenancy_before_dropping_anything(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::provisioned();
 
         tenancy()->initialize($tenant);
 

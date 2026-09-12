@@ -44,13 +44,18 @@ trait BuildsTenantProvisionData
      */
     protected function provisionRow(BaseCentralUser $user, string $slug, ?string $paymentPlan = null): BaseTenantProvision
     {
+        // updateOrCreate: `provisionedTenant()` leaves a row behind for every
+        // tenant it builds, so a test wanting a differently-shaped one for the
+        // same slug is amending rather than inserting.
         /** @var BaseTenantProvision $provision */
-        $provision = TenantProvision::query()->forceCreate([
-            'slug' => $slug,
-            'name' => 'Test Company',
-            'global_id' => $user->global_id,
-            'payment_plan' => $paymentPlan,
-        ]);
+        $provision = TenantProvision::query()->updateOrCreate(
+            ['slug' => $slug],
+            [
+                'name' => 'Test Company',
+                'global_id' => $user->global_id,
+                'payment_plan' => $paymentPlan,
+            ],
+        );
 
         return $provision;
     }

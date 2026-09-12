@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Session;
 use Nvade\Numerosis\Actions\Auth\LogoutUser;
 use Nvade\Numerosis\Tests\Concerns\PinsGlobalCache;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 use Stancl\Tenancy\Events\SyncedResourceSaved;
 
@@ -98,7 +99,7 @@ class LogoutUserTest extends TestCase
             'password' => 'password',
         ]);
 
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::provisioned();
         tenancy()->initialize($tenant);
 
         $tenantUser = TenantUser::factory()->create(['global_id' => $globalId]);
