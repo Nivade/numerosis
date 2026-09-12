@@ -34,7 +34,7 @@ class AddTenantOwnerTest extends TestCase
         // database-creation jobs, which a fake would swallow.
         Queue::fake();
 
-        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $user));
+        AddTenantOwner::run($this->ownerProvisionRow($tenant, $user));
 
         $this->assertNull($tenant->refresh()->provisioned_at);
 
@@ -59,7 +59,7 @@ class AddTenantOwnerTest extends TestCase
         // database-creation jobs, which a fake would swallow.
         Queue::fake();
 
-        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $user));
+        AddTenantOwner::run($this->ownerProvisionRow($tenant, $user));
         PromoteFirstUserToAdmin::run($tenant);
 
         $tenant->run(function () use ($user): void {
@@ -86,7 +86,7 @@ class AddTenantOwnerTest extends TestCase
             $this->assertNull(TenantUser::where('global_id', $user->global_id)->first());
         });
 
-        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $user));
+        AddTenantOwner::run($this->ownerProvisionRow($tenant, $user));
 
         $tenant->run(function () use ($user): void {
             $this->assertNotNull(TenantUser::where('global_id', $user->global_id)->first());

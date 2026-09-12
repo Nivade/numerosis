@@ -6,10 +6,9 @@ namespace Nvade\Numerosis\Tests\Feature\Boot;
 
 use Illuminate\Support\Facades\Config;
 use LogicException;
-use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
+use Nvade\Numerosis\Actions\Tenancy\MarkProvisionFailed;
 use Nvade\Numerosis\Boot\ConfiguredSteps;
-use Nvade\Numerosis\Contracts\Tenancy\CreatesTenant;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
@@ -29,19 +28,19 @@ class ConfiguredStepsTest extends TestCase
         /** @var list<class-string> $steps */
         $steps = Config::array('numerosis.tenancy.provisioning.steps');
 
-        ConfiguredSteps::assertTheFirstProvisioningStepCreatesTenant($steps);
+        ConfiguredSteps::assertEveryProvisioningStepIsOne($steps);
 
-        $this->assertTrue(is_a($steps[0], CreatesTenant::class, true));
+        $this->assertNotSame([], $steps);
     }
 
-    public function test_a_first_step_that_does_not_create_the_tenant_is_refused(): void
+    public function test_a_step_that_is_not_a_provisioning_step_is_refused(): void
     {
         $this->expectException(LogicException::class);
         $this->expectExceptionMessageMatches('/must implement/');
 
-        ConfiguredSteps::assertTheFirstProvisioningStepCreatesTenant([
-            AddTenantOwner::class,
+        ConfiguredSteps::assertEveryProvisioningStepIsOne([
             CreateTenant::class,
+            MarkProvisionFailed::class,
         ]);
     }
 
@@ -49,7 +48,7 @@ class ConfiguredStepsTest extends TestCase
     {
         $this->expectException(LogicException::class);
 
-        ConfiguredSteps::assertTheFirstProvisioningStepCreatesTenant([]);
+        ConfiguredSteps::assertEveryProvisioningStepIsOne([]);
     }
 
     public function test_the_shipped_registration_steps_pass(): void

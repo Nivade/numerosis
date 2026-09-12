@@ -49,7 +49,7 @@ class ProfileSyncTest extends TestCase
             'global_id' => 'global-1',
         ]);
 
-        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $centralUser));
+        AddTenantOwner::run($this->ownerProvisionRow($tenant, $centralUser));
 
         $tenant->run(function () {
             $tenantUser = TenantUser::where('global_id', 'global-1')->first();
@@ -88,7 +88,7 @@ class ProfileSyncTest extends TestCase
             'global_id' => 'global-2',
         ]);
 
-        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $centralUser));
+        AddTenantOwner::run($this->ownerProvisionRow($tenant, $centralUser));
 
         $tenant->run(function () {
             $tenantUser = TenantUser::where('global_id', 'global-2')->first();

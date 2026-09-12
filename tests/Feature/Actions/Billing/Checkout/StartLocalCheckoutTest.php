@@ -9,13 +9,12 @@ use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Route;
-use Lorisleiva\Actions\Decorators\UniqueJobDecorator;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartLocalCheckout;
-use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
+use Nvade\Numerosis\Jobs\RunProvisioningStep;
 use Nvade\Numerosis\Tests\TestCase;
 
 class StartLocalCheckoutTest extends TestCase
@@ -61,9 +60,9 @@ class StartLocalCheckoutTest extends TestCase
         $this->assertSame(TenantProvisionStatus::Provisioning, $pending->status);
         $this->assertSame('Dev Co', $pending->name);
 
-        // The dev shortcut must go through the same queued action as the paid
+        // The dev shortcut must go through the same queued chain as the paid
         // flow, otherwise it exercises a path production never takes.
-        Bus::assertDispatched(fn (UniqueJobDecorator $job) => $job->decorates(ProvisionTenant::class));
+        Bus::assertDispatched(RunProvisioningStep::class);
     }
 
     /**

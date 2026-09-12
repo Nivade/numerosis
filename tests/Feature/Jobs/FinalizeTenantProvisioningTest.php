@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantProvision;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -10,6 +11,20 @@ use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
 use Nvade\Numerosis\Models\Role;
 
 uses(RefreshDatabase::class);
+
+/**
+ * FinalizeTenantProvisioning takes the provision row like every other step;
+ * these cases care about the tenant, not the row.
+ */
+function provisionRowFor(Tenant $tenant): TenantProvision
+{
+    /** @var TenantProvision */
+    return TenantProvision::query()->forceCreate([
+        'slug' => (string) $tenant->getTenantKey(),
+        'name' => 'Finalize Co',
+        'global_id' => 'finalize-global-id',
+    ]);
+}
 
 it('assigns admin role to the first non-bot user and ignores bots', function () {
     // 1. Arrange: Create a tenant
@@ -43,7 +58,7 @@ it('assigns admin role to the first non-bot user and ignores bots', function () 
         ]);
 
         // 4. Act: Run the action
-        FinalizeTenantProvisioning::run($tenant);
+        FinalizeTenantProvisioning::run(provisionRowFor($tenant));
 
         // 5. Assert
         expect($bot->refresh()->hasRole('admin', 'tenant'))->toBeFalse();
@@ -70,7 +85,7 @@ it('fails if only bots exist', function () {
         ]);
 
         try {
-            FinalizeTenantProvisioning::run($tenant);
+            FinalizeTenantProvisioning::run(provisionRowFor($tenant));
             $this->fail('Job should have failed when only bots are present');
         } catch (Throwable $e) {
             expect($e->getMessage())->toContain('No non-bot users found');

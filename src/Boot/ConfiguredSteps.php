@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Boot;
 
 use LogicException;
-use Nvade\Numerosis\Contracts\Tenancy\CreatesTenant;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
 
 /**
  * Shape checks for the two host-editable step lists, `numerosis.tenancy`'s
@@ -26,22 +26,23 @@ final class ConfiguredSteps
     /**
      * @param  list<class-string>  $steps
      */
-    public static function assertTheFirstProvisioningStepCreatesTenant(array $steps): void
+    public static function assertEveryProvisioningStepIsOne(array $steps): void
     {
         if ($steps === []) {
-            throw new LogicException('numerosis.tenancy.provisioning.steps is empty; the first entry has to create the tenant.');
+            throw new LogicException('numerosis.tenancy.provisioning.steps is empty; nothing would provision a tenant.');
         }
 
-        if (is_a($steps[0], CreatesTenant::class, true)) {
-            return;
-        }
+        foreach ($steps as $step) {
+            if (is_a($step, ProvisioningStep::class, true)) {
+                continue;
+            }
 
-        throw new LogicException(
-            'The first entry in numerosis.tenancy.provisioning.steps must implement '
-            .CreatesTenant::class.'. It runs synchronously as run($registration): Tenant, '
-            .'unlike every later step, which the queue calls as run($tenant, $data): void. '
-            ."[{$steps[0]}] does not.",
-        );
+            throw new LogicException(
+                'Every entry in numerosis.tenancy.provisioning.steps must implement '
+                .ProvisioningStep::class.', which the queue calls as '
+                ."handle(TenantProvision \$provision): void. [{$step}] does not.",
+            );
+        }
     }
 
     /**

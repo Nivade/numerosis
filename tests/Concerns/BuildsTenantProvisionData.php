@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Tests\Concerns;
 
 use App\Models\Central\CentralUser;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantProvision;
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
@@ -37,15 +38,27 @@ trait BuildsTenantProvisionData
     }
 
     /**
-     * What `AddTenantOwner` takes. The tenant is already created by the time it
-     * runs, so it reads neither the Stripe ids nor `centralUserId`.
+     * The provision row every step takes, for tests that call one step
+     * directly rather than going through the chain.
      */
-    protected function ownerProvisionData(Tenant $tenant, CentralUser $user): TenantProvisionData
+    protected function provisionRow(CentralUser $user, string $slug, ?string $paymentPlan = null): TenantProvision
     {
-        return new TenantProvisionData(
-            slug: (string) $tenant->getTenantKey(),
-            name: 'Test Company',
-            global_id: $user->global_id,
-        );
+        /** @var TenantProvision $provision */
+        $provision = TenantProvision::query()->forceCreate([
+            'slug' => $slug,
+            'name' => 'Test Company',
+            'global_id' => $user->global_id,
+            'payment_plan' => $paymentPlan,
+        ]);
+
+        return $provision;
+    }
+
+    /**
+     * The row `AddTenantOwner` takes, for an already-created tenant.
+     */
+    protected function ownerProvisionRow(Tenant $tenant, CentralUser $user): TenantProvision
+    {
+        return $this->provisionRow($user, (string) $tenant->getTenantKey());
     }
 }

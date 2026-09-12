@@ -6,18 +6,27 @@ use App\Models\Central\Tenant;
 use App\Models\Central\TenantProvision;
 use Illuminate\Database\Seeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Nvade\Numerosis\Actions\Tenancy\SeedTenantDatabase;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
-use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
-use Nvade\Numerosis\Jobs\SeedTenantDatabase;
 use Nvade\Numerosis\Models\Role;
 
 uses(RefreshDatabase::class);
 
+function seedProvisionFor(Tenant $tenant): TenantProvision
+{
+    /** @var TenantProvision */
+    return TenantProvision::query()->forceCreate([
+        'slug' => (string) $tenant->getTenantKey(),
+        'name' => 'Seed Co',
+        'global_id' => 'seed-global-id',
+    ]);
+}
+
 it('throws when the seeder fails', function () {
     $tenant = Tenant::factory()->create();
 
-    // Overriding the binding, not mocking Artisan: the job resolves
-    // TenantDatabaseSeeder straight from the container — see the job's own
+    // Overriding the binding, not mocking Artisan: the step resolves
+    // TenantDatabaseSeeder straight from the container — see its own
     // docblock for why it no longer goes through Artisan::call() at all.
     app()->bind(TenantDatabaseSeeder::class, fn () => new class extends Seeder
     {
@@ -27,40 +36,23 @@ it('throws when the seeder fails', function () {
         }
     });
 
-    $job = new SeedTenantDatabase($tenant);
+    $provision = seedProvisionFor($tenant);
 
-    expect(fn () => $job->handle())->toThrow(RuntimeException::class, 'seeder blew up');
+    expect(fn () => SeedTenantDatabase::run($provision))
+        ->toThrow(RuntimeException::class, 'seeder blew up');
 
+    // Reverted in a finally: leaving tenancy initialized would leak into
+    // whatever the worker picks up next.
     expect(tenancy()->initialized)->toBeFalse();
 });
 
 it('seeds the tenant database on success', function () {
     $tenant = Tenant::factory()->create();
 
-    $job = new SeedTenantDatabase($tenant);
-    $job->handle();
+    SeedTenantDatabase::run(seedProvisionFor($tenant));
 
     $roleExists = $tenant->run(fn (): bool => Role::where('name', 'admin')->where('guard_name', 'tenant')->exists());
 
     expect($roleExists)->toBeTrue();
     expect(tenancy()->initialized)->toBeFalse();
-});
-
-it('marks the pending provision as failed when the job fails', function () {
-    $domain = 'test-tenant-'.uniqid();
-    $tenant = Tenant::forceCreate(['id' => $domain]);
-
-    TenantProvision::factory()->provisioning()->create([
-        'slug' => $domain,
-        'name' => 'Acme',
-        'global_id' => 'user-global-id',
-    ]);
-
-    $job = new SeedTenantDatabase($tenant);
-    $job->failed(new RuntimeException('Seeding failed for tenant '.$domain));
-
-    $pending = TenantProvision::where('slug', $domain)->firstOrFail();
-
-    expect($pending->status)->toBe(TenantProvisionStatus::Failed)
-        ->and($pending->error)->toContain('Seeding failed');
 });

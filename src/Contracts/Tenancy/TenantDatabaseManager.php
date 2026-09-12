@@ -17,12 +17,4 @@ use Nvade\Numerosis\Models\Central\Tenant;
 interface TenantDatabaseManager
 {
     public function databaseExists(Tenant $tenant): bool;
-
-    /**
-     * The jobs that create and prepare a tenant database, run only when it
-     * does not exist yet.
-     *
-     * @return list<class-string>
-     */
-    public function creationJobs(): array;
 }

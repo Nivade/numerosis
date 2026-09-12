@@ -9,13 +9,12 @@ use App\Models\Central\Tenant;
 use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
-use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
+use Nvade\Numerosis\Actions\Tenancy\MarkProvisionFailed;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
 use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\TestCase;
-use RuntimeException;
 
 /**
  * FinalizeTenantProvisioning is the only thing that reports provisioning as
@@ -31,13 +30,9 @@ class TenantProvisioningSignalTest extends TestCase
     {
         $user = CentralUser::factory()->create();
 
-        TenantProvision::factory()->provisioning()->create([
-            'slug' => 'signaltenant',
-            'name' => 'Signal Co',
-            'global_id' => $user->global_id,
-        ]);
-
-        ProvisionTenant::run($this->provisionData($user, 'signaltenant'));
+        // No pre-existing provisioning row: one with provisioning_started_at
+        // set is a chain in flight, and the claim would rightly refuse.
+        ProvisionTenant::make()->queue($this->provisionData($user, 'signaltenant'));
 
         $tenant = Tenant::findOrFail('signaltenant');
 
@@ -57,7 +52,7 @@ class TenantProvisioningSignalTest extends TestCase
 
         $user = CentralUser::factory()->create();
 
-        ProvisionTenant::run($this->provisionData($user, 'signaledtenant'));
+        ProvisionTenant::make()->queue($this->provisionData($user, 'signaledtenant'));
 
         Event::assertDispatched(fn (TenantProvisioned $event) => $event->tenant->id === 'signaledtenant'
             && (int) $event->ownerId === $user->id);
@@ -85,7 +80,10 @@ class TenantProvisioningSignalTest extends TestCase
             'global_id' => $user->global_id,
         ]);
 
-        (new FinalizeTenantProvisioning)->jobFailed(new RuntimeException('seeding blew up'), $tenant);
+        // The chain owns failure now, not this step: FinalizeTenantProvisioning
+        // used to carry its own failed() because a silent exhaustion here left
+        // the UI spinning. One terminal handler covers every step.
+        MarkProvisionFailed::run((string) $tenant->id, 'seeding blew up');
 
         $pending = TenantProvision::findOrFail((string) $tenant->id);
 

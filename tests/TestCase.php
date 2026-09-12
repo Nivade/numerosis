@@ -13,8 +13,14 @@ use Illuminate\Contracts\Config\Repository;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\URL;
+use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
+use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
+use Nvade\Numerosis\Actions\Tenancy\LinkTenantSubscription;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Models\Permission;
@@ -33,6 +39,9 @@ use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;
+use Stancl\Tenancy\Contracts\TenantWithDatabase;
+use Stancl\Tenancy\Events\TenantCreated;
+use Stancl\Tenancy\Jobs\CreateDatabase;
 use Stancl\Tenancy\UUIDGenerator;
 
 abstract class TestCase extends Orchestra
@@ -168,6 +177,40 @@ abstract class TestCase extends Orchestra
         // carry real defaults derived from APP_URL, so this block only
         // overrides them to the harness's own hostname rather than rescuing
         // the package from a NULL.
+        // Most tests create a tenant directly and only need a working
+        // database, which used to arrive as a side effect of the TenantCreated
+        // pipeline. Production has one path now -- the provisioning steps --
+        // so the convenience is re-registered here, for the harness only.
+        Event::listen(TenantCreated::class, function (TenantCreated $event): void {
+            /** @var TenantWithDatabase $tenant */
+            $tenant = $event->tenant;
+
+            if ($tenant->getTenantKey() === CloneTenantSchema::TEMPLATE_ID) {
+                return;
+            }
+
+            app()->call([new CreateDatabase($tenant), 'handle']);
+
+            CloneTenantSchema::cloneFor($tenant);
+        });
+
+        // Migrating and seeding a real tenant database costs ~1.9s, and
+        // QUEUE_CONNECTION=sync makes every provision pay it inline. Copying a
+        // template built once per process costs a fraction of that, so the
+        // migrate and seed steps are swapped for CloneTenantSchema.
+        //
+        // Set here rather than in Pest.php: there is no application yet when
+        // that file loads, and every test rebuilds config from the package's
+        // own file.
+        $app->make(Repository::class)->set('numerosis.tenancy.provisioning.steps', [
+            CreateTenant::class,
+            CreateTenantDatabase::class,
+            CloneTenantSchema::class,
+            AddTenantOwner::class,
+            LinkTenantSubscription::class,
+            FinalizeTenantProvisioning::class,
+        ]);
+
         $app->make(Repository::class)->set('numerosis.domains.apex', 'numerosistest.test');
         $app->make(Repository::class)->set('numerosis.domains.central', 'central.numerosistest.test');
         $app->make(Repository::class)->set('numerosis.domains.tenant_pattern', '{tenant}.numerosistest.test');

@@ -62,7 +62,7 @@ class InterviewShowcaseTest extends TestCase
         // is what makes this a lifecycle test: the admin promotion and the
         // "provisioning finished" signal live in FinalizeTenantProvisioning,
         // which ProvisionTenant dispatches after the creation steps.
-        ProvisionTenant::run($registration->withContributions([new BillingContribution(central_user_id: (string) $user->id)]));
+        ProvisionTenant::make()->queue($registration->withContributions([new BillingContribution(central_user_id: (string) $user->id)]));
 
         $tenant = Tenant::findOrFail($tenantDomain);
 

@@ -7,7 +7,12 @@ use Nvade\Numerosis\Actions\Auth\ResolveLoginCandidate;
 use Nvade\Numerosis\Actions\Auth\SendEmailVerificationNotification;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant as CreateTenantAction;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
+use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
+use Nvade\Numerosis\Actions\Tenancy\LinkTenantSubscription;
+use Nvade\Numerosis\Actions\Tenancy\MigrateTenantDatabase;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
+use Nvade\Numerosis\Actions\Tenancy\SeedTenantDatabase;
 use Nvade\Numerosis\Boot\Domains;
 use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
@@ -336,9 +341,18 @@ return [
         // FinalizeTenantProvisioning are appended automatically after these
         // and cannot be reordered here.
         'provisioning' => [
+            // Run in order, each as its own link in a queued chain, each
+            // recorded on the provision row so a retry resumes rather than
+            // restarting. Insert your own anywhere: every entry has the same
+            // signature and there is no privileged first or last step.
             'steps' => [
                 CreateTenantAction::class,
+                CreateTenantDatabase::class,
+                MigrateTenantDatabase::class,
+                SeedTenantDatabase::class,
                 AddTenantOwner::class,
+                LinkTenantSubscription::class,
+                FinalizeTenantProvisioning::class,
             ],
 
             // Contributions stored in columns rather than the provision row's

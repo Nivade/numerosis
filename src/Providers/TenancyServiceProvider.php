@@ -17,7 +17,6 @@ use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
 use Nvade\Numerosis\Http\Middleware\NullMiddleware;
 use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
-use Nvade\Numerosis\Jobs\SeedTenantDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -56,9 +55,7 @@ use Stancl\Tenancy\Events\TenantSaved;
 use Stancl\Tenancy\Events\TenantUpdated;
 use Stancl\Tenancy\Events\UpdatingDomain;
 use Stancl\Tenancy\Events\UpdatingTenant;
-use Stancl\Tenancy\Jobs\CreateDatabase;
 use Stancl\Tenancy\Jobs\DeleteDatabase;
-use Stancl\Tenancy\Jobs\MigrateDatabase;
 use Stancl\Tenancy\Listeners\BootstrapTenancy;
 use Stancl\Tenancy\Listeners\RevertToCentralContext;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
@@ -116,21 +113,6 @@ class TenancyServiceProvider extends ServiceProvider
     }
 
     /**
-     * The jobs that build a tenant's database, in order.
-     *
-     * Replace this only from a test bootstrap. Swapping migrate and seed for a
-     * copy of a prepared template database is worth roughly ten times the
-     * speed per tenant. Application code should leave it alone.
-     *
-     * @var list<class-string>
-     */
-    public static array $tenantCreatedJobs = [
-        CreateDatabase::class,
-        MigrateDatabase::class,
-        SeedTenantDatabase::class,
-    ];
-
-    /**
      * @return array<class-string, array<int, class-string|JobPipeline>>
      */
     public function events(): array
@@ -138,10 +120,14 @@ class TenancyServiceProvider extends ServiceProvider
         return [
             // Tenant events
             CreatingTenant::class => [],
-            TenantCreated::class => [
-                JobPipeline::make(static::$tenantCreatedJobs)->send(fn (TenantCreated $event) => $event->tenant)
-                    ->shouldBeQueued(true), // `false` by default, but you probably want to make this `true` for production.
-            ],
+            // Deliberately empty. Building a tenant's database is a step in
+            // `numerosis.tenancy.provisioning.steps`, so there is one ordered
+            // list rather than two with incompatible calling conventions, and
+            // `Tenant::create()` no longer builds a database as a side effect
+            // of a model event. Register a pipeline here yourself if you want
+            // that back — but note JobPipeline runs every job in one queued
+            // job and swallows a failure whose job defines failed().
+            TenantCreated::class => [],
             SavingTenant::class => [],
             TenantSaved::class => [],
             UpdatingTenant::class => [],

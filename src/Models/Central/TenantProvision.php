@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Models\Central;
 
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\WithoutIncrementing;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -14,6 +15,7 @@ use Nvade\Numerosis\Contracts\Tenancy\PersistsToProvisionColumns;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Database\Factories\Central\TenantProvisionFactory;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Enums\Tenancy\StepOutcome;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
@@ -77,6 +79,39 @@ class TenantProvision extends Model
     }
 
     /**
+     * How long a provisioning chain may hold a slug before another dispatch
+     * is allowed to take it over. The backstop for a worker killed mid-chain,
+     * which would otherwise hold the slug forever.
+     */
+    public const STALE_AFTER_MINUTES = 15;
+
+    /**
+     * Claims the slug for one provisioning chain, as a single conditional
+     * update whose affected-row count is the answer.
+     *
+     * This replaced three overlapping cache mechanisms — `ShouldBeUnique`, a
+     * `tenant-chain:` lock released in two unrelated files, and `CreateTenant`'s
+     * own inner lock. One row, no cache driver requirement, and a stuck
+     * provision is queryable rather than invisible until a TTL lapses;
+     * `tenancy:prune-stalled-provisions` already reads exactly this state.
+     */
+    public static function claim(string $slug): bool
+    {
+        $claimed = static::query()
+            ->where('slug', $slug)
+            ->where(fn (Builder $query) => $query
+                ->where('status', '!=', TenantProvisionStatus::Provisioning)
+                ->orWhereNull('provisioning_started_at')
+                ->orWhere('provisioning_started_at', '<', now()->subMinutes(self::STALE_AFTER_MINUTES)))
+            ->update([
+                'status' => TenantProvisionStatus::Provisioning,
+                'provisioning_started_at' => now(),
+            ]);
+
+        return $claimed === 1;
+    }
+
+    /**
      * @template TContribution of ProvisionContribution
      *
      * @param  class-string<TContribution>  $contribution
@@ -92,6 +127,55 @@ class TenantProvision extends Model
         $stored = $this->contributions[$contribution] ?? null;
 
         return is_array($stored) ? $contribution::from($stored) : null;
+    }
+
+    /**
+     * Whether a step already ran to completion for this provision. A skipped
+     * step counts: its contributions were absent, and a retry of the same
+     * chain will find them absent again.
+     *
+     * @param  class-string  $step
+     */
+    public function hasRun(string $step): bool
+    {
+        return isset(($this->step_records ?? [])[$step]);
+    }
+
+    /**
+     * @param  class-string  $step
+     */
+    public function recordStep(string $step, StepOutcome $outcome, ?string $reason = null): void
+    {
+        $this->forceFill([
+            'step_records' => [
+                ...($this->step_records ?? []),
+                $step => array_filter([
+                    'outcome' => $outcome->value,
+                    'reason' => $reason,
+                    'at' => now()->toIso8601String(),
+                ]),
+            ],
+        ])->save();
+    }
+
+    /**
+     * The step currently in flight: the one after the last recorded, in the
+     * configured order. Null once every step has run.
+     *
+     * @return class-string|null
+     */
+    public function currentStep(): ?string
+    {
+        /** @var list<class-string> $steps */
+        $steps = Config::array('numerosis.tenancy.provisioning.steps', []);
+
+        foreach ($steps as $step) {
+            if (! $this->hasRun($step)) {
+                return $step;
+            }
+        }
+
+        return null;
     }
 
     /**

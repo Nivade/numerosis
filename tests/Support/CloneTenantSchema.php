@@ -4,20 +4,18 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Support;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Connection;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use Nvade\Numerosis\Jobs\SeedTenantDatabase;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
+use Nvade\Numerosis\Actions\Tenancy\MigrateTenantDatabase;
+use Nvade\Numerosis\Actions\Tenancy\SeedTenantDatabase;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Central\TenantProvision;
+use Nvade\Numerosis\Numerosis;
 use RuntimeException;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
-use Stancl\Tenancy\Jobs\CreateDatabase;
-use Stancl\Tenancy\Jobs\MigrateDatabase;
 
 /**
  * Test-only replacement for MigrateDatabase + SeedTenantDatabase.
@@ -42,10 +40,8 @@ use Stancl\Tenancy\Jobs\MigrateDatabase;
  * no test transaction. The migrate/seed jobs are safe for the same reason:
  * they work through stancl's separate `tenant` connection.
  */
-class CloneTenantSchema implements ShouldQueue
+class CloneTenantSchema implements ProvisioningStep
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
     /**
      * Tenant id of the template. The physical database name is this prefixed
      * with `tenancy.database.prefix`.
@@ -72,8 +68,6 @@ class CloneTenantSchema implements ShouldQueue
      */
     private static ?array $blueprint = null;
 
-    public function __construct(protected TenantWithDatabase $tenant) {}
-
     /**
      * Forget the cached template, e.g. after the testing database is rebuilt.
      */
@@ -95,13 +89,31 @@ class CloneTenantSchema implements ShouldQueue
      */
     private static array $created = [];
 
-    public function handle(): void
+    public function handle(TenantProvision $provision): void
     {
-        $database = $this->tenant->database()->getName();
+        /** @var TenantWithDatabase $tenant */
+        $tenant = Numerosis::model(Tenant::class)::findOrFail($provision->slug);
+
+        self::cloneFor($tenant);
+    }
+
+    /**
+     * Also reached from the harness's TenantCreated listener, for the many
+     * tests that create a tenant directly and only need a working database.
+     */
+    public static function cloneFor(TenantWithDatabase $tenant): void
+    {
+        $database = $tenant->database()->getName();
 
         throw_if($database === null, RuntimeException::class, 'Tenant database has no name.');
 
-        $this->copyDatabase(self::templateDatabase(), $database);
+        // The harness clones on TenantCreated and the pipeline clones as a
+        // step, so a tenant created through provisioning reaches here twice.
+        if (self::hasTables($database)) {
+            return;
+        }
+
+        self::copyDatabase(self::templateDatabase(), $database);
 
         self::$created[] = $database;
     }
@@ -143,15 +155,29 @@ class CloneTenantSchema implements ShouldQueue
         /** @var class-string<Tenant> $tenantClass */
         $tenantClass = Config::string('tenancy.tenant_model');
 
-        // withoutEvents keeps this out of the TenantCreated pipeline that the
-        // test bootstrap points at this very class, which would recurse. It
-        // also stops the delete below from firing DeleteDatabase and taking
-        // the template with it.
-        $tenant = $tenantClass::withoutEvents(fn () => $tenantClass::forceCreate(['id' => self::TEMPLATE_ID]));
+        // withoutEvents stops the delete below from firing DeleteDatabase and
+        // taking the template with it.
+        $tenantClass::withoutEvents(fn () => $tenantClass::forceCreate(['id' => self::TEMPLATE_ID]));
 
-        app()->call([new CreateDatabase($tenant), 'handle']);
-        app()->call([new MigrateDatabase($tenant), 'handle']);
-        app()->call([new SeedTenantDatabase($tenant), 'handle']);
+        // Built through the real steps, on a throwaway provision row, so the
+        // template is produced by the same code production runs.
+        $provisionClass = Numerosis::model(TenantProvision::class);
+
+        /** @var TenantProvision $provision */
+        $provision = $provisionClass::forceCreate([
+            'slug' => self::TEMPLATE_ID,
+            'name' => 'Template',
+            'global_id' => 'template',
+        ]);
+
+        resolve(CreateTenantDatabase::class)->handle($provision);
+        resolve(MigrateTenantDatabase::class)->handle($provision);
+        resolve(SeedTenantDatabase::class)->handle($provision);
+
+        $provision->delete();
+
+        /** @var Tenant $tenant */
+        $tenant = $tenantClass::findOrFail(self::TEMPLATE_ID);
 
         // The row goes but the database stays: a surviving row would make
         // Tests\TestCase teardown delete the tenant, and the template with it.
@@ -160,9 +186,9 @@ class CloneTenantSchema implements ShouldQueue
         return $database;
     }
 
-    private function copyDatabase(string $from, string $to): void
+    private static function copyDatabase(string $from, string $to): void
     {
-        $connection = $this->connectionTo($to);
+        $connection = self::connectionTo($to);
 
         // Template tables reference each other, so no creation order satisfies
         // every foreign key.
@@ -195,7 +221,7 @@ class CloneTenantSchema implements ShouldQueue
      * anywhere else would silently attach the tenant's foreign keys to the
      * central testing database.
      */
-    private function connectionTo(string $database): Connection
+    private static function connectionTo(string $database): Connection
     {
         /** @var array<string, mixed> $config */
         $config = config('database.connections.'.self::centralConnectionName());
@@ -267,6 +293,21 @@ class CloneTenantSchema implements ShouldQueue
         );
 
         return collect($columns)->map(fn ($column) => "`{$column->name}`")->implode(',');
+    }
+
+    private static function hasTables(string $database): bool
+    {
+        if (! self::databaseExists($database)) {
+            return false;
+        }
+
+        /** @var list<object{total: int}> $rows */
+        $rows = self::central()->select(
+            'select count(*) as total from information_schema.tables where table_schema = ?',
+            [$database],
+        );
+
+        return ($rows[0]->total ?? 0) > 0;
     }
 
     private static function databaseExists(string $database): bool

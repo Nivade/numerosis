@@ -17,10 +17,12 @@ use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
+use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\TestCase;
 
 class CreateTenantTest extends TestCase
 {
+    use BuildsTenantProvisionData;
     use RefreshDatabase;
 
     /**
@@ -41,7 +43,7 @@ class CreateTenantTest extends TestCase
             'global_id' => $user->global_id,
         ]);
 
-        CreateTenant::run($registration);
+        CreateTenant::run($this->provisionRow($user, $tenantId));
 
         // Tenant/Domain live on the `central` connection (Tenant model's
         // CentralConnection trait), a separate PDO session from the default
@@ -78,7 +80,7 @@ class CreateTenantTest extends TestCase
         ]);
 
         // Act
-        ProvisionTenant::run($registration->withContributions([new BillingContribution(central_user_id: (string) $user->id)]));
+        ProvisionTenant::make()->queue($registration->withContributions([new BillingContribution(central_user_id: (string) $user->id)]));
 
         $tenant = Tenant::findOrFail($tenantId);
 

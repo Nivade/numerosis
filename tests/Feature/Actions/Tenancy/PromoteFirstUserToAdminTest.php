@@ -11,12 +11,13 @@ use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Actions\Tenancy\MarkTenantProvisioned;
 use Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin;
-use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Events\Auth\AdminGranted;
+use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\TestCase;
 
 class PromoteFirstUserToAdminTest extends TestCase
 {
+    use BuildsTenantProvisionData;
     use RefreshDatabase;
 
     public function test_it_dispatches_admin_granted_for_the_promoted_user(): void
@@ -25,11 +26,7 @@ class PromoteFirstUserToAdminTest extends TestCase
         MarkTenantProvisioned::run($tenant);
         $owner = CentralUser::factory()->create();
 
-        AddTenantOwner::run($tenant, TenantProvisionData::from([
-            'name' => 'Admin Grant Co',
-            'slug' => (string) $tenant->getTenantKey(),
-            'global_id' => $owner->global_id,
-        ]));
+        AddTenantOwner::run($this->ownerProvisionRow($tenant, $owner));
 
         Event::fake([AdminGranted::class]);
 
