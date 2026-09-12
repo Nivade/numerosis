@@ -13,11 +13,6 @@ composer.lock
 npm-debug.log
 yarn-error.log
 
-# Caches
-.phpunit.cache
-.phpunit.result.cache
-/build
-
 # IDE Helper
 _ide_helper.php
 _ide_helper_models.php
