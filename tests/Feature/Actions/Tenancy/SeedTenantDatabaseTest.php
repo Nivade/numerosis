@@ -97,6 +97,27 @@ it('reports the real failure when the seeder throws a string exception code', fu
         ->toThrow(RuntimeException::class, 'unknown function');
 });
 
+it('resolves the seeder class configured via numerosis.tenancy.seeder', function () {
+    $tenant = TestTenant::provisioned();
+
+    $spySeeder = new class extends Seeder
+    {
+        public bool $ran = false;
+
+        public function run(): void
+        {
+            $this->ran = true;
+        }
+    };
+
+    app()->bind($spySeeder::class, fn () => $spySeeder);
+    Config::set('numerosis.tenancy.seeder', $spySeeder::class);
+
+    SeedTenantDatabase::run(seedProvisionFor($tenant));
+
+    expect($spySeeder->ran)->toBeTrue();
+});
+
 it('seeds the tenant database on success', function () {
     $tenant = TestTenant::provisioned();
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Config;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Concerns\Tenancy\RunsInTenant;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
@@ -36,7 +37,7 @@ class SeedTenantDatabase implements ProvisioningStep
         $this->runInTenant($tenant, function () use ($provision): void {
             try {
                 Model::unguarded(function (): void {
-                    resolve(TenantDatabaseSeeder::class)
+                    resolve(Config::string('numerosis.tenancy.seeder', TenantDatabaseSeeder::class))
                         ->setContainer(app())
                         ->__invoke();
                 });
