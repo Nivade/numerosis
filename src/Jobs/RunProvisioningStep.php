@@ -10,6 +10,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Nvade\Numerosis\Contracts\Tenancy\ConsumesContributions;
+use Nvade\Numerosis\Contracts\Tenancy\ControlsItsOwnRetries;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
 use Nvade\Numerosis\Enums\Tenancy\StepOutcome;
 use Nvade\Numerosis\Models\Central\TenantProvision;
@@ -42,7 +43,12 @@ final class RunProvisioningStep implements ShouldQueue
     public function __construct(
         public readonly string $slug,
         public readonly string $step,
-    ) {}
+    ) {
+        if (is_a($step, ControlsItsOwnRetries::class, true)) {
+            $this->tries = $step::tries();
+            $this->backoff = $step::backoff();
+        }
+    }
 
     public function handle(): void
     {
