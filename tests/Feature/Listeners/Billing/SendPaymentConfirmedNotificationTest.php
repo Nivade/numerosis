@@ -10,9 +10,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\Notification as NotificationBase;
 use Illuminate\Support\Facades\Notification;
 use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
+use Nvade\Numerosis\Contracts\Tenancy\HasTenantOwner;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentConfirmedNotification;
-use Nvade\Numerosis\Models\Central\Tenant as PackageTenant;
 use Nvade\Numerosis\Notifications\Billing\PaymentConfirmed;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -29,7 +29,7 @@ class SendPaymentConfirmedNotificationTest extends TestCase
         $tenant = Tenant::factory()->create();
         $tenant->users()->attach($owner->global_id, ['role' => 'owner']);
 
-        (new SendPaymentConfirmedNotification)->handle(new PaymentSettled($tenant, $owner->id));
+        (new SendPaymentConfirmedNotification)->handle(new PaymentSettled($tenant, $owner->id, (string) $tenant->getTenantKey()));
 
         Notification::assertSentTo($owner, PaymentConfirmed::class);
     }
@@ -53,7 +53,7 @@ class SendPaymentConfirmedNotificationTest extends TestCase
         {
             public bool $called = false;
 
-            public function notify(PackageTenant $tenant, NotificationBase $notification): void
+            public function notify(HasTenantOwner $tenant, NotificationBase $notification): void
             {
                 $this->called = true;
             }
@@ -61,7 +61,7 @@ class SendPaymentConfirmedNotificationTest extends TestCase
 
         app()->instance(NotifiesTenantOwner::class, $spy);
 
-        (new SendPaymentConfirmedNotification)->handle(new PaymentSettled($tenant, $owner->id));
+        (new SendPaymentConfirmedNotification)->handle(new PaymentSettled($tenant, $owner->id, (string) $tenant->getTenantKey()));
 
         $this->assertTrue($spy->called);
         Notification::assertNothingSent();

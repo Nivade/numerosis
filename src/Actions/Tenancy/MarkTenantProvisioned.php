@@ -39,7 +39,7 @@ class MarkTenantProvisioned
         $owner = $tenant->owner();
 
         if ($owner !== null) {
-            event(new TenantProvisioned($tenant, $owner->id));
+            event(new TenantProvisioned($tenant, $owner->id, (string) $tenant->getTenantKey()));
         }
     }
 }

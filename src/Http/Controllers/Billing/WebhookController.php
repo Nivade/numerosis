@@ -284,7 +284,7 @@ class WebhookController extends CashierWebhookController
         $tenant = FindTenantByStripeCustomer::run($customerId);
 
         if ($tenant !== null) {
-            event(new PaymentFailed($tenant));
+            event(new PaymentFailed($tenant, (string) $tenant->getTenantKey()));
         }
     }
 

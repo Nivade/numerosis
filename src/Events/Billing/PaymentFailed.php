@@ -15,5 +15,6 @@ class PaymentFailed
 
     public function __construct(
         public readonly Tenant $tenant,
+        public readonly string $tenantId,
     ) {}
 }
