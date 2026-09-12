@@ -335,11 +335,6 @@ return [
         // The seeder new tenant databases run.
         'seeder' => TenantDatabaseSeeder::class,
 
-        // Steps run in order, as links in ProvisionTenant's queued chain,
-        // every time a tenant is provisioned. The first entry must
-        // create/find the tenant and return it. LinkTenantSubscription and
-        // FinalizeTenantProvisioning are appended automatically after these
-        // and cannot be reordered here.
         'provisioning' => [
             // Run in order, each as its own link in a queued chain, each
             // recorded on the provision row so a retry resumes rather than
