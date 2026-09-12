@@ -14,12 +14,11 @@ use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 
 /**
- * Records the subscription against the pending checkout and queues
- * provisioning.
+ * Records the subscription against the provision row and queues provisioning.
  *
- * Provisioning is queued whether or not payment settled, only the recorded
- * status differing, because a trial collects nothing upfront and gating on
- * settlement would be stricter than the trial itself.
+ * Provisioning is queued whether or not payment settled, only `settled_at`
+ * differing, because a trial collects nothing upfront and gating on settlement
+ * would be stricter than the trial itself.
  */
 class SettleCheckout
 {

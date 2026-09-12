@@ -17,14 +17,13 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
  * The record of one tenant being provisioned, from the moment its slug is
- * claimed at checkout (`reserved`) through to `completed`. It carries the
- * identity the provisioning steps read, the contributions they consume, which
- * steps have already run, and the lock that keeps two attempts on one slug
- * from racing.
+ * claimed at checkout (`reserved`) through to `completed`.
  *
  * It outlives the provision: `completed_at` is stamped rather than the row
- * deleted, so the step record survives as an audit trail. Tenant readiness is
- * still `tenants.provisioned_at`, never a row here.
+ * deleted. Tenant readiness is still `tenants.provisioned_at`, never a row
+ * here.
+ *
+ * `step_records` and `contributions` are not yet written by anything.
  *
  * @property string $slug
  * @property string|null $custom_domain

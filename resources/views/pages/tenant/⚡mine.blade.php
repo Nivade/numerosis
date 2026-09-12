@@ -217,11 +217,10 @@ class extends Component
                     @php /** @var Tenant $tenant */ @endphp
                     @foreach($readyTenants as $tenant)
                         @php
-                            // Unreachable for cards, which settle synchronously — see
-                            // custom-checkout.md, "Provisioning and settlement". The
-                            // provision row's settled_at is not read here: by the
-                            // time a tenant is "ready" the subscription itself is
-                            // the authoritative signal.
+                            // Unreachable for cards, which settle synchronously. Read
+                            // off the subscription rather than the provision row's
+                            // settled_at: by the time a tenant is ready, the
+                            // subscription is the authoritative signal.
                             $subscription = $tenant->subscriptions->first();
                             $awaitingPayment = $subscription && ! $subscription->isSettled();
 
