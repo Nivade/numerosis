@@ -49,7 +49,7 @@ head/tail, no outer queued job. Everything below this section that predates
   `PersistsToProvisionColumns` (`fromProvision()`/`toProvisionColumns()`,
   because something has to query it: `stripe_setup_intent_id`,
   `stripe_subscription_id`, `custom_domain`), the `contributions` JSON blob
-  keyed by class name otherwise. A step declares `ConsumesContributions::consumes()`
+  keyed by class name otherwise. A step declares `RequiresContributions::requires()`
   to be skipped-and-recorded rather than crash when what it needs was never
   contributed — `LinkTenantSubscription` no longer has its own
   `if (! $data->stripeCustomerId) return;` guard; the runner owns that
@@ -59,7 +59,7 @@ head/tail, no outer queued job. Everything below this section that predates
   different things; a step may implement both, redundantly, if it both
   requires one contribution and merely reads another.
   `TenantProvision::allContributions()` derives its column-backed registry by
-  walking the configured steps and unioning `consumes()`/`reads()` — no
+  walking the configured steps and unioning `requires()`/`reads()` — no
   config list any more. A column-backed contribution no step declares is
   invisible to it.
 - **`ControlsItsOwnRetries`** is the per-step retry seam
@@ -105,7 +105,7 @@ head/tail, no outer queued job. Everything below this section that predates
 
   Promotion is its own configured step for that reason. It used to be a call
   inside `FinalizeTenantProvisioning`, which would have needed an `if` on a
-  contribution — the exact shape `ConsumesContributions` exists to replace, and
+  contribution — the exact shape `RequiresContributions` exists to replace, and
   it would have cost `NoPromotableUser` its meaning. The exception still fires
   only when an owner *was* contributed and the row that should exist does not.
 

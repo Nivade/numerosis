@@ -13,10 +13,10 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
-use Nvade\Numerosis\Contracts\Tenancy\ConsumesContributions;
 use Nvade\Numerosis\Contracts\Tenancy\PersistsToProvisionColumns;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Contracts\Tenancy\ReadsContributions;
+use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Database\Factories\Central\TenantProvisionFactory;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\StepOutcome;
@@ -209,7 +209,7 @@ class TenantProvision extends Model
 
     /**
      * The column-backed contributions a configured step declared, through
-     * `ConsumesContributions::consumes()` or `ReadsContributions::reads()`.
+     * `RequiresContributions::requires()` or `ReadsContributions::reads()`.
      * A column-backed contribution no step declares is invisible here.
      *
      * @return list<class-string<ProvisionContribution>>
@@ -224,7 +224,7 @@ class TenantProvision extends Model
         foreach ($steps as $step) {
             $declared = [
                 ...$declared,
-                ...(is_a($step, ConsumesContributions::class, true) ? $step::consumes() : []),
+                ...(is_a($step, RequiresContributions::class, true) ? $step::requires() : []),
                 ...(is_a($step, ReadsContributions::class, true) ? $step::reads() : []),
             ];
         }

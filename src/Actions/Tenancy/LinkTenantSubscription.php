@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Billing\Subscriptions\LinkSubscriptionToTenant;
-use Nvade\Numerosis\Contracts\Tenancy\ConsumesContributions;
+use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
@@ -24,7 +24,7 @@ use Override;
  * without billing has no BillingContribution, and the runner records the skip
  * rather than this step re-checking a fact the chain builder also knew.
  */
-class LinkTenantSubscription implements ConsumesContributions
+class LinkTenantSubscription implements RequiresContributions
 {
     use AsAction;
 
@@ -32,7 +32,7 @@ class LinkTenantSubscription implements ConsumesContributions
      * @return list<class-string<\Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution>>
      */
     #[Override]
-    public static function consumes(): array
+    public static function requires(): array
     {
         return [BillingContribution::class];
     }

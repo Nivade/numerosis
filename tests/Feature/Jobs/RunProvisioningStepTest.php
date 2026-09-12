@@ -20,8 +20,8 @@ class RunProvisioningStepTest extends TestCase
 
     /**
      * `CreateTenant` implements `ReadsContributions`, not
-     * `ConsumesContributions` — absence of `CustomDomainContribution` must
-     * never skip it, unlike a step declaring `consumes()`.
+     * `RequiresContributions` — absence of `CustomDomainContribution` must
+     * never skip it, unlike a step declaring `requires()`.
      */
     public function test_a_step_declaring_only_reads_contributions_runs_even_when_the_contribution_is_absent(): void
     {

@@ -17,10 +17,10 @@ namespace Nvade\Numerosis\Contracts\Tenancy;
  * The skip is recorded on the provision row alongside the steps that ran, so
  * "this step did not run, and why" is visible rather than silent.
  */
-interface ConsumesContributions extends ProvisioningStep
+interface RequiresContributions extends ProvisioningStep
 {
     /**
      * @return list<class-string<ProvisionContribution>>
      */
-    public static function consumes(): array;
+    public static function requires(): array;
 }

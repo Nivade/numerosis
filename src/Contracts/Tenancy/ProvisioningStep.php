@@ -23,7 +23,7 @@ use Nvade\Numerosis\Models\Central\TenantProvision;
  * idempotent for the sake of retries. It still has to be safe to run against
  * a half-built tenant, since the step before it may have failed.
  *
- * Declare {@see ConsumesContributions} to be skipped when the data a step
+ * Declare {@see RequiresContributions} to be skipped when the data a step
  * needs was never contributed.
  */
 interface ProvisioningStep
