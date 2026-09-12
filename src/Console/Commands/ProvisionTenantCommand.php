@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Console\Commands;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
@@ -43,6 +44,17 @@ class ProvisionTenantCommand extends Command
     {
         $slug = is_string($this->argument('slug')) ? $this->argument('slug') : '';
         $owner = is_string($this->option('owner')) ? $this->option('owner') : '';
+
+        // Checked up front because the failure is otherwise the fifth queued
+        // job dying on `unknown function: SUBSTRING_INDEX()`, which names
+        // neither the driver nor this command.
+        $driver = Config::string('database.connections.'.Config::string('numerosis.tenancy.central_connection', 'central').'.driver', '');
+
+        if (! in_array($driver, ['mysql', 'mariadb'], true)) {
+            $this->error("The central connection uses the [{$driver}] driver. Tenancy needs CREATE DATABASE per tenant and MySQL-only generated columns, so MySQL or MariaDB is required — see docs/host-requirements.md.");
+
+            return self::FAILURE;
+        }
 
         // Both checks: the policy covers domain format, reserved words and
         // the domains table, but a tenant row can exist without one, and

@@ -433,6 +433,15 @@ class InstallNumerosisCommand extends Command
             $this->failures[] = "config('database.connections.central') is missing — see docs/host-requirements.md's config/database.php row.";
         }
 
+        // Driver as well as presence: on SQLite this surfaces as a tenant
+        // seeder dying on `unknown function: SUBSTRING_INDEX()`, five queued
+        // jobs after the real mistake.
+        $driver = Config::get('database.connections.central.driver');
+
+        if (is_string($driver) && ! in_array($driver, ['mysql', 'mariadb'], true)) {
+            $this->failures[] = "config('database.connections.central.driver') is '{$driver}'; tenancy needs CREATE DATABASE per tenant and MySQL-only generated columns — see docs/host-requirements.md's DB credentials row.";
+        }
+
         $template = Config::get('tenancy.database.template_tenant_connection');
 
         if (is_string($template) && ! array_key_exists($template, $connections)) {

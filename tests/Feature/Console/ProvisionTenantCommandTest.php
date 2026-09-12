@@ -8,6 +8,8 @@ use App\Models\Central\CentralUser;
 use App\Models\Central\Tenant;
 use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Actions\Tenancy\LinkTenantSubscription;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
@@ -30,6 +32,33 @@ class ProvisionTenantCommandTest extends TestCase
         $this->assertInstanceOf(PendingCommand::class, $pending);
 
         return $pending;
+    }
+
+    /**
+     * Left to the pipeline, an unsupported driver surfaces as the tenant
+     * seeder dying on `unknown function: SUBSTRING_INDEX()` inside the fifth
+     * queued job, naming neither the driver nor this command.
+     */
+    public function test_it_refuses_a_central_connection_that_is_not_mysql(): void
+    {
+        Bus::fake();
+
+        // Restored before teardown: CleansUpTenancyDatabases issues its
+        // central deletes on this connection and would fail on the driver
+        // rather than on anything this test is about.
+        $driver = Config::string('database.connections.central.driver');
+
+        try {
+            Config::set('database.connections.central.driver', 'sqlite');
+
+            $this->command('tenancy:provision', ['slug' => 'sqliteco'])
+                ->expectsOutputToContain('MySQL or MariaDB is required')
+                ->assertFailed();
+        } finally {
+            Config::set('database.connections.central.driver', $driver);
+        }
+
+        Bus::assertNothingDispatched();
     }
 
     /**

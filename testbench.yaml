@@ -1,5 +1,17 @@
 laravel: '@testbench'
 
+# The package is MySQL-only (README.md, docs/host-requirements.md): tenancy
+# needs CREATE DATABASE per tenant, and the tenant permissions table declares
+# MySQL-only generated columns. The skeleton ships DB_CONNECTION=sqlite, so
+# without this the harness boots on a database the package cannot provision.
+env:
+  DB_CONNECTION: mysql
+  DB_HOST: 127.0.0.1
+  DB_PORT: 3306
+  DB_DATABASE: numerosis_workbench
+  DB_USERNAME: root
+  DB_PASSWORD: root
+
 providers:
   # Composer's auto-discovery never sees a root package, so without this the
   # package's own commands are absent from `php artisan` and the workbench

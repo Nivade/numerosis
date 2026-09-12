@@ -637,6 +637,26 @@ class InstallNumerosisCommandTest extends TestCase
      * expectations have been run. Narrowing here keeps every test a single
      * chained call without a baseline entry.
      */
+    /**
+     * Presence was checked and the driver was not, so a SQLite host passed
+     * install and then failed five queued jobs into its first provision, on
+     * `unknown function: SUBSTRING_INDEX()`.
+     */
+    public function test_it_fails_when_the_central_connection_is_not_mysql(): void
+    {
+        $driver = Config::string('database.connections.central.driver');
+
+        try {
+            Config::set('database.connections.central.driver', 'sqlite');
+
+            $this->install()
+                ->expectsOutputToContain("driver') is 'sqlite'")
+                ->assertFailed();
+        } finally {
+            Config::set('database.connections.central.driver', $driver);
+        }
+    }
+
     private function install(): PendingCommand
     {
         $command = $this->artisan('numerosis:install', ['--verify-only' => true]);
