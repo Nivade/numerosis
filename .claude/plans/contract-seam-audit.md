@@ -1,7 +1,7 @@
 # Contract and seam audit — concrete classes where a contract belongs
 
 **Status: phases 0–10 executed 2026-09-12. Verified 2026-09-12: cold
-`composer analyse` clean, `composer test` 707 passed/6 skipped/0 failed.
+`composer analyse` clean, `composer test` 710 passed/6 skipped/0 failed.
 Audited 2026-09-12 against the code: every phase has a Done note below, and
 the audit found one live defect in phase 9 item 1 — see its correction
 there.**
