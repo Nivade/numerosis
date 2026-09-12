@@ -53,7 +53,15 @@ head/tail, no outer queued job. Everything below this section that predates
   to be skipped-and-recorded rather than crash when what it needs was never
   contributed — `LinkTenantSubscription` no longer has its own
   `if (! $data->stripeCustomerId) return;` guard; the runner owns that
-  decision uniformly for every step.
+  decision uniformly for every step. `ReadsContributions::reads()` is the
+  weaker sibling — interest without dependency, never skips (`CreateTenant`
+  reads `CustomDomainContribution` and must run regardless). The two mean
+  different things; a step may implement both, redundantly, if it both
+  requires one contribution and merely reads another.
+  `TenantProvision::allContributions()` derives its column-backed registry by
+  walking the configured steps and unioning `consumes()`/`reads()` — no
+  config list any more. A column-backed contribution no step declares is
+  invisible to it.
 - **`ControlsItsOwnRetries`** is the per-step retry seam
   (`tries()`/`backoff()`, both static, read in `RunProvisioningStep`'s
   constructor). No core step declares one — 5 tries / 5s backoff remains the

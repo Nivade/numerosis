@@ -169,9 +169,10 @@ database exists or after `FinalizeTenantProvisioning`.
 |---|---|
 | add a provisioning step | `Contracts\Tenancy\ProvisioningStep`, add the class to `numerosis.tenancy.provisioning.steps` |
 | skip a step when data it needs was never collected | also implement `Contracts\Tenancy\ConsumesContributions::consumes(): array` — the runner skips-and-records rather than crashing or needing its own guard clause |
+| read a contribution without becoming skippable | also implement `Contracts\Tenancy\ReadsContributions::reads(): array` — unlike `ConsumesContributions`, absence never skips the step |
 | give a step its own retry profile | also implement `Contracts\Tenancy\ControlsItsOwnRetries` (`tries()`/`backoff()`); every step defaults to 5 attempts, 5 seconds apart |
 | collect data during the registration wizard for provisioning to consume | `Contracts\Tenancy\ContributesProvisionData::contribute(array $state): ?ProvisionContribution` on the wizard step; `Livewire/Tenant/Registration.php` collects from every configured step, core's `Plan`/`TechnicalSetup` steps included |
-| make a contribution's fields queryable | implement `Contracts\Tenancy\PersistsToProvisionColumns` as well as `ProvisionContribution`, add the columns, and list the contribution's class under `numerosis.tenancy.provisioning.contributions` |
+| make a contribution's fields queryable | implement `Contracts\Tenancy\PersistsToProvisionColumns` as well as `ProvisionContribution`, add the columns, and declare it on the step that uses it, through `ConsumesContributions::consumes()` or `ReadsContributions::reads()` — a column-backed contribution no step declares will not be rebuilt off the row |
 | create a tenant outside the checkout flow | `php artisan tenancy:provision <slug> --owner=<global_id> --name="..."` builds a `TenantProvisionData` and calls `ProvisionsTenant::queue()` — the same entry point checkout uses |
 
 A contribution is a `spatie/laravel-data` `Data` subclass carrying anything
