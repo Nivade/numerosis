@@ -1,6 +1,6 @@
 @use(\Nvade\Numerosis\Enums\Billing\BillingCycle)
 @use(\Nvade\Numerosis\Enums\Tenancy\IdentificationMode)
-@use(\Nvade\Numerosis\Services\Billing\BillingService)
+@use(\Nvade\Numerosis\Facades\Billing)
 @props([
     'plan',
     'billingCycle',
@@ -11,11 +11,10 @@
 @php
     /** @var \Nvade\Numerosis\Contracts\Billing\Plan $plan */
     /** @var BillingCycle $billingCycle */
-    $billing = resolve(BillingService::class);
-    $price = $billing->formatAmount($plan->price($billingCycle));
+    $price = Billing::formatAmount($plan->price($billingCycle));
     $trialDays = $plan->trialDays();
     $onTrial = $trialDays !== null && $trialDays > 0;
-    $dueToday = $onTrial ? $billing->formatAmount(0) : $price;
+    $dueToday = $onTrial ? Billing::formatAmount(0) : $price;
     $mode = IdentificationMode::current();
 @endphp
 

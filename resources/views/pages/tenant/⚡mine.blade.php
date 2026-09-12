@@ -4,6 +4,7 @@ use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Actions\Queries\GetTenantProvisionsByGlobalId;
 use Nvade\Numerosis\Actions\Tenancy\MarkProvisionCancelled;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
@@ -74,10 +75,7 @@ class extends Component
         $this->readyTenants = $tenants->whereNotNull('provisioned_at');
         $this->provisioningTenants = $tenants->whereNull('provisioned_at');
 
-        $this->provisionsBySlug = Numerosis::model(TenantProvision::class)::query()
-            ->where('global_id', $this->user->global_id)
-            ->get()
-            ->keyBy('slug');
+        $this->provisionsBySlug = GetTenantProvisionsByGlobalId::run($this->user->global_id);
 
         $this->pendingTenants = $this->provisionsBySlug
             ->reject(fn (TenantProvision $p) => $tenants->contains('id', $p->slug))
@@ -91,9 +89,7 @@ class extends Component
      */
     public function cancelProvision(string $domain): void
     {
-        $owned = Numerosis::model(TenantProvision::class)::where('slug', $domain)
-            ->where('global_id', $this->user?->global_id)
-            ->exists();
+        $owned = Numerosis::model(TenantProvision::class)::ownedBy($domain, $this->user?->global_id);
 
         if (! $owned) {
             return;

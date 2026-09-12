@@ -110,7 +110,7 @@ paths:
   request after a cache clear resolves fine (a miss) and every request after it
   dies on `DomainTenantResolver::resolved(): Argument #1 ($tenant) must be of
   type Tenant, __PHP_Incomplete_Class given`, which is two config defaults
-  disagreeing. `TenancyServiceProvider::shouldCacheResolvedTenants()` therefore
+  disagreeing. `TenancyRouting::shouldCacheResolvedTenants()` therefore
   follows what the host's cache config can actually store — an allowlist has to
   name the tenant model, `false` disables the cache, and
   `numerosis.tenancy.cache_resolved_tenants` overrides either way — and

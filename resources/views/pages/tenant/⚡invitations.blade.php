@@ -3,9 +3,8 @@
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Nvade\Numerosis\Actions\Queries\GetPendingInvitationsForTenant;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
-use Nvade\Numerosis\Models\Central\Invitation;
-use Nvade\Numerosis\Numerosis;
 
 new #[Layout('numerosis-layouts::app')]
 class extends Component
@@ -19,16 +18,7 @@ class extends Component
 
     private function refreshInvitations(): void
     {
-        $invitationClass = Numerosis::model(Invitation::class);
-
-        // invitedBy is eager loaded for InvitationPolicy::delete()'s ownership
-        // fallback, which is a per-row exists() query on the non-admin path.
-        $this->invitations = $invitationClass::query()
-            ->pending()
-            ->where('tenant_id', tenant()->getKey())
-            ->with('invitedBy:id,global_id')
-            ->latest()
-            ->get();
+        $this->invitations = GetPendingInvitationsForTenant::run((string) tenant()->getKey());
     }
 }; ?>
 <section class="mx-auto max-w-prose w-full h-full content-center">

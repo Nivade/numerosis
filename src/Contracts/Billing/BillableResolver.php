@@ -5,15 +5,14 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Contracts\Billing;
 
 use Illuminate\Database\Eloquent\Model;
-use Laravel\Cashier\Billable;
+use Nvade\Numerosis\Contracts\Subscribable;
 
 interface BillableResolver
 {
     /**
-     * Billable is a trait, so PHP cannot express the intersection natively.
-     * The real contract is "a Model that uses Laravel\Cashier\Billable".
-     *
-     * @return (Model&Billable)|null
+     * The two shapes a resolved billable actually takes: a central user
+     * (also `Subscribable`, via `BillableUser`) or a `Tenant` swapping its
+     * own plan, which is `Subscribable` only.
      */
-    public function resolve(): ?Model;
+    public function resolve(): null|(Model&BillableUser)|(Model&Subscribable);
 }

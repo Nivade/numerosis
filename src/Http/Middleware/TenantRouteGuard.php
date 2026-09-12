@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Nvade\Numerosis\Providers\TenancyServiceProvider;
+use Nvade\Numerosis\Boot\TenancyRouting;
 
 /**
  * Aliased to `tenancy.route` so the alias itself is a stable class literal,
@@ -19,6 +19,6 @@ class TenantRouteGuard
 {
     public function handle(Request $request, Closure $next): mixed
     {
-        return app(TenancyServiceProvider::tenancyRouteMiddleware())->handle($request, $next);
+        return app(TenancyRouting::tenancyRouteMiddleware())->handle($request, $next);
     }
 }

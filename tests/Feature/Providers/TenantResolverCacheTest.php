@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Providers;
 use App\Models\Central\Tenant;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
-use Nvade\Numerosis\Providers\TenancyServiceProvider;
+use Nvade\Numerosis\Boot\TenancyRouting;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -27,7 +27,7 @@ class TenantResolverCacheTest extends TestCase
         Config::set('numerosis.tenancy.cache_resolved_tenants');
         Config::set('cache.serializable_classes');
 
-        $this->assertTrue(TenancyServiceProvider::shouldCacheResolvedTenants());
+        $this->assertTrue(TenancyRouting::shouldCacheResolvedTenants());
     }
 
     public function test_it_does_not_cache_when_the_store_cannot_unserialize_any_object(): void
@@ -35,7 +35,7 @@ class TenantResolverCacheTest extends TestCase
         Config::set('numerosis.tenancy.cache_resolved_tenants');
         Config::set('cache.serializable_classes', false);
 
-        $this->assertFalse(TenancyServiceProvider::shouldCacheResolvedTenants());
+        $this->assertFalse(TenancyRouting::shouldCacheResolvedTenants());
     }
 
     public function test_an_allowlist_has_to_name_the_configured_tenant_model(): void
@@ -43,11 +43,11 @@ class TenantResolverCacheTest extends TestCase
         Config::set('numerosis.tenancy.cache_resolved_tenants');
         Config::set('cache.serializable_classes', ['DateTimeImmutable']);
 
-        $this->assertFalse(TenancyServiceProvider::shouldCacheResolvedTenants());
+        $this->assertFalse(TenancyRouting::shouldCacheResolvedTenants());
 
         Config::set('cache.serializable_classes', ['DateTimeImmutable', Config::string('tenancy.tenant_model')]);
 
-        $this->assertTrue(TenancyServiceProvider::shouldCacheResolvedTenants());
+        $this->assertTrue(TenancyRouting::shouldCacheResolvedTenants());
     }
 
     public function test_a_host_can_decide_it_either_way(): void
@@ -55,12 +55,12 @@ class TenantResolverCacheTest extends TestCase
         Config::set('cache.serializable_classes', false);
         Config::set('numerosis.tenancy.cache_resolved_tenants', true);
 
-        $this->assertTrue(TenancyServiceProvider::shouldCacheResolvedTenants());
+        $this->assertTrue(TenancyRouting::shouldCacheResolvedTenants());
 
         Config::set('cache.serializable_classes');
         Config::set('numerosis.tenancy.cache_resolved_tenants', false);
 
-        $this->assertFalse(TenancyServiceProvider::shouldCacheResolvedTenants());
+        $this->assertFalse(TenancyRouting::shouldCacheResolvedTenants());
     }
 
     /**

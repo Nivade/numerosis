@@ -18,7 +18,6 @@ use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Testing\FakeCheckoutGateway;
 
 /**
  * Thin manager delegating to the billing contracts, and the one class a
@@ -91,19 +90,5 @@ class BillingService
     public function currency(): string
     {
         return Config::string('cashier.currency', 'usd');
-    }
-
-    /**
-     * Swap the checkout gateway and tenant provisioning for a recording fake
-     * that never talks to Stripe or queues real provisioning.
-     */
-    public static function fake(): FakeCheckoutGateway
-    {
-        $fake = new FakeCheckoutGateway;
-
-        app()->instance(CheckoutGateway::class, $fake);
-        app()->instance(ProvisionsTenant::class, $fake);
-
-        return $fake;
     }
 }

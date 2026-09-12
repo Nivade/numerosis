@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Contracts\Tenancy\Suspendable;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -22,7 +22,7 @@ class EnsureTenantSubscriptionActive
     {
         $currentTenant = tenant();
 
-        if ($currentTenant instanceof Tenant && $currentTenant->isSuspended()) {
+        if ($currentTenant instanceof Suspendable && $currentTenant->isSuspended()) {
             return to_route('tenant.suspended');
         }
 

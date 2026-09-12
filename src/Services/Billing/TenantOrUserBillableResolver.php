@@ -7,17 +7,23 @@ namespace Nvade\Numerosis\Services\Billing;
 use Illuminate\Database\Eloquent\Model;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
+use Nvade\Numerosis\Contracts\Billing\BillableUser;
+use Nvade\Numerosis\Contracts\Subscribable;
 
 class TenantOrUserBillableResolver implements BillableResolver
 {
-    public function resolve(): ?Model
+    public function resolve(): null|(Model&BillableUser)|(Model&Subscribable)
     {
         if (tenancy()->initialized) {
             $currentTenant = tenant();
 
-            return $currentTenant instanceof Model ? $currentTenant : null;
+            return $currentTenant instanceof Subscribable && $currentTenant instanceof Model ? $currentTenant : null;
         }
 
-        return GetAuthenticatedUser::run();
+        $user = GetAuthenticatedUser::run();
+
+        // Subscribable alone is enough: PlanPolicy takes it, and the Cashier
+        // paths that need more narrow on BillableUser themselves and throw.
+        return $user instanceof BillableUser || $user instanceof Subscribable ? $user : null;
     }
 }

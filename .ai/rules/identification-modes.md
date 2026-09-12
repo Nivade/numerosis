@@ -128,14 +128,14 @@ Livewire's JS makes) sends `Referer` under the default
 is missing (a privacy extension, a non-browser client) the request degrades to
 an un-initialized central context, exactly as a commit from a genuine central
 page already does, and does not throw.
-`TenancyServiceProvider::livewireUpdateIdentificationMiddleware()` picks it,
+`TenancyRouting::livewireUpdateIdentificationMiddleware()` picks it,
 and only under path mode — every other mode identifies by domain and needs no
 route parameter.
 
 **Path mode also has to opt out of two central-domain guards**, because its
 tenant routes deliberately live *on* the central domain:
 
-- `TenancyServiceProvider::tenancyRouteMiddleware()` returns
+- `TenancyRouting::tenancyRouteMiddleware()` returns
   `Http\Middleware\NullMiddleware` instead of
   `PreventAccessFromCentralDomains`, which would otherwise 404 every tenant
   request.
@@ -171,7 +171,7 @@ rather than an error. dev-master's
 middleware is absent from that list falls through to `RouteMode::CENTRAL`,
 and `PreventAccessFromUnwantedDomains` then 404s every tenant request as
 "central route from a tenant domain". Whichever class
-`TenancyServiceProvider::identificationMiddleware()` returns has to be in
+`TenancyRouting::identificationMiddleware()` returns has to be in
 there, including this package's own `InitializeTenancyByDomainOrSubdomain`
 subclass, which stancl cannot know about.
 

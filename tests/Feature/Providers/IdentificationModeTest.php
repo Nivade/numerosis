@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
+use Nvade\Numerosis\Boot\TenancyRouting;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
 use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
@@ -21,7 +22,6 @@ use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain;
 use Nvade\Numerosis\Http\Middleware\NullMiddleware;
-use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Tests\TestCase;
 use RuntimeException;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
@@ -63,13 +63,13 @@ class IdentificationModeTest extends TestCase
     public function test_each_mode_selects_its_own_identification_middleware(): void
     {
         $this->useMode(IdentificationMode::Subdomain);
-        $this->assertSame(InitializeTenancyByDomainOrSubdomain::class, TenancyServiceProvider::identificationMiddleware());
+        $this->assertSame(InitializeTenancyByDomainOrSubdomain::class, TenancyRouting::identificationMiddleware());
 
         $this->useMode(IdentificationMode::CustomDomain);
-        $this->assertSame(InitializeTenancyByDomain::class, TenancyServiceProvider::identificationMiddleware());
+        $this->assertSame(InitializeTenancyByDomain::class, TenancyRouting::identificationMiddleware());
 
         $this->useMode(IdentificationMode::Path);
-        $this->assertSame(InitializeTenancyByPath::class, TenancyServiceProvider::identificationMiddleware());
+        $this->assertSame(InitializeTenancyByPath::class, TenancyRouting::identificationMiddleware());
     }
 
     /**
@@ -83,25 +83,25 @@ class IdentificationModeTest extends TestCase
     public function test_livewire_update_route_uses_a_referer_based_middleware_only_under_path_mode(): void
     {
         $this->useMode(IdentificationMode::Subdomain);
-        $this->assertSame(InitializeTenancyByDomainOrSubdomain::class, TenancyServiceProvider::livewireUpdateIdentificationMiddleware());
+        $this->assertSame(InitializeTenancyByDomainOrSubdomain::class, TenancyRouting::livewireUpdateIdentificationMiddleware());
 
         $this->useMode(IdentificationMode::CustomDomain);
-        $this->assertSame(InitializeTenancyByDomain::class, TenancyServiceProvider::livewireUpdateIdentificationMiddleware());
+        $this->assertSame(InitializeTenancyByDomain::class, TenancyRouting::livewireUpdateIdentificationMiddleware());
 
         $this->useMode(IdentificationMode::Path);
-        $this->assertSame(InitializeLivewireTenancyByPath::class, TenancyServiceProvider::livewireUpdateIdentificationMiddleware());
+        $this->assertSame(InitializeLivewireTenancyByPath::class, TenancyRouting::livewireUpdateIdentificationMiddleware());
     }
 
     public function test_path_mode_skips_the_central_domain_block_and_other_modes_dont(): void
     {
         $this->useMode(IdentificationMode::Path);
-        $this->assertSame(NullMiddleware::class, TenancyServiceProvider::tenancyRouteMiddleware());
+        $this->assertSame(NullMiddleware::class, TenancyRouting::tenancyRouteMiddleware());
 
         $this->useMode(IdentificationMode::Subdomain);
-        $this->assertNotSame(NullMiddleware::class, TenancyServiceProvider::tenancyRouteMiddleware());
+        $this->assertNotSame(NullMiddleware::class, TenancyRouting::tenancyRouteMiddleware());
 
         $this->useMode(IdentificationMode::CustomDomain);
-        $this->assertNotSame(NullMiddleware::class, TenancyServiceProvider::tenancyRouteMiddleware());
+        $this->assertNotSame(NullMiddleware::class, TenancyRouting::tenancyRouteMiddleware());
     }
 
     public function test_subdomain_mode_creates_a_domain_row_by_concatenating_the_apex(): void

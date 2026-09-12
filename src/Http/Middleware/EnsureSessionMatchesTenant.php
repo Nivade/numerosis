@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Http\Middleware;
 
 use Closure;
-use Illuminate\Auth\AuthManager;
+use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Http\Request;
 use Nvade\Numerosis\Concerns\Auth\ForgetsGuardSession;
 use Nvade\Numerosis\Enums\Tenancy\Context;
@@ -24,7 +24,7 @@ class EnsureSessionMatchesTenant
 
     public const SESSION_KEY = 'tenancy.session_tenant';
 
-    public function __construct(private readonly AuthManager $auth) {}
+    public function __construct(private readonly AuthFactory $auth) {}
 
     public function handle(Request $request, Closure $next): mixed
     {

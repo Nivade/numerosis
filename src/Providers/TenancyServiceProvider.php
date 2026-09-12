@@ -9,18 +9,14 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Routing\Router;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use Livewire;
-use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
+use Nvade\Numerosis\Boot\TenancyRouting;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
-use Nvade\Numerosis\Http\Middleware\NullMiddleware;
 use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
 use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Services\Tenancy\PreservingPathTenantResolver;
 use Override;
 use Stancl\JobPipeline\JobPipeline;
@@ -71,46 +67,6 @@ class TenancyServiceProvider extends ServiceProvider
 {
     // By default, no namespace is used to support the callable array syntax.
     public static string $controllerNamespace = '';
-
-    /**
-     * The middleware that identifies a tenant from the request, chosen by
-     * {@see IdentificationMode::current()}.
-     */
-    public static function identificationMiddleware(): string
-    {
-        return match (IdentificationMode::current()) {
-            IdentificationMode::Subdomain => \Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain::class,
-            IdentificationMode::CustomDomain => InitializeTenancyByDomain::class,
-            IdentificationMode::Path => InitializeTenancyByPath::class,
-        };
-    }
-
-    /**
-     * The Livewire update route carries no `{tenant}` parameter, so
-     * `InitializeTenancyByPath` cannot be applied to it. Every other mode
-     * identifies by domain, which needs no route parameter.
-     *
-     * @see \Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath
-     */
-    public static function livewireUpdateIdentificationMiddleware(): string
-    {
-        return IdentificationMode::current() === IdentificationMode::Path
-            ? \Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath::class
-            : static::identificationMiddleware();
-    }
-
-    /**
-     * The central-domain-block gate used inside the `tenant` middleware
-     * group. Under `IdentificationMode::Path`, tenant routes deliberately
-     * live on the central domain (path-prefixed), so the ordinary block
-     * would 404 every tenant request.
-     */
-    public static function tenancyRouteMiddleware(): string
-    {
-        return IdentificationMode::current() === IdentificationMode::Path
-            ? NullMiddleware::class
-            : PreventAccessFromCentralDomains::class;
-    }
 
     /**
      * @return array<class-string, array<int, class-string|JobPipeline>>
@@ -217,45 +173,13 @@ class TenancyServiceProvider extends ServiceProvider
         // which HostConfig::apply() fills in from an earlier-registered booting()
         // callback. Nothing reads the flag until a request resolves a domain.
         $this->app->booting(function (): void {
-            DomainTenantResolver::$shouldCache = self::shouldCacheResolvedTenants();
+            DomainTenantResolver::$shouldCache = TenancyRouting::shouldCacheResolvedTenants();
         });
 
         $this->app->singleton(
             DomainTenantResolver::class,
             fn (Application $app) => new DomainTenantResolver(new CacheManager($app)),
         );
-    }
-
-    /**
-     * `DomainTenantResolver` caches a whole tenant model, so the cache follows
-     * what `cache.serializable_classes` can store: an allowlist has to name the
-     * tenant model, `false` disables the cache, and
-     * `numerosis.tenancy.cache_resolved_tenants` overrides either way. A store
-     * that cannot unserialize it returns `__PHP_Incomplete_Class` silently.
-     */
-    public static function shouldCacheResolvedTenants(): bool
-    {
-        $configured = Config::get('numerosis.tenancy.cache_resolved_tenants');
-
-        if (is_bool($configured)) {
-            return $configured;
-        }
-
-        $serializableClasses = Config::get('cache.serializable_classes');
-
-        // null is Laravel's "no restriction" value: the stores only pass
-        // `allowed_classes` to unserialize() when this is non-null.
-        if ($serializableClasses === null || $serializableClasses === true) {
-            return true;
-        }
-
-        if (! is_array($serializableClasses)) {
-            return false;
-        }
-
-        $tenantModel = Config::get('tenancy.tenant_model') ?? Numerosis::model(Tenant::class);
-
-        return in_array($tenantModel, $serializableClasses, true);
     }
 
     public function boot(): void
@@ -268,7 +192,7 @@ class TenancyServiceProvider extends ServiceProvider
             ->middleware(
                 'web',
                 'universal',
-                static::livewireUpdateIdentificationMiddleware(),
+                TenancyRouting::livewireUpdateIdentificationMiddleware(),
                 EnsureSessionMatchesTenant::class,
             ));
     }

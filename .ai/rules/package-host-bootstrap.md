@@ -217,7 +217,7 @@ staleness" failure mode and worth the same caution.
   Both fire the instant the container first builds that kernel object —
   which happens *before* the kernel's own `bootstrap()` call, i.e. before
   `RegisterFacades` has run. `Numerosis::middleware()` calls
-  `TenancyServiceProvider::identificationMiddleware()` /
+  `TenancyRouting::identificationMiddleware()` /
   `::tenancyRouteMiddleware()`, both of which call
   `IdentificationMode::current()`, which reads `Config::string(...)` —
   and `Config::__callStatic()` throws `RuntimeException: A facade root has

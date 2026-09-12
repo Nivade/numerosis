@@ -157,6 +157,20 @@ class TenantProvision extends Model
     }
 
     /**
+     * Whether the slug's reservation belongs to this global id. `$domain`
+     * arriving as a client-controlled method argument is the same shape as a
+     * route parameter, so a caller re-checking ownership before acting on it
+     * needs this rather than trusting whatever it already rendered.
+     */
+    public static function ownedBy(string $slug, ?string $globalId): bool
+    {
+        return static::query()
+            ->where('slug', $slug)
+            ->where('global_id', $globalId)
+            ->exists();
+    }
+
+    /**
      * @param  Builder<TenantProvision>  $query
      * @return Builder<TenantProvision>
      */

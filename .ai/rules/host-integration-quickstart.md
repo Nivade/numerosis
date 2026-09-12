@@ -235,7 +235,7 @@ original follow-up list, which this replaces.
    `$this->app->call()`, which fills an unbound primitive from its default
    rather than injecting the router. `tests/Feature/Routing/AuthRoutesOptOutTest`
    pins both halves.
-6. **`TenancyServiceProvider::shouldCacheResolvedTenants()`** decides
+6. **`TenancyRouting::shouldCacheResolvedTenants()`** decides
    `DomainTenantResolver::$shouldCache` from what the host's cache config can
    actually round-trip, rather than setting it `true` unconditionally: `false`
    in `cache.serializable_classes` (a fresh Laravel app's own hardening

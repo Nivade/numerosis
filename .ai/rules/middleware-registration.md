@@ -54,7 +54,7 @@ regenerates and discards. The facts are the same; only the home changed.
 
 - **`tenancy.identification` and `tenancy.route` resolve through
   `TenancyServiceProvider`, not to a class literal.** Both aliases are bound to
-  `TenancyServiceProvider::identificationMiddleware()` /
+  `TenancyRouting::identificationMiddleware()` /
   `::tenancyRouteMiddleware()`, which pick the class from the configured
   identification mode. Grepping for a middleware class name will therefore miss
   its registration — see `.ai/rules/identification-modes.md`.

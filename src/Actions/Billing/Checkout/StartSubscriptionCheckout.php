@@ -13,7 +13,6 @@ use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
 use Nvade\Numerosis\Contracts\Billing\UnpaidTenantQuota;
-use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
@@ -42,7 +41,7 @@ class StartSubscriptionCheckout
 
         $billable = $this->billables->resolve();
 
-        if ($billable instanceof Subscribable) {
+        if ($billable !== null) {
             $this->planPolicy->assertEligible($billable, $plan);
         }
 
