@@ -53,4 +53,4 @@ parameters:
     # of them sat in the baseline.
     configDirectories:
         - config
-    tmpDir: build/phpstan
+    tmpDir: storage/phpstan
