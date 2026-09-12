@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Override;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Throwable;
 
@@ -31,6 +32,12 @@ trait CleansUpTenancyDatabases
     private array $dirtyCentralTables = [];
 
     private bool $tenancyCleanupRegistered = false;
+
+    /**
+     * The application the write tracking is currently listening on, so a
+     * refresh can tell whether its listener is still attached.
+     */
+    private ?object $centralWritesRecordedFor = null;
 
     /**
      * A connection with its own PDO session, so the `DROP DATABASE` statements
@@ -59,6 +66,26 @@ trait CleansUpTenancyDatabases
         $this->beforeApplicationDestroyed(function (): void {
             $this->cleanUpTenancyDatabases();
         });
+    }
+
+    /**
+     * Re-arms the central-write tracking against the rebuilt application.
+     *
+     * The tracking is a `DB::listen()` on the application it was registered
+     * against, and refreshing builds a new one. Without this, every central
+     * row written after a mid-test `refreshApplication()` goes untracked and
+     * survives teardown, so the next test in that worker starts with a
+     * populated `users` table — which reads as a flake, because it depends on
+     * which test the runner happens to schedule next.
+     */
+    #[Override]
+    protected function refreshApplication(): void
+    {
+        parent::refreshApplication();
+
+        if ($this->tenancyCleanupRegistered && $this->centralWritesRecordedFor !== $this->app) {
+            $this->recordCentralWrites();
+        }
     }
 
     /**
@@ -196,6 +223,8 @@ trait CleansUpTenancyDatabases
      */
     private function recordCentralWrites(): void
     {
+        $this->centralWritesRecordedFor = $this->app;
+
         $central = $this->centralConnectionName();
 
         DB::listen(function (QueryExecuted $query) use ($central): void {
