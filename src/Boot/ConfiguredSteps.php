@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Boot;
 
+use Illuminate\Support\Facades\Config;
 use LogicException;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
@@ -23,6 +24,24 @@ use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
  */
 final class ConfiguredSteps
 {
+    /**
+     * @return list<class-string<ProvisioningStep>>
+     */
+    public static function provisioningSteps(): array
+    {
+        /** @var list<class-string<ProvisioningStep>> */
+        return Config::array('numerosis.tenancy.provisioning.steps', []);
+    }
+
+    /**
+     * @return list<class-string>
+     */
+    public static function registrationSteps(): array
+    {
+        /** @var list<class-string> */
+        return Config::array('numerosis.tenancy.registration.steps', []);
+    }
+
     /**
      * @param  list<class-string>  $steps
      */

@@ -12,9 +12,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
+use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Contracts\Tenancy\PersistsToProvisionColumns;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Contracts\Tenancy\ReadsContributions;
@@ -260,10 +260,7 @@ class TenantProvision extends Model
      */
     public function currentStep(): ?string
     {
-        /** @var list<class-string> $steps */
-        $steps = Config::array('numerosis.tenancy.provisioning.steps', []);
-
-        foreach ($steps as $step) {
+        foreach (ConfiguredSteps::provisioningSteps() as $step) {
             if (! $this->hasRun($step)) {
                 return $step;
             }
@@ -303,12 +300,9 @@ class TenantProvision extends Model
      */
     private static function columnBackedContributions(): array
     {
-        /** @var list<class-string> $steps */
-        $steps = Config::array('numerosis.tenancy.provisioning.steps', []);
-
         $declared = [];
 
-        foreach ($steps as $step) {
+        foreach (ConfiguredSteps::provisioningSteps() as $step) {
             $declared = [
                 ...$declared,
                 ...(is_a($step, RequiresContributions::class, true) ? $step::requires() : []),

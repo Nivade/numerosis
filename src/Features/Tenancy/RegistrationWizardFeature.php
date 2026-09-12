@@ -66,8 +66,7 @@ class RegistrationWizardFeature implements NamedFeature
         // NumerosisServiceProvider::packageBooted() sets.
         $wizardViews = Config::string('numerosis.views.path').'/livewire/tenant/registration/wizard';
 
-        /** @var list<class-string> $steps */
-        $steps = Config::array('numerosis.tenancy.registration.steps');
+        $steps = ConfiguredSteps::registrationSteps();
 
         if (app()->runningInConsole()) {
             ConfiguredSteps::assertARegistrationStepProvidesTenantIdentity($steps);

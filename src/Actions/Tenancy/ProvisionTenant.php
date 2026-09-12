@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\Config;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
+use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
@@ -108,12 +107,9 @@ class ProvisionTenant implements ProvisionsTenant
      */
     private function links(string $slug): array
     {
-        /** @var list<class-string<ProvisioningStep>> $steps */
-        $steps = Config::array('numerosis.tenancy.provisioning.steps', []);
-
         return array_map(
             static fn (string $step): RunProvisioningStep => new RunProvisioningStep($slug, $step),
-            $steps,
+            ConfiguredSteps::provisioningSteps(),
         );
     }
 

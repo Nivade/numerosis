@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Livewire\Tenant;
 
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\Config;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
+use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Contracts\Tenancy\HasTransientState;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Livewire\Tenant\Registration\RegistrationState;
@@ -62,10 +62,8 @@ class Registration extends WizardComponent
      */
     public function steps(): array
     {
-        /** @var list<class-string<StepComponent>> $steps */
-        $steps = Config::array('numerosis.tenancy.registration.steps');
-
-        return $steps;
+        /** @var list<class-string<StepComponent>> */
+        return ConfiguredSteps::registrationSteps();
     }
 
     #[Override]

@@ -291,10 +291,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             return;
         }
 
-        /** @var list<class-string> $steps */
-        $steps = Config::array('numerosis.tenancy.provisioning.steps', []);
-
-        ConfiguredSteps::assertEveryProvisioningStepIsOne($steps);
+        ConfiguredSteps::assertEveryProvisioningStepIsOne(ConfiguredSteps::provisioningSteps());
     }
 
     /**

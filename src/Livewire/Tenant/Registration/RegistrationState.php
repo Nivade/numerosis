@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Tenant\Registration;
 
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Fluent;
+use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Contracts\Tenancy\ContributesProvisionData;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
@@ -120,10 +120,7 @@ class RegistrationState extends State
      */
     private function stepProviding(string $key): string
     {
-        /** @var list<class-string> $steps */
-        $steps = Config::array('numerosis.tenancy.registration.steps', []);
-
-        foreach ($steps as $step) {
+        foreach (ConfiguredSteps::registrationSteps() as $step) {
             if (! is_a($step, ProvidesTenantIdentity::class, true)) {
                 continue;
             }
@@ -143,12 +140,9 @@ class RegistrationState extends State
      */
     public function contributions(): array
     {
-        /** @var list<class-string> $steps */
-        $steps = Config::array('numerosis.tenancy.registration.steps', []);
-
         $contributions = [];
 
-        foreach ($steps as $step) {
+        foreach (ConfiguredSteps::registrationSteps() as $step) {
             if (! is_a($step, ContributesProvisionData::class, true)) {
                 continue;
             }
