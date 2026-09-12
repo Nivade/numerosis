@@ -42,13 +42,18 @@ commit `888e31f` is in history under the same subject line). Only two plans
 were left live because their own text — not just a Status header — said
 something remained open.
 
+`contract-seam-audit.md` moved to `archive/` 2026-09-12: all eleven phases
+executed, then audited against the code, which turned up one live defect the
+execution had introduced (phase 9's billable narrowing) and per-phase Done
+notes missing from six sections. Both fixed in the same pass; the suite ran
+710 passed / 6 skipped and `composer analyse` cold-clean.
+
 ## Live
 
 | Plan | State |
 |---|---|
 | `luminous-wandering-brook.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
 | `enum-vocabulary-sweep.md` | **Not executed.** Written 2026-09-12. Eight phases, each independently landable; phases 1 and 2 carry most of the value |
-| `contract-seam-audit.md` | **Not executed; phase 0 added and phases 1, 2, 3, 5, 9.8 revised 2026-09-12 after review.** Eleven phases (0–10). Three are live defects: phase 0 is a cross-tenant tenancy leak from a queue worker (`$tenant->run()` has no `try`/`finally` in stancl) and should land first regardless; plus a dead `numerosis.tenancy.seeder` key and a `DB::transaction()` on the wrong connection. Phase 2's original "add Stripe contracts" design was wrong — Cashier is already the abstraction — and the file records why, so it is not reproposed |
 | `pr-review-remediation.md` | **Partially executed.** Re-audited 2026-09-07 against `3c3de4e`: most phases fixed, but phase 4 (webhook payload guard) is still open and phase 5.1 (line-number citation sweep) has 7 of 9 left |
 | `post-extraction-review.md` | **Mostly done; three items survive.** Its Live status block is stale — read the correction at the top of the file, not the table |
 
