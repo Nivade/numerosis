@@ -88,13 +88,20 @@ class RegistrationState extends State
      * @throws MissingTenantIdentity When the wizard has no name or slug yet,
      *                               which means a step was skipped.
      */
-    public function provisionData(string $globalId): TenantProvisionData
+    public function provisionData(string $globalId, ?string $slug = null): TenantProvisionData
     {
         $name = $this->get('name');
-        $slug = $this->get('domain');
 
-        if (! is_string($name) || $name === '' || ! is_string($slug) || $slug === '') {
-            throw new MissingTenantIdentity;
+        // The step collecting the slug has not written it to wizard state yet
+        // when it submits, so it passes its own value in.
+        $slug ??= $this->get('domain');
+
+        if (! is_string($name) || $name === '') {
+            throw new MissingTenantIdentity('company-info');
+        }
+
+        if (! is_string($slug) || $slug === '') {
+            throw new MissingTenantIdentity('technical-setup');
         }
 
         return new TenantProvisionData(

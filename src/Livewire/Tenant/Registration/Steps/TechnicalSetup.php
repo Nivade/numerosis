@@ -15,6 +15,7 @@ use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
+use Nvade\Numerosis\Exceptions\Tenancy\MissingTenantIdentity;
 use Nvade\Numerosis\Livewire\Tenant\Registration\ReadsRegistrationState;
 use Nvade\Numerosis\Rules\CustomDomainIsAvailable;
 use Nvade\Numerosis\Rules\DomainIsAvailable;
@@ -122,25 +123,23 @@ class TechnicalSetup extends StepComponent implements ContributesProvisionData, 
     {
         $this->validate();
 
-        $companyName = $this->state()->get('name');
-
-        if (blank($companyName)) {
-            $this->showStep('company-info');
-
-            return;
-        }
-
         $user = GetAuthenticatedUser::run();
 
         abort_if($user === null, 403);
 
         try {
-            // This step's own value is not yet in the wizard state -- state is
-            // written on submit -- so its contribution is passed explicitly
-            // rather than collected.
-            ReserveTenantDomain::run($this->registrationState()->provisionData($user->global_id)->withContributions(
-                array_filter([self::contribute(['customDomain' => $this->customDomain])]),
-            ));
+            // This step's own values are not in the wizard state yet -- state
+            // is written on submit -- so the slug and its contribution are
+            // passed in rather than collected.
+            $data = $this->registrationState()
+                ->provisionData($user->global_id, slug: $this->domain)
+                ->withContributions(array_filter([self::contribute(['customDomain' => $this->customDomain])]));
+
+            ReserveTenantDomain::run($data);
+        } catch (MissingTenantIdentity $e) {
+            $this->showStep($e->step);
+
+            return;
         } catch (ShowsMessageToUser $e) {
             $this->addError('domain', $e->getMessage());
 

@@ -19,6 +19,7 @@ use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
+use Nvade\Numerosis\Exceptions\Tenancy\MissingTenantIdentity;
 use Nvade\Numerosis\Livewire\Tenant\Registration\ReadsRegistrationState;
 use Spatie\LivewireWizard\Components\StepComponent;
 
@@ -139,23 +140,6 @@ class Plan extends StepComponent implements ContributesProvisionData, HasTransie
 
         $this->checkoutError = null;
 
-        $companyName = $this->state()->get('name');
-        $domain = $this->state()->get('domain');
-
-        // Both are required to start a checkout. Send the user to whichever
-        // step is missing; a validation error here would be invisible.
-        if (blank($companyName)) {
-            $this->showStep('company-info');
-
-            return;
-        }
-
-        if (blank($domain)) {
-            $this->showStep('technical-setup');
-
-            return;
-        }
-
         $user = GetAuthenticatedUser::run();
 
         abort_if($user === null, 403);
@@ -167,6 +151,12 @@ class Plan extends StepComponent implements ContributesProvisionData, HasTransie
             $intent = StartSubscriptionCheckout::run($this->registrationState()->provisionData($user->global_id)->withContributions(
                 array_filter([self::contribute(['payment_plan' => $this->payment_plan, 'billingCycle' => $this->cycle()])]),
             ));
+        } catch (MissingTenantIdentity $e) {
+            // Back to whichever step collects it; an error on this screen
+            // would point at a field the user cannot see.
+            $this->showStep($e->step);
+
+            return;
         } catch (ShowsMessageToUser $e) {
             $this->checkoutError = $e->getMessage();
 
