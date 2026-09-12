@@ -412,6 +412,22 @@ The number that comes back is the finding. If most annotations survive, they
 are load-bearing and `Numerosis::model()` is not worth refactoring at any
 scale — write that down and close the phase.
 
+**Measured 2026-09-12.** Deleted every `@var` in the three files, ran
+`phpstan clear-result-cache` + a cold analyse, restored only what went red:
+
+| File | Before | After | Survived |
+|---|---|---|---|
+| `InstallNumerosisCommand.php` | 10 | 3 | property `$failures`, `verifyFortifyFeatures()`'s `$features`, `verifyModelOverrides()`'s `$packageModel` |
+| `HostConfig.php` | 7 | 3 | property `$applied`, `tenancyBootstrappers()`'s `$bootstrappers`, `filesystemDisks()`'s `$disks` |
+| `WebhookController.php` | 11 | 11 | all — every one narrows a Stripe webhook payload from `mixed`, none from `Numerosis::model()` |
+
+11 of 28 were dead weight (all in the two files that narrow `Config::array()`/
+`Numerosis::model()` results); the 11 in `WebhookController` are a different
+species entirely — payload-shape narrowing, unrelated to the static's
+`class-string<TModel>` generic — and all load-bearing. `composer test`:
+703 passed, 6 skipped, unchanged. Phase 3 steps 1 and 2 are not done here —
+they land as part of phases 4 and 5 respectively, not standalone.
+
 ## Phase 4 — three query scopes on `TenantProvision`, not a repository
 
 **Originally written as "add `TenantProvisionRepository`". That was the same

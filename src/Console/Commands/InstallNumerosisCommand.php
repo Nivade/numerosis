@@ -50,8 +50,6 @@ class InstallNumerosisCommand extends Command
      *
      * `auth.passwords.*` is listed by prefix: the default broker's name is the
      * host's to choose.
-     *
-     * @var array<string, string>
      */
     public const array VERIFIED_CONFIG_KEYS = [
         'activitylog.table_name' => 'verifyActivityLogTable',
@@ -290,7 +288,6 @@ class InstallNumerosisCommand extends Command
      */
     private function verifyTenancyBootstrappers(): void
     {
-        /** @var list<string> $bootstrappers */
         $bootstrappers = Config::array('tenancy.bootstrappers', []);
 
         $required = [
@@ -403,7 +400,6 @@ class InstallNumerosisCommand extends Command
     /** Bounding lock waits is optional; bounding only half of it is a trap. */
     private function verifyLockWaitTimeout(): void
     {
-        /** @var array<string, mixed> $connections */
         $connections = Config::array('database.connections');
         $central = $connections['central'] ?? null;
 
@@ -424,7 +420,6 @@ class InstallNumerosisCommand extends Command
 
     private function verifyDatabaseConnections(): void
     {
-        /** @var array<string, mixed> $connections */
         $connections = Config::array('database.connections');
 
         // `central` is the only connection configured statically. The
@@ -460,7 +455,6 @@ class InstallNumerosisCommand extends Command
 
     private function verifyAuthGuards(): void
     {
-        /** @var array<string, mixed> $guards */
         $guards = Config::array('auth.guards');
 
         foreach (Context::cases() as $context) {
@@ -536,7 +530,6 @@ class InstallNumerosisCommand extends Command
             return;
         }
 
-        /** @var list<string> $tenantDisks */
         $tenantDisks = Config::array('tenancy.filesystem.disks');
 
         if (in_array($disk, $tenantDisks, true)) {
@@ -588,7 +581,6 @@ class InstallNumerosisCommand extends Command
      */
     private function verifyTenantMigrationPath(): void
     {
-        /** @var array<string, mixed> $parameters */
         $parameters = Config::array('tenancy.migration_parameters');
         $paths = $parameters['--path'] ?? null;
 

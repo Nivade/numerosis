@@ -116,7 +116,6 @@ final class HostConfig
      */
     private static function centralDomains(): void
     {
-        /** @var list<string> $stock */
         $stock = ['127.0.0.1', 'localhost'];
         $key = 'tenancy.central_domains';
         $domains = Config::array($key, []);
@@ -166,7 +165,6 @@ final class HostConfig
      */
     private static function tenantMigrationParameters(): void
     {
-        /** @var array<string, mixed> $parameters */
         $parameters = Config::array('tenancy.migration_parameters', []);
 
         $paths = $parameters['--path'] ?? [database_path('migrations/tenant')];
@@ -200,7 +198,6 @@ final class HostConfig
      */
     private static function tenantSeederPreference(): void
     {
-        /** @var array<string, mixed> $parameters */
         $parameters = Config::array('tenancy.seeder_parameters', []);
         $class = Config::string('numerosis.tenancy.seeder', TenantDatabaseSeeder::class);
 
@@ -244,7 +241,6 @@ final class HostConfig
      */
     private static function centralDatabaseConnection(): void
     {
-        /** @var array<string, mixed> $connections */
         $connections = Config::array('database.connections', []);
 
         if (array_key_exists('central', $connections)) {
