@@ -8,6 +8,7 @@ use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Stripe\PaymentMethod;
 use Stripe\SetupIntent;
+use Stripe\StripeObject;
 
 /**
  * Finds the reusable payment method a SetupIntent produced, or null.
@@ -59,8 +60,8 @@ class ResolveAttachedPaymentMethod
             return null;
         }
 
-        $details = $attempt->payment_method_details->{$type} ?? null;
-        $generated = $details->generated_sepa_debit ?? null;
+        $details = $attempt->payment_method_details[$type] ?? null;
+        $generated = $details instanceof StripeObject ? ($details['generated_sepa_debit'] ?? null) : null;
 
         return is_string($generated) ? $generated : null;
     }

@@ -14,7 +14,7 @@ use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\Tenant\User;
+use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Override;
 
 class Authenticate extends Middleware
@@ -43,8 +43,6 @@ class Authenticate extends Middleware
      * Authenticates the request, first promoting a central session into the
      * tenant guard where the central user may access the current tenant.
      *
-     * @param  array<int, string|null>  $guards
-     *
      * @throws AuthenticationException
      */
     #[Override]
@@ -61,10 +59,9 @@ class Authenticate extends Middleware
             if ($currentTenant instanceof Tenant && $centralUser->canAccessTenant($currentTenant)) {
                 $tenantGuard = Context::Tenant->guard();
 
-                /** @var User|null $tenantUser */
                 $tenantUser = $this->authManager->guard($tenantGuard)->user();
 
-                if (! $tenantUser || $tenantUser->global_id !== $centralUser->global_id || $tenantUser->is_bot) {
+                if (! $tenantUser instanceof TenantUser || $tenantUser->global_id !== $centralUser->global_id || $tenantUser->is_bot) {
                     LoginUser::run(user: $centralUser, guard: $tenantGuard);
                 }
             }
@@ -75,9 +72,6 @@ class Authenticate extends Middleware
         }
     }
 
-    /**
-     * @param  array<int, string|null>  $guards
-     */
     protected function unauthenticated($request, array $guards): void
     {
         throw new AuthenticationException(

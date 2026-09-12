@@ -91,7 +91,6 @@ class CloneTenantSchema implements ProvisioningStep
 
     public function handle(TenantProvision $provision): void
     {
-        /** @var TenantWithDatabase $tenant */
         $tenant = Numerosis::model(Tenant::class)::findOrFail($provision->slug);
 
         self::cloneFor($tenant);

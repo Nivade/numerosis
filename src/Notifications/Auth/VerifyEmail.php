@@ -25,7 +25,7 @@ class VerifyEmail extends BaseVerifyEmail
     #[Override]
     protected function verificationUrl(mixed $notifiable): string
     {
-        if (static::$createUrlCallback) {
+        if (static::$createUrlCallback !== null) {
             return call_user_func(static::$createUrlCallback, $notifiable);
         }
 
@@ -35,7 +35,7 @@ class VerifyEmail extends BaseVerifyEmail
         $appUrl = Config::string('app.url');
 
         try {
-            if ($originUrl) {
+            if ($originUrl !== null && $originUrl !== '') {
                 URL::useOrigin($originUrl);
             }
 
@@ -59,12 +59,12 @@ class VerifyEmail extends BaseVerifyEmail
             $tenant = tenant();
             $domain = $tenant->primaryDomain();
 
-            if ($domain) {
+            if ($domain !== null) {
                 return Request::getScheme().'://'.$domain->domain;
             }
         }
 
-        if (Request::getHost()) {
+        if (Request::getHost() !== '') {
             return Request::getScheme().'://'.Request::getHost();
         }
 

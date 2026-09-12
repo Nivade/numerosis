@@ -584,7 +584,7 @@ abstract class TestCase extends Orchestra
     {
         $token = ParallelTesting::token();
 
-        return $token ? $name.'_test_'.$token : $name;
+        return $token !== false && $token !== '' ? $name.'_test_'.$token : $name;
     }
 
     /**
@@ -622,7 +622,7 @@ abstract class TestCase extends Orchestra
     {
         $token = ParallelTesting::token();
 
-        return $token ? 'tenant'.$token.'_' : 'tenant';
+        return $token !== false && $token !== '' ? 'tenant'.$token.'_' : 'tenant';
     }
 
     protected function setUp(): void

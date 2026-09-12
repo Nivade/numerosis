@@ -145,7 +145,7 @@ return [
 
     'trusted_proxies' => env('TRUSTED_PROXIES') === '*'
         ? '*'
-        : array_values(array_filter(explode(',', (string) env('TRUSTED_PROXIES', '')))),
+        : array_values(array_filter(explode(',', (string) env('TRUSTED_PROXIES', '')), static fn (string $ip): bool => $ip !== '')),
 
     /*
     |--------------------------------------------------------------------------

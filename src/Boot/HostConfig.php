@@ -380,7 +380,7 @@ final class HostConfig
             FortifyFeatures::updateProfileInformation(),
             FortifyFeatures::updatePasswords(),
             FortifyFeatures::emailVerification(),
-        ]));
+        ], static fn (?string $feature): bool => $feature !== null));
 
         if (Config::array('fortify.features') !== $features) {
             self::set('fortify.features', $features);

@@ -575,8 +575,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
         // OTP step, which looks its candidate up by exact email match, and
         // `LogInToCentralGuard` has to run last.
         Fortify::authenticateThrough(fn (Request $request): array => array_filter([
-            Config::get('fortify.limiters.login') ? null : EnsureLoginIsNotThrottled::class,
-            Config::get('fortify.lowercase_usernames') ? CanonicalizeUsername::class : null,
+            Config::get('fortify.limiters.login') !== null ? null : EnsureLoginIsNotThrottled::class,
+            Config::boolean('fortify.lowercase_usernames') ? CanonicalizeUsername::class : null,
             OneTimePasswordFeature::available() ? RedirectIfOneTimePasswordAuthenticatable::class : null,
             AttemptToAuthenticate::class,
             PrepareAuthenticatedSession::class,

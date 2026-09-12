@@ -33,7 +33,7 @@ function signInTenantUser(TenantModel $tenant): void
  */
 function expectTenantLandingPage(string $url): void
 {
-    $content = (string) visit($url)->content();
+    $content = visit($url)->content();
 
     expect($content)->toContain(Config::string('app.name'));
     expect($content)->not->toContain('Server Error');

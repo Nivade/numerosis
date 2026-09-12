@@ -56,7 +56,6 @@ final class TestTenant
             contributions: $contributions,
         ));
 
-        /** @var BaseTenant $tenant */
         $tenant = Tenant::findOrFail($slug);
 
         // Anything the steps do not set: Stripe columns, suspended_at, and the

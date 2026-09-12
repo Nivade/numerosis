@@ -99,10 +99,6 @@ class SwapSubscriptionPlanTest extends TestCase
             // an anonymous class is not "subscriptions".
             protected $table = 'subscriptions';
 
-            /**
-             * @param  string|array<int, string>  $prices
-             * @param  array<string, mixed>  $options
-             */
             public function swapAndInvoice($prices, $options = []): static
             {
                 return $this;

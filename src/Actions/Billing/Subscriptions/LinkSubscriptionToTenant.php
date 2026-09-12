@@ -44,7 +44,7 @@ class LinkSubscriptionToTenant
             $subscription = $this->subscriptions->findByStripeId($stripeSubscription->id);
             $planId = $this->planIdForSlug($billing?->payment_plan);
 
-            if (! $subscription) {
+            if ($subscription === null) {
                 $subscription = $this->subscriptions->record(new SubscriptionData(
                     user_id: $billing?->central_user_id,
                     payment_plan_id: $planId !== null ? (string) $planId : null,

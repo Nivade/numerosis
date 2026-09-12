@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Actions\Auth\Social;
 use Carbon\CarbonImmutable;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\User as OAuth2User;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Auth\SocialUserData;
 use Nvade\Numerosis\Enums\Auth\SocialProvider;
@@ -25,6 +26,12 @@ class ResolveSocialUser
     {
         $user = Socialite::driver($provider->value)->user();
 
+        // Every provider this package supports (SocialProvider) is OAuth2, so
+        // Socialite always hands back its `Two\User`, which is where the
+        // token/raw-payload properties actually live — `Contracts\User` itself
+        // declares none of them.
+        $oauthUser = $user instanceof OAuth2User ? $user : null;
+
         return new SocialUserData(
             provider: $provider,
             providerId: (string) $user->getId(),
@@ -32,9 +39,11 @@ class ResolveSocialUser
             email: $user->getEmail(),
             emailVerified: $this->isEmailVerified($provider, $user),
             avatarUrl: $user->getAvatar(),
-            token: $user->token ?? null,
-            refreshToken: $user->refreshToken ?? null,
-            expiresAt: isset($user->expiresIn) ? CarbonImmutable::now()->addSeconds($user->expiresIn) : null,
+            token: $oauthUser?->token,
+            refreshToken: $oauthUser?->refreshToken,
+            expiresAt: $oauthUser !== null && $oauthUser->expiresIn !== null
+                ? CarbonImmutable::now()->addSeconds($oauthUser->expiresIn)
+                : null,
         );
     }
 
@@ -45,7 +54,7 @@ class ResolveSocialUser
      */
     private function isEmailVerified(SocialProvider $provider, SocialiteUser $user): bool
     {
-        $raw = $user->user ?? [];
+        $raw = $user instanceof OAuth2User ? $user->user : [];
 
         return match ($provider) {
             SocialProvider::Google => (bool) ($raw['email_verified'] ?? $raw['verified_email'] ?? false),

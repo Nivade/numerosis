@@ -32,9 +32,6 @@ class CreateRegisteredUser implements CreatesNewUsers
         return $this->create($input);
     }
 
-    /**
-     * @param  array<string, mixed>  $input
-     */
     public function create(array $input): CentralUser
     {
         $data = RegistrationData::validateAndCreate($input);

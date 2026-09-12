@@ -9,11 +9,11 @@ use Illuminate\Support\Facades\Config;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
-use Livewire\Component;
 use Nvade\Numerosis\Contracts\Tenancy\HasTransientState;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Livewire\Tenant\Registration\RegistrationState;
 use Override;
+use Spatie\LivewireWizard\Components\StepComponent;
 use Spatie\LivewireWizard\Components\WizardComponent;
 
 class Registration extends WizardComponent
@@ -58,11 +58,11 @@ class Registration extends WizardComponent
      * Mirrors `numerosis.tenancy.provisioning.steps`'s nesting deliberately;
      * that key's own docblock in `config/numerosis.php` says why.
      *
-     * @return list<class-string<Component>>
+     * @return list<class-string<StepComponent>>
      */
     public function steps(): array
     {
-        /** @var list<class-string<Component>> $steps */
+        /** @var list<class-string<StepComponent>> $steps */
         $steps = Config::array('numerosis.tenancy.registration.steps');
 
         return $steps;
@@ -93,9 +93,6 @@ class Registration extends WizardComponent
      * state is persisted here and never in a step component. Keep
      * `#[On('showStep')]` on this override; attributes do not inherit, and
      * the event is how `StepComponent::showStep()` reaches it.
-     *
-     * @param  string  $toStepName
-     * @param  array<string, mixed>  $currentStepState
      */
     #[On('showStep')]
     #[Override]

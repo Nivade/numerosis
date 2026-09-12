@@ -41,7 +41,12 @@ class LinkTenantSubscription implements ConsumesContributions
     {
         $billing = $provision->contribution(BillingContribution::class);
 
-        if (! $billing?->stripe_customer_id || ! $billing->stripe_subscription_id) {
+        if ($billing === null) {
+            return;
+        }
+
+        if ($billing->stripe_customer_id === null || $billing->stripe_customer_id === ''
+            || $billing->stripe_subscription_id === null || $billing->stripe_subscription_id === '') {
             return;
         }
 

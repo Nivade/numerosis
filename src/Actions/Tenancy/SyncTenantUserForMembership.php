@@ -31,7 +31,7 @@ class SyncTenantUserForMembership
         /** @var CentralUser|null $user */
         $user = $centralUserClass::where('global_id', $membership->global_user_id)->first();
 
-        if ($tenant && $user && $tenant->isProvisioned()) {
+        if ($tenant !== null && $user !== null && $tenant->isProvisioned()) {
             EnsureTenantUserExists::run($tenant, $user);
         }
     }

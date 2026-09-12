@@ -23,7 +23,6 @@ class GetAuthenticatedUser
      */
     public function handle(?string $guard = null): ?User
     {
-        /** @var ?User */
         return Auth::guard($guard)->user();
     }
 }

@@ -29,7 +29,7 @@ class DefaultTenantDomainPolicy implements TenantDomainPolicy
 
     public function assertAvailable(string $domain): void
     {
-        if (! preg_match('/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$/', $domain)) {
+        if (preg_match('/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$/', $domain) !== 1) {
             throw ValidationException::withMessages([
                 'domain' => 'The domain format is invalid.',
             ]);
@@ -50,7 +50,7 @@ class DefaultTenantDomainPolicy implements TenantDomainPolicy
 
     public function assertCustomDomainAvailable(string $domain): void
     {
-        if (! preg_match('/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i', $domain)) {
+        if (preg_match('/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i', $domain) !== 1) {
             throw ValidationException::withMessages([
                 'customDomain' => 'The domain format is invalid.',
             ]);

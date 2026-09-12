@@ -30,7 +30,6 @@ class HandleProviderCallbackController extends Controller
     {
         $data = ResolveSocialUser::run($provider);
 
-        /** @var CentralUser|null $authed */
         $authed = Auth::guard(Context::Central->guard())->user();
 
         if ($authed instanceof CentralUser) {

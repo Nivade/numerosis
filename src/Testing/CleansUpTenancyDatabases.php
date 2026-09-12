@@ -140,7 +140,7 @@ trait CleansUpTenancyDatabases
      */
     protected function cleanUpTenancyDatabases(): void
     {
-        if (! $this->app) {
+        if ($this->app === null) {
             return;
         }
 

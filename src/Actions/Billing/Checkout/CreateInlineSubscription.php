@@ -50,7 +50,7 @@ class CreateInlineSubscription
 
         $priceId = $plan->priceId($billingCycle);
 
-        if (! $priceId) {
+        if ($priceId === null || $priceId === '') {
             throw new StripePriceNotConfigured("Stripe Price ID not found for plan: {$pending->payment_plan}");
         }
 
@@ -82,7 +82,7 @@ class CreateInlineSubscription
                 ->latest('id')
                 ->first();
 
-            if ($created) {
+            if ($created !== null) {
                 $pending->update(['stripe_subscription_id' => $created->stripe_id]);
             }
 

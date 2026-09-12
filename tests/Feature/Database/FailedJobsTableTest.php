@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Database;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Queue\Failed\FailedJobProviderInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Nvade\Numerosis\Tests\TestCase;
@@ -30,7 +29,6 @@ class FailedJobsTableTest extends TestCase
 
     public function test_the_failed_job_provider_can_log_a_failure(): void
     {
-        /** @var FailedJobProviderInterface $failer */
         $failer = resolve('queue.failer');
 
         $uuid = $failer->log(

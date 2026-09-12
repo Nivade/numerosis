@@ -39,8 +39,8 @@ return new class extends Migration
                 $remaining = array_diff_key($properties, array_flip(['attributes', 'old']));
 
                 DB::table('activity_log')->where('id', $row->id)->update([
-                    'attribute_changes' => empty($changes) ? null : json_encode($changes),
-                    'properties' => empty($remaining) ? null : json_encode($remaining),
+                    'attribute_changes' => $changes === [] ? null : json_encode($changes),
+                    'properties' => $remaining === [] ? null : json_encode($remaining),
                 ]);
             });
     }
