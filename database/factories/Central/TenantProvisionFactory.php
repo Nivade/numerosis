@@ -7,20 +7,16 @@ namespace Nvade\Numerosis\Database\Factories\Central;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 
-// No `protected $model` override: PendingTenantProvision is abstract. A
-// hardcoded $model bypasses Numerosis::modelNameFor()'s global resolver, so
-// `new static` inside Eloquent's create()/make() instantiates the abstract
-// class and throws.
-/** @extends Factory<PendingTenantProvision> */
-class PendingTenantProvisionFactory extends Factory
+/** @extends Factory<TenantProvision> */
+class TenantProvisionFactory extends Factory
 {
     public function definition(): array
     {
         return [
-            'domain' => $this->faker->unique()->slug(),
-            'company_name' => $this->faker->company(),
+            'slug' => $this->faker->unique()->slug(),
+            'name' => $this->faker->company(),
             'global_id' => $this->faker->uuid(),
             'payment_plan' => null,
             'billing_cycle' => null,
@@ -42,7 +38,23 @@ class PendingTenantProvisionFactory extends Factory
     {
         return $this->state(fn (): array => [
             'status' => TenantProvisionStatus::Provisioning,
+            'provisioning_started_at' => now(),
         ]);
+    }
+
+    public function completed(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => TenantProvisionStatus::Completed,
+            'provisioning_started_at' => now()->subMinute(),
+            'completed_at' => now(),
+            'settled_at' => now(),
+        ]);
+    }
+
+    public function settled(): static
+    {
+        return $this->state(fn (): array => ['settled_at' => now()]);
     }
 
     public function failed(): static

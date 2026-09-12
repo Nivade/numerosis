@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Checkout;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Billing\Checkout\SettleAttachedPaymentMethod;
 use Nvade\Numerosis\Testing\FakesStripe;
@@ -28,8 +28,8 @@ class SettleAttachedPaymentMethodTest extends TestCase
     {
         $user = CentralUser::factory()->create();
 
-        $pending = PendingTenantProvision::factory()->create([
-            'domain' => 'no-setup-intent',
+        $pending = TenantProvision::factory()->create([
+            'slug' => 'no-setup-intent',
             'global_id' => $user->global_id,
             'stripe_setup_intent_id' => null,
         ]);
@@ -44,8 +44,8 @@ class SettleAttachedPaymentMethodTest extends TestCase
 
         $user = CentralUser::factory()->create();
 
-        $pending = PendingTenantProvision::factory()->create([
-            'domain' => 'other-payment-method',
+        $pending = TenantProvision::factory()->create([
+            'slug' => 'other-payment-method',
             'global_id' => $user->global_id,
             'stripe_setup_intent_id' => $this->confirmedSetupIntentFor($user)->id,
         ]);

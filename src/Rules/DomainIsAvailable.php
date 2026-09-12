@@ -8,7 +8,7 @@ use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 
 /**
  * Format, reserved words, and whether a live tenant already holds the
- * identifier. Deliberately does not cover pending_tenant_provisions.
+ * identifier. Deliberately does not cover tenant_provisions.
  *
  * @see \Nvade\Numerosis\Services\Tenancy\DefaultTenantDomainPolicy
  */

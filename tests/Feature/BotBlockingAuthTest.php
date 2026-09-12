@@ -9,6 +9,7 @@ use App\Models\Central\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 
 class BotBlockingAuthTest extends TestCase
@@ -21,11 +22,8 @@ class BotBlockingAuthTest extends TestCase
         $domain = $this->tenantDomain($id);
 
         // 1. Create a tenant
-        $tenant = Tenant::create(['id' => $id, 'data' => ['name' => 'Test Tenant']]);
-        $tenant->domains()->create([
-            'id' => $id,
-            'domain' => $domain,
-        ]);
+        $tenant = TestTenant::provisioned(['id' => $id, 'data' => ['name' => 'Test Tenant']]);
+        $tenant->domains()->updateOrCreate(['id' => $id], ['domain' => $domain]);
 
         // 2. Create a central user
         $centralUser = CentralUser::create([

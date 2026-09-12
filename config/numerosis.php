@@ -7,7 +7,13 @@ use Nvade\Numerosis\Actions\Auth\ResolveLoginCandidate;
 use Nvade\Numerosis\Actions\Auth\SendEmailVerificationNotification;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant as CreateTenantAction;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
+use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
+use Nvade\Numerosis\Actions\Tenancy\LinkTenantSubscription;
+use Nvade\Numerosis\Actions\Tenancy\MigrateTenantDatabase;
+use Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
+use Nvade\Numerosis\Actions\Tenancy\SeedTenantDatabase;
 use Nvade\Numerosis\Boot\Domains;
 use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
@@ -24,6 +30,9 @@ use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
+use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Features\Auth\EmailVerificationFeature;
@@ -37,11 +46,11 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\SocialAccount;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\SubscriptionItem;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Services\Billing\CashierMoneyFormatter;
 use Nvade\Numerosis\Services\Billing\DefaultUnpaidTenantQuota;
@@ -115,6 +124,28 @@ return [
         'prune_stalled_provisions' => (bool) env('SCHEDULE_PRUNE_STALLED_PROVISIONS', true),
         'prune_invitations' => (bool) env('SCHEDULE_PRUNE_INVITATIONS', true),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Trusted proxies
+    |--------------------------------------------------------------------------
+    |
+    | Only read by the un-wired fallback boot (an app whose bootstrap/app.php
+    | never called Numerosis::middleware() itself) — see docs/host-requirements.md.
+    | Empty trusts nobody, Laravel's own default: X-Forwarded-* headers are
+    | ignored, and $request->ip() is the real socket peer. Set proxy IP(s)/CIDR
+    | here, or the literal '*' to trust every request's forwarded headers.
+    |
+    | '*' is only safe when nothing but your proxy can reach the app directly
+    | (a PaaS edge, a firewalled load balancer) — otherwise anyone hitting the
+    | app directly can forge X-Forwarded-For and spoof $request->ip(), which
+    | defeats every IP-keyed rate limiter (including this package's own login
+    | throttle) and falsifies audit logs.
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES') === '*'
+        ? '*'
+        : array_values(array_filter(explode(',', (string) env('TRUSTED_PROXIES', '')))),
 
     /*
     |--------------------------------------------------------------------------
@@ -236,7 +267,7 @@ return [
         CentralUser::class => null,
         Subscription::class => null,
         PaymentPlan::class => null,
-        PendingTenantProvision::class => null,
+        TenantProvision::class => null,
         TenantUser::class => null,
         Invitation::class => null,
         SocialAccount::class => null,
@@ -328,15 +359,31 @@ return [
         // The seeder new tenant databases run.
         'seeder' => TenantDatabaseSeeder::class,
 
-        // Steps run in order, as links in ProvisionTenant's queued chain,
-        // every time a tenant is provisioned. The first entry must
-        // create/find the tenant and return it. LinkTenantSubscription and
-        // FinalizeTenantProvisioning are appended automatically after these
-        // and cannot be reordered here.
         'provisioning' => [
+            // Run in order, each as its own link in a queued chain, each
+            // recorded on the provision row so a retry resumes rather than
+            // restarting. Insert your own anywhere: every entry has the same
+            // signature and there is no privileged first or last step.
             'steps' => [
                 CreateTenantAction::class,
+                CreateTenantDatabase::class,
+                MigrateTenantDatabase::class,
+                SeedTenantDatabase::class,
                 AddTenantOwner::class,
+                PromoteFirstUserToAdmin::class,
+                LinkTenantSubscription::class,
+                FinalizeTenantProvisioning::class,
+            ],
+
+            // Contributions stored in columns rather than the provision row's
+            // `contributions` JSON. They have to be listed because nothing
+            // about a set of columns says which contribution owns them;
+            // JSON-stored contributions are keyed by class and need no entry.
+            // Add yours here only if you also added columns for it.
+            'contributions' => [
+                OwnerContribution::class,
+                BillingContribution::class,
+                CustomDomainContribution::class,
             ],
         ],
 

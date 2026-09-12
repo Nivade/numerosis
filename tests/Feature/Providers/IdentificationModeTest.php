@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Providers;
 
 use App\Models\Central\Domain;
-use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
@@ -14,7 +14,9 @@ use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain;
@@ -207,7 +209,7 @@ class IdentificationModeTest extends TestCase
 
         $resolved = $tenant->resolveRouteBinding($tenant->id, 'id');
 
-        $this->assertNotNull($resolved);
+        $this->assertInstanceOf(Tenant::class, $resolved);
         $this->assertSame($tenant->id, $resolved->id);
     }
 
@@ -238,16 +240,18 @@ class IdentificationModeTest extends TestCase
     {
         $this->useMode(IdentificationMode::CustomDomain);
 
-        ReserveTenantDomain::run(new TenantRegistrationData(
-            company_name: 'Acme',
-            domain: 'acme',
-            global_id: (string) Str::uuid(),
-            custom_domain: 'app.acme.com',
+        ReserveTenantDomain::run(new TenantProvisionData(
+            name: 'Acme',
+            slug: 'acme',
+            contributions: [
+                new OwnerContribution((string) Str::uuid()),
+                new CustomDomainContribution('app.acme.com'),
+            ],
         ));
 
         $this->assertDatabaseHas(
-            (new PendingTenantProvision)->getTable(),
-            ['domain' => 'acme', 'custom_domain' => 'app.acme.com'],
+            (new TenantProvision)->getTable(),
+            ['slug' => 'acme', 'custom_domain' => 'app.acme.com'],
             'central',
         );
     }

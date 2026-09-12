@@ -7,16 +7,16 @@ namespace Nvade\Numerosis\Actions\Billing\Checkout;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 
 /**
- * @method static void run(PendingTenantProvision $pending, BillableUser $billable)
+ * @method static void run(TenantProvision $pending, BillableUser $billable)
  */
 class AssertPendingReservationIsFresh
 {
     use AsAction;
 
-    public function handle(PendingTenantProvision $pending, BillableUser $billable): void
+    public function handle(TenantProvision $pending, BillableUser $billable): void
     {
         if ($pending->stripe_subscription_id === null) {
             return;

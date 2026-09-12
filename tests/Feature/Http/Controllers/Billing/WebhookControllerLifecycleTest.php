@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Notification;
 use Nvade\Numerosis\Actions\Billing\SyncTenantToStripe;
 use Nvade\Numerosis\Events\Billing\SubscriptionCancelled;
 use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
+use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
+use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
 use Nvade\Numerosis\Notifications\Billing\PaymentFailed;
 use Nvade\Numerosis\Notifications\Billing\TenantSuspended;
 use Nvade\Numerosis\Tests\Concerns\DisablesWebhookSignature;
@@ -51,7 +53,7 @@ class WebhookControllerLifecycleTest extends TestCase
     }
 
     /**
-     * @return array{tenant: Tenant, owner: CentralUser}
+     * @return array{tenant: BaseTenant, owner: BaseCentralUser}
      */
     private function tenantWithStripeCustomer(string $customerId): array
     {

@@ -6,7 +6,6 @@ namespace Nvade\Numerosis\Services\Tenancy;
 
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Providers\TenancyServiceProvider;
 
 class StanclTenantDatabaseManager implements TenantDatabaseManager
 {
@@ -15,13 +14,5 @@ class StanclTenantDatabaseManager implements TenantDatabaseManager
         $database = $tenant->database()->getName();
 
         return $database !== null && $database !== '' && $tenant->database()->manager()->databaseExists($database);
-    }
-
-    /**
-     * @return list<class-string>
-     */
-    public function creationJobs(): array
-    {
-        return TenancyServiceProvider::$tenantCreatedJobs;
     }
 }

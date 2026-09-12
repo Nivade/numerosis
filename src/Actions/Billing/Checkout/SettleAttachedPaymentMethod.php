@@ -9,7 +9,7 @@ use Laravel\Cashier\Exceptions\IncompletePayment;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Stripe\Exception\ApiErrorException;
 
 /**
@@ -22,13 +22,13 @@ use Stripe\Exception\ApiErrorException;
  * PaymentMethod it creates, and offers no way to look a setup attempt up
  * directly. Matching therefore runs per candidate reservation.
  *
- * @method static bool run(PendingTenantProvision $pending, BillableUser $billable, string $paymentMethodId)
+ * @method static bool run(TenantProvision $pending, BillableUser $billable, string $paymentMethodId)
  */
 class SettleAttachedPaymentMethod
 {
     use AsAction;
 
-    public function handle(PendingTenantProvision $pending, BillableUser $billable, string $paymentMethodId): bool
+    public function handle(TenantProvision $pending, BillableUser $billable, string $paymentMethodId): bool
     {
         if ($pending->stripe_setup_intent_id === null) {
             return false;

@@ -13,6 +13,7 @@ use Nvade\Numerosis\Actions\Auth\UpdateUserPassword;
 use Nvade\Numerosis\Actions\Auth\UpdateUserProfile;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -39,7 +40,7 @@ class ProfileSyncTest extends TestCase
 
     public function test_profile_update_syncs_to_central(): void
     {
-        $tenant = Tenant::factory()->create([
+        $tenant = TestTenant::provisioned([
             'id' => 'test'.str_replace('.', '', uniqid('', true)),
         ]);
 
@@ -49,7 +50,7 @@ class ProfileSyncTest extends TestCase
             'global_id' => 'global-1',
         ]);
 
-        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $centralUser));
+        AddTenantOwner::run($this->ownerProvisionRow($tenant, $centralUser));
 
         $tenant->run(function () {
             $tenantUser = TenantUser::where('global_id', 'global-1')->first();
@@ -79,7 +80,7 @@ class ProfileSyncTest extends TestCase
 
     public function test_password_update_syncs_to_central(): void
     {
-        $tenant = Tenant::factory()->create([
+        $tenant = TestTenant::provisioned([
             'id' => 'test'.str_replace('.', '', uniqid('', true)),
         ]);
 
@@ -88,7 +89,7 @@ class ProfileSyncTest extends TestCase
             'global_id' => 'global-2',
         ]);
 
-        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $centralUser));
+        AddTenantOwner::run($this->ownerProvisionRow($tenant, $centralUser));
 
         $tenant->run(function () {
             $tenantUser = TenantUser::where('global_id', 'global-2')->first();

@@ -60,7 +60,7 @@ class EmailVerificationTest extends TestCase
         }
 
         $this->assertStringContainsString(
-            $user->global_id.'/'.sha1($user->email),
+            $user->global_id.'/'.sha1((string) $user->email),
             (string) parse_url((string) $url, PHP_URL_PATH),
         );
     }
@@ -131,7 +131,7 @@ class EmailVerificationTest extends TestCase
 
         // Assert
         $response->assertRedirect();
-        $this->assertTrue($user->fresh()->hasVerifiedEmail());
+        $this->assertTrue($user->refresh()->hasVerifiedEmail());
     }
 
     public function test_user_cannot_verify_email_with_invalid_signature(): void
@@ -153,7 +153,7 @@ class EmailVerificationTest extends TestCase
 
         // Assert
         $response->assertForbidden(); // Forbidden due to invalid signature
-        $this->assertFalse($user->fresh()->hasVerifiedEmail());
+        $this->assertFalse($user->refresh()->hasVerifiedEmail());
     }
 
     public function test_user_cannot_verify_email_with_wrong_hash(): void
@@ -179,7 +179,7 @@ class EmailVerificationTest extends TestCase
 
         // Assert
         $response->assertForbidden(); // Forbidden due to hash mismatch
-        $this->assertFalse($user->fresh()->hasVerifiedEmail());
+        $this->assertFalse($user->refresh()->hasVerifiedEmail());
     }
 
     /**
@@ -209,6 +209,6 @@ class EmailVerificationTest extends TestCase
 
         // Assert
         $response->assertRedirect(route('login'));
-        $this->assertFalse($user->fresh()->hasVerifiedEmail());
+        $this->assertFalse($user->refresh()->hasVerifiedEmail());
     }
 }

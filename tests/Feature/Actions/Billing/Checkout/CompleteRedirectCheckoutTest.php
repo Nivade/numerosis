@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Checkout;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
@@ -45,7 +45,7 @@ class CompleteRedirectCheckoutTest extends TestCase
 
         $fake->assertTenantProvisioned('return-route-test');
 
-        $pending = PendingTenantProvision::find('return-route-test');
+        $pending = TenantProvision::find('return-route-test');
         $this->assertNotNull($pending);
         $this->assertNotNull($pending->stripe_subscription_id);
     }
@@ -78,7 +78,7 @@ class CompleteRedirectCheckoutTest extends TestCase
 
         $fake->assertTenantProvisioned('replay-return-test');
 
-        $pending = PendingTenantProvision::find('replay-return-test');
+        $pending = TenantProvision::find('replay-return-test');
         $this->assertNotNull($pending);
         $subscriptionId = $pending->stripe_subscription_id;
         $this->assertNotNull($subscriptionId);
@@ -88,7 +88,7 @@ class CompleteRedirectCheckoutTest extends TestCase
             ->assertRedirect(route('tenants.mine'))
             ->assertSessionHas('success');
 
-        $pending = PendingTenantProvision::find('replay-return-test');
+        $pending = TenantProvision::find('replay-return-test');
         $this->assertSame($subscriptionId, $pending?->stripe_subscription_id);
 
         $subscriptions = Cashier::stripe()->subscriptions->all(['customer' => $user->stripeIdOrFail()]);

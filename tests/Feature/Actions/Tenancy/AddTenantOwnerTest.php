@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Queue;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin;
 use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 
 class AddTenantOwnerTest extends TestCase
@@ -27,14 +28,14 @@ class AddTenantOwnerTest extends TestCase
      */
     public function test_it_creates_the_owners_tenant_side_row_before_the_tenant_is_provisioned(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::withDatabaseOnly();
         $user = CentralUser::factory()->create();
 
         // After the factory, not before: creating a tenant queues its own
         // database-creation jobs, which a fake would swallow.
         Queue::fake();
 
-        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $user));
+        AddTenantOwner::run($this->ownerProvisionRow($tenant, $user));
 
         $this->assertNull($tenant->refresh()->provisioned_at);
 
@@ -52,15 +53,15 @@ class AddTenantOwnerTest extends TestCase
      */
     public function test_the_owner_is_promotable_immediately_after_being_added(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::withDatabaseOnly();
         $user = CentralUser::factory()->create();
 
         // After the factory, not before: creating a tenant queues its own
         // database-creation jobs, which a fake would swallow.
         Queue::fake();
 
-        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $user));
-        PromoteFirstUserToAdmin::run($tenant);
+        AddTenantOwner::run($this->ownerProvisionRow($tenant, $user));
+        PromoteFirstUserToAdmin::run($this->ownerProvisionRow($tenant, $user));
 
         $tenant->run(function () use ($user): void {
             $this->assertTrue(TenantUser::where('global_id', $user->global_id)->firstOrFail()->hasRole('admin'));
@@ -73,7 +74,7 @@ class AddTenantOwnerTest extends TestCase
      */
     public function test_a_rerun_creates_the_tenant_side_row_when_only_the_pivot_exists(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::withDatabaseOnly();
         $user = CentralUser::factory()->create();
 
         // After the factory, not before: creating a tenant queues its own
@@ -86,7 +87,7 @@ class AddTenantOwnerTest extends TestCase
             $this->assertNull(TenantUser::where('global_id', $user->global_id)->first());
         });
 
-        AddTenantOwner::run($tenant, $this->ownerProvisionData($tenant, $user));
+        AddTenantOwner::run($this->ownerProvisionRow($tenant, $user));
 
         $tenant->run(function () use ($user): void {
             $this->assertNotNull(TenantUser::where('global_id', $user->global_id)->first());

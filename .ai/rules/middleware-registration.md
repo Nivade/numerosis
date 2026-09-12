@@ -62,3 +62,25 @@ regenerates and discards. The facts are the same; only the home changed.
 - **`NumerosisServiceProvider::registerMiddleware()` stands down once `Numerosis::middleware()` has run.** Until 2026-09-05 it re-applied every alias, `TrustProxies::at('*')` and `prependMiddleware(TrustHosts::class)` unconditionally from `packageBooted()` — which runs *after* a host's `withMiddleware()` closure, so anything the host changed in that closure was reverted before the first request, silently. `Numerosis::middleware()` now sets a process-lifetime `$middlewareRegistered` flag (mirroring `$routesRegistered`), read back through `Numerosis::middlewareRegistered()`, and the provider returns early when it is set. The self-heal still runs for a host that never calls it at all.
 
   Two consequences. **Order inside the closure is now load-bearing**: call `Numerosis::middleware($middleware)` first, then your own configuration, because nothing re-applies the package's afterwards. And **the flag leaks between tests** — one test calling `Numerosis::middleware()` would otherwise disable the provider's registration for every later test in the same worker, so `Tests\TestCase::setUp()` calls `Numerosis::resetMiddlewareRegisteredForTesting()` before `parent::setUp()`. `tests/Feature/Boot/HostMiddlewareNotRevertedTest.php` holds both halves down.
+
+- **`TrustProxies::at('*')` was an unsafe default, fixed 2026-09-12.** Both
+  `MiddlewareRegistrar::apply()` (the documented `Numerosis::middleware()`
+  path) and the self-heal branch above used to trust every request's
+  `X-Forwarded-*` headers unconditionally — meaning `$request->ip()` was
+  spoofable by anyone who could reach the app directly, which silently
+  defeats every IP-keyed rate limiter (`NumerosisServiceProvider`'s login,
+  OTP and social limiters included) and falsifies audit logs. `apply()` no
+  longer calls `trustProxies()` at all — Laravel's own default (trust
+  nobody) is the safe one, and a host on that path adds
+  `$middleware->trustProxies(at: [...])` itself, same as any bare Laravel
+  app. The self-heal branch reads `numerosis.trusted_proxies`
+  (`MiddlewareRegistrar::trustedProxies()`), default empty, so a host that
+  never wires `bootstrap/app.php` at all still has to opt in — see
+  `docs/host-requirements.md`'s "Trusted proxies" section for the
+  reachable-only-through-the-proxy-vs-directly-reachable distinction that
+  decides `'*'` vs a real IP/CIDR list. **`apply()` itself still cannot read
+  config or call a facade** (same constraint as `aliases()`/`groups()`,
+  documented at the top of `MiddlewareRegistrar` — it runs from a host's
+  `withMiddleware()` closure, before `RegisterFacades`), which is why it was
+  simplest to drop the call there rather than make it config-driven; only the
+  self-heal branch, which runs from `packageBooted()`, reads config.

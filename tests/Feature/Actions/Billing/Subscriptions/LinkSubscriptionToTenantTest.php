@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Billing\Subscriptions\LinkSubscriptionToTenant;
 use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
 use Nvade\Numerosis\Data\Billing\SubscriptionItemData;
+use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
 use Nvade\Numerosis\Models\Central\Subscription as PackageSubscription;
 use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\TestCase;
@@ -123,7 +124,7 @@ class LinkSubscriptionToTenantTest extends TestCase
      * factory builds at runtime: Larastan resolves `Subscription::factory()`
      * through the factory's generic, which names the package class.
      */
-    private function subscriptionOwnedBy(CentralUser $user, string $stripeId, ?int $paymentPlanId): PackageSubscription
+    private function subscriptionOwnedBy(BaseCentralUser $user, string $stripeId, ?int $paymentPlanId): PackageSubscription
     {
         return Subscription::factory()->create([
             'stripe_id' => $stripeId,

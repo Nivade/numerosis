@@ -11,16 +11,22 @@ use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\Plan as PlanContract;
+use Nvade\Numerosis\Contracts\Tenancy\ContributesProvisionData;
 use Nvade\Numerosis\Contracts\Tenancy\HasTransientState;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
+use Nvade\Numerosis\Exceptions\Tenancy\MissingTenantIdentity;
+use Nvade\Numerosis\Livewire\Tenant\Registration\ReadsRegistrationState;
 use Spatie\LivewireWizard\Components\StepComponent;
 
-class Plan extends StepComponent implements HasTransientState
+class Plan extends StepComponent implements ContributesProvisionData, HasTransientState
 {
+    use ReadsRegistrationState;
+
     public string $payment_plan = '';
 
     /**
@@ -75,6 +81,26 @@ class Plan extends StepComponent implements HasTransientState
      * happens to hold. An unrecognised stored value falls back rather than
      * throwing, so a stale session cannot break the whole wizard.
      */
+    /**
+     * Reading the step's own live state gives the enum; reading it back out of
+     * the wizard gives the string `StepComponent::dispatchDehydrated()` wrote.
+     * Both are accepted here, since this is called from each.
+     */
+    public static function contribute(array $state): ?ProvisionContribution
+    {
+        $plan = $state['payment_plan'] ?? null;
+        $cycle = $state['billingCycle'] ?? null;
+
+        if (! is_string($plan) || $plan === '') {
+            return null;
+        }
+
+        return new BillingContribution(
+            payment_plan: $plan,
+            billing_cycle: $cycle instanceof BillingCycle ? $cycle : BillingCycle::tryFrom(is_string($cycle) ? $cycle : ''),
+        );
+    }
+
     public function cycle(): BillingCycle
     {
         return $this->billingCycle instanceof BillingCycle
@@ -114,23 +140,6 @@ class Plan extends StepComponent implements HasTransientState
 
         $this->checkoutError = null;
 
-        $companyName = $this->state()->get('company_name');
-        $domain = $this->state()->get('domain');
-
-        // Both are required to start a checkout. Send the user to whichever
-        // step is missing; a validation error here would be invisible.
-        if (blank($companyName)) {
-            $this->showStep('company-info');
-
-            return;
-        }
-
-        if (blank($domain)) {
-            $this->showStep('technical-setup');
-
-            return;
-        }
-
         $user = GetAuthenticatedUser::run();
 
         abort_if($user === null, 403);
@@ -139,13 +148,15 @@ class Plan extends StepComponent implements HasTransientState
         // renders a dead button and no reason. Typed to ShowsMessageToUser,
         // never Throwable, so nothing unexpected leaks.
         try {
-            $intent = StartSubscriptionCheckout::run(new TenantRegistrationData(
-                company_name: (string) $companyName,
-                domain: (string) $domain,
-                global_id: $user->global_id,
-                payment_plan: $this->payment_plan,
-                billing_cycle: $this->cycle(),
+            $intent = StartSubscriptionCheckout::run($this->registrationState()->provisionData($user->global_id)->withContributions(
+                array_filter([self::contribute(['payment_plan' => $this->payment_plan, 'billingCycle' => $this->cycle()])]),
             ));
+        } catch (MissingTenantIdentity $e) {
+            // Back to whichever step collects it; an error on this screen
+            // would point at a field the user cannot see.
+            $this->showStep($e->step);
+
+            return;
         } catch (ShowsMessageToUser $e) {
             $this->checkoutError = $e->getMessage();
 

@@ -52,6 +52,7 @@ use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
 use Nvade\Numerosis\Console\Commands\DeleteTenants;
 use Nvade\Numerosis\Console\Commands\InstallNumerosisCommand;
+use Nvade\Numerosis\Console\Commands\ProvisionTenantCommand;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedStripeCustomers;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
@@ -126,7 +127,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->hasCommand(DeleteTenants::class)
             ->hasCommand(PruneOrphanedStripeCustomers::class)
             ->hasCommand(PruneOrphanedTenantDatabases::class)
-            ->hasCommand(PruneStalledTenantProvisions::class);
+            ->hasCommand(PruneStalledTenantProvisions::class)
+            ->hasCommand(ProvisionTenantCommand::class);
     }
 
     public function packageRegistered(): void
@@ -292,7 +294,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
         /** @var list<class-string> $steps */
         $steps = Config::array('numerosis.tenancy.provisioning.steps', []);
 
-        ConfiguredSteps::assertTheFirstProvisioningStepCreatesTenant($steps);
+        ConfiguredSteps::assertEveryProvisioningStepIsOne($steps);
     }
 
     /**
@@ -528,7 +530,10 @@ class NumerosisServiceProvider extends PackageServiceProvider
             Route::middlewareGroup($name, $stack);
         }
 
-        TrustProxies::at('*');
+        // Defaults to trusting nobody — see `numerosis.trusted_proxies`. A
+        // host behind a real proxy that relies on this fallback (rather than
+        // wiring `Numerosis::middleware()` itself) must set that config key.
+        TrustProxies::at(MiddlewareRegistrar::trustedProxies());
 
         $this->app->make(Kernel::class)->prependMiddleware(TrustHosts::class);
     }

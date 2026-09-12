@@ -17,6 +17,20 @@ Obligations, in RFC 2119 terms:
   ```bash
   grep -rnE '^\s*(\*|//).*(\.ai/rules|\.claude)' --include='*.php' src/ config/ routes/ database/ workbench/ packages/
   ```
+
+  **That grep misses two places the rule covers.** It omits `resources/`, and
+  it is `--include='*.php'`, so Blade `{{-- --}}` comments and the `.js` under
+  `resources/js/` never match. Six citations of
+  `.claude/plans/archive/custom-checkout.md` survived there until 2026-09-12
+  for exactly that reason. Widen it when you are checking:
+
+  ```bash
+  grep -rnE '(\*|//|\{\{--).*(\.ai/rules|\.claude)' src/ config/ routes/ database/ workbench/ packages/ resources/
+  ```
+
+  A cited file *existing* is not a defence. The six above all resolved; they
+  still had to go, because the reader of a Composer dist install has no
+  `.claude/` at all.
 - `@param`, `@return`, `@var`, `@template`, `@throws` and array shape annotations MUST stay exactly as they are. PHPStan runs at level 9 and reads them.
 - A comment MAY carry a fact the code cannot: how an external system behaves, a race, a rejected alternative, an invariant spanning several files, a performance rationale.
 - Sentences SHOULD be short.

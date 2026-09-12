@@ -91,9 +91,10 @@ rest of this file is read:
   suite, and it cost two false starts before `vendor/bin/pest --filter=…`
   written straight to a file returned in 0.78s. Redirect, then read the file.
 
-- **Two teardown hooks do work `RefreshDatabase` cannot**, both registered
-  from `Tests\TestCase::setUp()` via `beforeApplicationDestroyed()` so run
-  *after* its rollback:
+- **Two teardown hooks do work `RefreshDatabase` cannot**, both defined in
+  `src/Testing/CleansUpTenancyDatabases.php` — shipped to hosts, not test-suite
+  code — and registered from `Tests\TestCase::setUp()` via
+  `beforeApplicationDestroyed()` so run *after* its rollback:
 
   - `deleteCentralWrites()` — `RefreshDatabase` transacts only default
     connection, so anything written through `central` survives test.
@@ -961,9 +962,9 @@ to all this — single-process, no locking semantics.
   since `DatabaseTenancyBootstrapper` purges and reconnects `tenant`
   connection on every `initialize()`/`end()`. Hard row-reset avoids both.
   Provisioning tests (`CreateTenantTest`, `ProvisionTenantTest`,
-  `MakeFirstUserAdminTest`, `TenantProvisioningSignalTest`) must keep creating
+  `PromoteFirstUserToAdminTest`, `TenantProvisioningSignalTest`) must keep creating
   own tenants — testing pipeline itself.
-- **`CleansUpTenancyDatabases::cleanUpTenancyDatabases()` gives each step its own `finally`, and reads tenant database names before the central deletes.** Both are load-bearing. The exception the guards exist for is a lock-wait timeout on the central deletes, thrown by an early step, so one shared `try` would skip exactly the cleanup that matters and leak a physical database per occurrence. And `deleteCentralWrites()` empties `tenants` along with every other table on that connection, so a name lookup afterwards finds nothing and silently drops none of them. It is `protected` rather than `private` so a suite with its own teardown ordering can call it directly; re-running it is harmless.
+- **`CleansUpTenancyDatabases::cleanUpTenancyDatabases()` gives each step its own `finally`, and reads tenant database names before the central deletes.** Both are load-bearing. The exception the guards exist for is a lock-wait timeout on the central deletes, thrown by an early step, so one shared `try` would skip exactly the cleanup that matters and leak a physical database per occurrence. And `deleteCentralWrites()` empties `tenants` along with every other table on that connection, so a name lookup afterwards finds nothing and silently drops none of them. `cleanUpTenancyDatabases()` is `protected` so a suite with its own teardown ordering can call it directly; re-running it is harmless. `deleteCentralWrites()` itself is `private` and has been since the trait was written — reach it through `cleanUpTenancyDatabases()`.
 
 - **`keepDatabaseSchema()` exists because every tenancy test loses its transaction by teardown.** stancl's `DatabaseTenancyBootstrapper` purges the default connection when it switches to a tenant database, so `getPdo()` hands back a session that was never in the transaction, and `RefreshDatabase` clears its migrated flag and schedules a `migrate:fresh` for the next test — seconds per test, restoring a central schema no normal suite issues DDL against. Rows a lost transaction committed are the real risk, and `deleteCentralWrites()` is what handles those.
 
@@ -1026,3 +1027,23 @@ by dropping every `testing_test_%` and `tenant%` database first.
 CI runs `composer update`, so CI is always on the newer patch. **Update the
 analyser locally before trusting a baseline diff**, and treat an unmatched
 pattern as a version gap, not as dead code.
+
+## Editing `resources/js` breaks an install test until you republish (2026-09-12)
+
+`InstallNumerosisCommandTest`'s `verifyPublishedAssetsMatchSource` check
+compares the package's `resources/` against what a previous `numerosis:install`
+published into the Testbench skeleton, at
+`vendor/orchestra/testbench-core/laravel/resources/`. Those copies are months
+old and live under `vendor/`, so `git status` says nothing about them.
+
+Change a comment in `resources/js/stripe-checkout.js` and the suite fails with
+*"Published assets differ from the package originals"* — a genuine drift
+report that reads like an unrelated regression, in a test whose name
+(`it_says_nothing_when_the_hosts_own_app_assets_never_came_from_the_package`)
+points away from the cause. `composer clear`/`prepare` do not refresh them.
+
+Copy the edited files over the published ones, or re-run the publish:
+
+```bash
+cp resources/js/*.js vendor/orchestra/testbench-core/laravel/resources/js/
+```

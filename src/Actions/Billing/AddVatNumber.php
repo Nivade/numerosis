@@ -37,7 +37,7 @@ class AddVatNumber
         } catch (ApiErrorException $e) {
             report($e);
 
-            throw new BillingAddressUnavailable('Unable to verify your billing address right now. Please try again shortly.', $e->getCode(), $e);
+            throw new BillingAddressUnavailable('Unable to verify your billing address right now. Please try again shortly.', 0, $e);
         }
 
         $taxIdType = TaxIdType::forCountry($customer->address->country ?? null);

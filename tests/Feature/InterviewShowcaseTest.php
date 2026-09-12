@@ -13,8 +13,9 @@ use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Actions\Billing\Subscriptions\RecordSubscription;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Role;
@@ -49,23 +50,21 @@ class InterviewShowcaseTest extends TestCase
         ]);
 
         $tenantDomain = 'acme-'.uniqid();
-        $registration = TenantRegistrationData::from([
-            'company_name' => 'Acme Corp',
-            'domain' => $tenantDomain,
-            'global_id' => $user->global_id,
-            'payment_plan' => 'pro',
-            'billing_cycle' => BillingCycle::Monthly,
-        ]);
+        $registration = new TenantProvisionData(
+            slug: $tenantDomain,
+            name: 'Acme Corp',
+            contributions: [
+                new OwnerContribution($user->global_id),
+                new BillingContribution(payment_plan: 'pro', billing_cycle: BillingCycle::Monthly),
+            ],
+        );
 
         // 2. Act: Provision the tenant through the one entry point production
         // uses. Going through ProvisionTenant rather than CreateTenant
         // is what makes this a lifecycle test: the admin promotion and the
         // "provisioning finished" signal live in FinalizeTenantProvisioning,
         // which ProvisionTenant dispatches after the creation steps.
-        ProvisionTenant::run(new TenantProvisionData(
-            registration: $registration,
-            centralUserId: (string) $user->id,
-        ));
+        ProvisionTenant::make()->queue($registration->withContributions([new BillingContribution(central_user_id: (string) $user->id)]));
 
         $tenant = Tenant::findOrFail($tenantDomain);
 
@@ -111,7 +110,10 @@ class InterviewShowcaseTest extends TestCase
         });
 
         // 6. Verify Ownership
-        $this->assertSame(MembershipRole::Owner, $user->tenants()->first()->pivot->role);
-        $this->assertEquals($tenant->id, $user->tenants()->first()->id);
+        $ownedTenant = $user->tenants()->first();
+
+        $this->assertNotNull($ownedTenant);
+        $this->assertSame(MembershipRole::Owner, $ownedTenant->pivot->role);
+        $this->assertEquals($tenant->id, $ownedTenant->id);
     }
 }

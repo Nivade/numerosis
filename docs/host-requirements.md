@@ -60,6 +60,7 @@ framework hook that has to run before any package code can act.
 | `bootstrap/app.php` wiring | `->withRouting(using: Numerosis::routes(...))` plus `Numerosis::middleware()`/`Numerosis::exceptions()` inside your own `withMiddleware()`/`withExceptions()` closures, or `Numerosis::configure(...)` for a greenfield app | `ApplicationBuilder::withRouting()`/`withMiddleware()` run at builder time, before any service provider — nothing inside `packageRegistered()`/`packageBooted()` can substitute for the framework hook itself | — `NumerosisServiceProvider::booted()` self-heals a missing call (registers routes/middleware itself if it detects neither ran) rather than failing the install command; see `.ai/rules/package-host-bootstrap.md` |
 | `php artisan vendor:publish --tag=numerosis-public-assets` | run at least once, unless you build `resources/js/numerosis.js` through your own Vite | copies this package's prebuilt JS/CSS to `public/vendor/numerosis/`; `Assets::tags()` links both URLs whether or not they are there, so a missing publish is a 404, not an exception | `verifyPublicAssets()` |
 | DNS + a provisioning worker | depends on `numerosis.tenancy.identification.mode` — `subdomain`: `*.{tenant_pattern}` resolves; `custom_domain`: each tenant points their own domain here; `path`: no DNS change at all. Plus, in every mode, a queue worker on the `provisioning` queue | infrastructure — tenant provisioning is queued there, not on the default worker | — infrastructure, outside anything a boot-time check can observe; `numerosis:install`'s printed manual steps name the right one for your mode |
+| Trusted proxies, if you sit behind one | see below | which IPs are allowed to set `X-Forwarded-*` is a network-topology fact the package cannot infer | — no `verify*()`; getting it wrong fails open (spoofable `$request->ip()`), not loud |
 
 **Plus one conditional**:
 
@@ -78,6 +79,38 @@ Central data (roles, permissions and the example plans) needs
 seeding too, but as of the seeding-by-convention work below that's now a
 side effect of a command you already run (`numerosis:install`, or a fresh
 host's own `db:seed`), not a separate obligation.
+
+### Trusted proxies
+
+Nobody is trusted by default — `X-Forwarded-*` headers are ignored, and
+`$request->ip()`/scheme/host reflect the raw socket. That is Laravel's own
+default and the package never overrides it for the documented integration
+path: if your `bootstrap/app.php` calls `Numerosis::middleware($middleware)`
+yourself, add `$middleware->trustProxies(at: [...])` after that call the same
+way you would in a bare Laravel app — nothing here needs to know about it.
+
+If instead you rely on the package's fallback boot (no `withMiddleware()`
+wiring at all — the common case for `workbench/`-style quick installs), set
+`numerosis.trusted_proxies` (or `TRUSTED_PROXIES` in `.env`) to decide the
+same question. The value is a decision about network topology, not code:
+
+- **The app is reachable only through your proxy** — a PaaS edge, a load
+  balancer with the app's own port firewalled off from the internet. Nothing
+  but the proxy can ever reach the app directly to forge a header, so
+  `TRUSTED_PROXIES=*` is safe.
+- **The app is also directly reachable** — a typical single-box Nginx or
+  Docker Compose setup where the app's port isn't firewalled. Name the
+  proxy's actual IP/CIDR instead (`TRUSTED_PROXIES=127.0.0.1` for a local
+  Nginx, the load balancer's private IP range for a cloud one). `'*'` here
+  lets anyone who reaches the app directly spoof `$request->ip()` — which
+  defeats this package's own IP-keyed login/OTP/social rate limiters — and
+  forge the scheme/host, which can break HTTPS redirect detection and
+  signed-URL generation.
+
+Getting this wrong in either direction fails quietly: too narrow and you
+lose real client IPs behind your proxy's; too broad (`'*'` when directly
+reachable) and rate limiting silently stops working. There is no boot-time
+check for it — it is a fact about your infrastructure, not your config file.
 
 ## 2. What the package configures for you, and how to override it
 

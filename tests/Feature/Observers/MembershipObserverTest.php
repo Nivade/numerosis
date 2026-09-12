@@ -14,6 +14,7 @@ use Nvade\Numerosis\Actions\Tenancy\MarkTenantProvisioned;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Events\Tenancy\MemberJoined;
 use Nvade\Numerosis\Events\Tenancy\MemberRemoved;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 
 class MembershipObserverTest extends TestCase
@@ -30,7 +31,7 @@ class MembershipObserverTest extends TestCase
      */
     public function test_attaching_a_member_to_a_provisioned_tenant_creates_the_tenant_side_row(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::provisioned();
         MarkTenantProvisioned::run($tenant);
         $user = CentralUser::factory()->create();
 
@@ -54,7 +55,7 @@ class MembershipObserverTest extends TestCase
      */
     public function test_attaching_a_member_to_an_unprovisioned_tenant_creates_no_row_until_backfilled(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::withDatabaseOnly();
         $user = CentralUser::factory()->create();
 
         // 'owner', because MarkTenantProvisioned only dispatches
@@ -75,9 +76,9 @@ class MembershipObserverTest extends TestCase
 
     public function test_attaching_and_detaching_a_member_dispatches_the_membership_events(): void
     {
-        Event::fake([MemberJoined::class, MemberRemoved::class]);
+        $tenant = TestTenant::provisioned();
 
-        $tenant = Tenant::factory()->create();
+        Event::fake([MemberJoined::class, MemberRemoved::class]);
         $user = CentralUser::factory()->create();
         $inviter = CentralUser::factory()->create();
 

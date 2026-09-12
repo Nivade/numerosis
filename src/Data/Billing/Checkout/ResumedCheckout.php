@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Data\Billing\Checkout;
 
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 
 /**
  * What ResumeCheckout hands back: the reservation, the SetupIntent's client
@@ -15,7 +15,7 @@ use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 final readonly class ResumedCheckout
 {
     public function __construct(
-        public PendingTenantProvision $pending,
+        public TenantProvision $pending,
         public string $clientSecret,
         public bool $alreadySucceeded,
     ) {}

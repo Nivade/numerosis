@@ -4,51 +4,33 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Tenancy;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Lorisleiva\Actions\Decorators\JobDecorator;
 use Nvade\Numerosis\Concerns\Tenancy\TagsSentryScopeWithTenant;
-use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Throwable;
+use Nvade\Numerosis\Models\Central\TenantProvision;
+use Nvade\Numerosis\Numerosis;
 
 /**
- * Final provisioning step: promotes the first non-bot user to admin, then
- * signals that provisioning finished. Must stay last, since it reads users out
- * of the tenant database. It is the only emitter of the "ready" signal the UI
- * waits on, so it retries generously; a silent exhaustion spins that UI
- * forever.
+ * Signals that provisioning finished. Configured last because it is what
+ * reports the tenant ready.
+ *
+ * It no longer carries its own failure handler or twenty retries. Both existed
+ * because a silent exhaustion here left the UI spinning forever; the chain has
+ * one terminal handler now, so exhaustion marks the provision failed wherever
+ * it happens.
  */
-class FinalizeTenantProvisioning implements ShouldQueue
+class FinalizeTenantProvisioning implements ProvisioningStep
 {
     use AsAction;
     use TagsSentryScopeWithTenant;
 
-    public int $jobTries = 20;
-
-    public int $jobBackoff = 3;
-
-    public bool $jobDeleteWhenMissingModels = true;
-
-    public function configureJob(JobDecorator $job): void
+    public function handle(TenantProvision $provision): void
     {
-        $job->afterCommit();
-    }
+        $tenant = Numerosis::model(Tenant::class)::findOrFail($provision->slug);
 
-    public function handle(Tenant $tenant): void
-    {
-        PromoteFirstUserToAdmin::run($tenant);
+        $this->tagSentryScopeWithTenant($provision->slug);
+
         MarkTenantProvisioned::run($tenant);
-    }
-
-    public function jobFailed(Throwable $e, Tenant $tenant): void
-    {
-        $tenantKey = (string) $tenant->getTenantKey();
-
-        $this->tagSentryScopeWithTenant($tenantKey);
-
-        MarkProvisionFailed::run($tenantKey, $e->getMessage());
-
-        event(new TenantProvisioningFailed($tenantKey, $tenant->owner()?->global_id));
     }
 }

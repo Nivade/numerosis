@@ -128,8 +128,8 @@ Two connections, two migration sets, never mixed:
 | | Central | Tenant |
 |---|---|---|
 | Connection | `central` (cloned from `database.default` if absent) | the default connection, repointed per request by stancl's bootstrappers |
-| Migrations | `database/migrations/central/` — 24 files, run by `php artisan migrate` | `database/migrations/tenant/` — 13 files, run per tenant at provision time |
-| Models | `src/Models/Central/` — `Tenant`, `Domain`, `CentralUser`, `Subscription`, `PaymentPlan`, `PendingTenantProvision`, `Invitation`, `SocialAccount` | `src/Models/Tenant/` — `User` only |
+| Migrations | `database/migrations/central/` — 22 files, run by `php artisan migrate` | `database/migrations/tenant/` — 13 files, run per tenant at provision time |
+| Models | `src/Models/Central/` — `Tenant`, `Domain`, `CentralUser`, `Subscription`, `PaymentPlan`, `TenantProvision`, `Invitation`, `SocialAccount` | `src/Models/Tenant/` — `User` only |
 
 Every package model is concrete and usable as-is. `Numerosis::model()` resolves
 each in three steps: an explicit `numerosis.models.<FQCN>` entry, then a
@@ -195,7 +195,7 @@ host's `config/numerosis.php` and ~200 call sites already use. Read
 
 ## Configuration
 
-One config namespace, one publishable file: `config/numerosis.php`, ten
+One config namespace, one publishable file: `config/numerosis.php`, eleven
 top-level keys.
 
 Split by *key*, not by package, on purpose: a host's own override file only
@@ -213,6 +213,7 @@ such as `features` is left exactly as the host set it, including empty.
 |---|---|
 | `features` | the feature class list — see [`features.md`](features.md) |
 | `schedule` | booleans, not features: whether this deployment's cron runs each prune command |
+| `trusted_proxies` | proxy IP(s)/CIDR, or `'*'`, trusted for `X-Forwarded-*` headers — see `host-requirements.md`. Only read by the un-wired fallback boot; empty (the default) trusts nobody |
 | `routes.names` | indirection for the four route names called from outside their own route file, so a gated route can be renamed without breaking ~20 call sites |
 | `domains` | `apex`, `central`, `tenant_pattern` — all derived from `APP_URL` |
 | `auth` | guard indirection (`auth.guards.central` defaults to `'web'`) |

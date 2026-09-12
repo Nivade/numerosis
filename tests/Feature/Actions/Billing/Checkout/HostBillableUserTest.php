@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Checkout;
 
-use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -32,8 +32,8 @@ class HostBillableUserTest extends TestCase
     {
         $user = $this->hostUser();
 
-        $pending = PendingTenantProvision::factory()->create([
-            'domain' => 'host-model-owned',
+        $pending = TenantProvision::factory()->create([
+            'slug' => 'host-model-owned',
             'global_id' => $user->global_id,
             'stripe_setup_intent_id' => 'seti_host_model',
         ]);
@@ -46,8 +46,8 @@ class HostBillableUserTest extends TestCase
         $owner = $this->hostUser();
         $this->hostUser();
 
-        $pending = PendingTenantProvision::factory()->create([
-            'domain' => 'host-model-foreign',
+        $pending = TenantProvision::factory()->create([
+            'slug' => 'host-model-foreign',
             'global_id' => $owner->global_id,
             'stripe_setup_intent_id' => 'seti_host_model_foreign',
         ]);
@@ -68,8 +68,8 @@ class HostBillableUserTest extends TestCase
 
         $user = $this->hostUser();
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'host-model-component',
+        TenantProvision::factory()->create([
+            'slug' => 'host-model-component',
             'global_id' => $user->global_id,
             'stripe_setup_intent_id' => $user->createSetupIntent()->id,
         ]);

@@ -20,15 +20,13 @@ use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendUnlessEntitled;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
-use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\SubscriptionCancelled;
 use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Subscription as CentralSubscription;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
 use Override;
 use Symfony\Component\HttpFoundation\Response;
@@ -66,32 +64,31 @@ class WebhookController extends CashierWebhookController
             ? Cache::lock("reconcile-subscription:{$stripeSubscriptionId}", 10)->block(5, $handle)
             : $handle();
 
-        // Inline checkout puts only the domain in Stripe metadata; the rest of
-        // the registration is on the pending row, and a subscription made in
+        // Inline checkout puts only the slug in Stripe metadata; the rest of
+        // the registration is on the provision row, and a subscription made in
         // the Stripe Dashboard carries neither.
-        $domain = $metadata['domain'] ?? null;
-        $pendingClass = Numerosis::model(PendingTenantProvision::class);
+        $slug = $metadata['slug'] ?? null;
+        $pendingClass = Numerosis::model(TenantProvision::class);
 
-        /** @var PendingTenantProvision|null $pending */
-        $pending = is_string($domain) ? $pendingClass::find($domain) : null;
+        /** @var TenantProvision|null $pending */
+        $pending = is_string($slug) ? $pendingClass::find($slug) : null;
 
         if ($pending !== null) {
-            $registration = TenantRegistrationData::fromPending($pending);
-
             $centralUserClass = Numerosis::model(CentralUser::class);
 
             /** @var int|null $userId */
-            $userId = $centralUserClass::where('global_id', $registration->global_id)->value('id');
+            $userId = $centralUserClass::where('global_id', $pending->global_id)->value('id');
+
+            $pending->update([
+                'stripe_subscription_id' => $stripeSubscriptionId,
+                'stripe_customer_id' => $stripeSubscription['customer'] ?? null,
+                'central_user_id' => $userId !== null ? (string) $userId : null,
+            ]);
 
             // Queued: Stripe retries a webhook that answers slowly, and
             // building a tenant database exceeds that budget. Unique per
-            // domain, so the redirect path cannot double-dispatch.
-            $this->provisioning->queue(new TenantProvisionData(
-                registration: $registration,
-                stripeCustomerId: $stripeSubscription['customer'] ?? null,
-                stripeSubscriptionId: $stripeSubscriptionId,
-                centralUserId: $userId !== null ? (string) $userId : null,
-            ));
+            // slug, so the redirect path cannot double-dispatch.
+            $this->provisioning->queue(TenantProvisionData::fromProvision($pending));
         }
 
         Log::info('Subscription created', [
@@ -132,9 +129,9 @@ class WebhookController extends CashierWebhookController
             return $this->successMethod();
         }
 
-        $pendingClass = Numerosis::model(PendingTenantProvision::class);
+        $pendingClass = Numerosis::model(TenantProvision::class);
 
-        /** @var Collection<int, PendingTenantProvision> $candidates */
+        /** @var Collection<int, TenantProvision> $candidates */
         $candidates = $pendingClass::where('global_id', $billable->global_id)
             ->whereNull('stripe_subscription_id')
             ->get();
@@ -304,11 +301,11 @@ class WebhookController extends CashierWebhookController
         // Clears the "awaiting payment" state an asynchronous payment method
         // leaves behind. Cards never enter it.
         if ($subscriptionId !== null) {
-            $pendingClass = Numerosis::model(PendingTenantProvision::class);
+            $pendingClass = Numerosis::model(TenantProvision::class);
 
             $pendingClass::where('stripe_subscription_id', $subscriptionId)
-                ->where('status', TenantProvisionStatus::AwaitingPayment)
-                ->update(['status' => TenantProvisionStatus::Provisioning]);
+                ->whereNull('settled_at')
+                ->update(['settled_at' => now()]);
         }
 
         Log::info('Invoice payment succeeded', [

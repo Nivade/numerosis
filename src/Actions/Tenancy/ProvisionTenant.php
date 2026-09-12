@@ -4,119 +4,125 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Tenancy;
 
-use Illuminate\Contracts\Queue\ShouldBeUnique;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
-use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
-use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Jobs\RunProvisioningStep;
+use Nvade\Numerosis\Models\Central\TenantProvision;
+use Nvade\Numerosis\Numerosis;
 use Throwable;
 
 /**
- * Provisions a tenant: creates the tenant row synchronously, then runs the
- * database, ownership, subscription and finalization work as a queued chain on
- * the `provisioning` queue. Reach it through {@see ProvisionsTenant::queue()}
- * and never by dispatching it directly. Add your own steps via
- * `numerosis.tenancy.provisioning.steps`; each must be idempotent on retry.
+ * Turns a provisioning request into a queued chain, one link per configured
+ * step. Reach it through {@see ProvisionsTenant::queue()}.
+ *
+ * Nothing runs synchronously here beyond writing the provision row and
+ * claiming the slug. The first step used to run inline because `Bus::chain()`
+ * serializes every link up front and so could not hand a later step a `Tenant`
+ * an earlier one produced; steps take the provision row and resolve what they
+ * need from it, which removes the reason.
  */
-class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
+class ProvisionTenant implements ProvisionsTenant
 {
     use AsAction;
 
-    public int $jobTries = 5;
-
-    public int $jobBackoff = 10;
-
-    public int $jobUniqueFor = 300;
-
-    public string $jobQueue = 'provisioning';
-
-    public function __construct(private readonly TenantDatabaseManager $databases) {}
-
     public function queue(TenantProvisionData $data): void
     {
-        static::dispatch($data);
-    }
+        $slug = $this->claimFor($data);
 
-    public function getJobUniqueId(TenantProvisionData $data): string
-    {
-        return $data->registration->domain;
-    }
-
-    public function handle(TenantProvisionData $data): void
-    {
-        /** @var non-empty-list<class-string> $steps */
-        $steps = config('numerosis.tenancy.provisioning.steps', [CreateTenant::class]);
-
-        /** @var class-string $firstStep */
-        $firstStep = $steps[0];
-
-        /** @var Tenant $tenant */
-        $tenant = $firstStep::run($data->registration);
-
-        $this->dispatchProvisioningChain($tenant, $data);
-    }
-
-    public function jobFailed(Throwable $e, TenantProvisionData $data): void
-    {
-        MarkProvisionFailed::run($data->registration->domain, $e->getMessage());
-
-        event(new TenantProvisioningFailed($data->registration->domain, $data->registration->global_id));
-    }
-
-    /**
-     * Queues the rest of provisioning, under a per-domain lock held for the
-     * whole chain. `ShouldBeUnique` cannot serve here: it only covers this
-     * job, which returns as soon as the chain is dispatched, leaving the
-     * checkout redirect and the Stripe webhook free to start a second one.
-     */
-    private function dispatchProvisioningChain(Tenant $tenant, TenantProvisionData $data): void
-    {
-        $domain = (string) $tenant->getTenantKey();
-        $globalId = $data->registration->global_id;
-
-        if (! Cache::lock("tenant-chain:{$domain}", 900)->get()) {
+        if ($slug === null) {
             return;
         }
 
-        Bus::chain([
-            ...$this->databaseJobs($tenant),
-            RunProvisioningSteps::makeJob($tenant, $data),
-            ...($data->stripeSubscriptionId ? [LinkTenantSubscription::makeJob($tenant, $data)] : []),
-            FinalizeTenantProvisioning::makeJob($tenant),
-        ])
+        Bus::chain($this->links($slug))
             ->onQueue('provisioning')
-            ->catch(function (Throwable $e) use ($domain, $globalId): void {
-                Cache::lock("tenant-chain:{$domain}")->forceRelease();
-                MarkProvisionFailed::run($domain, $e->getMessage());
-                event(new TenantProvisioningFailed($domain, $globalId));
-            })
+            // Scalars only: `->catch()` callbacks are wrapped in a
+            // SerializableClosure, which serializes the whole `use` scope, so
+            // capturing the model would drag it into the payload.
+            ->catch(static fn (Throwable $e) => self::recordFailure($slug, $e))
             ->dispatch();
     }
 
-    /**
-     * The database-creation jobs, included only when the tenant database does
-     * not exist yet: all of them or none, since gating them individually
-     * would re-seed a database that is already populated.
-     *
-     * @return array<int, ShouldQueue>
-     */
-    private function databaseJobs(Tenant $tenant): array
+    public function now(TenantProvisionData $data): void
     {
-        if ($this->databases->databaseExists($tenant)) {
-            return [];
+        $slug = $this->claimFor($data);
+
+        if ($slug === null) {
+            return;
         }
 
-        return array_map(function (string $jobClass) use ($tenant): ShouldQueue {
-            $job = new $jobClass($tenant);
+        // Not `Bus::chain(...)->onConnection('sync')`: a chain defers the
+        // links after the first, so the failure of a later one surfaces
+        // through the queue rather than out of this call.
+        foreach ($this->links($slug) as $link) {
+            try {
+                dispatch_sync($link);
+            } catch (Throwable $e) {
+                self::recordFailure($slug, $e);
 
-            assert($job instanceof ShouldQueue);
+                throw $e;
+            }
+        }
+    }
 
-            return $job;
-        }, $this->databases->creationJobs());
+    /**
+     * @return string|null The claimed slug, or null when a chain already holds
+     *                     it — the checkout redirect and the Stripe webhook
+     *                     both arrive for the same tenant.
+     */
+    private function claimFor(TenantProvisionData $data): ?string
+    {
+        $provision = $this->recordRequest($data);
+
+        return Numerosis::model(TenantProvision::class)::claim($provision->slug)
+            ? $provision->slug
+            : null;
+    }
+
+    /**
+     * The row is the pipeline's only input, so the request is written to it
+     * before the chain is dispatched rather than carried in every job payload.
+     */
+    private function recordRequest(TenantProvisionData $data): TenantProvision
+    {
+        $provisionClass = Numerosis::model(TenantProvision::class);
+
+        /** @var TenantProvision $provision */
+        $provision = $provisionClass::firstOrNew(['slug' => $data->slug]);
+
+        $provision->fill(['name' => $data->name]);
+
+        $provision->applyContributions($data->contributions);
+
+        $provision->save();
+
+        return $provision;
+    }
+
+    /**
+     * @return list<RunProvisioningStep>
+     */
+    private function links(string $slug): array
+    {
+        /** @var list<class-string<ProvisioningStep>> $steps */
+        $steps = Config::array('numerosis.tenancy.provisioning.steps', []);
+
+        return array_map(
+            static fn (string $step): RunProvisioningStep => new RunProvisioningStep($slug, $step),
+            $steps,
+        );
+    }
+
+    private static function recordFailure(string $slug, Throwable $e): void
+    {
+        MarkProvisionFailed::run($slug, $e->getMessage());
+
+        $globalId = Numerosis::model(TenantProvision::class)::where('slug', $slug)->value('global_id');
+
+        event(new TenantProvisioningFailed($slug, is_string($globalId) ? $globalId : null));
     }
 }

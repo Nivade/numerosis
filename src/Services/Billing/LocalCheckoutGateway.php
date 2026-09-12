@@ -10,8 +10,8 @@ use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Routing\RouteNames;
 
 /**
@@ -24,7 +24,7 @@ class LocalCheckoutGateway implements CheckoutGateway
 {
     public function __construct(private readonly ProvisionsTenant $provisioning) {}
 
-    public function begin(TenantRegistrationData $registration): CheckoutIntent
+    public function begin(TenantProvisionData $registration): CheckoutIntent
     {
         MarkProvisionInProgress::run($registration);
 
@@ -34,10 +34,15 @@ class LocalCheckoutGateway implements CheckoutGateway
         $user = GetAuthenticatedUser::run();
         $userId = $user?->id;
 
-        $this->provisioning->queue(new TenantProvisionData(
-            registration: $registration,
-            centralUserId: $userId !== null ? (string) $userId : null,
-        ));
+        $billing = $registration->contribution(BillingContribution::class) ?? new BillingContribution;
+
+        $this->provisioning->queue($registration->withContributions([
+            new BillingContribution(
+                payment_plan: $billing->payment_plan,
+                billing_cycle: $billing->billing_cycle,
+                central_user_id: $userId !== null ? (string) $userId : null,
+            ),
+        ]));
 
         return new RedirectCheckout(route(RouteNames::tenantsMine()));
     }

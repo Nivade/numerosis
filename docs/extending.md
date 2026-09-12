@@ -39,6 +39,7 @@ named `route()` — it has to stay installable on its own.
 | the `home` page | `numerosis.routes.home_view`, or declare `/` in your `routes/web.php` | Your file loads after core's, and `RouteCollection` keys on method + domain + URI, so your `/` replaces core's. Name it `home` (or point `numerosis.routes.names.home` at your name), or `route('home')` stops resolving once `RouteServiceProvider` rebuilds the name lookup |
 | tenant model columns | a migration on the `tenants` table | `Tenant::getCustomColumns()` reads the schema, so a real column is recognised with no registration. The listing is memoized per boot and flushed by `Numerosis::resetModelCache()` |
 | a model | publish `--tag numerosis-models`, or set `numerosis.models.<FQCN>` | Convention (`App\Models\<suffix>`) is found automatically; the config key is for a non-conventional location |
+| a provisioning step | `numerosis.tenancy.provisioning.steps` | Flat ordered list, every entry `Contracts\Tenancy\ProvisioningStep`, one queued chain link each — see "Provisioning steps and the contribution seam" below |
 
 ### What a container binding swaps
 
@@ -155,6 +156,70 @@ and both `Http\Requests\Invitations\StoreInvitationRequest` and any caller
 using `Data\Invitations\InvitationData::validateAndCreate()` enforce that
 through one shared `rules()`. Ownership is granted by
 `Actions\Tenancy\AddTenantOwner` during provisioning.
+
+### Provisioning steps and the contribution seam
+
+`numerosis.tenancy.provisioning.steps` is a flat, ordered list — every entry
+implements `Contracts\Tenancy\ProvisioningStep::handle(TenantProvision $provision): void`
+and runs as its own queued chain link, in list order. There is no privileged
+first or last entry; insert a step anywhere, including before the tenant
+database exists or after `FinalizeTenantProvisioning`.
+
+| To | Implement |
+|---|---|
+| add a provisioning step | `Contracts\Tenancy\ProvisioningStep`, add the class to `numerosis.tenancy.provisioning.steps` |
+| skip a step when data it needs was never collected | also implement `Contracts\Tenancy\ConsumesContributions::consumes(): array` — the runner skips-and-records rather than crashing or needing its own guard clause |
+| give a step its own retry profile | also implement `Contracts\Tenancy\ControlsItsOwnRetries` (`tries()`/`backoff()`); every step defaults to 5 attempts, 5 seconds apart |
+| collect data during the registration wizard for provisioning to consume | `Contracts\Tenancy\ContributesProvisionData::contribute(array $state): ?ProvisionContribution` on the wizard step; `Livewire/Tenant/Registration.php` collects from every configured step, core's `Plan`/`TechnicalSetup` steps included |
+| make a contribution's fields queryable | implement `Contracts\Tenancy\PersistsToProvisionColumns` as well as `ProvisionContribution`, add the columns, and list the contribution's class under `numerosis.tenancy.provisioning.contributions` |
+| create a tenant outside the checkout flow | `php artisan tenancy:provision <slug> --owner=<global_id> --name="..."` builds a `TenantProvisionData` and calls `ProvisionsTenant::queue()` — the same entry point checkout uses |
+
+A contribution is a `spatie/laravel-data` `Data` subclass carrying anything
+beyond a tenant's identity, which is its slug and its name and nothing else.
+Core's own owner, billing and custom-domain data travel through the same seam
+a host's would. Ownership is a contribution because it is a fact about a
+relationship rather than part of what a tenant is: provision without an
+`OwnerContribution` and `AddTenantOwner` and `PromoteFirstUserToAdmin` record
+themselves skipped, which is how a system, demo or imported tenant is built. Most
+contributions round-trip through the provision row's `contributions` JSON
+column; one that something has to query (a `where()`, a uniqueness check)
+declares `PersistsToProvisionColumns` and gets real columns instead. Core is
+not privileged here: a host needing a queryable field adds a column and a
+`fromProvision()` exactly as `BillingContribution`/`CustomDomainContribution`
+do.
+
+Every step is recorded on the provision row (`step_records`) as it runs, so
+a retry resumes from the first unrecorded step rather than restarting the
+whole chain — a step does not have to be idempotent for the retry's sake,
+only safe to run against whatever the step before it left behind.
+
+### Building a tenant outside a queue
+
+`Tenant::create()` makes a tenant row and nothing else — no database, no
+migrations, no owner. That is not a gap; it is what a tenant *is* between the
+first provisioning step and the second, and there is no listener or flag that
+changes it. Anything that wants a usable tenant goes through
+`Contracts\Tenancy\ProvisionsTenant`, which offers the same steps two ways:
+
+| Call | Runs | For |
+|---|---|---|
+| `queue($data)` | `Bus::chain` on the `provisioning` queue | web requests, checkout — resumable, and the progress UI reads `step_records` as it goes |
+| `now($data)` | each step inline, in order | console commands, seeders, tinker — a failure throws at the call site instead of landing in `failed_jobs` |
+
+Both write the same provision row, take the same claim, run the same
+configured list and record the same outcomes. `now()` is what
+`php artisan tenancy:provision <slug> --owner=<global_id> --sync` uses, which
+is the quickest way to get a working tenant while developing:
+
+```
+php artisan tenancy:provision acme --owner=<global_id> --name="Acme Co" --sync
+```
+
+In a test suite, call `now()` from your own helper rather than expecting a
+tenant row to build itself. Swapping a slow step for a fast one is done
+through the same config list — this package's own suite replaces the migrate
+and seed steps with one that clones a template database, and thereby still
+exercises the real pipeline.
 
 ### Adding a social login provider
 

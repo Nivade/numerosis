@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
+use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
 use Nvade\Numerosis\Tests\Browser\CustomDomainModeTestCase;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Pest\Browser\Playwright\Playwright;
 
 uses(CustomDomainModeTestCase::class, RefreshDatabase::class);
@@ -20,8 +21,7 @@ uses(CustomDomainModeTestCase::class, RefreshDatabase::class);
  * with the custom domain verbatim rather than a derived subdomain.
  */
 it('renders the tenant landing page under its custom domain for a signed-in user', function (): void {
-    $tenant = Tenant::factory()->create();
-    CreateTenantDomain::run($tenant, $tenant->id, 'app.acmetest.test');
+    $tenant = TestTenant::provisioned(contributions: [new CustomDomainContribution('app.acmetest.test')]);
 
     signInTenantUser($tenant);
 
@@ -31,8 +31,7 @@ it('renders the tenant landing page under its custom domain for a signed-in user
 });
 
 it('serves the tenant landing page on the custom domain for an unauthenticated visitor', function (): void {
-    $tenant = Tenant::factory()->create();
-    CreateTenantDomain::run($tenant, $tenant->id, 'app.acmetest.test');
+    $tenant = TestTenant::provisioned(contributions: [new CustomDomainContribution('app.acmetest.test')]);
 
     Playwright::setHost('app.acmetest.test');
 

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Boot;
 
 use LogicException;
-use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
+use Nvade\Numerosis\Actions\Tenancy\MarkProvisionFailed;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -22,16 +22,16 @@ class MisconfiguredProvisioningStepsBootTest extends TestCase
 {
     private static bool $misconfigure = false;
 
-    public function test_a_wrong_shaped_first_step_fails_the_boot(): void
+    public function test_a_step_that_is_not_a_provisioning_step_fails_the_boot(): void
     {
         self::$misconfigure = true;
 
         try {
             $this->refreshApplication();
 
-            $this->fail('Booting with a first provisioning step that cannot create the tenant should have thrown.');
+            $this->fail('Booting with a step that is not a ProvisioningStep should have thrown.');
         } catch (LogicException $e) {
-            $this->assertStringContainsString(AddTenantOwner::class, $e->getMessage());
+            $this->assertStringContainsString(MarkProvisionFailed::class, $e->getMessage());
         } finally {
             self::$misconfigure = false;
             $this->refreshApplication();
@@ -44,8 +44,8 @@ class MisconfiguredProvisioningStepsBootTest extends TestCase
 
         if (self::$misconfigure) {
             $app['config']->set('numerosis.tenancy.provisioning.steps', [
-                AddTenantOwner::class,
                 CreateTenant::class,
+                MarkProvisionFailed::class,
             ]);
         }
     }

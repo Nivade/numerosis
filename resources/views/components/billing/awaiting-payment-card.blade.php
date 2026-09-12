@@ -1,7 +1,6 @@
 {{--
     A badge on an otherwise-working tenant, not a waiting room — the tenant
-    stays fully usable while this shows. See custom-checkout.md,
-    "Provisioning and settlement". Unreachable for cards in practice; only
+    stays fully usable while this shows. Unreachable for cards in practice; only
     an async method (SEPA via iDEAL/Bancontact) settles over days rather
     than seconds.
 --}}

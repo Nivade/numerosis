@@ -315,3 +315,69 @@ move broke it in a way nothing in the move's own checklist could find. It
 resolves the path by reflection now. Grep moved files by *path* as well as by
 namespace, and prefer `(new ReflectionClass(X::class))->getFileName()` in any
 test that reads source.
+
+## The `workbench/` harness is a host, and was never actually running the package (2026-09-12)
+
+Until `NumerosisServiceProvider` was named in `testbench.yaml`, `composer serve`
+and `composer build` booted an app with Numerosis absent — a root package is
+not discovered by `PackageManifest`. Every green `composer build` before that
+proved nothing, and `php artisan` had none of the package's commands.
+
+Making it load surfaces three traps, all of which read as unrelated failures:
+
+- **A missing sqlite file silently demotes `database.default` to `:memory:`.**
+  `Orchestra\Testbench\Bootstrap\LoadConfiguration:162` swaps `sqlite` for
+  `testing` when the file does not exist. `workbench:build` creates the file
+  *after* the app has booted, so the run right after a wipe boots in-memory
+  while `HostConfig` clones `central` from whatever default was — migrations
+  then land on two different connections and fail as
+  `no such table: cache (Connection: testing, Database: :memory:)`. `touch`
+  the file before building. Nothing warns.
+- **`testbench.yaml`'s `env:` block is too late for
+  `TESTBENCH_WITHOUT_DEFAULT_MIGRATIONS`.** `LoadMigrationsFromArray` has
+  already called `Env::get()` by then, so the key sits there reading as
+  configuration while doing nothing. It belongs in the composer script, as
+  `@putenv`. Tell: Testbench's `0001_01_01_000000_testbench_create_users_table`
+  still runs.
+- **The default migrations must be off, for the reason
+  `docs/host-requirements.md:125` already gives a host:** the package ships
+  extended `users` and `jobs` migrations under `database/migrations/central`,
+  and the migrator collides on the *table*, not the filename. Turning them off
+  takes the stock cache table with it, so the workbench keeps its own under
+  `workbench/database/migrations`.
+
+**The harness runs on MySQL, set in `testbench.yaml`'s `env:` block.** That
+block *does* apply to database config, unlike the migrations switch above:
+config is read late enough, and it reaches a bare `php artisan` rather than
+only the composer scripts. It is there because the package documents MySQL as
+a requirement while the skeleton ships `DB_CONNECTION=sqlite`, so the harness
+was pointed at a database the package refuses. Create the schema once:
+
+```bash
+docker exec numerosis-mysql-1 mysql -uroot -proot -e "create database numerosis_workbench"
+composer build
+php artisan tenancy:provision demo --owner=<global_id>
+php artisan queue:work --queue=provisioning --stop-when-empty
+```
+
+That run is worth doing: `QUEUE_CONNECTION=sync` in the suite means no test
+exercises a worker boundary, and the first one ever run found a live bug (see
+`exception-handling.md` on re-thrown exception codes).
+
+**What actually blocks SQLite is smaller than "MySQL-only" suggests, and
+`CREATE DATABASE` is not part of it.** stancl ships
+`TenantDatabaseManagers\SQLiteDatabaseManager`, which writes one file per
+tenant, and it is wired in its own config: on a SQLite run `CreateTenant`,
+`CreateTenantDatabase` and `MigrateTenantDatabase` all complete. Seeding is
+where it dies, on `unknown function: SUBSTRING_INDEX()` from
+`2025_12_17_035929_add_ability_and_context_virtual_columns_to_permissions`.
+Measured 2026-09-12; do not repeat the guess that the tenancy model itself
+rules SQLite out.
+
+The rest of the MySQL surface is two places, both small, plus one gap:
+`PruneOrphanedTenantDatabases` querying `INFORMATION_SCHEMA.SCHEMATA`, the
+generated `permissions.ability`/`context` columns (which are `#[Guarded]`,
+derived from `name`, and queried by nothing in this repo), and
+`CleansUpTenancyDatabases` returning early for a non-MySQL driver, so SQLite
+tenant files would leak rather than fail. The cost of supporting SQLite is
+the test matrix, not the code.

@@ -8,14 +8,14 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 
 /**
  * The billable a checkout is running as, refused unless it owns the
  * reservation. One rule for every checkout entry point, so a new one cannot
  * reach a reservation belonging to somebody else.
  *
- * @method static BillableUser run(PendingTenantProvision $pending)
+ * @method static BillableUser run(TenantProvision $pending)
  */
 class AssertReservationIsOwned
 {
@@ -23,7 +23,7 @@ class AssertReservationIsOwned
 
     public function __construct(private readonly BillableResolver $billables) {}
 
-    public function handle(PendingTenantProvision $pending): BillableUser
+    public function handle(TenantProvision $pending): BillableUser
     {
         $billable = $this->billables->resolve();
 

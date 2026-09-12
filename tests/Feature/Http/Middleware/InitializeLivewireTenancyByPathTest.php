@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 use Stancl\Tenancy\Tenancy;
 
@@ -28,7 +29,7 @@ class InitializeLivewireTenancyByPathTest extends TestCase
 
     public function test_it_initializes_the_tenant_named_by_the_referer_path(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::provisioned();
 
         $this->handleUpdate("http://central.test/{$tenant->id}/marketplace");
 

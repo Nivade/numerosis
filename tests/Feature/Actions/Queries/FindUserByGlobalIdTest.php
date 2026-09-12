@@ -127,13 +127,6 @@ class FindUserByGlobalIdTest extends TestCase
 
     private function makeTenant(string $id): Tenant
     {
-        $tenant = Tenant::create(['id' => $id]);
-
-        $tenant->domains()->create([
-            'id' => $id,
-            'domain' => $this->tenantDomain($id),
-        ]);
-
-        return $tenant;
+        return $this->createTenantWithDomain($id);
     }
 }

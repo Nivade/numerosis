@@ -7,8 +7,8 @@ namespace Nvade\Numerosis\Actions\Billing\Checkout;
 use Laravel\Cashier\Exceptions\IncompletePayment;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentMethod;
 
@@ -19,7 +19,7 @@ use Stripe\PaymentMethod;
  * a checkout identically. Callers decide for themselves what an
  * `IncompletePayment` means in their context.
  *
- * @method static Subscription run(PendingTenantProvision $pending, PaymentMethod $paymentMethod, ?BillableUser $billable)
+ * @method static Subscription run(TenantProvision $pending, PaymentMethod $paymentMethod, ?BillableUser $billable)
  */
 class FinalizeCheckoutSubscription
 {
@@ -29,7 +29,7 @@ class FinalizeCheckoutSubscription
      * @throws IncompletePayment
      * @throws ApiErrorException propagated from {@see CreateInlineSubscription}
      */
-    public function handle(PendingTenantProvision $pending, PaymentMethod $paymentMethod, ?BillableUser $billable): Subscription
+    public function handle(TenantProvision $pending, PaymentMethod $paymentMethod, ?BillableUser $billable): Subscription
     {
         $subscription = CreateInlineSubscription::run($pending, $paymentMethod->id, $billable);
 

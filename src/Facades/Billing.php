@@ -12,7 +12,6 @@ use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Services\Billing\BillingService;
 use Nvade\Numerosis\Testing\FakeCheckoutGateway;
 
@@ -20,7 +19,7 @@ use Nvade\Numerosis\Testing\FakeCheckoutGateway;
  * @method static Collection<int, Plan> plans()
  * @method static Plan|null plan(string $slug)
  * @method static Plan|null planForPrice(string $priceId)
- * @method static CheckoutIntent checkout(TenantRegistrationData $registration)
+ * @method static CheckoutIntent checkout(TenantProvisionData $registration)
  * @method static void provision(TenantProvisionData $data)
  * @method static Model|null billable()
  * @method static int|null trialDaysFor(Plan $plan, ?Subscribable $for = null)

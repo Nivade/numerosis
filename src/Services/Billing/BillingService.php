@@ -18,7 +18,6 @@ use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Testing\FakeCheckoutGateway;
 
 /**
@@ -56,7 +55,7 @@ class BillingService
         return $this->plans->findByPriceId($priceId);
     }
 
-    public function checkout(TenantRegistrationData $registration): CheckoutIntent
+    public function checkout(TenantProvisionData $registration): CheckoutIntent
     {
         return $this->gateway->begin($registration);
     }

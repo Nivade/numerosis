@@ -14,13 +14,16 @@ namespace Nvade\Numerosis\Contracts\Tenancy;
 interface ProvidesTenantIdentity
 {
     /**
-     * Wizard-state field name(s) this step writes, read via
-     * `$this->state()->get($key)` by whatever builds
-     * `Nvade\Numerosis\Data\Tenancy\TenantRegistrationData` from the
-     * wizard's accumulated state (currently `TechnicalSetup::continue()`
-     * and `Plan::continue()`, by hand).
+     * Wizard-state field name(s) this step writes.
+     *
+     * `RegistrationState::provisionData()` reads these to know which step to
+     * send the user back to when the identity is not collected yet. Until
+     * then nothing called this method, so a step could return anything.
+     *
+     * Static because it is asked of a step class the wizard is not currently
+     * rendering, which has no instance.
      *
      * @return list<string>
      */
-    public function tenantIdentityStateKeys(): array;
+    public static function tenantIdentityStateKeys(): array;
 }

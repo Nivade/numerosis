@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Livewire\Tenant\Registration\Steps;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
@@ -28,13 +28,13 @@ class TechnicalSetupTest extends TestCase
     {
         $this->actingAs(CentralUser::factory()->create());
 
-        $this->technicalSetupStep(['company-info' => ['company_name' => 'Acme']])
+        $this->technicalSetupStep(['company-info' => ['name' => 'Acme']])
             ->set('domain', 'acme-reserve-test')
             ->call('continue')
             ->assertDispatchedTo(Registration::class, 'nextStep');
 
-        $this->assertDatabaseHas(PendingTenantProvision::class, [
-            'domain' => 'acme-reserve-test',
+        $this->assertDatabaseHas(TenantProvision::class, [
+            'slug' => 'acme-reserve-test',
             'status' => 'reserved',
         ]);
     }
@@ -42,14 +42,14 @@ class TechnicalSetupTest extends TestCase
     public function test_it_rejects_a_domain_someone_else_already_reserved(): void
     {
         $owner = CentralUser::factory()->create();
-        PendingTenantProvision::factory()->create([
-            'domain' => 'taken-domain',
+        TenantProvision::factory()->create([
+            'slug' => 'taken-domain',
             'global_id' => $owner->global_id,
         ]);
 
         $this->actingAs(CentralUser::factory()->create());
 
-        $this->technicalSetupStep(['company-info' => ['company_name' => 'Acme']])
+        $this->technicalSetupStep(['company-info' => ['name' => 'Acme']])
             ->set('domain', 'taken-domain')
             ->call('continue')
             ->assertHasErrors('domain')
@@ -65,12 +65,12 @@ class TechnicalSetupTest extends TestCase
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'own-domain-retry',
+        TenantProvision::factory()->create([
+            'slug' => 'own-domain-retry',
             'global_id' => $user->global_id,
         ]);
 
-        $this->technicalSetupStep(['company-info' => ['company_name' => 'Acme']])
+        $this->technicalSetupStep(['company-info' => ['name' => 'Acme']])
             ->set('domain', 'own-domain-retry')
             ->call('continue')
             ->assertDispatchedTo(Registration::class, 'nextStep')
@@ -86,7 +86,7 @@ class TechnicalSetupTest extends TestCase
     {
         $this->actingAs(CentralUser::factory()->create());
 
-        $this->technicalSetupStep(['company-info' => ['company_name' => 'Acme']])
+        $this->technicalSetupStep(['company-info' => ['name' => 'Acme']])
             ->set('domain', 'admin')
             ->assertHasErrors('domain');
     }
@@ -95,7 +95,7 @@ class TechnicalSetupTest extends TestCase
     {
         $this->actingAs(CentralUser::factory()->create());
 
-        $this->technicalSetupStep(['company-info' => ['company_name' => 'Acme']])
+        $this->technicalSetupStep(['company-info' => ['name' => 'Acme']])
             ->set('domain', 'admin')
             ->call('continue')
             ->assertHasErrors('domain')

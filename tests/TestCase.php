@@ -15,6 +15,12 @@ use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\URL;
+use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
+use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
+use Nvade\Numerosis\Actions\Tenancy\LinkTenantSubscription;
+use Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Models\Permission;
@@ -25,6 +31,7 @@ use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Nvade\Numerosis\Testing\CleansUpTenancyDatabases;
 use Nvade\Numerosis\Tests\Support\CloneTenantSchema;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Orchestra\Testbench\TestCase as Orchestra;
 use PDO;
 use Pdo\Mysql;
@@ -80,16 +87,17 @@ abstract class TestCase extends Orchestra
     }
 
     /**
-     * A tenant reachable at its own subdomain.
-     *
-     * `forceCreate`, as production does: `id` is not fillable, so
-     * `Tenant::create()` drops it and `UUIDGenerator` assigns a uuid instead
-     * — the subdomain then no longer matches and identification 404s.
+     * A provisioned tenant reachable at its own subdomain.
      */
     protected function createTenantWithDomain(string $id, string $name = 'Test Tenant'): Tenant
     {
-        $tenant = Tenant::forceCreate(['id' => $id, 'name' => $name]);
-        $tenant->domains()->create(['id' => $id, 'domain' => $this->tenantDomain($id)]);
+        /** @var Tenant $tenant */
+        $tenant = TestTenant::provisioned(['id' => $id, 'name' => $name]);
+
+        // `CreateTenantDomain` already made one, but off the identification
+        // mode rather than off `tenant_pattern`, which is what the suite's
+        // own requests are built from.
+        $tenant->domains()->updateOrCreate(['id' => $id], ['domain' => $this->tenantDomain($id)]);
 
         return $tenant;
     }
@@ -168,6 +176,25 @@ abstract class TestCase extends Orchestra
         // carry real defaults derived from APP_URL, so this block only
         // overrides them to the harness's own hostname rather than rescuing
         // the package from a NULL.
+
+        // Migrating and seeding a real tenant database costs ~1.9s, and
+        // QUEUE_CONNECTION=sync makes every provision pay it inline. Copying a
+        // template built once per process costs a fraction of that, so the
+        // migrate and seed steps are swapped for CloneTenantSchema.
+        //
+        // Set here rather than in Pest.php: there is no application yet when
+        // that file loads, and every test rebuilds config from the package's
+        // own file.
+        $app->make(Repository::class)->set('numerosis.tenancy.provisioning.steps', [
+            CreateTenant::class,
+            CreateTenantDatabase::class,
+            CloneTenantSchema::class,
+            AddTenantOwner::class,
+            PromoteFirstUserToAdmin::class,
+            LinkTenantSubscription::class,
+            FinalizeTenantProvisioning::class,
+        ]);
+
         $app->make(Repository::class)->set('numerosis.domains.apex', 'numerosistest.test');
         $app->make(Repository::class)->set('numerosis.domains.central', 'central.numerosistest.test');
         $app->make(Repository::class)->set('numerosis.domains.tenant_pattern', '{tenant}.numerosistest.test');

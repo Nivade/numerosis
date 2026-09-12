@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Checkout;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Subscription;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Actions\Billing\Checkout\SettleCheckout;
@@ -26,8 +26,8 @@ class SettleCheckoutTest extends TestCase
         $fake = Billing::fake();
 
         $user = CentralUser::factory()->create();
-        $pending = PendingTenantProvision::factory()->create([
-            'domain' => 'settle-active',
+        $pending = TenantProvision::factory()->create([
+            'slug' => 'settle-active',
             'global_id' => $user->global_id,
             'payment_plan' => 'starter',
             'billing_cycle' => BillingCycle::Monthly,
@@ -60,8 +60,8 @@ class SettleCheckoutTest extends TestCase
         $fake = Billing::fake();
 
         $user = CentralUser::factory()->create();
-        $pending = PendingTenantProvision::factory()->create([
-            'domain' => 'settle-processing',
+        $pending = TenantProvision::factory()->create([
+            'slug' => 'settle-processing',
             'global_id' => $user->global_id,
             'payment_plan' => 'starter',
             'billing_cycle' => BillingCycle::Monthly,
@@ -74,7 +74,8 @@ class SettleCheckoutTest extends TestCase
         SettleCheckout::run($pending, $subscription, 'cus_123', (string) $user->id);
 
         $pending->refresh();
-        $this->assertSame(TenantProvisionStatus::AwaitingPayment, $pending->status);
+        $this->assertSame(TenantProvisionStatus::Provisioning, $pending->status);
+        $this->assertFalse($pending->isSettled());
 
         $fake->assertTenantProvisioned('settle-processing');
     }

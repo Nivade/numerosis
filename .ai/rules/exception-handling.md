@@ -20,3 +20,21 @@ paths:
 - **A queue job that calls `Artisan::call()` must check the exit code.** Worked example was `MigrateModules`/`RollbackModules` — both deleted with the module system in Phase 2 (2026-09-03), so there is no live instance of this in core today; the rule is what survives. A failed migration returns non-zero, throws nothing, and the job reports success. Check the return value and throw with the command output on non-zero. A job "succeeding" without doing work is worse than one that throws — nothing downstream knows to retry or alert.
 
 - **Swallowed exceptions must narrow to what the block actually expects, and must still `report()`.** Two worked examples, one gone: `InteractsWithTenantModules` (deleted Phase 2) and `Billing::getRenewsAt` used to `catch (Throwable)` / `catch (Exception)` and return a silent fallback (a module read "disabled" rather than "broken"; billing figures degrade to `'N/A'`) with nothing logged. Fix pattern: catch the specific exception the block can actually produce (e.g. `QueryException` for a query against a tenant connection that might not exist), keep the fallback return, add `report($e)` so the failure is visible without changing behavior.
+## Never re-throw a caught exception's `getCode()` (2026-09-12)
+
+`PDOException::getCode()` is the SQLSTATE **string** (`'HY000'`), and
+`RuntimeException`/`Exception` take an `int`. So
+`throw new RuntimeException($msg, $e->getCode(), previous: $e)` raises a
+`TypeError` *from inside the catch block* the moment the cause is a database
+error, and the real exception is destroyed along with the handler.
+
+It surfaced as `Argument #2 ($code) must be of type int, string given`,
+pointing at `SeedTenantDatabase.php:45` and saying nothing about the query.
+Five sites did this; all now pass `0`. `previous:` already carries the cause,
+so the code was never buying anything.
+
+**A test for this is vacuously green unless the code is set the way a driver
+sets it.** `new PDOException('...')` leaves `$code` at the default int `0`, so
+the first regression test passed against the unfixed code. Subclass and assign
+`$this->code = 'HY000'` in the constructor, then check the test fails with the
+fix reverted.

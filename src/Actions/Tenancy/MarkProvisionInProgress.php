@@ -5,31 +5,33 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningStarted;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
 
 class MarkProvisionInProgress
 {
     use AsAction;
 
-    public function handle(TenantRegistrationData $registration): void
+    public function handle(TenantProvisionData $registration): void
     {
-        $pendingClass = Numerosis::model(PendingTenantProvision::class);
+        $pendingClass = Numerosis::model(TenantProvision::class);
+        $globalId = $registration->contribution(OwnerContribution::class)?->global_id;
 
         $pendingClass::updateOrCreate(
-            ['domain' => $registration->domain],
+            ['slug' => $registration->slug],
             [
-                'company_name' => $registration->company_name,
-                'global_id' => $registration->global_id,
+                'name' => $registration->name,
+                'global_id' => $globalId,
                 'status' => TenantProvisionStatus::Provisioning,
                 'failed_at' => null,
                 'error' => null,
             ],
         );
 
-        event(new TenantProvisioningStarted($registration->domain, $registration->global_id));
+        event(new TenantProvisioningStarted($registration->slug, $globalId));
     }
 }

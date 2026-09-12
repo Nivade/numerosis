@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Services\Tenancy\Bootstrappers;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Models\Permission;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -25,8 +26,8 @@ class SpatiePermissionsBootstrapperTest extends TestCase
      */
     public function test_permission_collection_does_not_leak_between_tenants_in_the_same_process(): void
     {
-        $first = Tenant::create(['id' => 'perm-leak-first-'.uniqid()]);
-        $second = Tenant::create(['id' => 'perm-leak-second-'.uniqid()]);
+        $first = TestTenant::provisioned(['id' => 'perm-leak-first-'.uniqid()]);
+        $second = TestTenant::provisioned(['id' => 'perm-leak-second-'.uniqid()]);
 
         $first->run(function () {
             Permission::create(['name' => 'first-tenant-only-permission', 'guard_name' => 'tenant']);

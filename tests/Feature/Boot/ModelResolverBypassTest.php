@@ -6,10 +6,10 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\SocialAccount;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use PhpParser\Node;
 use PhpParser\Node\Expr\New_;
@@ -50,7 +50,7 @@ test('every package call site resolves the 9 config-overridable models through N
         CentralUser::class,
         Subscription::class,
         PaymentPlan::class,
-        PendingTenantProvision::class,
+        TenantProvision::class,
         Invitation::class,
         SocialAccount::class,
         TenantUser::class,

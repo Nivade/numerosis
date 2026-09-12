@@ -4,8 +4,15 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Livewire\Tenant\Registration;
 
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Fluent;
+use Nvade\Numerosis\Contracts\Tenancy\ContributesProvisionData;
+use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Exceptions\Tenancy\MissingTenantIdentity;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\TechnicalSetup;
@@ -67,9 +74,93 @@ class RegistrationState extends State
         $state = $this->forStepClass(CompanyInfo::class);
 
         return [
-            'company_name' => $state['company_name'] ?? null,
+            'name' => $state['name'] ?? null,
             'admin_email' => $state['admin_email'] ?? null,
         ];
+    }
+
+    /**
+     * The payload provisioning takes, built once here rather than field by
+     * field in whichever step happens to be submitting.
+     *
+     * Contributions come from every configured step that offers one, so a
+     * host step reaches provisioning through the same seam core's own steps
+     * use.
+     *
+     * @throws MissingTenantIdentity When the wizard has no name or slug yet,
+     *                               which means a step was skipped.
+     */
+    public function provisionData(string $globalId, ?string $slug = null): TenantProvisionData
+    {
+        $name = $this->get('name');
+
+        // The step collecting the slug has not written it to wizard state yet
+        // when it submits, so it passes its own value in.
+        $slug ??= $this->get('domain');
+
+        if (! is_string($name) || $name === '') {
+            throw new MissingTenantIdentity($this->stepProviding('name'));
+        }
+
+        if (! is_string($slug) || $slug === '') {
+            throw new MissingTenantIdentity($this->stepProviding('domain'));
+        }
+
+        return new TenantProvisionData(
+            slug: $slug,
+            name: $name,
+            contributions: [new OwnerContribution($globalId), ...$this->contributions()],
+        );
+    }
+
+    /**
+     * Which configured step collects a given identity field, by the name the
+     * wizard knows it as. Derived rather than hardcoded, so replacing a
+     * shipped step still routes the user to the right screen.
+     */
+    private function stepProviding(string $key): string
+    {
+        /** @var list<class-string> $steps */
+        $steps = Config::array('numerosis.tenancy.registration.steps', []);
+
+        foreach ($steps as $step) {
+            if (! is_a($step, ProvidesTenantIdentity::class, true)) {
+                continue;
+            }
+
+            if (in_array($key, $step::tenantIdentityStateKeys(), true)) {
+                // Same call Registration::getCurrentStepState() makes; the
+                // trait's own componentName() is private to it.
+                return (string) resolve('livewire.finder')->normalizeName($step);
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @return list<ProvisionContribution>
+     */
+    public function contributions(): array
+    {
+        /** @var list<class-string> $steps */
+        $steps = Config::array('numerosis.tenancy.registration.steps', []);
+
+        $contributions = [];
+
+        foreach ($steps as $step) {
+            if (! is_a($step, ContributesProvisionData::class, true)) {
+                continue;
+            }
+
+            $contribution = $step::contribute($this->forStepClass($step));
+
+            if ($contribution !== null) {
+                $contributions[] = $contribution;
+            }
+        }
+
+        return $contributions;
     }
 
     #[Override]

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Console;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -24,8 +24,8 @@ class PruneStalledTenantProvisionsTest extends TestCase
 
         $this->pruneStalledProvisions()->assertSuccessful();
 
-        $this->assertNull(PendingTenantProvision::find('abandoned'));
-        $this->assertNotNull(PendingTenantProvision::find('recent'));
+        $this->assertNull(TenantProvision::find('abandoned'));
+        $this->assertNotNull(TenantProvision::find('recent'));
     }
 
     public function test_it_logs_stalled_provisions_instead_of_deleting_them(): void
@@ -37,12 +37,32 @@ class PruneStalledTenantProvisionsTest extends TestCase
         $this->pruneStalledProvisions()->assertSuccessful();
 
         // The customer already paid, so the row is kept for a human to look at.
-        $this->assertNotNull(PendingTenantProvision::find('stalled'));
+        $this->assertNotNull(TenantProvision::find('stalled'));
 
         $spy->shouldHaveReceived('warning')
             ->once()
             ->withArgs(fn (string $message, array $context) => $message === 'Tenant provisioning stalled'
-                && $context['domain'] === 'stalled');
+                && $context['slug'] === 'stalled');
+    }
+
+    public function test_it_forgets_completed_provisions_past_the_retention_window(): void
+    {
+        $this->completedProvision('ancient', now()->subDays(45));
+        $this->completedProvision('recentlydone', now()->subDays(2));
+
+        $this->pruneStalledProvisions()->assertSuccessful();
+
+        $this->assertNull(TenantProvision::find('ancient'));
+        $this->assertNotNull(TenantProvision::find('recentlydone'));
+    }
+
+    public function test_the_retention_window_is_configurable(): void
+    {
+        $this->completedProvision('ancient', now()->subDays(45));
+
+        $this->pruneStalledProvisions(['--keep-days' => 90])->assertSuccessful();
+
+        $this->assertNotNull(TenantProvision::find('ancient'));
     }
 
     public function test_it_leaves_already_failed_rows_alone(): void
@@ -51,7 +71,7 @@ class PruneStalledTenantProvisionsTest extends TestCase
 
         $this->pruneStalledProvisions()->assertSuccessful();
 
-        $this->assertNotNull(PendingTenantProvision::find('brokendomain'));
+        $this->assertNotNull(TenantProvision::find('brokendomain'));
     }
 
     public function test_dry_run_changes_nothing(): void
@@ -59,10 +79,13 @@ class PruneStalledTenantProvisionsTest extends TestCase
         $this->reservation('abandoned', TenantProvisionStatus::Reserved, now()->subHours(5));
         $this->reservation('stalled', TenantProvisionStatus::Provisioning, now()->subHours(5));
 
+        $this->completedProvision('ancient', now()->subDays(45));
+
         $this->pruneStalledProvisions(['--dry-run' => true])->assertSuccessful();
 
-        $this->assertNotNull(PendingTenantProvision::find('abandoned'));
-        $this->assertNotNull(PendingTenantProvision::find('stalled'));
+        $this->assertNotNull(TenantProvision::find('abandoned'));
+        $this->assertNotNull(TenantProvision::find('stalled'));
+        $this->assertNotNull(TenantProvision::find('ancient'));
     }
 
     /**
@@ -81,13 +104,20 @@ class PruneStalledTenantProvisionsTest extends TestCase
         return $command;
     }
 
+    private function completedProvision(string $slug, Carbon $completedAt): void
+    {
+        $this->reservation($slug, TenantProvisionStatus::Completed, $completedAt);
+
+        TenantProvision::findOrFail($slug)->forceFill(['completed_at' => $completedAt])->save();
+    }
+
     private function reservation(string $domain, TenantProvisionStatus $status, Carbon $createdAt): void
     {
         $user = CentralUser::factory()->create();
 
-        $pending = PendingTenantProvision::create([
-            'domain' => $domain,
-            'company_name' => 'Test Co',
+        $pending = TenantProvision::create([
+            'slug' => $domain,
+            'name' => 'Test Co',
             'global_id' => $user->global_id,
             'status' => $status,
         ]);

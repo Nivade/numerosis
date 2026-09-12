@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 
 class EnsureTenantSubscriptionActiveTest extends TestCase
@@ -61,7 +62,7 @@ class EnsureTenantSubscriptionActiveTest extends TestCase
 
     public function test_it_lets_an_active_tenant_through(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::provisioned();
 
         $tenant->run(function () {
             $middleware = new EnsureTenantSubscriptionActive;
@@ -74,7 +75,7 @@ class EnsureTenantSubscriptionActiveTest extends TestCase
 
     public function test_it_redirects_a_suspended_tenant_to_the_suspended_page(): void
     {
-        $tenant = Tenant::factory()->create(['suspended_at' => now()]);
+        $tenant = TestTenant::provisioned(['suspended_at' => now()]);
 
         $tenant->run(function () {
             $middleware = new EnsureTenantSubscriptionActive;
@@ -95,7 +96,7 @@ class EnsureTenantSubscriptionActiveTest extends TestCase
      */
     public function test_it_closes_the_trial_expiry_gap(): void
     {
-        $tenant = Tenant::factory()->create([
+        $tenant = TestTenant::provisioned([
             'trial_ends_at' => now()->subDay(),
             'suspended_at' => now(),
         ]);
@@ -111,7 +112,7 @@ class EnsureTenantSubscriptionActiveTest extends TestCase
 
     public function test_a_real_request_to_a_gated_route_passes_for_an_active_tenant(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::provisioned();
         CreateTenantDomain::run($tenant, $tenant->id);
 
         $this->get('http://'.$this->tenantDomain($tenant->id).'/gated-probe')
@@ -126,7 +127,7 @@ class EnsureTenantSubscriptionActiveTest extends TestCase
      */
     public function test_a_real_request_to_a_gated_route_bounces_a_suspended_tenant(): void
     {
-        $tenant = Tenant::factory()->create(['suspended_at' => now()]);
+        $tenant = TestTenant::provisioned(['suspended_at' => now()]);
         CreateTenantDomain::run($tenant, $tenant->id);
 
         $this->get('http://'.$this->tenantDomain($tenant->id).'/gated-probe')

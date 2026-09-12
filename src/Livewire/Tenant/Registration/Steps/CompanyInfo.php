@@ -6,20 +6,20 @@ namespace Nvade\Numerosis\Livewire\Tenant\Registration\Steps;
 
 use Illuminate\Contracts\View\View;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Override;
 use Spatie\LivewireWizard\Components\StepComponent;
 
 class CompanyInfo extends StepComponent implements ProvidesTenantIdentity
 {
-    public string $company_name = '';
+    public string $name = '';
 
     /**
      * @return array<string, list<mixed>>
      */
     public function rules(): array
     {
-        return TenantRegistrationData::rules();
+        return TenantProvisionData::rules();
     }
 
     public function continue(): void
@@ -30,9 +30,9 @@ class CompanyInfo extends StepComponent implements ProvidesTenantIdentity
     }
 
     #[Override]
-    public function tenantIdentityStateKeys(): array
+    public static function tenantIdentityStateKeys(): array
     {
-        return ['company_name'];
+        return ['name'];
     }
 
     public function render(): View

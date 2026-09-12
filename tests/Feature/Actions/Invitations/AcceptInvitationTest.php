@@ -18,6 +18,7 @@ use Nvade\Numerosis\Exceptions\Invitations\InvitationEmailMismatch;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationExpired;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\Membership;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 use RuntimeException;
 
@@ -27,9 +28,9 @@ class AcceptInvitationTest extends TestCase
 
     public function test_happy_path_creates_a_membership_and_a_tenant_user_row_without_running_the_queue(): void
     {
-        Event::fake([MemberJoined::class, InvitationAccepted::class]);
+        $tenant = TestTenant::provisioned(['provisioned_at' => now()]);
 
-        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
+        Event::fake([MemberJoined::class, InvitationAccepted::class]);
         Queue::fake();
 
         $user = CentralUser::factory()->create();
@@ -53,9 +54,9 @@ class AcceptInvitationTest extends TestCase
 
     public function test_double_accept_is_idempotent(): void
     {
-        Event::fake([MemberJoined::class]);
+        $tenant = TestTenant::provisioned(['provisioned_at' => now()]);
 
-        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
+        Event::fake([MemberJoined::class]);
         Queue::fake();
 
         $user = CentralUser::factory()->create();
@@ -67,7 +68,7 @@ class AcceptInvitationTest extends TestCase
         AcceptInvitation::run($invitation, $user);
 
         try {
-            AcceptInvitation::run($invitation->fresh(), $user);
+            AcceptInvitation::run($invitation->refresh(), $user);
             $this->fail('Expected InvitationAlreadyAccepted to be thrown.');
         } catch (InvitationAlreadyAccepted) {
             // expected
@@ -91,9 +92,9 @@ class AcceptInvitationTest extends TestCase
      */
     public function test_a_concurrent_accept_that_lost_the_race_refuses_cleanly(): void
     {
-        Event::fake([MemberJoined::class, InvitationAccepted::class]);
+        $tenant = TestTenant::provisioned(['provisioned_at' => now()]);
 
-        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
+        Event::fake([MemberJoined::class, InvitationAccepted::class]);
         Queue::fake();
 
         $user = CentralUser::factory()->create();
@@ -108,7 +109,7 @@ class AcceptInvitationTest extends TestCase
         $this->assertFalse($stale->isAccepted());
 
         // Request B commits in between.
-        AcceptInvitation::run($invitation->fresh(), $user);
+        AcceptInvitation::run($invitation->refresh(), $user);
 
         $this->expectException(InvitationAlreadyAccepted::class);
 
@@ -139,7 +140,7 @@ class AcceptInvitationTest extends TestCase
      */
     public function test_a_failed_acceptance_leaves_no_tenant_side_user_row(): void
     {
-        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
+        $tenant = TestTenant::provisioned(['provisioned_at' => now()]);
         Queue::fake();
 
         $user = CentralUser::factory()->create();
@@ -180,7 +181,7 @@ class AcceptInvitationTest extends TestCase
      */
     public function test_a_failed_acceptance_dispatches_no_member_joined(): void
     {
-        $tenant = Tenant::factory()->create(['provisioned_at' => now()]);
+        $tenant = TestTenant::provisioned(['provisioned_at' => now()]);
         Queue::fake();
 
         $user = CentralUser::factory()->create();
@@ -214,7 +215,7 @@ class AcceptInvitationTest extends TestCase
 
     public function test_an_expired_invitation_refuses_without_creating_a_membership(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::provisioned();
         Queue::fake();
 
         $user = CentralUser::factory()->create();
@@ -233,7 +234,7 @@ class AcceptInvitationTest extends TestCase
 
     public function test_a_mismatched_email_is_refused_without_creating_a_membership(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = TestTenant::provisioned();
         Queue::fake();
 
         $user = CentralUser::factory()->create(['email' => 'actual-owner@example.com']);

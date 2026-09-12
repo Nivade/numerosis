@@ -13,14 +13,17 @@ use Nvade\Numerosis\Actions\Billing\Subscriptions\RecordSubscription;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
+use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\TestCase;
 
 class CreateTenantTest extends TestCase
 {
+    use BuildsTenantProvisionData;
     use RefreshDatabase;
 
     /**
@@ -35,13 +38,13 @@ class CreateTenantTest extends TestCase
         ]);
 
         $tenantId = 'sync-db-tenant-'.uniqid();
-        $registration = TenantRegistrationData::from([
-            'company_name' => 'Sync DB Co',
-            'domain' => $tenantId,
+        $registration = TenantProvisionData::from([
+            'name' => 'Sync DB Co',
+            'slug' => $tenantId,
             'global_id' => $user->global_id,
         ]);
 
-        CreateTenant::run($registration);
+        CreateTenant::run($this->provisionRow($user, $tenantId));
 
         // Tenant/Domain live on the `central` connection (Tenant model's
         // CentralConnection trait), a separate PDO session from the default
@@ -69,19 +72,17 @@ class CreateTenantTest extends TestCase
         ]);
 
         $tenantId = 'test-tenant-'.uniqid();
-        $registration = TenantRegistrationData::from([
-            'payment_plan' => 'test-plan',
-            'billing_cycle' => BillingCycle::Monthly,
-            'company_name' => 'Test Company',
-            'domain' => $tenantId,
-            'global_id' => $user->global_id,
-        ]);
+        $registration = new TenantProvisionData(
+            slug: $tenantId,
+            name: 'Test Company',
+            contributions: [
+                new OwnerContribution($user->global_id),
+                new BillingContribution(payment_plan: 'test-plan', billing_cycle: BillingCycle::Monthly),
+            ],
+        );
 
         // Act
-        ProvisionTenant::run(new TenantProvisionData(
-            registration: $registration,
-            centralUserId: (string) $user->id,
-        ));
+        ProvisionTenant::make()->queue($registration->withContributions([new BillingContribution(central_user_id: (string) $user->id)]));
 
         $tenant = Tenant::findOrFail($tenantId);
 

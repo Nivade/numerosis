@@ -16,7 +16,8 @@ use Nvade\Numerosis\Contracts\Billing\UnpaidTenantQuota;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Events\Billing\CheckoutStarted;
 use Nvade\Numerosis\Http\Requests\Billing\StartCheckoutRequest;
 use Nvade\Numerosis\Http\Responses\Billing\CheckoutIntentResponse;
@@ -33,9 +34,11 @@ class StartSubscriptionCheckout
         private readonly UnpaidTenantQuota $unpaidTenantQuota,
     ) {}
 
-    public function handle(TenantRegistrationData $registration): CheckoutIntent
+    public function handle(TenantProvisionData $registration): CheckoutIntent
     {
-        $plan = $this->plans->findBySlugOrFail((string) $registration->payment_plan);
+        $billing = $registration->contribution(BillingContribution::class);
+
+        $plan = $this->plans->findBySlugOrFail((string) $billing?->payment_plan);
 
         $billable = $this->billables->resolve();
 
@@ -49,13 +52,13 @@ class StartSubscriptionCheckout
 
         ReserveTenantDomain::run($registration);
 
-        event(new CheckoutStarted($registration->domain, (string) $registration->payment_plan));
+        event(new CheckoutStarted($registration->slug, (string) $billing?->payment_plan));
 
         return $this->gateway->begin($registration);
     }
 
     public function asController(StartCheckoutRequest $request): Responsable
     {
-        return CheckoutIntentResponse::for($this->handle($request->toRegistrationData()));
+        return CheckoutIntentResponse::for($this->handle($request->toProvisionData()));
     }
 }

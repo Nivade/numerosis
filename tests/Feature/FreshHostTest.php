@@ -4,22 +4,29 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature;
 
+use App\Models\Central\CentralUser;
 use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Nvade\Numerosis\Jobs\SeedTenantDatabase;
+use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
+use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
+use Nvade\Numerosis\Actions\Tenancy\LinkTenantSubscription;
+use Nvade\Numerosis\Actions\Tenancy\MigrateTenantDatabase;
+use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
+use Nvade\Numerosis\Actions\Tenancy\SeedTenantDatabase;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\NumerosisServiceProvider;
-use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
 use Orchestra\Testbench\TestCase as Orchestra;
 use PDO;
-use Stancl\Tenancy\Jobs\CreateDatabase;
-use Stancl\Tenancy\Jobs\MigrateDatabase;
 
 /**
  * Proves docs/host-requirements.md §1's own claim: a host supplying only the
@@ -66,7 +73,8 @@ class FreshHostTest extends Orchestra
     private const string DB_DATABASE = 'testing_fresh_host';
 
     /** @var list<class-string>|null */
-    private ?array $originalTenantCreatedJobs = null;
+    /** @var list<class-string>|null */
+    private ?array $originalProvisioningSteps = null;
 
     private ?string $provisionedTenantDatabase = null;
 
@@ -171,26 +179,30 @@ class FreshHostTest extends Orchestra
         $pdo = new PDO('mysql:host=127.0.0.1;port=3306', 'root', 'root');
         $pdo->exec('CREATE DATABASE IF NOT EXISTS `'.self::DB_DATABASE.'`');
 
-        // tests/Pest.php overrides this to the CloneTenantSchema shortcut,
-        // process-wide, for every test in the suite — correct for speed
-        // everywhere else, wrong here: this test's entire point is proving
-        // the *real* CreateDatabase+MigrateDatabase+SeedTenantDatabase
-        // pipeline works against nothing but HostConfig's own defaults.
-        // Restored in tearDown() so this override doesn't leak into
-        // whichever test runs next.
-        $this->originalTenantCreatedJobs = TenancyServiceProvider::$tenantCreatedJobs;
-        TenancyServiceProvider::$tenantCreatedJobs = [
-            CreateDatabase::class,
-            MigrateDatabase::class,
-            SeedTenantDatabase::class,
-        ];
-
         // Without this, every putenv() above is silently reverted to
         // Testbench's own `.env` value on the second and later boots in a
         // process — so this test passes run alone and fails run in the suite.
         self::forgetMemoizedEnvironmentRepository();
 
         parent::setUp();
+
+        // TestCase swaps the migrate and seed steps for the CloneTenantSchema
+        // shortcut, which is right for speed everywhere else and wrong here:
+        // this test's whole point is the *real* steps running against nothing
+        // but HostConfig's own defaults. Set after parent::setUp() because
+        // there is no facade root before it. Restored in tearDown().
+        /** @var list<class-string> $steps */
+        $steps = Config::array('numerosis.tenancy.provisioning.steps');
+        $this->originalProvisioningSteps = $steps;
+        Config::set('numerosis.tenancy.provisioning.steps', [
+            CreateTenant::class,
+            CreateTenantDatabase::class,
+            MigrateTenantDatabase::class,
+            SeedTenantDatabase::class,
+            AddTenantOwner::class,
+            LinkTenantSubscription::class,
+            FinalizeTenantProvisioning::class,
+        ]);
 
         $this->stubViteManifest();
 
@@ -205,15 +217,15 @@ class FreshHostTest extends Orchestra
             $pdo->exec("DROP DATABASE IF EXISTS `{$name}`");
         }
 
-        if ($this->originalTenantCreatedJobs !== null) {
-            TenancyServiceProvider::$tenantCreatedJobs = $this->originalTenantCreatedJobs;
+        if ($this->originalProvisioningSteps !== null) {
+            Config::set('numerosis.tenancy.provisioning.steps', $this->originalProvisioningSteps);
         }
 
         parent::tearDown();
 
         // Dedicated database, unused by any other test — dropped wholesale
         // rather than reasoning about which connection wrote what, unlike
-        // Tests\TestCase's deleteCentralWrites()/deleteTenantDatabases(),
+        // CleansUpTenancyDatabases' central-write and tenant-database sweeps,
         // which exist only because that harness shares `testing` with
         // every other test in the suite.
         $pdo = new PDO('mysql:host=127.0.0.1;port=3306', 'root', 'root');
@@ -349,15 +361,25 @@ class FreshHostTest extends Orchestra
 
     public function test_a_tenant_provisions_end_to_end_through_the_real_pipeline(): void
     {
-        $tenant = Tenant::create(['id' => 'freshhosttenant']);
+        $owner = CentralUser::factory()->create();
+
+        // Through the entry point production uses, not by creating a Tenant
+        // row: building a database is a provisioning step now, never a side
+        // effect of a model event.
+        ProvisionTenant::make()->queue(new TenantProvisionData(
+            slug: 'freshhosttenant',
+            name: 'Fresh Host Co',
+            contributions: [new OwnerContribution($owner->global_id)],
+        ));
+
+        $tenant = Tenant::findOrFail('freshhosttenant');
 
         $prefix = Config::string('tenancy.database.prefix', 'tenant');
         $this->provisionedTenantDatabase = $prefix.$tenant->getTenantKey();
 
-        // QUEUE_CONNECTION=sync, forced in setUp() above, is what makes the
-        // TenantCreated pipeline this setUp() restored to the real
-        // CreateDatabase+MigrateDatabase+SeedTenantDatabase jobs run
-        // synchronously, inline, right here.
+        // QUEUE_CONNECTION=sync, forced in setUp() above, is what makes every
+        // link of the chain -- including the real database steps this setUp()
+        // restored -- run synchronously, inline, right here.
         $this->assertTrue(
             DB::connection('central')->getSchemaBuilder()->hasTable('tenants'),
         );

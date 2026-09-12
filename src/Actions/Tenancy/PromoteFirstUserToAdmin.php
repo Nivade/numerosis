@@ -5,18 +5,40 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Tenancy\ConsumesContributions;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Events\Auth\AdminGranted;
 use Nvade\Numerosis\Exceptions\Tenancy\NoPromotableUser;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Models\Tenant\User;
 use Nvade\Numerosis\Numerosis;
 
-class PromoteFirstUserToAdmin
+/**
+ * Makes the tenant's first non-bot user its admin.
+ *
+ * Its own step rather than a call inside `FinalizeTenantProvisioning`, so the
+ * runner decides whether it applies: a tenant provisioned with no owner has
+ * nobody to promote, and `NoPromotableUser` keeps meaning what it should —
+ * an owner was contributed and the row that should exist does not.
+ */
+class PromoteFirstUserToAdmin implements ConsumesContributions, ProvisioningStep
 {
     use AsAction;
 
-    public function handle(Tenant $tenant): void
+    /**
+     * @return list<class-string<ProvisionContribution>>
+     */
+    public static function consumes(): array
     {
+        return [OwnerContribution::class];
+    }
+
+    public function handle(TenantProvision $provision): void
+    {
+        $tenant = Numerosis::model(Tenant::class)::findOrFail($provision->slug);
         $userClass = Numerosis::model(User::class);
         $tenantId = (string) $tenant->getTenantKey();
 

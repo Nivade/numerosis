@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use App\Models\Central\CentralUser;
 use App\Models\Central\PaymentPlan;
-use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
@@ -58,8 +58,8 @@ it('advances through the wizard steps and reserves the domain', function (): voi
 
     $page->assertSee('Company Information');
 
-    $page->type('company_name', 'Acme Industries')
-        ->keys('company_name', 'Tab')
+    $page->type('name', 'Acme Industries')
+        ->keys('name', 'Tab')
         ->wait(1)
         ->click('Continue')
         ->wait(2)
@@ -75,10 +75,10 @@ it('advances through the wizard steps and reserves the domain', function (): voi
     // TechnicalSetup::continue() reserves the domain before the plan is
     // picked, so a domain someone else claims mid-wizard is caught before the
     // user starts paying.
-    $pending = PendingTenantProvision::find('acme');
+    $pending = TenantProvision::find('acme');
 
     expect($pending)->not->toBeNull();
-    expect($pending?->company_name)->toBe('Acme Industries');
+    expect($pending?->name)->toBe('Acme Industries');
 });
 
 /**
@@ -102,8 +102,8 @@ it('provisions a tenant end to end through the wizard', function (): void {
     app()->bind(CheckoutGateway::class, LocalCheckoutGateway::class);
 
     visit('/get-started')
-        ->type('company_name', 'Acme Industries')
-        ->keys('company_name', 'Tab')
+        ->type('name', 'Acme Industries')
+        ->keys('name', 'Tab')
         ->wait(1)
         ->click('Continue')
         ->wait(2)

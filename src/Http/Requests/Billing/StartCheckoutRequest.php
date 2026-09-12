@@ -9,7 +9,9 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Models\User;
 
@@ -32,8 +34,8 @@ class StartCheckoutRequest extends FormRequest
     public function rules(): array
     {
         return [
-            ...TenantRegistrationData::rules(),
-            'domain' => [
+            ...TenantProvisionData::rules(),
+            'slug' => [
                 'required',
                 'string',
                 'max:255',
@@ -55,8 +57,25 @@ class StartCheckoutRequest extends FormRequest
         ];
     }
 
-    public function toRegistrationData(): TenantRegistrationData
+    /**
+     * Everything but the slug and the name is contributed: the owner belongs
+     * to a relationship and the plan to billing, neither to what a tenant is.
+     */
+    public function toProvisionData(): TenantProvisionData
     {
-        return TenantRegistrationData::from($this->validated());
+        /** @var array{slug: string, name: string, global_id: string, payment_plan?: string|null, billing_cycle: string} $validated */
+        $validated = $this->validated();
+
+        return new TenantProvisionData(
+            slug: $validated['slug'],
+            name: $validated['name'],
+            contributions: [
+                new OwnerContribution($validated['global_id']),
+                new BillingContribution(
+                    payment_plan: $validated['payment_plan'] ?? null,
+                    billing_cycle: BillingCycle::from($validated['billing_cycle']),
+                ),
+            ],
+        );
     }
 }

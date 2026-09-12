@@ -1,6 +1,6 @@
 {{--
-    Everything Stripe touches lives in this one component, on purpose — see
-    custom-checkout.md, "Frontend". A Livewire re-render that reaches inside
+    Everything Stripe touches lives in this one component, on purpose. A
+    Livewire re-render that reaches inside
     the wire:ignore'd mount div would destroy the iframe and whatever the
     customer typed, with no error shown. x-data lives on the parent wrapper
     (payment.blade.php) so the shared footer's Subscribe button can reach

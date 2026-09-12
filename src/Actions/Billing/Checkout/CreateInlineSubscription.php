@@ -13,8 +13,8 @@ use Nvade\Numerosis\Contracts\Billing\TrialResolver;
 use Nvade\Numerosis\Exceptions\Billing\BillingCycleRequired;
 use Nvade\Numerosis\Exceptions\Billing\StripePriceNotConfigured;
 use Nvade\Numerosis\Exceptions\Billing\UnsupportedBillable;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use RuntimeException;
 use Stripe\Exception\ApiErrorException;
 
@@ -28,7 +28,7 @@ use Stripe\Exception\ApiErrorException;
  * @throws IncompletePayment
  * @throws ApiErrorException the Stripe call underneath `newSubscription()->create()`
  *
- * @method static Subscription run(PendingTenantProvision $pending, string $paymentMethodId, ?BillableUser $billable = null)
+ * @method static Subscription run(TenantProvision $pending, string $paymentMethodId, ?BillableUser $billable = null)
  */
 class CreateInlineSubscription
 {
@@ -40,7 +40,7 @@ class CreateInlineSubscription
         private readonly TrialResolver $trials,
     ) {}
 
-    public function handle(PendingTenantProvision $pending, string $paymentMethodId, ?BillableUser $billable = null): Subscription
+    public function handle(TenantProvision $pending, string $paymentMethodId, ?BillableUser $billable = null): Subscription
     {
         $plan = $this->plans->findBySlugOrFail((string) $pending->payment_plan);
 
@@ -59,7 +59,7 @@ class CreateInlineSubscription
         throw_unless($billable instanceof BillableUser, UnsupportedBillable::class, 'Billable must be a central user to create an inline subscription.');
 
         $stripeSubscription = $billable->newSubscription('default', $priceId)
-            ->withMetadata(['domain' => $pending->domain]);
+            ->withMetadata(['slug' => $pending->slug]);
 
         $additionalPrices = $plan->metadata()['additional_prices'] ?? [];
 

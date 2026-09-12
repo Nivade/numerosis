@@ -9,17 +9,23 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
+use Nvade\Numerosis\Contracts\Tenancy\ContributesProvisionData;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
+use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
+use Nvade\Numerosis\Exceptions\Tenancy\MissingTenantIdentity;
+use Nvade\Numerosis\Livewire\Tenant\Registration\ReadsRegistrationState;
 use Nvade\Numerosis\Rules\CustomDomainIsAvailable;
 use Nvade\Numerosis\Rules\DomainIsAvailable;
 use Override;
 use Spatie\LivewireWizard\Components\StepComponent;
 
-class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
+class TechnicalSetup extends StepComponent implements ContributesProvisionData, ProvidesTenantIdentity
 {
+    use ReadsRegistrationState;
+
     /**
      * Always the tenant's safe id/slug, whatever the mode.
      *
@@ -34,8 +40,21 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
      */
     public string $customDomain = '';
 
+    /**
+     * Only under IdentificationMode::CustomDomain; otherwise the tenant has no
+     * domain of its own to contribute.
+     */
+    public static function contribute(array $state): ?ProvisionContribution
+    {
+        $customDomain = $state['customDomain'] ?? null;
+
+        return is_string($customDomain) && $customDomain !== ''
+            ? new CustomDomainContribution($customDomain)
+            : null;
+    }
+
     #[Override]
-    public function tenantIdentityStateKeys(): array
+    public static function tenantIdentityStateKeys(): array
     {
         return IdentificationMode::current() === IdentificationMode::CustomDomain
             ? ['domain', 'customDomain']
@@ -69,7 +88,7 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
                 'required',
                 'string',
                 new DomainIsAvailable,
-                $this->unreservedByAnyoneElse('domain', $user?->global_id),
+                $this->unreservedByAnyoneElse('slug', $user?->global_id),
             ],
         ];
 
@@ -91,7 +110,7 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
      */
     private function unreservedByAnyoneElse(string $column, ?string $globalId): Unique
     {
-        return Rule::unique('pending_tenant_provisions', $column)
+        return Rule::unique('tenant_provisions', $column)
             ->where(fn ($query) => $query->where('global_id', '!=', $globalId));
     }
 
@@ -104,25 +123,23 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
     {
         $this->validate();
 
-        $companyName = $this->state()->get('company_name');
-
-        if (blank($companyName)) {
-            $this->showStep('company-info');
-
-            return;
-        }
-
         $user = GetAuthenticatedUser::run();
 
         abort_if($user === null, 403);
 
         try {
-            ReserveTenantDomain::run(new TenantRegistrationData(
-                company_name: (string) $companyName,
-                domain: $this->domain,
-                global_id: $user->global_id,
-                custom_domain: $this->customDomain !== '' ? $this->customDomain : null,
-            ));
+            // This step's own values are not in the wizard state yet -- state
+            // is written on submit -- so the slug and its contribution are
+            // passed in rather than collected.
+            $data = $this->registrationState()
+                ->provisionData($user->global_id, slug: $this->domain)
+                ->withContributions(array_filter([self::contribute(['customDomain' => $this->customDomain])]));
+
+            ReserveTenantDomain::run($data);
+        } catch (MissingTenantIdentity $e) {
+            $this->showStep($e->step);
+
+            return;
         } catch (ShowsMessageToUser $e) {
             $this->addError('domain', $e->getMessage());
 

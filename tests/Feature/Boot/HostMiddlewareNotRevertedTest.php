@@ -33,6 +33,17 @@ afterEach(function (): void {
     TrustProxies::flushState();
 });
 
+it('trusts no proxy by default when a host wires Numerosis::middleware() itself', function () {
+    // The package's own initial boot already ran the self-heal once (nothing
+    // has called Numerosis::middleware() yet at that point), so start from a
+    // clean slate rather than asserting against whatever that left behind.
+    TrustProxies::flushState();
+
+    Numerosis::middleware(new Middleware);
+
+    expect(trustedProxies())->toBeNull();
+});
+
 it('leaves a host alias swap and trust config alone once Numerosis::middleware() has run', function () {
     Numerosis::middleware(new Middleware);
 
@@ -55,7 +66,30 @@ it('still self heals for a host that never called Numerosis::middleware()', func
     bootRegisterMiddleware();
 
     expect($router->getMiddleware()['tenancy.identification'])->toBe(InitializeTenancy::class)
-        ->and(trustedProxies())->toBe('*');
+        // Trusts nobody by default — trusting '*' unconditionally made
+        // every IP-keyed rate limiter spoofable by anyone reaching the app
+        // directly. See .ai/rules/middleware-registration.md.
+        ->and(trustedProxies())->toBe([]);
+});
+
+it('reads numerosis.trusted_proxies for the self healing fallback', function () {
+    Numerosis::resetMiddlewareRegisteredForTesting();
+
+    config(['numerosis.trusted_proxies' => ['10.0.0.0/8']]);
+
+    bootRegisterMiddleware();
+
+    expect(trustedProxies())->toBe(['10.0.0.0/8']);
+});
+
+it('lets a host opt every proxy in through numerosis.trusted_proxies', function () {
+    Numerosis::resetMiddlewareRegisteredForTesting();
+
+    config(['numerosis.trusted_proxies' => '*']);
+
+    bootRegisterMiddleware();
+
+    expect(trustedProxies())->toBe('*');
 });
 
 class HostReplacementMiddleware

@@ -33,7 +33,7 @@ class ResolveSetupIntentTest extends TestCase
 
         $resolved = ResolveSetupIntent::run($setupIntent->id);
 
-        $this->assertSame($pending->domain, $resolved->pending->domain);
+        $this->assertSame($pending->slug, $resolved->pending->slug);
         $this->assertSame($setupIntent->payment_method, $resolved->paymentMethodId());
         $this->assertSame($setupIntent->payment_method, $resolved->paymentMethod->id);
     }
@@ -138,6 +138,6 @@ class ResolveSetupIntentTest extends TestCase
 
         $resolved = ResolveSetupIntent::run($setupIntent->id);
 
-        $this->assertSame('cancelled-completed-test', $resolved->pending->domain);
+        $this->assertSame('cancelled-completed-test', $resolved->pending->slug);
     }
 }

@@ -9,6 +9,7 @@ use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Queries\GetTenantsByGlobalId;
 use Nvade\Numerosis\Tests\Concerns\PinsGlobalCache;
+use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 
 class GetTenantsByGlobalIdTest extends TestCase
@@ -27,8 +28,8 @@ class GetTenantsByGlobalIdTest extends TestCase
             'password' => 'password',
         ]);
 
-        $tenant1 = Tenant::create(['id' => 'tenant-'.uniqid(), 'data' => ['name' => 'Tenant 1']]);
-        $tenant2 = Tenant::create(['id' => 'tenant-'.uniqid(), 'data' => ['name' => 'Tenant 2']]);
+        $tenant1 = TestTenant::provisioned(['id' => 'tenant-'.uniqid(), 'data' => ['name' => 'Tenant 1']]);
+        $tenant2 = TestTenant::provisioned(['id' => 'tenant-'.uniqid(), 'data' => ['name' => 'Tenant 2']]);
 
         $user->tenants()->attach([$tenant1->id, $tenant2->id]);
 
@@ -58,7 +59,7 @@ class GetTenantsByGlobalIdTest extends TestCase
             'password' => 'password',
         ]);
 
-        $tenant = Tenant::create(['id' => 'tenant-'.uniqid(), 'data' => ['name' => 'Tenant 3']]);
+        $tenant = TestTenant::provisioned(['id' => 'tenant-'.uniqid(), 'data' => ['name' => 'Tenant 3']]);
         $user->tenants()->attach($tenant->id);
 
         // Act
@@ -97,7 +98,7 @@ class GetTenantsByGlobalIdTest extends TestCase
             'password' => 'password',
         ]);
 
-        $tenant = Tenant::create(['id' => 'tenant-'.uniqid(), 'data' => ['name' => 'Tenant 4']]);
+        $tenant = TestTenant::provisioned(['id' => 'tenant-'.uniqid(), 'data' => ['name' => 'Tenant 4']]);
         $user->tenants()->attach($tenant->id);
 
         $tenantsBefore = GetTenantsByGlobalId::run($globalId);

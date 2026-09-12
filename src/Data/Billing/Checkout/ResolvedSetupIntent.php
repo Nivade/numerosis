@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Data\Billing\Checkout;
 
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Stripe\PaymentMethod;
 
 /**
@@ -16,7 +16,7 @@ use Stripe\PaymentMethod;
 final readonly class ResolvedSetupIntent
 {
     public function __construct(
-        public PendingTenantProvision $pending,
+        public TenantProvision $pending,
         public PaymentMethod $paymentMethod,
     ) {}
 
