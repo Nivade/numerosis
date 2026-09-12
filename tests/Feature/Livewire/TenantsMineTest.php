@@ -9,6 +9,8 @@ use App\Models\Central\Tenant;
 use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
+use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
 use Nvade\Numerosis\Tests\TestCase;
 
 class TenantsMineTest extends TestCase
@@ -173,7 +175,7 @@ class TenantsMineTest extends TestCase
         $this->assertNotNull(TenantProvision::find('notyours'));
     }
 
-    private function attach(CentralUser $user, Tenant $tenant): void
+    private function attach(BaseCentralUser $user, BaseTenant $tenant): void
     {
         $user->tenants()->attach($tenant, ['role' => 'owner', 'joined_at' => now()]);
     }

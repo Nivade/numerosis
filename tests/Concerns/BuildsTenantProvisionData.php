@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Concerns;
 
-use App\Models\Central\CentralUser;
-use App\Models\Central\Tenant;
 use App\Models\Central\TenantProvision;
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
+use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
+use Nvade\Numerosis\Models\Central\TenantProvision as BaseTenantProvision;
 
 /**
  * The payload `ProvisionTenant` and everything downstream of it take.
@@ -17,7 +18,7 @@ use Nvade\Numerosis\Enums\Billing\BillingCycle;
 trait BuildsTenantProvisionData
 {
     protected function provisionData(
-        CentralUser $user,
+        BaseCentralUser $user,
         string $slug,
         ?string $paymentPlan = null,
         ?string $stripeCustomerId = null,
@@ -41,9 +42,9 @@ trait BuildsTenantProvisionData
      * The provision row every step takes, for tests that call one step
      * directly rather than going through the chain.
      */
-    protected function provisionRow(CentralUser $user, string $slug, ?string $paymentPlan = null): TenantProvision
+    protected function provisionRow(BaseCentralUser $user, string $slug, ?string $paymentPlan = null): BaseTenantProvision
     {
-        /** @var TenantProvision $provision */
+        /** @var BaseTenantProvision $provision */
         $provision = TenantProvision::query()->forceCreate([
             'slug' => $slug,
             'name' => 'Test Company',
@@ -57,7 +58,7 @@ trait BuildsTenantProvisionData
     /**
      * The row `AddTenantOwner` takes, for an already-created tenant.
      */
-    protected function ownerProvisionRow(Tenant $tenant, CentralUser $user): TenantProvision
+    protected function ownerProvisionRow(BaseTenant $tenant, BaseCentralUser $user): BaseTenantProvision
     {
         return $this->provisionRow($user, (string) $tenant->getTenantKey());
     }

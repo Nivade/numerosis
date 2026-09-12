@@ -66,7 +66,7 @@ class SocialLoginTest extends TestCase
 
         $this->get('/auth/google/callback')->assertRedirect();
 
-        $this->assertAuthenticatedAs($user->fresh(), Config::string('numerosis.auth.guards.central'));
+        $this->assertAuthenticatedAs($user->refresh(), Config::string('numerosis.auth.guards.central'));
         $this->assertSame(1, SocialAccount::where('provider_id', $providerId)->count());
     }
 
@@ -278,7 +278,7 @@ class SocialLoginTest extends TestCase
 
         $this->get('/auth/google/callback')->assertRedirect();
 
-        $this->assertAuthenticatedAs($user->fresh(), Config::string('numerosis.auth.guards.central'));
+        $this->assertAuthenticatedAs($user->refresh(), Config::string('numerosis.auth.guards.central'));
         $this->assertSame(1, SocialAccount::where('user_id', $user->getKey())->count());
     }
 

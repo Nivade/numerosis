@@ -1,6 +1,7 @@
 laravel: '@testbench'
 
 providers:
+  - Nvade\Numerosis\NumerosisServiceProvider
   - Workbench\App\Providers\WorkbenchServiceProvider
 
 migrations:

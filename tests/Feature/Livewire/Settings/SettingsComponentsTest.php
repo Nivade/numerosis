@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 use Nvade\Numerosis\Livewire\Settings\Password;
 use Nvade\Numerosis\Livewire\Settings\Profile;
+use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -88,7 +89,7 @@ class SettingsComponentsTest extends TestCase
             ->assertHasErrors('current_password');
     }
 
-    private function signedInCentralUser(): CentralUser
+    private function signedInCentralUser(): BaseCentralUser
     {
         $user = CentralUser::factory()->create(['password' => Hash::make('password')]);
 

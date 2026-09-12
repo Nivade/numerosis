@@ -67,7 +67,7 @@ class AcceptInvitationTest extends TestCase
         AcceptInvitation::run($invitation, $user);
 
         try {
-            AcceptInvitation::run($invitation->fresh(), $user);
+            AcceptInvitation::run($invitation->refresh(), $user);
             $this->fail('Expected InvitationAlreadyAccepted to be thrown.');
         } catch (InvitationAlreadyAccepted) {
             // expected
@@ -108,7 +108,7 @@ class AcceptInvitationTest extends TestCase
         $this->assertFalse($stale->isAccepted());
 
         // Request B commits in between.
-        AcceptInvitation::run($invitation->fresh(), $user);
+        AcceptInvitation::run($invitation->refresh(), $user);
 
         $this->expectException(InvitationAlreadyAccepted::class);
 

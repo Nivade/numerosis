@@ -8,6 +8,7 @@ use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestView;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Models\Central\PaymentPlan as BasePaymentPlan;
 use Nvade\Numerosis\Services\Billing\BillingService;
 use Nvade\Numerosis\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -31,7 +32,7 @@ class PlanCardTest extends TestCase
     /**
      * @param  'display'|'selectable'  $type
      */
-    private function render(PaymentPlan $plan, BillingCycle $cycle, string $type): TestView
+    private function render(BasePaymentPlan $plan, BillingCycle $cycle, string $type): TestView
     {
         $price = resolve(BillingService::class)->formatAmount($plan->getPrice($cycle) ?? 0);
 
@@ -66,7 +67,10 @@ class PlanCardTest extends TestCase
         // EUR/nl, this harness runs the Cashier defaults). The claim here
         // is "a paid plan renders its price rather than 'Free'", and that
         // is true in every locale.
-        $price = resolve(BillingService::class)->formatAmount($plan->getPrice(BillingCycle::Monthly));
+        $amount = $plan->getPrice(BillingCycle::Monthly);
+        $this->assertNotNull($amount);
+
+        $price = resolve(BillingService::class)->formatAmount($amount);
 
         $this->render($plan, BillingCycle::Monthly, $type)
             ->assertSee($price)

@@ -8,6 +8,8 @@ use App\Models\Central\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
+use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
+use Nvade\Numerosis\Models\Tenant\User as BaseTenantUser;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -39,8 +41,8 @@ class TenantLandingPageTest extends TestCase
     {
         $tenant = $this->tenantOnItsOwnDomain();
 
-        /** @var TenantUser $user */
-        $user = $tenant->run(fn (): TenantUser => TenantUser::factory()->create());
+        /** @var BaseTenantUser $user */
+        $user = $tenant->run(fn (): BaseTenantUser => TenantUser::factory()->create());
 
         $tenant->run(function () use ($tenant, $user): void {
             $this->actingAsTenantUser($user);
@@ -51,7 +53,7 @@ class TenantLandingPageTest extends TestCase
         });
     }
 
-    private function tenantOnItsOwnDomain(): Tenant
+    private function tenantOnItsOwnDomain(): BaseTenant
     {
         $tenant = Tenant::factory()->create();
 

@@ -80,6 +80,7 @@ class CleansUpTenancyDatabasesTest extends TestCase
     {
         $tenant = Tenant::factory()->create();
         $database = $tenant->database()->getName();
+        $this->assertNotNull($database);
 
         $this->hiddenFromTeardown = [$database];
 

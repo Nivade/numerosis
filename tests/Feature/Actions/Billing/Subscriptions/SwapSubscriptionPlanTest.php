@@ -15,6 +15,8 @@ use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
+use Nvade\Numerosis\Models\Central\PaymentPlan as BasePaymentPlan;
+use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
 use Nvade\Numerosis\Tests\TestCase;
 
 class SwapSubscriptionPlanTest extends TestCase
@@ -83,7 +85,7 @@ class SwapSubscriptionPlanTest extends TestCase
      * `swapAndInvoice()` skips the real Stripe call. `SwapSubscriptionPlan`
      * still runs its own `update()` against this row.
      */
-    private function subscriptionWithoutStripe(Tenant $tenant, PaymentPlan $plan, string $stripePrice): Subscription
+    private function subscriptionWithoutStripe(BaseTenant $tenant, BasePaymentPlan $plan, string $stripePrice): Subscription
     {
         /** @var array<string, mixed> $attributes */
         $attributes = Subscription::factory()->for($tenant, 'subscribable')->raw([

@@ -208,7 +208,7 @@ class IdentificationModeTest extends TestCase
 
         $resolved = $tenant->resolveRouteBinding($tenant->id, 'id');
 
-        $this->assertNotNull($resolved);
+        $this->assertInstanceOf(Tenant::class, $resolved);
         $this->assertSame($tenant->id, $resolved->id);
     }
 

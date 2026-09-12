@@ -108,7 +108,10 @@ class InterviewShowcaseTest extends TestCase
         });
 
         // 6. Verify Ownership
-        $this->assertSame(MembershipRole::Owner, $user->tenants()->first()->pivot->role);
-        $this->assertEquals($tenant->id, $user->tenants()->first()->id);
+        $ownedTenant = $user->tenants()->first();
+
+        $this->assertNotNull($ownedTenant);
+        $this->assertSame(MembershipRole::Owner, $ownedTenant->pivot->role);
+        $this->assertEquals($tenant->id, $ownedTenant->id);
     }
 }

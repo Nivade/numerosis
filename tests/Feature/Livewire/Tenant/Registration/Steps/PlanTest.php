@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
+use Nvade\Numerosis\Models\Central\PaymentPlan as BasePaymentPlan;
 use Nvade\Numerosis\Models\Central\PlanFeature;
 use Nvade\Numerosis\Tests\Concerns\PinsGlobalCache;
 use Nvade\Numerosis\Tests\TestCase;
@@ -62,7 +63,7 @@ class PlanTest extends TestCase
         $this->pinGlobalCache();
 
         PaymentPlan::factory()->count(4)->create(['available' => true])
-            ->each(fn (PaymentPlan $plan) => $plan->features()->attach(
+            ->each(fn (BasePaymentPlan $plan) => $plan->features()->attach(
                 PlanFeature::factory()->count(8)->create()->pluck('id'),
                 ['available' => true],
             ));

@@ -8,6 +8,9 @@ use App\Models\Central\CentralUser;
 use App\Models\Central\PaymentPlan;
 use App\Models\Central\TenantProvision;
 use Laravel\Cashier\Cashier;
+use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
+use Nvade\Numerosis\Models\Central\PaymentPlan as BasePaymentPlan;
+use Nvade\Numerosis\Models\Central\TenantProvision as BaseTenantProvision;
 use Stripe\PaymentMethod;
 use Stripe\SetupIntent;
 
@@ -43,7 +46,7 @@ trait CreatesCheckoutFixtures
      * A signed-in central user, the account every checkout here is reserved
      * and billed against.
      */
-    protected function signedInCustomer(): CentralUser
+    protected function signedInCustomer(): BaseCentralUser
     {
         $user = CentralUser::factory()->create();
 
@@ -55,7 +58,7 @@ trait CreatesCheckoutFixtures
     /**
      * The `starter` plan, priced against a real Stripe price on both cycles.
      */
-    protected function createStarterPlan(string $priceId): PaymentPlan
+    protected function createStarterPlan(string $priceId): BasePaymentPlan
     {
         return PaymentPlan::factory()->create([
             'name' => 'Starter',
@@ -101,7 +104,7 @@ trait CreatesCheckoutFixtures
      * anything reaching automatic tax passes the id of a
      * {@see cardWithBillingAddress()} instead.
      */
-    protected function confirmedSetupIntentFor(CentralUser $user, string $paymentMethodId = 'pm_card_visa'): SetupIntent
+    protected function confirmedSetupIntentFor(BaseCentralUser $user, string $paymentMethodId = 'pm_card_visa'): SetupIntent
     {
         return Cashier::stripe()->setupIntents->create([
             'customer' => $user->createOrGetStripeCustomer()->id,
@@ -115,7 +118,7 @@ trait CreatesCheckoutFixtures
      * An unconfirmed SetupIntent for the user's customer — what the checkout
      * component mounts against before the customer has paid anything.
      */
-    protected function openSetupIntentFor(CentralUser $user): SetupIntent
+    protected function openSetupIntentFor(BaseCentralUser $user): SetupIntent
     {
         return Cashier::stripe()->setupIntents->create([
             'customer' => $user->createOrGetStripeCustomer()->id,
@@ -128,7 +131,7 @@ trait CreatesCheckoutFixtures
      *
      * @param  array<string, mixed>  $attributes
      */
-    protected function reserve(string $domain, CentralUser $user, ?string $setupIntentId, array $attributes = []): TenantProvision
+    protected function reserve(string $domain, BaseCentralUser $user, ?string $setupIntentId, array $attributes = []): BaseTenantProvision
     {
         return TenantProvision::factory()->create([
             'slug' => $domain,

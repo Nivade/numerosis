@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
+use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
 use Nvade\Numerosis\Tests\TestCase;
 use Spatie\OneTimePasswords\Notifications\OneTimePasswordNotification;
 
@@ -222,7 +223,7 @@ class OneTimePasswordLoginTest extends TestCase
      * so under the default REPEATABLE READ isolation the `mysql` connection's
      * open transaction never sees a row committed through `central`.
      */
-    private function latestCodeFor(CentralUser $user): string
+    private function latestCodeFor(BaseCentralUser $user): string
     {
         $code = $user->oneTimePasswords()->latest('id')->first()?->getAttribute('password');
 
