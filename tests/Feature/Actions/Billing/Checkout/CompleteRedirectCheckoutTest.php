@@ -9,10 +9,12 @@ use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Enums\FlashKey;
 use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
 use Nvade\Numerosis\Tests\TestCase;
+use Nvade\NumerosisUi\Enums\Severity;
 
 /**
  * This is the test that keeps the multi-method promise honest — see
@@ -86,7 +88,7 @@ class CompleteRedirectCheckoutTest extends TestCase
         // Replay: same setup_intent hits the return route a second time.
         $this->get(route('checkout.subscription.return', ['setup_intent' => $setupIntent->id]))
             ->assertRedirect(route('tenants.mine'))
-            ->assertSessionHas('success');
+            ->assertSessionHas(FlashKey::Status->value, fn (array $status): bool => $status[0] === Severity::Success);
 
         $pending = TenantProvision::find('replay-return-test');
         $this->assertSame($subscriptionId, $pending?->stripe_subscription_id);
@@ -105,7 +107,7 @@ class CompleteRedirectCheckoutTest extends TestCase
         $this->actingAs($attacker)
             ->get(route('checkout.subscription.return', ['setup_intent' => 'seti_not_the_attackers']))
             ->assertRedirect(route('tenants.create'))
-            ->assertSessionHas('error');
+            ->assertSessionHas(FlashKey::Status->value, fn (array $status): bool => $status[0] === Severity::Error);
     }
 
     /**
@@ -125,6 +127,6 @@ class CompleteRedirectCheckoutTest extends TestCase
         $this->actingAs($attacker)
             ->get(route('checkout.subscription.return', ['setup_intent' => 'seti_not_the_attackers_wizard_off']))
             ->assertRedirect(route('home'))
-            ->assertSessionHas('error');
+            ->assertSessionHas(FlashKey::Status->value, fn (array $status): bool => $status[0] === Severity::Error);
     }
 }

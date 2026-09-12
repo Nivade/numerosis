@@ -9,6 +9,8 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Data\Billing\ReusablePaymentMethods;
 use Nvade\Numerosis\Data\Billing\SavedPaymentMethodOption;
+use Nvade\Numerosis\Enums\Billing\PaymentMethodType;
+use Nvade\Numerosis\Enums\FetchState;
 use Stripe\Customer;
 use Stripe\Exception\ApiErrorException;
 
@@ -31,15 +33,15 @@ class FetchReusablePaymentMethods
         $customer ??= FetchStripeCustomer::run($billable);
 
         if ($customer === null) {
-            return new ReusablePaymentMethods(collect(), fetchFailed: true);
+            return new ReusablePaymentMethods(collect(), fetchState: FetchState::Failed);
         }
 
         try {
-            $paymentMethods = $billable->paymentMethods('card', ['limit' => 10]);
+            $paymentMethods = $billable->paymentMethods(PaymentMethodType::Card->value, ['limit' => 10]);
         } catch (ApiErrorException $e) {
             report($e);
 
-            return new ReusablePaymentMethods(collect(), fetchFailed: true);
+            return new ReusablePaymentMethods(collect(), fetchState: FetchState::Failed);
         }
 
         $defaultId = $customer->invoice_settings->default_payment_method ?? null;
@@ -49,7 +51,7 @@ class FetchReusablePaymentMethods
 
             return new SavedPaymentMethodOption(
                 id: $stripePaymentMethod->id,
-                brand: $stripePaymentMethod->card->brand ?? 'card',
+                brand: $stripePaymentMethod->card->brand ?? null,
                 last4: $stripePaymentMethod->card->last4 ?? '',
                 expMonth: $stripePaymentMethod->card->exp_month ?? 0,
                 expYear: $stripePaymentMethod->card->exp_year ?? 0,
@@ -57,6 +59,6 @@ class FetchReusablePaymentMethods
             );
         });
 
-        return new ReusablePaymentMethods($options);
+        return new ReusablePaymentMethods($options, fetchState: FetchState::Loaded);
     }
 }

@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Http\Request;
 use Nvade\Numerosis\Concerns\Auth\ForgetsGuardSession;
+use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\Tenant;
 
@@ -21,8 +22,6 @@ use Nvade\Numerosis\Models\Central\Tenant;
 class EnsureSessionMatchesTenant
 {
     use ForgetsGuardSession;
-
-    public const SESSION_KEY = 'tenancy.session_tenant';
 
     public function __construct(private readonly AuthFactory $auth) {}
 
@@ -41,13 +40,13 @@ class EnsureSessionMatchesTenant
         $session = $request->session();
         $tenantKey = $currentTenant->getTenantKey();
 
-        if ($session->get(self::SESSION_KEY) === $tenantKey) {
+        if ($session->get(SessionKey::TenancySessionTenant->value) === $tenantKey) {
             return $next($request);
         }
 
         $this->forgetGuardSession($this->auth->guard(Context::Tenant->guard()));
 
-        $session->put(self::SESSION_KEY, $tenantKey);
+        $session->put(SessionKey::TenancySessionTenant->value, $tenantKey);
 
         return $next($request);
     }

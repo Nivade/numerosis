@@ -13,7 +13,72 @@
             {
                 "model": "Nvade\\Numerosis\\Tests\\Support\\PermissionWithExtraActions",
                 "table": "permissions"
+            },
+            {
+                "model": "Nvade\\Numerosis\\Tests\\Support\\HostBillableUser",
+                "table": "users"
+            },
+            {
+                "model": "Nvade\\Numerosis\\Tests\\Support\\HostSubscribableUser",
+                "table": "users"
             }
         ]
+    },
+    "view": {
+        "paths": [
+            {
+                "path": "resources/views",
+                "namespace": "numerosis"
+            },
+            {
+                "path": "packages/ui/resources/views",
+                "namespace": "numerosis"
+            }
+        ]
+    },
+    "blade": {
+        "components": {
+            "viewPaths": [
+                {
+                    "path": "resources/views/components",
+                    "namespace": "numerosis"
+                },
+                {
+                    "path": "packages/ui/resources/views/components",
+                    "namespace": "numerosis"
+                },
+                {
+                    "path": "packages/ui/resources/views/flux",
+                    "prefix": "flux"
+                }
+            ]
+        }
+    },
+    "routing": {
+        "additionalMiddleware": [
+            "tenancy.auth",
+            "tenancy.subscription",
+            "tenancy.identification",
+            "tenancy.route",
+            "tenancy.session",
+            "password.confirm.if-set"
+        ]
+    },
+    "database": {
+        "schemaDirectories": [
+            "database/migrations/central",
+            "database/migrations/tenant"
+        ]
+    },
+    "packages": {
+        "livewire": {
+            "namespaces": [
+                {
+                    "tagPrefix": "",
+                    "classNamespace": "Nvade\\Numerosis\\Livewire",
+                    "viewPath": "resources/views/livewire"
+                }
+            ]
+        }
     }
 }

@@ -6,8 +6,8 @@ namespace Nvade\Numerosis\Actions\Billing;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
+use Nvade\Numerosis\Enums\Billing\TaxIdType;
 use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
-use Nvade\Numerosis\Services\Billing\TaxIdType;
 use Stripe\PaymentMethod;
 
 /**
@@ -50,6 +50,6 @@ class SyncBillingAddress
             throw new InvalidVatNumber(__('numerosis::billing.checkout.vat_country_unsupported'));
         }
 
-        AttachVatNumber::run($billable->stripeIdOrFail(), $taxIdType, $vatNumber);
+        AttachVatNumber::run($billable->stripeIdOrFail(), $taxIdType->value, $vatNumber);
     }
 }

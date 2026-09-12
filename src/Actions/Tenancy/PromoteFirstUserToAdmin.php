@@ -9,6 +9,7 @@ use Nvade\Numerosis\Concerns\Tenancy\RunsInTenant;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
+use Nvade\Numerosis\Enums\Auth\SystemRole;
 use Nvade\Numerosis\Events\Auth\AdminGranted;
 use Nvade\Numerosis\Exceptions\Tenancy\NoPromotableUser;
 use Nvade\Numerosis\Models\Central\TenantProvision;
@@ -49,7 +50,7 @@ class PromoteFirstUserToAdmin implements RequiresContributions
 
             throw_unless($user, NoPromotableUser::class, 'No non-bot users found');
 
-            $user->assignRole('admin');
+            $user->assignRole(SystemRole::Admin->value);
 
             event(new AdminGranted($user->global_id, null, $tenantId));
         });

@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Actions\Billing;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Data\Billing\SavedBillingDetails;
+use Nvade\Numerosis\Enums\FetchState;
 use Stripe\Customer;
 
 /**
@@ -28,7 +29,7 @@ class FetchSavedBillingDetails
         $customer ??= FetchStripeCustomer::run($billable);
 
         if ($customer === null) {
-            return new SavedBillingDetails(fetchFailed: true);
+            return new SavedBillingDetails(fetchState: FetchState::Failed);
         }
 
         $address = $customer->address;
@@ -43,6 +44,7 @@ class FetchSavedBillingDetails
             country: $address?->country,
             name: $customer->name,
             vatNumber: $taxId?->value,
+            fetchState: FetchState::Loaded,
         );
     }
 }

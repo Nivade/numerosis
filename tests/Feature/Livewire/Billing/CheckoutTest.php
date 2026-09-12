@@ -13,6 +13,7 @@ use Laravel\Cashier\Cashier;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveCheckoutRegion;
+use Nvade\Numerosis\Enums\FetchState;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
 use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
@@ -313,7 +314,7 @@ class CheckoutTest extends TestCase
 
         Livewire::test(Checkout::class, ['domain' => 'no-prefill-test'])
             ->assertSet('savedBillingAddress', null)
-            ->assertSet('savedBillingFetchFailed', false);
+            ->assertSet('savedBillingFetchState', FetchState::Loaded);
     }
 
     public function test_it_shows_a_banner_when_fetching_saved_billing_details_fails(): void
@@ -325,7 +326,7 @@ class CheckoutTest extends TestCase
         $this->reserve('fetch-fail-test', $user, 'seti_test');
 
         Livewire::test(Checkout::class, ['domain' => 'fetch-fail-test'])
-            ->assertSet('savedBillingFetchFailed', true);
+            ->assertSet('savedBillingFetchState', FetchState::Failed);
     }
 
     public function test_it_lists_reusable_payment_methods_for_a_returning_customer(): void
@@ -348,7 +349,7 @@ class CheckoutTest extends TestCase
         $this->reserve('payment-methods-test', $user, $setupIntent->id);
 
         Livewire::test(Checkout::class, ['domain' => 'payment-methods-test'])
-            ->assertSet('savedPaymentMethodsFetchFailed', false);
+            ->assertSet('savedPaymentMethodsFetchState', FetchState::Loaded);
     }
 
     public function test_it_shows_a_banner_when_fetching_saved_payment_methods_fails(): void
@@ -360,7 +361,7 @@ class CheckoutTest extends TestCase
         $this->reserve('payment-methods-fetch-fail-test', $user, 'seti_test');
 
         Livewire::test(Checkout::class, ['domain' => 'payment-methods-fetch-fail-test'])
-            ->assertSet('savedPaymentMethodsFetchFailed', true);
+            ->assertSet('savedPaymentMethodsFetchState', FetchState::Failed);
     }
 
     public function test_it_refuses_a_saved_payment_method_belonging_to_a_different_customer(): void

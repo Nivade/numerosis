@@ -26,10 +26,12 @@ use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Concerns\Billing\ConfirmsPayments;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
+use Nvade\Numerosis\Enums\Billing\PaymentMethodType;
+use Nvade\Numerosis\Enums\FetchState;
+use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
-use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
@@ -67,7 +69,7 @@ class Checkout extends Component
     public ?array $savedBillingAddress = null;
 
     #[Locked]
-    public bool $savedBillingFetchFailed = false;
+    public FetchState $savedBillingFetchState = FetchState::NotAttempted;
 
     /**
      * @var array<int, array<string, mixed>>
@@ -76,7 +78,7 @@ class Checkout extends Component
     public array $savedPaymentMethods = [];
 
     #[Locked]
-    public bool $savedPaymentMethodsFetchFailed = false;
+    public FetchState $savedPaymentMethodsFetchState = FetchState::NotAttempted;
 
     /**
      * ISO country code from {@see ResolveCheckoutRegion}, null on an
@@ -117,8 +119,8 @@ class Checkout extends Component
             $customer = FetchStripeCustomer::run($billable);
 
             if ($customer === null) {
-                $this->savedBillingFetchFailed = true;
-                $this->savedPaymentMethodsFetchFailed = true;
+                $this->savedBillingFetchState = FetchState::Failed;
+                $this->savedPaymentMethodsFetchState = FetchState::Failed;
 
                 $this->resume($domain);
 
@@ -127,9 +129,9 @@ class Checkout extends Component
 
             $saved = FetchSavedBillingDetails::run($billable, $customer);
 
-            if ($saved->fetchFailed) {
-                $this->savedBillingFetchFailed = true;
-            } elseif ($saved->hasAddress()) {
+            $this->savedBillingFetchState = $saved->fetchState;
+
+            if ($saved->fetchState !== FetchState::Failed && $saved->hasAddress()) {
                 $this->savedBillingAddress = [
                     'name' => $saved->name,
                     'address' => [
@@ -147,7 +149,7 @@ class Checkout extends Component
 
             $result = FetchReusablePaymentMethods::run($billable, $customer);
             $this->savedPaymentMethods = $result->options->map->toArray()->all();
-            $this->savedPaymentMethodsFetchFailed = $result->fetchFailed;
+            $this->savedPaymentMethodsFetchState = $result->fetchState;
         }
 
         $this->resume($domain);
@@ -167,7 +169,7 @@ class Checkout extends Component
             return;
         }
 
-        if ($resumed->alreadySucceeded) {
+        if ($resumed->alreadySucceeded()) {
             $this->settleFromPendingSubscription();
 
             return;
@@ -317,7 +319,10 @@ class Checkout extends Component
             ? Config::array("numerosis.billing.payment_methods.regions.{$country}", $default)
             : $default;
 
-        return array_values(array_filter($order, is_string(...)));
+        return array_values(array_filter(
+            $order,
+            fn (mixed $type): bool => is_string($type) && PaymentMethodType::tryFrom($type) !== null,
+        ));
     }
 
     /**
@@ -394,7 +399,7 @@ class Checkout extends Component
         // The wizard's session-persisted step state is only useful while a
         // registration is in progress. A no-op when Checkout was reached
         // standalone, since nothing set the key.
-        session()->forget(RegistrationWizardFeature::SESSION_KEY);
+        session()->forget(SessionKey::RegistrationWizardState->value);
 
         $this->redirectRoute(RouteNames::tenantsMine());
     }

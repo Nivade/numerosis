@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Policies\Invitations;
 
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Nvade\Numerosis\Enums\Auth\PermissionContext;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Policies\Concerns\ChecksContextPermissions;
@@ -21,7 +22,7 @@ class InvitationPolicy
 
     protected function permissionContext(): string
     {
-        return 'invitations';
+        return PermissionContext::Invitations->value;
     }
 
     /**

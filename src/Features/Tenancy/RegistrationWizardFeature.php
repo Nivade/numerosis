@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
 use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Contracts\NamedFeature;
+use Nvade\Numerosis\Enums\Tenancy\WizardStep;
 use Nvade\Numerosis\Features\Concerns\IsNamedFeature;
 use Nvade\Numerosis\Livewire\Tenant\Registration as WizardRegistration;
-use Nvade\Numerosis\Livewire\Tenant\Registration\Steps as Wizard;
 
 /**
  * The self-serve tenant registration wizard and its route.
@@ -25,40 +25,16 @@ class RegistrationWizardFeature implements NamedFeature
 
     public const NAME = 'registration_wizard';
 
-    /**
-     * Written and read by the wizard, cleared by core's two checkout
-     * completion paths (`CompleteRedirectCheckout`,
-     * `Livewire\Billing\Checkout::settle()`).
-     */
-    public const SESSION_KEY = 'registration.wizard_state';
-
-    /**
-     * Alias each shipped step registers under, and the view file that alias
-     * resolves to. Written out by hand, never derived: `Steps\Payment` is
-     * absent because its natural alias collides with Cashier's published
-     * `payment.blade.php`, so it resolves by FQCN. A host-supplied step is not
-     * auto-registered here; register your own component for it.
-     *
-     * @var array<class-string, string>
-     */
-    private const SHIPPED_STEP_ALIASES = [
-        Wizard\CompanyInfo::class => 'company-info',
-        Wizard\TechnicalSetup::class => 'technical-setup',
-        Wizard\Plan::class => 'plan',
-    ];
-
     public function bootstrap(): void
     {
         // Fills an unset key only, so a host's own step list wins. Every
         // feature's bootstrap() runs after config publishing and a host
         // provider's register(), so there is no order race to guard.
         if (Config::get('numerosis.tenancy.registration.steps') === null) {
-            Config::set('numerosis.tenancy.registration.steps', [
-                Wizard\CompanyInfo::class,
-                Wizard\TechnicalSetup::class,
-                Wizard\Plan::class,
-                Wizard\Payment::class,
-            ]);
+            Config::set(
+                'numerosis.tenancy.registration.steps',
+                array_map(fn (WizardStep $step): string => $step->componentClass(), WizardStep::cases()),
+            );
         }
 
         // Livewire::addComponent() takes an absolute path, so it is built
@@ -79,11 +55,11 @@ class RegistrationWizardFeature implements NamedFeature
         );
 
         foreach ($steps as $step) {
-            if (! isset(self::SHIPPED_STEP_ALIASES[$step])) {
+            $alias = WizardStep::fromComponentClass($step)?->alias();
+
+            if ($alias === null) {
                 continue;
             }
-
-            $alias = self::SHIPPED_STEP_ALIASES[$step];
 
             Livewire::addComponent(
                 name: $alias,

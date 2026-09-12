@@ -59,17 +59,21 @@ paths:
   this. Don't assume a bare single-directive view is safe because it renders;
   a 200 proves nothing about whether the embedded component kept its identity.
 
-- **`RegistrationWizardFeature::SHIPPED_STEP_ALIASES` is written out by hand,
-  and must stay that way.** Deriving each alias as
+- **The shipped step aliases are written out by hand, in
+  `Enums\Tenancy\WizardStep::alias()`, and must stay that way** (moved off
+  `RegistrationWizardFeature::SHIPPED_STEP_ALIASES` in the
+  enum-vocabulary-sweep). Deriving each alias as
   `Str::kebab(class_basename($step))` in a loop reintroduces the collision the
-  map exists to avoid: `Steps\Payment`'s natural alias (`payment`) collides
-  with Cashier's published `resources/views/vendor/cashier/payment.blade.php`,
-  so that step is deliberately absent from the map and keeps resolving by its
-  full FQCN, which Livewire supports with no `addComponent()` call at all. A
-  host-supplied step — one added to `numerosis.tenancy.registration.steps` but
-  not in this map — is not auto-registered either, because the package only
-  knows the view path for steps it ships; register your own component for it
-  before adding it to that config key.
+  method exists to avoid: `WizardStep::Payment->alias()` returns `null`
+  because its natural alias (`payment`) collides with Cashier's published
+  `resources/views/vendor/cashier/payment.blade.php`, so that step is
+  deliberately skipped and keeps resolving by its full FQCN, which Livewire
+  supports with no `addComponent()` call at all. A host-supplied step — one
+  added to `numerosis.tenancy.registration.steps` with no matching
+  `WizardStep` case — is not auto-registered either, for the same reason:
+  `WizardStep::fromComponentClass()` returns `null` for it, and the package
+  only knows the view path for steps it ships. Register your own component
+  for it before adding it to that config key.
 
 - **`spatie/laravel-livewire-wizard`'s `StepComponent::nextStep()`/
   `previousStep()`/`showStep()` target their transition event

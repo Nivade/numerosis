@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Billing\Checkout\ResolvedSetupIntent;
+use Nvade\Numerosis\Enums\Billing\SetupIntentStatus;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Exceptions\Billing\SetupIntentNotConfirmed;
 use Nvade\Numerosis\Models\Central\TenantProvision;
@@ -56,7 +57,7 @@ class ResolveSetupIntent
 
         $rawPaymentMethod = $setupIntent->payment_method;
 
-        if ($setupIntent->status !== 'succeeded' || ! $rawPaymentMethod instanceof PaymentMethod) {
+        if (SetupIntentStatus::tryFrom($setupIntent->status) !== SetupIntentStatus::Succeeded || ! $rawPaymentMethod instanceof PaymentMethod) {
             throw new SetupIntentNotConfirmed(__('numerosis::billing.checkout.confirmation_failed'));
         }
 

@@ -1,0 +1,28 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Nvade\Numerosis\Enums;
+
+/**
+ * No domain subfolder — this vocabulary spans auth, tenancy and billing.
+ * `url.intended` is Laravel's own key, not named here on purpose: naming it
+ * would suggest core owns it.
+ */
+enum SessionKey: string
+{
+    case LoginEmail = 'login.email';
+    case LoginRemember = 'login.remember';
+    case PendingInvitation = 'pending_invitation';
+    case TenancySessionTenant = 'tenancy.session_tenant';
+    case RegistrationWizardState = 'registration.wizard_state';
+
+    /**
+     * A dotted sub-key of this one, e.g. `pending_invitation.email` — the
+     * only place that nesting convention is spelled out.
+     */
+    public function nested(string $field): string
+    {
+        return "{$this->value}.{$field}";
+    }
+}

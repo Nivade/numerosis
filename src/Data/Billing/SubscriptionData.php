@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Data\Billing;
 
+use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\DataCollection;
 
@@ -16,7 +17,7 @@ class SubscriptionData extends Data
         public ?string $user_id,
         public ?string $payment_plan_id,
         public string $stripe_id,
-        public string $stripe_status,
+        public SubscriptionStatus $stripe_status,
         public string $subscribable_id,
         public string $subscribable_type,
         public string $type = 'default',

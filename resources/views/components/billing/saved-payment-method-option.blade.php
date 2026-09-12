@@ -1,19 +1,16 @@
+@use(\Nvade\Numerosis\Enums\Billing\CardBrand)
+
 @props(['pm', 'checked' => false])
 
 @php
-    // Stripe's own brand slugs. Not a trademark reproduction of any card
-    // network's logo — a flat monogram chip in the network's associated
-    // colour, the same idiom Stripe's own dashboard uses for card lists.
-    $chip = match ($pm['brand']) {
-        'visa' => ['label' => 'VISA', 'class' => 'bg-blue-600 text-white'],
-        'mastercard' => ['label' => 'MC', 'class' => 'bg-orange-500 text-white'],
-        'amex' => ['label' => 'AMEX', 'class' => 'bg-sky-700 text-white'],
-        'discover' => ['label' => 'DISC', 'class' => 'bg-orange-400 text-white'],
-        'diners' => ['label' => 'DINERS', 'class' => 'bg-zinc-700 text-white'],
-        'jcb' => ['label' => 'JCB', 'class' => 'bg-emerald-600 text-white'],
-        'unionpay' => ['label' => 'UP', 'class' => 'bg-red-600 text-white'],
-        default => ['label' => null, 'class' => 'bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400'],
-    };
+    // Not a trademark reproduction of any card network's logo — a flat
+    // monogram chip in the network's associated colour, the same idiom
+    // Stripe's own dashboard uses for card lists.
+    $brand = $pm['brand'] !== null ? CardBrand::tryFrom($pm['brand']) : null;
+    $chip = [
+        'label' => $brand?->label(),
+        'class' => $brand?->chipClasses() ?? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400',
+    ];
 @endphp
 
 <label class="group relative flex cursor-pointer items-center gap-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 transition-all hover:border-zinc-300 dark:hover:border-zinc-600 has-[:checked]:border-primary has-[:checked]:bg-primary-subtle has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary has-[:focus-visible]:ring-offset-2">
@@ -38,7 +35,7 @@
     <span class="min-w-0 flex-1">
         <span class="flex items-center gap-2">
             <span class="font-medium text-zinc-900 dark:text-zinc-100">
-                {{ ucfirst($pm['brand']) }} &middot;&middot;&middot;&middot; {{ $pm['last4'] }}
+                {{ $pm['brand'] !== null ? ucfirst($pm['brand']) : __('numerosis::billing.checkout.unbranded_card') }} &middot;&middot;&middot;&middot; {{ $pm['last4'] }}
             </span>
             @if($pm['isDefault'])
                 <flux:badge size="sm">{{ __('numerosis::billing.checkout.default_payment_method') }}</flux:badge>

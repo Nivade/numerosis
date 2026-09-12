@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Data\Billing;
 
+use Nvade\Numerosis\Enums\FetchState;
 use Spatie\LaravelData\Data;
 
 final class SavedBillingDetails extends Data
@@ -17,7 +18,7 @@ final class SavedBillingDetails extends Data
         public ?string $country = null,
         public ?string $name = null,
         public ?string $vatNumber = null,
-        public bool $fetchFailed = false,
+        public FetchState $fetchState = FetchState::NotAttempted,
     ) {}
 
     public function hasAddress(): bool

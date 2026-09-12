@@ -9,6 +9,7 @@ use Laravel\Cashier\PaymentMethod as CashierPaymentMethod;
 use LogicException;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
+use Nvade\Numerosis\Enums\Billing\PaymentMethodType;
 use Nvade\Numerosis\Exceptions\Billing\SavedPaymentMethodUnavailable;
 use Stripe\PaymentMethod;
 
@@ -18,8 +19,6 @@ use Stripe\PaymentMethod;
 class ResolveSavedPaymentMethod
 {
     use AsAction;
-
-    private const array REUSABLE_TYPES = ['card'];
 
     public function handle(BillableUser $billable, string $paymentMethodId): PaymentMethod
     {
@@ -38,7 +37,7 @@ class ResolveSavedPaymentMethod
 
         $paymentMethod = $resolved->asStripePaymentMethod();
 
-        throw_unless(in_array($paymentMethod->type, self::REUSABLE_TYPES, true), SavedPaymentMethodUnavailable::class, __('numerosis::billing.checkout.saved_payment_method_unavailable'));
+        throw_unless(PaymentMethodType::tryFrom($paymentMethod->type)?->isReusable() ?? false, SavedPaymentMethodUnavailable::class, __('numerosis::billing.checkout.saved_payment_method_unavailable'));
 
         return $paymentMethod;
     }

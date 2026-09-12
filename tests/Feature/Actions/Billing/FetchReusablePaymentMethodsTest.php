@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Actions\Billing\FetchReusablePaymentMethods;
 use Nvade\Numerosis\Data\Billing\SavedPaymentMethodOption;
+use Nvade\Numerosis\Enums\FetchState;
 use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 use RuntimeException;
@@ -25,10 +26,14 @@ class FetchReusablePaymentMethodsTest extends TestCase
 
         $result = FetchReusablePaymentMethods::run($user);
 
-        $this->assertFalse($result->fetchFailed);
+        $this->assertSame(FetchState::NotAttempted, $result->fetchState);
         $this->assertTrue($result->options->isEmpty());
     }
 
+    /**
+     * Zero saved methods after a successful fetch — previously
+     * indistinguishable, on the bool this replaced, from a failed fetch.
+     */
     public function test_it_returns_empty_for_a_customer_with_no_attached_payment_methods(): void
     {
         $this->fakeStripe();
@@ -37,7 +42,7 @@ class FetchReusablePaymentMethodsTest extends TestCase
 
         $result = FetchReusablePaymentMethods::run($user);
 
-        $this->assertFalse($result->fetchFailed);
+        $this->assertSame(FetchState::Loaded, $result->fetchState);
         $this->assertTrue($result->options->isEmpty());
     }
 
@@ -61,7 +66,7 @@ class FetchReusablePaymentMethodsTest extends TestCase
         $result = FetchReusablePaymentMethods::run($user);
         $option = $result->options->first();
 
-        $this->assertFalse($result->fetchFailed);
+        $this->assertSame(FetchState::Loaded, $result->fetchState);
         $this->assertCount(1, $result->options);
 
         throw_unless($option instanceof SavedPaymentMethodOption, RuntimeException::class, 'Expected a saved payment method option.');

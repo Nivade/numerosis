@@ -1,3 +1,5 @@
+@use(\Nvade\Numerosis\Enums\Auth\VerificationNotice)
+
 <section class="w-full">
     @include('numerosis::partials.settings-heading')
 
@@ -18,7 +20,7 @@
                             </flux:link>
                         </flux:text>
 
-                        @if (session('status') === 'verification-link-sent')
+                        @if (session('status') === VerificationNotice::LinkSent->value)
                             <flux:text class="mt-2 font-medium !text-success-icon">
                                 {{ __('A new verification link has been sent to your email address.') }}
                             </flux:text>

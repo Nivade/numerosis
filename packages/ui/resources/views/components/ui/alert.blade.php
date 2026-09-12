@@ -1,3 +1,5 @@
+@use(\Nvade\NumerosisUi\Enums\Severity)
+
 @props([
     'type' => 'info',
     'title' => null,
@@ -8,51 +10,10 @@
 
 @php
     // The canonical callout. `ui/info-box` delegates here rather than keeping
-    // the second copy of this palette it used to carry.
-    //
-    // Same semantic tokens as ui/badge (resources/css/tokens.css) — one map,
-    // two consumers, so the two can no longer disagree on tint depth the way
-    // they used to (badge at 100, alert at 50; alert's step won as `-bg`).
-    //
-    // The classes stay spelled out here because Tailwind only generates what
-    // it can scan in a `.blade.php` file; a shared PHP palette class under
-    // `src/` would not be scanned. Every value below is a token utility, not
-    // a literal colour, so there is nothing left here for the two files to
-    // drift on independently.
-    $palette = [
-        'success' => [
-            'surface' => 'bg-success-bg border-success-border',
-            'text' => 'text-success-text',
-            'icon' => 'text-success-icon',
-            'button' => 'text-success-icon hover:text-success-text',
-            'glyph' => 'check-circle',
-        ],
-        'warning' => [
-            'surface' => 'bg-warning-bg border-warning-border',
-            'text' => 'text-warning-text',
-            'icon' => 'text-warning-icon',
-            'button' => 'text-warning-icon hover:text-warning-text',
-            'glyph' => 'exclamation-triangle',
-        ],
-        'error' => [
-            'surface' => 'bg-danger-bg border-danger-border',
-            'text' => 'text-danger-text',
-            'icon' => 'text-danger-icon',
-            'button' => 'text-danger-icon hover:text-danger-text',
-            'glyph' => 'x-circle',
-        ],
-        'info' => [
-            'surface' => 'bg-info-bg border-info-border',
-            'text' => 'text-info-text',
-            'icon' => 'text-info-icon',
-            'button' => 'text-info-icon hover:text-info-text',
-            'glyph' => 'information-circle',
-        ],
-    ];
-
-    // `danger` is what ui/info-box called the red variant; both names resolve
-    // so neither caller has to change.
-    $type = $type === 'danger' ? 'error' : $type;
+    // the second copy of this palette it used to carry. `Severity` is the one
+    // source for the token map now — see that class for why `error` reads
+    // `danger` tokens.
+    $severity = Severity::fromAlias($type) ?? Severity::Info;
 
     $displayMessage = $message;
 
@@ -60,18 +21,28 @@
         $displayMessage = session($session);
     }
 
+    // `status` is `FlashKey::Status->value` — the literal, not the core enum
+    // (packages/ui may not name a core symbol), holding a `[Severity,
+    // message]` pair since the flash convergence.
+    $statusFlash = session('status');
+
+    if (! $displayMessage && is_array($statusFlash) && $statusFlash[0] instanceof Severity) {
+        [$severity, $displayMessage] = $statusFlash;
+    }
+
+    // Legacy scan, kept for one cycle: pre-convergence call sites still flash
+    // these four scalar keys directly rather than the `[Severity, message]`
+    // pair.
     if (! $displayMessage) {
         foreach (['success', 'error', 'warning', 'info', 'message'] as $key) {
             if (session($key)) {
                 $displayMessage = session($key);
-                $type = $key === 'message' ? 'info' : $key;
+                $severity = Severity::fromAlias($key) ?? Severity::Info;
 
                 break;
             }
         }
     }
-
-    $style = $palette[$type] ?? $palette['info'];
 @endphp
 
 @if ($displayMessage || ! $slot->isEmpty())
@@ -85,12 +56,12 @@
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
         role="alert"
-        {{ $attributes->class(['rounded-xl border p-4', $style['surface']]) }}
+        {{ $attributes->class(['rounded-xl border p-4', $severity->surfaceClasses()]) }}
     >
         <div class="flex items-start gap-3">
-            <flux:icon :name="$style['glyph']" class="size-5 shrink-0 mt-0.5 {{ $style['icon'] }}" />
+            <flux:icon :name="$severity->icon()" class="size-5 shrink-0 mt-0.5 {{ $severity->iconColorClasses() }}" />
 
-            <div class="flex-1 {{ $style['text'] }}">
+            <div class="flex-1 {{ $severity->textClasses() }}">
                 @if ($title)
                     <p class="text-sm font-semibold mb-1">{{ $title }}</p>
                 @endif
@@ -104,7 +75,7 @@
                 <button
                     type="button"
                     @click="show = false"
-                    class="-m-1.5 shrink-0 rounded-lg p-1.5 {{ $style['button'] }} hover:bg-black/5 dark:hover:bg-white/5 focus-ring"
+                    class="-m-1.5 shrink-0 rounded-lg p-1.5 {{ $severity->buttonClasses() }} hover:bg-black/5 dark:hover:bg-white/5 focus-ring"
                 >
                     <span class="sr-only">{{ __('Dismiss') }}</span>
                     <flux:icon name="x-mark" class="size-5" />

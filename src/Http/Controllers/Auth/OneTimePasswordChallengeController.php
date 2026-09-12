@@ -11,6 +11,7 @@ use Illuminate\View\View;
 use Laravel\Fortify\Contracts\LoginResponse;
 use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
+use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Http\Controllers\Controller;
 use Nvade\Numerosis\Models\User;
 use Spatie\OneTimePasswords\Rules\OneTimePasswordRule;
@@ -28,7 +29,7 @@ class OneTimePasswordChallengeController extends Controller
 {
     public function create(Request $request): View
     {
-        if (! $request->session()->has('login.email')) {
+        if (! $request->session()->has(SessionKey::LoginEmail->value)) {
             throw new HttpResponseException(redirect()->route('login'));
         }
 
@@ -37,7 +38,7 @@ class OneTimePasswordChallengeController extends Controller
 
     public function store(Request $request, ResolvesLoginCandidate $resolver, AuthenticatesLoginCandidate $authenticator): mixed
     {
-        $email = $request->session()->get('login.email');
+        $email = $request->session()->get(SessionKey::LoginEmail->value);
 
         if (! is_string($email)) {
             throw new HttpResponseException(redirect()->route('login'));
@@ -58,8 +59,8 @@ class OneTimePasswordChallengeController extends Controller
             'code' => ['required', 'string', new OneTimePasswordRule($user)],
         ]);
 
-        $remember = (bool) $request->session()->pull('login.remember', false);
-        $request->session()->forget('login.email');
+        $remember = (bool) $request->session()->pull(SessionKey::LoginRemember->value, false);
+        $request->session()->forget(SessionKey::LoginEmail->value);
 
         $authenticator->authenticate($user, $remember);
 

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Nvade\Numerosis\Enums\Auth\PermissionAction;
 use Nvade\Numerosis\Policies\Auth\PermissionPolicy;
 
 /**
@@ -44,21 +45,11 @@ class Permission extends \Spatie\Permission\Models\Permission
     use HasFactory;
 
     /**
-     * @return list<string>
+     * @return list<PermissionAction>
      */
     public static function defaultActions(): array
     {
-        return [
-            'viewAny',
-            'view',
-            'create',
-            'updateAny',
-            'update',
-            'deleteAny',
-            'delete',
-            'restore',
-            'forceDelete',
-        ];
+        return PermissionAction::cases();
     }
 
     /**
@@ -90,7 +81,7 @@ class Permission extends \Spatie\Permission\Models\Permission
     public static function actionsFor(string $context): array
     {
         return [
-            ...static::defaultActions(),
+            ...array_map(fn (PermissionAction $action): string => $action->value, static::defaultActions()),
             ...(static::additionalActions()[$context] ?? []),
         ];
     }

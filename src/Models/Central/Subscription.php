@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Laravel\Cashier\SubscriptionItem;
 use Nvade\Numerosis\Database\Factories\Central\SubscriptionFactory;
+use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Policies\Billing\SubscriptionPolicy;
 use Override;
@@ -53,27 +54,21 @@ class Subscription extends \Laravel\Cashier\Subscription
         ];
     }
 
-    /**
-     * The one allowlist of Stripe statuses that count as paid for. Every guard
-     * on payment state reads it, because a denylist provisions an unpaid
-     * tenant for each state nobody thought to exclude. Cashier's `valid()`
-     * answers a different question — it counts a cancelled subscription still
-     * inside its grace period.
-     *
-     * @var list<string>
-     */
-    public const SETTLED_STATUSES = ['active', 'trialing'];
-
     protected $with = ['items', 'subscribable'];
 
-    public static function isSettledStatus(?string $status): bool
+    /**
+     * No `casts()` entry for `stripe_status` — Cashier's own `incomplete()`
+     * and `pastDue()` compare it with `===` against a plain string, and an
+     * Eloquent cast would make both permanently false.
+     */
+    public function status(): ?SubscriptionStatus
     {
-        return in_array($status, self::SETTLED_STATUSES, true);
+        return SubscriptionStatus::tryFrom($this->stripe_status);
     }
 
     public function isSettled(): bool
     {
-        return self::isSettledStatus($this->stripe_status);
+        return $this->status()?->isSettled() ?? false;
     }
 
     /**

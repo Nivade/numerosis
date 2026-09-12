@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
+use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 
@@ -24,7 +25,7 @@ class AssertPendingReservationIsFresh
 
         $subscription = $billable->subscriptions()->where('stripe_id', $pending->stripe_subscription_id)->first();
 
-        if ($subscription === null || $subscription->stripe_status !== 'canceled') {
+        if ($subscription === null || $subscription->status() !== SubscriptionStatus::Canceled) {
             throw new CheckoutAlreadyCompleted(__('numerosis::billing.checkout.already_subscribed'));
         }
     }

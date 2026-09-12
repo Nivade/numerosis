@@ -7,6 +7,8 @@ use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
 use Nvade\Numerosis\Contracts\Tenancy\PersistsToProvisionColumns;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
+use Nvade\Numerosis\Enums\Auth\PermissionContext;
+use Nvade\Numerosis\Policies\Concerns\ChecksContextPermissions;
 use Symfony\Component\Finder\Finder;
 
 /**
@@ -180,7 +182,6 @@ test('the middleware registry stays pure class-string literals', function (): vo
 test('everything in Services implements one of our contracts, or is a named exception', function (): void {
     $exceptions = [
         Nvade\Numerosis\Services\Billing\BillingService::class,
-        Nvade\Numerosis\Services\Billing\TaxIdType::class,
         Nvade\Numerosis\Services\Tenancy\PreservingPathTenantResolver::class,
         Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper::class,
         Nvade\Numerosis\Services\Tenancy\PasswordBrokerBootstrapper::class,
@@ -245,4 +246,60 @@ test('nothing calls ->run( on a tenant outside RunsInTenant', function (): void 
             "{$file->getRelativePathname()} calls ->run( directly — use Concerns\\Tenancy\\RunsInTenant::runInTenant() instead.",
         );
     }
+});
+
+/**
+ * `PermissionContext` is core's own vocabulary; a policy's
+ * `permissionContext()` may still name a context a host added
+ * (`.ai/rules/package-boundaries.md`: a *missing* context throws
+ * `PermissionDoesNotExist`, not this test's problem), but every context this
+ * package itself seeds should resolve to a case, or the enum and the seeders
+ * have silently drifted apart.
+ */
+test('every core policy context resolves to a PermissionContext case', function (): void {
+    $files = (new Finder)
+        ->files()
+        ->in(dirname(__DIR__, 2).'/src/Policies')
+        ->name('*.php');
+
+    expect(iterator_count($files))->toBeGreaterThan(0, 'Scanned no files — the path above is wrong.');
+
+    $checked = 0;
+
+    foreach ($files as $file) {
+        if (! str_contains($file->getContents(), 'use ChecksContextPermissions;')) {
+            continue;
+        }
+
+        $class = 'Nvade\\Numerosis\\Policies\\'.str_replace(
+            ['/', '.php'],
+            ['\\', ''],
+            $file->getRelativePathname(),
+        );
+
+        if (! class_exists($class)) {
+            expect(false)->toBeTrue("{$class} does not exist — namespace/path mismatch.");
+
+            continue;
+        }
+
+        expect(in_array(ChecksContextPermissions::class, class_uses_recursive($class), true))->toBeTrue();
+
+        $method = (new ReflectionClass($class))->getMethod('permissionContext');
+        $context = $method->invoke(new $class);
+
+        if (! is_string($context)) {
+            expect(false)->toBeTrue("{$class}::permissionContext() did not return a string.");
+
+            continue;
+        }
+
+        expect(PermissionContext::tryFrom($context))->not->toBeNull(
+            "{$class}::permissionContext() returns '{$context}', which is not a PermissionContext case.",
+        );
+
+        $checked++;
+    }
+
+    expect($checked)->toBeGreaterThan(0, 'No policy composing ChecksContextPermissions was found.');
 });

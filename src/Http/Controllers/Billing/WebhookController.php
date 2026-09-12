@@ -20,6 +20,7 @@ use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendUnlessEntitled;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
+use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\SubscriptionCancelled;
 use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
@@ -218,9 +219,11 @@ class WebhookController extends CashierWebhookController
         $tenant = FindTenantByStripeCustomer::run(is_string($customerId) ? $customerId : null);
 
         if ($tenant !== null) {
+            $subscriptionStatus = is_string($status) ? SubscriptionStatus::tryFrom($status) : null;
+
             match (true) {
-                in_array($status, ['past_due', 'unpaid', 'incomplete_expired'], true) => SuspendTenant::run($tenant),
-                Numerosis::model(CentralSubscription::class)::isSettledStatus(is_string($status) ? $status : null) => RestoreTenant::run($tenant),
+                $subscriptionStatus?->isDelinquent() ?? false => SuspendTenant::run($tenant),
+                $subscriptionStatus?->isSettled() ?? false => RestoreTenant::run($tenant),
                 default => null,
             };
         }

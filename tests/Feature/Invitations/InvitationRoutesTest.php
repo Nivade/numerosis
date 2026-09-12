@@ -44,6 +44,20 @@ class InvitationRoutesTest extends TestCase
         $this->assertSame($invitation->email, session('pending_invitation.email'));
     }
 
+    /**
+     * `register.blade.php` reads `SessionKey::PendingInvitation->nested('email')`,
+     * not the literal string — this is the only thing that proves that read
+     * still resolves against what `ShowInvitationController` writes.
+     */
+    public function test_the_register_form_prefills_the_invited_email(): void
+    {
+        $invitation = $this->pendingInvitation();
+
+        $this->get($this->signedShowUrl($invitation))->assertRedirect(route('login'));
+
+        $this->get(route('register'))->assertSee($invitation->email, false);
+    }
+
     public function test_an_authenticated_visitor_sees_the_invitation(): void
     {
         $invitation = $this->pendingInvitation();

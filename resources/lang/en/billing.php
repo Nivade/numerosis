@@ -24,6 +24,7 @@ return [
         'saved_payment_methods_heading' => 'Payment method',
         'default_payment_method' => 'Default',
         'expires' => 'Expires :month/:year',
+        'unbranded_card' => 'Card',
     ],
 
     'awaiting_payment' => [

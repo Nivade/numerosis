@@ -10,7 +10,7 @@ use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Contracts\Tenancy\HasTransientState;
-use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
+use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Livewire\Tenant\Registration\RegistrationState;
 use Override;
 use Spatie\LivewireWizard\Components\StepComponent;
@@ -81,7 +81,7 @@ class Registration extends WizardComponent
     public function initialState(): ?array
     {
         /** @var array<string, array<string, mixed>>|null $state */
-        $state = session(RegistrationWizardFeature::SESSION_KEY);
+        $state = session(SessionKey::RegistrationWizardState->value);
 
         return $state;
     }
@@ -98,7 +98,7 @@ class Registration extends WizardComponent
     {
         parent::showStep($toStepName, $currentStepState);
 
-        session()->put(RegistrationWizardFeature::SESSION_KEY, $this->stateToPersist());
+        session()->put(SessionKey::RegistrationWizardState->value, $this->stateToPersist());
     }
 
     /**

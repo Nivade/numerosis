@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Database\Factories\Central;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Subscription;
@@ -62,7 +63,7 @@ class SubscriptionFactory extends Factory
             // trying to avoid a "duplicate" that was actually the pattern
             // never having been randomized in the first place.
             'stripe_id' => $this->faker->unique()->lexify('sub_????????????????????????????'),
-            'stripe_status' => 'active',
+            'stripe_status' => SubscriptionStatus::Active->value,
             'stripe_price' => $this->faker->lexify('price_????????????????????????????'),
             'quantity' => 1,
             'trial_ends_at' => null,

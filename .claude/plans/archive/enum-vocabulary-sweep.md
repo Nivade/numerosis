@@ -1,10 +1,8 @@
 # Enum vocabulary sweep
 
-**Status: not executed.** Written 2026-09-12 on branch
-`refactor/provisioning-pipeline`. Nothing below has been built. Eight phases,
-each independently landable and independently revertable; phases 1 and 2 carry
-most of the value and phases 6–7 are cleanup that can be dropped without
-harming the rest.
+**Status: executed 2026-09-12,** all eight phases, on branch
+`refactor/enum-vocabulary-sweep`. `composer test` green (721 passed / 6
+skipped) and `composer analyse` clean after every phase boundary.
 
 ## Context
 

@@ -9,9 +9,11 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
+use Nvade\Numerosis\Enums\FlashKey;
 use Nvade\Numerosis\Http\Requests\Billing\StartCheckoutRequest;
 use Nvade\Numerosis\Http\Responses\Billing\RedirectResponsable;
 use Nvade\Numerosis\Services\Billing\LocalCheckoutGateway;
+use Nvade\NumerosisUi\Enums\Severity;
 
 /**
  * Provisions a tenant locally without taking payment, for development.
@@ -37,6 +39,8 @@ class StartLocalCheckout
 
         assert($intent instanceof RedirectCheckout);
 
-        return new RedirectResponsable($intent->url, ['success' => 'Your tenant is being set up.']);
+        return new RedirectResponsable($intent->url, [
+            FlashKey::Status->value => [Severity::Success, 'Your tenant is being set up.'],
+        ]);
     }
 }

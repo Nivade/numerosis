@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
+use Nvade\Numerosis\Enums\MiddlewareAlias;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
@@ -44,7 +45,7 @@ Route::get('/', fn () => view(Config::string('numerosis.routes.home_view')))
 // central→tenant session promotion, so a central user who may access this
 // tenant is signed in on the tenant guard on the way through instead of being
 // bounced to a login screen they do not need.
-Route::middleware(['universal', 'tenancy.auth:'.Context::Tenant->guard()])->group(function () {
+Route::middleware(['universal', MiddlewareAlias::TenancyAuth->value.':'.Context::Tenant->guard()])->group(function () {
     // Deliberately outside the `tenancy.subscription` group below, and the
     // reason that gate is a nested group rather than a fourth entry in the
     // `tenant` middleware group: this is where EnsureTenantSubscriptionActive
@@ -66,7 +67,7 @@ Route::middleware(['universal', 'tenancy.auth:'.Context::Tenant->guard()])->grou
     // `loadFortifyRoutes()` after this group closes, are outside this gate
     // for the same reason: a suspended tenant's user still has to be able to
     // verify an address and confirm a password.
-    Route::middleware('tenancy.subscription')->group(function () {
+    Route::middleware(MiddlewareAlias::TenancySubscription->value)->group(function () {
         if (FeatureRegistry::enabled(InvitationsFeature::NAME)) {
             Route::livewire('team/invitations', 'numerosis-pages::tenant.invitations')->name('team.invitations.index');
             Route::post('team/invitations', StoreInvitationController::class)->name('team.invitations.store');
