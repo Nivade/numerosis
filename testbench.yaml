@@ -1,6 +1,9 @@
 laravel: '@testbench'
 
 providers:
+  # Composer's auto-discovery never sees a root package, so without this the
+  # package's own commands are absent from `php artisan` and the workbench
+  # boots without Numerosis at all.
   - Nvade\Numerosis\NumerosisServiceProvider
   - Workbench\App\Providers\WorkbenchServiceProvider
 

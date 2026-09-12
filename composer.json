@@ -96,9 +96,13 @@
         ],
         "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
         "prepare": "@php vendor/bin/testbench package:discover --ansi",
-        "build": "@php vendor/bin/testbench workbench:build --ansi",
+        "build": [
+            "@putenv TESTBENCH_WITHOUT_DEFAULT_MIGRATIONS=true",
+            "@php vendor/bin/testbench workbench:build --ansi"
+        ],
         "serve": [
             "Composer\\Config::disableProcessTimeout",
+            "@putenv TESTBENCH_WITHOUT_DEFAULT_MIGRATIONS=true",
             "@build",
             "@php vendor/bin/testbench serve --ansi"
         ],
