@@ -14,7 +14,7 @@ use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Boot\Assets;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
 use Nvade\Numerosis\Tests\TestCase;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 use stdClass;
