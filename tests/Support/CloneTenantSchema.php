@@ -25,8 +25,8 @@ use Stancl\Tenancy\Contracts\TenantWithDatabase;
  * single template database once per process, then copies its structure and
  * seeded rows into each new tenant database.
  *
- * Only wired up from tests/Pest.php via TenancyServiceProvider::$tenantCreatedJobs
- * — production keeps the real pipeline.
+ * Only wired up from Tests\TestCase, which swaps it in for those two steps in
+ * the configured list — production keeps the real pipeline.
  *
  * ## Why nothing here touches the default connection
  *

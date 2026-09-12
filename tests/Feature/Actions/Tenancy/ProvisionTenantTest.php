@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
 use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
 use Nvade\Numerosis\Actions\Tenancy\LinkTenantSubscription;
 use Nvade\Numerosis\Actions\Tenancy\MarkProvisionFailed;
@@ -22,7 +23,10 @@ use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
 use Nvade\Numerosis\Jobs\RunProvisioningStep;
 use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
+use Nvade\Numerosis\Tests\Support\CountingStep;
+use Nvade\Numerosis\Tests\Support\FailingStep;
 use Nvade\Numerosis\Tests\TestCase;
+use RuntimeException;
 
 class ProvisionTenantTest extends TestCase
 {
@@ -165,6 +169,58 @@ class ProvisionTenantTest extends TestCase
         RunProvisioningStep::dispatchSync('resumes', CreateTenant::class);
 
         $this->assertDatabaseMissing('tenants', ['id' => 'resumes'], 'central');
+    }
+
+    /**
+     * The whole point of a link per step: a step that fails permanently is the
+     * only one that runs again on the next dispatch. Under the old
+     * all-steps-in-one-job shape this re-ran everything before it.
+     */
+    public function test_a_failed_step_resumes_without_re_running_the_steps_before_it(): void
+    {
+        FailingStep::reset();
+        CountingStep::reset();
+
+        $user = CentralUser::factory()->create();
+        $steps = Config::array('numerosis.tenancy.provisioning.steps');
+
+        // CountingStep sits before the failure, CloneTenantSchema's slot fails.
+        array_splice($steps, 1, 0, [CountingStep::class]);
+
+        Config::set(
+            'numerosis.tenancy.provisioning.steps',
+            array_replace($steps, [3 => FailingStep::class]),
+        );
+
+        try {
+            ProvisionTenant::make()->queue($this->provisionData($user, 'resumable'));
+            $this->fail('The chain should have surfaced the failing step.');
+        } catch (RuntimeException $e) {
+            $this->assertSame('migration failed permanently', $e->getMessage());
+        }
+
+        $provision = TenantProvision::findOrFail('resumable');
+
+        $this->assertTrue($provision->hasRun(CreateTenant::class));
+        $this->assertTrue($provision->hasRun(CreateTenantDatabase::class));
+        $this->assertFalse($provision->hasRun(FailingStep::class));
+        $this->assertFalse($provision->hasRun(FinalizeTenantProvisioning::class));
+        $this->assertSame(1, FailingStep::$runs);
+        $this->assertSame(1, CountingStep::$runs);
+
+        // What the chain's ->catch() does, releasing the claim for a retry.
+        MarkProvisionFailed::run('resumable', 'migration failed permanently');
+
+        FailingStep::$shouldFail = false;
+
+        ProvisionTenant::make()->queue($this->provisionData($user, 'resumable'));
+
+        $provision = TenantProvision::findOrFail('resumable');
+
+        // The failing step ran a second time; the step before it did not.
+        $this->assertSame(2, FailingStep::$runs);
+        $this->assertSame(1, CountingStep::$runs);
+        $this->assertTrue($provision->hasRun(FinalizeTenantProvisioning::class));
     }
 
     /**

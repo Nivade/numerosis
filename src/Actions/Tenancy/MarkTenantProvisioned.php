@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Tenancy;
 
-use Illuminate\Support\Facades\Cache;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
@@ -32,10 +31,6 @@ class MarkTenantProvisioned
             'status' => TenantProvisionStatus::Completed,
             'completed_at' => now(),
         ]);
-
-        // "Provisioning finished" and "no provisioning chain in flight for
-        // this slug" are the same fact.
-        Cache::lock("tenant-chain:{$tenant->getTenantKey()}")->forceRelease();
 
         if (! $tenant instanceof CentralTenant) {
             return;

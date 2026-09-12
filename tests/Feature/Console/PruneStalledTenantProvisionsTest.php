@@ -42,7 +42,27 @@ class PruneStalledTenantProvisionsTest extends TestCase
         $spy->shouldHaveReceived('warning')
             ->once()
             ->withArgs(fn (string $message, array $context) => $message === 'Tenant provisioning stalled'
-                && $context['domain'] === 'stalled');
+                && $context['slug'] === 'stalled');
+    }
+
+    public function test_it_forgets_completed_provisions_past_the_retention_window(): void
+    {
+        $this->completedProvision('ancient', now()->subDays(45));
+        $this->completedProvision('recentlydone', now()->subDays(2));
+
+        $this->pruneStalledProvisions()->assertSuccessful();
+
+        $this->assertNull(TenantProvision::find('ancient'));
+        $this->assertNotNull(TenantProvision::find('recentlydone'));
+    }
+
+    public function test_the_retention_window_is_configurable(): void
+    {
+        $this->completedProvision('ancient', now()->subDays(45));
+
+        $this->pruneStalledProvisions(['--keep-days' => 90])->assertSuccessful();
+
+        $this->assertNotNull(TenantProvision::find('ancient'));
     }
 
     public function test_it_leaves_already_failed_rows_alone(): void
@@ -59,10 +79,13 @@ class PruneStalledTenantProvisionsTest extends TestCase
         $this->reservation('abandoned', TenantProvisionStatus::Reserved, now()->subHours(5));
         $this->reservation('stalled', TenantProvisionStatus::Provisioning, now()->subHours(5));
 
+        $this->completedProvision('ancient', now()->subDays(45));
+
         $this->pruneStalledProvisions(['--dry-run' => true])->assertSuccessful();
 
         $this->assertNotNull(TenantProvision::find('abandoned'));
         $this->assertNotNull(TenantProvision::find('stalled'));
+        $this->assertNotNull(TenantProvision::find('ancient'));
     }
 
     /**
@@ -79,6 +102,13 @@ class PruneStalledTenantProvisionsTest extends TestCase
         $this->assertInstanceOf(PendingCommand::class, $command);
 
         return $command;
+    }
+
+    private function completedProvision(string $slug, Carbon $completedAt): void
+    {
+        $this->reservation($slug, TenantProvisionStatus::Completed, $completedAt);
+
+        TenantProvision::findOrFail($slug)->forceFill(['completed_at' => $completedAt])->save();
     }
 
     private function reservation(string $domain, TenantProvisionStatus $status, Carbon $createdAt): void
