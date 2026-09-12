@@ -18,8 +18,9 @@ class StoreInvitationController extends Controller
         /** @var Tenant $currentTenant */
         $currentTenant = tenant();
 
-        /** @var User $user */
         $user = $request->user();
+
+        abort_unless($user instanceof User, 403);
 
         SendInvitation::run($currentTenant, $request->toInvitationData(), $user);
 

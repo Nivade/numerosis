@@ -64,7 +64,6 @@ class Subscription extends \Laravel\Cashier\Subscription
      */
     public const SETTLED_STATUSES = ['active', 'trialing'];
 
-    /** @var list<string> */
     protected $with = ['items', 'subscribable'];
 
     public static function isSettledStatus(?string $status): bool

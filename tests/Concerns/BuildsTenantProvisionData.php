@@ -47,7 +47,6 @@ trait BuildsTenantProvisionData
         // updateOrCreate: `provisionedTenant()` leaves a row behind for every
         // tenant it builds, so a test wanting a differently-shaped one for the
         // same slug is amending rather than inserting.
-        /** @var BaseTenantProvision $provision */
         $provision = TenantProvision::query()->updateOrCreate(
             ['slug' => $slug],
             [

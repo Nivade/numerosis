@@ -33,7 +33,7 @@ class StripeSubscriptionData extends Data
             status: $subscription->status,
             priceId: $firstItem?->price?->id,
             quantity: $firstItem?->quantity,
-            trialEndsAt: $subscription->trial_end
+            trialEndsAt: $subscription->trial_end !== null
                 ? now()->setTimestamp($subscription->trial_end)->toDateTimeString()
                 : null,
             items: new DataCollection(SubscriptionItemData::class, $items->map(fn ($item) => SubscriptionItemData::from([

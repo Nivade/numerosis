@@ -34,8 +34,12 @@ class PreservingPathTenantResolver extends PathTenantResolver
         $id = $route->parameter(PathTenantResolver::$tenantParameterName);
         $id = is_string($id) || is_int($id) ? $id : null;
 
-        if ($id !== null && $tenant = tenancy()->find($id)) {
-            return $tenant;
+        if ($id !== null) {
+            $tenant = tenancy()->find($id);
+
+            if ($tenant !== null) {
+                return $tenant;
+            }
         }
 
         throw new TenantCouldNotBeIdentifiedByPathException((string) $id);

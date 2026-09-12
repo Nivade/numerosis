@@ -60,11 +60,22 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
      */
     public function available(): Collection
     {
-        /** @var Collection<int, Plan> */
-        return GlobalCache::store()->remember(
+        /** @var \Illuminate\Database\Eloquent\Collection<int, PaymentPlan> $plans */
+        $plans = GlobalCache::store()->remember(
             CacheKeys::availablePaymentPlans(),
             now()->addHour(),
             fn () => Numerosis::model(PaymentPlan::class)::available()->with('features')->orderBy('monthly_price')->get()
         );
+
+        // `Eloquent\Collection`'s own `TModel` template isn't covariant the way
+        // `Support\Collection`'s `TValue` is, so it isn't assignable to the
+        // interface's `Collection<int, Plan>` without an explicit rewrap; and
+        // PHPStan doesn't credit `PaymentPlan implements Plan` at the
+        // `Collection<PaymentPlan>` vs `Collection<Plan>` return boundary
+        // either, so the rewrap needs its own narrowing.
+        /** @var Collection<int, Plan> $result */
+        $result = new Collection($plans->all());
+
+        return $result;
     }
 }

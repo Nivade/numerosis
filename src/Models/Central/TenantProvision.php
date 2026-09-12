@@ -126,7 +126,6 @@ class TenantProvision extends Model
     public function contribution(string $contribution): ?ProvisionContribution
     {
         if (is_a($contribution, PersistsToProvisionColumns::class, true)) {
-            /** @var TContribution|null */
             return $contribution::fromProvision($this);
         }
 
@@ -159,7 +158,7 @@ class TenantProvision extends Model
                     'outcome' => $outcome->value,
                     'reason' => $reason,
                     'at' => now()->toIso8601String(),
-                ]),
+                ], static fn (mixed $value): bool => $value !== null),
             ],
         ])->save();
     }

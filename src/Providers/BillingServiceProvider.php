@@ -38,7 +38,7 @@ class BillingServiceProvider extends ServiceProvider
         Cashier::useSubscriptionItemModel($this->billableModel('subscription_item'));
         Cashier::calculateTaxes();
 
-        if (config('numerosis.billing.sync.stripe_customer', true)) {
+        if (Config::boolean('numerosis.billing.sync.stripe_customer', true)) {
             $this->configureStripeSync();
         }
 

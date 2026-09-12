@@ -39,11 +39,12 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * @param  array{data: array{object: array{id?: string, customer?: string, metadata?: array<string, mixed>}}}  $payload
+     * @param  array<array-key, mixed>  $payload
      */
     #[Override]
     protected function handleCustomerSubscriptionCreated(array $payload): Response
     {
+        /** @var array{data: array{object: array{id?: string, customer?: string, metadata?: array<string, mixed>}}} $payload */
         $stripeSubscription = $payload['data']['object'];
         $metadata = $stripeSubscription['metadata'] ?? [];
         $stripeSubscriptionId = $stripeSubscription['id'] ?? null;
@@ -160,13 +161,14 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * @param  array{data: array{object: array{id?: string, customer?: string, current_period_end?: int}}}  $payload
+     * @param  array<array-key, mixed>  $payload
      */
     #[Override]
     protected function handleCustomerSubscriptionDeleted(array $payload): Response
     {
         $response = parent::handleCustomerSubscriptionDeleted($payload);
 
+        /** @var array{data: array{object: array{id?: string, customer?: string, current_period_end?: int}}} $payload */
         $stripeSubscription = $payload['data']['object'];
         $tenant = FindTenantByStripeCustomer::run($stripeSubscription['customer'] ?? null);
 
@@ -196,11 +198,12 @@ class WebhookController extends CashierWebhookController
      * `customer.subscription.updated` whoever made it. `past_due`/`unpaid` are
      * grace-period states; `incomplete_expired` means the first payment failed.
      *
-     * @param  array{data: array{object: array{id?: string, customer?: string, status?: string, items?: array{data: list<array{price?: array{id?: string}}>}}}}  $payload
+     * @param  array<array-key, mixed>  $payload
      */
     #[Override]
     protected function handleCustomerSubscriptionUpdated(array $payload): Response
     {
+        /** @var array{data: array{object: array{id?: string, customer?: string, status?: string, items?: array{data: list<array{price?: array{id?: string}}>}}}} $payload */
         $stripeSubscription = $payload['data']['object'];
         $subscriptionId = $stripeSubscription['id'] ?? null;
 
@@ -286,13 +289,14 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * @param  array{data: array{object: array{id?: string, subscription?: string, parent?: array{subscription_details?: array{subscription?: string}}}}}  $payload
+     * @param  array<array-key, mixed>  $payload
      */
     #[Override]
     protected function handleInvoicePaymentSucceeded(array $payload): Response
     {
         $response = parent::handleInvoicePaymentSucceeded($payload);
 
+        /** @var array{data: array{object: array{id?: string, subscription?: string, parent?: array{subscription_details?: array{subscription?: string}}}}} $payload */
         $invoice = $payload['data']['object'];
         $subscriptionId = $invoice['subscription']
             ?? $invoice['parent']['subscription_details']['subscription']
@@ -316,15 +320,18 @@ class WebhookController extends CashierWebhookController
     }
 
     /**
-     * @param  array{data: array{object: array{id?: string}}}  $payload
+     * @param  array<array-key, mixed>  $payload
      */
     #[Override]
     protected function handleInvoicePaymentActionRequired(array $payload): Response
     {
         $response = parent::handleInvoicePaymentActionRequired($payload);
 
+        /** @var array{data: array{object: array{id?: string}}} $payload */
+        $invoice = $payload['data']['object'];
+
         Log::warning('Invoice payment action required', [
-            'invoice_id' => $payload['data']['object']['id'] ?? null,
+            'invoice_id' => $invoice['id'] ?? null,
         ]);
 
         return $response;

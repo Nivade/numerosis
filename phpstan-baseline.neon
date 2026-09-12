@@ -30,3 +30,94 @@ parameters:
 			count: 1
 			path: tests/Feature/Boot/NumerosisSeamTest.php
 
+		-
+			# `domains()` is Stancl\Tenancy\Database\Concerns\HasDomains, used by
+			# Tenant — larastan's relation-existence check doesn't resolve
+			# relations pulled in through a trait.
+			message: '#^Relation ''domains'' is not found in Nvade\\Numerosis\\Models\\Central\\Tenant model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: src/Models/Central/CentralUser.php
+
+		-
+			message: '#^Relation ''domains'' is not found in Nvade\\Numerosis\\Models\\Central\\Tenant model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: workbench/app/Models/Central/CentralUser.php
+
+		-
+			# Cashier's own `$with` is untyped `array`, and property overrides must
+			# match the parent's PHPDoc type exactly (property.phpDocType) — so
+			# this can't carry `list<string>` without breaking that, and there is
+			# no annotation that satisfies both rules at once.
+			message: '#^Property Nvade\\Numerosis\\Models\\Central\\Subscription\:\:\$with type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Models/Central/Subscription.php
+
+		-
+			# Same conflict as `Subscription::$with` above: Fortify's own
+			# `CreatesNewUsers::create(array $input)` is untyped, so a more
+			# specific `@param` here would violate contravariance instead.
+			message: '#^Method Nvade\\Numerosis\\Actions\\Auth\\CreateRegisteredUser\:\:create\(\) has parameter \$input with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Actions/Auth/CreateRegisteredUser.php
+
+		-
+			# Same conflict: Illuminate\Auth\Middleware\Authenticate's own
+			# `$guards` parameters are untyped `array`.
+			message: '#^Method Nvade\\Numerosis\\Http\\Middleware\\Authenticate\:\:authenticate\(\) has parameter \$guards with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Http/Middleware/Authenticate.php
+
+		-
+			message: '#^Method Nvade\\Numerosis\\Http\\Middleware\\Authenticate\:\:unauthenticated\(\) has parameter \$guards with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Http/Middleware/Authenticate.php
+
+		-
+			# Same conflict: Spatie\LivewireWizard\Components\WizardComponent's own
+			# `showStep($toStepName, array $currentStepState = [])` leaves both
+			# untyped/bare.
+			message: '#^Method Nvade\\Numerosis\\Livewire\\Tenant\\Registration\:\:showStep\(\) has parameter \$currentStepState with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Livewire/Tenant/Registration.php
+
+		-
+			message: '#^Method Nvade\\Numerosis\\Livewire\\Tenant\\Registration\:\:showStep\(\) has parameter \$toStepName with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: src/Livewire/Tenant/Registration.php
+
+		-
+			# Same conflict: Stripe\HttpClient\ClientInterface::request()'s own
+			# `$headers`/`$params` parameters are untyped.
+			message: '#^Method Nvade\\Numerosis\\Testing\\FakeStripeHttpClient\:\:request\(\) has parameter \$headers with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Testing/FakeStripeHttpClient.php
+
+		-
+			message: '#^Method Nvade\\Numerosis\\Testing\\FakeStripeHttpClient\:\:request\(\) has parameter \$params with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Testing/FakeStripeHttpClient.php
+
+		-
+			# Same conflict: Laravel\Cashier\Subscription::swapAndInvoice()'s own
+			# `$prices`/`$options` parameters are untyped.
+			message: '#^Method App\\Models\\Central\\Subscription@anonymous/tests/Feature/Actions/Billing/Subscriptions/SwapSubscriptionPlanTest\.php\:96\:\:swapAndInvoice\(\) has parameter \$options with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: tests/Feature/Actions/Billing/Subscriptions/SwapSubscriptionPlanTest.php
+
+		-
+			message: '#^Method App\\Models\\Central\\Subscription@anonymous/tests/Feature/Actions/Billing/Subscriptions/SwapSubscriptionPlanTest\.php\:96\:\:swapAndInvoice\(\) has parameter \$prices with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: tests/Feature/Actions/Billing/Subscriptions/SwapSubscriptionPlanTest.php
+

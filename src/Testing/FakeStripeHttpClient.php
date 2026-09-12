@@ -38,14 +38,14 @@ class FakeStripeHttpClient implements ClientInterface
     public array $requests = [];
 
     /**
-     * @param  list<string>  $headers
-     * @param  array<string, mixed>  $params
      * @return array{0: string, 1: int, 2: array<string, mixed>}
      */
     public function request($method, $absUrl, $headers, $params, $hasFile, $apiMode = 'v1', $maxNetworkRetries = null): array
     {
+        /** @var array<string, mixed> $params */
+        /** @var string $absUrl */
         $path = (string) parse_url($absUrl, PHP_URL_PATH);
-        $segments = array_values(array_filter(explode('/', $path)));
+        $segments = array_values(array_filter(explode('/', $path), static fn (string $segment): bool => $segment !== ''));
         // ['v1', 'customers', 'cus_1', 'tax_ids'] etc. Drop the leading 'v1'.
         array_shift($segments);
 

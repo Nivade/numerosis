@@ -4,6 +4,16 @@ includes:
 parameters:
     level: 9
     treatPhpDocTypesAsCertain: false
+    # Pest's `$this->assertSame()` and Eloquent's fluent `$model->where()`
+    # both resolve to static methods through an instance — the idiom of both,
+    # not a bug. `dynamicCallOnStaticMethod` flags every one of them.
+    #
+    # `?:` reads fine for a falsy-fallback default; `disallowedShortTernary`
+    # forces every one into a null-coalesce or a named intermediate variable,
+    # which is noise, not a bug, especially in config files.
+    strictRules:
+        dynamicCallOnStaticMethod: false
+        disallowedShortTernary: false
     # A plan's metadata is the `metadata` JSON column on `payment_plans`. Two
     # files declare `PlanMetadata` in a docblock; without this alias each
     # resolved it as a class in its own namespace, so `Plan::metadata()`
@@ -43,4 +53,4 @@ parameters:
     # of them sat in the baseline.
     configDirectories:
         - config
-    tmpDir: build/phpstan
+    tmpDir: storage/phpstan

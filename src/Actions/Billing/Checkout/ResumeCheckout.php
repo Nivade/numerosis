@@ -29,13 +29,13 @@ class ResumeCheckout
         /** @var TenantProvision|null $pending */
         $pending = Numerosis::model(TenantProvision::class)::find($domain);
 
-        if (! $pending) {
+        if ($pending === null) {
             throw new CheckoutSessionExpired(__('numerosis::billing.checkout.session_expired'));
         }
 
         $billable = AssertReservationIsOwned::run($pending);
 
-        if (! $pending->stripe_setup_intent_id) {
+        if ($pending->stripe_setup_intent_id === null || $pending->stripe_setup_intent_id === '') {
             throw new CheckoutSessionExpired(__('numerosis::billing.checkout.session_expired'));
         }
 

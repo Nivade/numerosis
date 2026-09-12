@@ -22,7 +22,7 @@ class RestoreTenant
 
         $owner = $tenant->owner();
 
-        if ($owner) {
+        if ($owner !== null) {
             event(new TenantRestored($tenant, $owner->id, (string) $tenant->getTenantKey()));
         }
     }

@@ -38,7 +38,9 @@ class InlineCheckoutGateway implements CheckoutGateway
 
         // The subscription is priced later from the pending row. Checked here
         // so a misconfigured plan fails before the customer enters a card.
-        if (! $plan->priceId($billing->billing_cycle)) {
+        $priceId = $plan->priceId($billing->billing_cycle);
+
+        if ($priceId === null || $priceId === '') {
             throw new StripePriceNotConfigured("Stripe Price ID not found for plan: {$billing->payment_plan}");
         }
 

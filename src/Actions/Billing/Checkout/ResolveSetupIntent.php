@@ -33,7 +33,7 @@ class ResolveSetupIntent
         /** @var TenantProvision|null $pending */
         $pending = Numerosis::model(TenantProvision::class)::where('stripe_setup_intent_id', $setupIntentId)->first();
 
-        if (! $pending) {
+        if ($pending === null) {
             throw new CheckoutSessionExpired(__('numerosis::billing.checkout.session_expired'));
         }
 

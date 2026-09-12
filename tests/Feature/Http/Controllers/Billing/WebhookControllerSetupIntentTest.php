@@ -56,7 +56,7 @@ class WebhookControllerSetupIntentTest extends TestCase
                     'sepa_debit' => $setupAttemptId !== null
                         ? ['generated_from' => ['setup_attempt' => $setupAttemptId]]
                         : null,
-                ]),
+                ], static fn (mixed $value): bool => $value !== null),
             ],
         ];
     }
