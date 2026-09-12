@@ -6,7 +6,7 @@ import { buildAppearance, watchAppearance } from './stripe-appearance.js';
  * second confirmPayment() round trip a 3DS challenge can force. The mount
  * container is wire:ignore in the Blade template — Livewire must never
  * re-render into it, or the iframe (and whatever the customer typed) is
- * gone with no error. See custom-checkout.md, "Frontend".
+ * gone with no error.
  */
 document.addEventListener('alpine:init', () => {
   Alpine.data('stripeCheckout', (clientSecret, publishableKey, returnUrl, declineCodes, customerEmail, savedBillingAddress, savedPaymentMethods, paymentMethodOrder, detectedCountry) => ({
@@ -50,8 +50,7 @@ document.addEventListener('alpine:init', () => {
       // create a separate Stripe Link identity mid-signup is redundant
       // friction, so the Link save-info prompt is off. Every other
       // automatic payment method stays — this only touches Link's UI, not
-      // payment_method_types (never pinned, see custom-checkout.md,
-      // "Designing for more payment methods"). Passing the known email
+      // payment_method_types (never pinned). Passing the known email
       // saves Stripe from asking for it again.
       const paymentElement = this.elements.create('payment', {
         wallets: { link: 'never' },

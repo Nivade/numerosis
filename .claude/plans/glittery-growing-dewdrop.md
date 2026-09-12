@@ -1,13 +1,18 @@
 # Provisioning pipeline redesign
 
-**Status: Phases 1–6 executed, 7–8 outstanding.** Approved and started
-2026-09-12 on branch `refactor/provisioning-pipeline` (14 commits,
-`5219a09`..`53da8f1`, not yet merged). 677 tests pass; `composer analyse` is
-clean **on a cold cache** — see the flags below before trusting a green run.
+**Status: Phases 1–6 executed, 7–9 outstanding.** Approved and started
+2026-09-12 on branch `refactor/provisioning-pipeline`, not yet merged.
+679 tests pass and `composer analyse` reports 0 on a cold cache, now with
+`NumerosisServiceProvider` named in `testbench.yaml`.
 
-Phases 1–6 are done and each is audited. **Phase 7 (progress UI) and Phase 8
-(docs + rules) have not been started**, and Phase 8 has grown — the new
+Phases 1–6 are done and each is audited. **Phase 7 (progress UI), Phase 8
+(docs + rules) and Phase 9 (a production `Tenant::create()` opt-in, specified
+below but not built) have not been started**, and Phase 8 has grown — the new
 material at the bottom of this file belongs in it.
+
+Every item under "Open flags" was cleared on 2026-09-12, before Phase 7. Three
+of those flags turned out to be wrong about their own facts; the corrections
+are recorded in place rather than deleted, since each one misled for a while.
 
 ## Context
 
@@ -271,7 +276,11 @@ and `isWorkOutstanding()` already drive it.
 ### 8. Docs and rules
 
 - `docs/extending.md` — provisioning steps, the contribution seam, the Fortify-style
-  customization table, the events table at lines 232–235.
+  customization table, the events table at lines 232–235. Add the two seams
+  the flag-clearing pass introduced and that nothing outside their own
+  docblocks documents: `Contracts\Tenancy\ControlsItsOwnRetries` (a step's own
+  `tries()`/`backoff()`) and `Testing\BuildsTenantDatabasesOnCreate` (a host
+  test suite getting a database from a bare `Tenant::create()`).
 - `.ai/rules/tenant-provisioning.md` — the "Async provisioning chain",
   "one pipeline definition", `JobPipeline`-vs-`AsAction` and
   `$tenantCreatedJobs` sections all become historical; mark them, don't
@@ -300,10 +309,11 @@ Its one useful idea — that steps receive only what the pipeline passes, not a
 DTO copied into every link — is what pushed the provision row to be the data
 carrier.
 
-## Open flags, recorded 2026-09-12
+## Open flags, recorded 2026-09-12 — resolved 2026-09-12
 
-Things found while executing phases 1–6 that are **not fixed** and are not
-this plan's subject. Each is a real finding, not a suspicion.
+All of these were addressed in the flag-clearing pass before Phase 7. Each
+section below keeps the original finding and records what happened to it.
+Three of the findings were themselves wrong; the corrections are inline.
 
 ### Trusting `composer analyse` needs a cold cache
 
@@ -331,6 +341,31 @@ Naming the provider in `testbench.yaml` fixes the commands and was tried in
 resolves `Numerosis::model()`, costing 113 cold analysis errors. The gap is
 real and wants its own change that handles both.
 
+**Resolved.** The provider is named in `testbench.yaml` again, and the cold
+count is 0. All 113 errors were in `tests/`, none in `src/`, and all were one
+family: a test helper whose signature named a workbench subclass
+(`App\Models\Central\CentralUser`) while the value reaching it was statically
+the package base class, because `ModelResolver::factoryFor()` sends every
+`\Models\` class to the package's own factory and that factory's
+`@extends Factory<PackageModel>` is what larastan reads. Runtime is
+unaffected — `modelFor()` still builds the host subclass.
+
+The fix is to widen the ~30 helper signatures to the package base class,
+through an aliased import (`use …\CentralUser as BaseCentralUser`), leaving
+every `::factory()` / `::findOrFail()` call site naming the App class exactly
+as before. **Swapping whole imports instead does not work**: only factories
+redirect through `ModelResolver`, so a direct
+`Nvade\…\CentralUser::findOrFail()` returns the package class and 13 tests
+fail on `assertAuthenticatedAs` identity comparisons. Two other routes were
+tried and abandoned — `#[UseFactory]` on the workbench models, and making the
+package factories generic — because larastan resolves `Model::factory()`
+through the booted `factoryFor()` and ignores both.
+
+A further 14 errors were not that family at all but genuine nullability gaps
+the booted provider newly exposes (`$user->fresh()` is `?static`,
+`$plan->getPrice()` is `?int`, `$tenant->database()->getName()` is
+`?string`). Those are fixed properly, not widened.
+
 ### `Tenant::create()` no longer builds a database
 
 `TenantCreated` is empty, so building a database is a provisioning step and
@@ -343,6 +378,20 @@ own work.
 **Undecided:** whether hosts want a supported convenience for this, or whether
 provisioning-only is the right constraint. Right now it is provisioning-only.
 
+**Partly resolved.** The framing was wrong: this is two audiences, not one.
+A host's *test suite* wanting a cheap working tenant is a proven need — our own
+harness has it, and 63 tests is the measurement. A host's *production* code
+calling `Tenant::create()` is the case that would recreate the deleted second
+path. `src/Testing/` already ships `CleansUpTenancyDatabases` and the Stripe
+fakes to hosts while `tests/TestCase.php` ships nothing, so a host inherited
+the cleanup helper and had to reinvent this listener, guard and all.
+
+So the listener is now `src/Testing/BuildsTenantDatabasesOnCreate`, with
+`shouldBuildDatabaseFor()` and `afterTenantDatabaseCreated()` as the two
+override points; `Tests\TestCase` composes it and supplies the
+`CloneTenantSchema` template guard and the clone itself. Production stays
+provisioning-only. Whether a *production* opt-in should exist is Phase 9.
+
 ### Per-step retries are uniform
 
 `RunProvisioningStep` gives every step `$tries = 5`. `FinalizeTenantProvisioning`
@@ -350,6 +399,12 @@ used to have 20, because a silent exhaustion there left the UI spinning
 forever. The chain's single terminal handler removes that reason, but the
 choice was made for simplicity and is worth revisiting if a step turns out to
 need its own retry profile.
+
+**Resolved.** `Contracts\Tenancy\ControlsItsOwnRetries` is the seam, shaped
+like `ConsumesContributions`: `tries()` and `backoff()`, both static, read in
+`RunProvisioningStep`'s constructor because the worker takes those values off
+the serialized job. No core step declares one — 5 and 5 remain the default —
+so this opens the door without moving anything through it.
 
 ### Stale references that predate this work
 
@@ -359,11 +414,36 @@ need its own retry profile.
   `resources/js/stripe-checkout.js` (×2), `resources/js/stripe-appearance.js`.
   `general.md` says comments should not cite `docs/` or `.ai/rules` at all, so
   the fix is probably deletion rather than repointing.
+
+  **Wrong premise, right fix.** The file exists, at
+  `.claude/plans/archive/custom-checkout.md`; nothing dangles. The citations
+  still had to go, because `general.md` bars a comment from naming a
+  `.claude/plans/` file at all. Six deleted, all trailing pointers on comments
+  that already carried the fact. Three more live in `tests/`, and those stay:
+  `general.md` exempts `tests/` explicitly.
+
+  Two gaps in that rule's own detection surfaced here. Its grep covers
+  `src/ config/ routes/ database/ workbench/ packages/` but not `resources/`,
+  where all six lived; and it is `--include='*.php'`, so the two `.js` files
+  could never match.
 - **`.ai/rules/testing.md` places `deleteCentralWrites()` in the test suite**;
   it lives in `src/Testing/CleansUpTenancyDatabases.php`.
   `tests/Feature/FreshHostTest.php:227` still points at the old location.
+
+  **Resolved**, and the same rule carried two more errors found while fixing
+  it: it claims `deleteCentralWrites()` is `protected` "so a suite with its own
+  teardown ordering can call it directly" when the method has been `private`
+  since `8984955` first wrote it (`cleanUpTenancyDatabases()` is the protected
+  one), and it names `MakeFirstUserAdminTest`, which is
+  `PromoteFirstUserToAdminTest`.
 - **`tests/Feature/Jobs/` holds tests for classes that are Actions now** —
   `SeedTenantDatabaseTest`, `FinalizeTenantProvisioningTest`. Path drift only.
+
+  **Resolved**: both moved to `tests/Feature/Actions/Tenancy/`. The directory
+  came back for `RunProvisioningStepTest`, which tests an actual job. Moving a
+  file strands any `phpstan-baseline.neon` entry pointing at it — one entry
+  needed its `path:` updated, and it reports as `ignore.unmatched` rather than
+  silence.
 
 ## Phase 8 additions
 
@@ -384,6 +464,39 @@ Beyond what Phase 8 already lists:
   `refreshApplication()` (fixed in `53da8f1`, and the mechanism that made it
   read as a flake); the contribution seam and why contributions declare their
   own storage; step records and what they replace.
+
+### 9. A production opt-in for `Tenant::create()` — specified, not executed
+
+Phase 8's companion question, carved out of the `Tenant::create()` flag above
+once the test-suite half was settled. **Nothing here is built.**
+
+The question: should a host be able to call `Tenant::create()` outside
+provisioning and get a working database, or is provisioning-only the contract?
+
+The race that made this look expensive is avoidable. `CreateTenant` used to
+wrap its `create()` in `withoutEvents()`, and Phase 4 dropped it on the
+grounds that no second path was left to race. Restoring it means a listener
+never fires during provisioning at all, so the opt-in needs no check-then-act
+guard — unlike the test-side helper, which runs with a sync queue and can
+afford `shouldBuildDatabaseFor()`'s `exists()`.
+
+What the phase has to settle:
+
+- **The switch.** A `numerosis.features` entry, a config flag, or "the host
+  registers the listener itself and core only ships it". The last is the
+  smallest promise and the easiest to withdraw.
+- **How far it goes.** Create only, or create-migrate-seed. Create-only hands
+  back a tenant whose database has no tables, which is arguably worse than no
+  convenience at all.
+- **`withoutEvents()` in `CreateTenant`,** and a test that fails if it is
+  dropped again — its absence is invisible until a host turns the opt-in on.
+- **Coherence with `TenantDeleted => [DeleteDatabase]`,** which is
+  unconditional. Deletion tearing down what creation only optionally built is
+  a defensible asymmetry, but it should be a decision rather than an accident.
+
+Prior art to read first: `.ai/rules/tenant-provisioning.md`'s account of the
+`TenantCreated` JobPipeline, and this plan's "Rejected" section, which is why
+the event is empty in the first place.
 
 ## Verification
 

@@ -49,8 +49,7 @@ export function buildAppearance() {
  * (Flux's own @fluxAppearance mechanism) rather than firing a public event,
  * so a MutationObserver is the only theme-change signal that doesn't depend
  * on Flux's private internals. A Payment Element mounted once at load and
- * never re-themed reads visibly wrong the moment the user toggles — see
- * custom-checkout.md, "Frontend".
+ * never re-themed reads visibly wrong the moment the user toggles.
  */
 export function watchAppearance(onChange) {
   const observer = new MutationObserver(() => onChange(buildAppearance()));

@@ -224,7 +224,7 @@ class FreshHostTest extends Orchestra
 
         // Dedicated database, unused by any other test — dropped wholesale
         // rather than reasoning about which connection wrote what, unlike
-        // Tests\TestCase's deleteCentralWrites()/deleteTenantDatabases(),
+        // CleansUpTenancyDatabases' central-write and tenant-database sweeps,
         // which exist only because that harness shares `testing` with
         // every other test in the suite.
         $pdo = new PDO('mysql:host=127.0.0.1;port=3306', 'root', 'root');

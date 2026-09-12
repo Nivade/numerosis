@@ -8,11 +8,12 @@ use Illuminate\Database\Seeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Tenancy\SeedTenantDatabase;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
+use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
 use Nvade\Numerosis\Models\Role;
 
 uses(RefreshDatabase::class);
 
-function seedProvisionFor(Tenant $tenant): TenantProvision
+function seedProvisionFor(BaseTenant $tenant): TenantProvision
 {
     /** @var TenantProvision */
     return TenantProvision::query()->forceCreate([

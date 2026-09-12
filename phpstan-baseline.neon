@@ -16,7 +16,7 @@ parameters:
 			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:fail\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: tests/Feature/Jobs/FinalizeTenantProvisioningTest.php
+			path: tests/Feature/Actions/Tenancy/FinalizeTenantProvisioningTest.php
 
 		-
 			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertSeeLivewire\(\)\.$#'
