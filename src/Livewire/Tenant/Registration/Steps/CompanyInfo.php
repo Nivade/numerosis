@@ -30,7 +30,7 @@ class CompanyInfo extends StepComponent implements ProvidesTenantIdentity
     }
 
     #[Override]
-    public function tenantIdentityStateKeys(): array
+    public static function tenantIdentityStateKeys(): array
     {
         return ['name'];
     }

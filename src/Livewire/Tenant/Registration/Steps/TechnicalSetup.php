@@ -54,7 +54,7 @@ class TechnicalSetup extends StepComponent implements ContributesProvisionData, 
     }
 
     #[Override]
-    public function tenantIdentityStateKeys(): array
+    public static function tenantIdentityStateKeys(): array
     {
         return IdentificationMode::current() === IdentificationMode::CustomDomain
             ? ['domain', 'customDomain']

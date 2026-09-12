@@ -175,13 +175,31 @@ class RegistrationRefreshTest extends TestCase
         $this->assertSame(12, $data->contribution(SeatCountContribution::class)?->seats);
     }
 
-    public function test_it_refuses_to_build_a_payload_with_no_identity(): void
+    /**
+     * The step to return to is derived from `tenantIdentityStateKeys()`, which
+     * until now was implemented and never called -- a step could return
+     * anything and nothing would notice.
+     */
+    public function test_it_names_the_step_that_collects_the_missing_identity(): void
     {
-        $this->expectException(MissingTenantIdentity::class);
-
         $state = new RegistrationState;
         $state->setAllState(['company-info' => ['name' => 'Acme Corp']]);
 
-        $state->provisionData('global-1');
+        try {
+            $state->provisionData('global-1');
+            $this->fail('A payload with no slug should have been refused.');
+        } catch (MissingTenantIdentity $e) {
+            $this->assertSame('technical-setup', $e->step);
+        }
+
+        $empty = new RegistrationState;
+        $empty->setAllState([]);
+
+        try {
+            $empty->provisionData('global-1');
+            $this->fail('A payload with no name should have been refused.');
+        } catch (MissingTenantIdentity $e) {
+            $this->assertSame('company-info', $e->step);
+        }
     }
 }
