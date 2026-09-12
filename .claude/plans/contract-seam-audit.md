@@ -1,7 +1,21 @@
 # Contract and seam audit — concrete classes where a contract belongs
 
-**Status: phases 0, 1 and 2 executed 2026-09-12 (`7964b73`, `f8717ef`, and
-this commit). Phases 3–10 not started.** Phase 0 added; phases 1, 2, 3, 4, 5
+**Status: phases 0–10 executed 2026-09-12. Verified 2026-09-12: cold
+`composer analyse` clean, `composer test` 707 passed/6 skipped/0 failed.
+Audited 2026-09-12 against the code: every phase has a Done note below, and
+the audit found one live defect in phase 9 item 1 — see its correction
+there.**
+Three test-only defects surfaced during verification and were fixed, not
+worked around: `CentralUserModel` contract was missing `notify()` (added,
+matching `Notifiable`'s untyped signature — a native `void` return type is a
+fatal LSP violation against the trait); `ArchTest`'s `ignoring()` call was
+chained in the wrong position (`->ignoring()` must follow the assertion
+method, not precede `->not->toUse()` — fixed the order, and
+`phpstan-baseline.neon`'s stale `count: 2` for that file's `expect()` calls,
+now 1); and the phase 7 rollback test threw from `SocialAccountLinked`'s
+listener, but that event is `ShouldDispatchAfterCommit` so its listener can
+never observe a pre-commit failure — switched the test to an Eloquent
+`creating` hook, which fires inside the transaction. Phase 0 added; phases 1, 2, 3, 4, 5
 and 9.8 revised
 2026-09-12 after review — phases 2 and 4 both originally proposed new
 abstractions over abstractions that already existed, and are now much
@@ -192,6 +206,12 @@ so no test ever has a second job on the same worker.
 
 Highest severity item in this file. Land before phases 6 and 7.
 
+**Done 2026-09-12** (`7964b73`). `Concerns/Tenancy/RunsInTenant::runInTenant()`
+with the `finally`, all three sites plus `SeedTenantDatabase` converted, a
+`RunProvisioningStepTest` case calling `handle()` the way a worker does and
+asserting tenancy is not left initialized after a failed step, and an
+`ArchTest` rule banning `->run(` outside the trait.
+
 ## Phase 1 — `PaymentPlanRepository` is a seam in signature only
 
 `PaymentPlanRepository` returns `Contracts\Billing\Plan` from all five methods.
@@ -274,6 +294,18 @@ not a second spelling.
 and `order-summary`. Expect to touch the two view tests and any factory-built
 plan assertion that reads `is_popular`. Do not delete assertions to make this
 green — `.ai/rules` and the repo's test rules both forbid it; convert them.
+
+**Done 2026-09-12** (`f8717ef`). Views call `price()`/`slug()`/`name()`;
+popularity moved to `PaymentPlanRepository::mostPopularSlug()` and
+`PaymentPlan::popular()`/`is_popular` were deleted, with
+`CacheKeys::popularPaymentPlanId()` renamed to `…Slug()` since the repository
+caches the slug directly. `featuresFor()` returns a `Data\Billing\PlanFeature`
+collection, so the pivot filter and the `name ?? slug` fallback left the
+views. `SwapSubscriptionPlan` retyped to `Plan`; `PaymentPlanObserver` left on
+the model. `PlanCardNonEloquentPlanTest` renders both views through a stub
+non-Eloquent repository — the test the phase existed for. No popular-cache
+invalidation exists, before or after; recorded in `.claude/findings.md`, not
+introduced here.
 
 ## Phase 2 — use Cashier's Billable API instead of its escape hatch
 
@@ -371,6 +403,30 @@ saying why, so the next audit does not re-flag them.**
 
 Smaller than originally scoped: nine mechanical edits, one with churn, no new
 contracts, no new config keys, no test changes.
+
+**Done 2026-09-12** (`d84eaff`), with three deviations from the table above.
+
+- **Eight of the nine converted, not nine.** `AttachVatNumber` stays raw: it
+  is shared by a `CentralUser` and a `Tenant`, and Cashier ships no interface
+  both satisfy, so the raw customer id is the only common ground. It is a
+  fifth legitimate exception, and `.ai/rules/billing-checkout.md` names it
+  alongside the other four.
+- **One new contract, against this phase's own "no new contracts".**
+  `Contracts/Billing/BillableUser` — `Billable`'s methods are on a trait, so
+  the converted actions had nowhere to hint. Hinting the concrete
+  `Models\Central\CentralUser` instead would have re-introduced exactly what
+  phase 9 removes elsewhere. It abstracts the *billable model*, which is
+  ours, not the Stripe client, which is Cashier's, so it is not the rejected
+  design.
+- **`FakeStripeHttpClient` gained a handler**, against step 3's "expected test
+  diff: zero". `Billable::paymentMethods()` hits `GET /v1/payment_methods`,
+  not `GET /v1/customers/{id}/payment_methods` — a different endpoint, so the
+  fake needed a route, not a rewire. No `tests/` file changed.
+
+Step 4 re-verified 2026-09-12: reintroducing a second `asStripeCustomer()`
+call in `FetchStripeCustomer` still fails
+`CheckoutTest::test_mounting_retrieves_the_stripe_customer_once`, so the
+counting assertion did not weaken.
 
 ## Phase 3 — `Numerosis::model()`: 104 call sites on a static
 
@@ -476,6 +532,11 @@ in `Console/Commands/PruneStalledTenantProvisions.php`:
 touching every call site; three scopes and one method touch
 `PruneStalledTenantProvisionsTest` and `InlineCheckoutGatewayTest` only.
 
+**Done 2026-09-12** (`775635d`). Three `#[Scope]` methods on
+`TenantProvision`, the three command methods rewritten against them, and
+`claimSetupIntent()` carrying the ownership predicate `InlineCheckoutGateway`
+held in a comment. No repository. Test fallout was the two files predicted.
+
 ## Phase 5 — `ProvisioningStep` should receive what it needs
 
 `ProvisioningStep::handle(TenantProvision $provision)` hands each step the
@@ -537,6 +598,10 @@ in the step. Add a test that sets the key to a spy seeder and asserts the
 pipeline runs it. Keep `HostConfig`'s projection — a host may still invoke
 `tenants:seed` by hand.
 
+**Done 2026-09-12.** As written: the step reads the key, `HostConfig`'s
+projection stayed, and `SeedTenantDatabaseTest` binds a spy seeder through
+the config key and asserts the pipeline ran it.
+
 ## Phase 7 — `DB::transaction()` on the wrong connection (live defect)
 
 `src/Actions/Auth/Social/LoginWithSocialAccount.php:69`. `DB::transaction()`
@@ -550,6 +615,12 @@ this exact defect as still-live as of 2026-09-07, naming this file;
 
 Switch to `$user->getConnection()->transaction(...)`. The test has to prove
 the rollback: write a failing assertion first, per `.ai/rules/testing.md`.
+
+**Done 2026-09-12.** `(new $centralUserClass)->getConnection()->transaction()`,
+with a `SocialLoginTest` case that throws from a `SocialAccount` `creating`
+hook and asserts the central user row is gone. The first spelling threw from
+`SocialAccountLinked`'s listener, which cannot observe a rollback —
+`ShouldDispatchAfterCommit`.
 
 ## Phase 8 — contracts that name concrete models, and the arch tests that miss them
 
@@ -596,7 +667,83 @@ already uses it.
    file. Flattening is cheaper and matches the `Services/Billing/` precedent
    from 2026-09-11.
 
+**Done 2026-09-12.** `TenantDatabaseManager::databaseExists()` retyped to
+`Stancl\Tenancy\Contracts\TenantWithDatabase` (`Tenant` already implements
+it). Added `Contracts/Tenancy/HasTenantOwner` (`owner(): ?CentralUserModel`);
+`NotifiesTenantOwner::notify()` retyped to it, `Tenant` now implements it,
+`NotifiesTenantOwnerDirectly` and the one test spy updated. `ProvisioningStep`
+and `PersistsToProvisionColumns` left naming `TenantProvision` — documented as
+a named exception rather than converted, since phase 5 option 2 (the
+`ProvisioningContext` DTO) was rejected. `ArchTest`'s two-contract scope
+widened to all of `Nvade\Numerosis\Contracts`, with `Subscribable`,
+`HasTenants`, `ProvisioningStep` and `PersistsToProvisionColumns` as named
+exceptions; `ProvisionsTenant` and `TenantDomainPolicy` needed no entry (per
+the re-audit, `ProvisionsTenant` names no concrete model). The `Services`
+arch test now filters `getInterfaceNames()` to `Nvade\Numerosis\Contracts\*`
+and lists `PreservingPathTenantResolver` plus the three bootstrappers as
+named exceptions — all four previously passed only by inheriting or
+implementing a stancl contract. `Services/Tenancy/Bootstrappers/` flattened
+into `Services/Tenancy/`; all call sites, `.ai/rules/auth-guards.md` and
+`.ai/rules/auth-login.md` updated to the new FQCNs. Pint clean. Tests and
+`composer analyse` ran green once every phase 6–10 change had landed — see
+the status line at the top. Two things landed here that this section did not
+plan: `Contracts/Auth/CentralUserModel` gained `notify()`, because
+`HasTenantOwner::owner()` returns one and `NotifiesTenantOwnerDirectly` has
+to send to it; and `ArchTest`'s `ignoring()` chain position was wrong, which
+also moved `phpstan-baseline.neon`'s count for that file from 2 to 1.
+
 ## Phase 9 — narrow the over-wide returns and the stray concretes
+
+**Done 2026-09-12.** Items 1–7 landed; item 8 was already withdrawn (no
+action, see its own bullet).
+
+1. `BillableResolver::resolve()` retyped to a real native DNF,
+   `null|(Model&BillableUser)|(Model&Subscribable)` — not
+   `Model&BillableUser&Subscribable` as first written here, since `Tenant`
+   (the plan-swap path) is `Subscribable` only and never `BillableUser`.
+   `TenantOrUserBillableResolver` narrows to match. Only the fully-redundant
+   `instanceof Subscribable` guard in `StartSubscriptionCheckout` (now
+   implied by a non-null return) was deleted, replaced with a null check;
+   the five `instanceof BillableUser` checks across the other sites stay —
+   they pick real behaviour, not just PHPStan noise, since `Tenant` still
+   reaches every one of those call sites.
+2. `EnsureSessionMatchesTenant` retyped to `Illuminate\Contracts\Auth\Factory`.
+3. Added `Contracts/Tenancy/Suspendable` (`isSuspended(): bool`); `Tenant`
+   implements it; `EnsureTenantSubscriptionActive` narrows on the contract.
+4. Added `Boot/TenancyRouting` with the four statics, moved verbatim.
+   `TenancyServiceProvider`, `InitializeTenancy`, `TenantRouteGuard`, both
+   `tests/Feature/Providers/*Test.php` files and `.ai/rules/*` prose updated
+   to the new FQCN.
+5. Added `Testing/BillingFake::swap()`; `BillingService::fake()` deleted.
+   `Facades/Billing::fake()` is now a real static override (not a forward
+   through the accessor) calling `BillingFake::swap()` — the one place in
+   `src/` still allowed to name `Testing\`, since it is `Billing::fake()`'s
+   documented entry point. Added
+   `PackageBoundariesTest::test_core_src_does_not_reach_into_testing_except_the_billing_facade()`
+   enforcing that as a named exception.
+6. Both views converted from `resolve(BillingService::class)` to the
+   `Billing` facade's `formatAmount()`.
+7. Added `Actions/Queries/GetTenantProvisionsByGlobalId` and
+   `GetPendingInvitationsForTenant` for the two listing queries; added
+   `TenantProvision::ownedBy()` (matching `claim()`/`claimSetupIntent()`'s
+   existing static-predicate style) for the ownership check in
+   `cancelProvision()`.
+
+Pint clean. `composer analyse` cold: the only 3 errors are pre-existing and
+outside every file this phase touched (`NotifiesTenantOwnerDirectly`,
+`SeedTenantDatabaseTest`, `ArchTest`'s ignore-count) — unrelated to phase 9,
+likely from another phase's branch landing concurrently. All three were gone
+by the time every phase 6–10 change had landed and the suite ran green.
+
+**Item 1 corrected 2026-09-12, after audit.** The first narrowing returned
+`null` for an authenticated user that was `Subscribable` but not
+`BillableUser`, and `StartSubscriptionCheckout`'s replacement `!== null`
+guard then *skipped* `PlanPolicy::assertEligible()` for exactly that user
+instead of enforcing it — a silent weakening no test saw, since core's
+`CentralUser` implements both. `TenantOrUserBillableResolver` now returns
+either arm of the contract's DNF, and
+`TenantOrUserBillableResolverTest` covers the host-user case (verified
+failing against the previous line first).
 
 Small, independent, mechanical. Each is one or two lines.
 
@@ -658,6 +805,12 @@ carry `$ownerId` but no `$tenantId`, where `TenantRestored` and
 
 Add `public readonly string $tenantId` to all four. Breaking change to the
 event signatures, which is free here — nothing installs this package yet.
+
+**Done 2026-09-12.** All four carry `$tenantId`, and every construction site
+passes `(string) $tenant->getTenantKey()`. Noticed while converting them:
+`PaymentSettled` is dispatched from nowhere in `src/` — only registered in
+`NumerosisServiceProvider` and constructed by tests. Recorded in
+`.claude/findings.md`; not fixed here.
 
 ## The "handrolled vs existing abstraction" sweep — what came back clean
 
