@@ -8,9 +8,15 @@ use App\Models\Central\CentralUser;
 use App\Models\Central\Tenant;
 use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
+use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
+use Nvade\Numerosis\Actions\Tenancy\MigrateTenantDatabase;
+use Nvade\Numerosis\Enums\Tenancy\StepOutcome;
 use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
 use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
+use Nvade\Numerosis\Tests\Support\RecordSeatCountStep;
 use Nvade\Numerosis\Tests\TestCase;
 
 class TenantsMineTest extends TestCase
@@ -59,6 +65,89 @@ class TenantsMineTest extends TestCase
             ->test('numerosis-pages::tenant.mine')
             ->assertSet('pendingTenants', fn ($pending) => $pending->count() === 1)
             ->assertSee('Waiting Co');
+    }
+
+    /**
+     * The bare spinner said nothing about progress, so a provision that had
+     * reached seeding looked the same as one that had not started.
+     */
+    public function test_a_pending_provision_names_the_step_in_flight(): void
+    {
+        $user = CentralUser::factory()->create();
+
+        $provision = TenantProvision::factory()->provisioning()->create([
+            'slug' => 'stepping',
+            'name' => 'Stepping Co',
+            'global_id' => $user->global_id,
+        ]);
+
+        // Pinned: the harness swaps the migrate and seed steps for
+        // CloneTenantSchema, so the step after these two differs from what a
+        // real install would run.
+        Config::set('numerosis.tenancy.provisioning.steps', [
+            CreateTenant::class,
+            CreateTenantDatabase::class,
+            MigrateTenantDatabase::class,
+        ]);
+
+        $provision->recordStep(CreateTenant::class, StepOutcome::Done);
+        $provision->recordStep(CreateTenantDatabase::class, StepOutcome::Done);
+
+        Livewire::actingAs($user)
+            ->test('numerosis-pages::tenant.mine')
+            ->assertSee('Building the database')
+            ->assertDontSee('Creating your workspace');
+    }
+
+    /**
+     * A tenant row that exists but is not provisioned yet is in
+     * $provisioningTenants, and its provision row is excluded from
+     * $pendingTenants, so the label has to come from $provisionsBySlug.
+     */
+    public function test_a_provisioning_tenant_names_the_step_in_flight(): void
+    {
+        $user = CentralUser::factory()->create();
+        $tenant = Tenant::factory()->create(['id' => 'halfbuilt', 'provisioned_at' => null]);
+        $this->attach($user, $tenant);
+
+        $provision = TenantProvision::factory()->provisioning()->create([
+            'slug' => 'halfbuilt',
+            'name' => 'Half Built Co',
+            'global_id' => $user->global_id,
+        ]);
+
+        Config::set('numerosis.tenancy.provisioning.steps', [
+            CreateTenant::class,
+            CreateTenantDatabase::class,
+        ]);
+
+        $provision->recordStep(CreateTenant::class, StepOutcome::Done);
+
+        Livewire::actingAs($user)
+            ->test('numerosis-pages::tenant.mine')
+            ->assertSet('pendingTenants', fn ($pending) => $pending->isEmpty())
+            ->assertSee('Preparing the database');
+    }
+
+    /**
+     * A host step carries no translation, so it falls back to a headline of
+     * its class name instead of rendering a raw FQCN or a missing key.
+     */
+    public function test_a_host_step_with_no_translation_falls_back_to_its_name(): void
+    {
+        $user = CentralUser::factory()->create();
+
+        Config::set('numerosis.tenancy.provisioning.steps', [RecordSeatCountStep::class]);
+
+        TenantProvision::factory()->provisioning()->create([
+            'slug' => 'hoststep',
+            'name' => 'Host Step Co',
+            'global_id' => $user->global_id,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test('numerosis-pages::tenant.mine')
+            ->assertSee('Record Seat Count');
     }
 
     public function test_a_failed_provision_offers_a_retry(): void

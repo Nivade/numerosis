@@ -26,6 +26,14 @@ class extends Component
     /** Slugs claimed at checkout that have no tenant row yet. */
     public Collection $pendingTenants;
 
+    /**
+     * Every provision row this user owns, keyed by slug, so a tenant still
+     * being built can show which step is running. A provisioning tenant's row
+     * is deliberately absent from $pendingTenants, which excludes any slug
+     * that already has a tenant.
+     */
+    public Collection $provisionsBySlug;
+
     public function mount(): void
     {
         // Narrowed rather than assigned straight through: this page is central
@@ -50,6 +58,7 @@ class extends Component
             $this->readyTenants = new Collection;
             $this->provisioningTenants = new Collection;
             $this->pendingTenants = new Collection;
+            $this->provisionsBySlug = new Collection;
 
             return;
         }
@@ -65,10 +74,14 @@ class extends Component
         $this->readyTenants = $tenants->whereNotNull('provisioned_at');
         $this->provisioningTenants = $tenants->whereNull('provisioned_at');
 
-        $this->pendingTenants = Numerosis::model(TenantProvision::class)::query()
+        $this->provisionsBySlug = Numerosis::model(TenantProvision::class)::query()
             ->where('global_id', $this->user->global_id)
-            ->whereNotIn('slug', $tenants->pluck('id'))
-            ->get();
+            ->get()
+            ->keyBy('slug');
+
+        $this->pendingTenants = $this->provisionsBySlug
+            ->reject(fn (TenantProvision $p) => $tenants->contains('id', $p->slug))
+            ->values();
     }
 
     /**
@@ -150,8 +163,10 @@ class extends Component
                                 <x-slot:subtitle>
                                     @if($pending->hasFailed())
                                         Setup failed: {{ $pending->error }}
+                                    @elseif($pending->status === TenantProvisionStatus::Reserved)
+                                        {{ $pending->slug }} — awaiting checkout
                                     @else
-                                        {{ $pending->slug }} — setting up…
+                                        {{ $pending->slug }} — {{ $pending->currentStepLabel() }}
                                     @endif
                                 </x-slot:subtitle>
 
@@ -205,7 +220,10 @@ class extends Component
 
                         @foreach($provisioningTenants as $tenant)
                             <x-numerosis::tenant.list-item :initials="$tenant->initials ?: 'T'" :title="$tenant->name">
-                                <x-slot:subtitle>Setting up…</x-slot:subtitle>
+                                <x-slot:subtitle>
+                                    {{ $provisionsBySlug->get($tenant->id)?->currentStepLabel()
+                                        ?? __('numerosis::tenancy.provisioning.fallback') }}
+                                </x-slot:subtitle>
 
                                 <x-slot:actions>
                                     <flux:icon.loading class="h-4 w-4 text-zinc-400" />

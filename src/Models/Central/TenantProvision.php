@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Str;
 use Nvade\Numerosis\Contracts\Tenancy\PersistsToProvisionColumns;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Database\Factories\Central\TenantProvisionFactory;
@@ -28,7 +30,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * deleted. Tenant readiness is still `tenants.provisioned_at`, never a row
  * here.
  *
- * `step_records` is not yet written by anything.
+ * `step_records` is written by `RunProvisioningStep`, one entry per step.
  *
  * @property string $slug
  * @property string|null $custom_domain
@@ -180,6 +182,28 @@ class TenantProvision extends Model
         }
 
         return null;
+    }
+
+    /**
+     * What to show someone waiting on this provision.
+     *
+     * Translated by class basename so a host's own step needs no entry, and
+     * falls back to the generic copy once every step has run, which is the
+     * window between the last step and `tenants.provisioned_at` being read.
+     */
+    public function currentStepLabel(): string
+    {
+        $step = $this->currentStep();
+
+        if ($step === null) {
+            return __('numerosis::tenancy.provisioning.fallback');
+        }
+
+        $key = 'numerosis::tenancy.provisioning.steps.'.class_basename($step);
+
+        return Lang::has($key)
+            ? __($key)
+            : Str::headline(class_basename($step));
     }
 
     /**

@@ -267,11 +267,27 @@ explicit non-checkout entry point — `src/Console/Commands/` has
 `DeleteTenants` but nothing that creates one. Also the handle for exercising
 the pipeline against `workbench/` during verification.
 
-### 7. Progress UI
+### 7. Progress UI — done 2026-09-12
 
 `⚡mine.blade.php` reads `step_records` to show the running step name instead
 of a bare "Setting up…" spinner. The existing `wire:poll.5s="refreshTenants"`
 and `isWorkOutstanding()` already drive it.
+
+`TenantProvision::currentStep()` already existed, so the work was a label and
+a lookup. `currentStepLabel()` translates by class basename through the new
+`resources/lang/en/tenancy.php`, and falls back to `Str::headline()` so a
+host's own step reads as "Record Seat Count" rather than an FQCN or a missing
+key.
+
+Two lists needed feeding, not one. A tenant whose row exists but is not
+provisioned sits in `provisioningTenants`, and its provision row is excluded
+from `pendingTenants` by the slug filter, so the component now also keeps
+`provisionsBySlug`. A `Reserved` row says "awaiting checkout" instead of
+naming a step, since nothing is running yet.
+
+Tests pinning the step list are doing it deliberately: `Tests\TestCase` swaps
+the migrate and seed steps for `CloneTenantSchema`, so the step in flight
+after a given pair differs from what a real install would run.
 
 ### 8. Docs and rules
 
