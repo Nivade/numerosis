@@ -26,7 +26,7 @@ class AttachVatNumber
                 'value' => $vatNumber,
             ]);
         } catch (ApiErrorException $e) {
-            throw new InvalidVatNumber(__('numerosis::billing.checkout.invalid_vat_number'), $e->getCode(), previous: $e);
+            throw new InvalidVatNumber(__('numerosis::billing.checkout.invalid_vat_number'), 0, previous: $e);
         }
     }
 }

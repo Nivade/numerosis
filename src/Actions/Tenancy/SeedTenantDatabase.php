@@ -42,7 +42,7 @@ class SeedTenantDatabase implements ProvisioningStep
                     ->__invoke();
             });
         } catch (Throwable $e) {
-            throw new RuntimeException("Seeding failed for tenant {$provision->slug}: {$e->getMessage()}", $e->getCode(), previous: $e);
+            throw new RuntimeException("Seeding failed for tenant {$provision->slug}: {$e->getMessage()}", 0, previous: $e);
         } finally {
             // Async code manages its own revert: $tenant->run() gives no such
             // guarantee, and leaving tenancy initialized leaks into the next

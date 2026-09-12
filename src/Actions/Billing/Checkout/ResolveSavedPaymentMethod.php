@@ -27,7 +27,7 @@ class ResolveSavedPaymentMethod
         } catch (ApiErrorException $e) {
             report($e);
 
-            throw new SavedPaymentMethodUnavailable(__('numerosis::billing.checkout.saved_payment_method_unavailable'), $e->getCode(), previous: $e);
+            throw new SavedPaymentMethodUnavailable(__('numerosis::billing.checkout.saved_payment_method_unavailable'), 0, previous: $e);
         }
 
         $customerId = is_string($paymentMethod->customer) ? $paymentMethod->customer : $paymentMethod->customer?->id;

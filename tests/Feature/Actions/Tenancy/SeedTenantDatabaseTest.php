@@ -47,6 +47,43 @@ it('throws when the seeder fails', function () {
     expect(tenancy()->initialized)->toBeFalse();
 });
 
+/**
+ * A `PDOException` carries a SQLSTATE string in `getCode()`, and
+ * `RuntimeException` only accepts an int, so re-throwing with the original
+ * code turned every database-caused seeding failure into a `TypeError` raised
+ * from the catch block -- losing the real cause entirely. Found running the
+ * chain against a real queue worker; the suite never saw it because every
+ * fixture threw with the default code of 0.
+ */
+it('reports the real failure when the seeder throws a string exception code', function () {
+    $tenant = Tenant::factory()->create();
+
+    // `$code` is only a string once a driver has set it, so constructing a
+    // bare PDOException leaves it at the default int 0 and proves nothing.
+    $sqlstate = new class('SQLSTATE[HY000]: unknown function') extends PDOException
+    {
+        public function __construct(string $message)
+        {
+            parent::__construct($message);
+
+            $this->code = 'HY000';
+        }
+    };
+
+    app()->bind(TenantDatabaseSeeder::class, fn () => new class($sqlstate) extends Seeder
+    {
+        public function __construct(private PDOException $sqlstate) {}
+
+        public function run(): never
+        {
+            throw $this->sqlstate;
+        }
+    });
+
+    expect(fn () => SeedTenantDatabase::run(seedProvisionFor($tenant)))
+        ->toThrow(RuntimeException::class, 'unknown function');
+});
+
 it('seeds the tenant database on success', function () {
     $tenant = Tenant::factory()->create();
 
