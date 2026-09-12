@@ -1,6 +1,10 @@
 laravel: '@testbench'
 
 providers:
+  # Without this the package's own commands are absent from `php artisan`:
+  # composer's auto-discovery does not reach the Testbench console boot, so
+  # numerosis:install, tenants:delete and the rest were all unreachable.
+  - Nvade\Numerosis\NumerosisServiceProvider
   - Workbench\App\Providers\WorkbenchServiceProvider
 
 migrations:

@@ -52,6 +52,7 @@ use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
 use Nvade\Numerosis\Console\Commands\DeleteTenants;
 use Nvade\Numerosis\Console\Commands\InstallNumerosisCommand;
+use Nvade\Numerosis\Console\Commands\ProvisionTenantCommand;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedStripeCustomers;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
@@ -126,7 +127,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->hasCommand(DeleteTenants::class)
             ->hasCommand(PruneOrphanedStripeCustomers::class)
             ->hasCommand(PruneOrphanedTenantDatabases::class)
-            ->hasCommand(PruneStalledTenantProvisions::class);
+            ->hasCommand(PruneStalledTenantProvisions::class)
+            ->hasCommand(ProvisionTenantCommand::class);
     }
 
     public function packageRegistered(): void
