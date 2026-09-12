@@ -508,6 +508,20 @@ which would also remove the concrete-model dependency the contract has today
 implements, for a duplication problem option 1 solves in six one-line edits.
 Revisit only if phase 8 item 3 is taken up independently.
 
+**Done 2026-09-12.** Added `TenantProvision::tenant(): BelongsTo`, keyed
+`slug` → `tenants.id`, through `Numerosis::model(Tenant::class)` (not the
+concrete class — matches every other relation in `Models/Central/*`, e.g.
+`Invitation::tenant()`). Converted all seven `findOrFail` sites to
+`$provision->tenant()->firstOrFail()`; both the `Tenant` and `Numerosis`
+imports dropped from five of the seven files where nothing else used them.
+Cold PHPStan clean, Pint clean. 63 tests across the affected paths (Actions/Tenancy,
+Jobs/RunProvisioningStepTest, Console/ProvisionTenantCommandTest,
+Tenancy/HostProvisioningExtensionTest) pass unchanged — no new test needed,
+this is a pure duplication removal with identical runtime behavior.
+
+**Phase 3 is now closed.** Steps 1 and 2 were this phase and phase 4; step 3
+landed standalone. Nothing further to do under phase 3.
+
 ## Phase 6 — `numerosis.tenancy.seeder` does nothing (live defect)
 
 `src/Actions/Tenancy/SeedTenantDatabase.php:40` hardcodes

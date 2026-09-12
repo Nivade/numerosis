@@ -10,7 +10,6 @@ use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
 
@@ -39,7 +38,7 @@ class AddTenantOwner implements RequiresContributions
 
     public function handle(TenantProvision $provision): void
     {
-        $tenant = Numerosis::model(Tenant::class)::findOrFail($provision->slug);
+        $tenant = $provision->tenant()->firstOrFail();
         $centralUserClass = Numerosis::model(CentralUser::class);
 
         // The runner skips this step when the contribution is absent, so the

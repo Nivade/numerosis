@@ -11,7 +11,6 @@ use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Events\Auth\AdminGranted;
 use Nvade\Numerosis\Exceptions\Tenancy\NoPromotableUser;
-use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Models\Tenant\User;
 use Nvade\Numerosis\Numerosis;
@@ -39,7 +38,7 @@ class PromoteFirstUserToAdmin implements RequiresContributions
 
     public function handle(TenantProvision $provision): void
     {
-        $tenant = Numerosis::model(Tenant::class)::findOrFail($provision->slug);
+        $tenant = $provision->tenant()->firstOrFail();
         $userClass = Numerosis::model(User::class);
         $tenantId = (string) $tenant->getTenantKey();
 

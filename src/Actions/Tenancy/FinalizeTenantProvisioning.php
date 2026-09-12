@@ -7,9 +7,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Concerns\Tenancy\TagsSentryScopeWithTenant;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
-use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantProvision;
-use Nvade\Numerosis\Numerosis;
 
 /**
  * Signals that provisioning finished. Configured last because it is what
@@ -27,7 +25,7 @@ class FinalizeTenantProvisioning implements ProvisioningStep
 
     public function handle(TenantProvision $provision): void
     {
-        $tenant = Numerosis::model(Tenant::class)::findOrFail($provision->slug);
+        $tenant = $provision->tenant()->firstOrFail();
 
         $this->tagSentryScopeWithTenant($provision->slug);
 

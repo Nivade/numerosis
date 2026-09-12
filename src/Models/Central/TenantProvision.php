@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\WithoutIncrementing;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Lang;
@@ -22,6 +23,7 @@ use Nvade\Numerosis\Database\Factories\Central\TenantProvisionFactory;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\StepOutcome;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
+use Nvade\Numerosis\Numerosis;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
@@ -55,6 +57,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property string|null $error
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read Tenant|null $tenant
  *
  * @mixin Model
  */
@@ -81,6 +84,17 @@ class TenantProvision extends Model
     public function isSettled(): bool
     {
         return $this->settled_at !== null;
+    }
+
+    /**
+     * A tenant's primary key is its slug, so this is null for any step that
+     * runs before `CreateTenant` in `numerosis.tenancy.provisioning.steps`.
+     *
+     * @return BelongsTo<Tenant, $this>
+     */
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Numerosis::model(Tenant::class), 'slug', 'id');
     }
 
     /**

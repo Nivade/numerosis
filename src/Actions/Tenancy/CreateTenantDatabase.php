@@ -7,9 +7,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
-use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantProvision;
-use Nvade\Numerosis\Numerosis;
 use Stancl\Tenancy\Jobs\CreateDatabase;
 
 /**
@@ -28,7 +26,7 @@ class CreateTenantDatabase implements ProvisioningStep
 
     public function handle(TenantProvision $provision): void
     {
-        $tenant = Numerosis::model(Tenant::class)::findOrFail($provision->slug);
+        $tenant = $provision->tenant()->firstOrFail();
 
         // Gated per step rather than all-or-nothing: the step record makes a
         // half-built database recoverable, which the old segment-wide guard

@@ -9,9 +9,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Concerns\Tenancy\RunsInTenant;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
-use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantProvision;
-use Nvade\Numerosis\Numerosis;
 use RuntimeException;
 use Throwable;
 
@@ -33,7 +31,7 @@ class SeedTenantDatabase implements ProvisioningStep
 
     public function handle(TenantProvision $provision): void
     {
-        $tenant = Numerosis::model(Tenant::class)::findOrFail($provision->slug);
+        $tenant = $provision->tenant()->firstOrFail();
 
         $this->runInTenant($tenant, function () use ($provision): void {
             try {

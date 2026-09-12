@@ -11,9 +11,7 @@ use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantProvision;
-use Nvade\Numerosis\Numerosis;
 use Override;
 
 /**
@@ -50,7 +48,7 @@ class LinkTenantSubscription implements RequiresContributions
             return;
         }
 
-        $tenant = Numerosis::model(Tenant::class)::findOrFail($provision->slug);
+        $tenant = $provision->tenant()->firstOrFail();
 
         $stripeSubscription = Cashier::stripe()->subscriptions->retrieve($billing->stripe_subscription_id);
 
