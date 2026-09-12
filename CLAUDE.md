@@ -72,6 +72,11 @@ path symlinked to it), applied by hand here since these skills predate that
 behavior. Edit a skill under `.ai/skills/<name>/`, never through the
 `.claude/skills/<name>` symlink.
 
+Noticed something mid-task that's out of scope, a bug, tech debt, a risk, or
+an open question — but not this task's job? Use the `note-finding` skill to
+append it to `.claude/findings.md` rather than letting it fall on the floor
+or derailing the current change.
+
 ## Critical Execution Constraints
 
 - **NO SUB-AGENTS, except cavecrew.** `cavecrew-investigator`,
