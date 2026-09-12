@@ -1,11 +1,13 @@
+@use(\Nvade\NumerosisUi\Enums\Severity)
+
 @php
     /**
      * The floating counterpart of ui/alert — same four types, same
-     * semantic-token palette, but populated entirely client-side from the
-     * `toast` object `partials/toasts.blade.php`'s `x-for` binds into scope
-     * (`{type, message, title}`). No Blade props: this renders once into
-     * static markup with Alpine bindings, since every instance is a runtime
-     * array entry, not a server-known value.
+     * semantic-token palette (`Severity`), but populated entirely
+     * client-side from the `toast` object `partials/toasts.blade.php`'s
+     * `x-for` binds into scope (`{type, message, title}`). No Blade props:
+     * this renders once into static markup with Alpine bindings, since every
+     * instance is a runtime array entry, not a server-known value.
      *
      * `<flux:icon>` resolves which SVG to inline at *render* time from its
      * `name` prop — it cannot take an Alpine-bound name the way a plain
@@ -19,14 +21,17 @@
      * a leading `:` is Blade's own dynamic-prop syntax and gets evaluated as
      * PHP, not left for Alpine.
      */
-    $palette = <<<'JS'
-        {
-            success: { surface: 'bg-success-bg border-success-border', text: 'text-success-text', icon: 'text-success-icon' },
-            warning: { surface: 'bg-warning-bg border-warning-border', text: 'text-warning-text', icon: 'text-warning-icon' },
-            error: { surface: 'bg-danger-bg border-danger-border', text: 'text-danger-text', icon: 'text-danger-icon' },
-            info: { surface: 'bg-info-bg border-info-border', text: 'text-info-text', icon: 'text-info-icon' },
-        }[toast.type ?? 'info']
-    JS;
+    $paletteEntries = collect(Severity::cases())
+        ->map(fn (Severity $severity) => sprintf(
+            "%s: { surface: '%s', text: '%s', icon: '%s' }",
+            $severity->value,
+            $severity->surfaceClasses(),
+            $severity->textClasses(),
+            $severity->iconColorClasses(),
+        ))
+        ->implode(",\n            ");
+
+    $palette = "{\n            {$paletteEntries},\n        }[toast.type ?? 'info']";
 @endphp
 <div
     x-show="true"

@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Database\Seeders\Concerns;
 
 use Closure;
 use Illuminate\Support\Collection;
+use Nvade\Numerosis\Enums\Auth\SystemRole;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -52,7 +53,7 @@ trait SeedsAdminRole
         $roles = $connection === null ? Role::query() : Role::on($connection);
 
         $admin = $roles->firstOrCreate([
-            'name' => 'admin',
+            'name' => SystemRole::Admin->value,
             'guard_name' => $guard,
         ]);
 

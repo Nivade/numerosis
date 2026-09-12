@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Boot;
 use Closure;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Enums\MiddlewareAlias;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
@@ -43,18 +44,18 @@ final class MiddlewareRegistrar
             // Laravel's `auth`, plus the central-to-tenant session promotion.
             // It takes its own alias because `auth` is the host's, and every
             // central route using that one must keep Laravel's behaviour.
-            'tenancy.auth' => Authenticate::class,
+            MiddlewareAlias::TenancyAuth->value => Authenticate::class,
 
-            'password.confirm.if-set' => RequirePasswordIfSet::class,
+            MiddlewareAlias::PasswordConfirmIfSet->value => RequirePasswordIfSet::class,
 
             // Apply the suspension gate per route group. It redirects to
             // `tenant.suspended`, itself a tenant route, so putting it on the
             // `tenant` group as a whole loops.
-            'tenancy.subscription' => EnsureTenantSubscriptionActive::class,
+            MiddlewareAlias::TenancySubscription->value => EnsureTenantSubscriptionActive::class,
 
-            'tenancy.identification' => InitializeTenancy::class,
-            'tenancy.route' => TenantRouteGuard::class,
-            'tenancy.session' => EnsureSessionMatchesTenant::class,
+            MiddlewareAlias::TenancyIdentification->value => InitializeTenancy::class,
+            MiddlewareAlias::TenancyRoute->value => TenantRouteGuard::class,
+            MiddlewareAlias::TenancySession->value => EnsureSessionMatchesTenant::class,
         ];
     }
 
@@ -68,9 +69,9 @@ final class MiddlewareRegistrar
         return [
             'tenant' => [
                 'web',
-                'tenancy.identification',
-                'tenancy.route',
-                'tenancy.session',
+                MiddlewareAlias::TenancyIdentification->value,
+                MiddlewareAlias::TenancyRoute->value,
+                MiddlewareAlias::TenancySession->value,
             ],
             'universal' => [],
         ];

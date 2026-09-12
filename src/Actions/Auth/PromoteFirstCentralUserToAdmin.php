@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Auth;
 
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Enums\Auth\SystemRole;
 use Nvade\Numerosis\Events\Auth\AdminGranted;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Role;
@@ -26,7 +27,7 @@ class PromoteFirstCentralUserToAdmin
         }
 
         $role = Role::query()
-            ->where('name', 'admin')
+            ->where('name', SystemRole::Admin->value)
             ->where('guard_name', 'web')
             ->first();
 

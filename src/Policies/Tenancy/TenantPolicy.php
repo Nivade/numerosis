@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Policies\Tenancy;
 
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Nvade\Numerosis\Enums\Auth\PermissionContext;
 use Nvade\Numerosis\Policies\Concerns\ChecksContextPermissions;
 
 class TenantPolicy
@@ -14,6 +15,6 @@ class TenantPolicy
 
     protected function permissionContext(): string
     {
-        return 'tenants';
+        return PermissionContext::Tenants->value;
     }
 }

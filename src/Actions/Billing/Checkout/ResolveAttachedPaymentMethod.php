@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
 use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Enums\Billing\SetupIntentStatus;
 use Stripe\PaymentMethod;
 use Stripe\SetupIntent;
 use Stripe\StripeObject;
@@ -56,7 +57,7 @@ class ResolveAttachedPaymentMethod
 
         $attempt = $attempts->data[0] ?? null;
 
-        if ($attempt === null || $attempt->status !== 'succeeded') {
+        if ($attempt === null || SetupIntentStatus::tryFrom($attempt->status) !== SetupIntentStatus::Succeeded) {
             return null;
         }
 

@@ -122,7 +122,7 @@ it('seeds a permission context added by a subclass bound over the package seeder
     // open RefreshDatabase transaction — see .ai/rules/testing.md.
     foreach (Nvade\Numerosis\Models\Permission::defaultActions() as $action) {
         assertDatabaseHas('permissions', [
-            'name' => $action.' seam_probe',
+            'name' => $action->value.' seam_probe',
             'guard_name' => 'web',
         ], $central);
     }

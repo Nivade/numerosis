@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Policies\Auth;
 
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Nvade\Numerosis\Enums\Auth\PermissionContext;
 use Nvade\Numerosis\Policies\Concerns\ChecksContextPermissions;
 
 class RolePolicy
@@ -14,6 +15,6 @@ class RolePolicy
 
     protected function permissionContext(): string
     {
-        return 'roles';
+        return PermissionContext::Roles->value;
     }
 }

@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Billing\Checkout\ResumedCheckout;
+use Nvade\Numerosis\Enums\Billing\SetupIntentStatus;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
@@ -44,6 +45,6 @@ class ResumeCheckout
             throw new CheckoutSessionExpired(__('numerosis::billing.checkout.session_expired'));
         }
 
-        return new ResumedCheckout($pending, (string) $setupIntent->client_secret, $setupIntent->status === 'succeeded');
+        return new ResumedCheckout($pending, (string) $setupIntent->client_secret, SetupIntentStatus::from($setupIntent->status));
     }
 }

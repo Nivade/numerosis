@@ -1,3 +1,5 @@
+@use(\Nvade\Numerosis\Enums\SessionKey)
+
 <x-numerosis-layouts::auth :title="__('Create an account')">
     <div class="flex flex-col gap-6">
         <x-numerosis::auth-header :title="__('Create an account')" :description="__('Enter your details below to create your account')" />
@@ -11,7 +13,7 @@
              it, so there is no query here. The field is `readonly`, which is a
              hint and not a control; `AcceptInvitation` re-checks the address
              and throws `InvitationEmailMismatch`. --}}
-        @php($invitedEmail = session('pending_invitation.email'))
+        @php($invitedEmail = session(SessionKey::PendingInvitation->nested('email')))
 
         <form method="POST" action="{{ route('register.store') }}" class="flex flex-col gap-6">
             @csrf

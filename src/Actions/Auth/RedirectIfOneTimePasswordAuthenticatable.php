@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Actions\Auth;
 use Illuminate\Http\Request;
 use Laravel\Fortify\Fortify;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
+use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Models\User;
 
 /**
@@ -33,8 +34,8 @@ class RedirectIfOneTimePasswordAuthenticatable
         }
 
         $request->session()->put([
-            'login.email' => $email,
-            'login.remember' => $request->boolean('remember'),
+            SessionKey::LoginEmail->value => $email,
+            SessionKey::LoginRemember->value => $request->boolean('remember'),
         ]);
 
         return $request->wantsJson()

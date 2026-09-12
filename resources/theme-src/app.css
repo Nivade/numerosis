@@ -25,5 +25,7 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../vendor/livewire/flux/stubs/resources/views/**/*.blade.php';
 @source '../views/**/*.blade.php';
+@source '../../vendor/nvade/numerosis-ui/src/Enums/Severity.php';
+@source '../../src/Enums/Billing/CardBrand.php';
 
 @variant dark (&:where(.dark, .dark *));

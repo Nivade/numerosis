@@ -1,3 +1,6 @@
+@use(\Nvade\Numerosis\Enums\FlashKey)
+@use(\Nvade\NumerosisUi\Enums\Severity)
+
 @php
     /**
      * The one notification channel (design-system-unification Phase 6):
@@ -6,15 +9,20 @@
      * flash box the way the registration wizard used to
      * (`<x-numerosis::ui.alert closable />`, read directly off session()).
      *
-     * Legacy `redirect()->with('success', ...)`-style flashes still work
-     * with zero call-site changes: the four conventional keys below are
-     * read server-side once, at first paint, and queued into the same
-     * Alpine store a Livewire `$this->dispatch('notify', ...)` would push
-     * into at runtime. Same palette as ui/alert (tokens.css's semantic
-     * colors) — this is the floating counterpart of that inline component,
-     * not a second design.
+     * `FlashKey::Status` carries the current `[Severity, message]` pair;
+     * the four scalar keys below are the pre-convergence shape, kept for one
+     * cycle. Same palette as ui/alert (tokens.css's semantic colors) — this
+     * is the floating counterpart of that inline component, not a second
+     * design.
      */
     $legacyFlash = [];
+
+    $statusFlash = session(FlashKey::Status->value);
+
+    if (is_array($statusFlash) && ($statusFlash[0] ?? null) instanceof Severity) {
+        [$severity, $message] = $statusFlash;
+        $legacyFlash[] = ['type' => $severity->value, 'message' => $message];
+    }
 
     foreach (['success', 'error', 'warning', 'info'] as $key) {
         if (session($key)) {

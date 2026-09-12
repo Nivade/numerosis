@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Data\Billing;
 
 use Illuminate\Support\Collection;
+use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\DataCollection;
 use Stripe\Subscription as StripeSubscription;
@@ -16,7 +17,7 @@ class StripeSubscriptionData extends Data
      */
     public function __construct(
         public string $id,
-        public string $status,
+        public SubscriptionStatus $status,
         public ?string $priceId,
         public ?int $quantity,
         public ?string $trialEndsAt,
@@ -30,7 +31,7 @@ class StripeSubscriptionData extends Data
 
         return new self(
             id: $subscription->id,
-            status: $subscription->status,
+            status: SubscriptionStatus::from($subscription->status),
             priceId: $firstItem?->price?->id,
             quantity: $firstItem?->quantity,
             trialEndsAt: $subscription->trial_end !== null

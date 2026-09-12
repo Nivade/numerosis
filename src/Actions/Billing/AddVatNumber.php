@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Billing;
 
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Enums\Billing\TaxIdType;
 use Nvade\Numerosis\Exceptions\Billing\BillingAddressRequired;
 use Nvade\Numerosis\Exceptions\Billing\BillingAddressUnavailable;
 use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
 use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Services\Billing\TaxIdType;
 use Stripe\Exception\ApiErrorException;
 
 /**
@@ -45,6 +45,6 @@ class AddVatNumber
             throw new InvalidVatNumber(__('numerosis::billing.checkout.vat_country_unsupported'));
         }
 
-        AttachVatNumber::run($tenant->stripeIdOrFail(), $taxIdType, $vatNumber);
+        AttachVatNumber::run($tenant->stripeIdOrFail(), $taxIdType->value, $vatNumber);
     }
 }

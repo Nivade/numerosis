@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Policies\Auth;
 
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Nvade\Numerosis\Enums\Auth\PermissionAction;
+use Nvade\Numerosis\Enums\Auth\PermissionContext;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Policies\Concerns\ChecksContextPermissions;
 
@@ -15,7 +17,7 @@ class UserPolicy
 
     protected function permissionContext(): string
     {
-        return 'users';
+        return PermissionContext::Users->value;
     }
 
     /**
@@ -28,7 +30,7 @@ class UserPolicy
      */
     public function view(User $user, User $model): bool
     {
-        return $user->is($model) || $this->allowsAnyOr($user, 'viewAny', 'view');
+        return $user->is($model) || $this->allowsAnyOr($user, PermissionAction::ViewAny, PermissionAction::View);
     }
 
     /**
@@ -36,6 +38,6 @@ class UserPolicy
      */
     public function update(User $user, User $model): bool
     {
-        return $user->is($model) || $this->allowsAnyOr($user, 'updateAny', 'update');
+        return $user->is($model) || $this->allowsAnyOr($user, PermissionAction::UpdateAny, PermissionAction::Update);
     }
 }

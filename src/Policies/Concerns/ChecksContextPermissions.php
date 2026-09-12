@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Policies\Concerns;
 
+use Nvade\Numerosis\Enums\Auth\PermissionAction;
 use Nvade\Numerosis\Models\User;
 
 /**
@@ -22,43 +23,43 @@ trait ChecksContextPermissions
 
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo($this->permission('viewAny'));
+        return $user->hasPermissionTo($this->permission(PermissionAction::ViewAny));
     }
 
     public function view(User $user): bool
     {
-        return $user->hasPermissionTo($this->permission('view'));
+        return $user->hasPermissionTo($this->permission(PermissionAction::View));
     }
 
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo($this->permission('create'));
+        return $user->hasPermissionTo($this->permission(PermissionAction::Create));
     }
 
     public function update(User $user): bool
     {
-        return $this->allowsAnyOr($user, 'updateAny', 'update');
+        return $this->allowsAnyOr($user, PermissionAction::UpdateAny, PermissionAction::Update);
     }
 
     public function delete(User $user): bool
     {
-        return $this->allowsAnyOr($user, 'deleteAny', 'delete');
+        return $this->allowsAnyOr($user, PermissionAction::DeleteAny, PermissionAction::Delete);
     }
 
     public function restore(User $user): bool
     {
-        return $user->hasPermissionTo($this->permission('restore'));
+        return $user->hasPermissionTo($this->permission(PermissionAction::Restore));
     }
 
     public function forceDelete(User $user): bool
     {
-        return $user->hasPermissionTo($this->permission('forceDelete'));
+        return $user->hasPermissionTo($this->permission(PermissionAction::ForceDelete));
     }
 
     /**
      * The blanket `*Any` permission, falling back to the per-record one.
      */
-    protected function allowsAnyOr(User $user, string $anyAction, string $action): bool
+    protected function allowsAnyOr(User $user, PermissionAction $anyAction, PermissionAction $action): bool
     {
         if ($user->hasPermissionTo($this->permission($anyAction))) {
             return true;
@@ -70,8 +71,8 @@ trait ChecksContextPermissions
     /**
      * Build a permission name for this policy's context.
      */
-    protected function permission(string $action): string
+    protected function permission(PermissionAction $action): string
     {
-        return $action.' '.$this->permissionContext();
+        return $action->value.' '.$this->permissionContext();
     }
 }

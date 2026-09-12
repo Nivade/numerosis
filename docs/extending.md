@@ -70,6 +70,20 @@ Two things about that seam are easy to get wrong, and both fail silently:
   `YourPermission::actionsFor()` — from a `Tenant\PermissionAndRoleSeeder`
   subclass bound over the package's.
 
+### Core enums on these seams still accept your strings
+
+`Permission::defaultActions()`, the seeders' `contexts()`, and every policy's
+`permissionContext()` moved onto `Enums\Auth\{PermissionAction,PermissionContext}`
+in the enum-vocabulary-sweep, and `numerosis.tenancy.registration.steps`'s
+shipped entries are backed by `Enums\Tenancy\WizardStep`. None of the three
+seams above narrowed to the enum type: `Permission::actionsFor()` still
+returns `list<string>`, `additionalActions()` still keys on a plain string
+context, `permissionContext()` still returns `string`, and the registration
+steps config is still `list<class-string>`. Core gives you cases; a host
+context, action, or step that has no case is still valid at every one of
+these seams — an enum that closed them would end the extension points this
+section documents.
+
 ### Swapping an implementation
 
 `numerosis.{billing,tenancy}.implementations` is a `contract => concrete` map;

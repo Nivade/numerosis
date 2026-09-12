@@ -25,6 +25,7 @@ use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Contracts\Tenancy\HasTenantOwner;
 use Nvade\Numerosis\Contracts\Tenancy\Suspendable;
 use Nvade\Numerosis\Database\Factories\Central\TenantFactory;
+use Nvade\Numerosis\Enums\Auth\SystemRole;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Tenant\User;
 use Nvade\Numerosis\Numerosis;
@@ -228,7 +229,7 @@ class Tenant extends BaseTenant implements HasTenantOwner, Subscribable, Suspend
     {
         $userClass = Numerosis::model(User::class);
 
-        $admin = $this->runInTenant($this, fn ($tenant) => $userClass::role('admin')->first());
+        $admin = $this->runInTenant($this, fn ($tenant) => $userClass::role(SystemRole::Admin->value)->first());
 
         return $admin instanceof User ? $admin : null;
     }

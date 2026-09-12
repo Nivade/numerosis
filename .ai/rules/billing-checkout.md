@@ -169,7 +169,9 @@ paths:
   Stripe doesn't reach until ~23h after abandoned challenge, so every
   genuinely-unpaid state passed and provisioned tenant. Guards on payment
   state must be allowlists (`active`/`trialing`, matching
-  `SettleCheckout::$settled`), never denylists.
+  `SubscriptionStatus::isSettled()` since the enum-vocabulary-sweep),
+  never denylists. See [enums.md](enums.md) for why the column itself
+  still has no Eloquent cast.
 
 - **`findBySlug()` is one choke point every checkout path shares, slug
   reaching it is client input.** Unscoped, so retired plan

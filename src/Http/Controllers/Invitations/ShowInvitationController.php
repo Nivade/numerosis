@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Http\Controllers\Invitations;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Http\Controllers\Controller;
@@ -33,7 +34,7 @@ class ShowInvitationController extends Controller
         if (! $authenticated) {
             // The email is stashed alongside the key so the register view can
             // prefill it without querying from Blade.
-            session(['pending_invitation' => [
+            session([SessionKey::PendingInvitation->value => [
                 'ulid' => $invitation->getRouteKey(),
                 'email' => $invitation->email,
             ]]);

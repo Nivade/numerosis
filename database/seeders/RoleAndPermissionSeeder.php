@@ -7,6 +7,8 @@ namespace Nvade\Numerosis\Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Database\Seeders\Concerns\SeedsAdminRole;
+use Nvade\Numerosis\Enums\Auth\PermissionAction;
+use Nvade\Numerosis\Enums\Auth\PermissionContext;
 use Nvade\Numerosis\Models\Permission;
 
 class RoleAndPermissionSeeder extends Seeder
@@ -36,7 +38,7 @@ class RoleAndPermissionSeeder extends Seeder
         $this->seedAdminRole(
             $this->contexts(),
             'web',
-            fn (): array => Permission::defaultActions(),
+            fn (): array => array_map(fn (PermissionAction $action): string => $action->value, Permission::defaultActions()),
             Config::string('tenancy.database.central_connection', 'central'),
         );
     }
@@ -57,14 +59,14 @@ class RoleAndPermissionSeeder extends Seeder
      */
     protected function contexts(): array
     {
-        return [
-            'features',
-            'permissions',
-            'roles',
-            'tenants',
-            'subscriptions',
-            'payment_plans',
-            'users',
-        ];
+        return array_map(fn (PermissionContext $context): string => $context->value, [
+            PermissionContext::Features,
+            PermissionContext::Permissions,
+            PermissionContext::Roles,
+            PermissionContext::Tenants,
+            PermissionContext::Subscriptions,
+            PermissionContext::PaymentPlans,
+            PermissionContext::Users,
+        ]);
     }
 }

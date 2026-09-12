@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Http\Controllers\Invitations;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Nvade\Numerosis\Actions\Invitations\AcceptInvitation;
+use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Http\Controllers\Controller;
@@ -34,7 +35,7 @@ class AcceptInvitationController extends Controller
             return redirect()->route(RouteNames::tenantsMine())->with('status', $e->getMessage());
         }
 
-        session()->forget('pending_invitation');
+        session()->forget(SessionKey::PendingInvitation->value);
 
         $tenantClass = Numerosis::model(Tenant::class);
         $tenant = $tenantClass::find($invitation->tenant_id);

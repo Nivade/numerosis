@@ -11,6 +11,7 @@ use Livewire\Component;
 use Nvade\Numerosis\Actions\Auth\ResendVerificationNotification;
 use Nvade\Numerosis\Actions\Auth\UpdateUserProfile;
 use Nvade\Numerosis\Concerns\Auth\RequiresAuthenticatedUser;
+use Nvade\Numerosis\Enums\Auth\VerificationNotice;
 use Nvade\Numerosis\Routing\RouteNames;
 
 #[Layout('numerosis-layouts::app')]
@@ -56,7 +57,7 @@ class Profile extends Component
 
         ResendVerificationNotification::run($user);
 
-        Session::flash('status', 'verification-link-sent');
+        Session::flash('status', VerificationNotice::LinkSent->value);
     }
 
     public function render(): View

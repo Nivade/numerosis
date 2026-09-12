@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Billing\Subscriptions\LinkSubscriptionToTenant;
 use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
 use Nvade\Numerosis\Data\Billing\SubscriptionItemData;
+use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
 use Nvade\Numerosis\Models\Central\Subscription as PackageSubscription;
 use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
@@ -141,7 +142,7 @@ class LinkSubscriptionToTenantTest extends TestCase
     {
         return new StripeSubscriptionData(
             id: $id,
-            status: 'active',
+            status: SubscriptionStatus::Active,
             priceId: null,
             quantity: null,
             trialEndsAt: null,

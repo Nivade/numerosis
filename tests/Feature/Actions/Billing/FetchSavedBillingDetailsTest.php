@@ -8,6 +8,7 @@ use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Actions\Billing\FetchSavedBillingDetails;
+use Nvade\Numerosis\Enums\FetchState;
 use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -23,7 +24,7 @@ class FetchSavedBillingDetailsTest extends TestCase
 
         $result = FetchSavedBillingDetails::run($user);
 
-        $this->assertFalse($result->fetchFailed);
+        $this->assertSame(FetchState::NotAttempted, $result->fetchState);
         $this->assertFalse($result->hasAddress());
         $this->assertNull($result->vatNumber);
     }
@@ -36,7 +37,7 @@ class FetchSavedBillingDetailsTest extends TestCase
 
         $result = FetchSavedBillingDetails::run($user);
 
-        $this->assertFalse($result->fetchFailed);
+        $this->assertSame(FetchState::Loaded, $result->fetchState);
         $this->assertFalse($result->hasAddress());
         $this->assertNull($result->vatNumber);
     }
@@ -68,7 +69,7 @@ class FetchSavedBillingDetailsTest extends TestCase
 
         $result = FetchSavedBillingDetails::run($user);
 
-        $this->assertFalse($result->fetchFailed);
+        $this->assertSame(FetchState::Loaded, $result->fetchState);
         $this->assertTrue($result->hasAddress());
         $this->assertSame('John Doe', $result->name);
         $this->assertSame('123 Main St', $result->line1);

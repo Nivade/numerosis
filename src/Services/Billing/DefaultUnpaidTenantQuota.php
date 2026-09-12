@@ -32,7 +32,7 @@ class DefaultUnpaidTenantQuota implements UnpaidTenantQuota
         // exists to stop free tenant databases. Settlement asks whether to
         // provision; this asks whether anything has been paid for.
         $unpaid = $owned
-            ->filter(fn (Tenant $tenant): bool => $tenant->subscriptions->first()?->stripe_status !== 'active')
+            ->filter(fn (Tenant $tenant): bool => ! ($tenant->subscriptions->first()?->status()?->isPaid() ?? false))
             ->count();
 
         throw_if($unpaid >= $max, TooManyUnpaidTenants::class, "You already have {$max} unpaid workspace(s). Please complete payment on an existing workspace before creating another.");

@@ -48,12 +48,15 @@ execution had introduced (phase 9's billable narrowing) and per-phase Done
 notes missing from six sections. Both fixed in the same pass; the suite ran
 710 passed / 6 skipped and `composer analyse` cold-clean.
 
+`enum-vocabulary-sweep.md` moved to `archive/` 2026-09-12: all eight phases
+executed on `refactor/enum-vocabulary-sweep`, `composer test` green (721
+passed / 6 skipped) and `composer analyse` clean at every phase boundary.
+
 ## Live
 
 | Plan | State |
 |---|---|
 | `luminous-wandering-brook.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
-| `enum-vocabulary-sweep.md` | **Not executed.** Written 2026-09-12. Eight phases, each independently landable; phases 1 and 2 carry most of the value |
 | `pr-review-remediation.md` | **Partially executed.** Re-audited 2026-09-07 against `3c3de4e`: most phases fixed, but phase 4 (webhook payload guard) is still open and phase 5.1 (line-number citation sweep) has 7 of 9 left |
 | `post-extraction-review.md` | **Mostly done; three items survive.** Its Live status block is stale — read the correction at the top of the file, not the table |
 

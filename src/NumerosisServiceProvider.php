@@ -58,6 +58,7 @@ use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
 use Nvade\Numerosis\Contracts\Exceptions\ProvidesExceptionContext;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder as PackageDatabaseSeeder;
+use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
@@ -618,7 +619,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
      */
     protected function pendingLoginAddress(Request $request): string
     {
-        $email = $request->hasSession() ? $request->session()->get('login.email') : null;
+        $email = $request->hasSession() ? $request->session()->get(SessionKey::LoginEmail->value) : null;
 
         return is_string($email) ? $email : '';
     }

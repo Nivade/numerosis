@@ -17,6 +17,7 @@ use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
+use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\TestCase;
@@ -90,7 +91,7 @@ class CreateTenantTest extends TestCase
             user_id: (string) $user->id,
             payment_plan_id: (string) $paymentPlan->id,
             stripe_id: 'sub_test',
-            stripe_status: 'active',
+            stripe_status: SubscriptionStatus::Active,
             subscribable_id: $tenant->id,
             subscribable_type: Tenant::class,
             stripe_price: 'price_test',

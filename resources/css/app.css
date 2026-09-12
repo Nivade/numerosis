@@ -7,5 +7,7 @@
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+@source '../../vendor/nvade/numerosis-ui/src/Enums/Severity.php';
+@source '../../src/Enums/Billing/CardBrand.php';
 
 @variant dark (&:where(.dark, .dark *));

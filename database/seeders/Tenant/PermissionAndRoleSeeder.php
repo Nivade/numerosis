@@ -12,6 +12,7 @@ namespace Nvade\Numerosis\Database\Seeders\Tenant;
 
 use Illuminate\Database\Seeder;
 use Nvade\Numerosis\Database\Seeders\Concerns\SeedsAdminRole;
+use Nvade\Numerosis\Enums\Auth\PermissionContext;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Tenant\User;
 
@@ -46,11 +47,11 @@ class PermissionAndRoleSeeder extends Seeder
      */
     protected function contexts(): array
     {
-        return [
-            'invitations',
-            'roles',
-            'permissions',
-            'users',
-        ];
+        return array_map(fn (PermissionContext $context): string => $context->value, [
+            PermissionContext::Invitations,
+            PermissionContext::Roles,
+            PermissionContext::Permissions,
+            PermissionContext::Users,
+        ]);
     }
 }

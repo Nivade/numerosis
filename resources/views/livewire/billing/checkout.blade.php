@@ -1,3 +1,5 @@
+@use(\Nvade\Numerosis\Enums\FetchState)
+
 <div class="{{ $embedded ? '' : 'max-w-3xl mx-auto py-12 px-4' }} space-y-8">
     @unless($embedded)
         <div class="text-center space-y-2">
@@ -14,13 +16,13 @@
             x-init="init()"
             class="space-y-8"
         >
-            @if($savedBillingFetchFailed)
+            @if($savedBillingFetchState === FetchState::Failed)
                 <flux:callout variant="warning" icon="exclamation-triangle">
                     {{ __('numerosis::billing.checkout.saved_billing_fetch_failed') }}
                 </flux:callout>
             @endif
 
-            @if($savedPaymentMethodsFetchFailed)
+            @if($savedPaymentMethodsFetchState === FetchState::Failed)
                 <flux:callout variant="warning" icon="exclamation-triangle">
                     {{ __('numerosis::billing.checkout.saved_payment_methods_fetch_failed') }}
                 </flux:callout>

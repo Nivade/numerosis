@@ -1,10 +1,12 @@
+@use(\Nvade\Numerosis\Enums\Auth\VerificationNotice)
+
 <x-numerosis-layouts::app :title="__('Verify email')">
     <div class="mt-4 flex flex-col gap-6">
         <flux:text class="text-center">
             {{ __('Please verify your email address by clicking on the link we just emailed to you.') }}
         </flux:text>
 
-        @if (session('status') == 'verification-link-sent')
+        @if (session('status') === VerificationNotice::LinkSent->value)
             <flux:text class="text-center font-medium !text-success-icon">
                 {{ __('A new verification link has been sent to the email address you provided during registration.') }}
             </flux:text>

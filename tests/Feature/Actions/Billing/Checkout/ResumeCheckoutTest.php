@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Checkout;
 use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResumeCheckout;
+use Nvade\Numerosis\Enums\Billing\SetupIntentStatus;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Testing\FakesStripe;
 use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
@@ -30,7 +31,8 @@ class ResumeCheckoutTest extends TestCase
         $resumed = ResumeCheckout::run('resume-test');
 
         $this->assertSame($setupIntent->client_secret, $resumed->clientSecret);
-        $this->assertFalse($resumed->alreadySucceeded);
+        $this->assertSame(SetupIntentStatus::RequiresPaymentMethod, $resumed->status);
+        $this->assertFalse($resumed->alreadySucceeded());
     }
 
     /**
