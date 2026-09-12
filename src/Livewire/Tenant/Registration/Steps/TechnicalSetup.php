@@ -9,18 +9,22 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
+use Nvade\Numerosis\Contracts\Tenancy\ContributesProvisionData;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
-use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
+use Nvade\Numerosis\Livewire\Tenant\Registration\ReadsRegistrationState;
 use Nvade\Numerosis\Rules\CustomDomainIsAvailable;
 use Nvade\Numerosis\Rules\DomainIsAvailable;
 use Override;
 use Spatie\LivewireWizard\Components\StepComponent;
 
-class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
+class TechnicalSetup extends StepComponent implements ContributesProvisionData, ProvidesTenantIdentity
 {
+    use ReadsRegistrationState;
+
     /**
      * Always the tenant's safe id/slug, whatever the mode.
      *
@@ -34,6 +38,19 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
      * @see IdentificationMode::current()
      */
     public string $customDomain = '';
+
+    /**
+     * Only under IdentificationMode::CustomDomain; otherwise the tenant has no
+     * domain of its own to contribute.
+     */
+    public static function contribute(array $state): ?ProvisionContribution
+    {
+        $customDomain = $state['customDomain'] ?? null;
+
+        return is_string($customDomain) && $customDomain !== ''
+            ? new CustomDomainContribution($customDomain)
+            : null;
+    }
 
     #[Override]
     public function tenantIdentityStateKeys(): array
@@ -118,13 +135,11 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
         abort_if($user === null, 403);
 
         try {
-            ReserveTenantDomain::run(new TenantProvisionData(
-                slug: $this->domain,
-                name: (string) $companyName,
-                global_id: $user->global_id,
-                contributions: $this->customDomain === ''
-                    ? []
-                    : [new CustomDomainContribution($this->customDomain)],
+            // This step's own value is not yet in the wizard state -- state is
+            // written on submit -- so its contribution is passed explicitly
+            // rather than collected.
+            ReserveTenantDomain::run($this->registrationState()->provisionData($user->global_id)->withContributions(
+                array_filter([self::contribute(['customDomain' => $this->customDomain])]),
             ));
         } catch (ShowsMessageToUser $e) {
             $this->addError('domain', $e->getMessage());

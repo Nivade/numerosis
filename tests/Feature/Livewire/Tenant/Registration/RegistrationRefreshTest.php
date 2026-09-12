@@ -8,6 +8,7 @@ use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
+use Nvade\Numerosis\Exceptions\Tenancy\MissingTenantIdentity;
 use Nvade\Numerosis\Livewire\Tenant\Registration;
 use Nvade\Numerosis\Livewire\Tenant\Registration\RegistrationState;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
@@ -15,6 +16,7 @@ use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\TechnicalSetup;
 use Nvade\Numerosis\Tests\Support\HostSecretStep;
+use Nvade\Numerosis\Tests\Support\SeatCountContribution;
 use Nvade\Numerosis\Tests\TestCase;
 use ReflectionMethod;
 
@@ -142,5 +144,44 @@ class RegistrationRefreshTest extends TestCase
             'allStepNames' => [$companyInfoAlias, $technicalSetupAlias, $planAlias, $paymentAlias],
             'allStepsState' => [],
         ];
+    }
+
+    /**
+     * The wizard used to hand-build the provisioning payload field by field in
+     * two of its own steps, so a host could collect data and have it dropped
+     * on the way to provisioning with nothing to notice.
+     */
+    public function test_a_host_step_contributes_its_own_data_to_provisioning(): void
+    {
+        Livewire::component('host-secret-step', HostSecretStep::class);
+
+        Config::set('numerosis.tenancy.registration.steps', [
+            CompanyInfo::class,
+            TechnicalSetup::class,
+            HostSecretStep::class,
+        ]);
+
+        $state = new RegistrationState;
+        $state->setAllState([
+            'company-info' => ['name' => 'Acme Corp'],
+            'technical-setup' => ['domain' => 'acme'],
+            'host-secret-step' => ['seats' => 12],
+        ]);
+
+        $data = $state->provisionData('global-1');
+
+        $this->assertSame('acme', $data->slug);
+        $this->assertSame('Acme Corp', $data->name);
+        $this->assertSame(12, $data->contribution(SeatCountContribution::class)?->seats);
+    }
+
+    public function test_it_refuses_to_build_a_payload_with_no_identity(): void
+    {
+        $this->expectException(MissingTenantIdentity::class);
+
+        $state = new RegistrationState;
+        $state->setAllState(['company-info' => ['name' => 'Acme Corp']]);
+
+        $state->provisionData('global-1');
     }
 }
