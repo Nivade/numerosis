@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use App\Models\Central\TenantProvision;
-use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin;
+use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
 use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\Tests\Support\TestTenant;
 
