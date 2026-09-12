@@ -90,6 +90,28 @@ class ProvisionContributionTest extends TestCase
         $this->assertNull($provision->contribution(CustomDomainContribution::class));
     }
 
+    /**
+     * `fromProvision()` is how the Stripe webhook and `SettleCheckout` hand
+     * data to the pipeline, so anything it drops never reaches a step. It used
+     * to name core's two contributions by hand, which silently lost every host
+     * contribution on the row.
+     */
+    public function test_rebuilding_from_the_row_keeps_a_host_contribution(): void
+    {
+        $provision = TenantProvision::factory()->create(['slug' => 'roundtrip']);
+
+        $provision->applyContributions([
+            new BillingContribution(payment_plan: 'pro'),
+            new SeatCountContribution(seats: 9, tier: 'scale'),
+        ]);
+        $provision->save();
+
+        $data = TenantProvisionData::fromProvision(TenantProvision::findOrFail('roundtrip'));
+
+        $this->assertSame('pro', $data->contribution(BillingContribution::class)?->payment_plan);
+        $this->assertSame(9, $data->contribution(SeatCountContribution::class)?->seats);
+    }
+
     public function test_replacing_a_contribution_does_not_leave_the_old_one_shadowing_it(): void
     {
         $data = new TenantProvisionData(

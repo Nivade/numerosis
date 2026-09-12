@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\WithoutIncrementing;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Contracts\Tenancy\PersistsToProvisionColumns;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Database\Factories\Central\TenantProvisionFactory;
@@ -91,6 +92,38 @@ class TenantProvision extends Model
         $stored = $this->contributions[$contribution] ?? null;
 
         return is_array($stored) ? $contribution::from($stored) : null;
+    }
+
+    /**
+     * Every contribution the row carries: the column-backed ones named by
+     * `numerosis.tenancy.provisioning.contributions`, plus every entry in the
+     * JSON blob, which is self-describing because it is keyed by class.
+     *
+     * A registry is needed only for the column-backed half — nothing about a
+     * set of columns says which contribution owns them.
+     *
+     * @return list<ProvisionContribution>
+     */
+    public function allContributions(): array
+    {
+        /** @var list<class-string<ProvisionContribution>> $registered */
+        $registered = Config::array('numerosis.tenancy.provisioning.contributions', []);
+
+        $contributions = [];
+
+        foreach ($registered as $contribution) {
+            $contributions[] = $this->contribution($contribution);
+        }
+
+        foreach (array_keys($this->contributions ?? []) as $stored) {
+            if (! is_string($stored) || ! is_a($stored, ProvisionContribution::class, true)) {
+                continue;
+            }
+
+            $contributions[] = $this->contribution($stored);
+        }
+
+        return array_values(array_filter($contributions));
     }
 
     /**

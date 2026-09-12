@@ -42,10 +42,7 @@ class TenantProvisionData extends Data
             slug: $provision->slug,
             name: $provision->name,
             global_id: $provision->global_id,
-            contributions: array_values(array_filter([
-                $provision->contribution(BillingContribution::class),
-                $provision->contribution(CustomDomainContribution::class),
-            ])),
+            contributions: $provision->allContributions(),
         );
     }
 

@@ -24,6 +24,8 @@ use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
+use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Features\Auth\EmailVerificationFeature;
@@ -337,6 +339,16 @@ return [
             'steps' => [
                 CreateTenantAction::class,
                 AddTenantOwner::class,
+            ],
+
+            // Contributions stored in columns rather than the provision row's
+            // `contributions` JSON. They have to be listed because nothing
+            // about a set of columns says which contribution owns them;
+            // JSON-stored contributions are keyed by class and need no entry.
+            // Add yours here only if you also added columns for it.
+            'contributions' => [
+                BillingContribution::class,
+                CustomDomainContribution::class,
             ],
         ],
 

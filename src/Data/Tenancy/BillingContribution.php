@@ -64,11 +64,6 @@ final class BillingContribution extends Data implements PersistsToProvisionColum
      */
     public function isEmpty(): bool
     {
-        return $this->payment_plan === null
-            && $this->billing_cycle === null
-            && $this->stripe_setup_intent_id === null
-            && $this->stripe_subscription_id === null
-            && $this->stripe_customer_id === null
-            && $this->central_user_id === null;
+        return array_filter($this->toProvisionColumns(), static fn (mixed $v): bool => $v !== null) === [];
     }
 }
