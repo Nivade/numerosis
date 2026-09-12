@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing;
 
-use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Exceptions\Billing\InvalidVatNumber;
@@ -30,7 +29,7 @@ class SyncBillingAddress
         $address = $paymentMethod->billing_details->address ?? null;
         $country = $address?->country;
 
-        Cashier::stripe()->customers->update($billable->stripeIdOrFail(), [
+        $billable->updateStripeCustomer([
             'address' => array_filter([
                 'line1' => $address?->line1,
                 'line2' => $address?->line2,

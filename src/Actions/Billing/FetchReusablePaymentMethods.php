@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing;
 
-use Laravel\Cashier\Cashier;
+use Laravel\Cashier\PaymentMethod;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Data\Billing\ReusablePaymentMethods;
 use Nvade\Numerosis\Data\Billing\SavedPaymentMethodOption;
 use Stripe\Customer;
 use Stripe\Exception\ApiErrorException;
-use Stripe\PaymentMethod;
 
 /**
  * Takes an already-retrieved customer when the caller has one, so the checkout
@@ -36,10 +35,7 @@ class FetchReusablePaymentMethods
         }
 
         try {
-            $paymentMethods = Cashier::stripe()->customers->allPaymentMethods(
-                $billable->stripeIdOrFail(),
-                ['type' => 'card', 'limit' => 10],
-            );
+            $paymentMethods = $billable->paymentMethods('card', ['limit' => 10]);
         } catch (ApiErrorException $e) {
             report($e);
 
@@ -48,14 +44,18 @@ class FetchReusablePaymentMethods
 
         $defaultId = $customer->invoice_settings->default_payment_method ?? null;
 
-        $options = collect($paymentMethods->data)->map(fn (PaymentMethod $pm) => new SavedPaymentMethodOption(
-            id: $pm->id,
-            brand: $pm->card->brand ?? 'card',
-            last4: $pm->card->last4 ?? '',
-            expMonth: $pm->card->exp_month ?? 0,
-            expYear: $pm->card->exp_year ?? 0,
-            isDefault: $pm->id === $defaultId,
-        ));
+        $options = $paymentMethods->map(function (PaymentMethod $pm) use ($defaultId): SavedPaymentMethodOption {
+            $stripePaymentMethod = $pm->asStripePaymentMethod();
+
+            return new SavedPaymentMethodOption(
+                id: $stripePaymentMethod->id,
+                brand: $stripePaymentMethod->card->brand ?? 'card',
+                last4: $stripePaymentMethod->card->last4 ?? '',
+                expMonth: $stripePaymentMethod->card->exp_month ?? 0,
+                expYear: $stripePaymentMethod->card->exp_year ?? 0,
+                isDefault: $stripePaymentMethod->id === $defaultId,
+            );
+        });
 
         return new ReusablePaymentMethods($options);
     }

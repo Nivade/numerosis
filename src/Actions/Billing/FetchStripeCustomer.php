@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing;
 
-use Laravel\Cashier\Cashier;
+use Laravel\Cashier\Exceptions\InvalidCustomer;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Stripe\Customer;
@@ -25,11 +25,8 @@ class FetchStripeCustomer
     public function handle(BillableUser $billable): ?Customer
     {
         try {
-            return Cashier::stripe()->customers->retrieve(
-                $billable->stripeIdOrFail(),
-                ['expand' => ['tax_ids']],
-            );
-        } catch (ApiErrorException $e) {
+            return $billable->asStripeCustomer(['tax_ids']);
+        } catch (ApiErrorException|InvalidCustomer $e) {
             report($e);
 
             return null;

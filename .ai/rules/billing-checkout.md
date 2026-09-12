@@ -297,3 +297,6 @@ paths:
   remains orphaned (its consumer was clients module, since removed) and
   still only mechanism for registering Filament plugin conditionally
   on module being enabled — that part of gap unchanged.
+
+## Cashier::stripe() is an escape hatch, not the API — prefer Billable methods
+Reaching for `Cashier::stripe()->x->y()` where a `Billable` method already wraps it (`asStripeCustomer()`, `updateStripeCustomer()`, `createTaxId()`, `findSetupIntent()`, `findPaymentMethod()`, `paymentMethods()`) is the defect phase 2 of `.claude/plans/contract-seam-audit.md` fixed at nine call sites. Four sites stay raw deliberately: `ResolveAttachedPaymentMethod` (`setupAttempts->all()`, Cashier wraps nothing for SetupAttempts), `LinkTenantSubscription` (retrieves a subscription with no billable in hand), `PruneOrphanedStripeCustomers` (operates on ids whose local user is gone), and `AttachVatNumber` (shared by a `CentralUser` and a `Tenant`, and Cashier ships no interface either satisfies, so only the raw customer id is common ground). `Billable::paymentMethods()` hits `GET /v1/payment_methods` (top-level, customer-filtered), not `GET /v1/customers/{id}/payment_methods` like the old `allPaymentMethods()` call — a different Stripe endpoint, so `FakeStripeHttpClient` needed a new handler, not just a rewire.

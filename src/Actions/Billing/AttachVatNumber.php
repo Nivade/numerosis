@@ -12,6 +12,12 @@ use Stripe\Exception\ApiErrorException;
 /**
  * Attaches a tax id to a Stripe customer, replacing any it already carries.
  *
+ * Takes a raw Stripe customer id rather than a billable on purpose: its two
+ * callers ({@see SyncBillingAddress}, {@see AddVatNumber}) hand it a
+ * `CentralUser` and a `Tenant` respectively, and Cashier ships no interface
+ * for "has the Billable trait" that both satisfy — only the id is common
+ * ground, and both callers already have it.
+ *
  * @method static void run(string $stripeId, string $taxIdType, string $vatNumber)
  */
 class AttachVatNumber

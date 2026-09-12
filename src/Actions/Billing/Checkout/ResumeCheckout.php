@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
-use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Billing\Checkout\ResumedCheckout;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
@@ -40,7 +39,7 @@ class ResumeCheckout
         }
 
         try {
-            $setupIntent = Cashier::stripe()->setupIntents->retrieve($pending->stripe_setup_intent_id);
+            $setupIntent = $billable->findSetupIntent($pending->stripe_setup_intent_id);
         } catch (ApiErrorException) {
             throw new CheckoutSessionExpired(__('numerosis::billing.checkout.session_expired'));
         }

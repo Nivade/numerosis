@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Contracts\Billing;
 
+use Illuminate\Support\Collection;
+use Laravel\Cashier\PaymentMethod as CashierPaymentMethod;
 use Laravel\Cashier\SubscriptionBuilder;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Contracts\Subscribable;
+use Stripe\PaymentMethod;
 
 /**
  * The central user shape every checkout path accepts: identity from
@@ -42,10 +45,37 @@ interface BillableUser extends CentralUserModel, Subscribable
     public function createOrGetStripeCustomer(array $options = [], array $requestOptions = []);
 
     /**
+     * @param  list<string>  $expand
+     * @return \Stripe\Customer
+     */
+    public function asStripeCustomer(array $expand = []);
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @return \Stripe\Customer
+     */
+    public function updateStripeCustomer(array $options = []);
+
+    /**
      * @param  array<string, mixed>  $options
      * @return \Stripe\SetupIntent
      */
     public function createSetupIntent(array $options = []);
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @param  array<string, mixed>  $options
+     * @return \Stripe\SetupIntent
+     */
+    public function findSetupIntent(string $id, array $params = [], array $options = []);
+
+    public function findPaymentMethod(PaymentMethod|string $paymentMethod): ?CashierPaymentMethod;
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     * @return Collection<int, CashierPaymentMethod>
+     */
+    public function paymentMethods(?string $type = null, array $parameters = []): Collection;
 
     /**
      * @param  string|list<string>  $prices

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
-use Laravel\Cashier\Cashier;
 use Laravel\Cashier\Exceptions\IncompletePayment;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
@@ -34,7 +33,7 @@ class SettleAttachedPaymentMethod
             return false;
         }
 
-        $setupIntent = Cashier::stripe()->setupIntents->retrieve(
+        $setupIntent = $billable->findSetupIntent(
             $pending->stripe_setup_intent_id,
             ['expand' => ['payment_method']],
         );

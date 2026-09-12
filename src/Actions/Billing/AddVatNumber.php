@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing;
 
-use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Exceptions\Billing\BillingAddressRequired;
 use Nvade\Numerosis\Exceptions\Billing\BillingAddressUnavailable;
@@ -33,7 +32,7 @@ class AddVatNumber
         }
 
         try {
-            $customer = Cashier::stripe()->customers->retrieve($tenant->stripeIdOrFail());
+            $customer = $tenant->asStripeCustomer();
         } catch (ApiErrorException $e) {
             report($e);
 

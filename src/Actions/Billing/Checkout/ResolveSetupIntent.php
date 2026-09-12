@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
-use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Billing\Checkout\ResolvedSetupIntent;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
@@ -42,7 +41,7 @@ class ResolveSetupIntent
         AssertPendingReservationIsFresh::run($pending, $billable);
 
         try {
-            $setupIntent = Cashier::stripe()->setupIntents->retrieve($setupIntentId, [
+            $setupIntent = $billable->findSetupIntent($setupIntentId, [
                 'expand' => ['payment_method'],
             ]);
         } catch (ApiErrorException) {

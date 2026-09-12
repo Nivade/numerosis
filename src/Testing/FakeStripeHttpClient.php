@@ -62,6 +62,7 @@ class FakeStripeHttpClient implements ClientInterface
                 \count($segments) === 2 && $segments[0] === 'payment_methods' && $method === 'get' => $this->retrievePaymentMethod($segments[1]),
                 \count($segments) === 3 && $segments[0] === 'payment_methods' && $segments[2] === 'attach' && $method === 'post' => $this->attachPaymentMethod($segments[1], $params),
                 \count($segments) === 3 && $segments[0] === 'customers' && $segments[2] === 'payment_methods' && $method === 'get' => $this->listPaymentMethods($segments[1], $params),
+                $segments === ['payment_methods'] && $method === 'get' => $this->listAllPaymentMethods($params),
                 $segments === ['setup_intents'] && $method === 'post' => $this->createSetupIntent($params),
                 \count($segments) === 2 && $segments[0] === 'setup_intents' && $method === 'get' => $this->retrieveSetupIntent($segments[1], $params),
                 \count($segments) === 3 && $segments[0] === 'setup_intents' && $segments[2] === 'confirm' && $method === 'post' => $this->confirmSetupIntent($segments[1], $params),
@@ -155,6 +156,38 @@ class FakeStripeHttpClient implements ClientInterface
             'data' => $data,
             'has_more' => false,
             'url' => "/v1/customers/{$customerId}/payment_methods",
+        ];
+    }
+
+    /**
+     * `Billable::paymentMethods()` hits this top-level, customer-filtered
+     * list endpoint rather than `GET /v1/customers/{id}/payment_methods`
+     * ({@see listPaymentMethods()}) — a genuinely different Stripe endpoint,
+     * not a second spelling of the same call.
+     *
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function listAllPaymentMethods(array $params): array
+    {
+        $customerId = $this->stringParam($params, 'customer');
+        $type = $this->stringParam($params, 'type');
+
+        if ($customerId !== '') {
+            $this->retrieveCustomer($customerId);
+        }
+
+        $data = array_values(array_filter(
+            $this->paymentMethods,
+            fn (array $pm): bool => ($customerId === '' || ($pm['customer'] ?? null) === $customerId)
+                && ($type === '' || $pm['type'] === $type),
+        ));
+
+        return [
+            'object' => 'list',
+            'data' => $data,
+            'has_more' => false,
+            'url' => '/v1/payment_methods',
         ];
     }
 
