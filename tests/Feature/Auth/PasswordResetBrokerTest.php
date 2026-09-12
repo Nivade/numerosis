@@ -21,7 +21,7 @@ use Nvade\Numerosis\Tests\TestCase;
  * swapped, because `guest:` middleware *is* baked at registration time) is
  * therefore a no-op that looks like a fix; the swap has to happen while the
  * request is being served, which is
- * `Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper`'s job.
+ * `Services\Tenancy\PasswordBrokerBootstrapper`'s job.
  *
  * What the assertion has to look at is the **notifiable's class**, not the
  * address it was sent to. `Tenant\User` and `Central\CentralUser` are

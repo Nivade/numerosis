@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Contracts\Tenancy;
 
-use Nvade\Numerosis\Models\Central\Tenant;
+use Stancl\Tenancy\Contracts\TenantWithDatabase;
 
 /**
  * Decides whether a tenant's database still needs creating, and which jobs
@@ -16,5 +16,5 @@ use Nvade\Numerosis\Models\Central\Tenant;
  */
 interface TenantDatabaseManager
 {
-    public function databaseExists(Tenant $tenant): bool;
+    public function databaseExists(TenantWithDatabase $tenant): bool;
 }

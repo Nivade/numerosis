@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Services\Tenancy\Bootstrappers;
+namespace Nvade\Numerosis\Services\Tenancy;
 
 use Illuminate\Auth\AuthManager;
 use Illuminate\Contracts\Config\Repository;

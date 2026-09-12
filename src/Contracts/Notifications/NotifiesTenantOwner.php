@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Contracts\Notifications;
 
 use Illuminate\Notifications\Notification;
-use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Contracts\Tenancy\HasTenantOwner;
 
 /**
  * Every billing and invitation listener today sends through
@@ -15,5 +15,5 @@ use Nvade\Numerosis\Models\Central\Tenant;
  */
 interface NotifiesTenantOwner
 {
-    public function notify(Tenant $tenant, Notification $notification): void;
+    public function notify(HasTenantOwner $tenant, Notification $notification): void;
 }

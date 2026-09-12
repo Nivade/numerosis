@@ -14,9 +14,9 @@ use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Numerosis;
-use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
-use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
-use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\PasswordBrokerBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\SpatiePermissionsBootstrapper;
 use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
 use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
 

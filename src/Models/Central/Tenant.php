@@ -22,6 +22,8 @@ use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Concerns\Billing\Billable;
 use Nvade\Numerosis\Concerns\Tenancy\RunsInTenant;
 use Nvade\Numerosis\Contracts\Subscribable;
+use Nvade\Numerosis\Contracts\Tenancy\HasTenantOwner;
+use Nvade\Numerosis\Contracts\Tenancy\Suspendable;
 use Nvade\Numerosis\Database\Factories\Central\TenantFactory;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Tenant\User;
@@ -74,7 +76,7 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 ])]
 #[ObservedBy(TenantObserver::class)]
 #[UsePolicy(TenantPolicy::class)]
-class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
+class Tenant extends BaseTenant implements HasTenantOwner, Subscribable, Suspendable, TenantWithDatabase
 {
     use Billable;
     use HasDatabase;

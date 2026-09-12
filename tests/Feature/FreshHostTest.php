@@ -23,8 +23,8 @@ use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\NumerosisServiceProvider;
-use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
-use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\SpatiePermissionsBootstrapper;
 use Orchestra\Testbench\TestCase as Orchestra;
 use PDO;
 

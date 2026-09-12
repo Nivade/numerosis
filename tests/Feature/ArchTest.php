@@ -3,32 +3,41 @@
 declare(strict_types=1);
 
 use Nvade\Numerosis\Boot\MiddlewareRegistrar;
-use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
-use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
+use Nvade\Numerosis\Contracts\Subscribable;
+use Nvade\Numerosis\Contracts\Tenancy\HasTenants;
+use Nvade\Numerosis\Contracts\Tenancy\PersistsToProvisionColumns;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
 use Symfony\Component\Finder\Finder;
 
 /**
- * Keeps the boundary between the billing/tenancy contracts introduced by the
- * billing-provisioning-clarity refactor and this app's Eloquent models
- * honest: a contract that typehints Nvade\Numerosis\Models\* nails every implementer to
- * this app's classes, which is exactly what a consumer installing this as a
- * package would have to fork around.
+ * Keeps a contract typehinting this app's Eloquent models rather than the
+ * container it belongs in honest: that nails every implementer to this
+ * package's classes, which is exactly what a consumer installing this as a
+ * package would have to fork around. Scoped to all of Nvade\Numerosis\Contracts,
+ * with a named-exception list rather than a path scope — a path scope is how
+ * ProvisioningStep, PersistsToProvisionColumns, TenantDatabaseManager and
+ * NotifiesTenantOwner drifted outside the old two-contract scope unnoticed.
  *
- * Scoped to Nvade\Numerosis\Contracts\Billing plus the two new tenancy contracts rather
- * than all of Nvade\Numerosis\Contracts: Subscribable and HasTenants predate this
- * refactor, reference Nvade\Numerosis\Models\* deliberately, and are kept as-is (see
- * .claude/plans/archive/billing-provisioning-clarity-refactor.md §2.1). UserResolver
- * was removed entirely (2026-07-31) — one implementation, nothing ever
- * resolved it through the interface, everyone called
- * GetAuthenticatedUser::run() directly.
+ * Named exceptions: Subscribable and HasTenants predate the
+ * billing-provisioning-clarity refactor and reference Nvade\Numerosis\Models\*
+ * deliberately (see .claude/plans/archive/billing-provisioning-clarity-refactor.md
+ * §2.1). ProvisioningStep and PersistsToProvisionColumns take
+ * Models\Central\TenantProvision because a step's whole point is to receive
+ * the provision row; narrowing that away would need the wider
+ * ProvisioningContext DTO change recorded, and rejected for now, in phase 5
+ * of the contract-seam-audit plan. UserResolver was removed entirely
+ * (2026-07-31) — one implementation, nothing ever resolved it through the
+ * interface, everyone called GetAuthenticatedUser::run() directly.
  */
-arch('billing contracts do not depend on app models')
-    ->expect('Nvade\Numerosis\Contracts\Billing')
-    ->not->toUse('Nvade\Numerosis\Models');
-
-arch('new tenancy contracts do not depend on app models')
-    ->expect([ProvisionsTenant::class, TenantDomainPolicy::class])
-    ->not->toUse('Nvade\Numerosis\Models');
+arch('contracts do not depend on app models, except a named exception list')
+    ->expect('Nvade\Numerosis\Contracts')
+    ->not->toUse('Nvade\Numerosis\Models')
+    ->ignoring([
+        Subscribable::class,
+        HasTenants::class,
+        ProvisioningStep::class,
+        PersistsToProvisionColumns::class,
+    ]);
 
 test('nothing reads the old cashier appendix keys', function (): void {
     $needles = ['cashier.billables', 'cashier.stripe_price_ids', 'cashier.redirect', 'cashier.features', 'cashier.brand'];
@@ -158,15 +167,24 @@ test('the middleware registry stays pure class-string literals', function (): vo
 });
 
 /**
- * `Services/` means "a concrete implementation of a contract", so that a
- * contract and its implementation are findable from each other. The two
- * exceptions are named rather than pattern-matched: adding a third should be
- * a deliberate edit, not something a new file slips into.
+ * `Services/` means "a concrete implementation of one of our own contracts",
+ * so that a contract and its implementation are findable from each other.
+ * Filtered to `Nvade\Numerosis\Contracts\*` rather than "implements anything"
+ * — `PreservingPathTenantResolver` and the three tenancy bootstrappers
+ * satisfied the old, unfiltered check by inheriting or implementing a
+ * stancl/tenancy contract, which this test was written to catch. The named
+ * exceptions are deliberate stancl adapters, not contract-shaped classes;
+ * adding a fifth should be an edit to this list, not something a new file
+ * slips into.
  */
-test('everything in Services implements something, or is a named exception', function (): void {
+test('everything in Services implements one of our contracts, or is a named exception', function (): void {
     $exceptions = [
         Nvade\Numerosis\Services\Billing\BillingService::class,
         Nvade\Numerosis\Services\Billing\TaxIdType::class,
+        Nvade\Numerosis\Services\Tenancy\PreservingPathTenantResolver::class,
+        Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper::class,
+        Nvade\Numerosis\Services\Tenancy\PasswordBrokerBootstrapper::class,
+        Nvade\Numerosis\Services\Tenancy\SpatiePermissionsBootstrapper::class,
     ];
 
     $files = (new Finder)
@@ -190,9 +208,14 @@ test('everything in Services implements something, or is a named exception', fun
             );
         }
 
-        expect((new ReflectionClass($class))->getInterfaceNames())->not->toBe(
+        $ownInterfaces = array_filter(
+            (new ReflectionClass($class))->getInterfaceNames(),
+            fn (string $interface): bool => str_starts_with($interface, 'Nvade\\Numerosis\\Contracts\\'),
+        );
+
+        expect($ownInterfaces)->not->toBe(
             [],
-            "{$class} implements nothing. Either give it a contract, or add it to this test's named exceptions.",
+            "{$class} implements none of our own contracts. Either give it one, or add it to this test's named exceptions.",
         );
     }
 });

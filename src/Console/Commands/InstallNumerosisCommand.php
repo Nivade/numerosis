@@ -18,9 +18,9 @@ use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
-use Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper;
-use Nvade\Numerosis\Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper;
-use Nvade\Numerosis\Services\Tenancy\Bootstrappers\SpatiePermissionsBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\PasswordBrokerBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\SpatiePermissionsBootstrapper;
 use ReflectionProperty;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 
@@ -655,7 +655,7 @@ class InstallNumerosisCommand extends Command
     /**
      * Warns when the domain-to-tenant resolver cache is off because the host's
      * `cache.serializable_classes` cannot round-trip the tenant model the
-     * resolver caches. `TenancyServiceProvider::shouldCacheResolvedTenants()`
+     * resolver caches. `TenancyRouting::shouldCacheResolvedTenants()`
      * makes that call; this reports what it costs.
      */
     private function verifyTenantResolverCache(): void

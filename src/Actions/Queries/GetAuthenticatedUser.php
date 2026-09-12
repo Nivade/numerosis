@@ -19,7 +19,7 @@ class GetAuthenticatedUser
      * Resolve the authenticated user, defaulting to whichever guard matches
      * the current context.
      *
-     * @see \Nvade\Numerosis\Services\Tenancy\Bootstrappers\AuthGuardBootstrapper
+     * @see \Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper
      */
     public function handle(?string $guard = null): ?User
     {

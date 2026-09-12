@@ -74,7 +74,7 @@ paths:
   user provider from `auth.passwords.*`, a key `auth.guards.*` has no bearing
   on, so switching the guard alone never moves a reset off the central
   provider. The fix is
-  `Services\Tenancy\Bootstrappers\PasswordBrokerBootstrapper`, which swaps
+  `Services\Tenancy\PasswordBrokerBootstrapper`, which swaps
   the key on tenancy initialization; the broker it swaps to,
   `auth.passwords.tenant`, is defaulted by
   `Boot\HostConfig::tenantPasswordBroker()`, and its tokens live in the

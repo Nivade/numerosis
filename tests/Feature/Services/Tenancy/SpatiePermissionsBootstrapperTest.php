@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nvade\Numerosis\Tests\Feature\Services\Tenancy\Bootstrappers;
+namespace Nvade\Numerosis\Tests\Feature\Services\Tenancy;
 
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;

@@ -9,7 +9,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:expect\(\)\.$#'
 			identifier: method.notFound
-			count: 2
+			count: 1
 			path: tests/Feature/ArchTest.php
 
 		-
