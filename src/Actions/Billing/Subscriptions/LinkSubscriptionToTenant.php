@@ -39,7 +39,7 @@ class LinkSubscriptionToTenant
             $tenant->update(['stripe_id' => $data->stripeCustomerId]);
 
             $subscription = $this->subscriptions->findByStripeId($stripeSubscription->id);
-            $planId = $this->planIdForSlug($data->registration->payment_plan);
+            $planId = $this->planIdForSlug($data->payment_plan);
 
             if (! $subscription) {
                 $subscription = $this->subscriptions->record(new SubscriptionData(

@@ -16,7 +16,7 @@ interface ProvidesTenantIdentity
     /**
      * Wizard-state field name(s) this step writes, read via
      * `$this->state()->get($key)` by whatever builds
-     * `Nvade\Numerosis\Data\Tenancy\TenantRegistrationData` from the
+     * `Nvade\Numerosis\Data\Tenancy\TenantProvisionData` from the
      * wizard's accumulated state (currently `TechnicalSetup::continue()`
      * and `Plan::continue()`, by hand).
      *

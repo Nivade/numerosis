@@ -28,7 +28,7 @@ class TechnicalSetupTest extends TestCase
     {
         $this->actingAs(CentralUser::factory()->create());
 
-        $this->technicalSetupStep(['company-info' => ['company_name' => 'Acme']])
+        $this->technicalSetupStep(['company-info' => ['name' => 'Acme']])
             ->set('domain', 'acme-reserve-test')
             ->call('continue')
             ->assertDispatchedTo(Registration::class, 'nextStep');
@@ -49,7 +49,7 @@ class TechnicalSetupTest extends TestCase
 
         $this->actingAs(CentralUser::factory()->create());
 
-        $this->technicalSetupStep(['company-info' => ['company_name' => 'Acme']])
+        $this->technicalSetupStep(['company-info' => ['name' => 'Acme']])
             ->set('domain', 'taken-domain')
             ->call('continue')
             ->assertHasErrors('domain')
@@ -70,7 +70,7 @@ class TechnicalSetupTest extends TestCase
             'global_id' => $user->global_id,
         ]);
 
-        $this->technicalSetupStep(['company-info' => ['company_name' => 'Acme']])
+        $this->technicalSetupStep(['company-info' => ['name' => 'Acme']])
             ->set('domain', 'own-domain-retry')
             ->call('continue')
             ->assertDispatchedTo(Registration::class, 'nextStep')
@@ -86,7 +86,7 @@ class TechnicalSetupTest extends TestCase
     {
         $this->actingAs(CentralUser::factory()->create());
 
-        $this->technicalSetupStep(['company-info' => ['company_name' => 'Acme']])
+        $this->technicalSetupStep(['company-info' => ['name' => 'Acme']])
             ->set('domain', 'admin')
             ->assertHasErrors('domain');
     }
@@ -95,7 +95,7 @@ class TechnicalSetupTest extends TestCase
     {
         $this->actingAs(CentralUser::factory()->create());
 
-        $this->technicalSetupStep(['company-info' => ['company_name' => 'Acme']])
+        $this->technicalSetupStep(['company-info' => ['name' => 'Acme']])
             ->set('domain', 'admin')
             ->call('continue')
             ->assertHasErrors('domain')

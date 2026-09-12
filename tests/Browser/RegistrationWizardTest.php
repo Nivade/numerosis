@@ -58,8 +58,8 @@ it('advances through the wizard steps and reserves the domain', function (): voi
 
     $page->assertSee('Company Information');
 
-    $page->type('company_name', 'Acme Industries')
-        ->keys('company_name', 'Tab')
+    $page->type('name', 'Acme Industries')
+        ->keys('name', 'Tab')
         ->wait(1)
         ->click('Continue')
         ->wait(2)
@@ -102,8 +102,8 @@ it('provisions a tenant end to end through the wizard', function (): void {
     app()->bind(CheckoutGateway::class, LocalCheckoutGateway::class);
 
     visit('/get-started')
-        ->type('company_name', 'Acme Industries')
-        ->keys('company_name', 'Tab')
+        ->type('name', 'Acme Industries')
+        ->keys('name', 'Tab')
         ->wait(1)
         ->click('Continue')
         ->wait(2)

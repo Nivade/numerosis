@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Contracts\Tenancy;
 
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
@@ -20,5 +20,5 @@ use Nvade\Numerosis\Models\Central\Tenant;
  */
 interface CreatesTenant
 {
-    public function handle(TenantRegistrationData $registration): Tenant;
+    public function handle(TenantProvisionData $registration): Tenant;
 }

@@ -14,7 +14,7 @@ use Nvade\Numerosis\Contracts\Billing\Plan as PlanContract;
 use Nvade\Numerosis\Contracts\Tenancy\HasTransientState;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Spatie\LivewireWizard\Components\StepComponent;
@@ -114,7 +114,7 @@ class Plan extends StepComponent implements HasTransientState
 
         $this->checkoutError = null;
 
-        $companyName = $this->state()->get('company_name');
+        $companyName = $this->state()->get('name');
         $domain = $this->state()->get('domain');
 
         // Both are required to start a checkout. Send the user to whichever
@@ -139,9 +139,9 @@ class Plan extends StepComponent implements HasTransientState
         // renders a dead button and no reason. Typed to ShowsMessageToUser,
         // never Throwable, so nothing unexpected leaks.
         try {
-            $intent = StartSubscriptionCheckout::run(new TenantRegistrationData(
-                company_name: (string) $companyName,
-                domain: (string) $domain,
+            $intent = StartSubscriptionCheckout::run(new TenantProvisionData(
+                name: (string) $companyName,
+                slug: (string) $domain,
                 global_id: $user->global_id,
                 payment_plan: $this->payment_plan,
                 billing_cycle: $this->cycle(),

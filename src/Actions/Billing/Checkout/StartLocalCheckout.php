@@ -8,7 +8,7 @@ use Illuminate\Contracts\Support\Responsable;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Http\Requests\Billing\StartCheckoutRequest;
 use Nvade\Numerosis\Http\Responses\Billing\RedirectResponsable;
 use Nvade\Numerosis\Services\Billing\LocalCheckoutGateway;
@@ -26,14 +26,14 @@ class StartLocalCheckout
 
     public function __construct(private readonly LocalCheckoutGateway $gateway) {}
 
-    public function handle(TenantRegistrationData $registration): CheckoutIntent
+    public function handle(TenantProvisionData $registration): CheckoutIntent
     {
         return $this->gateway->begin($registration);
     }
 
     public function asController(StartCheckoutRequest $request): Responsable
     {
-        $intent = $this->handle($request->toRegistrationData());
+        $intent = $this->handle($request->toProvisionData());
 
         assert($intent instanceof RedirectCheckout);
 

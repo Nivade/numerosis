@@ -13,7 +13,7 @@ use Lorisleiva\Actions\Decorators\UniqueJobDecorator;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartLocalCheckout;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Tests\TestCase;
@@ -29,9 +29,9 @@ class StartLocalCheckoutTest extends TestCase
         $user = CentralUser::factory()->create();
         $this->actingAs($user);
 
-        $intent = StartLocalCheckout::run(TenantRegistrationData::from([
-            'company_name' => 'Dev Co',
-            'domain' => 'devtenant',
+        $intent = StartLocalCheckout::run(TenantProvisionData::from([
+            'name' => 'Dev Co',
+            'slug' => 'devtenant',
             'billing_cycle' => BillingCycle::Monthly,
             'global_id' => $user->global_id,
         ]));

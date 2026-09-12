@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain;
@@ -238,9 +238,9 @@ class IdentificationModeTest extends TestCase
     {
         $this->useMode(IdentificationMode::CustomDomain);
 
-        ReserveTenantDomain::run(new TenantRegistrationData(
-            company_name: 'Acme',
-            domain: 'acme',
+        ReserveTenantDomain::run(new TenantProvisionData(
+            name: 'Acme',
+            slug: 'acme',
             global_id: (string) Str::uuid(),
             custom_domain: 'app.acme.com',
         ));

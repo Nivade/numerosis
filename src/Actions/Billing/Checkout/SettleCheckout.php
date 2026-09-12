@@ -7,7 +7,6 @@ namespace Nvade\Numerosis\Actions\Billing\Checkout;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Billing\CheckoutCompleted;
 use Nvade\Numerosis\Models\Central\Subscription;
@@ -41,12 +40,10 @@ class SettleCheckout
             'settled_at' => $settled ? now() : null,
         ]);
 
-        $this->provisioning->queue(new TenantProvisionData(
-            registration: TenantRegistrationData::fromPending($pending),
-            stripeCustomerId: $stripeCustomerId,
-            stripeSubscriptionId: $stripeSubscriptionId,
-            centralUserId: $centralUserId,
-        ));
+        $this->provisioning->queue(
+            TenantProvisionData::fromProvision($pending)
+                ->withStripe($stripeCustomerId, $stripeSubscriptionId, $centralUserId),
+        );
 
         event(new CheckoutCompleted($pending->slug, (string) $pending->payment_plan, $stripeSubscriptionId));
     }

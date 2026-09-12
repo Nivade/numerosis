@@ -9,7 +9,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Models\User;
 
@@ -32,8 +32,8 @@ class StartCheckoutRequest extends FormRequest
     public function rules(): array
     {
         return [
-            ...TenantRegistrationData::rules(),
-            'domain' => [
+            ...TenantProvisionData::rules(),
+            'slug' => [
                 'required',
                 'string',
                 'max:255',
@@ -55,8 +55,8 @@ class StartCheckoutRequest extends FormRequest
         ];
     }
 
-    public function toRegistrationData(): TenantRegistrationData
+    public function toProvisionData(): TenantProvisionData
     {
-        return TenantRegistrationData::from($this->validated());
+        return TenantProvisionData::from($this->validated());
     }
 }

@@ -14,7 +14,6 @@ use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Tests\TestCase;
@@ -35,9 +34,9 @@ class CreateTenantTest extends TestCase
         ]);
 
         $tenantId = 'sync-db-tenant-'.uniqid();
-        $registration = TenantRegistrationData::from([
-            'company_name' => 'Sync DB Co',
-            'domain' => $tenantId,
+        $registration = TenantProvisionData::from([
+            'name' => 'Sync DB Co',
+            'slug' => $tenantId,
             'global_id' => $user->global_id,
         ]);
 
@@ -69,19 +68,16 @@ class CreateTenantTest extends TestCase
         ]);
 
         $tenantId = 'test-tenant-'.uniqid();
-        $registration = TenantRegistrationData::from([
+        $registration = TenantProvisionData::from([
             'payment_plan' => 'test-plan',
             'billing_cycle' => BillingCycle::Monthly,
-            'company_name' => 'Test Company',
-            'domain' => $tenantId,
+            'name' => 'Test Company',
+            'slug' => $tenantId,
             'global_id' => $user->global_id,
         ]);
 
         // Act
-        ProvisionTenant::run(new TenantProvisionData(
-            registration: $registration,
-            centralUserId: (string) $user->id,
-        ));
+        ProvisionTenant::run($registration->withStripe(null, null, (string) $user->id));
 
         $tenant = Tenant::findOrFail($tenantId);
 

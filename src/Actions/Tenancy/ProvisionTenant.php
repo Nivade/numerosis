@@ -44,7 +44,7 @@ class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
 
     public function getJobUniqueId(TenantProvisionData $data): string
     {
-        return $data->registration->domain;
+        return $data->slug;
     }
 
     public function handle(TenantProvisionData $data): void
@@ -56,16 +56,16 @@ class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
         $firstStep = $steps[0];
 
         /** @var Tenant $tenant */
-        $tenant = $firstStep::run($data->registration);
+        $tenant = $firstStep::run($data);
 
         $this->dispatchProvisioningChain($tenant, $data);
     }
 
     public function jobFailed(Throwable $e, TenantProvisionData $data): void
     {
-        MarkProvisionFailed::run($data->registration->domain, $e->getMessage());
+        MarkProvisionFailed::run($data->slug, $e->getMessage());
 
-        event(new TenantProvisioningFailed($data->registration->domain, $data->registration->global_id));
+        event(new TenantProvisioningFailed($data->slug, $data->global_id));
     }
 
     /**
@@ -77,7 +77,7 @@ class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
     private function dispatchProvisioningChain(Tenant $tenant, TenantProvisionData $data): void
     {
         $domain = (string) $tenant->getTenantKey();
-        $globalId = $data->registration->global_id;
+        $globalId = $data->global_id;
 
         if (! Cache::lock("tenant-chain:{$domain}", 900)->get()) {
             return;

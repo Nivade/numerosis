@@ -11,7 +11,7 @@ use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\Billing\BillingCycleRequired;
 use Nvade\Numerosis\Exceptions\Billing\StripePriceNotConfigured;
@@ -26,7 +26,7 @@ class InlineCheckoutGateway implements CheckoutGateway
         private readonly PaymentPlanRepository $plans,
     ) {}
 
-    public function begin(TenantRegistrationData $registration): CheckoutIntent
+    public function begin(TenantProvisionData $registration): CheckoutIntent
     {
         throw_if(! $registration->billing_cycle instanceof BillingCycle, BillingCycleRequired::class, 'A billing cycle is required to start a checkout.');
 
@@ -48,13 +48,13 @@ class InlineCheckoutGateway implements CheckoutGateway
         // be enabled in the Stripe dashboard with no code change here.
         $setupIntent = $billable->createSetupIntent([
             'automatic_payment_methods' => ['enabled' => true],
-            'metadata' => ['slug' => $registration->domain],
+            'metadata' => ['slug' => $registration->slug],
         ]);
 
         // Scoped to the owner as well as the domain. An unscoped write would
         // overwrite a stranger's SetupIntent and lock them out of their
         // reservation.
-        Numerosis::model(TenantProvision::class)::where('slug', $registration->domain)
+        Numerosis::model(TenantProvision::class)::where('slug', $registration->slug)
             ->where('global_id', $registration->global_id)
             ->update([
                 'payment_plan' => $registration->payment_plan,

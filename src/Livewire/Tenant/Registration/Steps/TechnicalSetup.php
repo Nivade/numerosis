@@ -10,7 +10,7 @@ use Illuminate\Validation\Rules\Unique;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Rules\CustomDomainIsAvailable;
@@ -104,7 +104,7 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
     {
         $this->validate();
 
-        $companyName = $this->state()->get('company_name');
+        $companyName = $this->state()->get('name');
 
         if (blank($companyName)) {
             $this->showStep('company-info');
@@ -117,9 +117,9 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
         abort_if($user === null, 403);
 
         try {
-            ReserveTenantDomain::run(new TenantRegistrationData(
-                company_name: (string) $companyName,
-                domain: $this->domain,
+            ReserveTenantDomain::run(new TenantProvisionData(
+                name: (string) $companyName,
+                slug: $this->domain,
                 global_id: $user->global_id,
                 custom_domain: $this->customDomain !== '' ? $this->customDomain : null,
             ));

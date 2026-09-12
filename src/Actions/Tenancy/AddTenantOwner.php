@@ -27,7 +27,7 @@ class AddTenantOwner
         $centralUserClass = Numerosis::model(CentralUser::class);
 
         /** @var CentralUser $user */
-        $user = $centralUserClass::where('global_id', $data->registration->global_id)->firstOrFail();
+        $user = $centralUserClass::where('global_id', $data->global_id)->firstOrFail();
 
         if (! $user->tenants()->where('tenants.id', $tenant->id)->exists()) {
             $user->tenants()->attach($tenant, [

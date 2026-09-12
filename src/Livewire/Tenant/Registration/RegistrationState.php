@@ -67,7 +67,7 @@ class RegistrationState extends State
         $state = $this->forStepClass(CompanyInfo::class);
 
         return [
-            'company_name' => $state['company_name'] ?? null,
+            'name' => $state['name'] ?? null,
             'admin_email' => $state['admin_email'] ?? null,
         ];
     }

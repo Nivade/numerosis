@@ -30,7 +30,7 @@ class RegistrationRefreshTest extends TestCase
         // filled in and submitted the first two steps. This simulates the
         // persistence that happens via Registration::showStep().
         session()->put('registration.wizard_state', [
-            'company-info' => ['company_name' => 'Acme Corp'],
+            'company-info' => ['name' => 'Acme Corp'],
             'technical-setup' => ['domain' => 'acme-refresh-test'],
             'plan' => ['payment_plan' => null, 'billing_cycle' => 'monthly'],
         ]);
@@ -43,7 +43,7 @@ class RegistrationRefreshTest extends TestCase
         $component = $resumed->instance();
 
         // The allStepState should be hydrated from the session via initialState()
-        $this->assertSame('Acme Corp', $component->getCurrentStepState('company-info')['company_name'] ?? null);
+        $this->assertSame('Acme Corp', $component->getCurrentStepState('company-info')['name'] ?? null);
         $this->assertSame('acme-refresh-test', $component->getCurrentStepState('technical-setup')['domain'] ?? null);
     }
 
@@ -67,7 +67,7 @@ class RegistrationRefreshTest extends TestCase
         $alias = resolve('livewire.finder')->normalizeName(Registration::class);
 
         Livewire::test(CompanyInfo::class, $this->wizardParams())
-            ->set('company_name', 'Acme Corp')
+            ->set('name', 'Acme Corp')
             ->call('continue')
             ->assertDispatchedTo($alias, 'nextStep');
     }
@@ -78,7 +78,7 @@ class RegistrationRefreshTest extends TestCase
 
         // Move through company info and technical setup
         Livewire::test(CompanyInfo::class, $this->wizardParams())
-            ->set('company_name', 'Acme Corp')
+            ->set('name', 'Acme Corp')
             ->call('continue');
 
         Livewire::test(TechnicalSetup::class, $this->wizardParams())

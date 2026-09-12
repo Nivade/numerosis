@@ -14,7 +14,6 @@ use Nvade\Numerosis\Actions\Billing\Subscriptions\RecordSubscription;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Role;
@@ -49,9 +48,9 @@ class InterviewShowcaseTest extends TestCase
         ]);
 
         $tenantDomain = 'acme-'.uniqid();
-        $registration = TenantRegistrationData::from([
-            'company_name' => 'Acme Corp',
-            'domain' => $tenantDomain,
+        $registration = TenantProvisionData::from([
+            'name' => 'Acme Corp',
+            'slug' => $tenantDomain,
             'global_id' => $user->global_id,
             'payment_plan' => 'pro',
             'billing_cycle' => BillingCycle::Monthly,
@@ -62,10 +61,7 @@ class InterviewShowcaseTest extends TestCase
         // is what makes this a lifecycle test: the admin promotion and the
         // "provisioning finished" signal live in FinalizeTenantProvisioning,
         // which ProvisionTenant dispatches after the creation steps.
-        ProvisionTenant::run(new TenantProvisionData(
-            registration: $registration,
-            centralUserId: (string) $user->id,
-        ));
+        ProvisionTenant::run($registration->withStripe(null, null, (string) $user->id));
 
         $tenant = Tenant::findOrFail($tenantDomain);
 

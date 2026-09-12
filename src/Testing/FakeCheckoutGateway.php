@@ -10,7 +10,6 @@ use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Routing\RouteNames;
 use PHPUnit\Framework\Assert as PHPUnit;
 
@@ -27,7 +26,7 @@ class FakeCheckoutGateway implements CheckoutGateway, ProvisionsTenant
      * `Collection<*NEVER*, *NEVER*>`, which makes every later `isNotEmpty()`
      * look statically impossible even though `push()` fills it at runtime.
      *
-     * @var Collection<int, TenantRegistrationData>
+     * @var Collection<int, TenantProvisionData>
      */
     private Collection $checkoutsStarted;
 
@@ -40,7 +39,7 @@ class FakeCheckoutGateway implements CheckoutGateway, ProvisionsTenant
         $this->provisioned = new Collection;
     }
 
-    public function begin(TenantRegistrationData $registration): CheckoutIntent
+    public function begin(TenantProvisionData $registration): CheckoutIntent
     {
         $this->checkoutsStarted->push($registration);
 
@@ -57,7 +56,7 @@ class FakeCheckoutGateway implements CheckoutGateway, ProvisionsTenant
         PHPUnit::assertTrue(
             $domain === null
                 ? $this->checkoutsStarted->isNotEmpty()
-                : $this->checkoutsStarted->contains(fn (TenantRegistrationData $r): bool => $r->domain === $domain),
+                : $this->checkoutsStarted->contains(fn (TenantProvisionData $r): bool => $r->slug === $domain),
             $domain === null
                 ? 'No checkout was started.'
                 : "No checkout was started for domain [{$domain}]."
@@ -69,7 +68,7 @@ class FakeCheckoutGateway implements CheckoutGateway, ProvisionsTenant
         PHPUnit::assertTrue(
             $domain === null
                 ? $this->provisioned->isNotEmpty()
-                : $this->provisioned->contains(fn (TenantProvisionData $d): bool => $d->registration->domain === $domain),
+                : $this->provisioned->contains(fn (TenantProvisionData $d): bool => $d->slug === $domain),
             $domain === null
                 ? 'No tenant was provisioned.'
                 : "No tenant was provisioned for domain [{$domain}]."

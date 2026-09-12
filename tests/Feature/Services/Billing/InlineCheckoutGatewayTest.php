@@ -9,7 +9,7 @@ use App\Models\Central\PaymentPlan;
 use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Services\Billing\InlineCheckoutGateway;
 use Nvade\Numerosis\Testing\FakesStripe;
@@ -45,9 +45,9 @@ class InlineCheckoutGatewayTest extends TestCase
             'global_id' => $user->global_id,
         ]);
 
-        $intent = resolve(InlineCheckoutGateway::class)->begin(new TenantRegistrationData(
-            company_name: 'Inline Test Co',
-            domain: 'inline-test',
+        $intent = resolve(InlineCheckoutGateway::class)->begin(new TenantProvisionData(
+            name: 'Inline Test Co',
+            slug: 'inline-test',
             global_id: $user->global_id,
             payment_plan: 'basic',
             billing_cycle: BillingCycle::Monthly,

@@ -42,7 +42,7 @@ class RegistrationCheckoutHandoffTest extends TestCase
     public function test_it_returns_to_technical_setup_when_the_domain_is_missing(): void
     {
         $this->actingAs(CentralUser::factory()->create());
-        $this->planStep(['company-info' => ['company_name' => 'Acme']])
+        $this->planStep(['company-info' => ['name' => 'Acme']])
             ->set('payment_plan', 'starter')
             ->set('terms', true)
             ->call('register')
@@ -74,7 +74,7 @@ class RegistrationCheckoutHandoffTest extends TestCase
         ]);
 
         $this->planStep([
-            'company-info' => ['company_name' => 'Acme'],
+            'company-info' => ['name' => 'Acme'],
             'technical-setup' => ['domain' => 'acme'],
         ])
             ->set('payment_plan', 'starter')
@@ -99,7 +99,7 @@ class RegistrationCheckoutHandoffTest extends TestCase
         PaymentPlan::factory()->create(['slug' => 'legacy-cheap', 'available' => false]);
 
         $this->planStep([
-            'company-info' => ['company_name' => 'Acme'],
+            'company-info' => ['name' => 'Acme'],
             'technical-setup' => ['domain' => 'acme'],
         ])
             ->set('payment_plan', 'legacy-cheap')

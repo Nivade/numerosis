@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Exceptions\Tenancy\DomainAlreadyClaimed;
 use Nvade\Numerosis\Models\Central\TenantProvision;
@@ -25,9 +25,9 @@ class ReserveTenantDomain
     /**
      * @throws DomainAlreadyClaimed
      */
-    public function handle(TenantRegistrationData $registration): void
+    public function handle(TenantProvisionData $registration): void
     {
-        $this->domainPolicy->assertAvailable($registration->domain);
+        $this->domainPolicy->assertAvailable($registration->slug);
 
         if ($registration->custom_domain !== null) {
             $this->domainPolicy->assertCustomDomainAvailable($registration->custom_domain);
@@ -35,17 +35,17 @@ class ReserveTenantDomain
 
         /** @var TenantProvision $reservation */
         $reservation = Numerosis::model(TenantProvision::class)::firstOrCreate(
-            ['slug' => $registration->domain],
+            ['slug' => $registration->slug],
             [
                 'custom_domain' => $registration->custom_domain,
-                'name' => $registration->company_name,
+                'name' => $registration->name,
                 'global_id' => $registration->global_id,
                 'status' => TenantProvisionStatus::Reserved,
             ],
         );
 
         if ($reservation->global_id !== $registration->global_id) {
-            throw new DomainAlreadyClaimed("The domain {$registration->domain} is already being claimed.");
+            throw new DomainAlreadyClaimed("The domain {$registration->slug} is already being claimed.");
         }
     }
 }

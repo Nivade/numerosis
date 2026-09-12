@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
+use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Events\Billing\CheckoutStarted;
 use Nvade\Numerosis\Exceptions\Billing\TooManyUnpaidTenants;
@@ -46,8 +46,8 @@ class StartSubscriptionCheckoutTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('checkout.subscription', [
-                'company_name' => 'Test Company',
-                'domain' => 'test-domain',
+                'name' => 'Test Company',
+                'slug' => 'test-domain',
                 'global_id' => $victim->global_id,
                 'billing_cycle' => 'monthly',
             ]))
@@ -60,16 +60,16 @@ class StartSubscriptionCheckoutTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('checkout.subscription', [
-                'company_name' => '',
-                'domain' => '',
+                'name' => '',
+                'slug' => '',
                 'global_id' => $user->global_id,
                 'payment_plan' => 'invalid-plan',
                 'billing_cycle' => 'invalid-cycle',
             ]))
             ->assertStatus(302)
             ->assertSessionHasErrors([
-                'company_name',
-                'domain',
+                'name',
+                'slug',
                 'payment_plan',
                 'billing_cycle',
             ]);
@@ -93,8 +93,8 @@ class StartSubscriptionCheckoutTest extends TestCase
         // Mock Cashier/Stripe checkout to avoid hitting the real API with non-existent prices
         $this->actingAs($user)
             ->get(route('checkout.subscription', [
-                'company_name' => 'Test Company',
-                'domain' => 'test-domain',
+                'name' => 'Test Company',
+                'slug' => 'test-domain',
                 'global_id' => $user->global_id,
                 'payment_plan' => 'basic',
                 'billing_cycle' => 'monthly',
@@ -126,9 +126,9 @@ class StartSubscriptionCheckoutTest extends TestCase
 
         $this->expectException(TooManyUnpaidTenants::class);
 
-        StartSubscriptionCheckout::run(new TenantRegistrationData(
-            company_name: 'Another Co',
-            domain: 'another-co',
+        StartSubscriptionCheckout::run(new TenantProvisionData(
+            name: 'Another Co',
+            slug: 'another-co',
             global_id: $user->global_id,
             payment_plan: 'basic',
             billing_cycle: BillingCycle::Monthly,
@@ -141,7 +141,7 @@ class StartSubscriptionCheckoutTest extends TestCase
 
         app()->bind(CheckoutGateway::class, fn () => new class implements CheckoutGateway
         {
-            public function begin(TenantRegistrationData $registration): RedirectCheckout
+            public function begin(TenantProvisionData $registration): RedirectCheckout
             {
                 return new RedirectCheckout('https://example.test/checkout');
             }
@@ -156,9 +156,9 @@ class StartSubscriptionCheckoutTest extends TestCase
             'trial_days' => 0,
         ]);
 
-        StartSubscriptionCheckout::run(new TenantRegistrationData(
-            company_name: 'Checkout Events Co',
-            domain: 'checkout-events-co',
+        StartSubscriptionCheckout::run(new TenantProvisionData(
+            name: 'Checkout Events Co',
+            slug: 'checkout-events-co',
             global_id: $user->global_id,
             payment_plan: 'basic',
             billing_cycle: BillingCycle::Monthly,

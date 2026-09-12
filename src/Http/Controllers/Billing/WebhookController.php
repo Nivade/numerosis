@@ -20,7 +20,6 @@ use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendUnlessEntitled;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\SubscriptionCancelled;
 use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
@@ -75,7 +74,7 @@ class WebhookController extends CashierWebhookController
         $pending = is_string($slug) ? $pendingClass::find($slug) : null;
 
         if ($pending !== null) {
-            $registration = TenantRegistrationData::fromPending($pending);
+            $registration = TenantProvisionData::fromProvision($pending);
 
             $centralUserClass = Numerosis::model(CentralUser::class);
 
@@ -85,11 +84,10 @@ class WebhookController extends CashierWebhookController
             // Queued: Stripe retries a webhook that answers slowly, and
             // building a tenant database exceeds that budget. Unique per
             // domain, so the redirect path cannot double-dispatch.
-            $this->provisioning->queue(new TenantProvisionData(
-                registration: $registration,
-                stripeCustomerId: $stripeSubscription['customer'] ?? null,
-                stripeSubscriptionId: $stripeSubscriptionId,
-                centralUserId: $userId !== null ? (string) $userId : null,
+            $this->provisioning->queue($registration->withStripe(
+                $stripeSubscription['customer'] ?? null,
+                $stripeSubscriptionId,
+                $userId !== null ? (string) $userId : null,
             ));
         }
 

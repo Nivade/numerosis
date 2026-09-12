@@ -8,16 +8,16 @@
     <flux:field>
         <flux:label class="text-sm font-medium">Company Name *</flux:label>
         <flux:input
-            wire:model.live.blur="company_name"
+            wire:model.live.blur="name"
             placeholder="Enter your company name"
             class="mt-1"
             wire:keydown.enter="continue"
         />
-        <flux:error name="company_name"/>
+        <flux:error name="name"/>
     </flux:field>
 
     <x-numerosis::registration.navigation
         :show-back="false"
-        :disabled="!$company_name"
+        :disabled="!$name"
     />
 </div>
