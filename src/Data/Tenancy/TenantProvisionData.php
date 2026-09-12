@@ -56,8 +56,11 @@ class TenantProvisionData extends Data implements Wireable
     /**
      * @return self The same registration with the Stripe identifiers attached.
      */
-    public function withStripe(?string $customerId, ?string $subscriptionId, ?string $centralUserId): self
-    {
+    public function withStripe(
+        ?string $customerId = null,
+        ?string $subscriptionId = null,
+        ?string $centralUserId = null,
+    ): self {
         return new self(
             slug: $this->slug,
             name: $this->name,

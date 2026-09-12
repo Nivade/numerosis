@@ -65,7 +65,7 @@
                 href="{{ route('checkout.subscription.dev', [
                     'billing_cycle' => $cycle->value,
                     'name' => $this->state()->get('name'),
-                    'domain' => $this->state()->get('domain'),
+                    'slug' => $this->state()->get('domain'),
                     'payment_plan' => $payment_plan,
                     'global_id' => GetAuthenticatedUser::run()?->global_id,
                 ]) }}"

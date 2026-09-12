@@ -34,9 +34,7 @@ class LocalCheckoutGateway implements CheckoutGateway
         $userId = $user?->id;
 
         $this->provisioning->queue($registration->withStripe(
-            null,
-            null,
-            $userId !== null ? (string) $userId : null,
+            centralUserId: $userId !== null ? (string) $userId : null,
         ));
 
         return new RedirectCheckout(route(RouteNames::tenantsMine()));

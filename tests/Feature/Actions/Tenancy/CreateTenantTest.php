@@ -77,7 +77,7 @@ class CreateTenantTest extends TestCase
         ]);
 
         // Act
-        ProvisionTenant::run($registration->withStripe(null, null, (string) $user->id));
+        ProvisionTenant::run($registration->withStripe(centralUserId: (string) $user->id));
 
         $tenant = Tenant::findOrFail($tenantId);
 

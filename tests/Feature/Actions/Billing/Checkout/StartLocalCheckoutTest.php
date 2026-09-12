@@ -22,6 +22,22 @@ class StartLocalCheckoutTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Read by `getEnvironmentSetUp()`, which runs before the route file, so
+     * the environment has to be decided before `refreshApplication()` rather
+     * than inside the test body.
+     */
+    private static bool $local = false;
+
+    protected function getEnvironmentSetUp($app): void
+    {
+        parent::getEnvironmentSetUp($app);
+
+        if (self::$local) {
+            $app['env'] = 'local';
+        }
+    }
+
     public function test_it_records_the_pending_provision_and_queues_the_real_job(): void
     {
         Bus::fake();
@@ -48,6 +64,44 @@ class StartLocalCheckoutTest extends TestCase
         // The dev shortcut must go through the same queued action as the paid
         // flow, otherwise it exercises a path production never takes.
         Bus::assertDispatched(fn (UniqueJobDecorator $job) => $job->decorates(ProvisionTenant::class));
+    }
+
+    /**
+     * The wizard's "Skip Stripe" link is the only way this route is reached,
+     * and it is registered only under `local`, so nothing exercised the link's
+     * query keys against the request's rules. They drifted apart the moment
+     * the request started validating `slug` instead of `domain`.
+     */
+    public function test_the_dev_link_reaches_the_route_with_the_keys_it_validates(): void
+    {
+        self::$local = true;
+
+        try {
+            $this->refreshApplication();
+
+            Bus::fake();
+
+            $user = CentralUser::factory()->create();
+            $this->actingAs($user);
+
+            $link = (string) file_get_contents(
+                dirname(__DIR__, 5).'/resources/views/livewire/tenant/registration/wizard/steps/plan.blade.php',
+            );
+
+            $this->assertStringContainsString("'slug' => \$this->state()->get('domain')", $link);
+
+            $this->get(route('checkout.subscription.dev', [
+                'name' => 'Dev Co',
+                'slug' => 'devlink',
+                'billing_cycle' => 'monthly',
+                'global_id' => $user->global_id,
+            ]))->assertRedirect(route('tenants.mine'));
+
+            $this->assertNotNull(TenantProvision::find('devlink'));
+        } finally {
+            self::$local = false;
+            $this->refreshApplication();
+        }
     }
 
     /**
