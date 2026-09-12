@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
+use Nvade\Numerosis\Contracts\Tenancy\ReadsContributions;
 use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantProvision;
@@ -19,9 +20,17 @@ use Nvade\Numerosis\Numerosis;
  * reach it at once; the provision row is claimed before the chain is
  * dispatched now, so only one chain per slug ever runs.
  */
-class CreateTenant implements ProvisioningStep
+class CreateTenant implements ProvisioningStep, ReadsContributions
 {
     use AsAction;
+
+    /**
+     * @return list<class-string<CustomDomainContribution>>
+     */
+    public static function reads(): array
+    {
+        return [CustomDomainContribution::class];
+    }
 
     public function handle(TenantProvision $provision): void
     {
