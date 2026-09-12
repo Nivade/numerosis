@@ -46,6 +46,7 @@ something remained open.
 
 | Plan | State |
 |---|---|
+| `glittery-growing-dewdrop.md` | **Phases 1–6 executed, 7–8 outstanding.** On branch `refactor/provisioning-pipeline` (`5219a09`..`53da8f1`), unmerged. Phase 7 (progress UI) and Phase 8 (docs + rules) not started; the plan's "Open flags" section carries findings that outlived it |
 | `pr-review-remediation.md` | **Partially executed.** Re-audited 2026-09-07 against `3c3de4e`: most phases fixed, but phase 4 (webhook payload guard) is still open and phase 5.1 (line-number citation sweep) has 7 of 9 left |
 | `post-extraction-review.md` | **Mostly done; three items survive.** Its Live status block is stale — read the correction at the top of the file, not the table |
 

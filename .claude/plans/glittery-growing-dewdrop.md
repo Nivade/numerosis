@@ -1,6 +1,13 @@
 # Provisioning pipeline redesign
 
-**Status: Not executed.** Approved 2026-09-12. Branch `refactor/provisioning-pipeline`.
+**Status: Phases 1–6 executed, 7–8 outstanding.** Approved and started
+2026-09-12 on branch `refactor/provisioning-pipeline` (14 commits,
+`5219a09`..`53da8f1`, not yet merged). 677 tests pass; `composer analyse` is
+clean **on a cold cache** — see the flags below before trusting a green run.
+
+Phases 1–6 are done and each is audited. **Phase 7 (progress UI) and Phase 8
+(docs + rules) have not been started**, and Phase 8 has grown — the new
+material at the bottom of this file belongs in it.
 
 ## Context
 
@@ -292,6 +299,91 @@ Worth recording because it is the obvious-looking seam:
 Its one useful idea — that steps receive only what the pipeline passes, not a
 DTO copied into every link — is what pushed the provision row to be the data
 carrier.
+
+## Open flags, recorded 2026-09-12
+
+Things found while executing phases 1–6 that are **not fixed** and are not
+this plan's subject. Each is a real finding, not a suspicion.
+
+### Trusting `composer analyse` needs a cold cache
+
+A warm PHPStan result cache hid **113 errors** across several phases of this
+work. Every per-phase "analysis clean" claim before `53da8f1` was measured
+warm and is weaker evidence than it looked. Run
+`vendor/bin/phpstan clear-result-cache` first when the answer matters.
+`.ai/rules/static-analysis.md` already says this; it was cited in the same
+session it was then violated.
+
+### The package's commands are unreachable from `php artisan`
+
+`app()->providerIsLoaded(NumerosisServiceProvider::class)` is **false** in the
+bare Testbench console boot, so `numerosis:install`, `tenants:delete`,
+`tenancy:prune-stalled-provisions`, `tenancy:provision` and the pruning
+commands are all absent from `php artisan list`. A package is the root
+package, so composer's auto-discovery never sees it.
+
+This contradicts CLAUDE.md's toolchain table, and it means **any manual
+`php artisan` verification done in this repo has been running without the
+package loaded.**
+
+Naming the provider in `testbench.yaml` fixes the commands and was tried in
+`3b27cbb`, then reverted in `53da8f1`: loading it changes how larastan
+resolves `Numerosis::model()`, costing 113 cold analysis errors. The gap is
+real and wants its own change that handles both.
+
+### `Tenant::create()` no longer builds a database
+
+`TenantCreated` is empty, so building a database is a provisioning step and
+never a side effect of a model event. That broke 63 tests at once, because
+most of the suite creates a tenant directly and only wants a working one;
+`tests/TestCase.php` re-registers the convenience as a harness listener, and
+it stands aside when a provision row exists so the real steps still do their
+own work.
+
+**Undecided:** whether hosts want a supported convenience for this, or whether
+provisioning-only is the right constraint. Right now it is provisioning-only.
+
+### Per-step retries are uniform
+
+`RunProvisioningStep` gives every step `$tries = 5`. `FinalizeTenantProvisioning`
+used to have 20, because a silent exhaustion there left the UI spinning
+forever. The chain's single terminal handler removes that reason, but the
+choice was made for simplicity and is worth revisiting if a step turns out to
+need its own retry profile.
+
+### Stale references that predate this work
+
+- **Seven comments cite `custom-checkout.md`, which does not exist** — no such
+  file in `docs/` or `.ai/rules/` (the closest is `billing-checkout.md`):
+  `resources/views/components/billing/{payment-element,payment-error,awaiting-payment-card}.blade.php`,
+  `resources/js/stripe-checkout.js` (×2), `resources/js/stripe-appearance.js`.
+  `general.md` says comments should not cite `docs/` or `.ai/rules` at all, so
+  the fix is probably deletion rather than repointing.
+- **`.ai/rules/testing.md` places `deleteCentralWrites()` in the test suite**;
+  it lives in `src/Testing/CleansUpTenancyDatabases.php`.
+  `tests/Feature/FreshHostTest.php:227` still points at the old location.
+- **`tests/Feature/Jobs/` holds tests for classes that are Actions now** —
+  `SeedTenantDatabaseTest`, `FinalizeTenantProvisioningTest`. Path drift only.
+
+## Phase 8 additions
+
+Beyond what Phase 8 already lists:
+
+- **The `JobPipeline` finding is recorded nowhere.** See "Rejected" above: it
+  runs every job in one queued job, and swallows a failure whose job defines
+  `failed()` — the queue records success. Worth a rule of its own; it is the
+  obvious-looking seam anyone would reach for next.
+- **`.ai/rules/tenant-provisioning.md` is now largely historical.** The async
+  chain shape, "one pipeline definition", the `JobPipeline`-vs-`AsAction`
+  conflict and `$tenantCreatedJobs` all describe deleted code. Mark, do not
+  delete — the reasoning is why the current design looks as it does.
+- **`SeedTenantDatabase` can now be an Action.** That rule says it cannot,
+  correctly, because `JobPipeline` owned its calling convention. Nothing does
+  any more.
+- **New rules worth recording**: the central-write tracking lost on
+  `refreshApplication()` (fixed in `53da8f1`, and the mechanism that made it
+  read as a flake); the contribution seam and why contributions declare their
+  own storage; step records and what they replace.
 
 ## Verification
 
