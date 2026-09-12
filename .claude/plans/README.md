@@ -29,12 +29,24 @@ executed — `config/` holds one `numerosis.php` and no `config/numerosis/`
 directory exists — so it moved to `archive/`, and
 `simplification-followups.md` joined it once its eight phases landed.
 
+Re-audited 2026-09-12 the same way (tree, not Status lines): the table below
+had gone stale — `domain-events-expansion.md` and `invitations-social-redesign.md`
+were both marked "Not executed" but `src/Actions/Tenancy/EnsureTenantUserExists.php`
+and `src/Events/Tenancy/MemberJoined.php` both exist, and the redesign's own
+HANDOFF file said complete. All three moved to `archive/`, along with
+`comment-destyle.md` (its own Status line said done), `drifting-puzzling-flame.md`
+(said executed, commit hashes verified in `git log`), the superseded draft it
+replaced (`delightful-doodling-turing.md`, added in the same commit, never
+executed on its own), and `effervescent-questing-pumpkin.md` (its target
+commit `888e31f` is in history under the same subject line). Only two plans
+were left live because their own text — not just a Status header — said
+something remained open.
+
 ## Live
 
 | Plan | State |
 |---|---|
-| `domain-events-expansion.md` | **Not executed.** Approved 2026-09-04. Runs **before** `invitations-social-redesign.md`. Confirmed unstarted: no `src/Actions/Tenancy/EnsureTenantUserExists.php` |
-| `invitations-social-redesign.md` | **Not executed.** Approved 2026-09-04. Depends on `domain-events-expansion.md` landing first |
+| `pr-review-remediation.md` | **Partially executed.** Re-audited 2026-09-07 against `3c3de4e`: most phases fixed, but phase 4 (webhook payload guard) is still open and phase 5.1 (line-number citation sweep) has 7 of 9 left |
 | `post-extraction-review.md` | **Mostly done; three items survive.** Its Live status block is stale — read the correction at the top of the file, not the table |
 
 ## Abandoned
@@ -53,6 +65,10 @@ Nothing in `archive/` is actionable. Two things there are worth knowing about:
   status list.
 - **`package-extraction-log.md`** is an append-only session log, not a plan.
   It is the only record of the bug classes that extraction turned up.
+- **`delightful-doodling-turing.md`** is a superseded draft, not an executed
+  plan — it was never run on its own. It and `drifting-puzzling-flame.md`
+  ("cleaned up") were added in the same commit; the latter is the one whose
+  phases actually landed.
 
 Several archived plans describe subsystems that have since been **deleted**
 (the Filament panels, the module marketplace, `torann/geoip`, the six-package
