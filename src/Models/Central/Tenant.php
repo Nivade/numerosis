@@ -20,6 +20,7 @@ use Laravel\Cashier\Invoice;
 use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Concerns\Billing\Billable;
+use Nvade\Numerosis\Concerns\Tenancy\RunsInTenant;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Database\Factories\Central\TenantFactory;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
@@ -84,6 +85,8 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
 
     /** Clears the cached domain lookup when a domain or tenant changes. */
     use InvalidatesResolverCache;
+
+    use RunsInTenant;
 
     /**
      * The columns the package itself relies on, whether or not the `tenants`
@@ -223,7 +226,7 @@ class Tenant extends BaseTenant implements Subscribable, TenantWithDatabase
     {
         $userClass = Numerosis::model(User::class);
 
-        $admin = $this->run(fn ($tenant) => $userClass::role('admin')->first());
+        $admin = $this->runInTenant($this, fn ($tenant) => $userClass::role('admin')->first());
 
         return $admin instanceof User ? $admin : null;
     }

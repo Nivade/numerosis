@@ -196,3 +196,30 @@ test('everything in Services implements something, or is a named exception', fun
         );
     }
 });
+
+/**
+ * `Stancl\Tenancy\Database\Concerns\TenantRun::run()` has no `try`/`finally`
+ * — a throw inside its callback leaves the process initialized against that
+ * tenant, and the next queued job on the same worker runs in the wrong
+ * tenant's context. `Concerns\Tenancy\RunsInTenant::runInTenant()` restores
+ * or ends tenancy unconditionally and is the only sanctioned spelling.
+ */
+test('nothing calls ->run( on a tenant outside RunsInTenant', function (): void {
+    $files = (new Finder)
+        ->files()
+        ->in(dirname(__DIR__, 2).'/src')
+        ->name('*.php');
+
+    expect(iterator_count($files))->toBeGreaterThan(0, 'Scanned no files — the path above is wrong.');
+
+    foreach ($files as $file) {
+        if ($file->getFilename() === 'RunsInTenant.php') {
+            continue;
+        }
+
+        expect($file->getContents())->not->toMatch(
+            '/->run\(/',
+            "{$file->getRelativePathname()} calls ->run( directly — use Concerns\\Tenancy\\RunsInTenant::runInTenant() instead.",
+        );
+    }
+});

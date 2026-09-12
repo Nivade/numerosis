@@ -13,8 +13,9 @@ use WeakMap;
 
 /**
  * Exception context and throttling for `withExceptions()`. A job that failed
- * inside `$tenant->run()` needs `Concerns\Tenancy\TagsSentryScopeWithTenant`
- * to be tagged; this covers everything else.
+ * inside `Concerns\Tenancy\RunsInTenant::runInTenant()` needs
+ * `Concerns\Tenancy\TagsSentryScopeWithTenant` to be tagged; this covers
+ * everything else.
  */
 final class ExceptionRegistrar
 {

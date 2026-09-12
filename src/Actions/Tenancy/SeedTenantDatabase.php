@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Concerns\Tenancy\RunsInTenant;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -28,26 +29,22 @@ use Throwable;
 class SeedTenantDatabase implements ProvisioningStep
 {
     use AsAction;
+    use RunsInTenant;
 
     public function handle(TenantProvision $provision): void
     {
         $tenant = Numerosis::model(Tenant::class)::findOrFail($provision->slug);
 
-        tenancy()->initialize($tenant);
-
-        try {
-            Model::unguarded(function (): void {
-                resolve(TenantDatabaseSeeder::class)
-                    ->setContainer(app())
-                    ->__invoke();
-            });
-        } catch (Throwable $e) {
-            throw new RuntimeException("Seeding failed for tenant {$provision->slug}: {$e->getMessage()}", 0, previous: $e);
-        } finally {
-            // Async code manages its own revert: $tenant->run() gives no such
-            // guarantee, and leaving tenancy initialized leaks into the next
-            // job on this worker.
-            tenancy()->end();
-        }
+        $this->runInTenant($tenant, function () use ($provision): void {
+            try {
+                Model::unguarded(function (): void {
+                    resolve(TenantDatabaseSeeder::class)
+                        ->setContainer(app())
+                        ->__invoke();
+                });
+            } catch (Throwable $e) {
+                throw new RuntimeException("Seeding failed for tenant {$provision->slug}: {$e->getMessage()}", 0, previous: $e);
+            }
+        });
     }
 }

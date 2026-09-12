@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Concerns\Tenancy\RunsInTenant;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
@@ -26,6 +27,7 @@ use Nvade\Numerosis\Numerosis;
 class PromoteFirstUserToAdmin implements RequiresContributions
 {
     use AsAction;
+    use RunsInTenant;
 
     /**
      * @return list<class-string<ProvisionContribution>>
@@ -41,7 +43,7 @@ class PromoteFirstUserToAdmin implements RequiresContributions
         $userClass = Numerosis::model(User::class);
         $tenantId = (string) $tenant->getTenantKey();
 
-        $tenant->run(function () use ($userClass, $tenantId) {
+        $this->runInTenant($tenant, function () use ($userClass, $tenantId) {
 
             /** @var User|null $user */
             $user = $userClass::where('is_bot', false)->first();

@@ -3,7 +3,10 @@
 **Status: not executed. Phase 0 added; phases 1, 2, 3, 4, 5 and 9.8 revised
 2026-09-12 after review — phases 2 and 4 both originally proposed new
 abstractions over abstractions that already existed, and are now much
-smaller.** Written
+smaller. Re-audited 2026-09-12 after `refactor/provisioning-pipeline` merged
+to `main` (`33f7ca8`) — see "Re-audit after merge" below; findings still
+hold, three call sites and one contract-tone example need small edits before
+executing.** Written
 2026-09-12 on branch `refactor/provisioning-pipeline`. Nothing below is built.
 Eleven phases (0–10), ordered so each is independently landable and
 independently revertable. Phase 1 carries the most design value; 8–10 are
@@ -36,27 +39,51 @@ Counts below were measured 2026-09-12 against `4e39198`.
 
 ## Preflight — read before starting any phase
 
-**The working tree is mid-refactor.** At the time of writing, 33 files are
-uncommitted on `refactor/provisioning-pipeline`, including
-`src/Actions/Tenancy/ProvisionTenant.php`,
-`src/Contracts/Tenancy/ProvisionsTenant.php`, a deleted
-`src/Testing/BuildsTenantDatabasesOnCreate.php` and a new
-`tests/Support/TestTenant.php`. `glittery-growing-dewdrop.md` phase 9 is also
-still open on the same pipeline.
-
-Overlap after the rescope, checked file by file:
-
-- **Phase 5** genuinely collides — it edits the six provisioning steps and
-  `TenantProvision`. Do not start it until the refactor lands.
-- **Phase 0** edits `PromoteFirstUserToAdmin`, `EnsureTenantUserExists`,
-  `Tenant.php` and `SeedTenantDatabase` — all clean. Only
-  `SeedTenantDatabaseTest.php` is dirty, so expect one merge on the test.
-  Safe to start now, and it should be.
-- **Phase 4** no longer touches any dirty file (`PruneStalledTenantProvisions`,
-  `TenantProvision`, `InlineCheckoutGateway` are all clean).
-- **Phases 1, 2, 3, 6–10** are clear.
+**The refactor has landed.** `refactor/provisioning-pipeline` merged to
+`main` at `33f7ca8` (2026-09-12) and is no longer mid-flight — the file list
+below is now history, kept for the re-audit trail, not a live overlap
+warning. All ten phases are clear to start against current `main`.
 
 One commit per phase.
+
+### Re-audit after merge (2026-09-12, `main` at `33f7ca8`)
+
+Checked every phase's cited files against current `main`. Findings hold;
+three drifted details:
+
+- **Phase 0.** `PromoteFirstUserToAdmin`'s unsafe `$tenant->run()` at what is
+  now line 44 is unchanged in kind — it now takes `TenantProvision $provision`
+  and resolves the tenant itself (`Numerosis::model(Tenant::class)::findOrFail($provision->slug)`,
+  a side effect of the same refactor phase 5 targets). `EnsureTenantUserExists.php:32`
+  and `Tenant.php:226` are untouched. Proceed as written; only the line number
+  in the table moved (44, not 45–56).
+- **Phase 3.** Counts drifted with the merge: `Numerosis::model()` is 102 call
+  sites now (was 104), 135 total `Numerosis::` calls (was 142), 30 chained
+  `::model(X::class)::` sites (was 29), 118 `@var` annotations in `src/` (was
+  ~64 read as "of 117"). `WebhookController` rose from 6 to **11** `@var`
+  annotations — an unrelated PHPStan-hygiene commit replaced its five
+  array-shape `@param` docblocks with `@var` casts inside each handler. It is
+  still one of the three highest-count files; swap "6" for "11" in the
+  done-condition table before running the cold-cache check.
+- **Phase 5.** The six-site table is now seven: `PromoteFirstUserToAdmin`
+  gained the same `Numerosis::model(Tenant::class)::findOrFail($provision->slug)`
+  line during the merge (its signature changed from `handle(Tenant $tenant)`
+  to `handle(TenantProvision $provision)` so it could declare
+  `RequiresContributions`). Convert all seven: `CreateTenantDatabase.php:31`,
+  `MigrateTenantDatabase.php:24`, `SeedTenantDatabase.php:34`,
+  `FinalizeTenantProvisioning.php:30`, `LinkTenantSubscription.php:53`,
+  `AddTenantOwner.php:42`, `PromoteFirstUserToAdmin.php:40`.
+- **Contract tone example.** `Contracts/Tenancy/ConsumesContributions.php`
+  (cited in the rules-per-phase note near the bottom of the preflight) was
+  renamed to `Contracts/Tenancy/RequiresContributions.php` in `691cc59`. Match
+  that file for tone instead — same interface, new name.
+- **Phase 4, 6, 7, 8, 9, 10.** Confirmed unchanged: `PruneStalledTenantProvisions`'s
+  three inline predicates, `InlineCheckoutGateway`'s scoped write,
+  `numerosis.tenancy.seeder`'s dead projection, `LoginWithSocialAccount.php:69`'s
+  wrong-connection `DB::transaction()`, the four contracts named in phase 8's
+  table (`PersistsToProvisionColumns` still names `TenantProvision`;
+  `ProvisionsTenant`, added by the merge, names no concrete model and needs no
+  entry), and every phase 9/10 target file are all untouched by the merge.
 
 **Rules to read per phase** (`.ai/rules/`, per the repo's `CLAUDE.md` — open
 these before editing, not after):
@@ -77,7 +104,7 @@ these before editing, not after):
 of 5 docblock prose lines and 3 `//` lines, no exemption for public seams, and
 never cite `.ai/rules`, `.claude` or `docs/` from source. New contracts get a
 short docblock only where the *why* is non-obvious — match
-`Contracts/Tenancy/ConsumesContributions.php` for tone, not length.
+`Contracts/Tenancy/RequiresContributions.php` for tone, not length.
 
 **Test fallout, measured.** Phases 2 and 4 are the ones that will surprise:
 
@@ -369,8 +396,10 @@ more risk than they remove. It narrows the blast radius instead:
 
 **Done-condition for step 3, so this does not become open-ended churn:** pick
 the three highest-count files only — `Console/Commands/InstallNumerosisCommand.php`
-(10), `Boot/HostConfig.php` (7), `Http/Controllers/Billing/WebhookController.php`
-(6). Delete every `@var` in those three, run `composer analyse` on a **cold**
+(10), `Http/Controllers/Billing/WebhookController.php` (11, up from 6 — an
+unrelated PHPStan-hygiene commit added five since this count was taken; see
+"Re-audit after merge"), `Boot/HostConfig.php` (7). Delete every `@var` in
+those three, run `composer analyse` on a **cold**
 cache (`vendor/bin/phpstan clear-result-cache` first, per
 `.ai/rules/static-analysis.md`), and restore only the ones that actually go
 red. Record the surviving count in this plan file and stop. Do not sweep the
@@ -432,23 +461,26 @@ touching every call site; three scopes and one method touch
 ## Phase 5 — `ProvisioningStep` should receive what it needs
 
 `ProvisioningStep::handle(TenantProvision $provision)` hands each step the
-provision row, and then six of them immediately re-resolve the tenant:
+provision row, and then seven of them immediately re-resolve the tenant:
 `CreateTenantDatabase.php:31`, `MigrateTenantDatabase.php:24`,
-`SeedTenantDatabase.php:34`, `FinalizeTenantProvisioning.php:31`,
-`LinkTenantSubscription.php:48`, `AddTenantOwner.php:28` — the same
-`Numerosis::model(Tenant::class)::findOrFail($provision->slug)` line, six
-times.
+`SeedTenantDatabase.php:34`, `FinalizeTenantProvisioning.php:30`,
+`LinkTenantSubscription.php:53`, `AddTenantOwner.php:42`,
+`PromoteFirstUserToAdmin.php:40` — the same
+`Numerosis::model(Tenant::class)::findOrFail($provision->slug)` line, seven
+times. (`PromoteFirstUserToAdmin` picked up this line during the provisioning
+refactor that merged 2026-09-12 — it originally took `Tenant $tenant`
+directly; the six-site count predates that.)
 
 **Do option 1. Option 2 is recorded only so it is not re-proposed.**
 
 1. Add `TenantProvision::tenant(): BelongsTo` keyed on `slug` → `tenants.id`
    (the tenant's primary key *is* the slug — see `CreateTenant.php:34`,
-   `'id' => $provision->slug`), and replace the six `findOrFail` lines with
+   `'id' => $provision->slug`), and replace the seven `findOrFail` lines with
    `$provision->tenant` / `$provision->tenant()->firstOrFail()`.
 2. Both models are central-connection, so this is not a cross-connection
    relation. But the relation is null for any step that runs *before*
    `CreateTenant` in `numerosis.tenancy.provisioning.steps` — only convert the
-   six sites that already call `findOrFail` today, and leave the contract
+   seven sites that already call `findOrFail` today, and leave the contract
    hinting `TenantProvision`. Do not add a `tenant()` call to any other step.
 
 Option 2 was: widen `ProvisioningStep::handle()` to take a
