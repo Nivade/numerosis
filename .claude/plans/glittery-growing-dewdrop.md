@@ -524,3 +524,14 @@ the event is empty in the first place.
 - By hand against `workbench/`: `composer serve`, then
   `php artisan tenancy:provision …` with `php artisan queue:work --queue=provisioning`,
   watching the step names appear in `⚡mine`.
+
+  **Done 2026-09-12, on MySQL**, and it was worth doing. Seven links ran
+  under a real worker, `LinkTenantSubscription` recorded `skipped` for the
+  absent `BillingContribution`, and the row finished `completed`. Getting
+  there needed three fixes to the harness itself and turned up one live bug
+  the whole suite could not see, because `QUEUE_CONNECTION=sync` means no
+  test crosses a worker boundary — see `.ai/rules/package-host-bootstrap.md`
+  and `.ai/rules/exception-handling.md`. The `⚡mine` half is Phase 7's.
+
+- **Host extension, end to end: done** —
+  `tests/Feature/Tenancy/HostProvisioningExtensionTest.php`.

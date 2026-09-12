@@ -315,3 +315,51 @@ move broke it in a way nothing in the move's own checklist could find. It
 resolves the path by reflection now. Grep moved files by *path* as well as by
 namespace, and prefer `(new ReflectionClass(X::class))->getFileName()` in any
 test that reads source.
+
+## The `workbench/` harness is a host, and was never actually running the package (2026-09-12)
+
+Until `NumerosisServiceProvider` was named in `testbench.yaml`, `composer serve`
+and `composer build` booted an app with Numerosis absent — a root package is
+not discovered by `PackageManifest`. Every green `composer build` before that
+proved nothing, and `php artisan` had none of the package's commands.
+
+Making it load surfaces three traps, all of which read as unrelated failures:
+
+- **A missing sqlite file silently demotes `database.default` to `:memory:`.**
+  `Orchestra\Testbench\Bootstrap\LoadConfiguration:162` swaps `sqlite` for
+  `testing` when the file does not exist. `workbench:build` creates the file
+  *after* the app has booted, so the run right after a wipe boots in-memory
+  while `HostConfig` clones `central` from whatever default was — migrations
+  then land on two different connections and fail as
+  `no such table: cache (Connection: testing, Database: :memory:)`. `touch`
+  the file before building. Nothing warns.
+- **`testbench.yaml`'s `env:` block is too late for
+  `TESTBENCH_WITHOUT_DEFAULT_MIGRATIONS`.** `LoadMigrationsFromArray` has
+  already called `Env::get()` by then, so the key sits there reading as
+  configuration while doing nothing. It belongs in the composer script, as
+  `@putenv`. Tell: Testbench's `0001_01_01_000000_testbench_create_users_table`
+  still runs.
+- **The default migrations must be off, for the reason
+  `docs/host-requirements.md:125` already gives a host:** the package ships
+  extended `users` and `jobs` migrations under `database/migrations/central`,
+  and the migrator collides on the *table*, not the filename. Turning them off
+  takes the stock cache table with it, so the workbench keeps its own under
+  `workbench/database/migrations`.
+
+**The tenant schema is MySQL-only, so the workbench cannot provision on
+sqlite.** `2025_12_17_035929_add_ability_and_context_virtual_columns_to_permissions`
+declares `virtualAs("SUBSTRING_INDEX(name, ' ', 1)")`. Seeding a tenant on
+sqlite dies with `unknown function: SUBSTRING_INDEX()`. Point `DB_*` at the
+test MySQL container for any manual provisioning run:
+
+```bash
+docker exec numerosis-mysql-1 mysql -uroot -proot -e "create database numerosis_workbench"
+export DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_DATABASE=numerosis_workbench DB_USERNAME=root DB_PASSWORD=root
+php artisan migrate:fresh --force
+php artisan tenancy:provision demo --owner=<global_id>
+php artisan queue:work --queue=provisioning --stop-when-empty
+```
+
+That run is worth doing: `QUEUE_CONNECTION=sync` in the suite means no test
+exercises a worker boundary, and the first one ever run found a live bug (see
+`exception-handling.md` on re-thrown exception codes).
