@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Http\Controllers\Billing;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -111,7 +111,7 @@ class WebhookControllerSetupIntentTest extends TestCase
 
         $fake->assertTenantProvisioned('webhook-pm-attached-test');
 
-        $pending = PendingTenantProvision::find('webhook-pm-attached-test');
+        $pending = TenantProvision::find('webhook-pm-attached-test');
         $this->assertNotNull($pending);
         $this->assertNotNull($pending->stripe_subscription_id);
     }
@@ -186,7 +186,7 @@ class WebhookControllerSetupIntentTest extends TestCase
             $this->paymentMethodAttachedPayload($paymentMethod->id, $customerId, 'setatt_stand_in'),
         )->assertOk();
 
-        $pending = PendingTenantProvision::find('webhook-pm-attached-idempotent-test');
+        $pending = TenantProvision::find('webhook-pm-attached-idempotent-test');
         $this->assertSame('sub_already_completed', $pending?->stripe_subscription_id);
 
         $subscriptions = Cashier::stripe()->subscriptions->all(['customer' => $customerId]);

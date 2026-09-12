@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Checkout;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Route;
@@ -39,11 +39,11 @@ class StartLocalCheckoutTest extends TestCase
         $this->assertInstanceOf(RedirectCheckout::class, $intent);
         $this->assertSame(route('tenants.mine'), $intent->url);
 
-        $pending = PendingTenantProvision::find('devtenant');
+        $pending = TenantProvision::find('devtenant');
 
         $this->assertNotNull($pending);
         $this->assertSame(TenantProvisionStatus::Provisioning, $pending->status);
-        $this->assertSame('Dev Co', $pending->company_name);
+        $this->assertSame('Dev Co', $pending->name);
 
         // The dev shortcut must go through the same queued action as the paid
         // flow, otherwise it exercises a path production never takes.

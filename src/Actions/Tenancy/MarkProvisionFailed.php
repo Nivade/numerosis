@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
 
 class MarkProvisionFailed
@@ -15,7 +15,7 @@ class MarkProvisionFailed
 
     public function handle(string $domain, string $error): void
     {
-        Numerosis::model(PendingTenantProvision::class)::where('domain', $domain)->update([
+        Numerosis::model(TenantProvision::class)::where('slug', $domain)->update([
             'status' => TenantProvisionStatus::Failed,
             'failed_at' => now(),
             'error' => $error,

@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
 
 #[Description('Release abandoned domain reservations and alert on tenant provisioning that never completed')]
@@ -35,7 +35,7 @@ class PruneStalledTenantProvisions extends Command
      */
     private function releaseAbandonedReservations(Carbon $cutoff, bool $dryRun): void
     {
-        $abandoned = Numerosis::model(PendingTenantProvision::class)::query()
+        $abandoned = Numerosis::model(TenantProvision::class)::query()
             ->where('status', TenantProvisionStatus::Reserved)
             ->where('created_at', '<', $cutoff);
 
@@ -61,21 +61,21 @@ class PruneStalledTenantProvisions extends Command
      */
     private function flagStalledProvisions(Carbon $cutoff, bool $dryRun): void
     {
-        Numerosis::model(PendingTenantProvision::class)::query()
+        Numerosis::model(TenantProvision::class)::query()
             ->where('status', TenantProvisionStatus::Provisioning)
             ->where('created_at', '<', $cutoff)
             ->each(function ($pending) use ($dryRun) {
-                /** @var PendingTenantProvision $pending */
+                /** @var TenantProvision $pending */
                 if ($dryRun) {
-                    $this->line("Would flag stalled provision {$pending->domain}");
+                    $this->line("Would flag stalled provision {$pending->slug}");
 
                     return;
                 }
 
-                $this->warn("Stalled provision: {$pending->domain}");
+                $this->warn("Stalled provision: {$pending->slug}");
 
                 Log::warning('Tenant provisioning stalled', [
-                    'domain' => $pending->domain,
+                    'domain' => $pending->slug,
                     'global_id' => $pending->global_id,
                     'created_at' => $pending->created_at,
                 ]);

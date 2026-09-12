@@ -259,7 +259,7 @@ class Numerosis
             Central\CentralUser::class => 'Central/CentralUser',
             Central\Subscription::class => 'Central/Subscription',
             Central\PaymentPlan::class => 'Central/PaymentPlan',
-            Central\PendingTenantProvision::class => 'Central/PendingTenantProvision',
+            Central\TenantProvision::class => 'Central/TenantProvision',
             Central\Invitation::class => 'Central/Invitation',
             Central\SocialAccount::class => 'Central/SocialAccount',
             TenantModels\User::class => 'Tenant/User',

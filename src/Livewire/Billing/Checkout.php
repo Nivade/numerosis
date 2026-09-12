@@ -30,8 +30,8 @@ use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Routing\RouteNames;
 
@@ -202,7 +202,7 @@ class Checkout extends Component
         // ResolveSetupIntent proves only that the row belongs to the caller,
         // leaving open whether it is the row this component mounted for.
         // Without this, two reservations become two tenants for one payment.
-        if ($resolved->pending->domain !== $this->pendingDomain) {
+        if ($resolved->pending->slug !== $this->pendingDomain) {
             $this->paymentError = __('numerosis::billing.checkout.session_expired');
 
             return;
@@ -280,7 +280,7 @@ class Checkout extends Component
     }
 
     private function createSubscriptionAndSettle(
-        PendingTenantProvision $pending,
+        TenantProvision $pending,
         BillableUser $billable,
         string $paymentMethodId,
     ): void {
@@ -365,7 +365,7 @@ class Checkout extends Component
      * `ResumeCheckout` apply — so a new entry point on this component cannot
      * reach a stranger's reservation by re-deciding it.
      */
-    private function billableFor(PendingTenantProvision $pending): ?BillableUser
+    private function billableFor(TenantProvision $pending): ?BillableUser
     {
         try {
             return AssertReservationIsOwned::run($pending);
@@ -377,17 +377,17 @@ class Checkout extends Component
     }
 
     /** The reservation this component mounted for, by its `#[Locked]` domain. */
-    private function pendingReservation(): ?PendingTenantProvision
+    private function pendingReservation(): ?TenantProvision
     {
-        $pendingClass = Numerosis::model(PendingTenantProvision::class);
+        $pendingClass = Numerosis::model(TenantProvision::class);
 
-        /** @var PendingTenantProvision|null $pending */
+        /** @var TenantProvision|null $pending */
         $pending = $pendingClass::find($this->pendingDomain);
 
         return $pending;
     }
 
-    private function settle(Subscription $subscription, PendingTenantProvision $pending, BillableUser $billable): void
+    private function settle(Subscription $subscription, TenantProvision $pending, BillableUser $billable): void
     {
         SettleCheckout::run($pending, $subscription, $billable->stripeId(), (string) $billable->getKey());
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Actions\Tenancy;
 
-use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\TenantProvision;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -20,11 +20,11 @@ class MarkProvisionCancelledTest extends TestCase
     {
         Event::fake([TenantProvisioningCancelled::class]);
 
-        $pending = PendingTenantProvision::factory()->create(['domain' => 'acme']);
+        $pending = TenantProvision::factory()->create(['slug' => 'acme']);
 
         MarkProvisionCancelled::run('acme');
 
-        $this->assertDatabaseMissing('pending_tenant_provisions', ['domain' => 'acme']);
+        $this->assertDatabaseMissing('tenant_provisions', ['slug' => 'acme']);
 
         Event::assertDispatched(
             fn (TenantProvisioningCancelled $e) => $e->globalId === $pending->global_id

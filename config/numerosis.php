@@ -37,11 +37,11 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\SocialAccount;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\SubscriptionItem;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Services\Billing\CashierMoneyFormatter;
 use Nvade\Numerosis\Services\Billing\DefaultUnpaidTenantQuota;
@@ -236,7 +236,7 @@ return [
         CentralUser::class => null,
         Subscription::class => null,
         PaymentPlan::class => null,
-        PendingTenantProvision::class => null,
+        TenantProvision::class => null,
         TenantUser::class => null,
         Invitation::class => null,
         SocialAccount::class => null,

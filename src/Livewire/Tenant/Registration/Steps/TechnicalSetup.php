@@ -69,7 +69,7 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
                 'required',
                 'string',
                 new DomainIsAvailable,
-                $this->unreservedByAnyoneElse('domain', $user?->global_id),
+                $this->unreservedByAnyoneElse('slug', $user?->global_id),
             ],
         ];
 
@@ -91,7 +91,7 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
      */
     private function unreservedByAnyoneElse(string $column, ?string $globalId): Unique
     {
-        return Rule::unique('pending_tenant_provisions', $column)
+        return Rule::unique('tenant_provisions', $column)
             ->where(fn ($query) => $query->where('global_id', '!=', $globalId));
     }
 

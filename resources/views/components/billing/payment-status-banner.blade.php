@@ -3,8 +3,8 @@
 {{--
     The grace-period warning, before suspension bites. Distinct from
     ⚡suspended: this shows while the tenant still works, so the owner has a
-    chance to fix it before access is paused — see custom-checkout.md,
-    "AwaitingPayment is a badge on a working tenant, not a waiting room."
+    chance to fix it before access is paused. An unsettled payment is a badge
+    on a working tenant, not a waiting room.
 --}}
 @if($subscription?->pastDue())
     <div {{ $attributes->merge(['class' => 'flex items-start gap-3 rounded-lg bg-warning-bg border border-warning-border px-4 py-3']) }}>

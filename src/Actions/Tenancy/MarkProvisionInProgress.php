@@ -8,7 +8,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningStarted;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
 
 class MarkProvisionInProgress
@@ -17,12 +17,12 @@ class MarkProvisionInProgress
 
     public function handle(TenantRegistrationData $registration): void
     {
-        $pendingClass = Numerosis::model(PendingTenantProvision::class);
+        $pendingClass = Numerosis::model(TenantProvision::class);
 
         $pendingClass::updateOrCreate(
-            ['domain' => $registration->domain],
+            ['slug' => $registration->domain],
             [
-                'company_name' => $registration->company_name,
+                'name' => $registration->company_name,
                 'global_id' => $registration->global_id,
                 'status' => TenantProvisionStatus::Provisioning,
                 'failed_at' => null,

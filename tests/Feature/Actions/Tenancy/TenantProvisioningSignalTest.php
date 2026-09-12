@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Actions\Tenancy;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
@@ -27,13 +27,13 @@ class TenantProvisioningSignalTest extends TestCase
     use BuildsTenantProvisionData;
     use RefreshDatabase;
 
-    public function test_it_stamps_provisioned_at_and_clears_the_pending_row(): void
+    public function test_it_stamps_provisioned_at_and_completes_the_provision_row(): void
     {
         $user = CentralUser::factory()->create();
 
-        PendingTenantProvision::factory()->provisioning()->create([
-            'domain' => 'signaltenant',
-            'company_name' => 'Signal Co',
+        TenantProvision::factory()->provisioning()->create([
+            'slug' => 'signaltenant',
+            'name' => 'Signal Co',
             'global_id' => $user->global_id,
         ]);
 
@@ -42,7 +42,13 @@ class TenantProvisioningSignalTest extends TestCase
         $tenant = Tenant::findOrFail('signaltenant');
 
         $this->assertNotNull($tenant->provisioned_at);
-        $this->assertNull(PendingTenantProvision::find('signaltenant'));
+
+        // Kept rather than deleted, so the step record survives as an audit
+        // trail. Readiness is still the tenant's provisioned_at.
+        $provision = TenantProvision::findOrFail('signaltenant');
+
+        $this->assertSame(TenantProvisionStatus::Completed, $provision->status);
+        $this->assertNotNull($provision->completed_at);
     }
 
     public function test_it_dispatches_tenant_provisioned_for_the_owner_when_provisioning_finishes(): void
@@ -73,15 +79,15 @@ class TenantProvisioningSignalTest extends TestCase
         $user = CentralUser::factory()->create();
         $tenant = Tenant::factory()->create();
 
-        PendingTenantProvision::factory()->provisioning()->create([
-            'domain' => $tenant->id,
-            'company_name' => 'Broken Co',
+        TenantProvision::factory()->provisioning()->create([
+            'slug' => $tenant->id,
+            'name' => 'Broken Co',
             'global_id' => $user->global_id,
         ]);
 
         (new FinalizeTenantProvisioning)->jobFailed(new RuntimeException('seeding blew up'), $tenant);
 
-        $pending = PendingTenantProvision::findOrFail((string) $tenant->id);
+        $pending = TenantProvision::findOrFail((string) $tenant->id);
 
         $this->assertSame(TenantProvisionStatus::Failed, $pending->status);
         $this->assertSame('seeding blew up', $pending->error);

@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Tests\Feature\Services\Billing;
 
 use App\Models\Central\CentralUser;
 use App\Models\Central\PaymentPlan;
-use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
@@ -40,8 +40,8 @@ class InlineCheckoutGatewayTest extends TestCase
             'trial_days' => 0,
         ]);
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'inline-test',
+        TenantProvision::factory()->create([
+            'slug' => 'inline-test',
             'global_id' => $user->global_id,
         ]);
 
@@ -57,7 +57,7 @@ class InlineCheckoutGatewayTest extends TestCase
         $this->assertNotEmpty($intent->clientSecret);
         $this->assertNotEmpty($intent->publishableKey);
 
-        $pending = PendingTenantProvision::find('inline-test');
+        $pending = TenantProvision::find('inline-test');
         $this->assertNotNull($pending);
         $this->assertSame('basic', $pending->payment_plan);
         $this->assertSame(BillingCycle::Monthly, $pending->billing_cycle);

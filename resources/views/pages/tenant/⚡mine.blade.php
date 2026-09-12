@@ -8,7 +8,7 @@ use Nvade\Numerosis\Actions\Tenancy\MarkProvisionCancelled;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 
@@ -23,7 +23,7 @@ class extends Component
     /** Tenants whose row exists but whose database is still being built. */
     public Collection $provisioningTenants;
 
-    /** Domains claimed at checkout that have no tenant row yet. */
+    /** Slugs claimed at checkout that have no tenant row yet. */
     public Collection $pendingTenants;
 
     public function mount(): void
@@ -65,9 +65,9 @@ class extends Component
         $this->readyTenants = $tenants->whereNotNull('provisioned_at');
         $this->provisioningTenants = $tenants->whereNull('provisioned_at');
 
-        $this->pendingTenants = Numerosis::model(PendingTenantProvision::class)::query()
+        $this->pendingTenants = Numerosis::model(TenantProvision::class)::query()
             ->where('global_id', $this->user->global_id)
-            ->whereNotIn('domain', $tenants->pluck('id'))
+            ->whereNotIn('slug', $tenants->pluck('id'))
             ->get();
     }
 
@@ -78,7 +78,7 @@ class extends Component
      */
     public function cancelProvision(string $domain): void
     {
-        $owned = Numerosis::model(PendingTenantProvision::class)::where('domain', $domain)
+        $owned = Numerosis::model(TenantProvision::class)::where('slug', $domain)
             ->where('global_id', $this->user?->global_id)
             ->exists();
 
@@ -98,7 +98,7 @@ class extends Component
     public function isWorkOutstanding(): bool
     {
         return $this->provisioningTenants->isNotEmpty()
-            || $this->pendingTenants->contains(fn (PendingTenantProvision $p) => ! $p->hasFailed());
+            || $this->pendingTenants->contains(fn (TenantProvision $p) => ! $p->hasFailed());
     }
 }; ?>
 <section class=" docsearch-content overflow-hidden mx-auto max-w-prose w-full h-full content-center">
@@ -146,12 +146,12 @@ class extends Component
                 <x-numerosis::ui.list>
                     <div @if($this->isWorkOutstanding()) wire:poll.5s="refreshTenants" @endif>
                         @foreach($pendingTenants as $pending)
-                            <x-numerosis::tenant.list-item initials="…" :title="$pending->company_name">
+                            <x-numerosis::tenant.list-item initials="…" :title="$pending->name">
                                 <x-slot:subtitle>
                                     @if($pending->hasFailed())
                                         Setup failed: {{ $pending->error }}
                                     @else
-                                        {{ $pending->domain }} — setting up…
+                                        {{ $pending->slug }} — setting up…
                                     @endif
                                 </x-slot:subtitle>
 
@@ -163,22 +163,22 @@ class extends Component
                                             </flux:button>
                                         @endif
                                     @elseif($pending->status === TenantProvisionStatus::Reserved)
-                                        <flux:button href="{{ route('checkout.resume', $pending->domain) }}" wire:navigate variant="primary" size="sm">
+                                        <flux:button href="{{ route('checkout.resume', $pending->slug) }}" wire:navigate variant="primary" size="sm">
                                             Continue checkout
                                         </flux:button>
 
-                                        <flux:modal.trigger name="cancel-provision-{{ $pending->domain }}">
+                                        <flux:modal.trigger name="cancel-provision-{{ $pending->slug }}">
                                             <flux:button variant="danger" size="sm">
                                                 Cancel
                                             </flux:button>
                                         </flux:modal.trigger>
 
-                                        <flux:modal name="cancel-provision-{{ $pending->domain }}" class="max-w-sm">
+                                        <flux:modal name="cancel-provision-{{ $pending->slug }}" class="max-w-sm">
                                             <div class="space-y-6">
                                                 <div>
                                                     <flux:heading size="lg">Cancel this reservation?</flux:heading>
                                                     <flux:subheading>
-                                                        {{ $pending->domain }} will be released and free for anyone to claim. {{ $pending->company_name }} will no longer be able to continue this checkout.
+                                                        {{ $pending->slug }} will be released and free for anyone to claim. {{ $pending->name }} will no longer be able to continue this checkout.
                                                     </flux:subheading>
                                                 </div>
 
@@ -189,7 +189,7 @@ class extends Component
 
                                                     <flux:button
                                                         variant="danger"
-                                                        wire:click="cancelProvision('{{ $pending->domain }}')"
+                                                        wire:click="cancelProvision('{{ $pending->slug }}')"
                                                     >
                                                         Cancel reservation
                                                     </flux:button>
@@ -219,10 +219,9 @@ class extends Component
                         @php
                             // Unreachable for cards, which settle synchronously — see
                             // custom-checkout.md, "Provisioning and settlement". The
-                            // pending row that tracked AwaitingPayment during
-                            // provisioning is long gone by the time a tenant is
-                            // "ready", so the subscription itself is the only signal
-                            // that survives.
+                            // provision row's settled_at is not read here: by the
+                            // time a tenant is "ready" the subscription itself is
+                            // the authoritative signal.
                             $subscription = $tenant->subscriptions->first();
                             $awaitingPayment = $subscription && ! $subscription->isSettled();
 

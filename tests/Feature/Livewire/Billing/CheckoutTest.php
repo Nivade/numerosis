@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Livewire\Billing;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Subscription;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
@@ -130,7 +130,7 @@ class CheckoutTest extends TestCase
             ->assertSet('paymentError', __('numerosis::billing.checkout.foreign_session'))
             ->assertNoRedirect();
 
-        $this->assertNull(PendingTenantProvision::find('not-yours-entry-points')?->stripe_subscription_id);
+        $this->assertNull(TenantProvision::find('not-yours-entry-points')?->stripe_subscription_id);
     }
 
     /**
@@ -166,7 +166,7 @@ class CheckoutTest extends TestCase
             ->assertSet('paymentError', __('numerosis::billing.checkout.confirmation_failed'))
             ->assertNoRedirect();
 
-        $pending = PendingTenantProvision::find('confirm-unrelated-test');
+        $pending = TenantProvision::find('confirm-unrelated-test');
         $this->assertNotNull($pending);
         $this->assertNull($pending->stripe_subscription_id);
     }
@@ -220,8 +220,8 @@ class CheckoutTest extends TestCase
             ->assertSet('paymentError', __('numerosis::billing.checkout.session_expired'))
             ->assertNoRedirect();
 
-        $this->assertNull(PendingTenantProvision::find('cross-row-a')?->stripe_subscription_id);
-        $this->assertNull(PendingTenantProvision::find('cross-row-b')?->stripe_subscription_id);
+        $this->assertNull(TenantProvision::find('cross-row-a')?->stripe_subscription_id);
+        $this->assertNull(TenantProvision::find('cross-row-b')?->stripe_subscription_id);
     }
 
     public function test_it_refuses_to_confirm_without_a_resumable_pending_row(): void
@@ -388,7 +388,7 @@ class CheckoutTest extends TestCase
             ->assertSet('paymentError', __('numerosis::billing.checkout.saved_payment_method_unavailable'))
             ->assertNoRedirect();
 
-        $pending = PendingTenantProvision::find('cross-customer-test');
+        $pending = TenantProvision::find('cross-customer-test');
         $this->assertNotNull($pending);
         $this->assertNull($pending->stripe_subscription_id);
     }

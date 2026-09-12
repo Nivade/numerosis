@@ -8,7 +8,7 @@ use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Billing\Checkout\ResumedCheckout;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
 use Stripe\Exception\ApiErrorException;
 
@@ -26,8 +26,8 @@ class ResumeCheckout
 
     public function handle(string $domain): ResumedCheckout
     {
-        /** @var PendingTenantProvision|null $pending */
-        $pending = Numerosis::model(PendingTenantProvision::class)::find($domain);
+        /** @var TenantProvision|null $pending */
+        $pending = Numerosis::model(TenantProvision::class)::find($domain);
 
         if (! $pending) {
             throw new CheckoutSessionExpired(__('numerosis::billing.checkout.session_expired'));

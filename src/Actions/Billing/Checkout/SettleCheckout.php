@@ -10,8 +10,8 @@ use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Data\Tenancy\TenantRegistrationData;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Billing\CheckoutCompleted;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
 use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 
 /**
  * Records the subscription against the pending checkout and queues
@@ -28,7 +28,7 @@ class SettleCheckout
     public function __construct(private readonly ProvisionsTenant $provisioning) {}
 
     public function handle(
-        PendingTenantProvision $pending,
+        TenantProvision $pending,
         Subscription $subscription,
         ?string $stripeCustomerId,
         ?string $centralUserId,
@@ -38,7 +38,8 @@ class SettleCheckout
 
         $pending->update([
             'stripe_subscription_id' => $stripeSubscriptionId,
-            'status' => $settled ? TenantProvisionStatus::Provisioning : TenantProvisionStatus::AwaitingPayment,
+            'status' => TenantProvisionStatus::Provisioning,
+            'settled_at' => $settled ? now() : null,
         ]);
 
         $this->provisioning->queue(new TenantProvisionData(
@@ -48,6 +49,6 @@ class SettleCheckout
             centralUserId: $centralUserId,
         ));
 
-        event(new CheckoutCompleted($pending->domain, (string) $pending->payment_plan, $stripeSubscriptionId));
+        event(new CheckoutCompleted($pending->slug, (string) $pending->payment_plan, $stripeSubscriptionId));
     }
 }

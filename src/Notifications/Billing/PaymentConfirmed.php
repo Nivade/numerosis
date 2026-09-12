@@ -10,7 +10,8 @@ use Nvade\Numerosis\Notifications\Tenancy\TenantNotification;
 /**
  * Sent on recovery: an async payment (SEPA-via-iDEAL/Bancontact) finally
  * settling, or a suspended tenant's payment method being fixed.
- * Either way, whatever AwaitingPayment/suspended banner was showing clears.
+ * Either way, whatever unsettled-payment or suspended banner was showing
+ * clears.
  */
 class PaymentConfirmed extends TenantNotification
 {

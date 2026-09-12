@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Tests\Concerns;
 
 use App\Models\Central\CentralUser;
 use App\Models\Central\PaymentPlan;
-use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\TenantProvision;
 use Laravel\Cashier\Cashier;
 use Stripe\PaymentMethod;
 use Stripe\SetupIntent;
@@ -128,10 +128,10 @@ trait CreatesCheckoutFixtures
      *
      * @param  array<string, mixed>  $attributes
      */
-    protected function reserve(string $domain, CentralUser $user, ?string $setupIntentId, array $attributes = []): PendingTenantProvision
+    protected function reserve(string $domain, CentralUser $user, ?string $setupIntentId, array $attributes = []): TenantProvision
     {
-        return PendingTenantProvision::factory()->create([
-            'domain' => $domain,
+        return TenantProvision::factory()->create([
+            'slug' => $domain,
             'global_id' => $user->global_id,
             'stripe_setup_intent_id' => $setupIntentId,
             ...$attributes,

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Console;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PendingTenantProvision;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -24,8 +24,8 @@ class PruneStalledTenantProvisionsTest extends TestCase
 
         $this->pruneStalledProvisions()->assertSuccessful();
 
-        $this->assertNull(PendingTenantProvision::find('abandoned'));
-        $this->assertNotNull(PendingTenantProvision::find('recent'));
+        $this->assertNull(TenantProvision::find('abandoned'));
+        $this->assertNotNull(TenantProvision::find('recent'));
     }
 
     public function test_it_logs_stalled_provisions_instead_of_deleting_them(): void
@@ -37,7 +37,7 @@ class PruneStalledTenantProvisionsTest extends TestCase
         $this->pruneStalledProvisions()->assertSuccessful();
 
         // The customer already paid, so the row is kept for a human to look at.
-        $this->assertNotNull(PendingTenantProvision::find('stalled'));
+        $this->assertNotNull(TenantProvision::find('stalled'));
 
         $spy->shouldHaveReceived('warning')
             ->once()
@@ -51,7 +51,7 @@ class PruneStalledTenantProvisionsTest extends TestCase
 
         $this->pruneStalledProvisions()->assertSuccessful();
 
-        $this->assertNotNull(PendingTenantProvision::find('brokendomain'));
+        $this->assertNotNull(TenantProvision::find('brokendomain'));
     }
 
     public function test_dry_run_changes_nothing(): void
@@ -61,8 +61,8 @@ class PruneStalledTenantProvisionsTest extends TestCase
 
         $this->pruneStalledProvisions(['--dry-run' => true])->assertSuccessful();
 
-        $this->assertNotNull(PendingTenantProvision::find('abandoned'));
-        $this->assertNotNull(PendingTenantProvision::find('stalled'));
+        $this->assertNotNull(TenantProvision::find('abandoned'));
+        $this->assertNotNull(TenantProvision::find('stalled'));
     }
 
     /**
@@ -85,9 +85,9 @@ class PruneStalledTenantProvisionsTest extends TestCase
     {
         $user = CentralUser::factory()->create();
 
-        $pending = PendingTenantProvision::create([
-            'domain' => $domain,
-            'company_name' => 'Test Co',
+        $pending = TenantProvision::create([
+            'slug' => $domain,
+            'name' => 'Test Co',
             'global_id' => $user->global_id,
             'status' => $status,
         ]);

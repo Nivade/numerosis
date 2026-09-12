@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantProvision;
 use Illuminate\Database\Seeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
@@ -50,16 +50,16 @@ it('marks the pending provision as failed when the job fails', function () {
     $domain = 'test-tenant-'.uniqid();
     $tenant = Tenant::forceCreate(['id' => $domain]);
 
-    PendingTenantProvision::factory()->provisioning()->create([
-        'domain' => $domain,
-        'company_name' => 'Acme',
+    TenantProvision::factory()->provisioning()->create([
+        'slug' => $domain,
+        'name' => 'Acme',
         'global_id' => 'user-global-id',
     ]);
 
     $job = new SeedTenantDatabase($tenant);
     $job->failed(new RuntimeException('Seeding failed for tenant '.$domain));
 
-    $pending = PendingTenantProvision::where('domain', $domain)->firstOrFail();
+    $pending = TenantProvision::where('slug', $domain)->firstOrFail();
 
     expect($pending->status)->toBe(TenantProvisionStatus::Failed)
         ->and($pending->error)->toContain('Seeding failed');

@@ -16,7 +16,7 @@ use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\Billing\BillingCycleRequired;
 use Nvade\Numerosis\Exceptions\Billing\StripePriceNotConfigured;
 use Nvade\Numerosis\Exceptions\Billing\UnsupportedBillable;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
 
 class InlineCheckoutGateway implements CheckoutGateway
@@ -48,13 +48,13 @@ class InlineCheckoutGateway implements CheckoutGateway
         // be enabled in the Stripe dashboard with no code change here.
         $setupIntent = $billable->createSetupIntent([
             'automatic_payment_methods' => ['enabled' => true],
-            'metadata' => ['domain' => $registration->domain],
+            'metadata' => ['slug' => $registration->domain],
         ]);
 
         // Scoped to the owner as well as the domain. An unscoped write would
         // overwrite a stranger's SetupIntent and lock them out of their
         // reservation.
-        Numerosis::model(PendingTenantProvision::class)::where('domain', $registration->domain)
+        Numerosis::model(TenantProvision::class)::where('slug', $registration->domain)
             ->where('global_id', $registration->global_id)
             ->update([
                 'payment_plan' => $registration->payment_plan,

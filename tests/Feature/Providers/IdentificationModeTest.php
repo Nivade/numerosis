@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Providers;
 
 use App\Models\Central\Domain;
-use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
@@ -246,8 +246,8 @@ class IdentificationModeTest extends TestCase
         ));
 
         $this->assertDatabaseHas(
-            (new PendingTenantProvision)->getTable(),
-            ['domain' => 'acme', 'custom_domain' => 'app.acme.com'],
+            (new TenantProvision)->getTable(),
+            ['slug' => 'acme', 'custom_domain' => 'app.acme.com'],
             'central',
         );
     }

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Livewire;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Nvade\Numerosis\Tests\TestCase;
@@ -47,9 +47,9 @@ class TenantsMineTest extends TestCase
     {
         $user = CentralUser::factory()->create();
 
-        PendingTenantProvision::factory()->provisioning()->create([
-            'domain' => 'waiting',
-            'company_name' => 'Waiting Co',
+        TenantProvision::factory()->provisioning()->create([
+            'slug' => 'waiting',
+            'name' => 'Waiting Co',
             'global_id' => $user->global_id,
         ]);
 
@@ -63,9 +63,9 @@ class TenantsMineTest extends TestCase
     {
         $user = CentralUser::factory()->create();
 
-        PendingTenantProvision::factory()->failed()->create([
-            'domain' => 'brokenone',
-            'company_name' => 'Broken Co',
+        TenantProvision::factory()->failed()->create([
+            'slug' => 'brokenone',
+            'name' => 'Broken Co',
             'global_id' => $user->global_id,
             'error' => 'seeding blew up',
         ]);
@@ -80,9 +80,9 @@ class TenantsMineTest extends TestCase
     {
         $user = CentralUser::factory()->create();
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'reservedone',
-            'company_name' => 'Reserved Co',
+        TenantProvision::factory()->create([
+            'slug' => 'reservedone',
+            'name' => 'Reserved Co',
             'global_id' => $user->global_id,
         ]);
 
@@ -98,9 +98,9 @@ class TenantsMineTest extends TestCase
         $user = CentralUser::factory()->create();
         $other = CentralUser::factory()->create();
 
-        PendingTenantProvision::factory()->provisioning()->create([
-            'domain' => 'someoneelse',
-            'company_name' => 'Someone Else Co',
+        TenantProvision::factory()->provisioning()->create([
+            'slug' => 'someoneelse',
+            'name' => 'Someone Else Co',
             'global_id' => $other->global_id,
         ]);
 
@@ -120,9 +120,9 @@ class TenantsMineTest extends TestCase
         $tenant = Tenant::factory()->create(['provisioned_at' => null]);
         $this->attach($user, $tenant);
 
-        PendingTenantProvision::factory()->provisioning()->create([
-            'domain' => $tenant->id,
-            'company_name' => 'Duplicated Co',
+        TenantProvision::factory()->provisioning()->create([
+            'slug' => $tenant->id,
+            'name' => 'Duplicated Co',
             'global_id' => $user->global_id,
         ]);
 
@@ -136,9 +136,9 @@ class TenantsMineTest extends TestCase
     {
         $user = CentralUser::factory()->create();
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'cancelme',
-            'company_name' => 'Cancel Co',
+        TenantProvision::factory()->create([
+            'slug' => 'cancelme',
+            'name' => 'Cancel Co',
             'global_id' => $user->global_id,
         ]);
 
@@ -147,7 +147,7 @@ class TenantsMineTest extends TestCase
             ->call('cancelProvision', 'cancelme')
             ->assertSet('pendingTenants', fn ($pending) => $pending->isEmpty());
 
-        $this->assertNull(PendingTenantProvision::find('cancelme'));
+        $this->assertNull(TenantProvision::find('cancelme'));
     }
 
     /**
@@ -160,9 +160,9 @@ class TenantsMineTest extends TestCase
         $user = CentralUser::factory()->create();
         $other = CentralUser::factory()->create();
 
-        PendingTenantProvision::factory()->create([
-            'domain' => 'notyours',
-            'company_name' => 'Not Yours Co',
+        TenantProvision::factory()->create([
+            'slug' => 'notyours',
+            'name' => 'Not Yours Co',
             'global_id' => $other->global_id,
         ]);
 
@@ -170,7 +170,7 @@ class TenantsMineTest extends TestCase
             ->test('numerosis-pages::tenant.mine')
             ->call('cancelProvision', 'notyours');
 
-        $this->assertNotNull(PendingTenantProvision::find('notyours'));
+        $this->assertNotNull(TenantProvision::find('notyours'));
     }
 
     private function attach(CentralUser $user, Tenant $tenant): void

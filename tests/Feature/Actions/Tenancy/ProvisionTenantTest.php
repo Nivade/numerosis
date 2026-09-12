@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Actions\Tenancy;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\PendingTenantProvision;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
@@ -62,15 +62,15 @@ class ProvisionTenantTest extends TestCase
         $user = CentralUser::factory()->create();
         $data = $this->provisionData($user, 'doomed');
 
-        PendingTenantProvision::factory()->provisioning()->create([
-            'domain' => 'doomed',
-            'company_name' => 'Doomed Co',
+        TenantProvision::factory()->provisioning()->create([
+            'slug' => 'doomed',
+            'name' => 'Doomed Co',
             'global_id' => $user->global_id,
         ]);
 
         ProvisionTenant::make()->jobFailed(new RuntimeException('queue exploded'), $data);
 
-        $pending = PendingTenantProvision::findOrFail('doomed');
+        $pending = TenantProvision::findOrFail('doomed');
 
         $this->assertSame(TenantProvisionStatus::Failed, $pending->status);
         $this->assertSame('queue exploded', $pending->error);

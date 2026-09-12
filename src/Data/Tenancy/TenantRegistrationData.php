@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Data\Tenancy;
 
 use Livewire\Wireable;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
-use Nvade\Numerosis\Models\Central\PendingTenantProvision;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Spatie\LaravelData\Concerns\WireableData;
 use Spatie\LaravelData\Data;
 
@@ -34,11 +34,11 @@ class TenantRegistrationData extends Data implements Wireable
      * The registration a pending checkout was started from, read back off the
      * row the domain in Stripe's metadata resolves to.
      */
-    public static function fromPending(PendingTenantProvision $pending): self
+    public static function fromPending(TenantProvision $pending): self
     {
         return new self(
-            company_name: $pending->company_name,
-            domain: $pending->domain,
+            company_name: $pending->name,
+            domain: $pending->slug,
             global_id: $pending->global_id,
             payment_plan: $pending->payment_plan,
             billing_cycle: $pending->billing_cycle,
@@ -50,7 +50,7 @@ class TenantRegistrationData extends Data implements Wireable
      * Only `company_name`: it's validated identically wherever it's
      * collected. `domain`/`custom_domain` are deliberately not here — the
      * registration wizard checks availability against
-     * `pending_tenant_provisions` before checkout exists, while checkout
+     * `tenant_provisions` before checkout exists, while checkout
      * checks it through {@see \Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy}
      * against the tenant that's about to be created; same field, different
      * rules by design.
