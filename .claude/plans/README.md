@@ -46,7 +46,9 @@ something remained open.
 
 | Plan | State |
 |---|---|
-| `glittery-growing-dewdrop.md` | **Phases 1–6 executed, 7–8 outstanding.** On branch `refactor/provisioning-pipeline` (`5219a09`..`53da8f1`), unmerged. Phase 7 (progress UI) and Phase 8 (docs + rules) not started; the plan's "Open flags" section carries findings that outlived it |
+| `glittery-growing-dewdrop.md` | **Phases 1–7 executed, 8–9 outstanding.** On branch `refactor/provisioning-pipeline` (`5219a09`..`1ff30a5`), unmerged. Phase 8 (docs + rules) not started. Phase 9 (a production opt-in for `Tenant::create()`) was added 2026-09-12 and is specification only. Every "Open flags" item was cleared the same day, three of them wrong about their own facts; the corrections are recorded in place |
+| `luminous-wandering-brook.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
+| `enum-vocabulary-sweep.md` | **Not executed.** Written 2026-09-12. Eight phases, each independently landable; phases 1 and 2 carry most of the value |
 | `pr-review-remediation.md` | **Partially executed.** Re-audited 2026-09-07 against `3c3de4e`: most phases fixed, but phase 4 (webhook payload guard) is still open and phase 5.1 (line-number citation sweep) has 7 of 9 left |
 | `post-extraction-review.md` | **Mostly done; three items survive.** Its Live status block is stale — read the correction at the top of the file, not the table |
 
