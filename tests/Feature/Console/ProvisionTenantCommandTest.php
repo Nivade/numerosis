@@ -98,4 +98,40 @@ class ProvisionTenantCommandTest extends TestCase
             '--owner' => $owner->global_id,
         ])->assertFailed();
     }
+
+    /**
+     * Validated like the slug is. `ReserveTenantDomain` checks both on the
+     * checkout path, so the command checking only one was asymmetric.
+     */
+    public function test_it_refuses_a_custom_domain_another_tenant_holds(): void
+    {
+        $owner = CentralUser::factory()->create();
+        $taken = Tenant::factory()->create(['id' => 'holder']);
+        $taken->domains()->create(['id' => 'holder-domain', 'domain' => 'app.taken.test']);
+
+        $this->command('tenancy:provision', [
+            'slug' => 'wantsdomain',
+            '--owner' => $owner->global_id,
+            '--custom-domain' => 'app.taken.test',
+        ])->assertFailed();
+
+        $this->assertNull(TenantProvision::find('wantsdomain'));
+    }
+
+    /**
+     * The tenant-exists guard runs first, so this is the only case that
+     * reaches the domain policy for the slug -- and the policy throws
+     * ValidationException, which is not a ShowsMessageToUser.
+     */
+    public function test_it_refuses_a_reserved_slug(): void
+    {
+        $owner = CentralUser::factory()->create();
+
+        $this->command('tenancy:provision', [
+            'slug' => 'www',
+            '--owner' => $owner->global_id,
+        ])->assertFailed();
+
+        $this->assertNull(TenantProvision::find('www'));
+    }
 }

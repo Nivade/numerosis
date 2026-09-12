@@ -7,11 +7,11 @@ namespace Nvade\Numerosis\Console\Commands;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
@@ -54,10 +54,12 @@ class ProvisionTenantCommand extends Command
             return self::FAILURE;
         }
 
+        // ValidationException, not ShowsMessageToUser: the policy contract
+        // documents the former, and it is not one of the latter.
         try {
             $this->domainPolicy->assertAvailable($slug);
-        } catch (ShowsMessageToUser $e) {
-            $this->error($e->getMessage());
+        } catch (ValidationException $e) {
+            $this->error(implode(' ', $e->validator->errors()->all()));
 
             return self::FAILURE;
         }
@@ -72,7 +74,17 @@ class ProvisionTenantCommand extends Command
             return self::FAILURE;
         }
 
-        $customDomain = $this->option('custom-domain');
+        $customDomain = is_string($this->option('custom-domain')) ? $this->option('custom-domain') : '';
+
+        if ($customDomain !== '') {
+            try {
+                $this->domainPolicy->assertCustomDomainAvailable($customDomain);
+            } catch (ValidationException $e) {
+                $this->error(implode(' ', $e->validator->errors()->all()));
+
+                return self::FAILURE;
+            }
+        }
 
         $this->provisioning->queue(new TenantProvisionData(
             slug: $slug,
@@ -80,9 +92,7 @@ class ProvisionTenantCommand extends Command
                 ? $this->option('name')
                 : $slug,
             global_id: $owner,
-            contributions: is_string($customDomain) && $customDomain !== ''
-                ? [new CustomDomainContribution($customDomain)]
-                : [],
+            contributions: $customDomain === '' ? [] : [new CustomDomainContribution($customDomain)],
         ));
 
         $this->info("Queued provisioning for [{$slug}] on the `provisioning` queue.");
