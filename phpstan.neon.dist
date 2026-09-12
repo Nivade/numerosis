@@ -4,6 +4,9 @@ includes:
 parameters:
     level: 9
     treatPhpDocTypesAsCertain: false
+    parallel:
+        maximumNumberOfProcesses: 3
+        processTimeout: 300.0
     # Pest's `$this->assertSame()` and Eloquent's fluent `$model->where()`
     # both resolve to static methods through an instance — the idiom of both,
     # not a bug. `dynamicCallOnStaticMethod` flags every one of them.
