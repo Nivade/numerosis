@@ -10,7 +10,6 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
-use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
 use Nvade\Numerosis\Jobs\RunProvisioningStep;
 use Nvade\Numerosis\Models\Central\TenantProvision;
@@ -90,17 +89,5 @@ class ProvisionTenant implements ProvisionsTenant
                 event(new TenantProvisioningFailed($slug, is_string($globalId) ? $globalId : null));
             })
             ->dispatch();
-    }
-
-    /**
-     * Hands the slug back. The chain is no longer in flight, whatever the
-     * outcome, so holding the claim would only block a retry.
-     */
-    public static function release(string $slug, TenantProvisionStatus $status): void
-    {
-        Numerosis::model(TenantProvision::class)::where('slug', $slug)->update([
-            'status' => $status,
-            'provisioning_started_at' => null,
-        ]);
     }
 }

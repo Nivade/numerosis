@@ -209,6 +209,26 @@ class ProvisionTenantTest extends TestCase
         $this->assertTrue(TenantProvision::claim('stale'));
     }
 
+    /**
+     * A late duplicate dispatch used to re-claim a finished provision. Every
+     * step was recorded done and skipped -- including the one that reports the
+     * tenant ready -- so the row sat on `provisioning` for good and
+     * `tenancy:prune-stalled-provisions` would flag a healthy tenant.
+     */
+    public function test_a_completed_provision_is_not_claimed_again(): void
+    {
+        $user = CentralUser::factory()->create();
+
+        ProvisionTenant::make()->queue($this->provisionData($user, 'finished'));
+
+        $this->assertSame(TenantProvisionStatus::Completed, TenantProvision::findOrFail('finished')->status);
+
+        ProvisionTenant::make()->queue($this->provisionData($user, 'finished'));
+
+        $this->assertSame(TenantProvisionStatus::Completed, TenantProvision::findOrFail('finished')->status);
+        $this->assertFalse(TenantProvision::claim('finished'));
+    }
+
     public function test_a_live_claim_is_refused(): void
     {
         $user = CentralUser::factory()->create();

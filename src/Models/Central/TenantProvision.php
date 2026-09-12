@@ -99,6 +99,10 @@ class TenantProvision extends Model
     {
         $claimed = static::query()
             ->where('slug', $slug)
+            // Never a finished provision. Every step would be recorded done
+            // and skip, including the one that reports the tenant ready, so
+            // the row would sit on `provisioning` for good and read as stalled.
+            ->where('status', '!=', TenantProvisionStatus::Completed)
             ->where(fn (Builder $query) => $query
                 ->where('status', '!=', TenantProvisionStatus::Provisioning)
                 ->orWhereNull('provisioning_started_at')

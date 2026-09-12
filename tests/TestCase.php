@@ -23,6 +23,7 @@ use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
 use Nvade\Numerosis\Actions\Tenancy\LinkTenantSubscription;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Features\FeatureRegistry;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\Numerosis;
@@ -185,7 +186,14 @@ abstract class TestCase extends Orchestra
             /** @var TenantWithDatabase $tenant */
             $tenant = $event->tenant;
 
-            if ($tenant->getTenantKey() === CloneTenantSchema::TEMPLATE_ID) {
+            // Not when provisioning made this tenant: the pipeline's own
+            // database steps would then find the work already done and record
+            // themselves as run without having done anything.
+            $provisioned = TenantProvision::query()
+                ->where('slug', $tenant->getTenantKey())
+                ->exists();
+
+            if ($provisioned || $tenant->getTenantKey() === CloneTenantSchema::TEMPLATE_ID) {
                 return;
             }
 
