@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Tests\Feature\Data\Tenancy;
 
 use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
@@ -110,6 +111,43 @@ class ProvisionContributionTest extends TestCase
 
         $this->assertSame('pro', $data->contribution(BillingContribution::class)?->payment_plan);
         $this->assertSame(9, $data->contribution(SeatCountContribution::class)?->seats);
+    }
+
+    /**
+     * `CustomDomainContribution` is discovered off `CreateTenant::reads()`
+     * now, not off a config-listed registry — proves the column-backed
+     * registry derivation actually reaches a reading-only declaration.
+     */
+    public function test_a_column_backed_contribution_declared_only_by_a_reading_step_survives_the_round_trip(): void
+    {
+        $provision = TenantProvision::factory()->create(['slug' => 'reader']);
+
+        $provision->applyContributions([new CustomDomainContribution(custom_domain: 'tenant.example.com')]);
+        $provision->save();
+
+        $data = TenantProvisionData::fromProvision(TenantProvision::findOrFail('reader'));
+
+        $this->assertSame('tenant.example.com', $data->contribution(CustomDomainContribution::class)?->custom_domain);
+    }
+
+    /**
+     * A host's blob-based contribution needs no step declaration at all —
+     * the JSON blob is self-describing. Column-backed discovery is proven
+     * above through `CreateTenant`; this is the regression guard that the
+     * blob path never started requiring one.
+     */
+    public function test_a_host_contribution_is_discovered_without_any_step_declaring_it(): void
+    {
+        Config::set('numerosis.tenancy.provisioning.steps', []);
+
+        $provision = TenantProvision::factory()->create(['slug' => 'undeclared']);
+
+        $provision->applyContributions([new SeatCountContribution(seats: 5, tier: 'team')]);
+        $provision->save();
+
+        $data = TenantProvisionData::fromProvision(TenantProvision::findOrFail('undeclared'));
+
+        $this->assertSame(5, $data->contribution(SeatCountContribution::class)?->seats);
     }
 
     public function test_replacing_a_contribution_does_not_leave_the_old_one_shadowing_it(): void

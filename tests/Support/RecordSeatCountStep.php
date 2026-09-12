@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Support;
 
-use Nvade\Numerosis\Contracts\Tenancy\ConsumesContributions;
+use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 
 /**
  * A host's own provisioning step, reading a contribution core knows nothing
  * about. The far end of the seam `HostSecretStep` starts.
  */
-final class RecordSeatCountStep implements ConsumesContributions
+final class RecordSeatCountStep implements RequiresContributions
 {
     /** @var array<string, int> Seats seen, keyed by slug. */
     public static array $seen = [];
@@ -19,7 +19,7 @@ final class RecordSeatCountStep implements ConsumesContributions
     /**
      * @return list<class-string<\Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution>>
      */
-    public static function consumes(): array
+    public static function requires(): array
     {
         return [SeatCountContribution::class];
     }

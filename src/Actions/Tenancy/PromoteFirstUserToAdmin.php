@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
-use Nvade\Numerosis\Contracts\Tenancy\ConsumesContributions;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
+use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Events\Auth\AdminGranted;
 use Nvade\Numerosis\Exceptions\Tenancy\NoPromotableUser;
@@ -23,14 +23,14 @@ use Nvade\Numerosis\Numerosis;
  * nobody to promote, and `NoPromotableUser` keeps meaning what it should —
  * an owner was contributed and the row that should exist does not.
  */
-class PromoteFirstUserToAdmin implements ConsumesContributions
+class PromoteFirstUserToAdmin implements RequiresContributions
 {
     use AsAction;
 
     /**
      * @return list<class-string<ProvisionContribution>>
      */
-    public static function consumes(): array
+    public static function requires(): array
     {
         return [OwnerContribution::class];
     }

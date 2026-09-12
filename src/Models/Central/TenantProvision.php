@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
 use Nvade\Numerosis\Contracts\Tenancy\PersistsToProvisionColumns;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
+use Nvade\Numerosis\Contracts\Tenancy\ReadsContributions;
+use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Database\Factories\Central\TenantProvisionFactory;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\StepOutcome;
@@ -206,9 +208,37 @@ class TenantProvision extends Model
     }
 
     /**
-     * Every contribution the row carries: the column-backed ones named by
-     * `numerosis.tenancy.provisioning.contributions`, plus every entry in the
-     * JSON blob, which is self-describing because it is keyed by class.
+     * The column-backed contributions a configured step declared, through
+     * `RequiresContributions::requires()` or `ReadsContributions::reads()`.
+     * A column-backed contribution no step declares is invisible here.
+     *
+     * @return list<class-string<ProvisionContribution>>
+     */
+    private static function columnBackedContributions(): array
+    {
+        /** @var list<class-string> $steps */
+        $steps = Config::array('numerosis.tenancy.provisioning.steps', []);
+
+        $declared = [];
+
+        foreach ($steps as $step) {
+            $declared = [
+                ...$declared,
+                ...(is_a($step, RequiresContributions::class, true) ? $step::requires() : []),
+                ...(is_a($step, ReadsContributions::class, true) ? $step::reads() : []),
+            ];
+        }
+
+        return array_values(array_unique(array_filter(
+            $declared,
+            static fn (string $c): bool => is_a($c, PersistsToProvisionColumns::class, true),
+        )));
+    }
+
+    /**
+     * Every contribution the row carries: the column-backed ones declared by
+     * the configured steps, plus every entry in the JSON blob, which is
+     * self-describing because it is keyed by class.
      *
      * A registry is needed only for the column-backed half — nothing about a
      * set of columns says which contribution owns them.
@@ -217,12 +247,9 @@ class TenantProvision extends Model
      */
     public function allContributions(): array
     {
-        /** @var list<class-string<ProvisionContribution>> $registered */
-        $registered = Config::array('numerosis.tenancy.provisioning.contributions', []);
-
         $contributions = [];
 
-        foreach ($registered as $contribution) {
+        foreach (self::columnBackedContributions() as $contribution) {
             $contributions[] = $this->contribution($contribution);
         }
 

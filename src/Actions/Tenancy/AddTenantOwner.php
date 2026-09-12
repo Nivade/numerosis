@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
-use Nvade\Numerosis\Contracts\Tenancy\ConsumesContributions;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
+use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -25,14 +25,14 @@ use Nvade\Numerosis\Numerosis;
  * has none, and ownership is a fact about a relationship rather than part of
  * what a tenant is.
  */
-class AddTenantOwner implements ConsumesContributions
+class AddTenantOwner implements RequiresContributions
 {
     use AsAction;
 
     /**
      * @return list<class-string<ProvisionContribution>>
      */
-    public static function consumes(): array
+    public static function requires(): array
     {
         return [OwnerContribution::class];
     }

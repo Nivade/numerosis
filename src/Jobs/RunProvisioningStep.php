@@ -9,9 +9,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Nvade\Numerosis\Contracts\Tenancy\ConsumesContributions;
 use Nvade\Numerosis\Contracts\Tenancy\ControlsItsOwnRetries;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
+use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Enums\Tenancy\StepOutcome;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
@@ -81,11 +81,11 @@ final class RunProvisioningStep implements ShouldQueue
      */
     private function missingContribution(TenantProvision $provision): ?string
     {
-        if (! is_a($this->step, ConsumesContributions::class, true)) {
+        if (! is_a($this->step, RequiresContributions::class, true)) {
             return null;
         }
 
-        foreach ($this->step::consumes() as $contribution) {
+        foreach ($this->step::requires() as $contribution) {
             if ($provision->contribution($contribution) === null) {
                 return $contribution;
             }
