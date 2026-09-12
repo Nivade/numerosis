@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Actions\Billing\Subscriptions\RecordSubscription;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
@@ -61,7 +62,7 @@ class InterviewShowcaseTest extends TestCase
         // is what makes this a lifecycle test: the admin promotion and the
         // "provisioning finished" signal live in FinalizeTenantProvisioning,
         // which ProvisionTenant dispatches after the creation steps.
-        ProvisionTenant::run($registration->withStripe(centralUserId: (string) $user->id));
+        ProvisionTenant::run($registration->withContributions([new BillingContribution(central_user_id: (string) $user->id)]));
 
         $tenant = Tenant::findOrFail($tenantDomain);
 

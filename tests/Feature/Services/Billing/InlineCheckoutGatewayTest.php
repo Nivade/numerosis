@@ -9,6 +9,7 @@ use App\Models\Central\PaymentPlan;
 use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Services\Billing\InlineCheckoutGateway;
@@ -49,8 +50,10 @@ class InlineCheckoutGatewayTest extends TestCase
             name: 'Inline Test Co',
             slug: 'inline-test',
             global_id: $user->global_id,
-            payment_plan: 'basic',
-            billing_cycle: BillingCycle::Monthly,
+            contributions: [new BillingContribution(
+                payment_plan: 'basic',
+                billing_cycle: BillingCycle::Monthly,
+            )],
         ));
 
         $this->assertInstanceOf(InlineCheckout::class, $intent);

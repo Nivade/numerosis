@@ -14,6 +14,7 @@ use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
+use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath;
@@ -242,7 +243,7 @@ class IdentificationModeTest extends TestCase
             name: 'Acme',
             slug: 'acme',
             global_id: (string) Str::uuid(),
-            custom_domain: 'app.acme.com',
+            contributions: [new CustomDomainContribution('app.acme.com')],
         ));
 
         $this->assertDatabaseHas(

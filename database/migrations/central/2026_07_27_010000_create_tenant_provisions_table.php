@@ -19,10 +19,16 @@ return new class extends Migration
             $table->string('name');
             $table->string('global_id')->index();
 
+            // BillingContribution's columns. Real columns rather than the
+            // JSON blob below because three of them are query predicates:
+            // ResolveSetupIntent looks a row up by setup intent, and the
+            // Stripe webhook filters on subscription id.
             $table->string('payment_plan')->nullable();
             $table->string('billing_cycle')->nullable();
             $table->string('stripe_setup_intent_id')->nullable();
             $table->string('stripe_subscription_id')->nullable();
+            $table->string('stripe_customer_id')->nullable();
+            $table->string('central_user_id')->nullable();
 
             // Lifecycle only. Payment settlement is `settled_at`, because the
             // conditional update on this column is what serializes concurrent

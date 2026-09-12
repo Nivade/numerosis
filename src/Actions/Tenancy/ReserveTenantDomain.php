@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
+use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Exceptions\Tenancy\DomainAlreadyClaimed;
@@ -29,15 +30,17 @@ class ReserveTenantDomain
     {
         $this->domainPolicy->assertAvailable($registration->slug);
 
-        if ($registration->custom_domain !== null) {
-            $this->domainPolicy->assertCustomDomainAvailable($registration->custom_domain);
+        $customDomain = $registration->contribution(CustomDomainContribution::class)?->custom_domain;
+
+        if ($customDomain !== null) {
+            $this->domainPolicy->assertCustomDomainAvailable($customDomain);
         }
 
         /** @var TenantProvision $reservation */
         $reservation = Numerosis::model(TenantProvision::class)::firstOrCreate(
             ['slug' => $registration->slug],
             [
-                'custom_domain' => $registration->custom_domain,
+                'custom_domain' => $customDomain,
                 'name' => $registration->name,
                 'global_id' => $registration->global_id,
                 'status' => TenantProvisionStatus::Reserved,

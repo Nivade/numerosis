@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Events\Billing\CheckoutStarted;
@@ -130,8 +131,10 @@ class StartSubscriptionCheckoutTest extends TestCase
             name: 'Another Co',
             slug: 'another-co',
             global_id: $user->global_id,
-            payment_plan: 'basic',
-            billing_cycle: BillingCycle::Monthly,
+            contributions: [new BillingContribution(
+                payment_plan: 'basic',
+                billing_cycle: BillingCycle::Monthly,
+            )],
         ));
     }
 
@@ -160,8 +163,10 @@ class StartSubscriptionCheckoutTest extends TestCase
             name: 'Checkout Events Co',
             slug: 'checkout-events-co',
             global_id: $user->global_id,
-            payment_plan: 'basic',
-            billing_cycle: BillingCycle::Monthly,
+            contributions: [new BillingContribution(
+                payment_plan: 'basic',
+                billing_cycle: BillingCycle::Monthly,
+            )],
         ));
 
         Event::assertDispatched(fn (CheckoutStarted $e): bool => $e->domain === 'checkout-events-co' && $e->planId === 'basic');

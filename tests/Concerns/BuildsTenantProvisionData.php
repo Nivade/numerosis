@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Tests\Concerns;
 
 use App\Models\Central\CentralUser;
 use App\Models\Central\Tenant;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 
@@ -25,11 +26,13 @@ trait BuildsTenantProvisionData
             slug: $slug,
             name: 'Test Company',
             global_id: $user->global_id,
-            payment_plan: $paymentPlan,
-            billing_cycle: BillingCycle::Monthly,
-            stripeCustomerId: $stripeCustomerId,
-            stripeSubscriptionId: $stripeSubscriptionId,
-            centralUserId: (string) $user->id,
+            contributions: [new BillingContribution(
+                payment_plan: $paymentPlan,
+                billing_cycle: BillingCycle::Monthly,
+                stripe_subscription_id: $stripeSubscriptionId,
+                stripe_customer_id: $stripeCustomerId,
+                central_user_id: (string) $user->id,
+            )],
         );
     }
 

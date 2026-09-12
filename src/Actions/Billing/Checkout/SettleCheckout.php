@@ -34,16 +34,18 @@ class SettleCheckout
         $settled = $subscription->isSettled();
         $stripeSubscriptionId = $subscription->stripe_id;
 
+        // Written to the row before it is read back, so the contribution the
+        // pipeline receives comes from one place rather than being assembled
+        // twice.
         $pending->update([
             'stripe_subscription_id' => $stripeSubscriptionId,
+            'stripe_customer_id' => $stripeCustomerId,
+            'central_user_id' => $centralUserId,
             'status' => TenantProvisionStatus::Provisioning,
             'settled_at' => $settled ? now() : null,
         ]);
 
-        $this->provisioning->queue(
-            TenantProvisionData::fromProvision($pending)
-                ->withStripe($stripeCustomerId, $stripeSubscriptionId, $centralUserId),
-        );
+        $this->provisioning->queue(TenantProvisionData::fromProvision($pending));
 
         event(new CheckoutCompleted($pending->slug, (string) $pending->payment_plan, $stripeSubscriptionId));
     }

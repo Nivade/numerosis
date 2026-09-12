@@ -14,6 +14,7 @@ use Nvade\Numerosis\Contracts\Billing\Plan as PlanContract;
 use Nvade\Numerosis\Contracts\Tenancy\HasTransientState;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
@@ -140,11 +141,13 @@ class Plan extends StepComponent implements HasTransientState
         // never Throwable, so nothing unexpected leaks.
         try {
             $intent = StartSubscriptionCheckout::run(new TenantProvisionData(
-                name: (string) $companyName,
                 slug: (string) $domain,
+                name: (string) $companyName,
                 global_id: $user->global_id,
-                payment_plan: $this->payment_plan,
-                billing_cycle: $this->cycle(),
+                contributions: [new BillingContribution(
+                    payment_plan: $this->payment_plan,
+                    billing_cycle: $this->cycle(),
+                )],
             ));
         } catch (ShowsMessageToUser $e) {
             $this->checkoutError = $e->getMessage();

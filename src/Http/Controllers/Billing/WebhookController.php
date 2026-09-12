@@ -74,21 +74,21 @@ class WebhookController extends CashierWebhookController
         $pending = is_string($slug) ? $pendingClass::find($slug) : null;
 
         if ($pending !== null) {
-            $registration = TenantProvisionData::fromProvision($pending);
-
             $centralUserClass = Numerosis::model(CentralUser::class);
 
             /** @var int|null $userId */
-            $userId = $centralUserClass::where('global_id', $registration->global_id)->value('id');
+            $userId = $centralUserClass::where('global_id', $pending->global_id)->value('id');
+
+            $pending->update([
+                'stripe_subscription_id' => $stripeSubscriptionId,
+                'stripe_customer_id' => $stripeSubscription['customer'] ?? null,
+                'central_user_id' => $userId !== null ? (string) $userId : null,
+            ]);
 
             // Queued: Stripe retries a webhook that answers slowly, and
             // building a tenant database exceeds that budget. Unique per
-            // domain, so the redirect path cannot double-dispatch.
-            $this->provisioning->queue($registration->withStripe(
-                $stripeSubscription['customer'] ?? null,
-                $stripeSubscriptionId,
-                $userId !== null ? (string) $userId : null,
-            ));
+            // slug, so the redirect path cannot double-dispatch.
+            $this->provisioning->queue(TenantProvisionData::fromProvision($pending));
         }
 
         Log::info('Subscription created', [

@@ -10,6 +10,7 @@ use Illuminate\Validation\Rules\Unique;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
+use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
@@ -118,10 +119,12 @@ class TechnicalSetup extends StepComponent implements ProvidesTenantIdentity
 
         try {
             ReserveTenantDomain::run(new TenantProvisionData(
-                name: (string) $companyName,
                 slug: $this->domain,
+                name: (string) $companyName,
                 global_id: $user->global_id,
-                custom_domain: $this->customDomain !== '' ? $this->customDomain : null,
+                contributions: $this->customDomain === ''
+                    ? []
+                    : [new CustomDomainContribution($this->customDomain)],
             ));
         } catch (ShowsMessageToUser $e) {
             $this->addError('domain', $e->getMessage());

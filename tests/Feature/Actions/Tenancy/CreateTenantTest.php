@@ -13,6 +13,7 @@ use Nvade\Numerosis\Actions\Billing\Subscriptions\RecordSubscription;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
@@ -77,7 +78,7 @@ class CreateTenantTest extends TestCase
         ]);
 
         // Act
-        ProvisionTenant::run($registration->withStripe(centralUserId: (string) $user->id));
+        ProvisionTenant::run($registration->withContributions([new BillingContribution(central_user_id: (string) $user->id)]));
 
         $tenant = Tenant::findOrFail($tenantId);
 

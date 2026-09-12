@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Attributes\WithoutIncrementing;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Nvade\Numerosis\Contracts\Tenancy\PersistsToProvisionColumns;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Database\Factories\Central\TenantProvisionFactory;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
@@ -23,7 +25,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * deleted. Tenant readiness is still `tenants.provisioned_at`, never a row
  * here.
  *
- * `step_records` and `contributions` are not yet written by anything.
+ * `step_records` is not yet written by anything.
  *
  * @property string $slug
  * @property string|null $custom_domain
@@ -33,6 +35,8 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property BillingCycle|null $billing_cycle
  * @property string|null $stripe_setup_intent_id
  * @property string|null $stripe_subscription_id
+ * @property string|null $stripe_customer_id
+ * @property string|null $central_user_id
  * @property TenantProvisionStatus $status
  * @property Carbon|null $settled_at
  * @property Carbon|null $provisioning_started_at
@@ -69,6 +73,53 @@ class TenantProvision extends Model
     public function isSettled(): bool
     {
         return $this->settled_at !== null;
+    }
+
+    /**
+     * @template TContribution of ProvisionContribution
+     *
+     * @param  class-string<TContribution>  $contribution
+     * @return TContribution|null
+     */
+    public function contribution(string $contribution): ?ProvisionContribution
+    {
+        if (is_a($contribution, PersistsToProvisionColumns::class, true)) {
+            /** @var TContribution|null */
+            return $contribution::fromProvision($this);
+        }
+
+        $stored = $this->contributions[$contribution] ?? null;
+
+        return is_array($stored) ? $contribution::from($stored) : null;
+    }
+
+    /**
+     * Writes contributions onto the row: column-backed ones into their own
+     * columns, the rest into the JSON blob under their class name. Merged
+     * rather than replaced, so a later stage contributing billing data does
+     * not drop what registration contributed.
+     *
+     * @param  list<ProvisionContribution>  $contributions
+     */
+    public function applyContributions(array $contributions): void
+    {
+        $columns = [];
+        $blob = $this->contributions ?? [];
+
+        foreach ($contributions as $contribution) {
+            if ($contribution instanceof PersistsToProvisionColumns) {
+                $columns = [...$columns, ...array_filter(
+                    $contribution->toProvisionColumns(),
+                    static fn (mixed $value): bool => $value !== null,
+                )];
+
+                continue;
+            }
+
+            $blob[$contribution::class] = $contribution->toArray();
+        }
+
+        $this->fill([...$columns, 'contributions' => $blob]);
     }
 
     #[Override]

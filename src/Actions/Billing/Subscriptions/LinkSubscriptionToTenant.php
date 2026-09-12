@@ -10,6 +10,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
 use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Subscription;
@@ -36,14 +37,16 @@ class LinkSubscriptionToTenant
             $stripeSubscription,
             $tenant,
         ) {
-            $tenant->update(['stripe_id' => $data->stripeCustomerId]);
+            $billing = $data->contribution(BillingContribution::class);
+
+            $tenant->update(['stripe_id' => $billing?->stripe_customer_id]);
 
             $subscription = $this->subscriptions->findByStripeId($stripeSubscription->id);
-            $planId = $this->planIdForSlug($data->payment_plan);
+            $planId = $this->planIdForSlug($billing?->payment_plan);
 
             if (! $subscription) {
                 $subscription = $this->subscriptions->record(new SubscriptionData(
-                    user_id: $data->centralUserId,
+                    user_id: $billing?->central_user_id,
                     payment_plan_id: $planId !== null ? (string) $planId : null,
                     stripe_id: $stripeSubscription->id,
                     stripe_status: $stripeSubscription->status,

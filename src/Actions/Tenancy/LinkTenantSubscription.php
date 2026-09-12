@@ -9,6 +9,7 @@ use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Billing\Subscriptions\LinkSubscriptionToTenant;
 use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\Tenant;
 
@@ -23,11 +24,13 @@ class LinkTenantSubscription implements ShouldQueue
 
     public function handle(Tenant $tenant, TenantProvisionData $data): void
     {
-        if (! $data->stripeCustomerId || ! $data->stripeSubscriptionId) {
+        $billing = $data->contribution(BillingContribution::class);
+
+        if (! $billing?->stripe_customer_id || ! $billing->stripe_subscription_id) {
             return;
         }
 
-        $stripeSubscription = Cashier::stripe()->subscriptions->retrieve($data->stripeSubscriptionId);
+        $stripeSubscription = Cashier::stripe()->subscriptions->retrieve($billing->stripe_subscription_id);
 
         LinkSubscriptionToTenant::run(
             $data,

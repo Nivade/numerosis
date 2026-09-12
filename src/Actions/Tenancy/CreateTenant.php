@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 use Illuminate\Support\Facades\Cache;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Tenancy\CreatesTenant;
+use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
@@ -46,7 +47,11 @@ class CreateTenant implements CreatesTenant
                 ]);
             });
 
-            CreateTenantDomain::run($tenant, $registration->slug, $registration->custom_domain);
+            CreateTenantDomain::run(
+                $tenant,
+                $registration->slug,
+                $registration->contribution(CustomDomainContribution::class)?->custom_domain,
+            );
 
             return $tenant;
         });

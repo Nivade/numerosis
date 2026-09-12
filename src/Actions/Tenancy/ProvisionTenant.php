@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -86,7 +87,9 @@ class ProvisionTenant implements ProvisionsTenant, ShouldBeUnique, ShouldQueue
         Bus::chain([
             ...$this->databaseJobs($tenant),
             RunProvisioningSteps::makeJob($tenant, $data),
-            ...($data->stripeSubscriptionId ? [LinkTenantSubscription::makeJob($tenant, $data)] : []),
+            ...($data->contribution(BillingContribution::class)?->stripe_subscription_id
+                ? [LinkTenantSubscription::makeJob($tenant, $data)]
+                : []),
             FinalizeTenantProvisioning::makeJob($tenant),
         ])
             ->onQueue('provisioning')

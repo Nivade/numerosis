@@ -11,6 +11,7 @@ use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
+use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\Billing\BillingCycleRequired;
@@ -28,14 +29,16 @@ class InlineCheckoutGateway implements CheckoutGateway
 
     public function begin(TenantProvisionData $registration): CheckoutIntent
     {
-        throw_if(! $registration->billing_cycle instanceof BillingCycle, BillingCycleRequired::class, 'A billing cycle is required to start a checkout.');
+        $billing = $registration->contribution(BillingContribution::class);
 
-        $plan = $this->plans->findBySlugOrFail((string) $registration->payment_plan);
+        throw_if(! $billing?->billing_cycle instanceof BillingCycle, BillingCycleRequired::class, 'A billing cycle is required to start a checkout.');
+
+        $plan = $this->plans->findBySlugOrFail((string) $billing->payment_plan);
 
         // The subscription is priced later from the pending row. Checked here
         // so a misconfigured plan fails before the customer enters a card.
-        if (! $plan->priceId($registration->billing_cycle)) {
-            throw new StripePriceNotConfigured("Stripe Price ID not found for plan: {$registration->payment_plan}");
+        if (! $plan->priceId($billing->billing_cycle)) {
+            throw new StripePriceNotConfigured("Stripe Price ID not found for plan: {$billing->payment_plan}");
         }
 
         $billable = $this->billables->resolve();
@@ -57,8 +60,8 @@ class InlineCheckoutGateway implements CheckoutGateway
         Numerosis::model(TenantProvision::class)::where('slug', $registration->slug)
             ->where('global_id', $registration->global_id)
             ->update([
-                'payment_plan' => $registration->payment_plan,
-                'billing_cycle' => $registration->billing_cycle->value,
+                'payment_plan' => $billing->payment_plan,
+                'billing_cycle' => $billing->billing_cycle->value,
                 'stripe_setup_intent_id' => $setupIntent->id,
             ]);
 
