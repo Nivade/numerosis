@@ -46,7 +46,6 @@ something remained open.
 
 | Plan | State |
 |---|---|
-| `glittery-growing-dewdrop.md` | **Phases 1–7 executed, 8–9 outstanding.** On branch `refactor/provisioning-pipeline` (`5219a09`..`1ff30a5`), unmerged. Phase 8 (docs + rules) not started. Phase 9 (a production opt-in for `Tenant::create()`) was added 2026-09-12 and is specification only. Every "Open flags" item was cleared the same day, three of them wrong about their own facts; the corrections are recorded in place |
 | `luminous-wandering-brook.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
 | `enum-vocabulary-sweep.md` | **Not executed.** Written 2026-09-12. Eight phases, each independently landable; phases 1 and 2 carry most of the value |
 | `contract-seam-audit.md` | **Not executed; phase 0 added and phases 1, 2, 3, 5, 9.8 revised 2026-09-12 after review.** Eleven phases (0–10). Three are live defects: phase 0 is a cross-tenant tenancy leak from a queue worker (`$tenant->run()` has no `try`/`finally` in stancl) and should land first regardless; plus a dead `numerosis.tenancy.seeder` key and a `DB::transaction()` on the wrong connection. Phase 2's original "add Stripe contracts" design was wrong — Cashier is already the abstraction — and the file records why, so it is not reproposed |
