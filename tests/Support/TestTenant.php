@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Support;
 
-use App\Models\Central\CentralUser;
 use App\Models\Central\Tenant;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Config;
@@ -13,6 +12,7 @@ use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
 use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
@@ -44,12 +44,15 @@ final class TestTenant
             ? $attributes['id']
             : 'tenant'.Str::lower(Str::random(10));
 
-        $owner ??= CentralUser::factory()->create();
+        // No owner means no owner: `AddTenantOwner` records itself skipped,
+        // the way it does for a system or imported tenant.
+        if ($owner !== null) {
+            $contributions = [new OwnerContribution($owner->global_id), ...$contributions];
+        }
 
         app(ProvisionsTenant::class)->now(new TenantProvisionData(
             slug: $slug,
             name: self::nameFrom($attributes),
-            global_id: $owner->global_id,
             contributions: $contributions,
         ));
 

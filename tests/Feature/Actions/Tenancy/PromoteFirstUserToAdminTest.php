@@ -30,7 +30,7 @@ class PromoteFirstUserToAdminTest extends TestCase
 
         Event::fake([AdminGranted::class]);
 
-        PromoteFirstUserToAdmin::run($tenant);
+        PromoteFirstUserToAdmin::run($this->ownerProvisionRow($tenant, $owner));
 
         Event::assertDispatched(fn (AdminGranted $e): bool => $e->globalId === $owner->global_id
             && $e->grantedBy === null

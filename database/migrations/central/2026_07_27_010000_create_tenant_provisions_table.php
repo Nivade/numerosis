@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('slug')->primary();
             $table->string('custom_domain')->nullable();
             $table->string('name');
-            $table->string('global_id')->index();
+            $table->string('global_id')->nullable()->index();
 
             // BillingContribution's columns. Real columns rather than the
             // JSON blob below because three of them are query predicates:

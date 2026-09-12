@@ -13,6 +13,7 @@ use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Data\Billing\Intents\RedirectCheckout;
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Events\Billing\CheckoutStarted;
@@ -130,8 +131,7 @@ class StartSubscriptionCheckoutTest extends TestCase
         StartSubscriptionCheckout::run(new TenantProvisionData(
             name: 'Another Co',
             slug: 'another-co',
-            global_id: $user->global_id,
-            contributions: [new BillingContribution(
+            contributions: [new OwnerContribution($user->global_id), new BillingContribution(
                 payment_plan: 'basic',
                 billing_cycle: BillingCycle::Monthly,
             )],
@@ -162,8 +162,7 @@ class StartSubscriptionCheckoutTest extends TestCase
         StartSubscriptionCheckout::run(new TenantProvisionData(
             name: 'Checkout Events Co',
             slug: 'checkout-events-co',
-            global_id: $user->global_id,
-            contributions: [new BillingContribution(
+            contributions: [new OwnerContribution($user->global_id), new BillingContribution(
                 payment_plan: 'basic',
                 billing_cycle: BillingCycle::Monthly,
             )],

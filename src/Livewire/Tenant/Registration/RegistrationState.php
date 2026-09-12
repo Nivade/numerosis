@@ -9,6 +9,7 @@ use Illuminate\Support\Fluent;
 use Nvade\Numerosis\Contracts\Tenancy\ContributesProvisionData;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\Tenancy\MissingTenantIdentity;
@@ -108,8 +109,7 @@ class RegistrationState extends State
         return new TenantProvisionData(
             slug: $slug,
             name: $name,
-            global_id: $globalId,
-            contributions: $this->contributions(),
+            contributions: [new OwnerContribution($globalId), ...$this->contributions()],
         );
     }
 

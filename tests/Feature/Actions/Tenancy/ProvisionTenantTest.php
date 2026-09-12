@@ -12,12 +12,15 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
+use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
 use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
 use Nvade\Numerosis\Actions\Tenancy\LinkTenantSubscription;
 use Nvade\Numerosis\Actions\Tenancy\MarkProvisionFailed;
+use Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
@@ -235,7 +238,7 @@ class ProvisionTenantTest extends TestCase
         ProvisionTenant::make()->queue(new TenantProvisionData(
             slug: 'nobilling',
             name: 'No Billing Co',
-            global_id: $user->global_id,
+            contributions: [new OwnerContribution($user->global_id)],
         ));
 
         /** @var array<class-string, array<string, string>> $records */
@@ -244,6 +247,37 @@ class ProvisionTenantTest extends TestCase
         $this->assertSame('skipped', $records[LinkTenantSubscription::class]['outcome']);
         $this->assertStringContainsString('BillingContribution', $records[LinkTenantSubscription::class]['reason']);
         $this->assertSame('done', $records[FinalizeTenantProvisioning::class]['outcome']);
+    }
+
+    /**
+     * A system, demo or imported tenant has no owner. Both owner-dependent
+     * steps record themselves skipped and the chain still finishes, which is
+     * what moving the owner into a contribution bought.
+     */
+    public function test_a_tenant_provisioned_with_no_owner_still_finishes(): void
+    {
+        ProvisionTenant::make()->now(new TenantProvisionData(
+            slug: 'ownerless',
+            name: 'Ownerless Co',
+        ));
+
+        $provision = TenantProvision::findOrFail('ownerless');
+
+        /** @var array<class-string, array<string, string>> $records */
+        $records = $provision->step_records;
+
+        $this->assertSame('skipped', $records[AddTenantOwner::class]['outcome']);
+        $this->assertSame('skipped', $records[PromoteFirstUserToAdmin::class]['outcome']);
+        $this->assertSame('done', $records[FinalizeTenantProvisioning::class]['outcome']);
+
+        $tenant = Tenant::findOrFail('ownerless');
+
+        $this->assertNotNull($tenant->provisioned_at);
+        $this->assertSame(0, $tenant->users()->count());
+
+        $tenant->run(function (): void {
+            $this->assertTrue(Schema::hasTable('users'));
+        });
     }
 
     /**

@@ -35,7 +35,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property string $slug
  * @property string|null $custom_domain
  * @property string $name
- * @property string $global_id
+ * @property string|null $global_id
  * @property string|null $payment_plan
  * @property BillingCycle|null $billing_cycle
  * @property string|null $stripe_setup_intent_id

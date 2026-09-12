@@ -28,7 +28,6 @@ class TenantProvisionData extends Data
         // Becomes tenants.id and the subdomain label, never a domain itself.
         public string $slug,
         public string $name,
-        public string $global_id,
         public array $contributions = [],
     ) {}
 
@@ -41,7 +40,6 @@ class TenantProvisionData extends Data
         return new self(
             slug: $provision->slug,
             name: $provision->name,
-            global_id: $provision->global_id,
             contributions: $provision->allContributions(),
         );
     }
@@ -86,7 +84,6 @@ class TenantProvisionData extends Data
         return new self(
             slug: $this->slug,
             name: $this->name,
-            global_id: $this->global_id,
             contributions: [...array_values($kept), ...$contributions],
         );
     }

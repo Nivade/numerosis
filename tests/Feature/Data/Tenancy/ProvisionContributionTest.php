@@ -117,7 +117,6 @@ class ProvisionContributionTest extends TestCase
         $data = new TenantProvisionData(
             slug: 'shadow',
             name: 'Shadow Co',
-            global_id: 'g-1',
             contributions: [new BillingContribution(payment_plan: 'starter')],
         );
 

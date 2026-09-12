@@ -175,8 +175,12 @@ database exists or after `FinalizeTenantProvisioning`.
 | create a tenant outside the checkout flow | `php artisan tenancy:provision <slug> --owner=<global_id> --name="..."` builds a `TenantProvisionData` and calls `ProvisionsTenant::queue()` — the same entry point checkout uses |
 
 A contribution is a `spatie/laravel-data` `Data` subclass carrying anything
-beyond a tenant's identity (slug, name, owner) — core's own billing and
-custom-domain data travel through the same seam a host's would. Most
+beyond a tenant's identity, which is its slug and its name and nothing else.
+Core's own owner, billing and custom-domain data travel through the same seam
+a host's would. Ownership is a contribution because it is a fact about a
+relationship rather than part of what a tenant is: provision without an
+`OwnerContribution` and `AddTenantOwner` and `PromoteFirstUserToAdmin` record
+themselves skipped, which is how a system, demo or imported tenant is built. Most
 contributions round-trip through the provision row's `contributions` JSON
 column; one that something has to query (a `where()`, a uniqueness check)
 declares `PersistsToProvisionColumns` and gets real columns instead. Core is

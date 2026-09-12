@@ -19,6 +19,7 @@ use Nvade\Numerosis\Actions\Tenancy\LinkTenantSubscription;
 use Nvade\Numerosis\Actions\Tenancy\MigrateTenantDatabase;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Actions\Tenancy\SeedTenantDatabase;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\NumerosisServiceProvider;
@@ -368,7 +369,7 @@ class FreshHostTest extends Orchestra
         ProvisionTenant::make()->queue(new TenantProvisionData(
             slug: 'freshhosttenant',
             name: 'Fresh Host Co',
-            global_id: $owner->global_id,
+            contributions: [new OwnerContribution($owner->global_id)],
         ));
 
         $tenant = Tenant::findOrFail('freshhosttenant');

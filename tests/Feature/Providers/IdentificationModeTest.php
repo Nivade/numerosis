@@ -15,6 +15,7 @@ use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
 use Nvade\Numerosis\Actions\Tenancy\ReserveTenantDomain;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath;
@@ -242,8 +243,10 @@ class IdentificationModeTest extends TestCase
         ReserveTenantDomain::run(new TenantProvisionData(
             name: 'Acme',
             slug: 'acme',
-            global_id: (string) Str::uuid(),
-            contributions: [new CustomDomainContribution('app.acme.com')],
+            contributions: [
+                new OwnerContribution((string) Str::uuid()),
+                new CustomDomainContribution('app.acme.com'),
+            ],
         ));
 
         $this->assertDatabaseHas(

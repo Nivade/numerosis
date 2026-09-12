@@ -61,7 +61,7 @@ class AddTenantOwnerTest extends TestCase
         Queue::fake();
 
         AddTenantOwner::run($this->ownerProvisionRow($tenant, $user));
-        PromoteFirstUserToAdmin::run($tenant);
+        PromoteFirstUserToAdmin::run($this->ownerProvisionRow($tenant, $user));
 
         $tenant->run(function () use ($user): void {
             $this->assertTrue(TenantUser::where('global_id', $user->global_id)->firstOrFail()->hasRole('admin'));

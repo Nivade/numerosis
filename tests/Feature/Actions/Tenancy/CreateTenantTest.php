@@ -14,6 +14,7 @@ use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
@@ -71,13 +72,14 @@ class CreateTenantTest extends TestCase
         ]);
 
         $tenantId = 'test-tenant-'.uniqid();
-        $registration = TenantProvisionData::from([
-            'payment_plan' => 'test-plan',
-            'billing_cycle' => BillingCycle::Monthly,
-            'name' => 'Test Company',
-            'slug' => $tenantId,
-            'global_id' => $user->global_id,
-        ]);
+        $registration = new TenantProvisionData(
+            slug: $tenantId,
+            name: 'Test Company',
+            contributions: [
+                new OwnerContribution($user->global_id),
+                new BillingContribution(payment_plan: 'test-plan', billing_cycle: BillingCycle::Monthly),
+            ],
+        );
 
         // Act
         ProvisionTenant::make()->queue($registration->withContributions([new BillingContribution(central_user_id: (string) $user->id)]));

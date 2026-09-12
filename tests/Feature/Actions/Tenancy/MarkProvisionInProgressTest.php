@@ -8,6 +8,7 @@ use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Nvade\Numerosis\Actions\Tenancy\MarkProvisionInProgress;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningStarted;
 use Nvade\Numerosis\Tests\TestCase;
@@ -25,7 +26,7 @@ class MarkProvisionInProgressTest extends TestCase
         MarkProvisionInProgress::run(new TenantProvisionData(
             name: 'Started Co',
             slug: 'started-co',
-            global_id: $user->global_id,
+            contributions: [new OwnerContribution($user->global_id)],
         ));
 
         Event::assertDispatched(fn (TenantProvisioningStarted $e): bool => $e->domain === 'started-co' && $e->globalId === $user->global_id);

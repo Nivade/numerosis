@@ -11,6 +11,7 @@ use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
 use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
 use Nvade\Numerosis\Actions\Tenancy\LinkTenantSubscription;
 use Nvade\Numerosis\Actions\Tenancy\MigrateTenantDatabase;
+use Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Actions\Tenancy\SeedTenantDatabase;
 use Nvade\Numerosis\Boot\Domains;
@@ -31,6 +32,7 @@ use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
 use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Features\Auth\EmailVerificationFeature;
@@ -368,6 +370,7 @@ return [
                 MigrateTenantDatabase::class,
                 SeedTenantDatabase::class,
                 AddTenantOwner::class,
+                PromoteFirstUserToAdmin::class,
                 LinkTenantSubscription::class,
                 FinalizeTenantProvisioning::class,
             ],
@@ -378,6 +381,7 @@ return [
             // JSON-stored contributions are keyed by class and need no entry.
             // Add yours here only if you also added columns for it.
             'contributions' => [
+                OwnerContribution::class,
                 BillingContribution::class,
                 CustomDomainContribution::class,
             ],

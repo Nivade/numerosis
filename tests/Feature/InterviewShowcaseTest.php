@@ -14,6 +14,7 @@ use Nvade\Numerosis\Actions\Billing\Subscriptions\RecordSubscription;
 use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
@@ -49,13 +50,14 @@ class InterviewShowcaseTest extends TestCase
         ]);
 
         $tenantDomain = 'acme-'.uniqid();
-        $registration = TenantProvisionData::from([
-            'name' => 'Acme Corp',
-            'slug' => $tenantDomain,
-            'global_id' => $user->global_id,
-            'payment_plan' => 'pro',
-            'billing_cycle' => BillingCycle::Monthly,
-        ]);
+        $registration = new TenantProvisionData(
+            slug: $tenantDomain,
+            name: 'Acme Corp',
+            contributions: [
+                new OwnerContribution($user->global_id),
+                new BillingContribution(payment_plan: 'pro', billing_cycle: BillingCycle::Monthly),
+            ],
+        );
 
         // 2. Act: Provision the tenant through the one entry point production
         // uses. Going through ProvisionTenant rather than CreateTenant

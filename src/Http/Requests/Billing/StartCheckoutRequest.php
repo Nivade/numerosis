@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Models\User;
@@ -57,8 +58,8 @@ class StartCheckoutRequest extends FormRequest
     }
 
     /**
-     * `payment_plan` and `billing_cycle` are validated here but contributed
-     * rather than set: they belong to billing, not to a tenant's identity.
+     * Everything but the slug and the name is contributed: the owner belongs
+     * to a relationship and the plan to billing, neither to what a tenant is.
      */
     public function toProvisionData(): TenantProvisionData
     {
@@ -68,11 +69,13 @@ class StartCheckoutRequest extends FormRequest
         return new TenantProvisionData(
             slug: $validated['slug'],
             name: $validated['name'],
-            global_id: $validated['global_id'],
-            contributions: [new BillingContribution(
-                payment_plan: $validated['payment_plan'] ?? null,
-                billing_cycle: BillingCycle::from($validated['billing_cycle']),
-            )],
+            contributions: [
+                new OwnerContribution($validated['global_id']),
+                new BillingContribution(
+                    payment_plan: $validated['payment_plan'] ?? null,
+                    billing_cycle: BillingCycle::from($validated['billing_cycle']),
+                ),
+            ],
         );
     }
 }

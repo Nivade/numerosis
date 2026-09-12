@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Exceptions\Tenancy\DomainAlreadyClaimed;
@@ -31,6 +32,7 @@ class ReserveTenantDomain
         $this->domainPolicy->assertAvailable($registration->slug);
 
         $customDomain = $registration->contribution(CustomDomainContribution::class)?->custom_domain;
+        $globalId = $registration->contribution(OwnerContribution::class)?->global_id;
 
         if ($customDomain !== null) {
             $this->domainPolicy->assertCustomDomainAvailable($customDomain);
@@ -42,12 +44,12 @@ class ReserveTenantDomain
             [
                 'custom_domain' => $customDomain,
                 'name' => $registration->name,
-                'global_id' => $registration->global_id,
+                'global_id' => $globalId,
                 'status' => TenantProvisionStatus::Reserved,
             ],
         );
 
-        if ($reservation->global_id !== $registration->global_id) {
+        if ($reservation->global_id !== $globalId) {
             throw new DomainAlreadyClaimed("The domain {$registration->slug} is already being claimed.");
         }
     }

@@ -12,6 +12,7 @@ use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Billing\Intents\InlineCheckout;
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\Billing\BillingCycleRequired;
@@ -58,7 +59,7 @@ class InlineCheckoutGateway implements CheckoutGateway
         // overwrite a stranger's SetupIntent and lock them out of their
         // reservation.
         Numerosis::model(TenantProvision::class)::where('slug', $registration->slug)
-            ->where('global_id', $registration->global_id)
+            ->where('global_id', $registration->contribution(OwnerContribution::class)?->global_id)
             ->update([
                 'payment_plan' => $billing->payment_plan,
                 'billing_cycle' => $billing->billing_cycle->value,

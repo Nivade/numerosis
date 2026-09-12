@@ -12,9 +12,8 @@ use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
 
 /**
- * Promotes the first non-bot user to admin, then signals that provisioning
- * finished. Configured last because it reads users out of the tenant database
- * and reports the tenant ready.
+ * Signals that provisioning finished. Configured last because it is what
+ * reports the tenant ready.
  *
  * It no longer carries its own failure handler or twenty retries. Both existed
  * because a silent exhaustion here left the UI spinning forever; the chain has
@@ -32,7 +31,6 @@ class FinalizeTenantProvisioning implements ProvisioningStep
 
         $this->tagSentryScopeWithTenant($provision->slug);
 
-        PromoteFirstUserToAdmin::run($tenant);
         MarkTenantProvisioned::run($tenant);
     }
 }

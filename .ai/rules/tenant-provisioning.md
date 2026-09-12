@@ -60,7 +60,7 @@ head/tail, no outer queued job. Everything below this section that predates
   default for all of them — the seam exists so a future step that waits on
   something external does not have to fork the runner.
 - **One terminal failure handler**, the chain's own `->catch()` in
-  `ProvisionTenant::dispatchChain()`. Captures scalars only — `->catch()`
+  `ProvisionTenant::queue()`, shared with `now()` as `recordFailure()`. Captures scalars only — `->catch()`
   closures are wrapped in `SerializableClosure`, which serializes the whole
   `use` scope, so a captured `TenantProvisionData` or model would ride into
   the queue payload for nothing.
@@ -88,12 +88,62 @@ head/tail, no outer queued job. Everything below this section that predates
   observer for the whole of provisioning. Core's own `TenantObserver` handles
   only `deleting`, so core would never notice.
 
+- **A tenant's identity is its slug and its name. The owner is a
+  contribution.** `OwnerContribution` persists to the `tenant_provisions`
+  `global_id` column (checkout looks a reservation up by owner and refuses one
+  claimed by somebody else), and both `AddTenantOwner` and
+  `PromoteFirstUserToAdmin` declare they consume it, so an ownerless provision
+  records them skipped and still finishes.
+
+  Promotion is its own configured step for that reason. It used to be a call
+  inside `FinalizeTenantProvisioning`, which would have needed an `if` on a
+  contribution — the exact shape `ConsumesContributions` exists to replace, and
+  it would have cost `NoPromotableUser` its meaning. The exception still fires
+  only when an owner *was* contributed and the row that should exist does not.
+
+  **`TenantProvisionData::from(['global_id' => …])` silently drops it now.**
+  Spatie's `from()` ignores keys the constructor has no parameter for, so an
+  array-shaped build loses the owner with no error, and the tenant provisions
+  successfully with nobody attached. Two tests were building the DTO that way
+  and started passing while asserting nothing. Construct it with `new` and a
+  contribution list.
+
 - **Swap a slow step, do not swap the mechanism.** `Tests\TestCase` puts
   `CloneTenantSchema` in the configured list where migrate and seed would be,
   so the suite runs the real pipeline against a template copy (~1.9s of
-  migrate-and-seed avoided per tenant). `tests/Concerns/ProvisionsTestTenants`
-  is the helper; `tenantWithDatabaseOnly()` truncates the list for a test
-  asserting on the state between steps.
+  migrate-and-seed avoided per tenant). `tests/Support/TestTenant` is the
+  helper — `provisioned()`, and `withDatabaseOnly()` for a test asserting on
+  the state between steps. Static rather than a trait: PHPStan types `$this`
+  inside a Pest closure as `Pest\PendingCalls\TestCall`, which puts an
+  instance helper out of reach of half the suite.
+
+### `$tenant->run()` leaks tenancy when the callback throws
+
+`vendor/stancl/tenancy/src/Database/Concerns/TenantRun.php:18-33` initializes,
+calls `$callback($this)`, then reverts — with **no `try`/`finally`**. A throw
+skips the revert, so the process stays initialized against that tenant: its DB
+connection, cache prefix, auth guard and Spatie permission registrar all still
+pointed at it. In a queue worker the next job then runs in that tenant's
+context, which is a cross-tenant read or write.
+
+Reachable today, not theoretical. `Actions/Tenancy/PromoteFirstUserToAdmin`
+does `throw_unless($user, NoPromotableUser::class)` *inside* the closure, and
+it is a `ProvisioningStep`, so it runs under `Jobs/RunProvisioningStep`
+(`ShouldQueue`). `Actions/Tenancy/EnsureTenantUserExists` and
+`Models\Central\Tenant::admin()` have the same shape with a lower-probability
+throw. `Actions/Tenancy/SeedTenantDatabase` is the only one that handrolls
+`initialize()`/`end()` in a `finally` — it is right, and the others are not.
+
+**Wrap it once and never call `run()` directly.** Capture `tenant()`,
+initialize, `try { … } finally { restore-or-end }`. The suite cannot catch a
+regression here: `tests/TestCase` sets `queue.default = 'sync'`, so no test
+ever puts a second job on the same worker.
+
+This was written down before and lost. `SeedTenantDatabase`'s comment cites
+`module-marketplace.md` for the guidance, and that file was deleted
+2026-09-03 with the module system — which is why three call sites still use
+the bare `run()`. Deleting a rule file deletes the reason a workaround exists;
+grep for inbound references before removing one.
 
 ### The `JobPipeline` seam is not a home for these steps
 
@@ -388,7 +438,9 @@ database creation, the `[0]`-is-special step convention) are deleted code.
   resolves `TenantDatabaseSeeder` from the container with
   `setContainer(app())` (what `SeedCommand::getSeeder()` does internally),
   wraps the call in `Model::unguarded()` (same), and reverts tenancy in a
-  `finally` — matching `.ai/rules/module-marketplace.md`'s guidance that
+  `finally` — see "`$tenant->run()` leaks tenancy when the callback throws"
+  above; the guidance used to live in `module-marketplace.md`, deleted
+  2026-09-03. It holds that
   `$tenant->run()` gives no such guarantee and async/queued code must manage
   its own try/finally.
 

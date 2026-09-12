@@ -94,10 +94,7 @@ class ProvisionTenant implements ProvisionsTenant
         /** @var TenantProvision $provision */
         $provision = $provisionClass::firstOrNew(['slug' => $data->slug]);
 
-        $provision->fill([
-            'name' => $data->name,
-            'global_id' => $data->global_id,
-        ]);
+        $provision->fill(['name' => $data->name]);
 
         $provision->applyContributions($data->contributions);
 

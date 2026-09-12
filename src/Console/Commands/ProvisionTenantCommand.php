@@ -12,6 +12,7 @@ use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -104,8 +105,10 @@ class ProvisionTenantCommand extends Command
             name: is_string($this->option('name')) && $this->option('name') !== ''
                 ? $this->option('name')
                 : $slug,
-            global_id: $owner,
-            contributions: $customDomain === '' ? [] : [new CustomDomainContribution($customDomain)],
+            contributions: [
+                new OwnerContribution($owner),
+                ...($customDomain === '' ? [] : [new CustomDomainContribution($customDomain)]),
+            ],
         );
 
         if ($this->option('sync')) {

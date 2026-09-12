@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Http\Requests\Billing;
 
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
+use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Http\Requests\Billing\StartCheckoutRequest;
 use Nvade\Numerosis\Tests\TestCase;
@@ -23,6 +24,7 @@ class StartCheckoutRequestTest extends TestCase
     {
         $fields = [
             ...$this->fieldsOf(TenantProvisionData::class),
+            ...$this->fieldsOf(OwnerContribution::class),
             ...$this->fieldsOf(BillingContribution::class),
         ];
 

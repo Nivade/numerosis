@@ -20,6 +20,7 @@ use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
 use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
 use Nvade\Numerosis\Actions\Tenancy\LinkTenantSubscription;
+use Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Models\Permission;
@@ -189,6 +190,7 @@ abstract class TestCase extends Orchestra
             CreateTenantDatabase::class,
             CloneTenantSchema::class,
             AddTenantOwner::class,
+            PromoteFirstUserToAdmin::class,
             LinkTenantSubscription::class,
             FinalizeTenantProvisioning::class,
         ]);
