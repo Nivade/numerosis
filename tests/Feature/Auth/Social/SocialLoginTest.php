@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
+use Nvade\Numerosis\Actions\Auth\Social\LoginWithSocialAccount;
 use Nvade\Numerosis\Actions\Auth\Social\ResolveSocialUser;
 use Nvade\Numerosis\Data\Auth\SocialUserData;
 use Nvade\Numerosis\Enums\Auth\SocialProvider;
@@ -17,6 +18,7 @@ use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Models\Central\SocialAccount;
 use Nvade\Numerosis\Tests\TestCase;
+use RuntimeException;
 
 /**
  * `google` is the provider `TestCase::getEnvironmentSetUp()` configures a
@@ -416,6 +418,35 @@ class SocialLoginTest extends TestCase
                 ->assertDontSee('Google')
                 ->assertDontSee('Or continue with email');
         }
+    }
+
+    /**
+     * `LoginWithSocialAccount::handle()` wraps both writes in one transaction
+     * because a failure on the second used to leave a passwordless
+     * `CentralUser` behind. That guarantee only holds if the transaction runs
+     * on the same connection as the writes — `DB::transaction()` opens one on
+     * `database.default`, not `tenancy.database.central_connection`, so it
+     * covered nothing.
+     */
+    public function test_a_failure_persisting_the_social_account_rolls_back_the_new_central_user(): void
+    {
+        $email = 'rollback-'.uniqid().'@example.com';
+
+        // `creating` fires before the INSERT, inside the transaction and
+        // before commit — unlike SocialAccountLinked, which is
+        // ShouldDispatchAfterCommit and so can never observe a rollback.
+        SocialAccount::creating(function (): void {
+            throw new RuntimeException('social account write failure');
+        });
+
+        try {
+            LoginWithSocialAccount::run($this->socialData(providerId: 'google-rollback-'.uniqid(), email: $email, emailVerified: true));
+            $this->fail('Expected exception was not thrown.');
+        } catch (RuntimeException) {
+            // Expected — thrown by the `creating` listener registered above.
+        }
+
+        $this->assertDatabaseMissing('users', ['email' => $email], 'central');
     }
 
     private function socialData(string $providerId, ?string $email, bool $emailVerified): SocialUserData

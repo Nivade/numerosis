@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Auth\Social;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Auth\LoginUser;
@@ -66,7 +65,7 @@ class LoginWithSocialAccount
         // One transaction for both writes. Split, a failure on the second left
         // a passwordless `CentralUser` with no credential, which the
         // `$hasLocalAccount` branch then refused on every retry.
-        $user = DB::transaction(function () use ($centralUserClass, $socialAccountClass, $user, $data): CentralUser {
+        $user = (new $centralUserClass)->getConnection()->transaction(function () use ($centralUserClass, $socialAccountClass, $user, $data): CentralUser {
             $user ??= $this->createUser($centralUserClass, $data);
 
             $this->createSocialAccount($socialAccountClass, $user, $data);
