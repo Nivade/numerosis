@@ -4,13 +4,37 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Jobs;
 
+use App\Models\Central\CentralUser;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
+use Nvade\Numerosis\Enums\Tenancy\StepOutcome;
 use Nvade\Numerosis\Jobs\RunProvisioningStep;
+use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\Support\PatientHostStep;
 use Nvade\Numerosis\Tests\TestCase;
 
 class RunProvisioningStepTest extends TestCase
 {
+    use BuildsTenantProvisionData;
+    use RefreshDatabase;
+
+    /**
+     * `CreateTenant` implements `ReadsContributions`, not
+     * `ConsumesContributions` — absence of `CustomDomainContribution` must
+     * never skip it, unlike a step declaring `consumes()`.
+     */
+    public function test_a_step_declaring_only_reads_contributions_runs_even_when_the_contribution_is_absent(): void
+    {
+        $user = CentralUser::factory()->create(['global_id' => 'reads-'.uniqid()]);
+        $tenantId = 'reads-tenant-'.uniqid();
+        $provision = $this->provisionRow($user, $tenantId);
+
+        (new RunProvisioningStep($provision->slug, CreateTenant::class))->handle();
+
+        $this->assertSame(StepOutcome::Done->value, $provision->refresh()->step_records[CreateTenant::class]['outcome']);
+        $this->assertDatabaseHas('tenants', ['id' => $tenantId], 'central');
+    }
+
     public function test_a_step_that_declares_no_profile_takes_the_chain_default(): void
     {
         $job = new RunProvisioningStep('acme', CreateTenant::class);
