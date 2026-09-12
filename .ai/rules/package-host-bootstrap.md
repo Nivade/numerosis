@@ -346,16 +346,16 @@ Making it load surfaces three traps, all of which read as unrelated failures:
   takes the stock cache table with it, so the workbench keeps its own under
   `workbench/database/migrations`.
 
-**The tenant schema is MySQL-only, so the workbench cannot provision on
-sqlite.** `2025_12_17_035929_add_ability_and_context_virtual_columns_to_permissions`
-declares `virtualAs("SUBSTRING_INDEX(name, ' ', 1)")`. Seeding a tenant on
-sqlite dies with `unknown function: SUBSTRING_INDEX()`. Point `DB_*` at the
-test MySQL container for any manual provisioning run:
+**The harness runs on MySQL, set in `testbench.yaml`'s `env:` block.** That
+block *does* apply to database config, unlike the migrations switch above:
+config is read late enough, and it reaches a bare `php artisan` rather than
+only the composer scripts. It is there because the package documents MySQL as
+a requirement while the skeleton ships `DB_CONNECTION=sqlite`, so the harness
+was pointed at a database the package refuses. Create the schema once:
 
 ```bash
 docker exec numerosis-mysql-1 mysql -uroot -proot -e "create database numerosis_workbench"
-export DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_DATABASE=numerosis_workbench DB_USERNAME=root DB_PASSWORD=root
-php artisan migrate:fresh --force
+composer build
 php artisan tenancy:provision demo --owner=<global_id>
 php artisan queue:work --queue=provisioning --stop-when-empty
 ```
@@ -363,3 +363,21 @@ php artisan queue:work --queue=provisioning --stop-when-empty
 That run is worth doing: `QUEUE_CONNECTION=sync` in the suite means no test
 exercises a worker boundary, and the first one ever run found a live bug (see
 `exception-handling.md` on re-thrown exception codes).
+
+**What actually blocks SQLite is smaller than "MySQL-only" suggests, and
+`CREATE DATABASE` is not part of it.** stancl ships
+`TenantDatabaseManagers\SQLiteDatabaseManager`, which writes one file per
+tenant, and it is wired in its own config: on a SQLite run `CreateTenant`,
+`CreateTenantDatabase` and `MigrateTenantDatabase` all complete. Seeding is
+where it dies, on `unknown function: SUBSTRING_INDEX()` from
+`2025_12_17_035929_add_ability_and_context_virtual_columns_to_permissions`.
+Measured 2026-09-12; do not repeat the guess that the tenancy model itself
+rules SQLite out.
+
+The rest of the MySQL surface is two places, both small, plus one gap:
+`PruneOrphanedTenantDatabases` querying `INFORMATION_SCHEMA.SCHEMATA`, the
+generated `permissions.ability`/`context` columns (which are `#[Guarded]`,
+derived from `name`, and queried by nothing in this repo), and
+`CleansUpTenancyDatabases` returning early for a non-MySQL driver, so SQLite
+tenant files would leak rather than fail. The cost of supporting SQLite is
+the test matrix, not the code.
