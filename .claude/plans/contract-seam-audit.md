@@ -1,12 +1,13 @@
 # Contract and seam audit — concrete classes where a contract belongs
 
-**Status: not executed. Phase 0 added; phases 1, 2, 3, 4, 5 and 9.8 revised
+**Status: phases 0 and 1 executed 2026-09-12 (`7964b73`, and this commit).
+Phases 2–10 not started.** Phase 0 added; phases 1, 2, 3, 4, 5 and 9.8 revised
 2026-09-12 after review — phases 2 and 4 both originally proposed new
 abstractions over abstractions that already existed, and are now much
 smaller. Re-audited 2026-09-12 after `refactor/provisioning-pipeline` merged
 to `main` (`33f7ca8`) — see "Re-audit after merge" below; findings still
 hold, three call sites and one contract-tone example need small edits before
-executing.** Written
+executing. Written
 2026-09-12 on branch `refactor/provisioning-pipeline`. Nothing below is built.
 Eleven phases (0–10), ordered so each is independently landable and
 independently revertable. Phase 1 carries the most design value; 8–10 are

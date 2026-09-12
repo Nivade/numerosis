@@ -9,8 +9,11 @@ use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\Plan;
+use Nvade\Numerosis\Data\Billing\PlanFeature as PlanFeatureData;
 use Nvade\Numerosis\Exceptions\Billing\PaymentPlanNotFound;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
+use Nvade\Numerosis\Models\Central\PlanFeature;
+use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Numerosis;
 
 class EloquentPaymentPlanRepository implements PaymentPlanRepository
@@ -77,5 +80,51 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
         $result = new Collection($plans->all());
 
         return $result;
+    }
+
+    /**
+     * The plan/subscription tables are central data, so this must be computed
+     * once for all tenants together: a plain Cache:: call, in tenant context,
+     * is stancl's tenant-tagged manager, which both duplicates the computation
+     * per tenant and requires a taggable cache store for something that has
+     * nothing to do with any one tenant. Caches the slug directly rather than
+     * the id, so there is no cache-round-trip type coercion to get wrong.
+     */
+    public function mostPopularSlug(): ?string
+    {
+        return GlobalCache::store()->remember(
+            CacheKeys::popularPaymentPlanSlug(),
+            now()->addMinutes(5),
+            function (): ?string {
+                $popularPlanId = Numerosis::model(Subscription::class)::select('payment_plan_id')
+                    ->selectRaw('COUNT(*) AS plan_count')
+                    ->groupBy('payment_plan_id')
+                    ->orderByDesc('plan_count')
+                    ->first()?->payment_plan_id;
+
+                if ($popularPlanId === null) {
+                    return null;
+                }
+
+                return Numerosis::model(PaymentPlan::class)::find($popularPlanId)?->slug;
+            }
+        );
+    }
+
+    /**
+     * @return Collection<int, PlanFeatureData>
+     */
+    public function featuresFor(Plan $plan): Collection
+    {
+        if (! $plan instanceof PaymentPlan) {
+            return new Collection;
+        }
+
+        return $plan->features->map(fn (PlanFeature $feature): PlanFeatureData => new PlanFeatureData(
+            slug: $feature->slug,
+            name: $feature->name,
+            description: $feature->description,
+            available: (bool) $feature->pivot->available,
+        ));
     }
 }

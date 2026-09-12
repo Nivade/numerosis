@@ -4,20 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Illuminate\Database\Eloquent\Attributes\Appends;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Nvade\Numerosis\Cache\CacheKeys;
-use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Database\Factories\Central\PaymentPlanFactory;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
@@ -36,15 +32,11 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property int $trial_days The number of trial days available for the payment plan.
  * @property int $monthly_price The monthly price for the payment plan, in minor currency units (cents).
  * @property int $yearly_price The yearly price for the payment plan, in minor currency units (cents).
- * @property bool $is_popular Whether the plan is marked as popular.
  * @property PlanMetadata|null $metadata Additional metadata for the plan.
  * @property bool $available Whether the plan is available for selection.
  *
  * @method static Builder<static> available()
  */
-#[Appends([
-    'is_popular',
-])]
 #[Fillable([
     'name',
     'slug',
@@ -77,14 +69,6 @@ class PaymentPlan extends Model implements Plan
             'monthly_price' => 'integer',
             'yearly_price' => 'integer',
         ];
-    }
-
-    /**
-     * @return Attribute<bool, never>
-     */
-    protected function isPopular(): Attribute
-    {
-        return Attribute::get(fn () => $this->popular());
     }
 
     /**
@@ -159,31 +143,6 @@ class PaymentPlan extends Model implements Plan
     protected function available(Builder $query): Builder
     {
         return $query->where('available', true);
-    }
-
-    /**
-     * The plan/subscription tables are central data, so this must be computed
-     * once for all tenants together: a plain Cache:: call, in tenant context,
-     * is stancl's tenant-tagged manager, which both duplicates the computation
-     * per tenant and requires a taggable cache
-     * store for something that has nothing to do with any one tenant.
-     */
-    public function popular(): bool
-    {
-        $popularPlanId = GlobalCache::store()->remember(
-            CacheKeys::popularPaymentPlanId(),
-            now()->addMinutes(5),
-            fn () => Numerosis::model(Subscription::class)::select('payment_plan_id')
-                ->selectRaw('COUNT(*) AS plan_count')
-                ->groupBy('payment_plan_id')
-                ->orderByDesc('plan_count')
-                ->first()?->payment_plan_id
-        );
-
-        // The cache round-trip loses the int type the query returns: the
-        // driver hands back a string, so a strict `===` against the
-        // Eloquent-cast `$this->id` was silently always false.
-        return $popularPlanId !== null && (int) $popularPlanId === $this->id;
     }
 
     public function getPriceId(BillingCycle $cycle): ?string

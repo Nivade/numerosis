@@ -1,5 +1,5 @@
+@use(\Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository)
 @use(\Nvade\Numerosis\Enums\Billing\BillingCycle)
-@use(\Nvade\Numerosis\Models\Central\PaymentPlan)
 @props([
     'plan',
     'billingCycle',
@@ -12,21 +12,21 @@
 ])
 
 @php
-    /** @var PaymentPlan $plan */
+    /** @var \Nvade\Numerosis\Contracts\Billing\Plan $plan */
     /** @var BillingCycle $billingCycle */
-    $isPopular = $plan->is_popular;
+    $isPopular = $plan->slug() === resolve(PaymentPlanRepository::class)->mostPopularSlug();
 
     // `$price` arrives already formatted ("€ 10,00"), so it cannot be compared
     // against 0: PHP compares a non-numeric string to an int as strings, and
     // every currency symbol sorts above "0" — which made "€ 0,00" > 0 true and
     // left the free branch below unreachable. Ask the plan for the number.
-    $isFree = ! ($plan->getPrice($billingCycle) > 0);
+    $isFree = ! ($plan->price($billingCycle) > 0);
 
-    // One read of the relation for all three uses below. Asking through
-    // availableFeatures()/features() instead ran three queries per card, one
-    // of them for a modal that is usually never opened.
-    $features = $plan->features;
-    $availableFeatures = $features->filter(fn ($feature) => (bool) $feature->pivot->available);
+    // One read of the repository for all three uses below. Asking per-use
+    // instead ran three queries per card, one of them for a modal that is
+    // usually never opened.
+    $features = resolve(PaymentPlanRepository::class)->featuresFor($plan);
+    $availableFeatures = $features->filter(fn ($feature) => $feature->available);
 @endphp
 
 @if($type === 'selectable')
@@ -35,7 +35,7 @@
         <input
             type="radio"
             wire:model="payment_plan"
-            value="{{ $plan->slug }}"
+            value="{{ $plan->slug() }}"
             class="sr-only peer"
         >
 
@@ -59,7 +59,7 @@
                         {{-- Plan Name & Incentive --}}
                         <div class="flex items-center gap-2">
                             <h3 class="text-xl font-bold text-zinc-900 dark:text-white leading-none">
-                                {{ $plan->name }}
+                                {{ $plan->name() }}
                             </h3>
                             @if($incentive)
                                 <flux:badge variant="solid" color="green" size="sm" class="uppercase text-[9px] font-bold px-1.5 py-0.5">
@@ -120,21 +120,21 @@
                     {{-- All Features Modal --}}
                     @if($availableFeatures->count() > 6)
                         <div class="mt-3">
-                            <flux:modal.trigger name="features-{{ $plan->slug }}">
+                            <flux:modal.trigger name="features-{{ $plan->slug() }}">
                                 <flux:button variant="subtle" size="sm" class="-ml-2">
                                     See all features
                                 </flux:button>
                             </flux:modal.trigger>
 
-                            <flux:modal name="features-{{ $plan->slug }}" class="md:w-lg">
+                            <flux:modal name="features-{{ $plan->slug() }}" class="md:w-lg">
                                 <div class="space-y-6">
-                                    <flux:heading size="lg">{{ $plan->name }} Features</flux:heading>
+                                    <flux:heading size="lg">{{ $plan->name() }} Features</flux:heading>
 
                                     <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                                         @foreach($features as $feature)
                                             <x-numerosis::feature-line
                                                 :feature="$feature"
-                                                :available="$feature->pivot->available"
+                                                :available="$feature->available"
                                             />
                                         @endforeach
                                     </ul>
@@ -176,7 +176,7 @@
         {{-- Plan Info --}}
         <div class="mb-8">
             <h3 class="text-xl font-bold text-zinc-900 dark:text-white">
-                {{ $plan->name }}
+                {{ $plan->name() }}
             </h3>
             <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
                 {{ $plan->description }}
@@ -221,7 +221,7 @@
                 Current Plan
             </flux:button>
         @else
-            <flux:modal.trigger name="confirm-plan-change-{{ $plan->slug }}-{{ $billingCycle->value }}">
+            <flux:modal.trigger name="confirm-plan-change-{{ $plan->slug() }}-{{ $billingCycle->value }}">
                 <flux:button
                     wire:loading.attr="disabled"
                     @class([

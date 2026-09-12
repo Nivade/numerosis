@@ -61,9 +61,9 @@ final class CacheKeys
         return self::prefix().':billing:available_payment_plans';
     }
 
-    public static function popularPaymentPlanId(): string
+    public static function popularPaymentPlanSlug(): string
     {
-        return self::prefix().':billing:popular_plan_id';
+        return self::prefix().':billing:popular_plan_slug';
     }
 
     /*

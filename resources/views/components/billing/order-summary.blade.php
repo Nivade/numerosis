@@ -1,6 +1,5 @@
 @use(\Nvade\Numerosis\Enums\Billing\BillingCycle)
 @use(\Nvade\Numerosis\Enums\Tenancy\IdentificationMode)
-@use(\Nvade\Numerosis\Models\Central\PaymentPlan)
 @use(\Nvade\Numerosis\Services\Billing\BillingService)
 @props([
     'plan',
@@ -10,10 +9,10 @@
 ])
 
 @php
-    /** @var PaymentPlan $plan */
+    /** @var \Nvade\Numerosis\Contracts\Billing\Plan $plan */
     /** @var BillingCycle $billingCycle */
     $billing = resolve(BillingService::class);
-    $price = $billing->formatAmount($plan->getPrice($billingCycle));
+    $price = $billing->formatAmount($plan->price($billingCycle));
     $trialDays = $plan->trialDays();
     $onTrial = $trialDays !== null && $trialDays > 0;
     $dueToday = $onTrial ? $billing->formatAmount(0) : $price;
@@ -36,7 +35,7 @@
 
         <div>
             <x-numerosis::ui.text variant="default" size="base" class="font-bold">
-                {{ $plan->name }} plan
+                {{ $plan->name() }} plan
             </x-numerosis::ui.text>
             <x-numerosis::ui.text variant="subtle" size="xs" class="mt-1 truncate">
                 @if($mode === IdentificationMode::Subdomain)
