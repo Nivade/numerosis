@@ -125,6 +125,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Trusted proxies
+    |--------------------------------------------------------------------------
+    |
+    | Only read by the un-wired fallback boot (an app whose bootstrap/app.php
+    | never called Numerosis::middleware() itself) — see docs/host-requirements.md.
+    | Empty trusts nobody, Laravel's own default: X-Forwarded-* headers are
+    | ignored, and $request->ip() is the real socket peer. Set proxy IP(s)/CIDR
+    | here, or the literal '*' to trust every request's forwarded headers.
+    |
+    | '*' is only safe when nothing but your proxy can reach the app directly
+    | (a PaaS edge, a firewalled load balancer) — otherwise anyone hitting the
+    | app directly can forge X-Forwarded-For and spoof $request->ip(), which
+    | defeats every IP-keyed rate limiter (including this package's own login
+    | throttle) and falsifies audit logs.
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES') === '*'
+        ? '*'
+        : array_values(array_filter(explode(',', (string) env('TRUSTED_PROXIES', '')))),
+
+    /*
+    |--------------------------------------------------------------------------
     | Route name indirection
     |--------------------------------------------------------------------------
     |

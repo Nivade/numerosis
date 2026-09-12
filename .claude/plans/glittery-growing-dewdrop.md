@@ -1,14 +1,29 @@
 # Provisioning pipeline redesign
 
-**Status: Phases 1–6 executed, 7–9 outstanding.** Approved and started
-2026-09-12 on branch `refactor/provisioning-pipeline`, not yet merged.
-679 tests pass and `composer analyse` reports 0 on a cold cache, now with
-`NumerosisServiceProvider` named in `testbench.yaml`.
+**Status: Phases 1–8 executed and audited, 9 outstanding (specified, not built).**
+Approved and started 2026-09-12 on branch `refactor/provisioning-pipeline`,
+not yet merged. 690 tests pass and `composer analyse` reports 0 on a cold
+cache, now with `NumerosisServiceProvider` named in `testbench.yaml`.
 
-Phases 1–6 are done and each is audited. **Phase 7 (progress UI), Phase 8
-(docs + rules) and Phase 9 (a production `Tenant::create()` opt-in, specified
-below but not built) have not been started**, and Phase 8 has grown — the new
-material at the bottom of this file belongs in it.
+An audit on 2026-09-12 found five gaps, all closed in `3a50dc4`: the
+`tenant-chain:` lock release still in `MarkTenantProvisioned` that Phase 4
+called for deleting and `TenantProvision`'s docblock already claimed was
+gone; no retention sweep for completed rows, so the table grew one row per
+tenant forever; the stalled-provision log still keying the slug as `domain`;
+`CloneTenantSchema`'s docblock naming two deleted things; and no test for
+resumability itself. The first attempt at that test passed with the
+step-record check stubbed out — a re-run writes the same outcome and `at` is
+second-granular, so `step_records` cannot see one. `CountingStep` counts.
+
+Phase 8 rewrote `.ai/rules/tenant-provisioning.md` (current shape up top, the
+`JobPipeline` rejection and the central-write-tracking finding added, the
+pre-redesign content kept below a historical marker rather than deleted),
+added a "Provisioning steps and the contribution seam" section plus a seam
+table row to `docs/extending.md`, and deleted one stale comment in
+`config/numerosis.php` that still described the old first-entry-is-special
+convention. `docs/architecture.md` and `docs/host-requirements.md` needed no
+change — nothing in either named the deleted mechanics. Phase 9 remains
+specified below but not built.
 
 Every item under "Open flags" was cleared on 2026-09-12, before Phase 7. Three
 of those flags turned out to be wrong about their own facts; the corrections
@@ -289,7 +304,7 @@ Tests pinning the step list are doing it deliberately: `Tests\TestCase` swaps
 the migrate and seed steps for `CloneTenantSchema`, so the step in flight
 after a given pair differs from what a real install would run.
 
-### 8. Docs and rules
+### 8. Docs and rules — done 2026-09-12
 
 - `docs/extending.md` — provisioning steps, the contribution seam, the Fortify-style
   customization table, the events table at lines 232–235. Add the two seams
@@ -391,8 +406,11 @@ most of the suite creates a tenant directly and only wants a working one;
 it stands aside when a provision row exists so the real steps still do their
 own work.
 
-**Undecided:** whether hosts want a supported convenience for this, or whether
-provisioning-only is the right constraint. Right now it is provisioning-only.
+**Undecided at the time:** whether hosts want a supported convenience for
+this, or whether provisioning-only is the right constraint. Right now it is
+provisioning-only. Phase 9 settles it, and lands on neither: the convenience
+is for the development loop, and it runs the configured steps rather than
+its own.
 
 **Partly resolved.** The framing was wrong: this is two audiences, not one.
 A host's *test suite* wanting a cheap working tenant is a proven need — our own
@@ -481,34 +499,103 @@ Beyond what Phase 8 already lists:
   read as a flake); the contribution seam and why contributions declare their
   own storage; step records and what they replace.
 
-### 9. A production opt-in for `Tenant::create()` — specified, not executed
+### 9. `Tenant::create()` runs the pipeline inline — specified, not executed
 
 Phase 8's companion question, carved out of the `Tenant::create()` flag above
 once the test-suite half was settled. **Nothing here is built.**
 
-The question: should a host be able to call `Tenant::create()` outside
-provisioning and get a working database, or is provisioning-only the contract?
+The driver is the development loop, not a host's production contract. A
+tenant is only usable once six things have happened, and since Phase 4 only
+provisioning does them, so `Tenant::create()` in tinker returns a row whose
+first use is `Unknown database`. The proper entry point works but dispatches
+to the `provisioning` queue — `config('queue.default')` is `database` in the
+workbench — so nothing happens until a worker is started in a second
+terminal. Both halves have to go for the loop to be quick.
 
-The race that made this look expensive is avoidable. `CreateTenant` used to
-wrap its `create()` in `withoutEvents()`, and Phase 4 dropped it on the
-grounds that no second path was left to race. Restoring it means a listener
-never fires during provisioning at all, so the opt-in needs no check-then-act
-guard — unlike the test-side helper, which runs with a sync queue and can
-afford `shouldBuildDatabaseFor()`'s `exists()`.
+**Shape: a `TenantCreated` listener, default off, running the configured
+steps inline.** By the time `Tenant::create()` returns, the database exists,
+migrations have run, it is seeded and marked ready, and `step_records` shows
+which steps ran.
 
-What the phase has to settle:
+Not a literal `Tenant::create()` override. `create()` is forwarded to the
+query builder rather than defined on `Model`, so a static override catches
+that spelling and misses `Tenant::factory()->create()`,
+`firstOrCreate()`, `updateOrCreate()` and `$user->tenants()->create()` — this
+repo is split about evenly between the first two. It also recurses, since
+`CreateTenant` itself calls `$tenantClass::create()`. The event fires for
+every path, and the recursion answers itself: during real provisioning the
+provision row already exists, so the listener stands aside, which is
+`shouldBuildDatabaseFor()`'s existing guard.
 
-- **The switch.** A `numerosis.features` entry, a config flag, or "the host
-  registers the listener itself and core only ships it". The last is the
-  smallest promise and the easiest to withdraw.
-- **How far it goes.** Create only, or create-migrate-seed. Create-only hands
-  back a tenant whose database has no tables, which is arguably worse than no
-  convenience at all.
-- **`withoutEvents()` in `CreateTenant`,** and a test that fails if it is
-  dropped again — its absence is invisible until a host turns the opt-in on.
-- **Coherence with `TenantDeleted => [DeleteDatabase]`,** which is
-  unconditional. Deletion tearing down what creation only optionally built is
-  a defensible asymmetry, but it should be a decision rather than an accident.
+**This reverses part of Phase 4 and should read as a reversal.** `TenantCreated`
+was emptied deliberately. Three conditions are what keep it from being the
+second path the redesign deleted:
+
+- **Default off.** Production keeps one path: queued, resumable, `queue()`.
+  On in `workbench/`, and in a host's local environment if it wants it.
+- **It reads `numerosis.tenancy.provisioning.steps`,** rather than doing its
+  own create-migrate-seed. The mechanism this replaces was a second
+  *definition* of what building a tenant means; this one has none. A step
+  added to the list runs here too.
+- **It refuses inside an open transaction.** Running the steps in a `created`
+  event puts the tenant insert and `CREATE DATABASE` in one call stack, and
+  MySQL implicitly commits on DDL, so a caller inside a transaction has it
+  ended underneath them — the trap `tests/Support/CloneTenantSchema.php`
+  documents at the cost of 117 unrelated failures. `DB::transactionLevel() > 0`
+  throws with that named.
+
+`withoutEvents()` in `CreateTenant` is **not** part of this, contrary to the
+flag this phase came from. The guard it was meant to replace is not
+check-then-act: `ProvisionTenant::recordRequest()` commits the provision row
+before `claim()` and before the chain dispatches, so the listener reads
+settled state. And `withoutEvents()` is indiscriminate — it would blind a
+host's own `Tenant` observer for the whole of provisioning. Core's
+`Observers\Tenancy\TenantObserver` only handles `deleting`, so core would
+never notice the damage.
+
+**Ownership is passed, not inferred.** `Tenant::create(['id' => 'acme',
+'created_by' => $user->global_id])` — `created_by` is the real column
+`CreateTenant` already populates from the provision row, not a dev-only
+parameter. Omitted, `AddTenantOwner` is recorded skipped and the tenant has
+no members. Falling back to the first central user was considered and
+rejected: it silently attaches the tenant to whoever is row one, and the
+mistake surfaces far from its cause. Two lines to add later if naming the
+owner proves tedious in practice.
+
+Also in scope, because it is the other half of the slow loop and useful
+without any of the above:
+
+- **`ProvisionsTenant::now(TenantProvisionData $data): void`** — same row
+  write, same claim, same configured steps, same records, but
+  `Bus::chain(...)->onConnection('sync')`, so a failure throws at the call
+  site instead of landing in `failed_jobs`.
+- **`tenancy:provision --sync`**, on `now()`. Makes the tinker one-liner
+  `Artisan::call('tenancy:provision acme --sync')`, with no imports.
+
+The listener is what `now()` calls, so there is one inline implementation.
+
+**`TenantDeleted => [DeleteDatabase]` stays unconditional, deliberately.**
+Deletion tearing down what creation only optionally builds is asymmetric on
+purpose: a database with no tenant row is unreachable garbage, while a tenant
+row with no database is a recoverable state the pipeline owns. Record it, so
+it does not read as an oversight later.
+
+`Tests\TestCase` keeps composing `Testing\BuildsTenantDatabasesOnCreate`
+rather than switching to this. The suite wants the `CloneTenantSchema`
+template copy (~1.9s of migrate-and-seed avoided per tenant); this wants the
+real steps. Different jobs, and the plan is for both to exist.
+
+Tests:
+
+- Off by default: `Tenant::create()` leaves no database and no provision row.
+- On: `Tenant::create()` returns a tenant whose database is migrated and
+  seeded, with `step_records` covering the configured list.
+- On, with no `created_by`: `AddTenantOwner` recorded skipped, nothing failed.
+- On, inside `DB::transaction()`: throws, naming the DDL commit.
+- During real provisioning with the flag on: the listener stands aside and
+  each step still runs exactly once — the `CountingStep` assertion shape from
+  `test_a_failed_step_resumes_without_re_running_the_steps_before_it`, since
+  comparing `step_records` cannot see a second run inside the same second.
 
 Prior art to read first: `.ai/rules/tenant-provisioning.md`'s account of the
 `TenantCreated` JobPipeline, and this plan's "Rejected" section, which is why

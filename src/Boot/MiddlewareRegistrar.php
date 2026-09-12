@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Boot;
 
 use Closure;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
@@ -97,7 +98,15 @@ final class MiddlewareRegistrar
             $middleware->group($name, $stack);
         }
 
-        $middleware->trustProxies('*');
+        // No trustProxies() call here, deliberately: Laravel's own default —
+        // no proxy trusted, X-Forwarded-* ignored — is the safe one, and this
+        // is the documented path a host owns. Add
+        // `$middleware->trustProxies(at: [...])` yourself, after this call,
+        // if you sit behind a real reverse proxy — see
+        // docs/host-requirements.md for what value to use. Trusting '*' here
+        // unconditionally used to make every IP-keyed rate limiter (including
+        // this package's own login throttle) and audit log spoofable by
+        // anyone who could reach the app directly.
 
         // Laravel's default trusts config('app.url') and all its subdomains,
         // which already covers the central domain plus every tenant subdomain.
@@ -106,6 +115,28 @@ final class MiddlewareRegistrar
         // No `redirectGuestsTo()` here: `registerGuestRedirect()` calls
         // `Authenticate::redirectUsing()` on every boot, which overrides what
         // `ApplicationBuilder::withMiddleware()` set before this callback ran.
+    }
+
+    /**
+     * The proxy IP(s)/CIDR — or the literal `'*'` — read from
+     * `numerosis.trusted_proxies`. Only meaningful once config exists, so it
+     * is never called from {@see self::apply()} itself; the un-wired fallback
+     * in `NumerosisServiceProvider::registerMiddleware()` is the one caller,
+     * and it runs from `packageBooted()`, well after config is loaded.
+     *
+     * @return list<string>|string
+     */
+    public static function trustedProxies(): array|string
+    {
+        $configured = Config::get('numerosis.trusted_proxies');
+
+        if ($configured === '*') {
+            return '*';
+        }
+
+        return is_array($configured)
+            ? array_values(array_filter($configured, is_string(...)))
+            : [];
     }
 
     /**

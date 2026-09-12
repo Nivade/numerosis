@@ -530,7 +530,10 @@ class NumerosisServiceProvider extends PackageServiceProvider
             Route::middlewareGroup($name, $stack);
         }
 
-        TrustProxies::at('*');
+        // Defaults to trusting nobody — see `numerosis.trusted_proxies`. A
+        // host behind a real proxy that relies on this fallback (rather than
+        // wiring `Numerosis::middleware()` itself) must set that config key.
+        TrustProxies::at(MiddlewareRegistrar::trustedProxies());
 
         $this->app->make(Kernel::class)->prependMiddleware(TrustHosts::class);
     }
