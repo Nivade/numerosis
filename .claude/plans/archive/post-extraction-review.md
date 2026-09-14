@@ -1,6 +1,25 @@
 # Plan: post-extraction review — what the extraction left behind
 
-> ## Status correction, 2026-09-04 — read this instead of the Live status block
+> ## Status, 2026-09-14 — EXECUTED, archived. Read this, not the blocks below
+>
+> Re-validated against the tree a second time. **Every phase is closed.** 4.2
+> and 4.4 — the two items the 2026-09-04 correction below left open — shipped
+> since:
+>
+> - **4.2** done. All 25 `verify*()` methods are named in
+>   `tests/Feature/Console/Commands/InstallNumerosisCommandTest.php`, and the
+>   third assertion it asked for exists as
+>   `HostRequirementsTest::test_every_verify_method_has_a_failure_path_test()`.
+>   `HostConfigDoctorCoverageTest` additionally pins `HostConfig`'s written keys
+>   against `InstallNumerosisCommand::VERIFIED_CONFIG_KEYS` in both directions.
+> - **4.4** done. `verifyPublishedAssetsMatchSource()` runs in the
+>   unconditional verification block; only `publishAssets()`, `appendEnvKeys()`
+>   and `seedCentralData()` are gated behind `! --verify-only`.
+> - **6.2** never built, and is no longer tracked here — it moved to
+>   `.claude/findings.md` as an open risk. thin-app's `smoke-test.yml` boots a
+>   hand-configured host, so the documented install path stays unproven.
+>
+> ## Status correction, 2026-09-04 — superseded by the block above
 >
 > Re-validated against the tree. **Phases 1, 2, 3, 5 and 6 are closed.** The
 > Live status block below is 3+ weeks stale: it names a `docker compose up -d`

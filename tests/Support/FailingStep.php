@@ -32,9 +32,7 @@ class FailingStep implements ProvisioningStep
     {
         self::$runs++;
 
-        if (self::$shouldFail) {
-            throw new RuntimeException('migration failed permanently');
-        }
+        throw_if(self::$shouldFail, new RuntimeException('migration failed permanently'));
 
         resolve(CloneTenantSchema::class)->handle($provision);
     }

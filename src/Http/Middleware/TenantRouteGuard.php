@@ -19,6 +19,6 @@ class TenantRouteGuard
 {
     public function handle(Request $request, Closure $next): mixed
     {
-        return app(TenancyRouting::tenancyRouteMiddleware())->handle($request, $next);
+        return resolve(TenancyRouting::tenancyRouteMiddleware())->handle($request, $next);
     }
 }

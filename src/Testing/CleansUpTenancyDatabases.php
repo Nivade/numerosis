@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Testing;
 
 use Illuminate\Database\Connection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Config;
@@ -283,7 +284,7 @@ trait CleansUpTenancyDatabases
         $central = $this->centralConnectionName();
 
         if (Schema::connection($central)->hasTable('tenants')) {
-            /** @var class-string<\Illuminate\Database\Eloquent\Model> $tenantClass */
+            /** @var class-string<Model> $tenantClass */
             $tenantClass = Config::string('tenancy.tenant_model');
 
             $tenants = $tenantClass::query()->get();

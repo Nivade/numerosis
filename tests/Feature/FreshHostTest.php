@@ -22,6 +22,7 @@ use Nvade\Numerosis\Actions\Tenancy\SeedTenantDatabase;
 use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\SpatiePermissionsBootstrapper;
@@ -115,7 +116,7 @@ class FreshHostTest extends Orchestra
         // call Numerosis::configure()/withRouting() from. Everything this
         // call reads (tenancy.central_domains) is HostConfig-derived, not
         // hand-set anywhere in this file.
-        \Nvade\Numerosis\Numerosis::routes();
+        Numerosis::routes();
     }
 
     /**

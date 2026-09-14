@@ -27,8 +27,8 @@ class ShowInvitationController extends Controller
             // authenticated visitor to `home` and drops the flash with it,
             // hiding the message from exactly the people who are signed in.
             return $authenticated
-                ? redirect()->route(RouteNames::tenantsMine())->with('status', $e->getMessage())
-                : redirect()->route('login')->with('status', $e->getMessage());
+                ? to_route(RouteNames::tenantsMine())->with('status', $e->getMessage())
+                : to_route('login')->with('status', $e->getMessage());
         }
 
         if (! $authenticated) {

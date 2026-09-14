@@ -2,36 +2,67 @@
 
 declare(strict_types=1);
 
+use Rector\CodeQuality\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRector;
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\ClassMethod\RemoveReturnTagIncompatibleWithNativeTypeRector;
+use Rector\DeadCode\Rector\Node\RemoveNonExistingVarAnnotationRector;
+use Rector\Php81\Rector\Property\ReadOnlyPropertyRector;
+use Rector\Transform\Rector\ArrayDimFetch\ArrayDimFetchToMethodCallRector;
+use RectorLaravel\Rector\ArrayDimFetch\EnvVariableToEnvHelperRector;
+use RectorLaravel\Rector\Class_\AddHasFactoryToModelsRector;
+use RectorLaravel\Rector\Class_\BackoffPropertyToBackoffAttributeRector;
+use RectorLaravel\Rector\Class_\TriesPropertyToTriesAttributeRector;
+use RectorLaravel\Rector\ClassMethod\AddGenericReturnTypeToRelationsRector;
 use RectorLaravel\Rector\FuncCall\RemoveDumpDataDeadCodeRector;
+use RectorLaravel\Rector\FuncCall\ThrowIfAndThrowUnlessExceptionsToUseClassStringRector;
 use RectorLaravel\Set\LaravelSetList;
-use RectorLaravel\Set\LaravelSetProvider;
 
 return RectorConfig::configure()
-    ->withSetProviders(LaravelSetProvider::class)
     ->withComposerBased(laravel: true)
     ->withPaths([
         __DIR__.'/src',
         __DIR__.'/tests',
+        __DIR__.'/packages/ui/src',
+        __DIR__.'/packages/ui/tests',
     ])
+    // withSkipPath() asserts the path exists; withSkip() would go silently
+    // vacuous the next time one of these files moves.
+    // Rector must never rewrite an already-applied migration.
+    ->withSkipPath(__DIR__.'/database/migrations')
+    // Reads raw superglobals deliberately, from config/numerosis.php before
+    // facades are registered; ServerVariableToRequestFacadeRector once rewrote
+    // that to Request::server() and crash-looped every worker.
+    ->withSkipPath(__DIR__.'/src/Boot/Domains.php')
     ->withSkip([
-        // Guards a path withPaths() does not scan yet: whoever adds `database`
-        // there must not have rector rewriting applied migrations.
-        __DIR__.'/database/migrations',
         // Strips @return PlanMetadata-style aliases that carry real generic
-        // info beyond the native `array` return type — see
-        // .ai/rules/static-analysis.md.
+        // info beyond the native `array` return type.
         RemoveReturnTagIncompatibleWithNativeTypeRector::class,
-        // Domains.php reads raw superglobals deliberately, called from inside
-        // config/numerosis.php while the config repository is still being
-        // built — before facades are registered. A rector pass
-        // (ServerVariableToRequestFacadeRector) once rewrote the superglobal
-        // read to Request::server(...) here and caused a real boot-time
-        // crash-loop (facade root not set). Skip the whole file rather than
-        // one rule at a time — see .ai/rules/package-host-bootstrap.md's
-        // first bullet.
-        __DIR__.'/src/Support/Domains.php',
+        // Emits `unset(Env::get('APP_URL'))`, which is not valid PHP: unset()
+        // requires a variable.
+        EnvVariableToEnvHelperRector::class,
+        // Static private helpers are deliberate here, and the rule cannot see
+        // a PHPUnit data provider's static call site.
+        LocallyCalledStaticMethodToNonStaticRector::class,
+        // Rewrites throw_unless()'s exception-instance form to a class-string
+        // + message args, dropping the `previous:` named argument.
+        ThrowIfAndThrowUnlessExceptionsToUseClassStringRector::class,
+        // Strips @var annotations that are the only thing narrowing a generic
+        // template, e.g. ModelResolver::resolve()'s class-string<TModel>.
+        RemoveNonExistingVarAnnotationRector::class,
+        // Adds HasFactory to models that have no factory, ungenericised.
+        AddHasFactoryToModelsRector::class,
+        // A readonly Collection narrows to Collection<*NEVER*,*NEVER*>, which
+        // makes every later isNotEmpty() read as always-false.
+        ReadOnlyPropertyRector::class,
+        // Deletes the $tries/$backoff declarations that RunProvisioningStep
+        // assigns at runtime for ControlsItsOwnRetries steps.
+        TriesPropertyToTriesAttributeRector::class,
+        BackoffPropertyToBackoffAttributeRector::class,
+        // Infers the pivot template parameter from the wrong model.
+        AddGenericReturnTypeToRelationsRector::class,
+        // Turns `$app['env'] = 'local'` into bind(), losing the closure wrap
+        // Container::offsetSet() applies, so the value resolves as a class.
+        ArrayDimFetchToMethodCallRector::class,
     ])
     ->withPhpSets()
     ->withPreparedSets(
@@ -50,11 +81,9 @@ return RectorConfig::configure()
         LaravelSetList::LARAVEL_CONTAINER_STRING_TO_FULLY_QUALIFIED_NAME,
         LaravelSetList::LARAVEL_TYPE_DECLARATIONS,
         LaravelSetList::LARAVEL_TESTING,
-        LaravelSetList::LARAVEL_130,
         LaravelSetList::LARAVEL_IF_HELPERS,
         LaravelSetList::LARAVEL_FACTORIES,
         LaravelSetList::LARAVEL_FACADE_ALIASES_TO_FULL_NAMES,
-
     ])->withConfiguredRule(
         RemoveDumpDataDeadCodeRector::class, ['dd', 'dump', 'var_dump']
     );

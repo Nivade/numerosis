@@ -7,9 +7,12 @@ namespace Nvade\Numerosis\Tests\Feature\View\Components;
 use App\Models\Central\PaymentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestView;
+use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Models\Central\PaymentPlan as BasePaymentPlan;
 use Nvade\Numerosis\Services\Billing\BillingService;
+use Nvade\Numerosis\Tests\Concerns\PinsGlobalCache;
 use Nvade\Numerosis\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -27,7 +30,23 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 class PlanCardTest extends TestCase
 {
+    use PinsGlobalCache;
     use RefreshDatabase;
+
+    /**
+     * The card resolves `mostPopularSlug()` while rendering, which aggregates
+     * central `subscriptions` — rows another parallel worker can have written,
+     * since central writes escape `RefreshDatabase`'s transaction. Pinning a
+     * decided answer keeps the badge out of this test's data entirely.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->pinGlobalCache();
+
+        GlobalCache::store()->forever(CacheKeys::popularPaymentPlanSlug(), 'no-popular-plan');
+    }
 
     /**
      * @param  'display'|'selectable'  $type

@@ -40,7 +40,7 @@ class ResolveSocialUser
             avatarUrl: $user->getAvatar(),
             token: $oauthUser?->token,
             refreshToken: $oauthUser?->refreshToken,
-            expiresAt: $oauthUser !== null && $oauthUser->expiresIn !== null
+            expiresAt: $oauthUser instanceof OAuth2User && $oauthUser->expiresIn !== null
                 ? CarbonImmutable::now()->addSeconds($oauthUser->expiresIn)
                 : null,
         );

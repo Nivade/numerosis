@@ -55,7 +55,7 @@ class InvitationRoutesTest extends TestCase
 
         $this->get($this->signedShowUrl($invitation))->assertRedirect(route('login'));
 
-        $this->get(route('register'))->assertSee($invitation->email, false);
+        $this->get(route('register'))->assertSeeHtml($invitation->email);
     }
 
     public function test_an_authenticated_visitor_sees_the_invitation(): void

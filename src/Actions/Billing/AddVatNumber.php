@@ -41,7 +41,7 @@ class AddVatNumber
 
         $taxIdType = TaxIdType::forCountry($customer->address->country ?? null);
 
-        if ($taxIdType === null) {
+        if (! $taxIdType instanceof TaxIdType) {
             throw new InvalidVatNumber(__('numerosis::billing.checkout.vat_country_unsupported'));
         }
 

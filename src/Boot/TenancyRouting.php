@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Boot;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath;
-use Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain;
+use Nvade\Numerosis\Http\Middleware\InitializeTenancyByTenantDomain;
 use Nvade\Numerosis\Http\Middleware\NullMiddleware;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
@@ -29,7 +29,7 @@ final class TenancyRouting
     public static function identificationMiddleware(): string
     {
         return match (IdentificationMode::current()) {
-            IdentificationMode::Subdomain => InitializeTenancyByDomainOrSubdomain::class,
+            IdentificationMode::Subdomain => InitializeTenancyByTenantDomain::class,
             IdentificationMode::CustomDomain => InitializeTenancyByDomain::class,
             IdentificationMode::Path => InitializeTenancyByPath::class,
         };

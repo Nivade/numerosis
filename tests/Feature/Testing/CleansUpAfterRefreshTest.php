@@ -43,7 +43,7 @@ class CleansUpAfterRefreshTest extends TestCase
      */
     private function trackedCentralTables(): array
     {
-        $property = (new ReflectionClass(TestCase::class))
+        $property = new ReflectionClass(TestCase::class)
             ->getProperty('dirtyCentralTables');
 
         /** @var array<string, true> */

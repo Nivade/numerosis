@@ -9,6 +9,11 @@ use Nvade\Numerosis\Contracts\Tenancy\PersistsToProvisionColumns;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
 use Nvade\Numerosis\Enums\Auth\PermissionContext;
 use Nvade\Numerosis\Policies\Concerns\ChecksContextPermissions;
+use Nvade\Numerosis\Services\Billing\BillingService;
+use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\PasswordBrokerBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\PreservingPathTenantResolver;
+use Nvade\Numerosis\Services\Tenancy\SpatiePermissionsBootstrapper;
 use Symfony\Component\Finder\Finder;
 
 /**
@@ -97,7 +102,7 @@ test('nothing reads the current user through the Auth facade', function (): void
 
     $files = (new Finder)
         ->files()
-        ->in(array_filter($roots, 'is_dir'))
+        ->in(array_filter($roots, is_dir(...)))
         ->name('*.php');
 
     expect(iterator_count($files))->toBeGreaterThan(0, 'Scanned no files — the paths above are wrong.');
@@ -149,7 +154,7 @@ test('no class lives in a folder named after the absence of a category', functio
  */
 test('the middleware registry stays pure class-string literals', function (): void {
     $source = (string) file_get_contents(
-        (string) (new ReflectionClass(MiddlewareRegistrar::class))->getFileName()
+        (string) new ReflectionClass(MiddlewareRegistrar::class)->getFileName()
     );
 
     $start = strpos($source, 'public static function aliases()');
@@ -181,11 +186,11 @@ test('the middleware registry stays pure class-string literals', function (): vo
  */
 test('everything in Services implements one of our contracts, or is a named exception', function (): void {
     $exceptions = [
-        Nvade\Numerosis\Services\Billing\BillingService::class,
-        Nvade\Numerosis\Services\Tenancy\PreservingPathTenantResolver::class,
-        Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper::class,
-        Nvade\Numerosis\Services\Tenancy\PasswordBrokerBootstrapper::class,
-        Nvade\Numerosis\Services\Tenancy\SpatiePermissionsBootstrapper::class,
+        BillingService::class,
+        PreservingPathTenantResolver::class,
+        AuthGuardBootstrapper::class,
+        PasswordBrokerBootstrapper::class,
+        SpatiePermissionsBootstrapper::class,
     ];
 
     $files = (new Finder)
@@ -210,7 +215,7 @@ test('everything in Services implements one of our contracts, or is a named exce
         }
 
         $ownInterfaces = array_filter(
-            (new ReflectionClass($class))->getInterfaceNames(),
+            new ReflectionClass($class)->getInterfaceNames(),
             fn (string $interface): bool => str_starts_with($interface, 'Nvade\\Numerosis\\Contracts\\'),
         );
 
@@ -285,7 +290,7 @@ test('every core policy context resolves to a PermissionContext case', function 
 
         expect(in_array(ChecksContextPermissions::class, class_uses_recursive($class), true))->toBeTrue();
 
-        $method = (new ReflectionClass($class))->getMethod('permissionContext');
+        $method = new ReflectionClass($class)->getMethod('permissionContext');
         $context = $method->invoke(new $class);
 
         if (! is_string($context)) {

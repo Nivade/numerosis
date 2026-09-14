@@ -81,7 +81,7 @@ class BladeClassReferencesTest extends TestCase
         $roots = array_filter([
             $root.'/resources/views',
             $root.'/packages/ui/resources/views',
-        ], 'is_dir');
+        ], is_dir(...));
 
         $files = [];
 

@@ -219,6 +219,37 @@ application *in-process*, so `PHP_SAPI` remains `cli` and
 `Host` header is set to. That needs a genuinely separate FPM or `php -S`
 server, which nothing here has.
 
+## Subdomain mode must resolve the whole host, never the label — fixed 2026-09-14
+
+`Nvade\Numerosis\Http\Middleware\InitializeTenancyByTenantDomain` (was
+`InitializeTenancyByDomainOrSubdomain`, renamed because the name described
+behaviour it must not have) extends stancl's `InitializeTenancyByDomain`
+directly and skips central hosts. It deliberately does **not** extend the
+dispatcher: `CreateTenantDomain` always writes the fully-qualified name, so
+the label-only subdomain resolver can never match a row this package wrote.
+`tests/Feature/Http/Middleware/InitializeTenancyByTenantDomainTest` pins both
+halves, including a negative control asserting stancl's own dispatcher fails
+on the same request — keep that control if the test is ever rewritten.
+
+What it was, since the arrangement still hides it from every other test:
+
+`tests/TestCase` sets `numerosis.domains.central` to
+`central.numerosistest.test` while the apex stays `numerosistest.test`, so a
+tenant host (`acme.numerosistest.test`) does **not** end with the central
+domain. stancl's `InitializeTenancyByDomainOrSubdomain::isSubdomain()` is a
+bare `Str::endsWith($host, config('tenancy.central_domains'))`, so every
+browser and feature test takes its *domain* branch and matches the full
+`domains.domain` value `CreateTenantDomain` writes.
+
+A host at the apex (`APP_URL=http://example.test`, which is what
+`Domains::hostFromAppUrl()` gives any ordinary deployment) inverts that: the
+tenant host now ends with the central domain, `InitializeTenancyBySubdomain`
+takes over and resolves the bare label `acme`, and no `domains` row holds a
+bare label — so every tenant request is
+`TenantCouldNotBeIdentifiedOnDomainException`. Measured 2026-09-14 against a
+scratch `laravel new` host on `php artisan serve` — `tests/smoke-host.sh` is
+that run, kept — and no `verify*()` in `numerosis:install` sees it either.
+
 ## Suggested better approach
 
 Six files now branch on `IdentificationMode::current()`, and three of them

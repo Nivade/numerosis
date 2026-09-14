@@ -7,8 +7,12 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use Nvade\Numerosis\Boot\HostConfig;
 use Nvade\Numerosis\Contracts\Feature;
+use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
+use Nvade\Numerosis\Database\Seeders\PaymentPlanSeeder;
 use Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder;
 use Nvade\Numerosis\Features\FeatureRegistry;
+use Nvade\Numerosis\Models\Permission;
+use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\Numerosis;
 
 use function Pest\Laravel\assertDatabaseHas;
@@ -92,9 +96,9 @@ it('resolves a seeder the package calls through the container, so a binding swap
         }
     };
 
-    app()->bind(Nvade\Numerosis\Database\Seeders\PaymentPlanSeeder::class, $replacement::class);
+    app()->bind(PaymentPlanSeeder::class, $replacement::class);
 
-    seed(Nvade\Numerosis\Database\Seeders\DatabaseSeeder::class);
+    seed(DatabaseSeeder::class);
 
     expect($replacement::$ran)->toBeTrue();
 });
@@ -120,14 +124,14 @@ it('seeds a permission context added by a subclass bound over the package seeder
     // Asserted on the central connection explicitly: these rows are written
     // through it (autocommit) and are invisible to the default connection's
     // open RefreshDatabase transaction — see .ai/rules/testing.md.
-    foreach (Nvade\Numerosis\Models\Permission::defaultActions() as $action) {
+    foreach (Permission::defaultActions() as $action) {
         assertDatabaseHas('permissions', [
             'name' => $action->value.' seam_probe',
             'guard_name' => 'web',
         ], $central);
     }
 
-    $admin = Nvade\Numerosis\Models\Role::on($central)
+    $admin = Role::on($central)
         ->where(['name' => 'admin', 'guard_name' => 'web'])
         ->sole();
 

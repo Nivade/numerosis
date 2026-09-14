@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Jobs;
 
-use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
+use Illuminate\Foundation\Queue\Queueable;
 use Nvade\Numerosis\Contracts\Tenancy\ControlsItsOwnRetries;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
 use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Enums\Tenancy\StepOutcome;
@@ -26,10 +24,7 @@ use RuntimeException;
  */
 final class RunProvisioningStep implements ShouldQueue
 {
-    use Dispatchable;
-    use InteractsWithQueue;
     use Queueable;
-    use SerializesModels;
 
     public int $tries = 5;
 
@@ -84,7 +79,7 @@ final class RunProvisioningStep implements ShouldQueue
         }
 
         foreach ($this->step::requires() as $contribution) {
-            if ($provision->contribution($contribution) === null) {
+            if (! $provision->contribution($contribution) instanceof ProvisionContribution) {
                 return $contribution;
             }
         }

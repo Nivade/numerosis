@@ -41,9 +41,7 @@ final class ConfiguredSteps
      */
     public static function assertEveryProvisioningStepIsOne(array $steps): void
     {
-        if ($steps === []) {
-            throw new LogicException('numerosis.tenancy.provisioning.steps is empty; nothing would provision a tenant.');
-        }
+        throw_if($steps === [], new LogicException('numerosis.tenancy.provisioning.steps is empty; nothing would provision a tenant.'));
 
         foreach ($steps as $step) {
             if (is_a($step, ProvisioningStep::class, true)) {

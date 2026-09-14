@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Boot;
 
+use Illuminate\Contracts\Config\Repository;
 use LogicException;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
 use Nvade\Numerosis\Actions\Tenancy\MarkProvisionFailed;
@@ -43,7 +44,7 @@ class MisconfiguredProvisioningStepsBootTest extends TestCase
         parent::getEnvironmentSetUp($app);
 
         if (self::$misconfigure) {
-            $app['config']->set('numerosis.tenancy.provisioning.steps', [
+            $app->make(Repository::class)->set('numerosis.tenancy.provisioning.steps', [
                 CreateTenant::class,
                 MarkProvisionFailed::class,
             ]);

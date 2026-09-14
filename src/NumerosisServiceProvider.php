@@ -32,7 +32,6 @@ use Laravel\Fortify\Actions\PrepareAuthenticatedSession;
 use Laravel\Fortify\Contracts\LoginResponse as FortifyLoginResponse;
 use Laravel\Fortify\Contracts\LogoutResponse as FortifyLogoutResponse;
 use Laravel\Fortify\Contracts\VerifyEmailResponse as FortifyVerifyEmailResponse;
-use Laravel\Fortify\Features as FortifyFeatures;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Http\Requests\LoginRequest as FortifyLoginRequest;
 use Laravel\Fortify\Http\Requests\VerifyEmailRequest as FortifyVerifyEmailRequest;
@@ -87,6 +86,11 @@ use Nvade\Numerosis\Livewire\Billing\Checkout;
 use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
 use Nvade\Numerosis\Livewire\Settings\DeleteUserForm;
 use Nvade\Numerosis\Models\Central;
+use Nvade\Numerosis\Models\Central\Invitation;
+use Nvade\Numerosis\Models\Central\PaymentPlan;
+use Nvade\Numerosis\Models\Central\PlanFeature;
+use Nvade\Numerosis\Models\Central\SocialAccount;
+use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\Models\Tenant as TenantModels;
@@ -388,11 +392,11 @@ class NumerosisServiceProvider extends PackageServiceProvider
     protected function registerPolicies(): void
     {
         $policies = [
-            Central\Invitation::class => InvitationPolicy::class,
-            Central\PaymentPlan::class => PaymentPlanPolicy::class,
-            Central\PlanFeature::class => PlanFeaturePolicy::class,
-            Central\SocialAccount::class => SocialAccountPolicy::class,
-            Central\Subscription::class => SubscriptionPolicy::class,
+            Invitation::class => InvitationPolicy::class,
+            PaymentPlan::class => PaymentPlanPolicy::class,
+            PlanFeature::class => PlanFeaturePolicy::class,
+            SocialAccount::class => SocialAccountPolicy::class,
+            Subscription::class => SubscriptionPolicy::class,
             Central\Tenant::class => TenantPolicy::class,
             Permission::class => PermissionPolicy::class,
             Role::class => RolePolicy::class,
@@ -459,7 +463,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             // accepted and expired rows for 30 days.
             if (Config::boolean('numerosis.schedule.prune_invitations')) {
                 $schedule->command('model:prune', [
-                    '--model' => [Numerosis::model(Central\Invitation::class)],
+                    '--model' => [Numerosis::model(Invitation::class)],
                 ])->daily();
             }
         });

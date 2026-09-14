@@ -40,7 +40,7 @@ class ResolveSetupIntentTest extends TestCase
 
     public function test_it_refuses_a_setup_intent_with_no_matching_pending_row(): void
     {
-        $user = $this->signedInCustomer();
+        $this->signedInCustomer();
 
         $this->expectException(CheckoutSessionExpired::class);
 

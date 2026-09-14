@@ -86,7 +86,7 @@ class OneTimePasswordLoginTest extends TestCase
         // what makes an email-only submission impossible from a browser, so
         // dropping `password` from NumerosisLoginRequest without dropping it
         // from the form leaves the feature reachable only by hand-built POST.
-        $response->assertDontSee('name="password"', escape: false);
+        $response->assertDontSeeHtml('name="password"');
     }
 
     public function test_the_correct_code_authenticates_the_user(): void

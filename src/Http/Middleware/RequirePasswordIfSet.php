@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Http\Middleware;
 
 use Closure;
 use Illuminate\Auth\Middleware\RequirePassword;
+use Illuminate\Http\Request;
 
 /**
  * `password.confirm` for everyone who has a password, and a pass-through for
@@ -17,7 +18,7 @@ use Illuminate\Auth\Middleware\RequirePassword;
 class RequirePasswordIfSet extends RequirePassword
 {
     /**
-     * @param  \Illuminate\Http\Request  $request
+     * @param  Request  $request
      * @param  string|null  $redirectToRoute
      * @param  string|int|null  $passwordTimeoutSeconds
      * @return mixed

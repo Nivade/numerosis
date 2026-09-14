@@ -54,6 +54,17 @@ over-budget docblocks and 35 over-cap `//` runs to zero of each. Suite 734
 passed / 6 skipped, `composer analyse` cold-clean, PHPStan baseline unchanged
 at 17.
 
+`post-extraction-review.md` moved to `archive/` 2026-09-14: its last two open
+items, 4.2 and 4.4, were re-validated as shipped, and 6.2 — the second-consumer
+smoke test, never built — moved to `.claude/findings.md` rather than keeping a
+563-line plan live for one line of work.
+
+`findings-cleanup.md` moved to `archive/` 2026-09-14: phases 1, 2 and 4
+executed, phase 3's flake did not reproduce in 30 consecutive `composer test`
+runs and kept a rewritten findings line. Phase 4's scratch-host run produced a
+`docs/host-requirements.md` diff (five fresh-app defaults that break the
+documented install) and one boot bug, both recorded rather than fixed here.
+
 `enum-vocabulary-sweep.md` moved to `archive/` 2026-09-12: all eight phases
 executed on `refactor/enum-vocabulary-sweep`, `composer test` green (721
 passed / 6 skipped) and `composer analyse` clean at every phase boundary.
@@ -62,8 +73,8 @@ passed / 6 skipped) and `composer analyse` clean at every phase boundary.
 
 | Plan | State |
 |---|---|
+| `cache-audit.md` | **Not executed.** Cache audit remediation, written 2026-09-14. Ten phases. Phase 8 must land after `findings-cleanup.md` phase 1; phase 9 carries one open decision (negative caching on the auth path) |
 | `luminous-wandering-brook.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
-| `post-extraction-review.md` | **Mostly done; three items survive.** Its Live status block is stale — read the correction at the top of the file, not the table |
 
 ## Abandoned
 

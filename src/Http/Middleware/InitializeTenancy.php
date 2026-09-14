@@ -19,6 +19,6 @@ class InitializeTenancy
 {
     public function handle(Request $request, Closure $next): mixed
     {
-        return app(TenancyRouting::identificationMiddleware())->handle($request, $next);
+        return resolve(TenancyRouting::identificationMiddleware())->handle($request, $next);
     }
 }

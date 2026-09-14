@@ -19,6 +19,13 @@ use Nvade\Numerosis\Boot\ExceptionRegistrar;
 use Nvade\Numerosis\Boot\MiddlewareRegistrar;
 use Nvade\Numerosis\Boot\ModelResolver;
 use Nvade\Numerosis\Models\Central;
+use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\Central\Domain;
+use Nvade\Numerosis\Models\Central\Invitation;
+use Nvade\Numerosis\Models\Central\PaymentPlan;
+use Nvade\Numerosis\Models\Central\SocialAccount;
+use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Models\Tenant as TenantModels;
 use Nvade\Numerosis\Routing\RouteLoader;
 
@@ -197,7 +204,7 @@ class Numerosis
      */
     public static function tenantMigrationPath(): string
     {
-        return dirname(__DIR__).'/database/migrations/tenant';
+        return __DIR__.'/../database/migrations/tenant';
     }
 
     /**
@@ -254,13 +261,13 @@ class Numerosis
     {
         return [
             Central\Tenant::class => 'Central/Tenant',
-            Central\Domain::class => 'Central/Domain',
-            Central\CentralUser::class => 'Central/CentralUser',
-            Central\Subscription::class => 'Central/Subscription',
-            Central\PaymentPlan::class => 'Central/PaymentPlan',
-            Central\TenantProvision::class => 'Central/TenantProvision',
-            Central\Invitation::class => 'Central/Invitation',
-            Central\SocialAccount::class => 'Central/SocialAccount',
+            Domain::class => 'Central/Domain',
+            CentralUser::class => 'Central/CentralUser',
+            Subscription::class => 'Central/Subscription',
+            PaymentPlan::class => 'Central/PaymentPlan',
+            TenantProvision::class => 'Central/TenantProvision',
+            Invitation::class => 'Central/Invitation',
+            SocialAccount::class => 'Central/SocialAccount',
             TenantModels\User::class => 'Tenant/User',
         ];
     }

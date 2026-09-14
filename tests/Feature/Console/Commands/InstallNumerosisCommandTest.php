@@ -263,7 +263,7 @@ class InstallNumerosisCommandTest extends TestCase
     /** @verifies verifyAuthPasswordBroker */
     public function test_it_fails_when_the_default_password_broker_is_unset(): void
     {
-        config()->set('auth.defaults.passwords', null);
+        config()->set('auth.defaults.passwords');
 
         $this->install()
             ->expectsOutputToContain("config('auth.defaults.passwords') is unset")
@@ -594,7 +594,7 @@ class InstallNumerosisCommandTest extends TestCase
     /** @verifies verifyTenantAuthProvider */
     public function test_it_fails_when_the_tenant_password_broker_is_missing(): void
     {
-        Config::set('auth.passwords.tenant', null);
+        Config::set('auth.passwords.tenant');
 
         $this->install()
             ->expectsOutputToContain('auth.passwords.tenant')

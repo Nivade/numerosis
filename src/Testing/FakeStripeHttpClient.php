@@ -201,21 +201,19 @@ class FakeStripeHttpClient implements ClientInterface
      */
     private function ensurePaymentMethod(string $id, string $type = 'card'): array
     {
-        if (! isset($this->paymentMethods[$id])) {
-            $this->paymentMethods[$id] = [
-                'id' => $id,
-                'object' => 'payment_method',
-                'type' => $type,
-                'customer' => null,
-                'billing_details' => [
-                    'address' => ['line1' => null, 'line2' => null, 'city' => null, 'state' => null, 'postal_code' => null, 'country' => null],
-                    'name' => null,
-                    'email' => null,
-                    'phone' => null,
-                ],
-                'card' => $type === 'card' ? ['brand' => 'visa', 'last4' => '4242', 'exp_month' => 12, 'exp_year' => 2030] : null,
-            ];
-        }
+        $this->paymentMethods[$id] ??= [
+            'id' => $id,
+            'object' => 'payment_method',
+            'type' => $type,
+            'customer' => null,
+            'billing_details' => [
+                'address' => ['line1' => null, 'line2' => null, 'city' => null, 'state' => null, 'postal_code' => null, 'country' => null],
+                'name' => null,
+                'email' => null,
+                'phone' => null,
+            ],
+            'card' => $type === 'card' ? ['brand' => 'visa', 'last4' => '4242', 'exp_month' => 12, 'exp_year' => 2030] : null,
+        ];
 
         return $this->paymentMethods[$id];
     }

@@ -35,7 +35,7 @@ class InitializeLivewireTenancyByPathTest extends TestCase
 
         $this->assertTrue(tenancy()->initialized);
 
-        $initializedTenant = app(Tenancy::class)->tenant;
+        $initializedTenant = resolve(Tenancy::class)->tenant;
         $this->assertInstanceOf(Tenant::class, $initializedTenant);
         $this->assertSame($tenant->id, $initializedTenant->getTenantKey());
     }
@@ -73,7 +73,7 @@ class InitializeLivewireTenancyByPathTest extends TestCase
             $request->headers->set('referer', $referer);
         }
 
-        $response = (new InitializeLivewireTenancyByPath(app(Tenancy::class)))
+        $response = new InitializeLivewireTenancyByPath(resolve(Tenancy::class))
             ->handle($request, fn (Request $request): Response => new Response('ok'));
 
         $this->assertInstanceOf(Response::class, $response);

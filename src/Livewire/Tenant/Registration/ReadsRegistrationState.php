@@ -17,9 +17,7 @@ trait ReadsRegistrationState
     {
         $state = $this->state();
 
-        if (! $state instanceof RegistrationState) {
-            throw new RuntimeException('The registration wizard must use '.RegistrationState::class.'.');
-        }
+        throw_unless($state instanceof RegistrationState, new RuntimeException('The registration wizard must use '.RegistrationState::class.'.'));
 
         return $state;
     }

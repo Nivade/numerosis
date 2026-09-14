@@ -20,7 +20,7 @@ use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Http\Middleware\InitializeLivewireTenancyByPath;
-use Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain;
+use Nvade\Numerosis\Http\Middleware\InitializeTenancyByTenantDomain;
 use Nvade\Numerosis\Http\Middleware\NullMiddleware;
 use Nvade\Numerosis\Tests\TestCase;
 use RuntimeException;
@@ -63,7 +63,7 @@ class IdentificationModeTest extends TestCase
     public function test_each_mode_selects_its_own_identification_middleware(): void
     {
         $this->useMode(IdentificationMode::Subdomain);
-        $this->assertSame(InitializeTenancyByDomainOrSubdomain::class, TenancyRouting::identificationMiddleware());
+        $this->assertSame(InitializeTenancyByTenantDomain::class, TenancyRouting::identificationMiddleware());
 
         $this->useMode(IdentificationMode::CustomDomain);
         $this->assertSame(InitializeTenancyByDomain::class, TenancyRouting::identificationMiddleware());
@@ -83,7 +83,7 @@ class IdentificationModeTest extends TestCase
     public function test_livewire_update_route_uses_a_referer_based_middleware_only_under_path_mode(): void
     {
         $this->useMode(IdentificationMode::Subdomain);
-        $this->assertSame(InitializeTenancyByDomainOrSubdomain::class, TenancyRouting::livewireUpdateIdentificationMiddleware());
+        $this->assertSame(InitializeTenancyByTenantDomain::class, TenancyRouting::livewireUpdateIdentificationMiddleware());
 
         $this->useMode(IdentificationMode::CustomDomain);
         $this->assertSame(InitializeTenancyByDomain::class, TenancyRouting::livewireUpdateIdentificationMiddleware());
@@ -241,8 +241,8 @@ class IdentificationModeTest extends TestCase
         $this->useMode(IdentificationMode::CustomDomain);
 
         ReserveTenantDomain::run(new TenantProvisionData(
-            name: 'Acme',
             slug: 'acme',
+            name: 'Acme',
             contributions: [
                 new OwnerContribution((string) Str::uuid()),
                 new CustomDomainContribution('app.acme.com'),

@@ -36,10 +36,10 @@ class HandleProviderCallbackController extends Controller
             try {
                 LinkSocialAccount::run($authed, $data);
             } catch (ShowsMessageToUser $e) {
-                return redirect()->route('settings.connected-accounts')->with('status', $e->getMessage());
+                return to_route('settings.connected-accounts')->with('status', $e->getMessage());
             }
 
-            return redirect()->route('settings.connected-accounts')->with(
+            return to_route('settings.connected-accounts')->with(
                 'status',
                 __(':provider connected.', ['provider' => $provider->label()]),
             );
@@ -48,12 +48,12 @@ class HandleProviderCallbackController extends Controller
         $user = LoginWithSocialAccount::run($data);
 
         if ($user === null) {
-            return redirect()->route('login')->with(
+            return to_route('login')->with(
                 'status',
                 __('An account already exists for that email address. Sign in first, then connect this account from settings.'),
             );
         }
 
-        return app(LoginResponse::class)->toResponse(request());
+        return resolve(LoginResponse::class)->toResponse(request());
     }
 }

@@ -212,7 +212,7 @@ class Checkout extends Component
 
         $billable = $this->billableFor($resolved->pending);
 
-        if ($billable === null) {
+        if (! $billable instanceof BillableUser) {
             return;
         }
 
@@ -233,7 +233,7 @@ class Checkout extends Component
 
         $pending = $this->pendingReservation();
 
-        if ($pending === null) {
+        if (! $pending instanceof TenantProvision) {
             $this->paymentError = __('numerosis::billing.checkout.session_expired');
 
             return;
@@ -241,7 +241,7 @@ class Checkout extends Component
 
         $billable = $this->billableFor($pending);
 
-        if ($billable === null) {
+        if (! $billable instanceof BillableUser) {
             return;
         }
 
@@ -334,7 +334,7 @@ class Checkout extends Component
     {
         $pending = $this->pendingReservation();
 
-        if ($pending === null) {
+        if (! $pending instanceof TenantProvision) {
             $this->paymentError = __('numerosis::billing.checkout.confirmation_failed');
 
             return;
@@ -342,7 +342,7 @@ class Checkout extends Component
 
         $billable = $this->billableFor($pending);
 
-        if ($billable === null) {
+        if (! $billable instanceof BillableUser) {
             return;
         }
 

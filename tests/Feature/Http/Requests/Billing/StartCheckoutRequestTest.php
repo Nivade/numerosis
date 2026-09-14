@@ -49,7 +49,7 @@ class StartCheckoutRequestTest extends TestCase
     {
         return array_map(
             fn (ReflectionParameter $p): string => $p->getName(),
-            (new ReflectionClass($class))->getConstructor()?->getParameters() ?? [],
+            new ReflectionClass($class)->getConstructor()?->getParameters() ?? [],
         );
     }
 }

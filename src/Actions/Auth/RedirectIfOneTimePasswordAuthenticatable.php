@@ -40,6 +40,6 @@ class RedirectIfOneTimePasswordAuthenticatable
 
         return $request->wantsJson()
             ? response()->json(['one_time_password' => true])
-            : redirect()->route('one-time-password.login');
+            : to_route('one-time-password.login');
     }
 }

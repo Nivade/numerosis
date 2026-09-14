@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Events\Tenancy\TenantRestored;
+use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 class RestoreTenant
@@ -22,7 +23,7 @@ class RestoreTenant
 
         $owner = $tenant->owner();
 
-        if ($owner !== null) {
+        if ($owner instanceof CentralUser) {
             event(new TenantRestored($tenant, $owner->id, (string) $tenant->getTenantKey()));
         }
     }

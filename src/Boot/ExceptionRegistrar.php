@@ -52,7 +52,7 @@ final class ExceptionRegistrar
 
         // Resolved at report time, not here: this runs before the container
         // exists.
-        $exceptions->context(fn (): array => app(ProvidesExceptionContext::class)->handle());
+        $exceptions->context(fn (): array => resolve(ProvidesExceptionContext::class)->handle());
 
         $exceptions->dontReportDuplicates();
 

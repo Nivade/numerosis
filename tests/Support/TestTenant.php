@@ -46,11 +46,11 @@ final class TestTenant
 
         // No owner means no owner: `AddTenantOwner` records itself skipped,
         // the way it does for a system or imported tenant.
-        if ($owner !== null) {
+        if ($owner instanceof BaseCentralUser) {
             $contributions = [new OwnerContribution($owner->global_id), ...$contributions];
         }
 
-        app(ProvisionsTenant::class)->now(new TenantProvisionData(
+        resolve(ProvisionsTenant::class)->now(new TenantProvisionData(
             slug: $slug,
             name: self::nameFrom($attributes),
             contributions: $contributions,

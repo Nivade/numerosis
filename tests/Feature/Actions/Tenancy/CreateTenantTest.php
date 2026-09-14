@@ -39,7 +39,7 @@ class CreateTenantTest extends TestCase
         ]);
 
         $tenantId = 'sync-db-tenant-'.uniqid();
-        $registration = TenantProvisionData::from([
+        TenantProvisionData::from([
             'name' => 'Sync DB Co',
             'slug' => $tenantId,
             'global_id' => $user->global_id,

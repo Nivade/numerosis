@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\View;
 use Illuminate\View\FileViewFinder;
 use Nvade\Numerosis\Tests\TestCase;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\Finder\SplFileInfo;
 
 /**
  * Phase 3 guard (.claude/plans/archive/design-system-unification.md): the 57-view
@@ -30,7 +31,7 @@ class DesignLanguageGuardTest extends TestCase
      * Phase 3. `rounded-3xl` has no such exception: every occurrence
      * collapsed.
      */
-    private const ROUNDED_2XL_ALLOWED_IN = [
+    private const array ROUNDED_2XL_ALLOWED_IN = [
         // Empty on purpose. The three files that held the media-panel
         // exception (about/features/welcome) are the host app's now — they
         // were the product's marketing pages, not the framework's — so no
@@ -61,7 +62,7 @@ class DesignLanguageGuardTest extends TestCase
      *   - `welcome.blade.php` — a macOS-style window-chrome illustration
      *     (red/amber/green traffic-light dots), not a status indicator.
      */
-    private const RAW_SEMANTIC_COLOR_ALLOWED_IN = [
+    private const array RAW_SEMANTIC_COLOR_ALLOWED_IN = [
         'components/ui/icon-tile.blade.php',
         'components/billing/saved-payment-method-option.blade.php',
         'components/billing/order-summary.blade.php',
@@ -85,13 +86,13 @@ class DesignLanguageGuardTest extends TestCase
      * count dropping. Reading the finder's hints keeps this honest as further
      * packages split out, with no edit here.
      *
-     * @return list<\Symfony\Component\Finder\SplFileInfo>
+     * @return list<SplFileInfo>
      */
     private function viewFiles(): array
     {
         $roots = array_filter(
             $this->viewNamespacePaths(),
-            static fn (string $path): bool => is_dir($path)
+            is_dir(...)
         );
 
         $finder = (new Finder)->files()->in($roots)->name('*.blade.php');

@@ -1,8 +1,6 @@
 <?php
 
 declare(strict_types=1);
-
-use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
 use Nvade\Numerosis\Tests\Support\TestTenant;

@@ -107,17 +107,3 @@ parameters:
 			count: 1
 			path: src/Testing/FakeStripeHttpClient.php
 
-		-
-			# Same conflict: Laravel\Cashier\Subscription::swapAndInvoice()'s own
-			# `$prices`/`$options` parameters are untyped.
-			message: '#^Method App\\Models\\Central\\Subscription@anonymous/tests/Feature/Actions/Billing/Subscriptions/SwapSubscriptionPlanTest\.php\:96\:\:swapAndInvoice\(\) has parameter \$options with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: tests/Feature/Actions/Billing/Subscriptions/SwapSubscriptionPlanTest.php
-
-		-
-			message: '#^Method App\\Models\\Central\\Subscription@anonymous/tests/Feature/Actions/Billing/Subscriptions/SwapSubscriptionPlanTest\.php\:96\:\:swapAndInvoice\(\) has parameter \$prices with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: tests/Feature/Actions/Billing/Subscriptions/SwapSubscriptionPlanTest.php
-

@@ -28,6 +28,18 @@ rest of this file is read:
   that added this. Redirect to a file rather than piping, and
   `pkill -f "playwright run-server"` afterwards. Same family as the
   can't-`pkill`-a-Sail-run note below.
+- **Every browser test in a run can fail together with
+  `file_get_contents(vendor/pestphp/pest-plugin-browser/.temp/playwright-server.json):
+  Failed to open stream`, and it is a flake, not a broken install.** Measured
+  2026-09-14: 1 of 30 consecutive `composer test` runs, all 9 browser tests
+  failing at once, every other test green. The plugin writes that file once per
+  run and the parallel workers read it; an earlier run's cleanup removing it, or
+  a worker reading before the writer lands, produces this. `tests/Pest.php` now
+  makes a worker wait up to 10s for that file rather than read it immediately,
+  which covers the read-before-write half. If it comes back anyway, the cause is
+  the other half and the wait is not the thing to lengthen. A genuinely missing
+  `npx playwright install chromium` aborts the whole run with no test output
+  instead (bullet above).
 
 ## Running it
 
@@ -64,6 +76,17 @@ rest of this file is read:
   'testing_fresh_host'`, deadlocks — purely because a backgrounded loop from an
   earlier command was still going. It reads exactly like a real isolation bug.
   Confirm first: `ps -eo pid,cmd | grep '[p]est'`.
+
+- **A view test that renders `x-numerosis::billing.plan-card` reads central
+  `subscriptions` unless it says otherwise.** The card resolves
+  `mostPopularSlug()` at render time, and central writes escape
+  `RefreshDatabase`'s transaction, so another worker's rows decide whether the
+  "Most Popular" badge appears. `PlanCardTest` pins the answer in `setUp()`
+  (`PinsGlobalCache`, then `forever(CacheKeys::popularPaymentPlanSlug(), …)`),
+  which is what closed its one-off 2026-09-14 parallel failure — never
+  reproduced in 30 consecutive runs, so that channel is the only identified
+  one, not a confirmed cause. A card test that skips the pin is reading live
+  data whether it means to or not.
 
 - **Killing a `--parallel` run mid-migration leaves worker databases that
   never repair themselves.** `TestCase::ensureDatabaseExists()` is

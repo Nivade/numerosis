@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Models\Central;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
@@ -42,6 +43,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
     'description',
 ])]
 #[UsePolicy(PlanFeaturePolicy::class)]
+#[Table(name: 'features')]
 class PlanFeature extends Model
 {
     /**
@@ -51,14 +53,6 @@ class PlanFeature extends Model
      * no such table.
      */
     use CentralConnection;
-
-    /**
-     * The class renamed; the table did not. Renaming `features` would mean
-     * rewriting five migrations and the `payment_plan_features` pivot's
-     * foreign key for a name only ever seen in a schema dump. The confusion
-     * this rename fixes was in the PHP namespace, never in the database.
-     */
-    protected $table = 'features';
 
     /** @use HasFactory<PlanFeatureFactory> */
     use HasFactory;

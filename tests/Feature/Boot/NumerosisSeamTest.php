@@ -9,6 +9,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Vite;
 use Illuminate\Http\Middleware\TrustHosts;
 use Illuminate\Routing\Route as IlluminateRoute;
 use Illuminate\Routing\Router;
@@ -26,10 +27,9 @@ use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Tests\Support\OverriddenTenant;
 
 /*
- * Every host-seam bug this extraction found lived in these methods (see
- * .claude/plans/post-extraction-review.md, Phase 3.3). This is the contract
- * between the package and bootstrap/app.php — nothing here should be able
- * to drift without a red test.
+ * Every host-seam bug this extraction found lived in these methods. This is
+ * the contract between the package and bootstrap/app.php — nothing here
+ * should be able to drift without a red test.
  */
 
 uses(RefreshDatabase::class);
@@ -293,7 +293,7 @@ it('assetTags() prefers vite() when the host has published and built its own cop
     // whole run first touches app(Vite::class) permanently caches that
     // path's content for every later test too. Cleared in this file's
     // afterEach() below, not just here, for exactly that reason.
-    (new ReflectionProperty(Illuminate\Foundation\Vite::class, 'manifests'))->setValue(null, []);
+    new ReflectionProperty(Vite::class, 'manifests')->setValue(null, []);
 
     /** @var string $html */
     $html = Numerosis::assetTags()->toHtml();
@@ -312,7 +312,7 @@ afterEach(function () {
     // test above) is a process-lifetime static, not reset between
     // Testbench application rebuilds — reset unconditionally so this file's
     // manifest mutation never leaks into an unrelated, later test.
-    (new ReflectionProperty(Illuminate\Foundation\Vite::class, 'manifests'))->setValue(null, []);
+    new ReflectionProperty(Vite::class, 'manifests')->setValue(null, []);
 });
 
 afterEach(function () {
@@ -368,7 +368,7 @@ it('replaces route registration entirely when registerRoutesUsing is set', funct
 
 it('resolves a model by convention when App\Models\<suffix> exists and extends the package model, no config needed', function () {
     Numerosis::resetModelCache();
-    Config::set('numerosis.models.'.PackageTenant::class, null);
+    Config::set('numerosis.models.'.PackageTenant::class);
 
     expect(Numerosis::model(PackageTenant::class))->toBe(Tenant::class);
 });
@@ -379,7 +379,7 @@ it('lets an explicit config override win over the convention match', function ()
 
     expect(Numerosis::model(PackageTenant::class))->toBe('App\\Models\\Central\\SomeOtherOverride');
 
-    Config::set('numerosis.models.'.PackageTenant::class, null);
+    Config::set('numerosis.models.'.PackageTenant::class);
 });
 
 it('builds the configured model from a factory, not the conventional guess', function () {
@@ -390,7 +390,7 @@ it('builds the configured model from a factory, not the conventional guess', fun
         expect(Numerosis::modelNameFor(TenantFactory::class))->toBe(OverriddenTenant::class)
             ->and(TenantFactory::new()->make())->toBeInstanceOf(OverriddenTenant::class);
     } finally {
-        Config::set('numerosis.models.'.PackageTenant::class, null);
+        Config::set('numerosis.models.'.PackageTenant::class);
         Numerosis::resetModelCache();
     }
 });
@@ -409,6 +409,6 @@ it('memoizes model() and resetModelCache() clears the memoized value', function 
     Numerosis::resetModelCache();
     expect(Numerosis::model(PackageTenant::class))->toBe('App\\Models\\Central\\Second');
 
-    Config::set('numerosis.models.'.PackageTenant::class, null);
+    Config::set('numerosis.models.'.PackageTenant::class);
     Numerosis::resetModelCache();
 });

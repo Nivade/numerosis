@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Models\Central;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder;
@@ -77,7 +78,7 @@ class CentralModelPolicyResolutionTest extends TestCase
      * missing, it was that *the resolved class was never the one asserted on*.
      * A new model with a policy is covered here by construction.
      *
-     * @return array<string, array{class-string<\Illuminate\Database\Eloquent\Model>, class-string}>
+     * @return array<string, array{class-string<Model>, class-string}>
      */
     public static function policyResolutionProvider(): array
     {
@@ -95,7 +96,7 @@ class CentralModelPolicyResolutionTest extends TestCase
     }
 
     /**
-     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $model
+     * @param  class-string<Model>  $model
      * @param  class-string  $policy
      */
     #[DataProvider('policyResolutionProvider')]

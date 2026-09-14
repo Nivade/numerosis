@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Contracts\Billing;
 
 use Illuminate\Support\Collection;
+use Nvade\Numerosis\Data\Billing\PlanFeature;
+use Nvade\Numerosis\Exceptions\Billing\PaymentPlanNotFound;
 
 interface PaymentPlanRepository
 {
@@ -19,7 +21,7 @@ interface PaymentPlanRepository
      * {@see findBySlug()}, for the checkout paths that cannot continue without
      * a plan and all refuse an unknown slug identically.
      *
-     * @throws \Nvade\Numerosis\Exceptions\Billing\PaymentPlanNotFound
+     * @throws PaymentPlanNotFound
      */
     public function findBySlugOrFail(string $slug): Plan;
 
@@ -43,7 +45,7 @@ interface PaymentPlanRepository
     public function mostPopularSlug(): ?string;
 
     /**
-     * @return Collection<int, \Nvade\Numerosis\Data\Billing\PlanFeature>
+     * @return Collection<int, PlanFeature>
      */
     public function featuresFor(Plan $plan): Collection;
 }

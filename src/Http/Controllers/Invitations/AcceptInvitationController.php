@@ -32,7 +32,7 @@ class AcceptInvitationController extends Controller
         } catch (ShowsMessageToUser $e) {
             // `auth:web` guarantees this request is authenticated, so `login`
             // would bounce off Fortify's `guest` middleware and lose the flash.
-            return redirect()->route(RouteNames::tenantsMine())->with('status', $e->getMessage());
+            return to_route(RouteNames::tenantsMine())->with('status', $e->getMessage());
         }
 
         session()->forget(SessionKey::PendingInvitation->value);
@@ -42,7 +42,7 @@ class AcceptInvitationController extends Controller
         $domain = $tenant?->primaryDomain();
 
         if ($domain === null) {
-            return redirect()->route(RouteNames::tenantsMine());
+            return to_route(RouteNames::tenantsMine());
         }
 
         return redirect()->to($domain->url);

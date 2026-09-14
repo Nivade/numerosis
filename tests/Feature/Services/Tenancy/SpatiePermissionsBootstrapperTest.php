@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Services\Tenancy;
 
-use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Tests\Support\TestTenant;

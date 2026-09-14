@@ -222,7 +222,7 @@ class SocialLoginTest extends TestCase
 
         $this->get('/auth/google/callback')->assertRedirect();
 
-        Event::assertDispatched(SocialAccountLinked::class, fn (SocialAccountLinked $event): bool => $event->provider === SocialProvider::Google->value);
+        Event::assertDispatched(fn (SocialAccountLinked $event): bool => $event->provider === SocialProvider::Google->value);
     }
 
     public function test_unlinking_dispatches_social_account_unlinked(): void
@@ -241,7 +241,7 @@ class SocialLoginTest extends TestCase
             ->delete("/settings/social/{$socialAccount->id}")
             ->assertRedirect();
 
-        Event::assertDispatched(SocialAccountUnlinked::class, fn (SocialAccountUnlinked $event): bool => $event->globalUserId === $user->global_id);
+        Event::assertDispatched(fn (SocialAccountUnlinked $event): bool => $event->globalUserId === $user->global_id);
     }
 
     public function test_unlinking_someone_elses_account_is_refused(): void
@@ -390,7 +390,7 @@ class SocialLoginTest extends TestCase
             $this->get('/auth/google/redirect')->assertRedirect();
         }
 
-        $this->get('/auth/google/redirect')->assertStatus(429);
+        $this->get('/auth/google/redirect')->assertTooManyRequests();
     }
 
     /**

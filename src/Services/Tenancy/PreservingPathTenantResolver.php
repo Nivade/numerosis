@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Tenancy;
 
+use Illuminate\Routing\Route;
 use Override;
 use Stancl\Tenancy\Contracts\Tenant;
 use Stancl\Tenancy\Exceptions\TenantCouldNotBeIdentifiedByPathException;
@@ -28,7 +29,7 @@ class PreservingPathTenantResolver extends PathTenantResolver
     #[Override]
     public function resolveWithoutCache(mixed ...$args): Tenant
     {
-        /** @var \Illuminate\Routing\Route $route */
+        /** @var Route $route */
         $route = $args[0];
 
         $id = $route->parameter(PathTenantResolver::$tenantParameterName);

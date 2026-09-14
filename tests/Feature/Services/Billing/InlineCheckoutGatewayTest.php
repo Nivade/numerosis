@@ -48,8 +48,8 @@ class InlineCheckoutGatewayTest extends TestCase
         ]);
 
         $intent = resolve(InlineCheckoutGateway::class)->begin(new TenantProvisionData(
-            name: 'Inline Test Co',
             slug: 'inline-test',
+            name: 'Inline Test Co',
             contributions: [new OwnerContribution($user->global_id), new BillingContribution(
                 payment_plan: 'basic',
                 billing_cycle: BillingCycle::Monthly,

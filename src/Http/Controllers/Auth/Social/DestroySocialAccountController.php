@@ -23,7 +23,7 @@ class DestroySocialAccountController extends Controller
 
         event(new SocialAccountUnlinked($globalUserId, $provider));
 
-        return redirect()->route('settings.connected-accounts')->with(
+        return to_route('settings.connected-accounts')->with(
             'status',
             __(':provider disconnected.', ['provider' => $socialAccount->provider->label()]),
         );

@@ -7,11 +7,13 @@ namespace Nvade\Numerosis\Tests\Feature\Http\Controllers\Billing;
 use App\Models\Central\CentralUser;
 use App\Models\Central\Subscription;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Nvade\Numerosis\Actions\Billing\SyncTenantToStripe;
+use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\SubscriptionCancelled;
 use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
 use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
@@ -394,6 +396,48 @@ class WebhookControllerLifecycleTest extends TestCase
 
         $this->assertSame(1, Subscription::where('stripe_id', 'sub_racing')->count());
         $this->assertFalse($tenant->refresh()->subscriptions()->where('stripe_id', 'sub_racing')->exists());
+    }
+
+    /**
+     * The settling delivery is the one that clears `settled_at`, so a
+     * redelivery updates no rows and announces nothing.
+     */
+    public function test_invoice_payment_succeeded_dispatches_payment_settled_once(): void
+    {
+        Event::fake([PaymentSettled::class]);
+
+        $customerId = 'cus_settling';
+        ['tenant' => $tenant, 'owner' => $owner] = $this->tenantWithStripeCustomer($customerId);
+
+        TenantProvision::factory()->create([
+            'stripe_subscription_id' => 'sub_settling',
+            'settled_at' => null,
+        ]);
+
+        $payload = [
+            'id' => 'evt_invoice_settled',
+            'type' => 'invoice.payment_succeeded',
+            'data' => [
+                'object' => [
+                    'id' => 'in_settled',
+                    'customer' => $customerId,
+                    'subscription' => 'sub_settling',
+                ],
+            ],
+        ];
+
+        $path = Config::string('numerosis.billing.webhook_path', 'billing/webhook');
+
+        $this->postJson($path, $payload)->assertOk();
+
+        Event::assertDispatchedTimes(PaymentSettled::class, 1);
+        Event::assertDispatched(fn (PaymentSettled $e): bool => $e->tenant->id === $tenant->id
+            && $e->tenantId === $tenant->id
+            && $e->ownerId === $owner->id);
+
+        $this->postJson($path, $payload)->assertOk();
+
+        Event::assertDispatchedTimes(PaymentSettled::class, 1);
     }
 
     public function test_invoice_payment_failed_notifies_without_suspending(): void

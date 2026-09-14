@@ -146,7 +146,7 @@ class RegistrationState extends State
 
             $contribution = $step::contribute($this->forStepClass($step));
 
-            if ($contribution !== null) {
+            if ($contribution instanceof ProvisionContribution) {
                 $contributions[] = $contribution;
             }
         }
