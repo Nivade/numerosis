@@ -17,6 +17,37 @@ phase names the test that would have caught it.
 **Line numbers in this file drift.** Grep for the symbol; treat a mismatch as
 drift, not as a missing thing.
 
+## Re-audited again 2026-09-14 against `98d677c`
+
+Eighty-four commits landed after the `3c3de4e` audit: the provisioning-pipeline
+redesign, the contribution registry, the contract-seam audit, the enum sweep,
+phpstan-strict-rules, and the workbench MySQL switch. As before, **none of them
+executed a phase of this plan** — but they closed one row outright, closed half
+of another, and grew Phase 6 by a factor of three.
+
+Baseline at `98d677c`: `composer test` 721 passed / 6 skipped / 0 failed,
+`phpstan-baseline.neon` **17 entries, not 5**.
+
+**The baseline grew 5 → 17, and that is accepted.** Every new entry came from
+adding phpstan-strict-rules (`4d26b2c`, `e580427`), not from suppressing an
+existing error, so the "must not grow" constraint below reads against 17 from
+here. It still means what it said: an entry added to make a *fix* pass is the
+shortcut this plan exists to prevent.
+
+Changes to the table below since `3c3de4e`:
+
+| Row | What moved |
+|---|---|
+| 10.3 | **Closed.** `05c4070` runs the social-login transaction on the central connection |
+| 8.2 | **Half closed.** `provisioning()` and `failed()` have real callers now (`TenantsMineTest`, `ProvisionTenantTest`, `TenantProvisioningSignalTest`). Only `bot()` and `forCheckout()` are zero-reference. Maintainer decided 2026-09-14: delete `bot()`, keep `forCheckout()` |
+| 5.3 | **Closed.** The README Live table was re-audited 2026-09-12; all three wrong rows are archived and the `--parallel` claim is now true, since `composer test` is parallel again |
+| 6.1 / 6.2 | **Tripled.** `src/` alone measures 36 over-cap docblocks and 10 over-cap `//` runs, against 18 and 4 at `3c3de4e`. Repo-wide 56 and 35. The pipeline and contract refactors wrote the new ones — `ProvisioningStep` 14, `ProvisionContribution` 11, `ConfiguredSteps` 10, `MiddlewareRegistrar:102` a 9-line `//` run |
+| 5.1 | Three new stale citations joined the seven: `tenant-provisioning.md:130`/`:170` (both into `vendor/stancl/`) and `exception-handling.md:32` |
+| 8.4 | The fix is now larger than "add a view": `testbench.yaml` sets `discovers.views: false` and `WorkbenchServiceProvider::boot()` loads the `numerosis::` namespace only, so a `welcome.blade.php` alone still 404s the view |
+
+Everything else in the table is unchanged and was re-verified by reading the
+code at `98d677c`.
+
 ## Execution status, re-audited 2026-09-07 against `3c3de4e`
 
 Nineteen commits landed after the `1798bab` audit — a `src/` reorganization,
