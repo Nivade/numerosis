@@ -17,6 +17,7 @@ use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Models\Central\SocialAccount;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Tests\TestCase;
 use RuntimeException;
 
@@ -435,7 +436,7 @@ class SocialLoginTest extends TestCase
         // `creating` fires before the INSERT, inside the transaction and
         // before commit — unlike SocialAccountLinked, which is
         // ShouldDispatchAfterCommit and so can never observe a rollback.
-        SocialAccount::creating(function (): void {
+        Numerosis::model(SocialAccount::class)::creating(function (): void {
             throw new RuntimeException('social account write failure');
         });
 

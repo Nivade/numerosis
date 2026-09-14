@@ -48,6 +48,12 @@ execution had introduced (phase 9's billable narrowing) and per-phase Done
 notes missing from six sections. Both fixed in the same pass; the suite ran
 710 passed / 6 skipped and `composer analyse` cold-clean.
 
+`pr-review-remediation.md` moved to `archive/` 2026-09-14: every phase
+executed, including the comment-budget sweep, which took the repo from 56
+over-budget docblocks and 35 over-cap `//` runs to zero of each. Suite 734
+passed / 6 skipped, `composer analyse` cold-clean, PHPStan baseline unchanged
+at 17.
+
 `enum-vocabulary-sweep.md` moved to `archive/` 2026-09-12: all eight phases
 executed on `refactor/enum-vocabulary-sweep`, `composer test` green (721
 passed / 6 skipped) and `composer analyse` clean at every phase boundary.
@@ -57,7 +63,6 @@ passed / 6 skipped) and `composer analyse` clean at every phase boundary.
 | Plan | State |
 |---|---|
 | `luminous-wandering-brook.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
-| `pr-review-remediation.md` | **Partially executed.** Re-audited 2026-09-07 against `3c3de4e`: most phases fixed, but phase 4 (webhook payload guard) is still open and phase 5.1 (line-number citation sweep) has 7 of 9 left |
 | `post-extraction-review.md` | **Mostly done; three items survive.** Its Live status block is stale — read the correction at the top of the file, not the table |
 
 ## Abandoned

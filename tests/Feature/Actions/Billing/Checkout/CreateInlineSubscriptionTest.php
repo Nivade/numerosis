@@ -7,10 +7,12 @@ namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Checkout;
 use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
+use Laravel\Cashier\Subscription as CashierSubscription;
 use Nvade\Numerosis\Actions\Billing\Checkout\CreateInlineSubscription;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
 use Nvade\Numerosis\Tests\TestCase;
+use RuntimeException;
 
 /**
  * Hits real Stripe test mode end to end: creates a customer, confirms a
@@ -75,5 +77,39 @@ class CreateInlineSubscriptionTest extends TestCase
         // Billable::latestSubscription(). See .ai/rules/billing-checkout.md.
         $pending->refresh();
         $this->assertSame($subscription->stripe_id, $pending->stripe_subscription_id);
+    }
+
+    /**
+     * The model mismatch used to be caught on the object Cashier returns,
+     * which is after the customer has been charged and before the reservation
+     * records the subscription id — the one outcome worse than either failing
+     * early or succeeding. No Stripe credentials are needed to prove the
+     * ordering: reaching Stripe at all would raise a Stripe exception instead.
+     */
+    public function test_a_misconfigured_subscription_model_fails_before_the_stripe_call(): void
+    {
+        $user = CentralUser::factory()->create();
+        $this->actingAs($user);
+
+        $this->createStarterPlan('price_never_used');
+
+        $pending = $this->reserve('inline-sub-guard', $user, null, [
+            'payment_plan' => 'starter',
+            'billing_cycle' => BillingCycle::Monthly,
+        ]);
+
+        /** @var class-string<\Illuminate\Database\Eloquent\Model> $original */
+        $original = Cashier::$subscriptionModel;
+        Cashier::useSubscriptionModel(CashierSubscription::class);
+
+        try {
+            $this->expectException(RuntimeException::class);
+
+            CreateInlineSubscription::run($pending, 'pm_card_visa');
+        } finally {
+            Cashier::useSubscriptionModel($original);
+
+            $this->assertNull($pending->refresh()->stripe_subscription_id);
+        }
     }
 }

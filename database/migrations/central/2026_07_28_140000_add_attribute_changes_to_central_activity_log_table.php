@@ -7,12 +7,10 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Mirrors database/migrations/tenant/2026_05_01_000003_add_attribute_changes_to_activity_log_table.php,
- * which was only ever applied to tenant databases. spatie/laravel-activitylog
- * v5 writes changes to `attribute_changes` rather than v4's `properties`, so
- * without this column every activity written on the central connection fails
- * with "Unknown column 'attribute_changes' in 'field list'" — logging a central
- * model is not an exotic path, it is what the admin panel does.
+ * The tenant databases' `attribute_changes` column, for the central one.
+ * spatie/laravel-activitylog v5 writes changes there rather than to v4's
+ * `properties`, so without it every activity logged on the central connection
+ * fails with "Unknown column 'attribute_changes' in 'field list'".
  */
 return new class extends Migration
 {

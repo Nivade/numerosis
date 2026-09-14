@@ -21,10 +21,8 @@ use RuntimeException;
  * One link in the provisioning chain: the bookkeeping around a single
  * {@see ProvisioningStep}.
  *
- * Being a link per step is the point. The steps used to run in one job, so a
- * failure in the fifth re-ran the first four, which is why every step had to
- * be idempotent. Here each has its own retries, and a step already recorded
- * done is not run again — a retry resumes rather than restarting.
+ * One link per step, so each has its own retries and a step already recorded
+ * done is not run again: a retry resumes where the chain stopped.
  */
 final class RunProvisioningStep implements ShouldQueue
 {

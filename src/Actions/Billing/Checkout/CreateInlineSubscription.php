@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
+use Laravel\Cashier\Cashier;
 use Laravel\Cashier\Exceptions\IncompletePayment;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
@@ -58,6 +59,11 @@ class CreateInlineSubscription
 
         throw_unless($billable instanceof BillableUser, UnsupportedBillable::class, 'Billable must be a central user to create an inline subscription.');
 
+        // Checked here rather than on the object Cashier returns: the same
+        // mismatch is knowable before the charge, and after it a throw leaves
+        // the customer subscribed in Stripe with nothing local recording it.
+        throw_unless(is_a(Cashier::$subscriptionModel, Subscription::class, true), RuntimeException::class, 'Cashier is configured with a subscription model that is not '.Subscription::class.'; check numerosis.billing.models.subscription.');
+
         $stripeSubscription = $billable->newSubscription('default', $priceId)
             ->withMetadata(['slug' => $pending->slug]);
 
@@ -89,7 +95,7 @@ class CreateInlineSubscription
             throw $e;
         }
 
-        throw_unless($subscription instanceof Subscription, RuntimeException::class, 'Cashier resolved the subscription to a different model than the one configured via Numerosis::model().');
+        assert($subscription instanceof Subscription);
 
         $pending->update(['stripe_subscription_id' => $subscription->stripe_id]);
 

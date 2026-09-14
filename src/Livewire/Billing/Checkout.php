@@ -363,12 +363,9 @@ class Checkout extends Component
      * The billable paying for a reservation, or null with `$paymentError`
      * already set.
      *
-     * Ownership is re-checked here as well as `$pendingDomain` being
-     * `#[Locked]`: the lock stops the client changing the value, but only this
-     * proves the reservation belongs to whoever is paying. It goes through
-     * {@see AssertReservationIsOwned} — the same rule `ResolveSetupIntent` and
-     * `ResumeCheckout` apply — so a new entry point on this component cannot
-     * reach a stranger's reservation by re-deciding it.
+     * `#[Locked]` on `$pendingDomain` stops the client changing the value;
+     * only {@see AssertReservationIsOwned} proves the reservation belongs to
+     * whoever is paying.
      */
     private function billableFor(TenantProvision $pending): ?BillableUser
     {

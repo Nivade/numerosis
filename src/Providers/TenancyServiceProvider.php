@@ -76,13 +76,9 @@ class TenancyServiceProvider extends ServiceProvider
         return [
             // Tenant events
             CreatingTenant::class => [],
-            // Deliberately empty. Building a tenant's database is a step in
-            // `numerosis.tenancy.provisioning.steps`, so there is one ordered
-            // list rather than two with incompatible calling conventions, and
-            // `Tenant::create()` no longer builds a database as a side effect
-            // of a model event. Register a pipeline here yourself if you want
-            // that back — but note JobPipeline runs every job in one queued
-            // job and swallows a failure whose job defines failed().
+            // Deliberately empty: building a tenant's database is a step in
+            // `numerosis.tenancy.provisioning.steps`, so creating the row has
+            // no database as a side effect.
             TenantCreated::class => [],
             SavingTenant::class => [],
             TenantSaved::class => [],
@@ -211,11 +207,9 @@ class TenancyServiceProvider extends ServiceProvider
     protected function makeTenancyMiddlewareHighestPriority(): void
     {
         $tenancyMiddleware = [
-            // Even higher priority than the initialization middleware. The
-            // `tenancy.route` alias resolves to TenantRouteGuard, which
-            // delegates to this at request time; both need to be listed here
-            // since Laravel's priority sort runs against the alias's literal
-            // target class, not what that class delegates to.
+            // Both the guard and what it delegates to: Laravel's priority
+            // sort runs against the alias's literal target class, not against
+            // what that class delegates to at request time.
             TenantRouteGuard::class,
             PreventAccessFromCentralDomains::class,
 

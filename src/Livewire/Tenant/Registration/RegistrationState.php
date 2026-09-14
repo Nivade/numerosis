@@ -81,11 +81,8 @@ class RegistrationState extends State
 
     /**
      * The payload provisioning takes, built once here rather than field by
-     * field in whichever step happens to be submitting.
-     *
-     * Contributions come from every configured step that offers one, so a
-     * host step reaches provisioning through the same seam core's own steps
-     * use.
+     * field in whichever step happens to be submitting. Contributions come
+     * from every configured step that offers one, core's and a host's alike.
      *
      * @throws MissingTenantIdentity When the wizard has no name or slug yet,
      *                               which means a step was skipped.

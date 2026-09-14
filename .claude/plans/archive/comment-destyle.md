@@ -3,7 +3,13 @@
 Bring every comment and docblock in `src/` up to `.ai/rules/general.md`. Read
 that rule first. It is the standard; this plan is only the execution order.
 
-## Status — 2026-09-05: the sweep is done
+## Status — 2026-09-05: the sweep is done, and has since regressed
+
+> **Re-measured 2026-09-14 with this plan's own `awk`: `src/` alone is 36
+> over-budget docblocks and 10 over-cap `//` runs, repo-wide 56 and 35.** The
+> table below is the state the sweep left, not the state of the tree. The
+> provisioning-pipeline and contract-seam refactors wrote most of the new ones.
+> Phase 6 of `.claude/plans/pr-review-remediation.md` is where that is tracked.
 
 Every phase of this plan has run. `.ai/rules/general.md` is the standard; this
 file is now a record of how it was enforced.

@@ -59,6 +59,14 @@ POSIX classes, not `\s`: the default `awk` here is mawk, which does not
 support `\s` and silently matches nothing rather than erroring. A version of
 this check using `\s` reported zero hits against 114 real ones.
 
+**Run the `//` check one file at a time** (`while read -r f; do awk ... "$f"; done`).
+Given many files at once, mawk prints the run's line number against whichever
+`FILENAME` is current when the *next* file's first non-comment line triggers
+the print, so a run is attributed to the wrong file. Measured 2026-09-14: the
+multi-file form reported five violations that did not exist, including one in a
+7-line file with no comments at all. Add the `END` block too, or a run at
+end-of-file is never printed.
+
 ### `docs/` is not on a host's disk
 
 `.gitattributes` marks `/docs`, `/tests` and `/workbench` `export-ignore`, so a Composer dist install has `src/`, `config/`, `routes/`, `resources/`, `database/`, `stubs/` and `.ai/` — and no `docs/`. A source comment saying "see `docs/extending.md`" therefore dangles for every host, the same defect as the `.ai/rules` citations. State the fact or leave it out.

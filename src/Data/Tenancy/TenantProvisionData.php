@@ -12,12 +12,9 @@ use Spatie\LaravelData\Data;
  * What a tenant is to be provisioned with: its identity, plus whatever anyone
  * contributed.
  *
- * Only three fields are named here, and they are the three every shipped step
- * dereferences: the slug keys the provision row, the reservation and the
- * mutex; the name becomes `tenants.name`; the owner is who gets attached.
- * Everything else — including the package's own billing and custom-domain
- * data — arrives as a {@see ProvisionContribution}, so core holds no fields a
- * host could not have contributed itself.
+ * Identity is the only thing named here. Everything else, the package's own
+ * billing and custom-domain data included, arrives as a
+ * {@see ProvisionContribution}.
  */
 class TenantProvisionData extends Data
 {
@@ -89,12 +86,10 @@ class TenantProvisionData extends Data
     }
 
     /**
-     * Only `name`: it's validated identically wherever it's collected.
-     * `slug` is deliberately not here — the registration wizard checks
-     * availability against `tenant_provisions` before checkout exists, while
-     * checkout checks it through
-     * {@see \Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy} against the
-     * tenant that's about to be created; same field, different rules by design.
+     * Only `name`, which is validated identically wherever it is collected.
+     * `slug` is not here: the wizard checks availability against
+     * `tenant_provisions`, while checkout checks it through
+     * {@see \Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy}.
      *
      * @return array<string, list<mixed>>
      */

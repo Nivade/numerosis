@@ -16,8 +16,8 @@ class PromoteFirstCentralUserToAdmin
 
     /**
      * Grants the admin role to the first central user, so a fresh install has
-     * someone who can reach the admin panel. Does nothing once a second user
-     * exists, or before roles are seeded.
+     * someone holding it. Does nothing once a second user exists, or before
+     * roles are seeded.
      */
     public function handle(CentralUser $user): void
     {

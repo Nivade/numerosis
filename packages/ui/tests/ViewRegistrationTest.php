@@ -60,12 +60,9 @@ class ViewRegistrationTest extends TestCase
     }
 
     /*
-     * The property that decides what may live here at all — no view or class
-     * here may name Nvade\Numerosis, call tenancy(), or generate a named route
-     * (`layouts/` and `partials/` were moved into this package and moved
-     * straight back out for failing exactly that) — is enforced in the root
-     * suite now, by Nvade\Numerosis\Tests\Feature\PackageBoundariesTest. It
-     * covers this package's `src/` as well as its views, and the two sibling
-     * packages besides. One repo, one place those rules live.
+     * What may live here at all — no view or class naming Nvade\Numerosis,
+     * calling tenancy(), or generating a named route — is enforced in the root
+     * suite by Nvade\Numerosis\Tests\Feature\PackageBoundariesTest, over this
+     * package's src/ as well as its views.
      */
 }

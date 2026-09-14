@@ -19,11 +19,8 @@ use Throwable;
  * Turns a provisioning request into a queued chain, one link per configured
  * step. Reach it through {@see ProvisionsTenant::queue()}.
  *
- * Nothing runs synchronously here beyond writing the provision row and
- * claiming the slug. The first step used to run inline because `Bus::chain()`
- * serializes every link up front and so could not hand a later step a `Tenant`
- * an earlier one produced; steps take the provision row and resolve what they
- * need from it, which removes the reason.
+ * Nothing runs synchronously beyond writing the provision row and claiming the
+ * slug.
  */
 class ProvisionTenant implements ProvisionsTenant
 {

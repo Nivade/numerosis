@@ -357,10 +357,9 @@ return [
         'seeder' => TenantDatabaseSeeder::class,
 
         'provisioning' => [
-            // Run in order, each as its own link in a queued chain, each
-            // recorded on the provision row so a retry resumes rather than
-            // restarting. Insert your own anywhere: every entry has the same
-            // signature and there is no privileged first or last step.
+            // Run in order, each its own link in a queued chain and each
+            // recorded on the provision row, so a retry resumes. Insert your
+            // own anywhere; there is no privileged first or last step.
             'steps' => [
                 CreateTenantAction::class,
                 CreateTenantDatabase::class,
@@ -373,20 +372,18 @@ return [
             ],
         ],
 
-        // 'registration' => ['steps' => [...]] is intentionally absent: the
-        // shipped wizard steps fill this key from their own register() when
-        // nothing has set it, so core's own config never names a class that
-        // might not be installed. A value present here wins.
+        // 'registration' => ['steps' => [...]] is absent deliberately: the
+        // shipped wizard steps fill it from their own register() when nothing
+        // has, so core never names a class that might not be installed.
 
         // Caches the domain lookup every tenant request would otherwise pay
-        // against the central database. Leave null to follow whether
-        // cache.serializable_classes can hold a cached tenant model; true or
-        // false decides it yourself.
+        // against the central database. Null follows whether
+        // cache.serializable_classes can hold a cached tenant model.
         'cache_resolved_tenants' => null,
 
-        // Swap any of these for your own implementation. Registration,
-        // post-login redirect and password reset are Fortify's seams
-        // instead, set with Fortify::createUsersUsing() and friends.
+        // Swap any of these for your own implementation; registration and
+        // password reset are Fortify's seams instead. The last three are auth,
+        // not tenancy, and live here because TenancyServiceProvider binds it.
         'implementations' => [
             TenantDomainPolicy::class => DefaultTenantDomainPolicy::class,
             ProvisionsTenant::class => ProvisionTenant::class,

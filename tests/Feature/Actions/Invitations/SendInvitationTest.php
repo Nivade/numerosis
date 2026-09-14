@@ -8,10 +8,12 @@ use App\Models\Central\CentralUser;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use Nvade\Numerosis\Actions\Invitations\SendInvitation;
 use Nvade\Numerosis\Data\Invitations\InvitationData;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Central\Invitation;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Tests\TestCase;
 
 class SendInvitationTest extends TestCase
@@ -63,6 +65,54 @@ class SendInvitationTest extends TestCase
         SendInvitation::run($tenant, $data, $inviter);
         SendInvitation::run($tenant, $data, $inviter);
 
+        $this->assertSame(1, Invitation::where('tenant_id', $tenant->getKey())->where('email', $email)->count());
+    }
+
+    /**
+     * `firstOrNew` + `save()` is two statements against
+     * `unique(tenant_id, email)`, so a second invite to the same address
+     * landing between them used to surface as a `QueryException` on a
+     * perfectly ordinary re-invite. The competing row is inserted from a
+     * `creating` listener, which is exactly the window.
+     */
+    public function test_a_concurrent_invite_to_the_same_address_re_issues_rather_than_throwing(): void
+    {
+        Notification::fake();
+
+        $tenant = Tenant::factory()->create();
+        $inviter = CentralUser::factory()->create();
+        $email = 'raced-'.uniqid().'@example.com';
+
+        $raced = false;
+
+        $invitationClass = Numerosis::model(Invitation::class);
+
+        $invitationClass::creating(function (Invitation $invitation) use (&$raced, $tenant, $email): void {
+            if ($raced) {
+                return;
+            }
+
+            $raced = true;
+
+            Invitation::query()->getConnection()->table('tenant_invitations')->insert([
+                'ulid' => (string) Str::ulid(),
+                'tenant_id' => $tenant->getKey(),
+                'email' => $email,
+                'role' => MembershipRole::Viewer->value,
+                'expires_at' => now()->addDays(7),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        try {
+            $invitation = SendInvitation::run($tenant, new InvitationData($email, MembershipRole::Member), $inviter);
+        } finally {
+            $invitationClass::flushEventListeners();
+        }
+
+        $this->assertTrue($raced);
+        $this->assertSame(MembershipRole::Member, $invitation->fresh()?->role);
         $this->assertSame(1, Invitation::where('tenant_id', $tenant->getKey())->where('email', $email)->count());
     }
 }

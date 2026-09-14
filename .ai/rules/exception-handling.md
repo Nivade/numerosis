@@ -29,7 +29,7 @@ paths:
 error, and the real exception is destroyed along with the handler.
 
 It surfaced as `Argument #2 ($code) must be of type int, string given`,
-pointing at `SeedTenantDatabase.php:45` and saying nothing about the query.
+pointing at `SeedTenantDatabase::handle()` and saying nothing about the query.
 Five sites did this; all now pass `0`. `previous:` already carries the cause,
 so the code was never buying anything.
 

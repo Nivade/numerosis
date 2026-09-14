@@ -22,15 +22,8 @@ use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
 
 /**
  * Fills in the config this package needs, so an app only has to supply
- * ordinary Laravel database credentials to get a working install.
- *
- * A **preference** (`numerosis.*` names a value a host might legitimately
- * want another value for) is projected onto its vendor key unconditionally.
- * A **correction** (the package does not work otherwise) is written only
- * while its vendor key is unset or still holding a stock value Laravel or
- * stancl/tenancy shipped, several of which never resolve to null. Every
- * write is recorded and reported by `numerosis:install`, and running twice
- * is inert.
+ * ordinary Laravel database credentials to get a working install. Every write
+ * is recorded and reported by `numerosis:install`, and running twice is inert.
  */
 final class HostConfig
 {

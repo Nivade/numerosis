@@ -167,6 +167,95 @@ class WebhookControllerLifecycleTest extends TestCase
             && $e->gracePeriodEndsAt?->getTimestamp() === $periodEnd);
     }
 
+    /**
+     * Stripe moved `current_period_end` off the subscription onto its items in
+     * API version `2025-03-31.basil`, and Cashier v16 pins
+     * `2026-08-26.dahlia`, so this is the shape a live account actually sends.
+     */
+    public function test_subscription_deleted_reads_the_grace_period_off_the_subscription_item(): void
+    {
+        Notification::fake();
+        Event::fake([SubscriptionCancelled::class]);
+
+        $customerId = 'cus_item_period';
+        ['tenant' => $tenant] = $this->tenantWithStripeCustomer($customerId);
+
+        $periodEnd = now()->addDays(5)->getTimestamp();
+
+        $payload = [
+            'id' => 'evt_item_period',
+            'type' => 'customer.subscription.deleted',
+            'data' => [
+                'object' => [
+                    'id' => 'sub_item_period',
+                    'customer' => $customerId,
+                    'items' => ['data' => [['current_period_end' => $periodEnd]]],
+                ],
+            ],
+        ];
+
+        $this->postJson(Config::string('numerosis.billing.webhook_path', 'billing/webhook'), $payload)->assertOk();
+
+        Event::assertDispatched(fn (SubscriptionCancelled $e): bool => $e->tenant->id === $tenant->id
+            && $e->gracePeriodEndsAt?->getTimestamp() === $periodEnd);
+    }
+
+    /**
+     * `customer` is a string on an unexpanded payload and an object on an
+     * expanded one. The array-shape docblock declaring `customer?: string` is
+     * a claim about untrusted input, not a check, so an expanded payload used
+     * to reach a `?string` parameter as an array and 500 — a webhook Stripe
+     * then retries indefinitely.
+     *
+     * Flattened at the front door, so the expanded form resolves the same
+     * tenant the id form does rather than merely surviving.
+     */
+    public function test_an_expanded_customer_object_still_resolves_the_tenant(): void
+    {
+        Notification::fake();
+        Event::fake([SubscriptionCancelled::class]);
+
+        ['tenant' => $tenant] = $this->tenantWithStripeCustomer('cus_expanded');
+
+        $payload = [
+            'id' => 'evt_expanded_deleted',
+            'type' => 'customer.subscription.deleted',
+            'data' => [
+                'object' => [
+                    'id' => 'sub_expanded',
+                    'customer' => ['id' => 'cus_expanded', 'object' => 'customer'],
+                ],
+            ],
+        ];
+
+        $this->postJson(Config::string('numerosis.billing.webhook_path', 'billing/webhook'), $payload)->assertOk();
+
+        $this->assertTrue($tenant->refresh()->isSuspended());
+        Event::assertDispatched(fn (SubscriptionCancelled $e): bool => $e->tenant->id === $tenant->id);
+    }
+
+    public function test_an_expanded_customer_object_does_not_500_a_dunning_notice(): void
+    {
+        Notification::fake();
+
+        ['owner' => $owner] = $this->tenantWithStripeCustomer('cus_expanded_failed');
+
+        $payload = [
+            'id' => 'evt_expanded_failed',
+            'type' => 'invoice.payment_failed',
+            'data' => [
+                'object' => [
+                    'id' => 'in_expanded',
+                    'customer' => ['id' => 'cus_expanded_failed', 'object' => 'customer'],
+                ],
+            ],
+        ];
+
+        $this->postJson(Config::string('numerosis.billing.webhook_path', 'billing/webhook'), $payload)->assertOk();
+
+        Notification::assertSentTo($owner, PaymentFailed::class);
+    }
+
     public function test_subscription_updated_to_active_restores_a_suspended_tenant(): void
     {
         $customerId = 'cus_recovered';

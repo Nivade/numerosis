@@ -127,7 +127,8 @@ suite) rather than a fresh install. Every one of these produced a passing
   it silently converts *any* cached object, of *any* class, into a useless
   `__PHP_Incomplete_Class` — no exception, no log line, at the exact
   moment of the read. `DomainTenantResolver::resolve()` caches a full
-  `Tenant` model (`TenancyServiceProvider.php:182`), which on `tabellio`
+  `Tenant` model (bound in `TenancyServiceProvider::registerCachedDomainResolver()`),
+  which on `tabellio`
   was the very first thing in the whole app to cache an Eloquent object at
   all — so this had presumably never fired against that host's cache
   store before. First request after cache-clear resolves the tenant fine

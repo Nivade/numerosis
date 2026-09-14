@@ -134,12 +134,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
-        // Skipped under `config:cache`, where the cached `numerosis` key is
-        // already complete and filling it is a guaranteed no-op — the require
-        // below executes a 373-line array with ten env() calls on every boot,
-        // and env() reads unloaded $_ENV in that state. Standard Laravel
-        // config-cache semantics follow: a host upgrading the package picks up
-        // new default keys when it re-runs `config:cache`, not before.
+        // Skipped under `config:cache`: the cached `numerosis` key is already
+        // complete, and the require below executes a 373-line array of env()
+        // calls that read an unloaded $_ENV in that state.
         if (! $this->app->configurationIsCached()) {
             // Not `mergeConfigFrom()`: Laravel merges published config only one
             // level deep, so a host file naming `billing` at all would shadow
@@ -498,13 +495,10 @@ class NumerosisServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Registers the same aliases, groups and trust settings as
-     * {@see Numerosis::middleware()}, for an app that never calls it from
-     * `bootstrap/app.php`. {@see Numerosis::registerMiddlewareUsing()}
-     * replaces this entirely.
-     *
-     * A host that did call it keeps whatever it configured afterwards; running
-     * again here would revert its trust settings and alias swaps.
+     * Registers the same aliases and groups as {@see Numerosis::middleware()},
+     * for an app that never calls it from `bootstrap/app.php`. A host that did
+     * call it keeps whatever it configured afterwards, since running again
+     * here would revert its trust settings and alias swaps.
      */
     protected function registerMiddleware(): void
     {

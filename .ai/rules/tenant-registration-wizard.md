@@ -23,9 +23,9 @@ paths:
 >   from `Support\Tenancy\`.
 > - `/get-started` is a plain core route —
 >   `Route::livewire('/get-started', Registration::class)->name('tenants.create')`
->   in `routes/web.php:49` — not a host contribution. The
+>   in `routes/web.php` — not a host contribution. The
 >   component alias `tenant-registration` is registered by
->   `RegistrationWizardFeature` (`src/Features/Tenancy/RegistrationWizardFeature.php:90`),
+>   `RegistrationWizardFeature::bootstrap()`,
 >   because Livewire cannot discover a package's classes.
 > - **Every mention of Filament below is history.** `packages/filament`, both
 >   panels, the `RegisterTenant` page and `numerosis.panels.*` were deleted in

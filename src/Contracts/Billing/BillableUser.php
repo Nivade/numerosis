@@ -12,20 +12,12 @@ use Nvade\Numerosis\Contracts\Subscribable;
 use Stripe\PaymentMethod;
 
 /**
- * The central user shape every checkout path accepts: identity from
- * {@see CentralUserModel}, subscriptions from {@see Subscribable}, and the
- * slice of Cashier's `Billable` that checkout actually calls.
+ * The central user shape every checkout path accepts, so a host model that
+ * implements the interfaces without extending a package class still reaches
+ * the end of a checkout.
  *
- * Checkout narrows on this and not on the concrete `Models\Central\CentralUser`,
- * so a host model that implements the interfaces without extending a package
- * class — the case `HostConfig`'s `is_a()` check already assumes — reaches the
- * end of a checkout instead of failing it as a foreign session.
- *
- * Several methods below carry no native return type. That is not an omission:
- * Cashier declares none either, and an interface stricter than the trait
- * satisfying it is a fatal error. `global_id` and `stripe_id` are declared as
- * the accessors Cashier and stancl already provide, rather than as
- * `@property-read`, which PHPStan does not resolve through an interface.
+ * Several methods below carry no native return type: Cashier declares none,
+ * and an interface stricter than the trait satisfying it is a fatal error.
  */
 interface BillableUser extends CentralUserModel, Subscribable
 {

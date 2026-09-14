@@ -88,29 +88,32 @@ final class ModelResolver
     }
 
     /**
-     * The reverse of {@see self::factoryFor()}. Prefers a subclass in your own
-     * app namespace when one exists, so factories build the model you actually
-     * extended, and falls back to the package's own class.
+     * The reverse of {@see self::factoryFor()}, resolved through
+     * {@see self::resolve()} so a factory builds the same class production
+     * does — including a `numerosis.models.*` override outside `App\Models\`,
+     * which the conventional-path guess alone cannot see.
      *
-     * @param  class-string<Factory<Model>>  $factoryName
-     * @return class-string<Model>
+     * @template TModel of Model
+     *
+     * @param  class-string<Factory<TModel>>  $factoryName
+     * @return class-string<TModel>
      */
     public static function modelFor(string $factoryName): string
     {
         $suffix = self::suffixAfter($factoryName, '\\Database\\Factories\\');
         $suffix = preg_replace('/Factory$/', '', $suffix) ?? $suffix;
 
-        $hostModel = self::hostNamespaced($suffix);
-
-        if (class_exists($hostModel)) {
-            /** @var class-string<Model> $hostModel */
-            return $hostModel;
-        }
-
-        /** @var class-string<Model> $packageModel */
         $packageModel = 'Nvade\\Numerosis\\Models\\'.$suffix;
 
-        return $packageModel;
+        if (class_exists($packageModel) && is_subclass_of($packageModel, Model::class)) {
+            /** @var class-string<TModel> $packageModel */
+            return self::resolve($packageModel);
+        }
+
+        /** @var class-string<TModel> $hostModel */
+        $hostModel = self::hostNamespaced($suffix);
+
+        return $hostModel;
     }
 
     /**

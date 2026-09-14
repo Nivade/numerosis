@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Http\Controllers\Billing;
 
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -37,6 +38,35 @@ class WebhookController extends CashierWebhookController
     public function __construct(private readonly ProvisionsTenant $provisioning)
     {
         parent::__construct();
+    }
+
+    /**
+     * {@see self::withFlattenedCustomer()} for why the payload is rewritten
+     * before any handler sees it. The signature was verified by middleware
+     * against the original body, so rebuilding the request here cannot weaken
+     * it.
+     */
+    #[Override]
+    public function handleWebhook(Request $request): mixed
+    {
+        $payload = json_decode((string) $request->getContent(), true);
+
+        if (! is_array($payload)) {
+            return parent::handleWebhook($request);
+        }
+
+        $flattened = self::withFlattenedCustomer($payload);
+
+        if ($flattened === $payload) {
+            return parent::handleWebhook($request);
+        }
+
+        return parent::handleWebhook(Request::create(
+            $request->getRequestUri(),
+            $request->getMethod(),
+            server: $request->server->all(),
+            content: (string) json_encode($flattened),
+        ));
     }
 
     /**
@@ -169,18 +199,18 @@ class WebhookController extends CashierWebhookController
     {
         $response = parent::handleCustomerSubscriptionDeleted($payload);
 
-        /** @var array{data: array{object: array{id?: string, customer?: string, current_period_end?: int}}} $payload */
+        /** @var array{data: array{object: array{id?: string, customer?: string, current_period_end?: int, items?: array{data: list<array{current_period_end?: int}>}}}} $payload */
         $stripeSubscription = $payload['data']['object'];
         $tenant = FindTenantByStripeCustomer::run($stripeSubscription['customer'] ?? null);
 
         if ($tenant !== null) {
             SuspendUnlessEntitled::run($tenant);
 
-            $periodEnd = $stripeSubscription['current_period_end'] ?? null;
+            $periodEnd = self::periodEndOf($stripeSubscription);
 
             event(new SubscriptionCancelled(
                 $tenant,
-                is_int($periodEnd) ? Carbon::createFromTimestamp($periodEnd) : null,
+                $periodEnd !== null ? Carbon::createFromTimestamp($periodEnd) : null,
                 (string) $tenant->getTenantKey(),
             ));
         }
@@ -228,6 +258,9 @@ class WebhookController extends CashierWebhookController
             };
         }
 
+        // Every subscription this package creates carries exactly one item, so
+        // a multi-item one was built outside it and has no single "the price"
+        // to report a change against.
         $items = $stripeSubscription['items']['data'] ?? [];
         $newPriceId = count($items) === 1 ? ($items[0]['price']['id'] ?? null) : null;
 
@@ -249,6 +282,45 @@ class WebhookController extends CashierWebhookController
         ]);
 
         return $response;
+    }
+
+    /**
+     * Every handler here and in Cashier reads `data.object.customer` as an id,
+     * but Stripe sends the whole object whenever the account or the endpoint
+     * expands it. Flattened once at the front door rather than per handler:
+     * Cashier reads it in six handlers of its own, one of which
+     * (`payment_method.automatically_updated`) this class does not override.
+     *
+     * @param  array<array-key, mixed>  $payload
+     * @return array<array-key, mixed>
+     */
+    private static function withFlattenedCustomer(array $payload): array
+    {
+        /** @var array{data?: array{object?: array<string, mixed>}} $payload */
+        $customer = $payload['data']['object']['customer'] ?? null;
+
+        if (is_array($customer)) {
+            $id = $customer['id'] ?? null;
+            $payload['data']['object']['customer'] = is_string($id) ? $id : null;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Stripe moved `current_period_end` off the subscription onto its items in
+     * API version `2025-03-31.basil`; Cashier v16 pins a later one, so the
+     * top-level read is the fallback for an account pinned before it.
+     *
+     * @param  array{current_period_end?: int, items?: array{data: list<array{current_period_end?: int}>}}  $stripeSubscription
+     */
+    private static function periodEndOf(array $stripeSubscription): ?int
+    {
+        $periodEnd = $stripeSubscription['items']['data'][0]['current_period_end']
+            ?? $stripeSubscription['current_period_end']
+            ?? null;
+
+        return is_int($periodEnd) ? $periodEnd : null;
     }
 
     private function localPriceIdFor(mixed $stripeSubscriptionId): ?string

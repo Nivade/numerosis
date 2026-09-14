@@ -52,12 +52,23 @@ regenerates and discards. The facts are the same; only the home changed.
   `.ai/rules/package-host-bootstrap.md` for why `Numerosis::middleware()` is
   fatal on a real non-Testbench boot.
 
-- **`tenancy.identification` and `tenancy.route` resolve through
-  `TenancyServiceProvider`, not to a class literal.** Both aliases are bound to
-  `TenancyRouting::identificationMiddleware()` /
-  `::tenancyRouteMiddleware()`, which pick the class from the configured
-  identification mode. Grepping for a middleware class name will therefore miss
-  its registration — see `.ai/rules/identification-modes.md`.
+- **`middlewareAliases()` may return class-string literals only, and that is
+  load-bearing.** It is evaluated inside a host's `bootstrap/app.php`, where
+  `ApplicationBuilder::withMiddleware()` runs it through `afterResolving(HttpKernel)`
+  — before `RegisterFacades`. Any `Config` or facade read there either fatals
+  or, worse, silently returns a default: `tenancy.identification` and
+  `tenancy.route` used to call `IdentificationMode::current()` here, whose
+  facade-null guard returned `Subdomain`, so a host configured for `path` booted
+  with subdomain middleware and every test in this repo stayed green.
+
+  Both aliases are literals now — `Http\Middleware\InitializeTenancy` and
+  `TenantRouteGuard` — which read the mode per request and delegate. Two
+  consequences. Grepping for a mode's real middleware class will miss its
+  registration (see `identification-modes.md`). And
+  `TenancyServiceProvider::makeTenancyMiddlewareHighestPriority()` must name
+  both delegating classes: Laravel's priority sort matches the alias's literal
+  target, not what it delegates to, and missing this broke tenant-session
+  ordering in three auth tests.
 
 - **`NumerosisServiceProvider::registerMiddleware()` stands down once `Numerosis::middleware()` has run.** Until 2026-09-05 it re-applied every alias, `TrustProxies::at('*')` and `prependMiddleware(TrustHosts::class)` unconditionally from `packageBooted()` — which runs *after* a host's `withMiddleware()` closure, so anything the host changed in that closure was reverted before the first request, silently. `Numerosis::middleware()` now sets a process-lifetime `$middlewareRegistered` flag (mirroring `$routesRegistered`), read back through `Numerosis::middlewareRegistered()`, and the provider returns early when it is set. The self-heal still runs for a host that never calls it at all.
 

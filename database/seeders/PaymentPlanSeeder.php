@@ -11,18 +11,12 @@ use Nvade\Numerosis\Models\Central\PlanFeature;
 use Nvade\Numerosis\Numerosis;
 
 /**
- * Example plans, shipped so a fresh install has something purchasable. A
- * consumer is expected to replace the prices and Stripe ids; the shape is the
- * point.
+ * Example plans, shipped so a fresh install has something purchasable; a
+ * consumer replaces the prices and Stripe ids.
  *
- * Re-runnable, because `numerosis:install --seed` calls it: every write below
- * is keyed on a natural key (`features.slug`, `payment_plans.slug`).
- *
- * Slugs are written out here for the same reason. `PaymentPlanRepository::findBySlug()`
- * is the single choke point every checkout path shares, and
- * `StartCheckoutRequest` validates the submitted plan with
- * `exists:central.payment_plans,slug`, so a faker slug leaves no checkout URL
- * anybody can write down.
+ * Re-runnable, because `numerosis:install --seed` calls it: every write is
+ * keyed on a natural key (`features.slug`, `payment_plans.slug`), which is
+ * also why the slugs are literals rather than faker output.
  */
 class PaymentPlanSeeder extends Seeder
 {

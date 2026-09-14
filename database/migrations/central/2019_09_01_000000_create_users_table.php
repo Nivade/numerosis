@@ -9,10 +9,9 @@ use Illuminate\Support\Facades\Schema;
 /**
  * The central users table in its final shape.
  *
- * `sessions` is deliberately absent: a later migration used to drop it along
- * with `cache`, `cache_locks` and `job_batches`, since the package configures
- * none of those to a database driver. `failed_jobs` is the exception and is
- * created on its own, later — `QUEUE_FAILED_DRIVER` gates it, not
+ * `sessions`, `cache`, `cache_locks` and `job_batches` are absent because the
+ * package configures none of them to a database driver. `failed_jobs` is the
+ * exception, created later: `QUEUE_FAILED_DRIVER` gates it, not
  * `QUEUE_CONNECTION`.
  */
 return new class extends Migration

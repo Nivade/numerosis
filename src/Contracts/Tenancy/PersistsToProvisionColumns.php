@@ -8,13 +8,10 @@ use Nvade\Numerosis\Models\Central\TenantProvision;
 
 /**
  * A contribution stored in real columns rather than the `contributions` JSON
- * blob, for fields something has to query.
- *
- * Both of core's own contributions need this: `ResolveSetupIntent` looks a
+ * blob, for fields something has to query: `ResolveSetupIntent` looks a
  * provision up by `stripe_setup_intent_id`, the Stripe webhook filters on
  * `stripe_subscription_id`, and the wizard's uniqueness rule checks
- * `custom_domain`. A host needing the same adds columns and implements this,
- * exactly as core does.
+ * `custom_domain`.
  */
 interface PersistsToProvisionColumns extends ProvisionContribution
 {

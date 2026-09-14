@@ -84,9 +84,9 @@ class CompleteRedirectCheckout
         return $this->handle($request->setupIntentId());
     }
 
-    private function tenantsMine(Severity $severity, string $message): RedirectResponse
+    private function tenantsMine(Severity $severity, string $key): RedirectResponse
     {
-        return to_route(RouteNames::tenantsMine())->with(FlashKey::Status->value, [$severity, __($message)]);
+        return to_route(RouteNames::tenantsMine())->with(FlashKey::Status->value, [$severity, __($key)]);
     }
 
     /**

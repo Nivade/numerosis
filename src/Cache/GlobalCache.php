@@ -20,13 +20,10 @@ final class GlobalCache
     /**
      * The resolved store, and the container it was resolved from.
      *
-     * `globalCache` is a `bind`, so every resolve built a fresh `CacheManager`
-     * and a fresh store behind it. The callers are hot — `Authenticate`
-     * reaches `GetTenantsByGlobalId` on every authenticated tenant request —
-     * and a five-tenant list page built roughly sixteen managers. Keyed on the
-     * container so an Octane worker, or a test that rebinds the binding and
-     * calls {@see self::flush()}, never reads a store built for a different
-     * application.
+     * Memoized because `globalCache` is a `bind`: every resolve built a fresh
+     * `CacheManager`, and a five-tenant list page built roughly sixteen of
+     * them. Keyed on the container so an Octane worker never reads a store
+     * built for a different application.
      */
     private static ?Repository $store = null;
 

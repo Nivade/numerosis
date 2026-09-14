@@ -11,12 +11,8 @@ use Nvade\Numerosis\Models\Central\TenantProvision;
 
 /**
  * Signals that provisioning finished. Configured last because it is what
- * reports the tenant ready.
- *
- * It no longer carries its own failure handler or twenty retries. Both existed
- * because a silent exhaustion here left the UI spinning forever; the chain has
- * one terminal handler now, so exhaustion marks the provision failed wherever
- * it happens.
+ * reports the tenant ready. The chain's one terminal handler covers failure
+ * here, as it does for every other step.
  */
 class FinalizeTenantProvisioning implements ProvisioningStep
 {

@@ -26,10 +26,9 @@ class ResolveSocialUser
     {
         $user = Socialite::driver($provider->value)->user();
 
-        // Every provider this package supports (SocialProvider) is OAuth2, so
-        // Socialite always hands back its `Two\User`, which is where the
-        // token/raw-payload properties actually live — `Contracts\User` itself
-        // declares none of them.
+        // Every `SocialProvider` is OAuth2, so Socialite hands back its
+        // `Two\User`, which is where the token and raw-payload properties
+        // live; `Contracts\User` declares none of them.
         $oauthUser = $user instanceof OAuth2User ? $user : null;
 
         return new SocialUserData(

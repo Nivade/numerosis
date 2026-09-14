@@ -53,15 +53,14 @@ defaults.
 
 - **A feature class listed in config but not installed disappears silently,
   from two places, and neither raises anything you will see.**
-  `Features::names()`'s `is_a($class, NamedFeature::class, true)`
-  (`src/Features/FeatureRegistry.php:127`) autoloads and quietly returns `false` for a
+  `FeatureRegistry::names()`'s `is_a($class, NamedFeature::class, true)` autoloads and quietly returns `false` for a
   missing class, so the entry drops out of the *name map* and every
   `Features::enabled('that-name')` reads `false`. It used to at least crash
   afterwards: `NumerosisServiceProvider`'s boot loop called
   `$this->app->make($feature)->bootstrap()` straight over `Features::all()`.
   Since `a4167a4` that loop is `class_exists()`-guarded and does
-  `Log::warning("… does not exist; skipping")` + `continue`
-  (`src/NumerosisServiceProvider.php:243-251`), which was the right call for
+  `Log::warning("… does not exist; skipping")` + `continue` in
+  `NumerosisServiceProvider::bootstrapFeatures()`, which was the right call for
   the widened `stancl/tenancy` constraint but removed the only loud symptom.
   **The failure mode is now a feature that is configured, reads as disabled,
   and logs one warning at boot.** Any packaging change that could leave a
@@ -163,3 +162,5 @@ A correction's guard is not a plain `=== null` check, because two vendor keys ne
 **Deliberate asymmetry, do not "fix" into consistency:** `tenancy.{tenant,domain,central_user,tenant_user}_model` keep their original null-or-stancl-stock guard (`tenancyModels()`) — a host may set one of these four vendor keys directly and have it survive. `auth.providers.users.model` does not: it always projects from `numerosis.models.<CentralUser>` (`centralAuthProviderModelPreference()`) and overwrites a directly-set vendor value. Both read from the same `numerosis.models.*` config section; the difference is which vendor key each one owns.
 
 When adding a new normalization: decide preference vs correction first. If correction, check whether the vendor default can be null before writing a plain null check — grep the vendor package's own shipped config for the key's default.
+
+**Add the key to `InstallNumerosisCommand::VERIFIED_CONFIG_KEYS` in the same edit.** The install doctor and `HostConfig` are two hand-written surfaces over one key set, and a key added to one used to be silently unverified by the other. `HostConfigDoctorCoverageTest` drives `HostConfig::apply()` from a blank slate and fails when anything it writes is missing from that map, so the drift is caught rather than discovered by a host.

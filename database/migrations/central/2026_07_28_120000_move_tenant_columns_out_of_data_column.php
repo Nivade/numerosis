@@ -11,11 +11,9 @@ use Illuminate\Support\Facades\DB;
  * Backfills the tenant columns that {@see Stancl\VirtualColumn\VirtualColumn}
  * had been folding into `data`.
  *
- * `getCustomColumns()` defaults to `['id']`, so every other attribute was
- * written to the JSON column and the real columns stayed NULL. The model reads
- * them back off `data` transparently, which is why this went unnoticed — but
- * any query that filters or joins on them (`whereNotNull('provisioned_at')`,
- * Cashier resolving a customer by `stripe_id`) saw nothing at all.
+ * `getCustomColumns()` defaults to `['id']`, so every other attribute went to
+ * the JSON column and the real ones stayed NULL. The model reads them back off
+ * `data` transparently; a query filtering on them saw nothing.
  */
 return new class extends Migration
 {

@@ -48,12 +48,10 @@ class Plan extends StepComponent implements ContributesProvisionData, HasTransie
     }
 
     /**
-     * Cannot be narrowed to `BillingCycle`. The wizard re-mounts each step with
-     * `allStepState` as mount params, and Livewire's
-     * `SupportNestingComponents::assignParamsToProperties()` assigns those to
-     * matching public properties directly, with no cast — so the string
-     * `StepComponent::dispatchDehydrated()` wrote arrives raw. Read it through
-     * {@see self::cycle()}.
+     * Cannot be narrowed to `BillingCycle`: Livewire's
+     * `SupportNestingComponents::assignParamsToProperties()` assigns the
+     * wizard's mount params to matching public properties with no cast, so the
+     * string arrives raw. Read it through {@see self::cycle()}.
      */
     public BillingCycle|string $billingCycle = BillingCycle::Monthly;
 

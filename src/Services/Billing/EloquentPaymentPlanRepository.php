@@ -70,12 +70,9 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
             fn () => Numerosis::model(PaymentPlan::class)::available()->with('features')->orderBy('monthly_price')->get()
         );
 
-        // `Eloquent\Collection`'s own `TModel` template isn't covariant the way
-        // `Support\Collection`'s `TValue` is, so it isn't assignable to the
-        // interface's `Collection<int, Plan>` without an explicit rewrap; and
-        // PHPStan doesn't credit `PaymentPlan implements Plan` at the
-        // `Collection<PaymentPlan>` vs `Collection<Plan>` return boundary
-        // either, so the rewrap needs its own narrowing.
+        // `Eloquent\Collection`'s `TModel` is not covariant the way
+        // `Support\Collection`'s `TValue` is, so reaching the interface's
+        // `Collection<int, Plan>` needs an explicit rewrap.
         /** @var Collection<int, Plan> $result */
         $result = new Collection($plans->all());
 
@@ -83,12 +80,11 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
     }
 
     /**
-     * The plan/subscription tables are central data, so this must be computed
-     * once for all tenants together: a plain Cache:: call, in tenant context,
-     * is stancl's tenant-tagged manager, which both duplicates the computation
-     * per tenant and requires a taggable cache store for something that has
-     * nothing to do with any one tenant. Caches the slug directly rather than
-     * the id, so there is no cache-round-trip type coercion to get wrong.
+     * The plan tables are central data, computed once for all tenants
+     * together: a plain `Cache::` call in tenant context is stancl's
+     * tenant-tagged manager, which duplicates the computation per tenant and
+     * demands a taggable store. Caches the slug, not the id, so no
+     * cache-round-trip coercion can get it wrong.
      */
     public function mostPopularSlug(): ?string
     {

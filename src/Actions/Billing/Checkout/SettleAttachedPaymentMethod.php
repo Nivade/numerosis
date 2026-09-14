@@ -16,10 +16,8 @@ use Stripe\Exception\ApiErrorException;
  * one its SetupIntent generated. Returns whether this checkout was the match,
  * so a caller walking a customer's open checkouts stops at the first.
  *
- * Reached from `payment_method.attached` and not from `setup_intent.succeeded`:
- * for a redirect method Stripe never repoints the SetupIntent at the reusable
- * PaymentMethod it creates, and offers no way to look a setup attempt up
- * directly. Matching therefore runs per candidate reservation.
+ * Reached from `payment_method.attached`, because for a redirect method Stripe
+ * never repoints the SetupIntent at the reusable PaymentMethod it creates.
  *
  * @method static bool run(TenantProvision $pending, BillableUser $billable, string $paymentMethodId)
  */

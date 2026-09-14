@@ -23,20 +23,13 @@ class TenantFactory extends Factory
         $company = $this->faker->unique()->company();
 
         return [
-            // The id becomes both a subdomain and a physical database name, so
-            // it has to satisfy the same charset the registration wizard
-            // enforces. Raw company names contain spaces, commas and
-            // apostrophes, which produced unquotable database names and left
-            // orphaned schemas behind on teardown.
+            // The id becomes both a subdomain and a physical database name,
+            // so it has to satisfy the same charset the wizard enforces; a raw
+            // company name leaves unquotable schemas behind on teardown.
             'id' => Str::slug($company),
-            // `name` is set as a top-level attribute, never as
-            // `'data' => ['name' => …]`. VirtualColumn folds every
-            // non-custom attribute into `data` on save, so passing `data`
-            // itself makes it just another virtual attribute — the written
-            // column came out as {"user_id":…,"tenancy_db_name":…} with no
-            // `name` in it at all, and every tenant the suite has ever built
-            // had a null name. Nothing failed until the browser suite
-            // started rendering a tenant's name on screen.
+            // Top-level, never `'data' => ['name' => …]`: VirtualColumn folds
+            // non-custom attributes into `data` on save, so passing `data`
+            // itself makes it one more virtual attribute and the name is lost.
             'name' => $company,
             'user_id' => CentralUser::factory(),
         ];

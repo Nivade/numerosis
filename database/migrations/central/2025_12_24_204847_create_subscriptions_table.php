@@ -11,9 +11,8 @@ use Illuminate\Support\Facades\Schema;
  * users and tenants are billable here.
  *
  * `subscribable_id` is a string because a tenant's key is one, and it holds
- * the owner's **primary** key, never its `global_id` — see
- * `.ai/rules/billing-checkout.md` for what putting the wrong one there costs.
- * `user_id` stays for Cashier's own queries.
+ * the owner's primary key, never its `global_id`. `user_id` stays for
+ * Cashier's own queries.
  */
 return new class extends Migration
 {

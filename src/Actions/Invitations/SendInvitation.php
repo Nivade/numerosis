@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Invitations;
 
+use Illuminate\Database\UniqueConstraintViolationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Invitations\InvitationData;
 use Nvade\Numerosis\Events\Invitations\InvitationCreated;
@@ -12,6 +13,7 @@ use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Numerosis;
+use RuntimeException;
 
 /**
  * Re-inviting an address reuses its row, which `unique(tenant_id, email)`
@@ -37,19 +39,34 @@ class SendInvitation
             ->where('global_id', $inviter->global_id)
             ->value('id');
 
-        /** @var Invitation $invitation */
-        $invitation = $invitationClass::firstOrNew([
+        $identity = [
             'tenant_id' => $tenant->getKey(),
             'email' => $data->email,
-        ]);
+        ];
 
-        $invitation->forceFill([
+        $state = [
             'role' => $data->role,
             'invited_by_user_id' => $inviterId,
             'expires_at' => now()->addDays(7),
             'accepted_at' => null,
             'accepted_by_user_id' => null,
-        ])->save();
+        ];
+
+        /** @var Invitation $invitation */
+        $invitation = $invitationClass::firstOrNew($identity);
+
+        try {
+            $invitation->forceFill($state)->save();
+        } catch (UniqueConstraintViolationException $e) {
+            // A concurrent invite to the same address won the insert between
+            // the read above and this write. Re-issuing onto its row is what
+            // this call would have done had it lost the race by more.
+            $invitation = $invitationClass::query()->where($identity)->first();
+
+            throw_unless($invitation instanceof Invitation, new RuntimeException("Invitation to {$data->email} raced on insert but is not findable afterwards", 0, previous: $e));
+
+            $invitation->forceFill($state)->save();
+        }
 
         event(new InvitationCreated($invitation, $invitation->id));
 
