@@ -11,9 +11,9 @@ use Nvade\Numerosis\Models\Central\Subscription;
 interface Subscribable
 {
     /**
-     * `Model`, not `static`: `MorphMany`'s `TDeclaringModel` is invariant, so
-     * an interface cannot declare "narrows to whichever class implements
-     * this" — only the related model is what implementers' callers narrow.
+     * `Model`, not `static`: an interface is not a `Model`, so `static` here
+     * resolves to `static(Subscribable)` and `TDeclaringModel` rejects it.
+     * Measured 2026-09-14 — `static` on both sides is 5 errors, not 0.
      *
      * @return MorphMany<Subscription, Model>
      */

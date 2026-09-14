@@ -30,9 +30,9 @@ trait Billable
     }
 
     /**
-     * A `Model`-typed parameter, not `$this` directly, is what makes the
-     * returned relation's `TDeclaringModel` match {@see Subscribable::subscriptions()}'s
-     * declared `Model` rather than the caller's concrete class.
+     * A `Model`-typed parameter, not `$this` directly: `$this` carries the
+     * concrete class, which `TDeclaringModel` will not accept against the
+     * interface's declared `Model`.
      *
      * @return MorphMany<Subscription, Model>
      */

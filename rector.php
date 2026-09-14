@@ -16,6 +16,8 @@ return RectorConfig::configure()
         __DIR__.'/tests',
     ])
     ->withSkip([
+        // Guards a path withPaths() does not scan yet: whoever adds `database`
+        // there must not have rector rewriting applied migrations.
         __DIR__.'/database/migrations',
         // Strips @return PlanMetadata-style aliases that carry real generic
         // info beyond the native `array` return type — see
