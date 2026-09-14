@@ -39,17 +39,9 @@ class InstallNumerosisCommand extends Command
     public $description = 'Publish Numerosis config and model stubs, then verify the host is wired correctly';
 
     /**
-     * Every config key `HostConfig` can write, mapped to the check that
-     * covers it.
-     *
-     * The doctor and `HostConfig` are two hand-written surfaces over the same
-     * key set, and a key added to one was silently unverified by the other.
-     * `HostConfigDoctorCoverageTest` drives `HostConfig::apply()` from a blank
-     * slate and fails when anything it writes is missing here, so the drift is
-     * caught rather than discovered.
-     *
-     * `auth.passwords.*` is listed by prefix: the default broker's name is the
-     * host's to choose.
+     * Every config key {@see HostConfig} can write,
+     * mapped to the check that covers it. `auth.passwords.*` is listed by
+     * prefix, since the default broker's name is the host's to choose.
      */
     public const array VERIFIED_CONFIG_KEYS = [
         'activitylog.table_name' => 'verifyActivityLogTable',

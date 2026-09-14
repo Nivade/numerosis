@@ -6,15 +6,11 @@ namespace Nvade\Numerosis\Contracts\Tenancy;
 
 /**
  * A registration wizard step holding state that must not reach the session:
- * secrets it re-derives for itself, and request-local UI flags.
+ * secrets it re-derives for itself, and request-local UI flags. Anything a
+ * step does not list here is persisted, a Stripe client secret included.
  *
- * Which state is transient is the step's knowledge. The wizard parent used to
- * name one step's properties itself, so adding a public property to that step
- * — or replacing it, which `numerosis.tenancy.registration.steps` invites —
- * silently persisted a Stripe client secret.
- *
- * Static because the parent asks the configured step *classes*: building a
- * Livewire component on every transition just to ask is not worth it.
+ * Static, because the parent asks the configured step classes rather than
+ * building a component on every transition.
  */
 interface HasTransientState
 {

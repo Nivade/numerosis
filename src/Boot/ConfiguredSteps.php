@@ -11,16 +11,10 @@ use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
 
 /**
  * Shape checks for the two host-editable step lists, `numerosis.tenancy`'s
- * `provisioning.steps` and `registration.steps`. Both fail far from the config
- * that caused them otherwise: inside a queued job on its fifth retry, or on
- * whichever wizard screen first asks for an identifier that was never
- * collected.
- *
- * Callers run these on console boots only. Neither answer can change between
- * requests, and the registration one force-autoloads every configured Livewire
- * step on requests that never reach registration. A queue worker and
- * `numerosis:install` are both console boots, so a misconfigured list is still
- * refused before anything provisions.
+ * `provisioning.steps` and `registration.steps`. Callers run them on console
+ * boots only: the registration check force-autoloads every configured Livewire
+ * step, and a queue worker is a console boot, so a bad list is still refused
+ * before anything provisions.
  */
 final class ConfiguredSteps
 {

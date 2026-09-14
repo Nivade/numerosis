@@ -19,10 +19,6 @@ use Nvade\Numerosis\Numerosis;
  * itself because neither `MembershipObserver::created()` nor
  * `Listeners\Tenancy\BackfillTenantUsers` has run by the time
  * `PromoteFirstUserToAdmin` reads the tenant's users.
- *
- * Skipped when nobody was contributed as owner: a system or imported tenant
- * has none, and ownership is a fact about a relationship rather than part of
- * what a tenant is.
  */
 class AddTenantOwner implements RequiresContributions
 {
