@@ -31,7 +31,8 @@ It is a package tested through Orchestra Testbench. There is no
 | Tests | `composer test` (Pest) — or `vendor/bin/pest --filter=name` |
 | Static analysis | `composer analyse` (PHPStan level 9, with baseline) |
 | Format | `composer format` (Pint) — required before finishing any PHP change |
-| Lint (format + analyse) | `composer lint` |
+| Lint (refactor + format + analyse) | `composer lint` — **rewrites files** (Rector, then Pint) |
+| Lint, read-only | `composer lint:check` — same three, none of them writing |
 | Boot the dev harness | `composer serve` (the `workbench/` app) |
 | Artisan | `php artisan …` — Testbench's, against `workbench/` |
 
