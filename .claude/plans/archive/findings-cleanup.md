@@ -1,6 +1,9 @@
 # Findings cleanup
 
-**Status: not executed.** Written 2026-09-14. Clears the four open lines in
+**Status: executed 2026-09-14** on `chore/findings-cleanup`. Phases 1, 2 and 4
+landed; phase 3's flake did not reproduce in 30 runs, so its findings line was
+rewritten rather than deleted, and phase 4 replaced its line with the boot bug
+the run found. Written 2026-09-14. Clears the four open lines in
 `.claude/findings.md`. Five phases; 1–2 are code, 3 is an investigation with a
 time-box, 4 is a one-shot documentation audit.
 

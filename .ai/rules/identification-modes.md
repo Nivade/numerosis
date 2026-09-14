@@ -219,6 +219,26 @@ application *in-process*, so `PHP_SAPI` remains `cli` and
 `Host` header is set to. That needs a genuinely separate FPM or `php -S`
 server, which nothing here has.
 
+## Subdomain mode is only exercised with the central domain *below* the apex
+
+`tests/TestCase` sets `numerosis.domains.central` to
+`central.numerosistest.test` while the apex stays `numerosistest.test`, so a
+tenant host (`acme.numerosistest.test`) does **not** end with the central
+domain. stancl's `InitializeTenancyByDomainOrSubdomain::isSubdomain()` is a
+bare `Str::endsWith($host, config('tenancy.central_domains'))`, so every
+browser and feature test takes its *domain* branch and matches the full
+`domains.domain` value `CreateTenantDomain` writes.
+
+A host at the apex (`APP_URL=http://example.test`, which is what
+`Domains::hostFromAppUrl()` gives any ordinary deployment) inverts that: the
+tenant host now ends with the central domain, `InitializeTenancyBySubdomain`
+takes over and resolves the bare label `acme`, and no `domains` row holds a
+bare label — so every tenant request is
+`TenantCouldNotBeIdentifiedOnDomainException`. Measured 2026-09-14 against a
+scratch `laravel new` host on `php artisan serve`; rewriting the row to `acme`
+by hand fixes that request, which is what pins the cause. Nothing in the
+suite, and no `verify*()` in `numerosis:install`, sees it.
+
 ## Suggested better approach
 
 Six files now branch on `IdentificationMode::current()`, and three of them
