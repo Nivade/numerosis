@@ -15,7 +15,7 @@ they are genuinely host wiring (`bootstrap/app.php`, `config/*`, `.env`).
 | Which feature classes exist, what each toggles | `docs/features.md` |
 | Adding routes / migrations / seeders / panels from outside core | `docs/extending.md` |
 | What a host must provide, and every key `HostConfig` normalizes | `docs/host-requirements.md` |
-| Non-obvious traps and invariants, by topic | `.ai/rules/index.md` |
+| Non-obvious traps and invariants, by topic | `.ai/rules/overview.md`, then `.ai/rules/index.md` |
 
 `.claude/plans/` is **historical**, not current. Executed plans live in
 `.claude/plans/archive/`. Do not treat any plan file as the source of truth
@@ -54,11 +54,17 @@ without writing.
 
 ## Codebase Rules
 
-At session start, read `.ai/rules/index.md`. It indexes non-obvious learned
-facts (race conditions, invariants spanning several files, "why it is built
-this way") by topic. Open any topic file covering the area you are about to
-touch **before** changing code there. Use the `codebase-learnings` skill to add
-to them.
+At session start, read `.ai/rules/overview.md`, then `.ai/rules/index.md`. The
+index maps globs to topic files and holds nothing else: `record-rule`
+regenerates it from a hardcoded template, so the standing prose lives in
+`overview.md`, which carries no `paths:` block and is therefore never
+rewritten. Together they cover non-obvious learned facts (race conditions,
+invariants spanning several files, "why it is built this way") by topic. Open
+any topic file covering the area you are about to touch **before** changing
+code there. Use the `codebase-learnings` skill to add to them.
+
+`record-rule` drops every note from `index.md` on each call. Restore it from
+git afterwards; `tests/Feature/RulesIndexTest.php` fails if you forget.
 
 `../numerosis-thin-app/.ai/rules/` is a smaller, host-side set on a
 different toolchain (Sail, PHPUnit, level 8). Do not assume a rule from there
