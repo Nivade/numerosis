@@ -1071,6 +1071,12 @@ open `composer serve` looking for `/get-started` will lose an hour.
 
 ### 10.2 `resources/js/app.js` and `bootstrap.js` are unreachable from the build
 
+**Fixed 2026-09-14 by deleting both.** They were skeleton leftovers a host owns
+(`axios`, `virtual:livewire-hot-reload`), not package sources. `BuildGraphTest`
+now walks the import graph from `resources/js/numerosis.js` and fails on any
+`.js` outside it; confirmed red with both files restored. `npm run build:app-js`
+still emits the same `dist/numerosis.js`.
+
 `vite.config.js` has one entry, `resources/js/numerosis.js`, which imports
 `stripe-checkout.js` and `stripe-confirm.js` and nothing else. `app.js` and
 `bootstrap.js` are in neither that graph nor any other.
