@@ -67,6 +67,7 @@ passed / 6 skipped) and `composer analyse` clean at every phase boundary.
 
 | Plan | State |
 |---|---|
+| `cache-audit.md` | **Not executed.** Cache audit remediation, written 2026-09-14. Ten phases. Phase 8 must land after `findings-cleanup.md` phase 1; phase 9 carries one open decision (negative caching on the auth path) |
 | `findings-cleanup.md` | **Not executed.** Clears the four open lines in `.claude/findings.md`, written 2026-09-14. Five phases, no open decisions |
 | `luminous-wandering-brook.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
 

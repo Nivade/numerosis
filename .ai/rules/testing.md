@@ -28,6 +28,15 @@ rest of this file is read:
   that added this. Redirect to a file rather than piping, and
   `pkill -f "playwright run-server"` afterwards. Same family as the
   can't-`pkill`-a-Sail-run note below.
+- **Every browser test in a run can fail together with
+  `file_get_contents(vendor/pestphp/pest-plugin-browser/.temp/playwright-server.json):
+  Failed to open stream`, and it is a flake, not a broken install.** Measured
+  2026-09-14: 1 of 30 consecutive `composer test` runs, all 9 browser tests
+  failing at once, every other test green. The plugin writes that file once per
+  run and the parallel workers read it; an earlier run's cleanup removing it, or
+  a worker reading before the writer lands, produces this. Re-run before
+  investigating — a genuinely missing `npx playwright install chromium` aborts
+  the whole run with no test output instead (bullet above).
 
 ## Running it
 
@@ -64,6 +73,16 @@ rest of this file is read:
   'testing_fresh_host'`, deadlocks — purely because a backgrounded loop from an
   earlier command was still going. It reads exactly like a real isolation bug.
   Confirm first: `ps -eo pid,cmd | grep '[p]est'`.
+
+- **`PlanCardTest`'s one-off parallel failure (2026-09-14) did not reproduce in
+  30 consecutive `composer test` runs and stays open.** Ruled out by that loop:
+  it is not frequent, and it is not the "Most Popular" badge's cache read —
+  `mostPopularSlug()` gained a `SubscriptionObserver` invalidator before the
+  loop ran, so the badge now resolves against fresh central data and the failure
+  rate did not move. Still untested: stray central `PaymentPlan` rows left by
+  `deleteCentralWrites()` running outside `RefreshDatabase`'s transaction, and
+  cross-worker factory collisions. Capture the failing output next time — the
+  original was lost, which is why the suspects below it are still guesses.
 
 - **Killing a `--parallel` run mid-migration leaves worker databases that
   never repair themselves.** `TestCase::ensureDatabaseExists()` is
