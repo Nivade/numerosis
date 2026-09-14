@@ -109,3 +109,10 @@ comm -23 /tmp/o.txt /tmp/n.txt
 ```
 
 Nothing else from `unslop` applies. Its detection layer returns zero findings on this code, with `suggest.py` reporting `hard: 0, soft: 0` on the five worst files including 267 lines of `Numerosis.php`. The catalog hunts marketing slop, and the contract states that soft cadence never authorizes an edit on its own. Cadence is the entire defect here.
+
+## Pint alone does not run Rector
+The Boost block's pint rule (`vendor/bin/pint --dirty`) and `composer format` both run Pint only. Rector is in `composer lint` and nothing else triggers it, so its rewrites accumulate until they land, unrelated, in whoever's diff runs it next. One commit here touched 100 files for exactly that reason.
+
+Run `composer lint` once before committing. It writes: Rector has no `--dirty` and rewrites the whole tree, so read `git status` afterwards and split unintended rewrites into their own `refactor: apply rector` commit.
+
+`composer lint:check` is the read-only form (rector --dry-run, pint --test, phpstan) and is what `ci:check` runs.
