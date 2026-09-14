@@ -1,8 +1,10 @@
 <?php
 
+use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Actions\Queries\GetTenantsByGlobalId;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -26,6 +28,20 @@ new class extends Component {
     {
         /** @var ?CentralUser */
         return GetAuthenticatedUser::run(Context::Central->guard());
+    }
+
+    /**
+     * Through the action rather than the `tenants` relation: the action reads
+     * the cached id list, and the relation is a fresh query for the same set.
+     *
+     * @return Collection<int, Tenant>
+     */
+    #[Computed]
+    public function tenants(): Collection
+    {
+        $user = $this->user;
+
+        return $user instanceof CentralUser ? GetTenantsByGlobalId::run($user->global_id) : new Collection;
     }
 };
 ?>
@@ -111,7 +127,7 @@ new class extends Component {
                     <flux:menu.item :href="route('settings.profile')" icon="cog"
                                     wire:navigate>{{ __('Settings') }}</flux:menu.item>
                 </flux:menu.radio.group>
-                @if($this->user->tenants->isNotEmpty())
+                @if($this->tenants->isNotEmpty())
                     <x-numerosis::ui.accordion>
                         <x-numerosis::ui.accordion.item name="tenants">
                             <x-numerosis::ui.accordion.heading icon="building-office">
@@ -119,8 +135,11 @@ new class extends Component {
                             </x-numerosis::ui.accordion.heading>
                             <x-numerosis::ui.accordion.content>
                                 <div class="space-y-0.5 ps-4">
-                                    @foreach ($this->user->tenants as $tenant)
-                                        @php($route = tenant_route($tenant->primaryDomain()->getHost(), 'home'))
+                                    @foreach ($this->tenants as $tenant)
+                                        @php($domain = $tenant->primaryDomain())
+                                        {{-- A tenant whose domain row is gone has no link to render. --}}
+                                        @continue($domain === null)
+                                        @php($route = tenant_route($domain->getHost(), 'home'))
                                         <flux:menu.item :href="$route" :target="str_starts_with($route, 'http') ? '_blank' : '_self'">
                                             {{ $tenant->name }}
                                         </flux:menu.item>
@@ -151,9 +170,9 @@ new class extends Component {
             <x-numerosis::app-logo/>
         </a>
         <flux:navlist variant="outline">
-            @if ($this->user && $this->user->tenants->isNotEmpty())
+            @if ($this->tenants->isNotEmpty())
                 <flux:navlist.group :heading="__('Tenants')">
-                    @foreach ($this->user->tenants as /** @var Tenant */ $tenant)
+                    @foreach ($this->tenants as /** @var Tenant */ $tenant)
                         @php($route = tenant_route($tenant->id, 'home'))
                         <flux:navlist.item :href="$route" :target="str_starts_with($route, 'http') ? '_blank' : '_self'">
                             {{ $tenant->name }}

@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Queries;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Cache\CacheTtl;
 use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * @method static Collection<int, Tenant> run(string $globalId)
@@ -20,12 +23,10 @@ class GetTenantsByGlobalId
     use AsAction;
 
     /**
-     * Per-request memo, on top of the hour-long global cache.
-     *
+     * Per-request memo over a global cache that holds tenant ids, not models.
      * `Authenticate` reaches this through `User::canAccessTenant()` on every
-     * authenticated tenant request, and each miss deserializes every one of
-     * the user's tenant models to answer a `contains`. A request-lifetime memo
-     * adds no staleness the hour TTL does not already carry.
+     * authenticated tenant request, and every call without the memo re-queries
+     * the id list back into models.
      *
      * @var array<string, Collection<int, Tenant>>
      */
@@ -40,24 +41,33 @@ class GetTenantsByGlobalId
             return self::$memo[$globalId];
         }
 
-        /**
-         * `tenants()->get()` is typed against the relation's own declaration
-         * (`Model`), and the cache round-trip widens it further, so the shape
-         * is asserted once here, sparing every caller.
-         *
-         * @var Collection<int, Tenant> $tenants
-         */
-        $tenants = GlobalCache::store()->remember(
+        /** @var list<string> $ids */
+        $ids = GlobalCache::remember(
             CacheKeys::userTenants($globalId),
-            now()->addHour(),
-            function () use ($globalId) {
+            CacheTtl::userTenants(),
+            function () use ($globalId): array {
                 $user = FindUserByGlobalId::run($globalId, Context::Central);
 
-                return $user instanceof CentralUserModel ? $user->tenants()->get() : new Collection;
+                if (! $user instanceof CentralUserModel) {
+                    return [];
+                }
+
+                /** @var list<string> $ids */
+                $ids = $user->tenants()->pluck('tenants.id')->all();
+
+                return $ids;
             }
         );
 
-        return self::$memo[$globalId] = $tenants;
+        // The query is typed against `Model`, so the shape is narrowed once
+        // here, sparing every caller.
+        $models = $ids === []
+            ? []
+            : Numerosis::model(Tenant::class)::query()->whereIn('id', $ids)->get()->all();
+
+        $tenants = array_values(array_filter($models, fn (Model $model): bool => $model instanceof Tenant));
+
+        return self::$memo[$globalId] = new Collection($tenants);
     }
 
     /**

@@ -119,6 +119,78 @@ paths:
   request. `null` is Laravel's "no restriction" value: the stores only pass
   `allowed_classes` to `unserialize()` when it is non-null.
 
+- **"Cache arrays and ids, never models" had three live violations, found by
+  auditing every call site rather than by a failure.**
+  `EloquentPaymentPlanRepository::available()` cached an
+  `Eloquent\Collection<PaymentPlan>` with `features` eager-loaded,
+  `Tenant::primaryDomain()` cached a `Domain`, and `GetTenantsByGlobalId`
+  cached `Collection<Tenant>`. All three carried the same two faults: a
+  relation frozen at write time that no invalidator watched end to end, and
+  the `cache.serializable_classes` trap below with nothing defending them —
+  a host whose allowlist omits those classes reads `__PHP_Incomplete_Class`
+  back with no exception and no log line. `available()` now caches attribute
+  rows plus a parallel array of feature rows and rehydrates through
+  `newFromBuilder()` + `setRelation()`, `primaryDomain()` caches attributes and
+  rehydrates against `Numerosis::model(Domain::class)`, and
+  `GetTenantsByGlobalId` caches tenant ids behind its existing per-request
+  memo. The rule is not self-enforcing: nothing goes red when a new call site
+  breaks it, so the review question is "what class comes back out of this
+  key?"
+
+- **`Cache::lock` is tenant-prefixed inside tenant context, and the rest of
+  this file only documents the reads.** `LinkSubscriptionToTenant` and
+  `WebhookController` take one lock name, `reconcile-subscription:{id}`, and
+  that name is what makes the checkout redirect and the Stripe webhook
+  mutually exclusive. It held only because provisioning happens to be
+  dispatched from a central request in the shipped configuration: a host that
+  inserts a provisioning step leaving tenancy on, or dispatches from tenant
+  context, splits one lock into two namespaces and the symptom is a duplicated
+  subscription row under load. All three lock sites now go through
+  `GlobalCache::lock()`, which takes the lock off the explicitly non-tenant
+  store.
+
+- **Resolver caching is per resolver class, and path mode had none for its
+  whole existence.** `PathTenantResolver::$shouldCache` is a separate static
+  on a separate class from `DomainTenantResolver`'s, defaults to `false`, and
+  nothing set it — so every `IdentificationMode::Path` request ran
+  `tenancy()->find($id)` against the central connection, the exact cost
+  `numerosis:install`'s `verifyTenantResolverCache()` warns about losing for
+  domain mode. `registerCachedPathResolver()` now mirrors the domain-mode
+  registration, singleton and explicit `new CacheManager($app)` included.
+  Stancl's own key shape is broken here as well:
+  `CachedTenantResolver::getCacheKey()` json-encodes whatever `resolve()` was
+  handed, which for this resolver is a `Route`, while `getArgsForTenant()`
+  hands invalidation `[$tenant->id]` — so nothing cached was ever forgotten.
+  `PreservingPathTenantResolver::getCacheKey()` overrides it to key on the id
+  either way.
+
+- **Negative caching: `null` is cached for `tenantPrimaryDomain()` and
+  deliberately not for `FindUserByGlobalId`.** `Repository::remember()` never
+  stores `null`, so a lookup that finds nothing re-queries on every call. For
+  `primaryDomain()` that is every call in path mode, where no tenant has a
+  domain row at all, and `DomainObserver` already busts the key when one is
+  added — so it stores `false` and carries no staleness. For
+  `FindUserByGlobalId` a sentinel would make a user created moments after a
+  failed lookup invisible for the TTL, and the miss only happens for an
+  unknown or deleted `global_id`, which is not the common case on the
+  authenticated path. Decided against; do not re-derive it.
+
+- **TTLs and the store are config, not literals.** `numerosis.cache.ttl.*` is
+  keyed by the same names `CacheKeys` uses and read through `CacheTtl`, never
+  at the call site. A `null` TTL means "do not cache" and must bypass
+  `remember()` rather than pass `0`, which several drivers read as forever —
+  `GlobalCache::remember()` is where that happens. `numerosis.cache.store`
+  routes every global write; `GlobalCache::store()` memoizes on the container
+  *and* the store name, or a changed setting never takes effect.
+
+- **The `tenants` column listing is cached, and a migration is its
+  invalidator.** `getCustomColumns()` runs on every tenant hydration and every
+  save, so a cold static cost a schema round-trip per request and one per row
+  on a list page. `ForgetTenantColumnListing` listens for `MigrationsEnded`,
+  which is the only thing that changes that schema — a host adding a column
+  therefore has nothing to remember. A miss taken before the table exists is
+  never cached, or the first request after `migrate` reads an empty list.
+
 - **A cache write nobody reads is worse than no cache.** `UpdateUserStatus`
   wrote `chat:status:{id}` for months; the only chat reads are
   `chat:presence:*`, and the same data was already on the user row and in the

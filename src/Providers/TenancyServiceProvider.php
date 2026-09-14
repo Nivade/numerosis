@@ -150,11 +150,27 @@ class TenancyServiceProvider extends ServiceProvider
         }
 
         $this->registerCachedDomainResolver();
+        $this->registerCachedPathResolver();
+    }
 
-        // See PreservingPathTenantResolver's docblock: only matters when
-        // IdentificationMode::Path is selected and InitializeTenancyByPath
-        // is actually used, harmless otherwise.
-        $this->app->bind(PathTenantResolver::class, PreservingPathTenantResolver::class);
+    /**
+     * The path resolver's cache flag is a separate static on a separate class
+     * from the domain resolver's, so path mode ran a central lookup per
+     * request until this mirrored {@see self::registerCachedDomainResolver()},
+     * `new CacheManager($app)` and singleton included.
+     */
+    protected function registerCachedPathResolver(): void
+    {
+        $this->app->booting(function (): void {
+            PreservingPathTenantResolver::$shouldCache = TenancyRouting::shouldCacheResolvedTenants();
+        });
+
+        $this->app->singleton(
+            PreservingPathTenantResolver::class,
+            fn (Application $app) => new PreservingPathTenantResolver(new CacheManager($app)),
+        );
+
+        $this->app->alias(PreservingPathTenantResolver::class, PathTenantResolver::class);
     }
 
     /**

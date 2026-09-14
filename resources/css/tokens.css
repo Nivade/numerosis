@@ -26,8 +26,7 @@
  *      so `bg-surface`, `rounded-md`, `text-text-muted` etc. compile from the
  *      same variables the runtime overrides.
  *
- * Canonical resolutions (resources/views/* is the design authority — see
- * .claude/plans/archive/design-system-unification.md Phase 0/2):
+ * Canonical resolutions (resources/views/* is the design authority):
  *   - Grey ramp is zinc, exclusively. gray/neutral/stone do not appear here
  *     and Phase 3's arch test forbids them in resources/views.
  *   - Card surface (ui/card `default`): --radius-xl, --color-surface,

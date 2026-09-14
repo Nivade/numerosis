@@ -241,10 +241,26 @@ return [
     |
     | Prefix for every key in Nvade\Numerosis\Cache\CacheKeys. Does
     | not decide which keys are tenant-scoped vs global.
+    |
+    | 'store' is the cache store every global key is written to; null uses the
+    | default store. Each 'ttl' is a number of seconds, keyed by the same name
+    | as its CacheKeys method; null disables caching for that key.
     */
 
     'cache' => [
         'prefix' => env('NUMEROSIS_CACHE_PREFIX', 'numerosis'),
+
+        'store' => env('NUMEROSIS_CACHE_STORE'),
+
+        'ttl' => [
+            'user_tenants' => 3600,
+            'user_model' => 3600,
+            'tenant_primary_domain' => 3600,
+            'tenant_custom_columns' => 86400,
+            'tenant_owner_global_id' => 3600,
+            'available_payment_plans' => 3600,
+            'popular_payment_plan_slug' => 300,
+        ],
     ],
 
     /*

@@ -1,6 +1,7 @@
 # Cache audit
 
-**Status: not executed.** Written 2026-09-14, from an audit of every
+**Status: executed 2026-09-14** on `feat/cache-audit`, all ten phases.
+Written 2026-09-14, from an audit of every
 `GlobalCache`/`Cache::` call site in `src/`. Ten phases: 1–3 fix what is
 already cached, 4–7 add caching where a hot path has none, 8–10 are
 utilization and documentation.

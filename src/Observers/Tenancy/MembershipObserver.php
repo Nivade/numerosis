@@ -6,15 +6,21 @@ namespace Nvade\Numerosis\Observers\Tenancy;
 
 use Nvade\Numerosis\Actions\Cache\ForgetUserTenants;
 use Nvade\Numerosis\Actions\Tenancy\SyncTenantUserForMembership;
+use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Events\Tenancy\MemberJoined;
 use Nvade\Numerosis\Events\Tenancy\MemberRemoved;
 use Nvade\Numerosis\Models\Central\Membership;
+use Nvade\Numerosis\Observers\Concerns\ForgetsCacheKey;
 
 class MembershipObserver
 {
+    use ForgetsCacheKey;
+
+    /** Ownership moves on an update, not only on create, so `saved` is the hook. */
     public function saved(Membership $membership): void
     {
         ForgetUserTenants::run($membership->global_user_id);
+        $this->forgetCache(CacheKeys::tenantOwnerGlobalId($membership->tenant_id));
     }
 
     public function created(Membership $membership): void
@@ -42,6 +48,7 @@ class MembershipObserver
     public function deleted(Membership $membership): void
     {
         ForgetUserTenants::run($membership->global_user_id);
+        $this->forgetCache(CacheKeys::tenantOwnerGlobalId($membership->tenant_id));
 
         event(new MemberRemoved(
             $membership->tenant_id,

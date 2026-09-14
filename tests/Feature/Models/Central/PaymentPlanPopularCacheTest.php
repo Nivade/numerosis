@@ -10,6 +10,7 @@ use App\Models\Central\Subscription;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Nvade\Numerosis\Cache\CacheTtl;
 use Nvade\Numerosis\Services\Billing\EloquentPaymentPlanRepository;
 use Nvade\Numerosis\Tests\Concerns\PinsGlobalCache;
 use Nvade\Numerosis\Tests\TestCase;
@@ -91,6 +92,44 @@ class PaymentPlanPopularCacheTest extends TestCase
         $this->makeSubscription($otherPlan->id);
 
         $this->assertSame($otherPlan->slug, $repository->mostPopularSlug());
+    }
+
+    /**
+     * The key is bust on every subscription create and delete, and the
+     * recompute is a full `GROUP BY` over central `subscriptions` — so past
+     * the fresh window the stale value is served and the refresh is deferred
+     * rather than every concurrent request running the scan.
+     */
+    public function test_a_read_inside_the_stale_window_serves_the_old_value_without_recomputing(): void
+    {
+        $this->pinGlobalCache();
+
+        $popularPlan = PaymentPlan::factory()->create(['available' => true]);
+        $otherPlan = PaymentPlan::factory()->create(['available' => true]);
+
+        $this->makeSubscription($popularPlan->id);
+
+        $repository = new EloquentPaymentPlanRepository;
+
+        $this->assertSame($popularPlan->slug, $repository->mostPopularSlug());
+
+        // Written quietly so the observer does not forget the key: this is
+        // about the fresh window expiring, not about invalidation.
+        $this->makeSubscriptionQuietly($otherPlan->id);
+        $this->makeSubscriptionQuietly($otherPlan->id);
+
+        $this->travel((int) CacheTtl::popularPaymentPlanSlug() + 1)->seconds();
+
+        $this->assertSame(
+            $popularPlan->slug,
+            $repository->mostPopularSlug(),
+            'A read past the fresh window blocked on the recompute instead of serving the stale value.'
+        );
+    }
+
+    private function makeSubscriptionQuietly(int $paymentPlanId): void
+    {
+        Subscription::withoutEvents(fn () => $this->makeSubscription($paymentPlanId));
     }
 
     private function makeSubscription(int $paymentPlanId): Subscription

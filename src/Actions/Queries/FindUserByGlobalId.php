@@ -6,7 +6,9 @@ namespace Nvade\Numerosis\Actions\Queries;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Boot\UserModels;
+use Nvade\Numerosis\Cache\CachedModel;
 use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Cache\CacheTtl;
 use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\User;
@@ -30,9 +32,9 @@ class FindUserByGlobalId
         $context ??= tenancy()->initialized ? Context::Tenant : Context::Central;
         $model = UserModels::for($context);
 
-        $attributes = GlobalCache::store()->remember(
+        $attributes = GlobalCache::remember(
             CacheKeys::userModel($globalId, $context),
-            now()->addHour(),
+            CacheTtl::userModel(),
             fn () => $model::query()->where('global_id', $globalId)->first()?->getAttributes()
         );
 
@@ -40,6 +42,6 @@ class FindUserByGlobalId
             return null;
         }
 
-        return (new $model)->newFromBuilder($attributes);
+        return CachedModel::hydrate($model, $attributes);
     }
 }

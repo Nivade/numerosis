@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Observers\Billing;
 
+use Nvade\Numerosis\Actions\Cache\ForgetAvailablePaymentPlans;
 use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Observers\Concerns\ForgetsCacheKey;
@@ -20,7 +21,7 @@ class PaymentPlanObserver
 
     public function saved(PaymentPlan $plan): void
     {
-        $this->forgetCache(CacheKeys::availablePaymentPlans());
+        ForgetAvailablePaymentPlans::run();
     }
 
     /**
@@ -29,7 +30,8 @@ class PaymentPlanObserver
      */
     public function deleted(PaymentPlan $plan): void
     {
-        $this->forgetCache(CacheKeys::availablePaymentPlans());
+        ForgetAvailablePaymentPlans::run();
+
         $this->forgetCache(CacheKeys::popularPaymentPlanSlug());
     }
 }

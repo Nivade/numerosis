@@ -21,6 +21,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\PasswordBrokerBootstrapper;
+use Nvade\Numerosis\Services\Tenancy\PreservingPathTenantResolver;
 use Nvade\Numerosis\Services\Tenancy\SpatiePermissionsBootstrapper;
 use ReflectionProperty;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
@@ -646,14 +647,16 @@ class InstallNumerosisCommand extends Command
     }
 
     /**
-     * Warns when the domain-to-tenant resolver cache is off because the host's
+     * Warns when the tenant resolver cache is off because the host's
      * `cache.serializable_classes` cannot round-trip the tenant model the
-     * resolver caches. `TenancyRouting::shouldCacheResolvedTenants()`
-     * makes that call; this reports what it costs.
+     * resolver caches. Domain and path mode hold that flag on separate
+     * classes, so this reports on whichever one the configured mode uses.
      */
     private function verifyTenantResolverCache(): void
     {
-        if (DomainTenantResolver::$shouldCache) {
+        $path = IdentificationMode::current() === IdentificationMode::Path;
+
+        if ($path ? PreservingPathTenantResolver::$shouldCache : DomainTenantResolver::$shouldCache) {
             return;
         }
 
@@ -662,7 +665,7 @@ class InstallNumerosisCommand extends Command
         }
 
         $this->components->warn(
-            'The domain-to-tenant resolver cache is disabled because config(\'cache.serializable_classes\') is '
+            'The '.($path ? 'path' : 'domain').'-to-tenant resolver cache is disabled because config(\'cache.serializable_classes\') is '
             .var_export(Config::get('cache.serializable_classes'), true)
             .', which cannot round-trip a cached tenant model. Every tenant request pays a central-database lookup before anything else runs. To turn it back on, add '
             .Config::string('tenancy.tenant_model', Tenant::class)

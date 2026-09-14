@@ -5,8 +5,7 @@ import { loadStripe } from '@stripe/stripe-js';
  * already on file, so there is no Payment Element to collect and nothing to
  * mount beyond this wrapper. Listens for the same 'requires-action' event
  * ConfirmsPayments::handleIncompletePayment() dispatches, then hands the
- * result back to $wire.confirmed(). See
- * .claude/plans/archive/module-marketplace.md, "Marketplace page".
+ * result back to $wire.confirmed().
  */
 document.addEventListener('alpine:init', () => {
   Alpine.data('stripeConfirm', (publishableKey, declineCodes) => ({

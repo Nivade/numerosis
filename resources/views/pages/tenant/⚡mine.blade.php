@@ -70,6 +70,8 @@ class extends Component
         // every call. The relation is already ordered created_at desc
         // (ManagesSubscriptions::subscriptions()), so the first loaded row is
         // that same latest subscription.
+        // Deliberately the relation and not GetTenantsByGlobalId: that action
+        // caches ids and hydrates without the eager load this page needs.
         $tenants = $this->user->tenants()->with('subscriptions')->get();
 
         $this->readyTenants = $tenants->whereNotNull('provisioned_at');

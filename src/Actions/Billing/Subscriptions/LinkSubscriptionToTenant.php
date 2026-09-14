@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing\Subscriptions;
 
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
 use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
 use Nvade\Numerosis\Data\Billing\SubscriptionData;
@@ -22,7 +22,8 @@ use Nvade\Numerosis\Numerosis;
  * locally if the webhook has not already done so.
  *
  * Locked per subscription, since the checkout redirect and the Stripe webhook
- * both reach this and may arrive at once.
+ * both reach this and may arrive at once. Off the global store, because the
+ * `Cache` facade inside tenant context would split the name in two.
  */
 class LinkSubscriptionToTenant
 {
@@ -32,7 +33,7 @@ class LinkSubscriptionToTenant
 
     public function handle(TenantProvisionData $data, StripeSubscriptionData $stripeSubscription, Tenant $tenant): void
     {
-        Cache::lock("reconcile-subscription:{$stripeSubscription->id}", 10)->block(5, function () use (
+        GlobalCache::lock("reconcile-subscription:{$stripeSubscription->id}", 10)->block(5, function () use (
             $data,
             $stripeSubscription,
             $tenant,

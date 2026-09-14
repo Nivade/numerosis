@@ -17,7 +17,10 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Invoice;
+use Nvade\Numerosis\Actions\Queries\FindUserByGlobalId;
+use Nvade\Numerosis\Cache\CachedModel;
 use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Cache\CacheTtl;
 use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Concerns\Billing\Billable;
 use Nvade\Numerosis\Concerns\Tenancy\RunsInTenant;
@@ -26,6 +29,7 @@ use Nvade\Numerosis\Contracts\Tenancy\HasTenantOwner;
 use Nvade\Numerosis\Contracts\Tenancy\Suspendable;
 use Nvade\Numerosis\Database\Factories\Central\TenantFactory;
 use Nvade\Numerosis\Enums\Auth\SystemRole;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Tenant\User;
 use Nvade\Numerosis\Numerosis;
@@ -131,28 +135,51 @@ class Tenant extends BaseTenant implements HasTenantOwner, Subscribable, Suspend
     }
 
     /**
-     * Every other real column on `tenants`. `data` is excluded because it is
-     * the store itself. Nothing is memoized while the table is missing, so
-     * the first call after `migrate` sees the real schema.
+     * Every other real column on `tenants`, memoized for the request behind a
+     * cache entry {@see \Nvade\Numerosis\Listeners\Tenancy\ForgetTenantColumnListing}
+     * drops whenever migrations run.
      *
      * @return list<string>
      */
     private static function introspectedColumns(): array
     {
-        if (self::$introspectedColumns !== null) {
-            return self::$introspectedColumns;
+        return self::$introspectedColumns ?? self::readColumnListing() ?? [];
+    }
+
+    /**
+     * Null while the table is missing, which is neither memoized nor cached so
+     * the first call after `migrate` sees the real schema.
+     *
+     * @return list<string>|null
+     */
+    private static function readColumnListing(): ?array
+    {
+        $key = CacheKeys::tenantCustomColumns();
+        $ttl = CacheTtl::tenantCustomColumns();
+        $cached = $ttl === null ? null : GlobalCache::store()->get($key);
+
+        if (is_array($cached)) {
+            /** @var list<string> $cached */
+            return self::$introspectedColumns = $cached;
         }
 
         $connection = Schema::connection(Config::string('tenancy.database.central_connection', 'central'));
 
         if (! $connection->hasTable('tenants')) {
-            return [];
+            return null;
         }
 
-        return self::$introspectedColumns = array_values(array_diff(
+        // `data` is excluded because it is the store the rest are folded into.
+        $columns = array_values(array_diff(
             $connection->getColumnListing('tenants'),
             ['data', ...self::KNOWN_COLUMNS],
         ));
+
+        if ($ttl !== null) {
+            GlobalCache::store()->put($key, $columns, $ttl);
+        }
+
+        return self::$introspectedColumns = $columns;
     }
 
     #[Override]
@@ -191,30 +218,56 @@ class Tenant extends BaseTenant implements HasTenantOwner, Subscribable, Suspend
             ->withTimestamps();
     }
 
-    /** The user who created this tenant and owns its subscription. */
+    /**
+     * The user who created this tenant and owns its subscription. Only the
+     * `global_id` is cached; the row comes back through
+     * {@see FindUserByGlobalId}, which has its own key and invalidator.
+     */
     public function owner(): ?CentralUser
     {
-        return $this->users()
-            ->wherePivot('role', MembershipRole::Owner->value)
-            ->first();
+        $globalId = GlobalCache::remember(
+            CacheKeys::tenantOwnerGlobalId($this->id),
+            CacheTtl::tenantOwnerGlobalId(),
+            function (): ?string {
+                $globalId = $this->users()
+                    ->wherePivot('role', MembershipRole::Owner->value)
+                    ->value('global_id');
+
+                return is_string($globalId) ? $globalId : null;
+            }
+        );
+
+        if ($globalId === null) {
+            return null;
+        }
+
+        $owner = FindUserByGlobalId::run($globalId, Context::Central);
+
+        return $owner instanceof CentralUser ? $owner : null;
     }
 
     /**
      * Deliberately not memoized on the instance: the global key is forgotten
      * whenever a domain is added or removed, and callers within the same
-     * request are expected to see that. A view reading it more than once holds
-     * the result in a local instead.
+     * request are expected to see that. Attributes are cached rather than the
+     * model, and "no domain" as `false`, which in path mode is every tenant.
      */
     public function primaryDomain(): ?Domain
     {
-        return GlobalCache::store()->remember(
+        $attributes = GlobalCache::remember(
             CacheKeys::tenantPrimaryDomain($this->id),
-            now()->addHour(),
-            fn () => $this->domains()
+            CacheTtl::tenantPrimaryDomain(),
+            fn (): array|false => $this->domains()
                 ->orderByDesc('created_at')
                 ->limit(1)
-                ->first()
+                ->first()?->getAttributes() ?? false
         );
+
+        if ($attributes === false) {
+            return null;
+        }
+
+        return CachedModel::hydrate(Numerosis::model(Domain::class), $attributes);
     }
 
     public function latestInvoice(): ?Invoice

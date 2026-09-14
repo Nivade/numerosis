@@ -51,4 +51,24 @@ class PreservingPathTenantResolver extends PathTenantResolver
     {
         // Deliberately does not forgetParameter(); see the class docblock.
     }
+
+    /**
+     * Keys on the tenant id alone. The base implementation json-encodes
+     * whatever `resolve()` was handed, which for this resolver is a `Route`:
+     * every route shape produces a different key, while `getArgsForTenant()`
+     * hands invalidation `[$tenant->id]`, so nothing cached was ever forgotten.
+     */
+    #[Override]
+    public function getCacheKey(mixed ...$args): string
+    {
+        $id = $args[0] ?? null;
+
+        if ($id instanceof Route) {
+            $id = $id->parameter(PathTenantResolver::$tenantParameterName);
+        }
+
+        $id = is_string($id) || is_int($id) ? $id : null;
+
+        return '_tenancy_resolver:'.static::class.':'.json_encode([$id]);
+    }
 }

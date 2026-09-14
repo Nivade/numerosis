@@ -12,6 +12,7 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Foundation\Exceptions\Handler;
@@ -81,6 +82,7 @@ use Nvade\Numerosis\Listeners\Billing\SendPaymentFailedNotification;
 use Nvade\Numerosis\Listeners\Billing\SendTenantSuspendedNotification;
 use Nvade\Numerosis\Listeners\Invitations\SendInvitationNotification;
 use Nvade\Numerosis\Listeners\Tenancy\BackfillTenantUsers;
+use Nvade\Numerosis\Listeners\Tenancy\ForgetTenantColumnListing;
 use Nvade\Numerosis\Listeners\Tenancy\SendTenantRestoredNotification;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
 use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
@@ -106,6 +108,7 @@ use Nvade\Numerosis\Policies\Tenancy\TenantPolicy;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Routing\RouteNames;
+use Nvade\Numerosis\Services\Billing\EloquentPaymentPlanRepository;
 use Nvade\Numerosis\Services\Exceptions\TenantAwareExceptionContext;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\PasswordBrokerBootstrapper;
@@ -155,6 +158,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
         Numerosis::resetModelCache();
         GlobalCache::flush();
         GetTenantsByGlobalId::flushMemo();
+        EloquentPaymentPlanRepository::flushMemo();
 
         // Deferred until every provider has registered, so config shipped by
         // stancl/tenancy and Laravel itself is normalized once it is merged.
@@ -487,6 +491,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             TenantSuspended::class => SendTenantSuspendedNotification::class,
             TenantRestored::class => SendTenantRestoredNotification::class,
             TenantProvisioned::class => BackfillTenantUsers::class,
+            MigrationsEnded::class => ForgetTenantColumnListing::class,
             // Auto-discovery only scans a host's `app/Listeners`, never a
             // package's `src/`, so this explicit registration is the only
             // thing that makes {@see EndOtherGuardSession} fire.

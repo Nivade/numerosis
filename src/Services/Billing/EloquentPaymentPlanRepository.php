@@ -4,20 +4,34 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Billing;
 
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
+use Nvade\Numerosis\Cache\CachedModel;
 use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Cache\CacheTtl;
 use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Data\Billing\PlanFeature as PlanFeatureData;
 use Nvade\Numerosis\Exceptions\Billing\PaymentPlanNotFound;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
+use Nvade\Numerosis\Models\Central\PaymentPlanFeature;
 use Nvade\Numerosis\Models\Central\PlanFeature;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Numerosis;
 
 class EloquentPaymentPlanRepository implements PaymentPlanRepository
 {
+    /**
+     * Per-request memo over the cached rows. Rebuilding the catalogue's models
+     * from those rows measured ~1.5ms against ~23us to read them, and the
+     * container binds this class per resolve, so the memo has to be static to
+     * be reached twice in one request.
+     *
+     * @var Collection<int, Plan>|null
+     */
+    private static ?Collection $memo = null;
+
     /**
      * Scoped to available plans on purpose. Every checkout path resolves its
      * plan through here from a client-supplied slug, and existence is not
@@ -53,30 +67,93 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
     }
 
     /**
-     * The plan catalogue changes only when an operator edits it in an admin UI,
-     * which busts this key through
-     * {@see \Nvade\Numerosis\Observers\Billing\PaymentPlanObserver} and
-     * {@see \Nvade\Numerosis\Observers\Billing\PaymentPlanFeatureObserver}, so the TTL
-     * is only a backstop behind that invalidation.
+     * Attribute rows are cached, never the models: a cached model carries its
+     * eager-loaded `features` frozen at write time, and a host whose
+     * `cache.serializable_classes` omits `PaymentPlan` reads back an
+     * `__PHP_Incomplete_Class` with no exception and no log line.
+     *
+     * @see \Nvade\Numerosis\Observers\Billing\PaymentPlanObserver
+     * @see \Nvade\Numerosis\Observers\Billing\PaymentPlanFeatureObserver
      *
      * @return Collection<int, Plan>
      */
     public function available(): Collection
     {
-        /** @var \Illuminate\Database\Eloquent\Collection<int, PaymentPlan> $plans */
-        $plans = GlobalCache::store()->remember(
+        if (self::$memo instanceof Collection) {
+            return self::$memo;
+        }
+
+        $rows = GlobalCache::flexible(
             CacheKeys::availablePaymentPlans(),
-            now()->addHour(),
-            fn () => Numerosis::model(PaymentPlan::class)::available()->with('features')->orderBy('monthly_price')->get()
+            CacheTtl::window(CacheTtl::availablePaymentPlans()),
+            fn (): array => $this->availablePlanRows()
         );
 
-        // `Eloquent\Collection`'s `TModel` is not covariant the way
-        // `Support\Collection`'s `TValue` is, so reaching the interface's
-        // `Collection<int, Plan>` needs an explicit rewrap.
         /** @var Collection<int, Plan> $result */
-        $result = new Collection($plans->all());
+        $result = new Collection(array_map($this->hydratePlan(...), $rows));
 
-        return $result;
+        return self::$memo = $result;
+    }
+
+    /**
+     * Drops the memo. {@see \Nvade\Numerosis\Actions\Cache\ForgetAvailablePaymentPlans}
+     * calls this beside the cache forget; anything invalidating the key
+     * without it reads its own stale answer back.
+     */
+    public static function flushMemo(): void
+    {
+        self::$memo = null;
+    }
+
+    /**
+     * @return list<array{plan: array<string, mixed>, features: list<array{attributes: array<string, mixed>, pivot: array<string, mixed>}>}>
+     */
+    private function availablePlanRows(): array
+    {
+        $plans = Numerosis::model(PaymentPlan::class)::available()
+            ->with('features')
+            ->orderBy('monthly_price')
+            ->get()
+            ->all();
+
+        return array_values(array_map(fn (PaymentPlan $plan): array => [
+            'plan' => $plan->getAttributes(),
+            'features' => array_values(array_map(
+                fn (PlanFeature $feature): array => [
+                    'attributes' => $feature->getAttributes(),
+                    'pivot' => $feature->pivot->getAttributes(),
+                ],
+                $plan->features->all(),
+            )),
+        ], $plans));
+    }
+
+    /**
+     * @param  array{plan: array<string, mixed>, features: list<array{attributes: array<string, mixed>, pivot: array<string, mixed>}>}  $row
+     */
+    private function hydratePlan(array $row): PaymentPlan
+    {
+        $plan = CachedModel::hydrate(Numerosis::model(PaymentPlan::class), $row['plan']);
+
+        $features = array_map(
+            function (array $feature) use ($plan): PlanFeature {
+                $model = CachedModel::hydrate(PlanFeature::class, $feature['attributes']);
+
+                $model->setRelation('pivot', PaymentPlanFeature::fromRawAttributes(
+                    $plan,
+                    $feature['pivot'],
+                    'payment_plan_features',
+                    true,
+                ));
+
+                return $model;
+            },
+            $row['features'],
+        );
+
+        $plan->setRelation('features', new EloquentCollection($features));
+
+        return $plan;
     }
 
     /**
@@ -84,15 +161,15 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
      * together: a plain `Cache::` call in tenant context is stancl's
      * tenant-tagged manager, which duplicates the computation per tenant and
      * demands a taggable store. Caches the slug, not the id, so no
-     * cache-round-trip coercion can get it wrong. Subscription churn busts this
-     * key through {@see \Nvade\Numerosis\Observers\Billing\SubscriptionObserver},
-     * so the TTL is only a backstop behind that invalidation.
+     * cache-round-trip coercion can get it wrong.
+     *
+     * @see \Nvade\Numerosis\Observers\Billing\SubscriptionObserver
      */
     public function mostPopularSlug(): ?string
     {
-        return GlobalCache::store()->remember(
+        return GlobalCache::flexible(
             CacheKeys::popularPaymentPlanSlug(),
-            now()->addMinutes(5),
+            CacheTtl::window(CacheTtl::popularPaymentPlanSlug()),
             function (): ?string {
                 $popularPlanId = Numerosis::model(Subscription::class)::select('payment_plan_id')
                     ->selectRaw('COUNT(*) AS plan_count')

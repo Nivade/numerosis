@@ -7,7 +7,6 @@ namespace Nvade\Numerosis\Http\Controllers\Billing;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
 use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookController;
@@ -18,6 +17,7 @@ use Nvade\Numerosis\Actions\Billing\ResolvePlanChangeDirection;
 use Nvade\Numerosis\Actions\Tenancy\RestoreTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendUnlessEntitled;
+use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
@@ -92,7 +92,7 @@ class WebhookController extends CashierWebhookController
 
         /** @var Response $response */
         $response = $stripeSubscriptionId !== null
-            ? Cache::lock("reconcile-subscription:{$stripeSubscriptionId}", 10)->block(5, $handle)
+            ? GlobalCache::lock("reconcile-subscription:{$stripeSubscriptionId}", 10)->block(5, $handle)
             : $handle();
 
         // Inline checkout puts only the slug in Stripe metadata; the rest of
@@ -185,7 +185,7 @@ class WebhookController extends CashierWebhookController
         };
 
         /** @var Response $response */
-        $response = Cache::lock("checkout-settle:{$paymentMethodId}", 10)->block(5, $handle);
+        $response = GlobalCache::lock("checkout-settle:{$paymentMethodId}", 10)->block(5, $handle);
 
         return $response;
     }

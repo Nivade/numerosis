@@ -10,9 +10,11 @@ use App\Models\Central\Tenant;
 use App\Models\Tenant\User;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository;
+use Illuminate\Database\Connection;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\URL;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
@@ -570,6 +572,16 @@ abstract class TestCase extends Orchestra
     protected function defineRoutes($router): void
     {
         Numerosis::routes();
+    }
+
+    /**
+     * The connection every central model reads. Query-log assertions have to
+     * name it: the default connection is a different one, so logging there
+     * records nothing and an "issued no query" assertion passes vacuously.
+     */
+    protected function centralDatabase(): Connection
+    {
+        return DB::connection(Config::string('tenancy.database.central_connection', 'central'));
     }
 
     /**

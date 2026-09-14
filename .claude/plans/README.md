@@ -69,11 +69,19 @@ documented install) and one boot bug, both recorded rather than fixed here.
 executed on `refactor/enum-vocabulary-sweep`, `composer test` green (721
 passed / 6 skipped) and `composer analyse` clean at every phase boundary.
 
+`cache-audit.md` moved to `archive/` 2026-09-14: all ten phases executed on
+`feat/cache-audit`. Phase 9's open decision was settled both ways — `null` is
+cached for `tenantPrimaryDomain()`, deliberately not for `FindUserByGlobalId`
+— and recorded in `.ai/rules/tenant-caching.md`. Phase 4 turned up a second
+defect the plan had not predicted: stancl's `PathTenantResolver` keys its cache
+on the `Route` it was handed while its invalidator keys on the tenant id, so
+enabling the cache alone would have cached entries nothing could forget. Suite
+767 passed / 6 skipped, `composer analyse` clean.
+
 ## Live
 
 | Plan | State |
 |---|---|
-| `cache-audit.md` | **Not executed.** Cache audit remediation, written 2026-09-14. Ten phases. Phase 8 must land after `findings-cleanup.md` phase 1; phase 9 carries one open decision (negative caching on the auth path) |
 | `luminous-wandering-brook.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
 
 ## Abandoned

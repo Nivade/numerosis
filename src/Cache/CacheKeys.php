@@ -56,6 +56,18 @@ final class CacheKeys
         return self::prefix().":tenant:{$tenantId}:primary_domain";
     }
 
+    /** Global: the `tenants` schema is central and identical for every tenant. */
+    public static function tenantCustomColumns(): string
+    {
+        return self::prefix().':tenant:custom_columns';
+    }
+
+    /** Global: holds the owner's `global_id`, never a user model. */
+    public static function tenantOwnerGlobalId(string $tenantId): string
+    {
+        return self::prefix().":tenant:{$tenantId}:owner_global_id";
+    }
+
     public static function availablePaymentPlans(): string
     {
         return self::prefix().':billing:available_payment_plans';
