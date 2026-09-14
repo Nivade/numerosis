@@ -182,8 +182,10 @@ class Numerosis
      * Registered as Laravel's model-name resolver.
      * {@see ModelResolver::modelFor()}.
      *
-     * @param  class-string<Factory<Model>>  $factoryName
-     * @return class-string<Model>
+     * @template TModel of Model
+     *
+     * @param  class-string<Factory<TModel>>  $factoryName
+     * @return class-string<TModel>
      */
     public static function modelNameFor(string $factoryName): string
     {

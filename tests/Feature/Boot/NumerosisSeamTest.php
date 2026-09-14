@@ -16,12 +16,14 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
+use Nvade\Numerosis\Database\Factories\Central\TenantFactory;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
 use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
 use Nvade\Numerosis\Models\Central\Tenant as PackageTenant;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\NumerosisServiceProvider;
+use Nvade\Numerosis\Tests\Support\OverriddenTenant;
 
 /*
  * Every host-seam bug this extraction found lived in these methods (see
@@ -378,6 +380,19 @@ it('lets an explicit config override win over the convention match', function ()
     expect(Numerosis::model(PackageTenant::class))->toBe('App\\Models\\Central\\SomeOtherOverride');
 
     Config::set('numerosis.models.'.PackageTenant::class, null);
+});
+
+it('builds the configured model from a factory, not the conventional guess', function () {
+    Numerosis::resetModelCache();
+    Config::set('numerosis.models.'.PackageTenant::class, OverriddenTenant::class);
+
+    try {
+        expect(Numerosis::modelNameFor(TenantFactory::class))->toBe(OverriddenTenant::class)
+            ->and(TenantFactory::new()->make())->toBeInstanceOf(OverriddenTenant::class);
+    } finally {
+        Config::set('numerosis.models.'.PackageTenant::class, null);
+        Numerosis::resetModelCache();
+    }
 });
 
 it('memoizes model() and resetModelCache() clears the memoized value', function () {
