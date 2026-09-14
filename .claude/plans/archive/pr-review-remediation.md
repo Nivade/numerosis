@@ -1,5 +1,22 @@
 # Remediation plan: `package-scope-reduction` review findings
 
+> **Status — executed 2026-09-14. Every phase is closed; archived.** The last
+> session took phases 4, 5.1–5.5, 6.1–6.3, 7.1, 7.3, 8.1–8.5, 9.1–9.4, 9.6,
+> 9.7, 10.1 and 10.2. Two of them closed as measurements rather than edits:
+> 9.1 (`static` on both sides is 5 errors cold, so the widening stays) and the
+> `HostConfig::set()` half of 7.3 (`apply()` resets `$applied`, so the
+> duplicate the plan describes is unreachable). Baseline at the end: `composer
+> test` 734 passed / 6 skipped, `composer analyse` clean cold,
+> `phpstan-baseline.neon` 17 entries, unchanged through the run.
+>
+> Four defects turned up that no phase named, all shipped fixed: the tenant
+> `User` stub imported `Policies\UserPolicy`, deleted in the `src/`
+> reorganization; `current_period_end` has been silently null on every
+> cancellation since Cashier pinned an API version past `2025-03-31.basil`;
+> Cashier's own webhook handlers 500 on an expanded `customer` object before
+> any override here runs; and `modelFor()` ignoring `numerosis.models.*` meant
+> factories built a different class from production.
+
 Written 2026-09-05 from a two-axis review of `git diff main...HEAD` on
 `package-scope-reduction` (118 commits, 1097 files, +32360/-24327).
 Partially executed — read the status table below before any phase.
