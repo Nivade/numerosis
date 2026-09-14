@@ -46,6 +46,15 @@ abstract class TestCase extends Orchestra
 {
     use CleansUpTenancyDatabases;
 
+    /** Read by both the connection array and the `CREATE DATABASE` that precedes it. */
+    private const MYSQL_HOST = '127.0.0.1';
+
+    private const MYSQL_PORT = '3306';
+
+    private const MYSQL_USERNAME = 'root';
+
+    private const MYSQL_PASSWORD = 'root';
+
     private static bool $workerDatabaseMigrated = false;
 
     protected function getPackageProviders($app): array
@@ -243,11 +252,11 @@ abstract class TestCase extends Orchestra
 
         $mysql = [
             'driver' => 'mysql',
-            'host' => '127.0.0.1',
-            'port' => '3306',
+            'host' => self::MYSQL_HOST,
+            'port' => self::MYSQL_PORT,
             'database' => $database,
-            'username' => 'root',
-            'password' => 'root',
+            'username' => self::MYSQL_USERNAME,
+            'password' => self::MYSQL_PASSWORD,
             'unix_socket' => '',
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_0900_ai_ci',
@@ -603,7 +612,7 @@ abstract class TestCase extends Orchestra
             return;
         }
 
-        $connection = new PDO('mysql:host=127.0.0.1;port=3306', 'root', 'root');
+        $connection = new PDO('mysql:host='.self::MYSQL_HOST.';port='.self::MYSQL_PORT, self::MYSQL_USERNAME, self::MYSQL_PASSWORD);
         $connection->exec("create database if not exists `{$database}` character set utf8mb4 collate utf8mb4_0900_ai_ci");
 
         $ensured[$database] = true;

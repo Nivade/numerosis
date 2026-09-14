@@ -54,6 +54,22 @@ class PaymentTest extends TestCase
     }
 
     /**
+     * `Plan::cycle()` reads the same session value with `tryFrom() ?? Monthly`
+     * and documents why: a stale session cannot break the whole wizard. This
+     * step read it with `from()`, which threw a `ValueError` on exactly the
+     * input the other method was written to survive.
+     */
+    public function test_an_unrecognised_billing_cycle_falls_back_rather_than_throwing(): void
+    {
+        $this->actingAs(CentralUser::factory()->create());
+
+        $plan = PaymentPlan::factory()->create(['slug' => 'starter']);
+
+        $this->paymentStep(domain: 'cycle-stale-test', paymentPlan: $plan->slug, billingCycle: 'fortnightly')
+            ->assertViewHas('billingCycle', BillingCycle::Monthly);
+    }
+
+    /**
      * @return Testable<Payment>
      */
     private function paymentStep(?string $domain, ?string $paymentPlan = null, string $billingCycle = 'monthly')

@@ -387,6 +387,11 @@ return [
         // Swap any of these for your own implementation. Registration,
         // post-login redirect and password reset are Fortify's seams
         // instead, set with Fortify::createUsersUsing() and friends.
+        //
+        // The last three are auth, not tenancy, and live here because
+        // TenancyServiceProvider is what binds this map: login resolves a
+        // candidate across the central and tenant databases, so the tenancy
+        // provider is where the binding has to happen anyway.
         'implementations' => [
             TenantDomainPolicy::class => DefaultTenantDomainPolicy::class,
             ProvisionsTenant::class => ProvisionTenant::class,

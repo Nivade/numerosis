@@ -30,7 +30,7 @@ class Payment extends StepComponent
 
         return view('numerosis::livewire.tenant.registration.wizard.steps.payment', [
             'plan' => is_string($paymentPlanSlug) ? resolve(PaymentPlanRepository::class)->findBySlug($paymentPlanSlug) : null,
-            'billingCycle' => is_string($billingCycle) ? BillingCycle::from($billingCycle) : BillingCycle::Monthly,
+            'billingCycle' => (is_string($billingCycle) ? BillingCycle::tryFrom($billingCycle) : null) ?? BillingCycle::Monthly,
             'domain' => $this->state()->get('domain'),
             'customDomain' => $this->state()->get('customDomain'),
         ]);
