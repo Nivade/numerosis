@@ -13,10 +13,8 @@ $size = $size ?? match($level) {
     default => 'base',
 };
 
-// `display` is the page-hero treatment (welcome, about, features, privacy,
-// terms all set `text-4xl sm:text-5xl font-extrabold tracking-tight` by
-// hand). Added as an opt-in size rather than changing what `level` maps to,
-// so existing headings keep their current scale.
+// `display` is the page-hero treatment, an opt-in size rather than a change
+// to what `level` maps to, so existing headings keep their scale.
 $sizeClasses = [
     'display' => 'text-4xl sm:text-5xl font-extrabold tracking-tight',
     '3xl' => 'text-3xl',

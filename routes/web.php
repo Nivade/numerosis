@@ -27,26 +27,13 @@ use Nvade\Numerosis\Livewire\Settings\Profile as ProfileSettings;
 use Nvade\Numerosis\Livewire\Tenant\Registration;
 use Nvade\Numerosis\Routing\RouteNames;
 
-// The central guard's name is a host-overridable config key, so it is read
-// once here instead of spelled `auth:web` at each call site. Registration-time
-// read, which is correct: routes are built once per boot and the guard cannot
-// change per request.
+// The central guard's name is a host-overridable config key, read once here
+// instead of spelled `auth:web` at each call site.
 $centralAuth = 'auth:'.Context::Central->guard();
 
-// 'home' is registered unconditionally, behind no feature flag.
-// CompleteRedirectCheckout falls back to it on a checkout error, and the
-// tenant panel documents 'home' as the one route name guaranteed to exist on
-// the central domain regardless of panel registration.
-//
-// The view it renders is a deliberate placeholder. Marketing pages — a
-// homepage worth showing, plus terms/privacy/about/features — are the
-// *product's*, not the framework's, and live in the host app; core shipping
-// them was what made "does this belong in core?" unanswerable.
-//
-// Point `numerosis.routes.home_view` at your own view to replace the page, or
-// declare `/` in your own `routes/web.php` — loaded after this file, so it
-// replaces this route. Name it `home` there, or `route('home')` stops
-// resolving once `RouteServiceProvider` rebuilds the name lookup.
+// Registered unconditionally: the one central route name everything else
+// falls back to. The view is a placeholder a host replaces through
+// `numerosis.routes.home_view`.
 Route::get('/', fn () => view(Config::string('numerosis.routes.home_view')))
     ->name(RouteNames::home());
 
@@ -63,9 +50,8 @@ if (FeatureRegistry::enabled(RegistrationWizardFeature::NAME)) {
 }
 
 if (FeatureRegistry::enabled(SocialLoginFeature::NAME)) {
-    // An unconfigured provider 404s at routing rather than exploding inside
-    // a Socialite driver. With zero providers configured, `whereIn` would
-    // otherwise receive an empty list and build an empty (invalid) regex —
+    // An unconfigured provider 404s at routing rather than exploding inside a
+    // Socialite driver. Zero providers would build an empty, invalid regex, so
     // an impossible pattern keeps both routes registered but unreachable.
     $configuredProviders = SocialProvider::configuredValues();
     $providerPattern = $configuredProviders === [] ? '(?!)' : implode('|', $configuredProviders);
@@ -142,8 +128,6 @@ Route::middleware([$centralAuth])->group(function () {
     }
 });
 
-// `login`, `register`, `logout`, `password.request`, `password.reset` and
-// `verification.verify` are Fortify's, loaded by `Routing\RouteLoader::load()`
-// into this same domain group, and again into the tenant group.
-// `Numerosis::authRoutesEnabled()` (the `withAuth` flag on
-// `Numerosis::routes()`) gates that load.
+// Fortify owns `login`, `register`, `logout` and the password and
+// verification routes, loaded by `Routing\RouteLoader::load()` into this
+// domain group and again into the tenant group.

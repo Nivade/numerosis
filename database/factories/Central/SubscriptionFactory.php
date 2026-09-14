@@ -13,15 +13,9 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 
 /**
- * Extends Laravel's `Factory` directly rather than Cashier's
- * `SubscriptionFactory`. Cashier's declares no `@extends Factory<...>`, so
- * anything inheriting from it resolves its model type as the bare
- * `Model` — which made `Subscription::factory()->make()` statically a
- * `Model` and every call passing that fixture to a `Subscription` parameter
- * a type error. `definition()` and `modelName()` were already fully
- * overridden here, so the only thing given up is Cashier's unused state
- * helpers (`active()`, `trialing()`, `canceled()`, …), none of which this
- * package or its tests call.
+ * Extends Laravel's `Factory`, not Cashier's `SubscriptionFactory`, which
+ * declares no `@extends Factory<...>` and so resolves its model type as the
+ * bare `Model`.
  *
  * @extends Factory<Subscription>
  */
@@ -29,17 +23,9 @@ class SubscriptionFactory extends Factory
 {
     /**
      * Resolved through `Numerosis::model()` so a host's own subclass is what
-     * gets built. This must stay an explicit override rather than a `$model`
-     * property: while this factory extended Cashier's, the inherited
-     * `protected $model = \Laravel\Cashier\Subscription::class` short-circuited
-     * `Factory::modelName()`'s resolver and every fixture was built as
-     * Cashier's model, which does not compose stancl's `CentralConnection`.
-     * The row then went to the *default* connection (inside `RefreshDatabase`'s
-     * open transaction) while the application read and wrote `subscriptions`
-     * on `central` — the fixture was invisible to the code under test, which
-     * inserted its own row with the same unique `stripe_id` and blocked on the
-     * uncommitted duplicate key, surfacing as `SQLSTATE 1205 Lock wait
-     * timeout` rather than as a wrong-model error.
+     * gets built. Must stay an explicit override and never a `$model`
+     * property, which short-circuits the resolver and builds Cashier's model
+     * on the default connection instead.
      *
      * @return class-string<Subscription>
      */
@@ -56,12 +42,9 @@ class SubscriptionFactory extends Factory
         return [
             'user_id' => CentralUser::factory(),
             'type' => 'default',
-            // lexify() only randomizes `?` placeholders — a `*`-based pattern
-            // here previously returned the exact same literal string on
-            // every call, so a second Subscription factory call in one test
-            // process reliably overflowed the faker->unique() retry budget
-            // trying to avoid a "duplicate" that was actually the pattern
-            // never having been randomized in the first place.
+            // lexify() randomizes `?` placeholders only: a `*`-based pattern
+            // returns the same literal every call, which overflows the
+            // faker->unique() retry budget on the second call in a process.
             'stripe_id' => $this->faker->unique()->lexify('sub_????????????????????????????'),
             'stripe_status' => SubscriptionStatus::Active->value,
             'stripe_price' => $this->faker->lexify('price_????????????????????????????'),

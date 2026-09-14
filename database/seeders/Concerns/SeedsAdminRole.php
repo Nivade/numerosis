@@ -12,24 +12,19 @@ use Nvade\Numerosis\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
- * The central and tenant permission seeders build the same graph — one
- * permission per context/action pair, all of them granted to that guard's
- * `admin` role — and differ only in guard, connection, and where the action
- * list comes from. Those three are parameters here rather than a second copy
- * of the loop.
- *
- * The action source stays a callback on purpose: the tenant seeder resolves
- * through `Permission::actionsFor()` so a subclass's `additionalActions()`
- * is honoured, while the central seeder deliberately does not. See
- * {@see Permission::additionalActions()}.
+ * The central and tenant permission seeders build the same graph, one
+ * permission per context/action pair granted to that guard's `admin` role,
+ * and differ only in guard, connection and action source. The action source
+ * is a callback because the tenant seeder honours a subclass's
+ * {@see Permission::additionalActions()} and the central seeder does not.
  */
 trait SeedsAdminRole
 {
     /**
-     * `$connection` pins every write to a named connection. Role and
-     * Permission are shared, context-switching models, so a caller seeding
-     * central rows has to name `central` explicitly — {@see \Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder}
-     * for the lock-wait timeout that follows when it does not.
+     * `$connection` pins every write to a named connection: `Role` and
+     * `Permission` are context-switching models, so a caller seeding central
+     * rows has to name `central` explicitly or the row stays locked for the
+     * rest of a `RefreshDatabase` test.
      *
      * @param  list<string>  $contexts
      * @param  Closure(string): list<string>  $actionsFor
@@ -59,12 +54,9 @@ trait SeedsAdminRole
 
         $admin->givePermissionTo($permissions);
 
-        // A host with a persistent permission cache store (Redis, database)
-        // otherwise disagrees with the DB on what permissions exist, for the
-        // lifetime of every already-running worker, after any reseed that
-        // adds or renames a permission. Spatie throws PermissionDoesNotExist
-        // on a miss, so that reads as a navigation-wide `viewAny` 500ing
-        // every page.
+        // A host with a persistent permission cache otherwise disagrees with
+        // the database for the lifetime of every running worker, and spatie
+        // throws PermissionDoesNotExist on the miss.
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return $admin;

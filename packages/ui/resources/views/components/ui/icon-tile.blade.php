@@ -5,12 +5,9 @@
 ])
 
 @php
-    // The tinted square behind a feature icon — `bg-{color}-500/10` with a
-    // matching `text-{color}-500`, repeated by hand across about and features.
-    //
-    // Colours are a fixed allowlist rather than a free prop: every class here
-    // has to appear literally in source for Tailwind to generate it, and a
-    // closed set is also what keeps accent use deliberate.
+    // The tinted square behind a feature icon. Colours are a fixed allowlist,
+    // not a free prop: every class has to appear literally in source for
+    // Tailwind to generate it.
     $colors = [
         'blue' => 'bg-blue-500/10 text-blue-500',
         'emerald' => 'bg-emerald-500/10 text-emerald-500',

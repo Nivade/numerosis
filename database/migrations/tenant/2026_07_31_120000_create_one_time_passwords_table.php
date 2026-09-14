@@ -7,13 +7,10 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Tenant-database counterpart of the central
- * database/migrations/2025_11_25_165156_create_one_time_passwords_table.php.
- * Spatie's HasOneTimePasswords trait writes through whichever connection is
- * currently default, which is 'tenant' for the whole duration of a tenant
- * subdomain request — so without this table, every OTP sent to a
- * Tenant\User (the tenant panel's only login method) throws
- * "Base table or view not found" the moment a code is issued.
+ * Tenant-database counterpart of the central one-time-passwords table.
+ * Spatie's `HasOneTimePasswords` writes through whichever connection is
+ * default, which is `tenant` for a whole tenant request, so without this every
+ * OTP issued to a `Tenant\User` throws "Base table or view not found".
  */
 return new class extends Migration
 {

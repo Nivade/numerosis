@@ -9,10 +9,8 @@
 ])
 
 @php
-    // The canonical callout. `ui/info-box` delegates here rather than keeping
-    // the second copy of this palette it used to carry. `Severity` is the one
-    // source for the token map now — see that class for why `error` reads
-    // `danger` tokens.
+    // The canonical callout, which `ui/info-box` delegates to. `Severity` is
+    // the one source for the token map.
     $severity = Severity::fromAlias($type) ?? Severity::Info;
 
     $displayMessage = $message;

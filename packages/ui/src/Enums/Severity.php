@@ -5,16 +5,12 @@ declare(strict_types=1);
 namespace Nvade\NumerosisUi\Enums;
 
 /**
- * The one semantic-token palette `ui/alert`, `ui/badge` and `ui/toast` all
- * render through, so the three can no longer disagree on which tokens a
- * severity maps to the way they used to.
+ * The one semantic-token palette `ui/alert`, `ui/badge` and `ui/toast` render
+ * through.
  *
- * Every class string below is spelled out literally, never built through
- * interpolation — Tailwind's `@source` scanner extracts complete class
- * candidates as raw text, and `resources/theme-src/app.css` /
- * `resources/css/app.css` both carry a `@source` line naming this file for
- * that reason. An interpolated `"bg-{$prefix}-bg"` would never appear in
- * generated CSS.
+ * Every class string below is literal, never interpolated: Tailwind's
+ * `@source` scanner extracts complete class candidates as raw text, and both
+ * app stylesheets carry a `@source` line naming this file.
  */
 enum Severity: string
 {

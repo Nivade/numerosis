@@ -19,10 +19,9 @@ return new class extends Migration
             $table->string('name');
             $table->string('global_id')->nullable()->index();
 
-            // BillingContribution's columns. Real columns rather than the
-            // JSON blob below because three of them are query predicates:
-            // ResolveSetupIntent looks a row up by setup intent, and the
-            // Stripe webhook filters on subscription id.
+            // BillingContribution's columns, real rather than in the JSON
+            // blob below because three are query predicates: setup intent for
+            // ResolveSetupIntent, subscription id for the Stripe webhook.
             $table->string('payment_plan')->nullable();
             $table->string('billing_cycle')->nullable();
             $table->string('stripe_setup_intent_id')->nullable();
