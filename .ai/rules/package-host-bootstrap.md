@@ -364,6 +364,22 @@ That run is worth doing: `QUEUE_CONNECTION=sync` in the suite means no test
 exercises a worker boundary, and the first one ever run found a live bug (see
 `exception-handling.md` on re-thrown exception codes).
 
+**Browse the harness on `http://localhost:8000`, never `http://127.0.0.1:8000`.**
+`tenancy.central_domains` is `localhost`, so the loopback IP identifies as
+neither central nor a tenant and every page 500s with
+`TenantCouldNotBeIdentifiedOnDomainException` — including `/`, which reads as
+the package being broken rather than as the URL being wrong. Measured
+2026-09-14: `localhost:8000/` and `/get-started` both answer 200 on the same
+boot that 500s on the IP.
+
+**A route the workbench declares can be replaced by one the package declares,
+silently.** `RouteCollection` keys a route by method, domain and URI, so the
+tenant group's domain-less `/` (`tenant.home`, loaded after the workbench file)
+took over `workbench/routes/web.php`'s `/`. That closure rendered a `welcome`
+view which has never existed in this repo; nothing reported it because the
+route it sat on was unreachable. Check `route:list` for the *handler*, not just
+the path, before assuming a workbench route is live.
+
 **What actually blocks SQLite is smaller than "MySQL-only" suggests, and
 `CREATE DATABASE` is not part of it.** stancl ships
 `TenantDatabaseManagers\SQLiteDatabaseManager`, which writes one file per
