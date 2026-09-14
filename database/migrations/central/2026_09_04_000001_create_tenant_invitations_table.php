@@ -24,8 +24,9 @@ return new class extends Migration
 
             $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
 
-            // A re-invite of the same address updates the existing row
-            // (`updateOrCreate`) rather than growing duplicates.
+            // A re-invite of the same address updates the existing row rather
+            // than growing duplicates: SendInvitation reads it, writes it, and
+            // re-reads on the violation when a concurrent invite wins.
             $table->unique(['tenant_id', 'email']);
         });
     }
