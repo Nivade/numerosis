@@ -254,7 +254,7 @@ class InstallNumerosisCommand extends Command
             $class = Config::get($key);
 
             if (! is_string($class) || $class === '' || ! class_exists($class)) {
-                $this->failures[] = "config('{$key}') must name a class that exists — a tenant panel answers 404 on every tenant URL when this is unresolvable, rather than reporting a config problem.";
+                $this->failures[] = "config('{$key}') must name a class that exists: an unresolvable model answers 404 on every tenant URL rather than reporting a config problem.";
             }
         }
 
