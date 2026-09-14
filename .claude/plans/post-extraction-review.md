@@ -11,8 +11,10 @@
 >
 > - **4.1** shipped as `numerosis:install --verify-only`, not `--check`. Every
 >   task below that names `--check` means `--verify-only`.
-> - **4.3** shipped — `schema_version` is in `config/numerosis/schema-version.php`,
->   `config/stubs/numerosis.php`, and checked in `InstallNumerosisCommand:749`.
+> - **4.3** shipped and was then **undone**. `schema_version` lived in
+>   `config/numerosis/schema-version.php` until the config consolidation
+>   deleted it; no such key exists in `config/` today (checked 2026-09-14).
+>   Treat 4.3 as reverted, not as available to build on.
 > - **5.3** is **moot, not done.** It was a test for
 >   `NumerosisTenantPlugin::shouldRegisterPanel()`; `packages/filament` and both
 >   panels were deleted 2026-09-03 (Phase 1 of `archive/humming-nibbling-flame.md`).

@@ -53,15 +53,14 @@ defaults.
 
 - **A feature class listed in config but not installed disappears silently,
   from two places, and neither raises anything you will see.**
-  `Features::names()`'s `is_a($class, NamedFeature::class, true)`
-  (`src/Features/FeatureRegistry.php:127`) autoloads and quietly returns `false` for a
+  `FeatureRegistry::names()`'s `is_a($class, NamedFeature::class, true)` autoloads and quietly returns `false` for a
   missing class, so the entry drops out of the *name map* and every
   `Features::enabled('that-name')` reads `false`. It used to at least crash
   afterwards: `NumerosisServiceProvider`'s boot loop called
   `$this->app->make($feature)->bootstrap()` straight over `Features::all()`.
   Since `a4167a4` that loop is `class_exists()`-guarded and does
-  `Log::warning("… does not exist; skipping")` + `continue`
-  (`src/NumerosisServiceProvider.php:243-251`), which was the right call for
+  `Log::warning("… does not exist; skipping")` + `continue` in
+  `NumerosisServiceProvider::bootstrapFeatures()`, which was the right call for
   the widened `stancl/tenancy` constraint but removed the only loud symptom.
   **The failure mode is now a feature that is configured, reads as disabled,
   and logs one warning at boot.** Any packaging change that could leave a

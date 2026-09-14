@@ -127,7 +127,7 @@ head/tail, no outer queued job. Everything below this section that predates
 
 ### `$tenant->run()` leaks tenancy when the callback throws
 
-`vendor/stancl/tenancy/src/Database/Concerns/TenantRun.php:18-33` initializes,
+stancl's `TenantRun::run()` initializes,
 calls `$callback($this)`, then reverts — with **no `try`/`finally`**. A throw
 skips the revert, so the process stays initialized against that tenant: its DB
 connection, cache prefix, auth guard and Spatie permission registrar all still
@@ -166,8 +166,7 @@ this would reach for next, and it was tried and rejected here. Against
   it called and the loop `break`s with no rethrow, so the queue records
   success on a step that actually failed. `if ($result === false) break;`
   stops just as silently.
-- `TenantCreated` is a `created` model event
-  (`vendor/stancl/tenancy/src/Database/Models/Tenant.php:56`) — fires exactly
+- `TenantCreated` is a `created` model event on stancl's `Tenant` — fires exactly
   once, ever. A crash that leaves the tenant row behind never re-fires it, so
   anything hung off it is structurally unresumable.
 - The step that creates the tenant cannot itself be in the list, since it is

@@ -8,11 +8,9 @@ paths:
 > **Header note, 2026-09-04.** Both fixes below are **core's now, applied
 > defensively** — this file used to read as a list of host `config/` edits, and
 > this repo has no `config/filesystems.php`, `config/livewire.php` or
-> `bootstrap/app.php` to edit. `HostConfig::filesystemRootOverride()`
-> (`src/Boot/HostConfig.php:255-263`) sets
+> `bootstrap/app.php` to edit. `HostConfig::corrections()` sets
 > `tenancy.filesystem.root_override.local`, and only when the host left it null
-> or on stancl's stale `%storage_path%/app/` stub. `NumerosisServiceProvider`
-> (`src/NumerosisServiceProvider.php:218-230`) defines the `livewire` disk and
+> or on stancl's stale `%storage_path%/app/` stub. `NumerosisServiceProvider::registerLivewireUploadDisk()` defines the `livewire` disk and
 > points `livewire.temporary_file_upload.disk` at it, both guarded on
 > `=== null` so a host override wins. `InstallNumerosisCommand` verifies the
 > second one and fails the install with the mimetype-rejection explanation if

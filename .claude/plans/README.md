@@ -57,7 +57,7 @@ passed / 6 skipped) and `composer analyse` clean at every phase boundary.
 | Plan | State |
 |---|---|
 | `luminous-wandering-brook.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
-| `pr-review-remediation.md` | **Partially executed.** Re-audited 2026-09-07 against `3c3de4e`: most phases fixed, but phase 4 (webhook payload guard) is still open and phase 5.1 (line-number citation sweep) has 7 of 9 left |
+| `pr-review-remediation.md` | **Partially executed.** Re-audited 2026-09-14 against `98d677c`, which is the status table to read. Every defect phase is closed; what is left is phase 6, the comment-budget sweep, which measures 56 over-budget docblocks and 35 over-cap `//` runs repo-wide |
 | `post-extraction-review.md` | **Mostly done; three items survive.** Its Live status block is stale — read the correction at the top of the file, not the table |
 
 ## Abandoned
