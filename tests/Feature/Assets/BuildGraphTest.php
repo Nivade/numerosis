@@ -45,11 +45,9 @@ class BuildGraphTest extends BaseTestCase
         while ($queue !== []) {
             $current = array_shift($queue);
 
-            preg_match_all('/from\s+[\'"](\.[^\'"]+)[\'"]|import\s+[\'"](\.[^\'"]+)[\'"]/', (string) file_get_contents($current), $matches);
+            preg_match_all('/(?:from|import)\s+[\'"](\.[^\'"]+)[\'"]/', (string) file_get_contents($current), $matches);
 
-            $relatives = array_filter([...$matches[1], ...$matches[2]], static fn (string $relative): bool => $relative !== '');
-
-            foreach ($relatives as $relative) {
+            foreach ($matches[1] as $relative) {
                 $path = realpath(dirname($current).'/'.$relative) ?: realpath($root.'/'.ltrim($relative, './').'.js');
 
                 if (is_string($path) && ! in_array($path, $seen, true)) {
