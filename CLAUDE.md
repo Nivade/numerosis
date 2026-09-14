@@ -30,7 +30,7 @@ It is a package tested through Orchestra Testbench. There is no
 |---|---|
 | Tests | `composer test` (Pest) — or `vendor/bin/pest --filter=name` |
 | Static analysis | `composer analyse` (PHPStan level 9, with baseline) |
-| Format | `composer format` (Pint) — required before finishing any PHP change |
+| Format | `composer format` (Pint) — the per-edit loop, after any PHP change |
 | Lint (refactor + format + analyse) | `composer lint` — **rewrites files** (Rector, then Pint) |
 | Lint, read-only | `composer lint:check` — same three, none of them writing |
 | Boot the dev harness | `composer serve` (the `workbench/` app) |
@@ -40,6 +40,17 @@ Browser tests need `npx playwright install chromium` first; see
 `.ai/rules/testing.md`.
 
 `declare(strict_types=1)` everywhere, enforced by `pint.json`.
+
+**Run `composer lint` once before you commit.** Pint is the only formatter the
+per-edit rule names, so Rector otherwise never runs and its rewrites pile up
+until they land, unrelated, in whoever's diff triggers them next. That is how
+one commit here came to touch 100 files.
+
+Rector has no `--dirty`; `composer lint` rewrites the whole tree. Read
+`git status` afterwards and keep rewrites you did not intend out of your
+commit — a separate `refactor: apply rector` commit is the way to carry them.
+Use `composer lint:check` when you want the same three checks to report
+without writing.
 
 ## Codebase Rules
 
