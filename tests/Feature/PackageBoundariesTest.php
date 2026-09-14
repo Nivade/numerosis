@@ -181,6 +181,41 @@ class PackageBoundariesTest extends BaseTestCase
         }
     }
 
+    /**
+     * A vendor namespace core names directly is a dependency core owns, even
+     * when the package arrives as someone else's transitive one — dropping
+     * `socialiteproviders/discord` would otherwise take
+     * `socialiteproviders/manager` with it and fatal every boot through
+     * `SocialLoginFeature`.
+     */
+    public function test_every_vendor_namespace_core_names_is_a_direct_requirement(): void
+    {
+        $root = dirname(__DIR__, 2);
+
+        /** @var array{require: array<string, string>} $composer */
+        $composer = json_decode((string) file_get_contents($root.'/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+
+        $packageFor = [
+            'SocialiteProviders\\Manager\\' => 'socialiteproviders/manager',
+        ];
+
+        $files = iterator_to_array((new Finder)->files()->in($root.'/src')->name('*.php'), false);
+
+        foreach ($packageFor as $namespace => $package) {
+            $named = array_filter($files, static fn (SplFileInfo $file): bool => str_contains(self::codeOf($file), $namespace));
+
+            if ($named === []) {
+                continue;
+            }
+
+            $this->assertArrayHasKey(
+                $package,
+                $composer['require'],
+                self::path(reset($named))." names {$namespace}, so composer.json must require {$package} directly."
+            );
+        }
+    }
+
     private static function path(SplFileInfo $file): string
     {
         return str_replace(dirname(__DIR__, 2).'/', '', $file->getPathname());
