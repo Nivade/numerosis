@@ -120,15 +120,20 @@
         ],
         "format": "vendor/bin/pint",
         "lint": [
+            "@php -d memory_limit=1G vendor/bin/rector process --ansi",
             "@php -d memory_limit=1G vendor/bin/pint --ansi",
+            "@php -d memory_limit=1G vendor/bin/phpstan analyse --verbose --ansi"
+        ],
+        "lint:check": [
+            "@php -d memory_limit=1G vendor/bin/rector process --dry-run --ansi",
+            "@php -d memory_limit=1G vendor/bin/pint --test --ansi",
             "@php -d memory_limit=1G vendor/bin/phpstan analyse --verbose --ansi"
         ],
         "refactor": "vendor/bin/rector process",
         "refactor:check": "vendor/bin/rector process --dry-run",
         "ci:check": [
             "Composer\\Config::disableProcessTimeout",
-            "@lint",
-            "@refactor:check",
+            "@lint:check",
             "@test"
         ]
     },
