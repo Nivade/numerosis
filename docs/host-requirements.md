@@ -66,7 +66,9 @@ framework hook that has to run before any package code can act.
 added, before the first request works.** All five were found by installing
 into a scratch app against this document alone, 2026-09-14; each failed at
 boot rather than at install, and `numerosis:install --verify-only` exits 0
-with every one of them still wrong.
+with every one of them still wrong. `tests/smoke-host.sh` (`composer
+test-host`) is that install, start to finish, against a throwaway app it
+deletes afterwards — run it after changing anything a host touches.
 
 | Fresh-app default | What it does | What to do |
 |---|---|---|

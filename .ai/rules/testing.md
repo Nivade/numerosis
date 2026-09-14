@@ -34,9 +34,12 @@ rest of this file is read:
   2026-09-14: 1 of 30 consecutive `composer test` runs, all 9 browser tests
   failing at once, every other test green. The plugin writes that file once per
   run and the parallel workers read it; an earlier run's cleanup removing it, or
-  a worker reading before the writer lands, produces this. Re-run before
-  investigating — a genuinely missing `npx playwright install chromium` aborts
-  the whole run with no test output instead (bullet above).
+  a worker reading before the writer lands, produces this. `tests/Pest.php` now
+  makes a worker wait up to 10s for that file rather than read it immediately,
+  which covers the read-before-write half. If it comes back anyway, the cause is
+  the other half and the wait is not the thing to lengthen. A genuinely missing
+  `npx playwright install chromium` aborts the whole run with no test output
+  instead (bullet above).
 
 ## Running it
 
@@ -74,15 +77,16 @@ rest of this file is read:
   earlier command was still going. It reads exactly like a real isolation bug.
   Confirm first: `ps -eo pid,cmd | grep '[p]est'`.
 
-- **`PlanCardTest`'s one-off parallel failure (2026-09-14) did not reproduce in
-  30 consecutive `composer test` runs and stays open.** Ruled out by that loop:
-  it is not frequent, and it is not the "Most Popular" badge's cache read —
-  `mostPopularSlug()` gained a `SubscriptionObserver` invalidator before the
-  loop ran, so the badge now resolves against fresh central data and the failure
-  rate did not move. Still untested: stray central `PaymentPlan` rows left by
-  `deleteCentralWrites()` running outside `RefreshDatabase`'s transaction, and
-  cross-worker factory collisions. Capture the failing output next time — the
-  original was lost, which is why the suspects below it are still guesses.
+- **A view test that renders `x-numerosis::billing.plan-card` reads central
+  `subscriptions` unless it says otherwise.** The card resolves
+  `mostPopularSlug()` at render time, and central writes escape
+  `RefreshDatabase`'s transaction, so another worker's rows decide whether the
+  "Most Popular" badge appears. `PlanCardTest` pins the answer in `setUp()`
+  (`PinsGlobalCache`, then `forever(CacheKeys::popularPaymentPlanSlug(), …)`),
+  which is what closed its one-off 2026-09-14 parallel failure — never
+  reproduced in 30 consecutive runs, so that channel is the only identified
+  one, not a confirmed cause. A card test that skips the pin is reading live
+  data whether it means to or not.
 
 - **Killing a `--parallel` run mid-migration leaves worker databases that
   never repair themselves.** `TestCase::ensureDatabaseExists()` is

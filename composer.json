@@ -114,6 +114,10 @@
         "test-browser": "@php -d memory_limit=1G vendor/bin/pest --testsuite=Browser",
         "test-coverage": "@php -d memory_limit=1G vendor/bin/pest --coverage",
         "test:impact": "@php -d memory_limit=1G vendor/bin/pest --dirty",
+        "test-host": [
+            "Composer\\Config::disableProcessTimeout",
+            "tests/smoke-host.sh"
+        ],
         "format": "vendor/bin/pint",
         "lint": [
             "@php -d memory_limit=1G vendor/bin/pint --ansi",

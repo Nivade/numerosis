@@ -220,7 +220,7 @@ class TenancyServiceProvider extends ServiceProvider
             InitializeTenancyByDomain::class,
             InitializeTenancyBySubdomain::class,
             InitializeTenancyByDomainOrSubdomain::class,
-            \Nvade\Numerosis\Http\Middleware\InitializeTenancyByDomainOrSubdomain::class,
+            \Nvade\Numerosis\Http\Middleware\InitializeTenancyByTenantDomain::class,
             InitializeTenancyByPath::class,
             InitializeTenancyByRequestData::class,
         ];

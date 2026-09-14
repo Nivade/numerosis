@@ -8,8 +8,25 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Models\Central\Tenant as TenantModel;
 use Nvade\Numerosis\Tests\TestCase;
+use Pest\Plugins\Parallel;
 
 uses(TestCase::class, RefreshDatabase::class)->in('Feature');
+
+/*
+ * A parallel worker reads the Playwright server's host and port out of a file
+ * the parent process writes when it starts that server, and reading it before
+ * the parent has written it fails every browser test in the run at once with
+ * `file_get_contents(...playwright-server.json): Failed to open stream`.
+ * Measured once in 30 consecutive runs (2026-09-14). Wait for the parent.
+ */
+if (Parallel::isWorker()) {
+    $playwrightState = dirname(__DIR__).'/vendor/pestphp/pest-plugin-browser/.temp/playwright-server.json';
+    $waitUntil = microtime(true) + 10;
+
+    while (! file_exists($playwrightState) && microtime(true) < $waitUntil) {
+        usleep(50_000);
+    }
+}
 
 /**
  * Sign a fresh tenant user in on the tenant guard, inside the tenant's own

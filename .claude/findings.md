@@ -1,6 +1,3 @@
 # Findings
 
-- 2026-09-14: tests/Feature/View/Components/PlanCardTest.php failed once under `composer test` (--parallel) — risk — not reproduced in 30 consecutive runs; popular-slug cache read ruled out, stray central rows and cross-worker factory collisions still open (`.ai/rules/testing.md`); capture the output next time
-- 2026-09-14: all 9 browser tests failed together in 1 of 30 `composer test` runs on `file_get_contents(vendor/pestphp/pest-plugin-browser/.temp/playwright-server.json)` — risk — reproduced once, cause (write/read race on the plugin's per-run temp file) not confirmed
-- 2026-09-14: the scratch-host smoke run turned up five install-path gaps plus one boot bug, which is the case the archived post-extraction-review.md made for a CI smoke workflow — question — build one (needs its own plan: services block, checkout token, maintenance) or re-run by hand after each host-seam change
-- 2026-09-14: subdomain mode 500s on every tenant host when the central domain *is* the apex (`APP_URL=http://example.test`) — bug — `CreateTenantDomain` writes the FQDN while stancl's `InitializeTenancyBySubdomain` looks the bare label up, so `Tenant could not be identified on domain acme`; invisible to the suite because `tests/TestCase` sets central to `central.numerosistest.test`, which takes stancl's domain branch instead. Found by the scratch-host smoke run
+_Empty. Add one with the `note-finding` skill._
