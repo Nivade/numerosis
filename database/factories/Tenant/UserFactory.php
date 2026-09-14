@@ -64,19 +64,4 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
-
-    /**
-     * The seeded Chat Bot occupies a real row in every tenant database and is
-     * skipped by PromoteFirstUserToAdmin, so tests covering that need one.
-     *
-     * Only safe when a central user already carries this global_id — see the
-     * note on `is_bot` in definition() for why an unsynced bot cannot be
-     * created through the normal save path.
-     */
-    public function bot(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'is_bot' => true,
-        ]);
-    }
 }
