@@ -24,8 +24,8 @@ class MarkProvisionInProgressTest extends TestCase
         $user = CentralUser::factory()->create();
 
         MarkProvisionInProgress::run(new TenantProvisionData(
-            name: 'Started Co',
             slug: 'started-co',
+            name: 'Started Co',
             contributions: [new OwnerContribution($user->global_id)],
         ));
 

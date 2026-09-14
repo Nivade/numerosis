@@ -121,7 +121,7 @@ class HostRequirementsTest extends TestCase
     public function test_every_config_key_host_config_touches_is_documented(): void
     {
         $root = dirname(__DIR__, 3);
-        $source = (string) file_get_contents((string) (new ReflectionClass(HostConfig::class))->getFileName());
+        $source = (string) file_get_contents((string) new ReflectionClass(HostConfig::class)->getFileName());
         $doc = (string) file_get_contents($root.'/docs/host-requirements.md');
 
         preg_match_all('/[\'"]([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)[\'"]/', $source, $matches);

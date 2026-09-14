@@ -12,6 +12,6 @@ class NumerosisLogoutResponse implements LogoutResponse
 {
     public function toResponse($request): RedirectResponse
     {
-        return redirect()->route(RouteNames::home());
+        return to_route(RouteNames::home());
     }
 }

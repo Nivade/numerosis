@@ -6,11 +6,10 @@ namespace Nvade\Numerosis\Http\Controllers\Billing;
 
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
-use Laravel\Cashier\Cashier;
 use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookController;
 use Laravel\Cashier\Subscription;
 use Nvade\Numerosis\Actions\Billing\Checkout\SettleAttachedPaymentMethod;
@@ -28,7 +27,6 @@ use Nvade\Numerosis\Events\Billing\SubscriptionCancelled;
 use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Subscription as CentralSubscription;
-use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
 use Override;
@@ -211,7 +209,7 @@ class WebhookController extends CashierWebhookController
 
             event(new SubscriptionCancelled(
                 $tenant,
-                $periodEnd !== null ? Carbon::createFromTimestamp($periodEnd) : null,
+                $periodEnd !== null ? Date::createFromTimestamp($periodEnd) : null,
                 (string) $tenant->getTenantKey(),
             ));
         }

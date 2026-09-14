@@ -241,8 +241,8 @@ class IdentificationModeTest extends TestCase
         $this->useMode(IdentificationMode::CustomDomain);
 
         ReserveTenantDomain::run(new TenantProvisionData(
-            name: 'Acme',
             slug: 'acme',
+            name: 'Acme',
             contributions: [
                 new OwnerContribution((string) Str::uuid()),
                 new CustomDomainContribution('app.acme.com'),

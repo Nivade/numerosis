@@ -60,9 +60,9 @@ class PlanCardNonEloquentPlanTest extends TestCase
 
     private function bindStubRepository(Plan $plan): void
     {
-        app()->bind(PaymentPlanRepository::class, fn (): PaymentPlanRepository => new class($plan) implements PaymentPlanRepository
+        app()->bind(PaymentPlanRepository::class, fn (): PaymentPlanRepository => new readonly class($plan) implements PaymentPlanRepository
         {
-            public function __construct(private readonly Plan $plan) {}
+            public function __construct(private Plan $plan) {}
 
             public function findBySlug(string $slug): Plan
             {
@@ -130,7 +130,7 @@ class PlanCardNonEloquentPlanTest extends TestCase
         $plan = $this->stubPlan();
         $this->bindStubRepository($plan);
 
-        $price = resolve(BillingService::class)->formatAmount($plan->price(BillingCycle::Monthly) ?? 0);
+        resolve(BillingService::class)->formatAmount($plan->price(BillingCycle::Monthly) ?? 0);
 
         $this->blade(
             '<x-numerosis::billing.order-summary :plan="$plan" :billing-cycle="$cycle" domain="acme" />',

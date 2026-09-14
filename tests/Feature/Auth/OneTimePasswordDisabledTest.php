@@ -61,8 +61,6 @@ class OneTimePasswordDisabledTest extends TestCase
 
     public function test_the_login_screen_still_asks_for_a_password(): void
     {
-        $this->get(route('login'))
-            ->assertOk()
-            ->assertSee('name="password"', escape: false);
+        $this->get(route('login'))->assertOk()->assertSeeHtml('name="password"');
     }
 }

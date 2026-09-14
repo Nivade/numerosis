@@ -47,13 +47,13 @@ abstract class TestCase extends Orchestra
     use CleansUpTenancyDatabases;
 
     /** Read by both the connection array and the `CREATE DATABASE` that precedes it. */
-    private const MYSQL_HOST = '127.0.0.1';
+    private const string MYSQL_HOST = '127.0.0.1';
 
-    private const MYSQL_PORT = '3306';
+    private const string MYSQL_PORT = '3306';
 
-    private const MYSQL_USERNAME = 'root';
+    private const string MYSQL_USERNAME = 'root';
 
-    private const MYSQL_PASSWORD = 'root';
+    private const string MYSQL_PASSWORD = 'root';
 
     private static bool $workerDatabaseMigrated = false;
 
@@ -475,11 +475,11 @@ abstract class TestCase extends Orchestra
         ]);
         $app->make(Repository::class)->set('mail.default', 'array');
 
-        $app->make(Repository::class)->set('activitylog.database_connection', null);
+        $app->make(Repository::class)->set('activitylog.database_connection');
         $app->make(Repository::class)->set('activitylog.table_name', 'activity_log');
         $app->make(Repository::class)->set('activitylog.activity_model', Activity::class);
         $app->make(Repository::class)->set('activitylog.default_log_name', 'default');
-        $app->make(Repository::class)->set('activitylog.default_auth_driver', null);
+        $app->make(Repository::class)->set('activitylog.default_auth_driver');
         $app->make(Repository::class)->set('activitylog.subject_returns_soft_deleted_models', false);
         $app->make(Repository::class)->set('activitylog.enabled', true);
 

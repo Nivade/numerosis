@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Support;
 
+use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 
@@ -17,7 +18,7 @@ final class RecordSeatCountStep implements RequiresContributions
     public static array $seen = [];
 
     /**
-     * @return list<class-string<\Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution>>
+     * @return list<class-string<ProvisionContribution>>
      */
     public static function requires(): array
     {

@@ -116,13 +116,12 @@ class ProvisionTenantTest extends TestCase
 
         $steps = Config::array('numerosis.tenancy.provisioning.steps');
 
-        Bus::assertDispatched(function (RunProvisioningStep $job) use ($steps): bool {
+        Bus::assertDispatched(
             // The head of the chain carries the rest; one link per step, in
             // configured order, so a host can insert anywhere.
-            return $job->chainQueue === 'provisioning'
-                && $job->step === $steps[0]
-                && count($job->chained) === count($steps) - 1;
-        });
+            fn (RunProvisioningStep $job): bool => $job->chainQueue === 'provisioning'
+            && $job->step === $steps[0]
+            && count($job->chained) === count($steps) - 1);
     }
 
     /**
@@ -169,7 +168,7 @@ class ProvisionTenantTest extends TestCase
         // time, since the step record is what stops it.
         Tenant::withoutEvents(fn () => Tenant::findOrFail('resumes')->delete());
 
-        RunProvisioningStep::dispatchSync('resumes', CreateTenant::class);
+        dispatch_sync(new RunProvisioningStep('resumes', CreateTenant::class));
 
         $this->assertDatabaseMissing('tenants', ['id' => 'resumes'], 'central');
     }

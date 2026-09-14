@@ -34,7 +34,7 @@ class FinalizeCheckoutSubscription
         $subscription = CreateInlineSubscription::run($pending, $paymentMethod->id, $billable);
 
         $stripeCustomerId = $billable?->stripeId();
-        $userId = $billable === null ? null : (string) $billable->getKey();
+        $userId = $billable instanceof BillableUser ? (string) $billable->getKey() : null;
 
         SettleCheckout::run($pending, $subscription, $stripeCustomerId, $userId);
 

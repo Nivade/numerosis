@@ -6,6 +6,7 @@ use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Sleep;
 use Nvade\Numerosis\Models\Central\Tenant as TenantModel;
 use Nvade\Numerosis\Tests\TestCase;
 use Pest\Plugins\Parallel;
@@ -20,11 +21,11 @@ uses(TestCase::class, RefreshDatabase::class)->in('Feature');
  * Measured once in 30 consecutive runs (2026-09-14). Wait for the parent.
  */
 if (Parallel::isWorker()) {
-    $playwrightState = dirname(__DIR__).'/vendor/pestphp/pest-plugin-browser/.temp/playwright-server.json';
+    $playwrightState = __DIR__.'/../vendor/pestphp/pest-plugin-browser/.temp/playwright-server.json';
     $waitUntil = microtime(true) + 10;
 
     while (! file_exists($playwrightState) && microtime(true) < $waitUntil) {
-        usleep(50_000);
+        Sleep::usleep(50_000);
     }
 }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Actions\Billing\Checkout;
 
 use App\Models\Central\CentralUser;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Laravel\Cashier\Subscription as CashierSubscription;
@@ -98,7 +99,7 @@ class CreateInlineSubscriptionTest extends TestCase
             'billing_cycle' => BillingCycle::Monthly,
         ]);
 
-        /** @var class-string<\Illuminate\Database\Eloquent\Model> $original */
+        /** @var class-string<Model> $original */
         $original = Cashier::$subscriptionModel;
         Cashier::useSubscriptionModel(CashierSubscription::class);
 

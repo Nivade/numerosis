@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Contracts\Feature;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 
@@ -28,7 +29,7 @@ test('it falls back to config when nothing is forced, plus anything a satellite 
     // satellite packages contributed at register time — nvade/numerosis-auth-ui
     // adds its own SocialLoginFeature that way, precisely so core's config
     // never names a class that may not be installed.
-    /** @var list<class-string<Nvade\Numerosis\Contracts\Feature>> $configured */
+    /** @var list<class-string<Feature>> $configured */
     $configured = Config::array('numerosis.features');
 
     expect(FeatureRegistry::all())

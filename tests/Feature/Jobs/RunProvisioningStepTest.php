@@ -33,7 +33,7 @@ class RunProvisioningStepTest extends TestCase
         $tenantId = 'reads-tenant-'.uniqid();
         $provision = $this->provisionRow($user, $tenantId);
 
-        (new RunProvisioningStep($provision->slug, CreateTenant::class))->handle();
+        new RunProvisioningStep($provision->slug, CreateTenant::class)->handle();
 
         $this->assertSame(StepOutcome::Done->value, $provision->refresh()->step_records[CreateTenant::class]['outcome']);
         $this->assertDatabaseHas('tenants', ['id' => $tenantId], 'central');
@@ -82,7 +82,7 @@ class RunProvisioningStepTest extends TestCase
         $provision = $this->ownerProvisionRow($tenant, $owner);
 
         try {
-            (new RunProvisioningStep($provision->slug, PromoteFirstUserToAdmin::class))->handle();
+            new RunProvisioningStep($provision->slug, PromoteFirstUserToAdmin::class)->handle();
             $this->fail('Expected NoPromotableUser to be thrown.');
         } catch (NoPromotableUser) {
             // Expected: no promotable user exists in the tenant database.

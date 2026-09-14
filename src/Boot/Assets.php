@@ -51,7 +51,7 @@ final class Assets
 
         if (File::exists(resource_path('js/numerosis.js'))) {
             try {
-                return new HtmlString($css.app(Vite::class)(['resources/js/numerosis.js'])->toHtml());
+                return new HtmlString($css.resolve(Vite::class)(['resources/js/numerosis.js'])->toHtml());
             } catch (ViteException) {
                 // Published, but not an entry in the host's Vite manifest yet.
             }

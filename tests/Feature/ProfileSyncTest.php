@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature;
 
 use App\Models\Central\CentralUser;
-use App\Models\Central\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;

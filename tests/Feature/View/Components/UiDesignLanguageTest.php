@@ -35,7 +35,7 @@ class UiDesignLanguageTest extends TestCase
      * The body background every layout sets. A surface equal to this value is
      * invisible against the page, which is the bug this pins.
      */
-    private const BODY_DARK = 'dark:bg-zinc-800';
+    private const string BODY_DARK = 'dark:bg-zinc-800';
 
     public function test_card_surfaces_sit_below_the_page_background_in_dark_mode(): void
     {

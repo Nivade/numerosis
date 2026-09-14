@@ -67,8 +67,7 @@ class StartSubscriptionCheckoutTest extends TestCase
                 'global_id' => $user->global_id,
                 'payment_plan' => 'invalid-plan',
                 'billing_cycle' => 'invalid-cycle',
-            ]))
-            ->assertStatus(302)
+            ]))->assertFound()
             ->assertSessionHasErrors([
                 'name',
                 'slug',
@@ -129,8 +128,8 @@ class StartSubscriptionCheckoutTest extends TestCase
         $this->expectException(TooManyUnpaidTenants::class);
 
         StartSubscriptionCheckout::run(new TenantProvisionData(
-            name: 'Another Co',
             slug: 'another-co',
+            name: 'Another Co',
             contributions: [new OwnerContribution($user->global_id), new BillingContribution(
                 payment_plan: 'basic',
                 billing_cycle: BillingCycle::Monthly,
@@ -160,8 +159,8 @@ class StartSubscriptionCheckoutTest extends TestCase
         ]);
 
         StartSubscriptionCheckout::run(new TenantProvisionData(
-            name: 'Checkout Events Co',
             slug: 'checkout-events-co',
+            name: 'Checkout Events Co',
             contributions: [new OwnerContribution($user->global_id), new BillingContribution(
                 payment_plan: 'basic',
                 billing_cycle: BillingCycle::Monthly,

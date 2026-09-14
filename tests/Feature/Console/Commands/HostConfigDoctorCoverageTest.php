@@ -89,12 +89,6 @@ class HostConfigDoctorCoverageTest extends TestCase
 
     private function isCovered(string $key): bool
     {
-        foreach (array_keys(InstallNumerosisCommand::VERIFIED_CONFIG_KEYS) as $covered) {
-            if ($key === $covered || (str_ends_with($covered, '.') && str_starts_with($key, $covered))) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any(array_keys(InstallNumerosisCommand::VERIFIED_CONFIG_KEYS), fn ($covered) => $key === $covered || (str_ends_with($covered, '.') && str_starts_with($key, $covered)));
     }
 }

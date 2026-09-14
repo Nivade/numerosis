@@ -49,7 +49,7 @@ class InitializeTenancyByTenantDomainTest extends TestCase
 
         $this->assertTrue(tenancy()->initialized);
 
-        $initialized = app(Tenancy::class)->tenant;
+        $initialized = resolve(Tenancy::class)->tenant;
         $this->assertInstanceOf(Tenant::class, $initialized);
         $this->assertSame($tenant->id, $initialized->getTenantKey());
     }
@@ -80,7 +80,7 @@ class InitializeTenancyByTenantDomainTest extends TestCase
 
     private function middleware(): InitializeTenancyByTenantDomain
     {
-        return new InitializeTenancyByTenantDomain(app(Tenancy::class), app(DomainTenantResolver::class));
+        return new InitializeTenancyByTenantDomain(resolve(Tenancy::class), resolve(DomainTenantResolver::class));
     }
 
     private function tenantWithDomain(): BaseTenant

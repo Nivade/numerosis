@@ -40,7 +40,7 @@ final class GlobalCache
     {
         $container = app();
 
-        if (self::$store !== null && self::$resolvedFor === $container) {
+        if (self::$store instanceof Repository && self::$resolvedFor === $container) {
             return self::$store;
         }
 

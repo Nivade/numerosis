@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
+use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant as CentralTenant;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
@@ -38,7 +39,7 @@ class MarkTenantProvisioned
 
         $owner = $tenant->owner();
 
-        if ($owner !== null) {
+        if ($owner instanceof CentralUser) {
             event(new TenantProvisioned($tenant, $owner->id, (string) $tenant->getTenantKey()));
         }
     }

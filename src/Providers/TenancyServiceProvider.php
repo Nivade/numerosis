@@ -14,6 +14,7 @@ use Livewire;
 use Nvade\Numerosis\Boot\TenancyRouting;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
+use Nvade\Numerosis\Http\Middleware\InitializeTenancyByTenantDomain;
 use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
 use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
@@ -220,7 +221,7 @@ class TenancyServiceProvider extends ServiceProvider
             InitializeTenancyByDomain::class,
             InitializeTenancyBySubdomain::class,
             InitializeTenancyByDomainOrSubdomain::class,
-            \Nvade\Numerosis\Http\Middleware\InitializeTenancyByTenantDomain::class,
+            InitializeTenancyByTenantDomain::class,
             InitializeTenancyByPath::class,
             InitializeTenancyByRequestData::class,
         ];

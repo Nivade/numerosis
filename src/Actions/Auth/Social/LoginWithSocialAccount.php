@@ -51,7 +51,7 @@ class LoginWithSocialAccount
 
         $user = $this->findVerifiedMatch($centralUserClass, $data);
 
-        if ($user === null && $data->email !== null) {
+        if (! $user instanceof CentralUser && $data->email !== null) {
             // An email exists locally but does not qualify for the
             // conditional link above. Refuse; a second account for the same
             // address must never be created.

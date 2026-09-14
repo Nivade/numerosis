@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Database;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Nvade\Numerosis\Testing\CleansUpTenancyDatabases;
 use Nvade\Numerosis\Tests\Support\TestTenant;
@@ -24,7 +25,7 @@ class FactoryDefinitionsTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * @return list<class-string<Factory<\Illuminate\Database\Eloquent\Model>>>
+     * @return list<class-string<Factory<Model>>>
      */
     public static function factories(): array
     {
@@ -34,10 +35,10 @@ class FactoryDefinitionsTest extends TestCase
 
         foreach ((new Finder)->files()->in($root)->name('*Factory.php') as $file) {
             $relative = str_replace([$root.'/', '.php'], '', $file->getPathname());
-            /** @var class-string<Factory<\Illuminate\Database\Eloquent\Model>> $class */
+            /** @var class-string<Factory<Model>> $class */
             $class = 'Nvade\\Numerosis\\Database\\Factories\\'.str_replace('/', '\\', $relative);
 
-            if (class_exists($class) && ! (new ReflectionClass($class))->isAbstract()) {
+            if (class_exists($class) && ! new ReflectionClass($class)->isAbstract()) {
                 $found[] = $class;
             }
         }

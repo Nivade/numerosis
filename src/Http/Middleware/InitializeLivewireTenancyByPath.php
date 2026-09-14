@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Stancl\Tenancy\Contracts\Tenant;
 use Stancl\Tenancy\Tenancy;
 
 /**
@@ -25,7 +26,7 @@ class InitializeLivewireTenancyByPath
 
         $tenant = $id === null ? null : $this->tenancy->find($id);
 
-        if ($tenant !== null) {
+        if ($tenant instanceof Tenant) {
             $this->tenancy->initialize($tenant);
         }
 

@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 use Laravel\Cashier\Cashier;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Billing\Subscriptions\LinkSubscriptionToTenant;
+use Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution;
 use Nvade\Numerosis\Contracts\Tenancy\RequiresContributions;
 use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
 use Nvade\Numerosis\Data\Tenancy\BillingContribution;
@@ -27,7 +28,7 @@ class LinkTenantSubscription implements RequiresContributions
     use AsAction;
 
     /**
-     * @return list<class-string<\Nvade\Numerosis\Contracts\Tenancy\ProvisionContribution>>
+     * @return list<class-string<ProvisionContribution>>
      */
     #[Override]
     public static function requires(): array
@@ -39,7 +40,7 @@ class LinkTenantSubscription implements RequiresContributions
     {
         $billing = $provision->contribution(BillingContribution::class);
 
-        if ($billing === null) {
+        if (! $billing instanceof ProvisionContribution) {
             return;
         }
 

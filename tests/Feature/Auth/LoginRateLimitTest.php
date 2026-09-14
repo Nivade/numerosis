@@ -31,7 +31,7 @@ class LoginRateLimitTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const ATTEMPTS_BEFORE_LOCKOUT = 5;
+    private const int ATTEMPTS_BEFORE_LOCKOUT = 5;
 
     protected function tearDown(): void
     {
@@ -49,13 +49,11 @@ class LoginRateLimitTest extends TestCase
 
         $this->exhaustTheLimiter($first, $email);
 
-        $this->post('http://'.$first.'/login', ['email' => $email, 'password' => 'wrong-password'])
-            ->assertStatus(429);
+        $this->post('http://'.$first.'/login', ['email' => $email, 'password' => 'wrong-password'])->assertTooManyRequests();
 
         // Same address, different tenant: a normal rejected login, not a
         // lockout inherited from someone else's failures.
-        $this->post('http://'.$second.'/login', ['email' => $email, 'password' => 'wrong-password'])
-            ->assertStatus(302);
+        $this->post('http://'.$second.'/login', ['email' => $email, 'password' => 'wrong-password'])->assertFound();
     }
 
     /**
@@ -77,8 +75,7 @@ class LoginRateLimitTest extends TestCase
 
         tenancy()->end();
 
-        $this->post('/login', ['email' => $email, 'password' => 'wrong-password'])
-            ->assertStatus(302);
+        $this->post('/login', ['email' => $email, 'password' => 'wrong-password'])->assertFound();
     }
 
     public function test_the_limiter_still_locks_out_repeated_failures_on_one_tenant(): void
@@ -91,8 +88,7 @@ class LoginRateLimitTest extends TestCase
 
         // Even the *correct* password is refused once the bucket is spent —
         // which is what makes this a rate limiter rather than a hint.
-        $this->post('http://'.$domain.'/login', ['email' => $email, 'password' => 'password'])
-            ->assertStatus(429);
+        $this->post('http://'.$domain.'/login', ['email' => $email, 'password' => 'password'])->assertTooManyRequests();
     }
 
     private function exhaustTheLimiter(string $domain, string $email): void

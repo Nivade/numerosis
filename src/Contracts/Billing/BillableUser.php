@@ -9,7 +9,9 @@ use Laravel\Cashier\PaymentMethod as CashierPaymentMethod;
 use Laravel\Cashier\SubscriptionBuilder;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Contracts\Subscribable;
+use Stripe\Customer;
 use Stripe\PaymentMethod;
+use Stripe\SetupIntent;
 
 /**
  * The central user shape every checkout path accepts, so a host model that
@@ -32,32 +34,32 @@ interface BillableUser extends CentralUserModel, Subscribable
     /**
      * @param  array<string, mixed>  $options
      * @param  array<string, mixed>  $requestOptions
-     * @return \Stripe\Customer
+     * @return Customer
      */
     public function createOrGetStripeCustomer(array $options = [], array $requestOptions = []);
 
     /**
      * @param  list<string>  $expand
-     * @return \Stripe\Customer
+     * @return Customer
      */
     public function asStripeCustomer(array $expand = []);
 
     /**
      * @param  array<string, mixed>  $options
-     * @return \Stripe\Customer
+     * @return Customer
      */
     public function updateStripeCustomer(array $options = []);
 
     /**
      * @param  array<string, mixed>  $options
-     * @return \Stripe\SetupIntent
+     * @return SetupIntent
      */
     public function createSetupIntent(array $options = []);
 
     /**
      * @param  array<string, mixed>  $params
      * @param  array<string, mixed>  $options
-     * @return \Stripe\SetupIntent
+     * @return SetupIntent
      */
     public function findSetupIntent(string $id, array $params = [], array $options = []);
 

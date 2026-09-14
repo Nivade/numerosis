@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Table;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -43,11 +44,11 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
  * @property string|null $pm_type
  * @property string|null $pm_last_four
  * @property Carbon|null $trial_ends_at
- * @property-read \Illuminate\Database\Eloquent\Collection<int, Tenant> $tenants
+ * @property-read Collection<int, Tenant> $tenants
  * @property-read int|null $tenants_count
- * @property-read \Illuminate\Database\Eloquent\Collection<int, Subscription> $subscriptions
+ * @property-read Collection<int, Subscription> $subscriptions
  * @property-read int|null $subscriptions_count
- * @property-read \Illuminate\Database\Eloquent\Collection<int, SocialAccount> $socialAccounts
+ * @property-read Collection<int, SocialAccount> $socialAccounts
  * @property-read int|null $social_accounts_count
  *
  * @mixin Model

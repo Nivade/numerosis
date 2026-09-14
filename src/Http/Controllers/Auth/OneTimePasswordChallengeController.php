@@ -30,7 +30,7 @@ class OneTimePasswordChallengeController extends Controller
     public function create(Request $request): View
     {
         if (! $request->session()->has(SessionKey::LoginEmail->value)) {
-            throw new HttpResponseException(redirect()->route('login'));
+            throw new HttpResponseException(to_route('login'));
         }
 
         return view('numerosis::auth.one-time-password-challenge');
@@ -41,7 +41,7 @@ class OneTimePasswordChallengeController extends Controller
         $email = $request->session()->get(SessionKey::LoginEmail->value);
 
         if (! is_string($email)) {
-            throw new HttpResponseException(redirect()->route('login'));
+            throw new HttpResponseException(to_route('login'));
         }
 
         $user = $resolver->find($email);
@@ -64,6 +64,6 @@ class OneTimePasswordChallengeController extends Controller
 
         $authenticator->authenticate($user, $remember);
 
-        return app(LoginResponse::class);
+        return resolve(LoginResponse::class);
     }
 }

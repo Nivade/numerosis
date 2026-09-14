@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Console\Commands;
 
+use Composer\Autoload\ClassLoader;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
@@ -175,7 +176,7 @@ class InstallNumerosisCommand extends Command
      */
     private function forgetMissingClasses(): void
     {
-        foreach (\Composer\Autoload\ClassLoader::getRegisteredLoaders() as $loader) {
+        foreach (ClassLoader::getRegisteredLoaders() as $loader) {
             $property = new ReflectionProperty($loader, 'missingClasses');
             $property->setValue($loader, []);
         }

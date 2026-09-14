@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as GenericUser;
 use Illuminate\Support\Facades\Config;
 use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Boot\HostConfig;
+use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -178,7 +179,7 @@ class HostConfigTest extends TestCase
         $this->rebootPackage();
 
         $this->assertSame(
-            \Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder::class,
+            TenantDatabaseSeeder::class,
             Config::array('tenancy.seeder_parameters')['--class'],
         );
     }
@@ -387,7 +388,7 @@ class HostConfigTest extends TestCase
     {
         Config::set('numerosis.billing', ['trial_days' => 3]);
 
-        (new NumerosisServiceProvider(app()))->register();
+        new NumerosisServiceProvider(app())->register();
 
         // The key the host set survives, and every sibling it omitted — which
         // a one-level-deep merge would have dropped — is backfilled.
@@ -399,7 +400,7 @@ class HostConfigTest extends TestCase
     {
         Config::set('numerosis.features', []);
 
-        (new NumerosisServiceProvider(app()))->register();
+        new NumerosisServiceProvider(app())->register();
 
         $this->assertSame([], Config::get('numerosis.features'));
     }

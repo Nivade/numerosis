@@ -22,7 +22,7 @@ class TenantAdminAuthTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const AUTHENTICATED_TENANT_PATH = '/account-suspended';
+    private const string AUTHENTICATED_TENANT_PATH = '/account-suspended';
 
     public function test_central_user_reaching_an_authenticated_tenant_route_is_signed_in_on_the_tenant_guard(): void
     {

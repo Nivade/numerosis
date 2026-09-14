@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Models\Central;
 
 use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Attributes\Unguarded;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\WithoutIncrementing;
 use Illuminate\Database\Eloquent\Builder;
@@ -61,6 +62,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  */
 #[WithoutIncrementing]
 #[UseFactory(TenantProvisionFactory::class)]
+#[Unguarded]
 class TenantProvision extends Model
 {
     use CentralConnection;
@@ -71,8 +73,6 @@ class TenantProvision extends Model
     protected $primaryKey = 'slug';
 
     protected $keyType = 'string';
-
-    protected $guarded = [];
 
     public function hasFailed(): bool
     {
@@ -165,8 +165,8 @@ class TenantProvision extends Model
     }
 
     /**
-     * @param  Builder<TenantProvision>  $query
-     * @return Builder<TenantProvision>
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
     #[Scope]
     protected function completedBefore(Builder $query, Carbon $cutoff): Builder
@@ -177,8 +177,8 @@ class TenantProvision extends Model
     }
 
     /**
-     * @param  Builder<TenantProvision>  $query
-     * @return Builder<TenantProvision>
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
     #[Scope]
     protected function reservedBefore(Builder $query, Carbon $cutoff): Builder
@@ -189,8 +189,8 @@ class TenantProvision extends Model
     }
 
     /**
-     * @param  Builder<TenantProvision>  $query
-     * @return Builder<TenantProvision>
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
     #[Scope]
     protected function provisioningBefore(Builder $query, Carbon $cutoff): Builder
