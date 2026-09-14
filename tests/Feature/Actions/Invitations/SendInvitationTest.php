@@ -13,6 +13,7 @@ use Nvade\Numerosis\Actions\Invitations\SendInvitation;
 use Nvade\Numerosis\Data\Invitations\InvitationData;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Central\Invitation;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Tests\TestCase;
 
 class SendInvitationTest extends TestCase
@@ -84,7 +85,9 @@ class SendInvitationTest extends TestCase
 
         $raced = false;
 
-        Invitation::creating(function (Invitation $invitation) use (&$raced, $tenant, $email): void {
+        $invitationClass = Numerosis::model(Invitation::class);
+
+        $invitationClass::creating(function (Invitation $invitation) use (&$raced, $tenant, $email): void {
             if ($raced) {
                 return;
             }
@@ -105,7 +108,7 @@ class SendInvitationTest extends TestCase
         try {
             $invitation = SendInvitation::run($tenant, new InvitationData($email, MembershipRole::Member), $inviter);
         } finally {
-            Invitation::flushEventListeners();
+            $invitationClass::flushEventListeners();
         }
 
         $this->assertTrue($raced);
