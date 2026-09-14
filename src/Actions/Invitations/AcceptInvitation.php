@@ -17,12 +17,10 @@ use Nvade\Numerosis\Numerosis;
 
 /**
  * Runs entirely on the central connection, and takes its transaction on that
- * connection rather than the default one, which is a different PDO handle with
- * its own transaction stack. Acceptance is claimed with a conditional
- * `UPDATE ... WHERE accepted_at IS NULL` before the membership is attached, so
- * of two concurrent POSTs the loser matches zero rows and throws
- * `InvitationAlreadyAccepted`, rolling back inside this transaction rather
- * than reaching `AddTenantMember`.
+ * connection: the default one is a different PDO handle with its own
+ * transaction stack. Acceptance is claimed with a conditional
+ * `UPDATE ... WHERE accepted_at IS NULL`, so of two concurrent POSTs the loser
+ * matches zero rows and throws `InvitationAlreadyAccepted`.
  *
  * @method static Invitation run(Invitation $invitation, CentralUser $user)
  */

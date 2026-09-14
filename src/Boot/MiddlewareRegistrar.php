@@ -29,12 +29,11 @@ final class MiddlewareRegistrar
     private static bool $registered = false;
 
     /**
-     * This array must stay pure class-string literals with no config or
-     * container read: it is reached from a host's `bootstrap/app.php`, before
-     * `RegisterFacades`, so anything evaluated here that touches
-     * `Config`/`Facade` fatals on a real boot. `tenancy.identification` and
-     * `tenancy.route` therefore alias to delegating middleware that picks the
-     * real class at request time.
+     * Pure class-string literals only, with no config or container read: this
+     * runs from a host's `bootstrap/app.php` before `RegisterFacades`, so
+     * anything touching `Config`/`Facade` fatals on a real boot.
+     * `tenancy.identification` and `tenancy.route` therefore alias to
+     * delegating middleware that picks the real class at request time.
      *
      * @return array<string, string>
      */
@@ -99,15 +98,9 @@ final class MiddlewareRegistrar
             $middleware->group($name, $stack);
         }
 
-        // No trustProxies() call here, deliberately: Laravel's own default —
-        // no proxy trusted, X-Forwarded-* ignored — is the safe one, and this
-        // is the documented path a host owns. Add
-        // `$middleware->trustProxies(at: [...])` yourself, after this call,
-        // if you sit behind a real reverse proxy — see
-        // docs/host-requirements.md for what value to use. Trusting '*' here
-        // unconditionally used to make every IP-keyed rate limiter (including
-        // this package's own login throttle) and audit log spoofable by
-        // anyone who could reach the app directly.
+        // No trustProxies() call, deliberately: trusting a proxy the host did
+        // not name makes every IP-keyed rate limiter and audit log spoofable
+        // by anyone who can reach the app directly.
 
         // Laravel's default trusts config('app.url') and all its subdomains,
         // which already covers the central domain plus every tenant subdomain.

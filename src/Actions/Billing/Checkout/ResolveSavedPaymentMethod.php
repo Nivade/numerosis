@@ -23,10 +23,8 @@ class ResolveSavedPaymentMethod
     public function handle(BillableUser $billable, string $paymentMethodId): PaymentMethod
     {
         // Cashier's constructor for its own wrapper is the ownership check:
-        // it throws InvalidPaymentMethod when the resolved payment method's
-        // customer isn't $billable's, and a plain LogicException when it has
-        // no customer at all. Both mean "not this billable's", same as a
-        // missing/undeliverable id (findPaymentMethod() returns null then).
+        // it throws InvalidPaymentMethod for another customer's payment method
+        // and LogicException for one with no customer at all.
         try {
             $resolved = $billable->findPaymentMethod($paymentMethodId);
         } catch (InvalidPaymentMethod|LogicException $e) {

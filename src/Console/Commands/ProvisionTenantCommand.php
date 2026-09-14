@@ -58,10 +58,9 @@ class ProvisionTenantCommand extends Command
             return self::FAILURE;
         }
 
-        // Both checks: the policy covers domain format, reserved words and
-        // the domains table, but a tenant row can exist without one, and
-        // CreateTenant would then adopt it and attach this owner to somebody
-        // else's tenant.
+        // The policy covers the domains table, but a tenant row can exist
+        // without a domain, and CreateTenant would then adopt it and attach
+        // this owner to somebody else's tenant.
         if (Numerosis::model(Tenant::class)::whereKey($slug)->exists()) {
             $this->error("A tenant with id [{$slug}] already exists.");
 

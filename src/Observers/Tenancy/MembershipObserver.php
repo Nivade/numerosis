@@ -19,11 +19,9 @@ class MembershipObserver
 
     public function created(Membership $membership): void
     {
-        // The tenant database is a second connection, so a rollback on the
-        // central one cannot undo this write. Deferred on the membership's own
-        // connection, never `DB::afterCommit()`, which reads the default one
-        // and would fire immediately. Outside a transaction it still runs
-        // immediately, which is what provisioning relies on.
+        // Deferred on the membership's own connection, never
+        // `DB::afterCommit()`, which reads the default one and would fire
+        // immediately while the central transaction can still roll back.
         $membership->getConnection()->afterCommit(function () use ($membership): void {
             SyncTenantUserForMembership::run($membership);
         });

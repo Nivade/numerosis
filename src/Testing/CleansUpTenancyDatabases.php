@@ -72,11 +72,9 @@ trait CleansUpTenancyDatabases
      * Re-arms the central-write tracking against the rebuilt application.
      *
      * The tracking is a `DB::listen()` on the application it was registered
-     * against, and refreshing builds a new one. Without this, every central
-     * row written after a mid-test `refreshApplication()` goes untracked and
-     * survives teardown, so the next test in that worker starts with a
-     * populated `users` table — which reads as a flake, because it depends on
-     * which test the runner happens to schedule next.
+     * against, so without this every central row written after a mid-test
+     * `refreshApplication()` survives teardown and lands in whichever test the
+     * runner schedules next.
      */
     #[Override]
     protected function refreshApplication(): void

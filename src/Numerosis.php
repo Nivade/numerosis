@@ -87,9 +87,6 @@ class Numerosis
      * ->withRouting(using: fn () => Numerosis::routes(withAuth: false))
      * ```
      *
-     * `routes/web.php`, `routes/tenant.php` and `routes/api.php` in the host's
-     * own base path are loaded alongside the package's, each optional.
-     *
      * @see self::registerRoutesUsing()
      */
     public static function routes(bool $withAuth = true, string $apiPrefix = 'api'): void

@@ -32,9 +32,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * claimed at checkout (`reserved`) through to `completed`.
  *
  * It outlives the provision: `completed_at` is stamped rather than the row
- * deleted. Tenant readiness is still `tenants.provisioned_at`, never a row
- * here.
- *
+ * deleted, and tenant readiness stays `tenants.provisioned_at`.
  * `step_records` is written by `RunProvisioningStep`, one entry per step.
  *
  * @property string $slug
@@ -106,13 +104,9 @@ class TenantProvision extends Model
 
     /**
      * Claims the slug for one provisioning chain, as a single conditional
-     * update whose affected-row count is the answer.
-     *
-     * This replaced three overlapping cache mechanisms — `ShouldBeUnique`, a
-     * `tenant-chain:` lock released in two unrelated files, and `CreateTenant`'s
-     * own inner lock. One row, no cache driver requirement, and a stuck
-     * provision is queryable rather than invisible until a TTL lapses;
-     * `tenancy:prune-stalled-provisions` already reads exactly this state.
+     * update whose affected-row count is the answer. No cache driver is
+     * involved, so a stuck provision stays queryable, which is the state
+     * `tenancy:prune-stalled-provisions` reads.
      */
     public static function claim(string $slug): bool
     {

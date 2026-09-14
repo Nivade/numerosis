@@ -14,9 +14,8 @@ use Nvade\Numerosis\Facades\Billing;
  *
  * Compared within whichever billing cycle the new price belongs to, so a
  * monthly figure is never weighed against a yearly one. Falls back to
- * `Upgrade` when either price resolves to no configured plan: every consumer
- * of this is copy or a heuristic, and a directionless answer serves them worse
- * than an optimistic one.
+ * `Upgrade` when either price resolves to no configured plan, since every
+ * consumer of this is copy or a heuristic.
  *
  * @method static PlanChangeDirection run(string $fromPriceId, string $toPriceId)
  */

@@ -17,10 +17,9 @@ interface ProvidesTenantIdentity
      * Wizard-state field name(s) this step writes.
      *
      * `RegistrationState::provisionData()` reads these to know which step to
-     * send the user back to when the identity is not collected yet. Until
-     * then nothing called this method, so a step could return anything.
+     * send the user back to when the identity is not collected yet.
      *
-     * Static because it is asked of a step class the wizard is not currently
+     * Static, because it is asked of a step class the wizard is not currently
      * rendering, which has no instance.
      *
      * @return list<string>

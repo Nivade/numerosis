@@ -86,12 +86,10 @@ class TenantProvisionData extends Data
     }
 
     /**
-     * Only `name`: it's validated identically wherever it's collected.
-     * `slug` is deliberately not here — the registration wizard checks
-     * availability against `tenant_provisions` before checkout exists, while
-     * checkout checks it through
-     * {@see \Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy} against the
-     * tenant that's about to be created; same field, different rules by design.
+     * Only `name`, which is validated identically wherever it is collected.
+     * `slug` is not here: the wizard checks availability against
+     * `tenant_provisions`, while checkout checks it through
+     * {@see \Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy}.
      *
      * @return array<string, list<mixed>>
      */

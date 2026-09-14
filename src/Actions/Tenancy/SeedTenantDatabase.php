@@ -17,13 +17,9 @@ use Throwable;
 /**
  * Seeds a new tenant database.
  *
- * It invokes the seeder directly rather than calling `tenants:seed`, which
- * does not work: with stancl/tenancy installed that command registers under
- * the wrong name and drops its own `--tenants` option.
- *
- * This was a plain Job until the pipeline stopped going through
- * `Stancl\JobPipeline`, whose `new $job($tenant)` plus zero-argument `handle()`
- * convention it had to match. Nothing owns that convention now.
+ * It invokes the seeder directly, because with stancl/tenancy installed
+ * `tenants:seed` registers under the wrong name and drops its own `--tenants`
+ * option.
  */
 class SeedTenantDatabase implements ProvisioningStep
 {
