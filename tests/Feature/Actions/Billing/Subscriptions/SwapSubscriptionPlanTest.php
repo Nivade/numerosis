@@ -17,6 +17,7 @@ use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
 use Nvade\Numerosis\Models\Central\PaymentPlan as BasePaymentPlan;
 use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
+use Nvade\Numerosis\Tests\Support\SubscriptionWithoutStripe;
 use Nvade\Numerosis\Tests\TestCase;
 
 class SwapSubscriptionPlanTest extends TestCase
@@ -32,8 +33,8 @@ class SwapSubscriptionPlanTest extends TestCase
 
         SwapSubscriptionPlan::run($tenant, $subscription, $from, $to, 'price_new');
 
-        // Re-read through the real model, not `$subscription->refresh()`: the
-        // anonymous subclass below makes Eloquent guess a foreign key off its
+        // Re-read through the real model, not `$subscription->refresh()`:
+        // SubscriptionWithoutStripe makes Eloquent guess a foreign key off its
         // basename, which breaks any relation reload.
         $this->assertSame($to->id, Subscription::where('stripe_id', $subscription->stripe_id)->value('payment_plan_id'));
     }
@@ -81,9 +82,7 @@ class SwapSubscriptionPlanTest extends TestCase
     }
 
     /**
-     * A real, persisted row backed by an anonymous subclass whose
-     * `swapAndInvoice()` skips the real Stripe call. `SwapSubscriptionPlan`
-     * still runs its own `update()` against this row.
+     * `SwapSubscriptionPlan` still runs its own `update()` against this row.
      */
     private function subscriptionWithoutStripe(BaseTenant $tenant, BasePaymentPlan $plan, string $stripePrice): Subscription
     {
@@ -93,17 +92,7 @@ class SwapSubscriptionPlanTest extends TestCase
             'stripe_price' => $stripePrice,
         ]);
 
-        $subscription = new class extends Subscription
-        {
-            // Eloquent guesses the table from the class basename, which for
-            // an anonymous class is not "subscriptions".
-            protected $table = 'subscriptions';
-
-            public function swapAndInvoice($prices, $options = []): static
-            {
-                return $this;
-            }
-        };
+        $subscription = new SubscriptionWithoutStripe;
 
         $subscription->forceFill($attributes)->save();
 
