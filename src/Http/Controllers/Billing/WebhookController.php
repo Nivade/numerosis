@@ -23,6 +23,7 @@ use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
+use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\SubscriptionCancelled;
 use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -354,6 +355,16 @@ class WebhookController extends CashierWebhookController
         return $this->successMethod();
     }
 
+    private function announceSettlementFor(?string $customerId): void
+    {
+        $tenant = FindTenantByStripeCustomer::run($customerId);
+        $owner = $tenant?->owner();
+
+        if ($tenant !== null && $owner !== null) {
+            event(new PaymentSettled($tenant, $owner->id, (string) $tenant->getTenantKey()));
+        }
+    }
+
     private function notifyOfFailedPaymentFor(?string $customerId): void
     {
         $tenant = FindTenantByStripeCustomer::run($customerId);
@@ -371,7 +382,7 @@ class WebhookController extends CashierWebhookController
     {
         $response = parent::handleInvoicePaymentSucceeded($payload);
 
-        /** @var array{data: array{object: array{id?: string, subscription?: string, parent?: array{subscription_details?: array{subscription?: string}}}}} $payload */
+        /** @var array{data: array{object: array{id?: string, customer?: string, subscription?: string, parent?: array{subscription_details?: array{subscription?: string}}}}} $payload */
         $invoice = $payload['data']['object'];
         $subscriptionId = $invoice['subscription']
             ?? $invoice['parent']['subscription_details']['subscription']
@@ -382,9 +393,15 @@ class WebhookController extends CashierWebhookController
         if ($subscriptionId !== null) {
             $pendingClass = Numerosis::model(TenantProvision::class);
 
-            $pendingClass::where('stripe_subscription_id', $subscriptionId)
+            $settled = $pendingClass::where('stripe_subscription_id', $subscriptionId)
                 ->whereNull('settled_at')
                 ->update(['settled_at' => now()]);
+
+            // Zero rows means this delivery is a redelivery, so the
+            // announcement is idempotent without a second guard.
+            if ($settled > 0) {
+                $this->announceSettlementFor($invoice['customer'] ?? null);
+            }
         }
 
         Log::info('Invoice payment succeeded', [

@@ -74,6 +74,25 @@ class PaymentPlanPopularCacheTest extends TestCase
         );
     }
 
+    public function test_a_new_subscription_invalidates_the_cached_popular_slug(): void
+    {
+        $this->pinGlobalCache();
+
+        $popularPlan = PaymentPlan::factory()->create(['available' => true]);
+        $otherPlan = PaymentPlan::factory()->create(['available' => true]);
+
+        $this->makeSubscription($popularPlan->id);
+
+        $repository = new EloquentPaymentPlanRepository;
+
+        $this->assertSame($popularPlan->slug, $repository->mostPopularSlug());
+
+        $this->makeSubscription($otherPlan->id);
+        $this->makeSubscription($otherPlan->id);
+
+        $this->assertSame($otherPlan->slug, $repository->mostPopularSlug());
+    }
+
     private function makeSubscription(int $paymentPlanId): Subscription
     {
         $tenant = Tenant::create(['id' => 'popular-plan-sub-'.uniqid()]);

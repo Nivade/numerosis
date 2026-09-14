@@ -9,7 +9,9 @@ use Illuminate\Queue\SerializesModels;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * Fired on recovery (RestoreTenant) when a tenant's payment settles.
+ * Fired when an asynchronous payment finally settles, from
+ * `invoice.payment_succeeded`. A suspended tenant coming back is
+ * {@see \Nvade\Numerosis\Events\Tenancy\TenantRestored} instead.
  */
 class PaymentSettled
 {

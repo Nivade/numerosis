@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Collection;
@@ -16,6 +17,7 @@ use Laravel\Cashier\SubscriptionItem;
 use Nvade\Numerosis\Database\Factories\Central\SubscriptionFactory;
 use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Nvade\Numerosis\Numerosis;
+use Nvade\Numerosis\Observers\Billing\SubscriptionObserver;
 use Nvade\Numerosis\Policies\Billing\SubscriptionPolicy;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
@@ -39,6 +41,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property-read Collection<int, SubscriptionItem> $items
  * @property-read int|null $items_count
  */
+#[ObservedBy(SubscriptionObserver::class)]
 #[UseFactory(SubscriptionFactory::class)]
 #[UsePolicy(SubscriptionPolicy::class)]
 class Subscription extends \Laravel\Cashier\Subscription

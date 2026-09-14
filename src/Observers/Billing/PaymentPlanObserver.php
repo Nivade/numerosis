@@ -23,8 +23,13 @@ class PaymentPlanObserver
         $this->forgetCache(CacheKeys::availablePaymentPlans());
     }
 
+    /**
+     * Also forgets the popular slug: the cached value is a slug, so a deleted
+     * plan leaves one that resolves to nothing.
+     */
     public function deleted(PaymentPlan $plan): void
     {
         $this->forgetCache(CacheKeys::availablePaymentPlans());
+        $this->forgetCache(CacheKeys::popularPaymentPlanSlug());
     }
 }

@@ -84,7 +84,9 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
      * together: a plain `Cache::` call in tenant context is stancl's
      * tenant-tagged manager, which duplicates the computation per tenant and
      * demands a taggable store. Caches the slug, not the id, so no
-     * cache-round-trip coercion can get it wrong.
+     * cache-round-trip coercion can get it wrong. Subscription churn busts this
+     * key through {@see \Nvade\Numerosis\Observers\Billing\SubscriptionObserver},
+     * so the TTL is only a backstop behind that invalidation.
      */
     public function mostPopularSlug(): ?string
     {

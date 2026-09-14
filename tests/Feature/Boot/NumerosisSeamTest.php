@@ -26,10 +26,9 @@ use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Tests\Support\OverriddenTenant;
 
 /*
- * Every host-seam bug this extraction found lived in these methods (see
- * .claude/plans/post-extraction-review.md, Phase 3.3). This is the contract
- * between the package and bootstrap/app.php — nothing here should be able
- * to drift without a red test.
+ * Every host-seam bug this extraction found lived in these methods. This is
+ * the contract between the package and bootstrap/app.php — nothing here
+ * should be able to drift without a red test.
  */
 
 uses(RefreshDatabase::class);

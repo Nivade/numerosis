@@ -54,6 +54,11 @@ over-budget docblocks and 35 over-cap `//` runs to zero of each. Suite 734
 passed / 6 skipped, `composer analyse` cold-clean, PHPStan baseline unchanged
 at 17.
 
+`post-extraction-review.md` moved to `archive/` 2026-09-14: its last two open
+items, 4.2 and 4.4, were re-validated as shipped, and 6.2 — the second-consumer
+smoke test, never built — moved to `.claude/findings.md` rather than keeping a
+563-line plan live for one line of work.
+
 `enum-vocabulary-sweep.md` moved to `archive/` 2026-09-12: all eight phases
 executed on `refactor/enum-vocabulary-sweep`, `composer test` green (721
 passed / 6 skipped) and `composer analyse` clean at every phase boundary.
@@ -62,8 +67,8 @@ passed / 6 skipped) and `composer analyse` clean at every phase boundary.
 
 | Plan | State |
 |---|---|
+| `findings-cleanup.md` | **Not executed.** Clears the four open lines in `.claude/findings.md`, written 2026-09-14. Five phases, no open decisions |
 | `luminous-wandering-brook.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
-| `post-extraction-review.md` | **Mostly done; three items survive.** Its Live status block is stale — read the correction at the top of the file, not the table |
 
 ## Abandoned
 
