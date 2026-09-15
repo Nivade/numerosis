@@ -11,13 +11,10 @@ use Override;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 
 /**
- * Lets a central domain through untouched, identifying no tenant from it, and
- * resolves every other host by its full name.
- *
- * Deliberately not stancl's `InitializeTenancyByDomainOrSubdomain`: that one
- * switches to the label-only subdomain resolver whenever the host ends with a
- * central domain, which is exactly the case for a host served at the apex, and
- * `CreateTenantDomain` always writes the fully-qualified name.
+ * Not stancl's `InitializeTenancyByDomainOrSubdomain`: that one switches to
+ * the label-only subdomain resolver whenever the host ends with a central
+ * domain, which is every host served at the apex, while `CreateTenantDomain`
+ * always writes the fully-qualified name.
  */
 class InitializeTenancyByTenantDomain extends InitializeTenancyByDomain
 {

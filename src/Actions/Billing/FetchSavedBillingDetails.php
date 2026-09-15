@@ -29,7 +29,7 @@ class FetchSavedBillingDetails
             return new SavedBillingDetails;
         }
 
-        if ($customer !== null && $customer->id !== $billable->stripeId()) {
+        if ($customer instanceof Customer && $customer->id !== $billable->stripeId()) {
             $customer = null;
         }
 

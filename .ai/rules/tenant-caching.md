@@ -198,6 +198,12 @@ paths:
   background lock, so `flexible()` falls back to `remember()` with the fresh
   TTL.
 
+- **`GetTenantsByGlobalId` is not a substitute for `$user->tenants()`.** It
+  caches ids and rehydrates the models with no relations loaded, which is the
+  point of caching rows instead of models. A page that needs an eager load —
+  `⚡mine.blade.php` reads each tenant's subscriptions — goes through the
+  relation and takes the query.
+
 - **The `tenants` column listing is cached, and a migration is its
   invalidator.** `getCustomColumns()` runs on every tenant hydration and every
   save, so a cold static cost a schema round-trip per request and one per row
