@@ -2,6 +2,7 @@
 paths:
   - 'src/Cache/**'
   - 'src/Providers/TenancyServiceProvider.php'
+  - 'src/Services/Tenancy/**'
 ---
 # Tenant Caching
 
@@ -177,11 +178,25 @@ paths:
 
 - **TTLs and the store are config, not literals.** `numerosis.cache.ttl.*` is
   keyed by the same names `CacheKeys` uses and read through `CacheTtl`, never
-  at the call site. A `null` TTL means "do not cache" and must bypass
-  `remember()` rather than pass `0`, which several drivers read as forever —
-  `GlobalCache::remember()` is where that happens. `numerosis.cache.store`
-  routes every global write; `GlobalCache::store()` memoizes on the container
-  *and* the store name, or a changed setting never takes effect.
+  at the call site. A `null` TTL means "do not cache" and bypasses
+  `remember()` in `GlobalCache::remember()`. Passing `0` would not cache
+  either, and the old claim here that several drivers read `0` as forever was
+  wrong: `Illuminate\Cache\Repository::put()` turns any `$seconds <= 0` into
+  a `forget()` before a driver sees it. The bypass exists so a `null` TTL
+  costs no store round trip at all, not to dodge an accidental `forever`.
+  `numerosis.cache.store` routes every global write; `GlobalCache::store()`
+  memoizes on the container *and* the resolved store name — the resolved one,
+  since with `store` null the name is `cache.default`, and memoizing on `null`
+  meant a changed default never took effect.
+
+- **The two payment-plan keys go through `flexible()`, not `remember()`.**
+  `GlobalCache::flexible()` takes `CacheTtl::window()`'s `[fresh, stale]` pair,
+  where stale is `STALE_MULTIPLIER = 4` times the configured TTL: a read after
+  the fresh window returns the stale value and refreshes in the background, so
+  a plan edit that misses its invalidator can be served for up to 4× the TTL.
+  A store whose driver is not a `LockProvider` has no way to take that
+  background lock, so `flexible()` falls back to `remember()` with the fresh
+  TTL.
 
 - **The `tenants` column listing is cached, and a migration is its
   invalidator.** `getCustomColumns()` runs on every tenant hydration and every

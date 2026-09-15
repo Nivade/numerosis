@@ -11,6 +11,15 @@ untagged checkout.
 
 ## [Unreleased]
 
+### Removed
+
+- Filament (both panels, `packages/filament`, `filament/filament` itself),
+  the module system and its marketplace (`internachi/modular`,
+  `Models\Central\ModuleOffering`, the three `tenants:*-module` commands),
+  and tenant-user impersonation. 0.1.0 shipped all three; none is coming
+  back, and `tests/Feature/PackageBoundariesTest.php` fails on a `Filament\`
+  symbol anywhere in the tree.
+
 ## [0.1.0] - 2026-08-28
 
 First tagged release. Extracted from the `saas-m` monolith

@@ -41,12 +41,15 @@ is what keeps this true; in a monorepo the filesystem enforces nothing.
 `ryangjchandler/laravel-cloudflare-turnstile` are all `require`, not `suggest`
 — every one is always present, and only `numerosis.features` (for OTP and
 Turnstile) or `Tenant\User`'s trait use (for activity logging) decides whether
-it does anything. Nothing in core is a `suggest` any more, so no
-`class_exists()` seam is load-bearing today. PHP resolves
-`extends`/`implements`/`use <Trait>` eagerly but type hints only at call time —
-that asymmetry is why an eager clause on a package that is *not* a `require`
-needs a `Support\Compat\*` shim. See `.ai/rules/optional-dependencies.md`
-before adding a `suggest` back.
+it does anything. Three `suggest` entries remain — `sentry/sentry-laravel`,
+`laravel/telescope` and `socialiteproviders/zoho` — and two seams are live for
+them: `NumerosisServiceProvider` schedules `telescope:prune` behind a
+`class_exists()`, and `Concerns\Tenancy\TagsSentryScopeWithTenant` no-ops
+unless `app()->bound('sentry')`. PHP resolves
+`extends`/`implements`/`use <Trait>` eagerly but type hints only at call time,
+so an eager clause naming a `suggest`ed package fatals on a host that does not
+have it; a type hint does not. See `.ai/rules/optional-dependencies.md` before
+adding a `suggest`.
 
 ## Boot sequence
 
@@ -144,20 +147,20 @@ worker there, not just on `default`.
 
 ```
 src/
-  Actions/        68 files — lorisleiva/laravel-actions; the verbs of the system
-  Contracts/      27 — every swappable behaviour, bound in packageRegistered()
-  Exceptions/     20
-  Services/       19 — the concrete implementation of a contract, in a
+  Actions/        lorisleiva/laravel-actions; the verbs of the system
+  Contracts/      every swappable behaviour, bound in packageRegistered()
+  Exceptions/
+  Services/       the concrete implementation of a contract, in a
                   folder mirroring Contracts/: Billing/ Exceptions/
                   Notifications/ Tenancy/
-  Models/         16 — Central/ and Tenant/
-  Boot/           8 — what the package reads from, writes to, or validates
+  Models/         Central/ and Tenant/
+  Boot/           what the package reads from, writes to, or validates
                   in the host application. Numerosis.php's backstage
   Routing/        RouteNames and RouteLoader
-  Cache/          CacheKeys and GlobalCache
-  Http/           29 — controllers (auth, Socialite, billing webhook),
+  Cache/          CacheKeys, CacheTtl and GlobalCache
+  Http/           controllers (auth, Socialite, billing webhook),
                   middleware and responses
-  Features/       10 feature classes, grouped by domain (Auth/ Billing/
+  Features/       feature classes, grouped by domain (Auth/ Billing/
                   Invitations/ Tenancy/ Turnstile/) — see
                   docs/features.md
   Enums/          every enum under a domain namespace: Billing/ Tenancy/
@@ -190,7 +193,6 @@ host's `config/numerosis.php` and ~200 call sites already use. Read
 | `Routing\RouteLoader` | the central-domain and `tenant` route groups, Fortify's route file and the one-time-password routes. Behind `Numerosis::{routes,routesRegistered,authRoutesEnabled}()` |
 | `Boot\MiddlewareRegistrar` | the one definition of the package's aliases and groups, read by both `Numerosis::middleware()` and the service provider. **Pure class-string literals** — it runs before `RegisterFacades` |
 | `Boot\ExceptionRegistrar` | report context, duplicate suppression and throttling. Behind `Numerosis::exceptions()` |
-| `Boot\UserModels` | which user model answers for the current guard, from the two `tenancy.*_user_model` keys `HostConfig` writes |
 | `Boot\ConfiguredSteps` | boot-time validation of the two host-editable step lists in `numerosis.tenancy` |
 
 ## Configuration

@@ -33,8 +33,13 @@ recommendation — match it, don't improve on it.
   `Billing` facade's root). `TaxIdType` moved to `Enums\Billing\TaxIdType`
   2026-09-12 (enum-vocabulary-sweep phase 6) — it was a lookup table over a
   closed set of Stripe tax id types, which is exactly what an enum is for.
-  `tests/Feature/ArchTest.php` names the one remaining exception and fails on
-  a second, so adding one is an edit to that list, not a drive-by. Classes that validate
+  `tests/Feature/ArchTest.php` carries the named-exception list — `BillingService`
+  plus `PreservingPathTenantResolver` and the three tenancy bootstrappers,
+  which are stancl adapters rather than contract-shaped classes — and fails on
+  anything not on it, so adding one is an edit to that list, not a drive-by.
+  It also asserts the layout around `Services/`: `Boot/` reads no live tenancy
+  state and holds only `final` classes, `Routing/` holds only route classes,
+  and `Services/` and `Contracts/` stay one domain folder deep. Classes that validate
   or normalize the *host application* are not services either — they live in
   `src/Boot/`.
 

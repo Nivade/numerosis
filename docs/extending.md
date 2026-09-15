@@ -91,24 +91,49 @@ section documents.
 `bind()` every pair. Name your own class against the contract to replace one —
 no provider edit, no subclassing.
 
-That map is why all 32 interfaces in `src/Contracts/` stay, even though each
+That map is why every interface in `src/Contracts/` stays, even though each
 ships exactly one implementation (**decided 2026-09-01**; deleting the
 "redundant" ones was an open question from `.claude/plans/archive/confusion-cleanup.md`
 step 4). They are not speculative abstraction:
 
-- **22 are the swap points themselves**, named in one of those two maps.
+- **Most are the swap points themselves**, named in one of those two maps.
   Deleting one removes a documented host capability and leaves nothing to
   `bind()` against.
-- **10 are role interfaces, not service bindings**, and are load-bearing as
-  types: `CentralUserModel`/`TenantUserModel` are what `HostConfig` and
-  `Boot\UserModels` `is_a()`-check a host's own model against,
+- **The rest are role interfaces, not service bindings**, and are load-bearing
+  as types: `CentralUserModel`/`TenantUserModel` are what `HostConfig` and
+  `Enums\Tenancy\Context::userModel()` resolve a host's own model through,
   `Feature`/`NamedFeature` are the feature registry's contract, and
-  `Subscribable`/`Plan`/`HasTenants`/
-  `ProvidesTenantIdentity` are the shapes core's own services accept so a host
-  subclass satisfies them without extending a package class.
+  `Subscribable`/`Plan`/`HasTenants`/`ProvidesTenantIdentity`/`HasTenantOwner`/
+  `Suspendable` are the shapes core's own services accept so a host subclass
+  satisfies them without extending a package class. `HasTenantOwner` is what
+  `Actions\Notifications\NotifiesTenantOwnerDirectly` needs (an `owner()`
+  returning the notifiable) and `Suspendable` what
+  `Http\Middleware\EnsureTenantSubscriptionActive` reads
+  (`isSuspended()`/`suspended_at`); implement either on your own tenant model
+  and core keeps working.
 
 "One implementation" is the expected state for a framework whose whole point is
 that the *host* supplies the second one.
+
+### Checkout payment methods, by region
+
+`Contracts\Billing\CheckoutRegionResolver` answers "which country is this
+checkout request from". Core binds `Services\Billing\NullCheckoutRegionResolver`,
+which always returns `null` — the package ships no IP-to-country lookup, and
+`null` means "use the default order", never an error. Bind your own against the
+contract (through `numerosis.billing.implementations`, like any other) to turn
+the per-region ordering on:
+
+| Key | What it does |
+|---|---|
+| `numerosis.billing.payment_methods.default_order` | Stripe `paymentMethodOrder` for a request with no resolved country. Ships `['card', 'link']` |
+| `numerosis.billing.payment_methods.regions.<ISO-3166-1 alpha-2>` | the order for that country, falling back to `default_order` when the country has no entry. Ships ten European and US entries |
+
+Ordering only. A method absent from a list still appears when Stripe considers
+it eligible, and a resolved country also pre-fills the Address Element's
+default country. Neither restricts what a customer may pay with — that stays
+Stripe's call. An entry naming something that is not an
+`Enums\Billing\PaymentMethodType` case is dropped.
 
 ## Customizing auth — through Fortify
 
@@ -203,6 +228,13 @@ not privileged here: a host needing a queryable field adds a column and a
 `fromProvision()` exactly as `BillingContribution`/`CustomDomainContribution`
 do.
 
+`numerosis.tenancy.provisioning.contributions` no longer exists. A host that
+published `config/numerosis.php` before it was removed keeps a key nothing
+reads: contributions are declared on the steps that consume them
+(`RequiresContributions::requires()` / `ReadsContributions::reads()`), and a
+column-backed contribution no step declares is never rebuilt off the row.
+Delete the key.
+
 Every step is recorded on the provision row (`step_records`) as it runs, so
 a retry resumes from the first unrecorded step rather than restarting the
 whole chain — a step does not have to be idempotent for the retry's sake,
@@ -219,7 +251,7 @@ changes it. Anything that wants a usable tenant goes through
 | Call | Runs | For |
 |---|---|---|
 | `queue($data)` | `Bus::chain` on the `provisioning` queue | web requests, checkout — resumable, and the progress UI reads `step_records` as it goes |
-| `now($data)` | each step inline, in order | console commands, seeders, tinker — a failure throws at the call site instead of landing in `failed_jobs` |
+| `now($data)` | each step inline, in order | console commands, seeders, tinker — a failure throws at the call site instead of landing in `failed_jobs`, and a slug another chain already claimed throws `Exceptions\Tenancy\ProvisioningAlreadyClaimed` rather than reporting a provision it never ran |
 
 Both write the same provision row, take the same claim, run the same
 configured list and record the same outcomes. `now()` is what
@@ -325,11 +357,15 @@ touching core.
 
 ## Optional dependencies core still leans on
 
-None, currently. `ryangjchandler/laravel-cloudflare-turnstile` was promoted to
+Three, all `suggest`: `sentry/sentry-laravel` (whose scope tagging
+`Concerns\Tenancy\TagsSentryScopeWithTenant` skips unless
+`app()->bound('sentry')`), `laravel/telescope` (a scheduled `telescope:prune`
+and the `telescope/*` CSRF exemption, both `class_exists()`-guarded) and
+`socialiteproviders/zoho` (a driver, reached only when the provider is
+configured). `ryangjchandler/laravel-cloudflare-turnstile` was promoted to
 `require` alongside `spatie/laravel-one-time-passwords` and
-`spatie/laravel-activitylog` in 2026-09-05, so every package core names is
-always present and `numerosis.features`/`Tenant\User`'s trait use are the only
-switches. The rule below is what to follow when a `suggest` comes back.
+`spatie/laravel-activitylog` in 2026-09-05, so for those three
+`numerosis.features`/`Tenant\User`'s trait use are the only switches.
 
 **One seam per optional package, not one per call site** — give the
 optional dependency exactly one predicate and have every consumer ask it. One

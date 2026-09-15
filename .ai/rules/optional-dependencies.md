@@ -34,8 +34,10 @@ paths:
 > Turnstile symbol, only a method-body `new TurnstileRule` gated behind the
 > flag — the lazy case this file's first bullet describes, not the eager one
 > `Support\Compat\*` exists for. Also dropped the same phase, with no
-> guard at all rather than a `suggest`: `torann/geoip`. `ResolveCheckoutRegion`
-> stopped calling it, full stop — there is nothing left to degrade.
+> guard at all rather than a `suggest`: `torann/geoip`. The region lookup
+> stopped calling it, full stop — there is nothing left to degrade. What is
+> left is `Contracts\Billing\CheckoutRegionResolver`, a host seam bound to
+> `NullCheckoutRegionResolver`.
 >
 > **Header note, 2026-09-03 (Phase 2).** `internachi/modular` is **gone too** —
 > not `suggest`, not `require-dev`, not referenced anywhere. The whole module
