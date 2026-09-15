@@ -83,3 +83,19 @@ recommendation — match it, don't improve on it.
   testability: an extracted action lets the caller's branches be tested with
   `Foo::shouldRun()` / `Foo::shouldNotRun()` instead of hitting the side
   effect.
+
+## A swap seam nothing crosses is not a seam (2026-09-15)
+
+Before adding a contract to the swap-seam population above, ask what actually
+crosses it: a second core implementation, a documented host override, or a test
+double. Being listed in `numerosis.{billing,tenancy}.implementations` is not
+sufficient on its own — the config row is the intent, not the evidence.
+
+`MoneyFormatter` and `TenantDatabaseManager` were both listed and neither was
+crossed. The first was a 21-line wrapper over `Cashier::formatAmount()` behind
+`BillingService`, itself behind the `Billing` facade, with one caller and no
+test reference; it was folded into `BillingService`. The second is a real seam
+whose payoff — testing `CreateTenantDatabase` without a MySQL database —
+nothing collected, so it got `tests/Support/FakeTenantDatabaseManager` instead
+of being inlined. Which of the two applies is a judgement about whether the
+seam is worth having, and the test double is what settles it either way.
