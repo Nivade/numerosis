@@ -24,6 +24,7 @@ use Nvade\Numerosis\Actions\Tenancy\FinalizeTenantProvisioning;
 use Nvade\Numerosis\Actions\Tenancy\LinkTenantSubscription;
 use Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
+use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
@@ -37,6 +38,7 @@ use Nvade\Numerosis\Tests\Support\TestTenant;
 use Orchestra\Testbench\TestCase as Orchestra;
 use PDO;
 use Pdo\Mysql;
+use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
 use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
@@ -56,6 +58,20 @@ abstract class TestCase extends Orchestra
     private const string MYSQL_USERNAME = 'root';
 
     private const string MYSQL_PASSWORD = 'root';
+
+    private const string PGSQL_HOST = '127.0.0.1';
+
+    private const string PGSQL_PORT = '5432';
+
+    private const string PGSQL_USERNAME = 'postgres';
+
+    private const string PGSQL_PASSWORD = 'postgres';
+
+    /**
+     * Connecting to a PostgreSQL server needs a database to connect *to*, and
+     * the one being created is not available yet.
+     */
+    private const string PGSQL_MAINTENANCE_DATABASE = 'postgres';
 
     private static bool $workerDatabaseMigrated = false;
 
@@ -236,10 +252,6 @@ abstract class TestCase extends Orchestra
         $lockWaitTimeout = 10;
         $app->make(Repository::class)->set('database.lock_wait_timeout', $lockWaitTimeout);
 
-        $mysqlOptions = extension_loaded('pdo_mysql') ? [
-            Mysql::ATTR_INIT_COMMAND => "SET SESSION lock_wait_timeout = {$lockWaitTimeout}, innodb_lock_wait_timeout = {$lockWaitTimeout}",
-        ] : [];
-
         // `central` and `tenant` have to follow the parallel token themselves.
         // Laravel's own parallel wiring (Illuminate\Testing\Concerns\
         // TestDatabases) switches exactly one connection — the default — and it
@@ -252,27 +264,22 @@ abstract class TestCase extends Orchestra
         $database = static::parallelAwareDatabase('testing');
         static::ensureDatabaseExists($database);
 
-        $mysql = [
-            'driver' => 'mysql',
-            'host' => self::MYSQL_HOST,
-            'port' => self::MYSQL_PORT,
-            'database' => $database,
-            'username' => self::MYSQL_USERNAME,
-            'password' => self::MYSQL_PASSWORD,
-            'unix_socket' => '',
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_0900_ai_ci',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'strict' => true,
-            'engine' => null,
-            'options' => $mysqlOptions,
-        ];
+        $connection = static::connectionConfig($database, $lockWaitTimeout);
 
-        $app->make(Repository::class)->set('database.default', 'mysql');
-        $app->make(Repository::class)->set('database.connections.mysql', $mysql);
-        $app->make(Repository::class)->set('database.connections.central', $mysql);
-        $app->make(Repository::class)->set('database.connections.tenant', $mysql);
+        $name = static::databaseDriver()->value;
+
+        // On SQLite the default connection *is* `central`, one Connection
+        // object and one PDO handle. Two handles on one file deadlock the
+        // moment RefreshDatabase's transaction takes the write lock and a
+        // central-connection write asks for it: pdo_sqlite defaults
+        // PDO::ATTR_TIMEOUT to 60 seconds, so each blocked statement sleeps
+        // rather than failing, and the run reads as hung.
+        $default = static::databaseDriver() === DatabaseDriver::Sqlite ? 'central' : $name;
+
+        $app->make(Repository::class)->set('database.default', $default);
+        $app->make(Repository::class)->set('database.connections.'.$name, $connection);
+        $app->make(Repository::class)->set('database.connections.central', $connection);
+        $app->make(Repository::class)->set('database.connections.tenant', $connection);
 
         // Every key this block sets is one HostConfig::apply() would also
         // set, given the chance — but it doesn't get the chance here.
@@ -596,6 +603,101 @@ abstract class TestCase extends Orchestra
     }
 
     /**
+     * For a test whose subject is a driver's own behaviour rather than this
+     * package's, so it has nothing to assert on the others.
+     */
+    protected function skipUnlessDriverIs(DatabaseDriver ...$drivers): void
+    {
+        $driver = static::databaseDriver();
+
+        if (! in_array($driver, $drivers, true)) {
+            $this->markTestSkipped("Covers {$drivers[0]->value}; this run is on {$driver->value}.");
+        }
+    }
+
+    /**
+     * The driver this run is exercising. MySQL unless `NUMEROSIS_TEST_DRIVER`
+     * says otherwise, so a run that opts into nothing behaves as it always did.
+     */
+    public static function databaseDriver(): DatabaseDriver
+    {
+        $name = getenv('NUMEROSIS_TEST_DRIVER');
+
+        if (! is_string($name) || $name === '') {
+            return DatabaseDriver::Mysql;
+        }
+
+        return DatabaseDriver::tryFrom($name)
+            ?? throw new RuntimeException("NUMEROSIS_TEST_DRIVER is '{$name}', which this suite has no connection array for.");
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected static function connectionConfig(string $database, int $lockWaitTimeout): array
+    {
+        return match (static::databaseDriver()) {
+            DatabaseDriver::Sqlite => [
+                'driver' => 'sqlite',
+                'database' => static::sqlitePath($database),
+                'prefix' => '',
+                'prefix_indexes' => true,
+                'foreign_key_constraints' => true,
+                'busy_timeout' => null,
+                'journal_mode' => null,
+                'synchronous' => null,
+            ],
+            DatabaseDriver::Pgsql => [
+                'driver' => 'pgsql',
+                'host' => self::PGSQL_HOST,
+                'port' => self::PGSQL_PORT,
+                'database' => $database,
+                'username' => self::PGSQL_USERNAME,
+                'password' => self::PGSQL_PASSWORD,
+                'charset' => 'utf8',
+                'prefix' => '',
+                'prefix_indexes' => true,
+                'search_path' => 'public',
+                'sslmode' => 'prefer',
+                // PostgreSQL's analogue of the MySQL init command below. Both
+                // are bounded so a blocked statement fails the test rather
+                // than hanging the worker.
+                'options' => extension_loaded('pdo_pgsql') ? [
+                    PDO::ATTR_TIMEOUT => $lockWaitTimeout,
+                ] : [],
+            ],
+            default => [
+                'driver' => static::databaseDriver()->value,
+                'host' => self::MYSQL_HOST,
+                'port' => self::MYSQL_PORT,
+                'database' => $database,
+                'username' => self::MYSQL_USERNAME,
+                'password' => self::MYSQL_PASSWORD,
+                'unix_socket' => '',
+                'charset' => 'utf8mb4',
+                'collation' => 'utf8mb4_0900_ai_ci',
+                'prefix' => '',
+                'prefix_indexes' => true,
+                'strict' => true,
+                'engine' => null,
+                'options' => extension_loaded('pdo_mysql') ? [
+                    Mysql::ATTR_INIT_COMMAND => "SET SESSION lock_wait_timeout = {$lockWaitTimeout}, innodb_lock_wait_timeout = {$lockWaitTimeout}",
+                ] : [],
+            ],
+        };
+    }
+
+    /**
+     * The central database is a file beside the tenant files stancl's
+     * `SQLiteDatabaseManager` writes, and takes an extension so a glob for the
+     * tenant prefix cannot pick it up.
+     */
+    protected static function sqlitePath(string $database): string
+    {
+        return database_path($database.'.sqlite');
+    }
+
+    /**
      * A database name suffixed with this worker's parallel token, matching the
      * `{name}_test_{token}` shape `TestDatabases::testDatabase()` uses for the
      * default connection, so every connection in this suite lands in one
@@ -620,14 +722,61 @@ abstract class TestCase extends Orchestra
     {
         static $ensured = [];
 
-        if (isset($ensured[$database]) || ! extension_loaded('pdo_mysql')) {
+        if (isset($ensured[$database])) {
+            return;
+        }
+
+        match (static::databaseDriver()) {
+            DatabaseDriver::Sqlite => self::ensureSqliteFileExists($database),
+            DatabaseDriver::Pgsql => self::ensurePostgresDatabaseExists($database),
+            default => self::ensureMysqlDatabaseExists($database),
+        };
+
+        $ensured[$database] = true;
+    }
+
+    private static function ensureMysqlDatabaseExists(string $database): void
+    {
+        if (! extension_loaded('pdo_mysql')) {
             return;
         }
 
         $connection = new PDO('mysql:host='.self::MYSQL_HOST.';port='.self::MYSQL_PORT, self::MYSQL_USERNAME, self::MYSQL_PASSWORD);
         $connection->exec("create database if not exists `{$database}` character set utf8mb4 collate utf8mb4_0900_ai_ci");
+    }
 
-        $ensured[$database] = true;
+    /**
+     * PostgreSQL has no `CREATE DATABASE IF NOT EXISTS`, and issuing the
+     * create unconditionally throws rather than reporting the database is
+     * already there.
+     */
+    private static function ensurePostgresDatabaseExists(string $database): void
+    {
+        if (! extension_loaded('pdo_pgsql')) {
+            return;
+        }
+
+        $connection = new PDO(
+            'pgsql:host='.self::PGSQL_HOST.';port='.self::PGSQL_PORT.';dbname='.self::PGSQL_MAINTENANCE_DATABASE,
+            self::PGSQL_USERNAME,
+            self::PGSQL_PASSWORD,
+        );
+
+        $statement = $connection->prepare('select 1 from pg_database where datname = ?');
+        $statement->execute([$database]);
+
+        if ($statement->fetchColumn() === false) {
+            $connection->exec('create database "'.str_replace('"', '""', $database).'"');
+        }
+    }
+
+    private static function ensureSqliteFileExists(string $database): void
+    {
+        $path = static::sqlitePath($database);
+
+        if (! is_file($path)) {
+            file_put_contents($path, '');
+        }
     }
 
     /**

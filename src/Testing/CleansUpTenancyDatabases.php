@@ -193,9 +193,18 @@ trait CleansUpTenancyDatabases
     /**
      * Rolls every connection back to level 0, so the central deletes below do
      * not block on row locks this test's own transaction still holds.
+     *
+     * Skipped on SQLite, where `central` and the default connection are one
+     * PDO handle rather than two: there is no second session to block, and
+     * rolling back here would discard the `tenants` rows the tenant-database
+     * names are read from a moment later.
      */
     private function releaseTestTransactions(): void
     {
+        if ($this->centralDriver() === 'sqlite') {
+            return;
+        }
+
         foreach (DB::getConnections() as $connection) {
             if (! $connection instanceof Connection || $connection->transactionLevel() === 0) {
                 continue;
@@ -256,7 +265,10 @@ trait CleansUpTenancyDatabases
             return null;
         }
 
-        return $matches[1];
+        // SQLite has no ALTER TABLE for most changes, so Laravel copies rows
+        // through `__temp__<table>` and drops it again. Recorded, teardown
+        // deletes from a table the migration has already removed.
+        return str_starts_with($matches[1], '__temp__') ? null : $matches[1];
     }
 
     /**
@@ -270,7 +282,19 @@ trait CleansUpTenancyDatabases
             return;
         }
 
-        $connection = DB::connection($this->centralConnectionName());
+        $name = $this->centralConnectionName();
+
+        // A test that unset the connection to assert what a host sees leaves
+        // nothing to delete through, and a failed statement here reconnects,
+        // which throws `Database connection [central] not configured` from a
+        // teardown callback with no test-side frame.
+        if (! array_key_exists($name, Config::array('database.connections'))) {
+            $this->dirtyCentralTables = [];
+
+            return;
+        }
+
+        $connection = DB::connection($name);
 
         // Deleting in dependency order would mean tracking relationships
         // between the tables; the rows are all going regardless.
@@ -303,7 +327,7 @@ trait CleansUpTenancyDatabases
 
         $central = $this->centralConnectionName();
 
-        if (Schema::connection($central)->hasTable('tenants')) {
+        if ($this->centralHasTenantsTable($central)) {
             /** @var class-string<Model> $tenantClass */
             $tenantClass = Config::string('tenancy.tenant_model');
 
@@ -329,12 +353,38 @@ trait CleansUpTenancyDatabases
             }
         }
 
+        // On SQLite a tenant row written inside RefreshDatabase's transaction
+        // is gone by the time some test classes reach here, taking the only
+        // record of the file's name with it. One file per database makes the
+        // prefix itself an answer, which no server driver can offer safely.
+        if ($this->centralDriver() === 'sqlite') {
+            $databases = [...$databases, ...resolve(TenantDatabaseManager::class)->namesMatchingPrefix(
+                Config::string('tenancy.database.prefix', 'tenant'),
+                $central,
+            )];
+        }
+
         $preserved = $this->preservedTenantDatabases();
 
         return array_values(array_filter(
             array_unique(array_filter($databases, is_string(...))),
             fn (string $database): bool => $database !== '' && ! in_array($database, $preserved, true),
         ));
+    }
+
+    /**
+     * A test is free to leave the central connection unconfigured — several
+     * exist to assert what happens when a host does. Teardown still has to
+     * drop whatever it already knows about rather than throwing from a
+     * `beforeApplicationDestroyed()` callback with no test-side frame.
+     */
+    private function centralHasTenantsTable(string $connection): bool
+    {
+        try {
+            return Schema::connection($connection)->hasTable('tenants');
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -420,5 +470,14 @@ trait CleansUpTenancyDatabases
     private function centralConnectionName(): string
     {
         return Config::string('tenancy.database.central_connection', 'central');
+    }
+
+    private function centralDriver(): ?string
+    {
+        try {
+            return DB::connection($this->centralConnectionName())->getDriverName();
+        } catch (Throwable) {
+            return null;
+        }
     }
 }

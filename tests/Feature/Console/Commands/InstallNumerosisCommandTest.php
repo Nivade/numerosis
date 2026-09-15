@@ -13,6 +13,7 @@ use Illuminate\Testing\PendingCommand;
 use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Boot\Assets;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
+use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
 use Nvade\Numerosis\Tests\TestCase;
@@ -207,6 +208,8 @@ class InstallNumerosisCommandTest extends TestCase
     /** @verifies verifyLockWaitTimeout */
     public function test_it_fails_when_lock_wait_timeout_is_set_without_the_innodb_variant(): void
     {
+        $this->skipUnlessDriverIs(DatabaseDriver::Mysql, DatabaseDriver::Mariadb);
+
         /** @var array<string, mixed> $central */
         $central = config('database.connections.central');
         $central['options'] = ['SET SESSION lock_wait_timeout = 10'];

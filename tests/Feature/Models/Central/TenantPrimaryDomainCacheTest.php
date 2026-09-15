@@ -35,6 +35,11 @@ class TenantPrimaryDomainCacheTest extends TestCase
 
         $this->assertSame($original->id, $tenant->primaryDomain()?->id);
 
+        // primaryDomain() orders on `created_at`, which is second-precision,
+        // and nothing breaks the tie: two domains added in the same second
+        // come back in whatever order the driver happens to return.
+        $this->travel(1)->second();
+
         $newer = $tenant->domains()->create([
             'id' => $tenant->id.'-newer',
             'domain' => $this->tenantDomain($tenant->id.'-newer'),
