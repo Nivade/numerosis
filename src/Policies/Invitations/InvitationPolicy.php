@@ -47,9 +47,10 @@ class InvitationPolicy
             return false;
         }
 
-        // Through the relation, not a per-row exists(): the listing eager
-        // loads `invitedBy`, so an N-row list costs one query rather than N.
-        $inviterGlobalId = $invitation->invitedBy?->global_id;
+        // `loadMissing`, so the listing's eager load still costs one query for
+        // N rows while a route-bound single row does not fatal under
+        // `preventLazyLoading`.
+        $inviterGlobalId = $invitation->loadMissing('invitedBy')->invitedBy?->global_id;
 
         return $inviterGlobalId !== null && $inviterGlobalId === $user->global_id;
     }

@@ -16,7 +16,7 @@ use PHPUnit\Framework\Assert as PHPUnit;
 /**
  * Records checkouts and provisioning requests, touching neither Stripe nor
  * the queue. Bound in place of both CheckoutGateway and ProvisionsTenant by
- * Billing::fake().
+ * BillingFake::swap().
  */
 class FakeCheckoutGateway implements CheckoutGateway, ProvisionsTenant
 {

@@ -12,16 +12,10 @@ use Nvade\Numerosis\Routing\RouteNames;
 
 new class extends Component {
     /**
-     * The header always reads the central guard rather than whichever guard
-     * the current context defaults to.
-     *
-     * Every `@auth`/`@guest` below was replaced with a test of *this* value
-     * for the same reason: those directives consult the **default** guard,
-     * which is the tenant one inside tenancy, so on a tenant domain they
-     * reported "signed in" while this returned null and the first
-     * `$this->user->initials()` was a 500. The layout now renders the guest
-     * header there, which is correct — the account menu it would otherwise
-     * show links only to central routes.
+     * The central guard, which is what every `@auth`/`@guest` below tests
+     * instead of the directives: those read the *default* guard, the tenant
+     * one inside tenancy, so on a tenant domain they reported "signed in"
+     * while this returned null and `$this->user->initials()` threw.
      */
     #[Computed]
     public function user(): ?CentralUser

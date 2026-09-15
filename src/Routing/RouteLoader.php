@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Fortify as FortifyFacade;
 use Laravel\Fortify\RoutePath;
+use Nvade\Numerosis\Concerns\Boot\RegistersOnce;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
@@ -22,10 +23,7 @@ use Stancl\Tenancy\Resolvers\PathTenantResolver;
  */
 final class RouteLoader
 {
-    /** Replaces this class's registration entirely; receives the `Application`. */
-    public static ?Closure $registerCallback = null;
-
-    private static bool $registered = false;
+    use RegistersOnce;
 
     private static bool $authRoutesEnabled = true;
 
@@ -102,16 +100,6 @@ final class RouteLoader
     }
 
     /**
-     * Whether {@see self::load()} has run yet. If it has not by the time the
-     * application finishes booting, `NumerosisServiceProvider` calls it, so a
-     * host omitting `withRouting(using: ...)` still resolves every URL.
-     */
-    public static function registered(): bool
-    {
-        return self::$registered;
-    }
-
-    /**
      * Whether `routes/web.php` should require `routes/auth.php`. Read there,
      * set by {@see self::load()}'s `$withAuth` argument.
      */
@@ -158,9 +146,8 @@ final class RouteLoader
 
     /**
      * Paths go through `RoutePath::for()`, so `config('fortify.paths')`
-     * overrides them like every neighbouring auth URL, and the verify leg
-     * carries its own limiter because its request has no `email` field to
-     * key on.
+     * overrides them like every neighbouring auth URL. The POST leg carries
+     * its own limiter because its request has no `email` field to key on.
      */
     private static function loadOneTimePasswordRoutes(string $guard): void
     {

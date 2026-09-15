@@ -69,6 +69,16 @@ documented install) and one boot bug, both recorded rather than fixed here.
 executed on `refactor/enum-vocabulary-sweep`, `composer test` green (721
 passed / 6 skipped) and `composer analyse` clean at every phase boundary.
 
+`audit-remediation-eighty-commits.md` moved to `archive/` 2026-09-15: seven
+tiers executed on `fix/audit-remediation-eighty-commits`, one commit per tier
+and tier 7 alone. Five items were deliberately not done and three were already
+fixed or stale; both lists, with evidence, are at the bottom of the plan. D5
+could not be honoured literally — restoring `array<string, mixed>` on an
+override of a vendor method typed bare `array` trades one PHPStan error for a
+contravariance error — so the baseline rows went instead via
+`array<array-key, mixed>`. Suite 779 passed / 6 skipped, `composer analyse`
+clean.
+
 `cache-audit.md` moved to `archive/` 2026-09-14: all ten phases executed on
 `feat/cache-audit`. Phase 9's open decision was settled both ways — `null` is
 cached for `tenantPrimaryDomain()`, deliberately not for `FindUserByGlobalId`
@@ -82,7 +92,8 @@ enabling the cache alone would have cached entries nothing could forget. Suite
 
 | Plan | State |
 |---|---|
-| `luminous-wandering-brook.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
+| `sqlite-compatibility.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
+| `module-depth-audit.md` | **Not executed.** Module depth audit, written 2026-09-15. Seven items, one commit each: fold `MoneyFormatter`, fake `TenantDatabaseManager`, `HostConfig::set()` segment assertion, checkout cluster, three docs fixes. No open decisions — all seven were decided before it was written |
 
 ## Abandoned
 

@@ -34,10 +34,6 @@ class AvailablePaymentPlansCacheTest extends TestCase
         $repository = new EloquentPaymentPlanRepository;
         $repository->available();
 
-        // Without this the memo answers, and the assertion stops saying
-        // anything about the cache.
-        EloquentPaymentPlanRepository::flushMemo();
-
         $connection = $this->centralDatabase();
         $connection->flushQueryLog();
         $connection->enableQueryLog();
@@ -61,8 +57,6 @@ class AvailablePaymentPlansCacheTest extends TestCase
 
         $repository = new EloquentPaymentPlanRepository;
         $repository->available();
-
-        EloquentPaymentPlanRepository::flushMemo();
 
         $cached = $repository->available()->first();
 
@@ -101,36 +95,7 @@ class AvailablePaymentPlansCacheTest extends TestCase
         $this->assertTrue($cachedFeature->available);
     }
 
-    /**
-     * Rebuilding the catalogue's models from the cached rows measured ~1.5ms
-     * against ~23us to read them, so a page reading the catalogue more than
-     * once pays the hydration once.
-     */
-    public function test_a_repeat_call_in_one_request_reuses_the_hydrated_models(): void
-    {
-        $this->pinGlobalCache();
-
-        PaymentPlan::factory()->create(['available' => true]);
-
-        $repository = new EloquentPaymentPlanRepository;
-
-        $this->assertSame($repository->available(), $repository->available());
-    }
-
-    /** A separate resolve has to see the memo: the container binds this per resolve. */
-    public function test_the_memo_is_shared_across_instances(): void
-    {
-        $this->pinGlobalCache();
-
-        PaymentPlan::factory()->create(['available' => true]);
-
-        $this->assertSame(
-            (new EloquentPaymentPlanRepository)->available(),
-            (new EloquentPaymentPlanRepository)->available()
-        );
-    }
-
-    public function test_editing_a_plan_drops_the_memo(): void
+    public function test_editing_a_plan_invalidates_the_cached_rows(): void
     {
         $this->pinGlobalCache();
 

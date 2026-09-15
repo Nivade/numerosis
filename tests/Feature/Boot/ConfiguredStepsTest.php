@@ -9,9 +9,11 @@ use LogicException;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
 use Nvade\Numerosis\Actions\Tenancy\MarkProvisionFailed;
 use Nvade\Numerosis\Boot\ConfiguredSteps;
+use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\CompanyInfo;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Payment;
 use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\Plan;
+use Nvade\Numerosis\Livewire\Tenant\Registration\Steps\TechnicalSetup;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -69,14 +71,24 @@ class ConfiguredStepsTest extends TestCase
         ConfiguredSteps::assertARegistrationStepProvidesTenantIdentity([Plan::class, Payment::class]);
     }
 
-    public function test_one_identity_step_anywhere_in_the_list_is_enough(): void
+    /** Both identity keys have to be covered: `provisionData()` needs a name and a slug. */
+    public function test_identity_steps_covering_both_keys_anywhere_in_the_list_are_enough(): void
     {
         ConfiguredSteps::assertARegistrationStepProvidesTenantIdentity([
             Plan::class,
             CompanyInfo::class,
+            TechnicalSetup::class,
             Payment::class,
         ]);
 
         $this->addToAssertionCount(1);
+    }
+
+    public function test_a_list_collecting_a_name_but_no_slug_is_refused(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessageMatches('/\['.ProvidesTenantIdentity::SLUG_KEY.'\]/');
+
+        ConfiguredSteps::assertARegistrationStepProvidesTenantIdentity([CompanyInfo::class, Payment::class]);
     }
 }

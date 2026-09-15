@@ -22,20 +22,22 @@ class ResolveSavedPaymentMethod
 
     public function handle(BillableUser $billable, string $paymentMethodId): PaymentMethod
     {
+        $unavailable = __('numerosis::billing.checkout.saved_payment_method_unavailable');
+
         // Cashier's constructor for its own wrapper is the ownership check:
         // it throws InvalidPaymentMethod for another customer's payment method
         // and LogicException for one with no customer at all.
         try {
             $resolved = $billable->findPaymentMethod($paymentMethodId);
         } catch (InvalidPaymentMethod|LogicException $e) {
-            throw new SavedPaymentMethodUnavailable(__('numerosis::billing.checkout.saved_payment_method_unavailable'), 0, previous: $e);
+            throw new SavedPaymentMethodUnavailable($unavailable, 0, previous: $e);
         }
 
-        throw_unless($resolved instanceof CashierPaymentMethod, SavedPaymentMethodUnavailable::class, __('numerosis::billing.checkout.saved_payment_method_unavailable'));
+        throw_unless($resolved instanceof CashierPaymentMethod, SavedPaymentMethodUnavailable::class, $unavailable);
 
         $paymentMethod = $resolved->asStripePaymentMethod();
 
-        throw_unless(PaymentMethodType::tryFrom($paymentMethod->type)?->isReusable() ?? false, SavedPaymentMethodUnavailable::class, __('numerosis::billing.checkout.saved_payment_method_unavailable'));
+        throw_unless(PaymentMethodType::tryFrom($paymentMethod->type)?->isReusable() ?? false, SavedPaymentMethodUnavailable::class, $unavailable);
 
         return $paymentMethod;
     }

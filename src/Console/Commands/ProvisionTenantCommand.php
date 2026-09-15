@@ -14,6 +14,7 @@ use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
 use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
+use Nvade\Numerosis\Exceptions\Tenancy\ProvisioningAlreadyClaimed;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
@@ -111,7 +112,13 @@ class ProvisionTenantCommand extends Command
         );
 
         if ($this->option('sync')) {
-            $this->provisioning->now($data);
+            try {
+                $this->provisioning->now($data);
+            } catch (ProvisioningAlreadyClaimed $e) {
+                $this->error($e->getMessage());
+
+                return self::FAILURE;
+            }
 
             $this->info("Provisioned [{$slug}].");
 

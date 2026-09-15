@@ -15,8 +15,11 @@ use Stripe\Customer;
 use Stripe\Exception\ApiErrorException;
 
 /**
+ * The saved cards a billable may pay with again, and which one is default.
+ *
  * Takes an already-retrieved customer when the caller has one, so the checkout
- * screen pays for a single Stripe round trip rather than one per reader.
+ * screen pays for a single Stripe round trip rather than one per reader. A
+ * customer belonging to somebody else is ignored, not read.
  *
  * @method static ReusablePaymentMethods run(BillableUser $billable, ?Customer $customer = null)
  */
@@ -28,6 +31,10 @@ class FetchReusablePaymentMethods
     {
         if (! $billable->hasStripeId()) {
             return new ReusablePaymentMethods(collect());
+        }
+
+        if ($customer instanceof Customer && $customer->id !== $billable->stripeId()) {
+            $customer = null;
         }
 
         $customer ??= FetchStripeCustomer::run($billable);

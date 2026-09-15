@@ -19,8 +19,7 @@ class MembershipObserver
     /** Ownership moves on an update, not only on create, so `saved` is the hook. */
     public function saved(Membership $membership): void
     {
-        ForgetUserTenants::run($membership->global_user_id);
-        $this->forgetCache(CacheKeys::tenantOwnerGlobalId($membership->tenant_id));
+        $this->forgetMembershipCaches($membership);
     }
 
     public function created(Membership $membership): void
@@ -47,13 +46,18 @@ class MembershipObserver
 
     public function deleted(Membership $membership): void
     {
-        ForgetUserTenants::run($membership->global_user_id);
-        $this->forgetCache(CacheKeys::tenantOwnerGlobalId($membership->tenant_id));
+        $this->forgetMembershipCaches($membership);
 
         event(new MemberRemoved(
             $membership->tenant_id,
             $membership->global_user_id,
             $membership->role,
         ));
+    }
+
+    private function forgetMembershipCaches(Membership $membership): void
+    {
+        ForgetUserTenants::run($membership->global_user_id);
+        $this->forgetCache(CacheKeys::tenantOwnerGlobalId($membership->tenant_id));
     }
 }

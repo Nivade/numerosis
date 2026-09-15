@@ -53,6 +53,14 @@ class TechnicalSetup extends StepComponent implements ContributesProvisionData, 
             : null;
     }
 
+    /** This step's own contribution, off its typed properties instead of a rebuilt state array. */
+    public function currentContribution(): ?CustomDomainContribution
+    {
+        return $this->customDomain === ''
+            ? null
+            : new CustomDomainContribution($this->customDomain);
+    }
+
     #[Override]
     public static function tenantIdentityStateKeys(): array
     {
@@ -133,7 +141,7 @@ class TechnicalSetup extends StepComponent implements ContributesProvisionData, 
             // passed in rather than collected.
             $data = $this->registrationState()
                 ->provisionData($user->global_id, slug: $this->domain)
-                ->withContributions(array_filter([self::contribute(['customDomain' => $this->customDomain])]));
+                ->withContributions(array_filter([$this->currentContribution()]));
 
             ReserveTenantDomain::run($data);
         } catch (MissingTenantIdentity $e) {

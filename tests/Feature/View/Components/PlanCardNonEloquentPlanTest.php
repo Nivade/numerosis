@@ -24,8 +24,6 @@ class PlanCardNonEloquentPlanTest extends TestCase
     {
         return new class implements Plan
         {
-            public string $description = 'A stub plan with no database row.';
-
             public function slug(): string
             {
                 return 'stub-plan';
@@ -34,6 +32,11 @@ class PlanCardNonEloquentPlanTest extends TestCase
             public function name(): string
             {
                 return 'Stub Plan';
+            }
+
+            public function description(): string
+            {
+                return 'A stub plan with no database row.';
             }
 
             public function priceId(BillingCycle $cycle): string
@@ -123,6 +126,24 @@ class PlanCardNonEloquentPlanTest extends TestCase
             ->assertSee($price)
             ->assertSee('Unlimited widgets')
             ->assertSee('Most Popular');
+    }
+
+    /** The billing page renders this branch, and only `type="selectable"` was covered. */
+    public function test_plan_card_renders_the_plan_change_branch_against_a_non_eloquent_plan(): void
+    {
+        $plan = $this->stubPlan();
+        $this->bindStubRepository($plan);
+
+        $price = resolve(BillingService::class)->formatAmount($plan->price(BillingCycle::Monthly) ?? 0);
+
+        $this->blade(
+            '<x-numerosis::billing.plan-card :plan="$plan" :billing-cycle="$cycle" :price="$price" type="display" />',
+            ['plan' => $plan, 'cycle' => BillingCycle::Monthly, 'price' => $price],
+        )
+            ->assertSee('Stub Plan')
+            ->assertSee('A stub plan with no database row.')
+            ->assertSee('Unlimited widgets')
+            ->assertSee('Get Started');
     }
 
     public function test_order_summary_renders_against_a_non_eloquent_plan(): void

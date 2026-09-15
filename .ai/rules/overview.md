@@ -28,9 +28,10 @@ validates in the host app), joined by `ConfiguredSteps`, `UserModels` (was
 `Routing/`, `TaxIdType` in `Services/Billing/`, `RegistrationState` in
 `Livewire/Tenant/Registration/`. `Services/Billing/` is flat, mirroring
 `Contracts/Billing/`. Blade reaches package classes through `@use` rather
-than inline FQCNs. Four arch tests hold all of it down — see
-`architecture-conventions.md` and `tests/Feature/ArchTest.php`; a fifth,
-`BladeClassReferencesTest`, covers the views PHPStan cannot see.
+than inline FQCNs. The arch tests in `tests/Feature/ArchTest.php` hold all of
+it down — see `architecture-conventions.md` for what each asserts;
+`BladeClassReferencesTest` covers the views PHPStan cannot see. Counts are
+deliberately absent: they were wrong within three commits last time.
 
 **Layout, since 2026-09-03 (Phase 3):** one repo — core at the root, plus
 `packages/ui` only. `packages/{auth-ui,account,onboarding}` folded into core;
@@ -42,8 +43,10 @@ a header naming where it lives now. `package-boundaries.md` is the seam map.
 6)**, both of `.claude/plans/archive/humming-nibbling-flame.md`. Core's own actions
 (`CreateRegisteredUser`, `UpdateUserProfile`, `UpdateUserPassword`,
 `ResetUserPassword`) are bound against Fortify's contracts rather than
-running their own controllers; `ResolveCheckoutRegion` always returns null
-now (no GeoIP lookup wired in); `TurnstileFeature::isEnabled()` gained a
+running their own controllers; the checkout region lookup is
+`Contracts\Billing\CheckoutRegionResolver`, bound to
+`NullCheckoutRegionResolver` (no GeoIP lookup wired in, and `null` means
+"use the default payment method order"); `TurnstileFeature::isEnabled()` gained a
 `class_exists()` guard since the package is a `suggest`, not a `require`. See
 `docs/extending.md` for the Fortify customization table and
 `.ai/rules/auth-login.md` for what stayed core-only through the move.

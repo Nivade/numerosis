@@ -13,8 +13,6 @@ use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Data\Billing\CheckoutIntent;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Services\Billing\BillingService;
-use Nvade\Numerosis\Testing\BillingFake;
-use Nvade\Numerosis\Testing\FakeCheckoutGateway;
 
 /**
  * @method static Collection<int, Plan> plans()
@@ -32,17 +30,6 @@ use Nvade\Numerosis\Testing\FakeCheckoutGateway;
  */
 class Billing extends Facade
 {
-    /**
-     * Swap the checkout gateway and tenant provisioning for a recording fake
-     * that never talks to Stripe or queues real provisioning. A real static
-     * method, not a forward through the accessor — the fake lives in
-     * `Testing\`, off the production autoload path `BillingService` sits on.
-     */
-    public static function fake(): FakeCheckoutGateway
-    {
-        return BillingFake::swap();
-    }
-
     protected static function getFacadeAccessor(): string
     {
         return BillingService::class;

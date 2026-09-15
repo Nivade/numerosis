@@ -75,11 +75,6 @@ class Plan extends StepComponent implements ContributesProvisionData, HasTransie
     public ?string $checkoutPublishableKey = null;
 
     /**
-     * The selected cycle as the enum, whichever shape {@see self::$billingCycle}
-     * happens to hold. An unrecognised stored value falls back rather than
-     * throwing, so a stale session cannot break the whole wizard.
-     */
-    /**
      * Reading the step's own live state gives the enum; reading it back out of
      * the wizard gives the string `StepComponent::dispatchDehydrated()` wrote.
      * Both are accepted here, since this is called from each.
@@ -99,6 +94,19 @@ class Plan extends StepComponent implements ContributesProvisionData, HasTransie
         );
     }
 
+    /** This step's own contribution, off its typed properties instead of a rebuilt state array. */
+    public function currentContribution(): ?BillingContribution
+    {
+        return $this->payment_plan === ''
+            ? null
+            : new BillingContribution(payment_plan: $this->payment_plan, billing_cycle: $this->cycle());
+    }
+
+    /**
+     * The selected cycle as the enum, whichever shape {@see self::$billingCycle}
+     * happens to hold. An unrecognised stored value falls back instead of
+     * throwing, so a stale session cannot break the whole wizard.
+     */
     public function cycle(): BillingCycle
     {
         return $this->billingCycle instanceof BillingCycle
@@ -147,7 +155,7 @@ class Plan extends StepComponent implements ContributesProvisionData, HasTransie
         // never Throwable, so nothing unexpected leaks.
         try {
             $intent = StartSubscriptionCheckout::run($this->registrationState()->provisionData($user->global_id)->withContributions(
-                array_filter([self::contribute(['payment_plan' => $this->payment_plan, 'billingCycle' => $this->cycle()])]),
+                array_filter([$this->currentContribution()]),
             ));
         } catch (MissingTenantIdentity $e) {
             // Back to whichever step collects it; an error on this screen

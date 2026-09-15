@@ -1,3 +1,4 @@
+@use(\Nvade\Numerosis\Contracts\Billing\Plan)
 @use(\Nvade\Numerosis\Enums\Billing\BillingCycle)
 @use(\Nvade\Numerosis\Enums\Tenancy\IdentificationMode)
 @use(\Nvade\Numerosis\Facades\Billing)
@@ -9,7 +10,7 @@
 ])
 
 @php
-    /** @var \Nvade\Numerosis\Contracts\Billing\Plan $plan */
+    /** @var Plan $plan */
     /** @var BillingCycle $billingCycle */
     $price = Billing::formatAmount($plan->price($billingCycle));
     $trialDays = $plan->trialDays();

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
+use Closure;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
@@ -18,7 +19,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Invoice;
 use Nvade\Numerosis\Actions\Queries\FindUserByGlobalId;
-use Nvade\Numerosis\Cache\CachedModel;
 use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Cache\CacheTtl;
 use Nvade\Numerosis\Cache\GlobalCache;
@@ -267,7 +267,9 @@ class Tenant extends BaseTenant implements HasTenantOwner, Subscribable, Suspend
             return null;
         }
 
-        return CachedModel::hydrate(Numerosis::model(Domain::class), $attributes);
+        $domain = Numerosis::model(Domain::class);
+
+        return (new $domain)->newFromBuilder($attributes);
     }
 
     public function latestInvoice(): ?Invoice
@@ -282,9 +284,15 @@ class Tenant extends BaseTenant implements HasTenantOwner, Subscribable, Suspend
     {
         $userClass = Numerosis::model(User::class);
 
-        $admin = $this->runInTenant($this, fn ($tenant) => $userClass::role(SystemRole::Admin->value)->first());
+        $admin = $this->runHere(fn (): ?Model => $userClass::role(SystemRole::Admin->value)->first());
 
         return $admin instanceof User ? $admin : null;
+    }
+
+    /** {@see RunsInTenant::runInTenant()} against this tenant, which is the only one this model can mean. */
+    public function runHere(Closure $callback): mixed
+    {
+        return $this->runInTenant($this, $callback);
     }
 
     /**

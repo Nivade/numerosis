@@ -20,6 +20,6 @@ class SuspendTenant
 
         $tenant->update(['suspended_at' => now()]);
 
-        event(new TenantSuspended($tenant, (string) $tenant->getTenantKey()));
+        event(new TenantSuspended($tenant));
     }
 }

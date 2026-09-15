@@ -151,10 +151,10 @@ class TenantProvision extends Model
     }
 
     /**
-     * Whether the slug's reservation belongs to this global id. `$domain`
-     * arriving as a client-controlled method argument is the same shape as a
-     * route parameter, so a caller re-checking ownership before acting on it
-     * needs this rather than trusting whatever it already rendered.
+     * Whether the slug's reservation belongs to this global id. The slug
+     * arrives as a client-controlled argument, the same shape as a route
+     * parameter, so a caller re-checking ownership before acting on it needs
+     * this rather than trusting whatever it already rendered.
      */
     public static function ownedBy(string $slug, ?string $globalId): bool
     {

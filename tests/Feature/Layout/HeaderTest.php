@@ -78,7 +78,6 @@ class HeaderTest extends TestCase
 
         $this->actingAsCentralUser($user);
 
-        GetTenantsByGlobalId::flushMemo();
         GetTenantsByGlobalId::run($user->global_id);
 
         $connection = $this->centralDatabase();
@@ -105,8 +104,6 @@ class HeaderTest extends TestCase
         $tenant->users()->attach($user->global_id, ['role' => MembershipRole::Owner->value]);
 
         $this->actingAsCentralUser($user);
-
-        GetTenantsByGlobalId::flushMemo();
 
         Livewire::test(self::COMPONENT)
             ->assertStatus(200)

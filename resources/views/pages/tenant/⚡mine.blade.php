@@ -64,14 +64,9 @@ class extends Component
             return;
         }
 
-        // Eager loaded because the ready-tenant list reads each tenant's
-        // latest subscription to decide whether to show the awaiting-payment
-        // notice, and Cashier's latestSubscription() issues a fresh query
-        // every call. The relation is already ordered created_at desc
-        // (ManagesSubscriptions::subscriptions()), so the first loaded row is
-        // that same latest subscription.
-        // Deliberately the relation and not GetTenantsByGlobalId: that action
-        // caches ids and hydrates without the eager load this page needs.
+        // Eager loaded because Cashier's latestSubscription() issues a fresh
+        // query per call. The relation is already ordered created_at desc, so
+        // the first loaded row is that same latest subscription.
         $tenants = $this->user->tenants()->with('subscriptions')->get();
 
         $this->readyTenants = $tenants->whereNotNull('provisioned_at');
@@ -86,18 +81,18 @@ class extends Component
 
     /**
      * Ownership is re-checked here rather than trusted from the rendered
-     * list — $domain arrives as a plain Livewire method argument, which is
+     * list: $slug arrives as a plain Livewire method argument, which is
      * client-controlled the same way a route parameter is.
      */
-    public function cancelProvision(string $domain): void
+    public function cancelProvision(string $slug): void
     {
-        $owned = Numerosis::model(TenantProvision::class)::ownedBy($domain, $this->user?->global_id);
+        $owned = Numerosis::model(TenantProvision::class)::ownedBy($slug, $this->user?->global_id);
 
         if (! $owned) {
             return;
         }
 
-        MarkProvisionCancelled::run($domain);
+        MarkProvisionCancelled::run($slug);
 
         $this->refreshTenants();
     }
@@ -233,10 +228,9 @@ class extends Component
                     @php /** @var Tenant $tenant */ @endphp
                     @foreach($readyTenants as $tenant)
                         @php
-                            // Unreachable for cards, which settle synchronously. Read
-                            // off the subscription rather than the provision row's
-                            // settled_at: by the time a tenant is ready, the
-                            // subscription is the authoritative signal.
+                            // Read off the subscription, not the provision row's
+                            // settled_at: once a tenant is ready the subscription
+                            // is the authoritative signal. Cards never get here.
                             $subscription = $tenant->subscriptions->first();
                             $awaitingPayment = $subscription && ! $subscription->isSettled();
 

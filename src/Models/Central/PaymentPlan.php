@@ -112,6 +112,11 @@ class PaymentPlan extends Model implements Plan
         return $this->name;
     }
 
+    public function description(): ?string
+    {
+        return $this->description;
+    }
+
     public function priceId(BillingCycle $cycle): ?string
     {
         return $this->getPriceId($cycle);

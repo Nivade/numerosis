@@ -91,6 +91,9 @@ class Registration extends WizardComponent
      * state is persisted here and never in a step component. Keep
      * `#[On('showStep')]` on this override; attributes do not inherit, and
      * the event is how `StepComponent::showStep()` reaches it.
+     *
+     * @param  mixed  $toStepName
+     * @param  array<array-key, mixed>  $currentStepState
      */
     #[On('showStep')]
     #[Override]

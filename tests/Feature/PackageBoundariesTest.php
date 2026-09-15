@@ -107,12 +107,10 @@ class PackageBoundariesTest extends BaseTestCase
      * `src/Testing/` ships in the published split, so a class there being
      * `require`d from elsewhere in `src/` puts a test double on the
      * production autoload path — `BillingService` did exactly this until
-     * `fake()` moved to `Testing\BillingFake`. `Facades/Billing.php` is the
-     * one deliberate exception: `Billing::fake()` is the documented entry
-     * point to that helper, and its return type has to name the fake it
-     * returns.
+     * `fake()` moved to `Testing\BillingFake`. Tests call
+     * `BillingFake::swap()` directly, so no exemption is left.
      */
-    public function test_core_src_does_not_reach_into_testing_except_the_billing_facade(): void
+    public function test_core_src_does_not_reach_into_testing(): void
     {
         $root = dirname(__DIR__, 2);
 
@@ -123,13 +121,7 @@ class PackageBoundariesTest extends BaseTestCase
 
         $this->assertNotEmpty($files, 'Scanned no core src files — the path above is wrong, so this guard is measuring nothing.');
 
-        $exempt = $root.'/src/Facades/Billing.php';
-
         foreach ($files as $file) {
-            if ($file->getPathname() === $exempt) {
-                continue;
-            }
-
             $this->assertSame(
                 0,
                 preg_match('/Nvade\\\\Numerosis\\\\Testing\\\\/', self::codeOf($file)),

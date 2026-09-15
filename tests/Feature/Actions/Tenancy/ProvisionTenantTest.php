@@ -24,6 +24,7 @@ use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
+use Nvade\Numerosis\Exceptions\Tenancy\ProvisioningAlreadyClaimed;
 use Nvade\Numerosis\Jobs\RunProvisioningStep;
 use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\Support\CountingStep;
@@ -148,6 +149,23 @@ class ProvisionTenantTest extends TestCase
         // legitimately fires its own unrelated queued listeners. This test
         // is only about the provisioning chain never starting.
         Bus::assertNotDispatched(RunProvisioningStep::class);
+    }
+
+    /** `now()` used to return silently on a refused claim, so the command reported a provision it never ran. */
+    public function test_running_inline_against_a_live_claim_throws(): void
+    {
+        $user = CentralUser::factory()->create();
+
+        TenantProvision::factory()->provisioning()->create([
+            'slug' => 'racinginline',
+            'name' => 'Racing Co',
+            'global_id' => $user->global_id,
+            'provisioning_started_at' => now(),
+        ]);
+
+        $this->expectException(ProvisioningAlreadyClaimed::class);
+
+        ProvisionTenant::make()->now($this->provisionData($user, 'racinginline'));
     }
 
     /**

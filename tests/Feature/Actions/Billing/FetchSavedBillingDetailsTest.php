@@ -42,6 +42,23 @@ class FetchSavedBillingDetailsTest extends TestCase
         $this->assertNull($result->vatNumber);
     }
 
+    /** The `$customer` argument is a round-trip saving, so it has to be this billable's. */
+    public function test_it_ignores_a_customer_belonging_to_another_billable(): void
+    {
+        $this->fakeStripe();
+        $user = CentralUser::factory()->create();
+        $user->createOrGetStripeCustomer();
+
+        $other = CentralUser::factory()->create();
+        $otherCustomer = $other->createOrGetStripeCustomer();
+
+        Cashier::stripe()->customers->update($otherCustomer->id, ['name' => 'Somebody Else']);
+
+        $result = FetchSavedBillingDetails::run($user, $other->asStripeCustomer());
+
+        $this->assertNotSame('Somebody Else', $result->name);
+    }
+
     public function test_it_returns_populated_address_and_vat_for_a_customer_with_both_set(): void
     {
         $this->fakeStripe();

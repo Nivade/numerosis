@@ -26,8 +26,8 @@ final class GlobalCache
      * Memoized because `globalCache` is a `bind`: every resolve built a fresh
      * `CacheManager`, and a five-tenant list page built roughly sixteen of
      * them. Keyed on the container so an Octane worker never reads a store
-     * built for a different application, and on the name so a changed
-     * `numerosis.cache.store` takes effect.
+     * built for a different application, and on the resolved store name so a
+     * changed `numerosis.cache.store` or `cache.default` takes effect.
      */
     private static ?Repository $store = null;
 
@@ -46,8 +46,7 @@ final class GlobalCache
     public static function store(): Repository
     {
         $container = app();
-        $name = Config::get('numerosis.cache.store');
-        $name = is_string($name) ? $name : null;
+        $name = self::storeName();
 
         if (self::$store instanceof Repository && self::$resolvedFor === $container && self::$resolvedName === $name) {
             return self::$store;
@@ -71,8 +70,27 @@ final class GlobalCache
     }
 
     /**
-     * A null `$ttl` bypasses the store completely rather than writing a
-     * zero-second entry, which several drivers treat as "forever".
+     * Falls back to `cache.default` rather than null: the memo compares this,
+     * and a null would hide a changed default behind a store built for the old
+     * one.
+     */
+    private static function storeName(): ?string
+    {
+        $name = Config::get('numerosis.cache.store');
+
+        if (is_string($name)) {
+            return $name;
+        }
+
+        $default = Config::get('cache.default');
+
+        return is_string($default) ? $default : null;
+    }
+
+    /**
+     * A null `$ttl` bypasses the store completely. A zero-second entry would
+     * not cache either: `Repository::put()` turns any `$seconds <= 0` into a
+     * `forget()` before a driver sees it.
      *
      * @template TValue
      *

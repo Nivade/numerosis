@@ -103,9 +103,13 @@ so by the time Filament's own `Filament\Http\Middleware\IdentifyTenant` runs,
 returns `$next($request)` early on exactly that condition. Result: tenancy is
 initialized, `Filament::getTenant()` is null, and nothing errors at the point
 of the mistake. `Nvade\Numerosis\Services\Tenancy\PreservingPathTenantResolver`
-overrides both methods to leave the parameter alone, bound over
-`PathTenantResolver` in `TenancyServiceProvider::register()`. Nothing in this
-package relies on stancl's removal of it.
+overrides both methods to leave the parameter alone. Nothing in this package
+relies on stancl's removal of it. It is registered as a singleton with its own
+`CacheManager`, aliased over `PathTenantResolver`, and has its caching switched
+on from a `booting()` hook rather than in `register()` — see
+`tenant-caching.md` for why the cache decision cannot be made at registration
+time and for stancl's own mismatched key shape, which that class also
+overrides.
 
 **Path mode cannot identify the tenant on `/livewire/update` the ordinary
 way.** `Livewire::setUpdateRoute()` registers one global route for every page

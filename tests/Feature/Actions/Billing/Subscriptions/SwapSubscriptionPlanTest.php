@@ -15,6 +15,7 @@ use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
+use Nvade\Numerosis\Exceptions\Billing\PaymentPlanNotFound;
 use Nvade\Numerosis\Models\Central\PaymentPlan as BasePaymentPlan;
 use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
 use Nvade\Numerosis\Tests\Support\SubscriptionWithoutStripe;
@@ -59,6 +60,25 @@ class SwapSubscriptionPlanTest extends TestCase
         $this->expectException(ValidationException::class);
 
         SwapSubscriptionPlan::run($tenant, $subscription, $from, $to, 'price_new');
+    }
+
+    /** An unresolvable slug used to write a null `payment_plan_id` and report success. */
+    public function test_it_refuses_a_plan_that_no_longer_resolves(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $from = PaymentPlan::factory()->create(['monthly_price' => 1000]);
+        $to = PaymentPlan::factory()->create(['monthly_price' => 2000]);
+        $subscription = $this->subscriptionWithoutStripe($tenant, $from, 'price_old');
+
+        $to->delete();
+
+        $this->expectException(PaymentPlanNotFound::class);
+
+        try {
+            SwapSubscriptionPlan::run($tenant, $subscription, $from, $to, 'price_new');
+        } finally {
+            $this->assertSame($from->id, Subscription::where('stripe_id', $subscription->stripe_id)->value('payment_plan_id'));
+        }
     }
 
     /**

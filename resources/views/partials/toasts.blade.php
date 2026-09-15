@@ -3,17 +3,10 @@
 
 @php
     /**
-     * The one notification channel (design-system-unification Phase 6):
-     * every surface pushes through this same
-     * `notify` browser event instead of each page rolling its own inline
-     * flash box the way the registration wizard used to
-     * (`<x-numerosis::ui.alert closable />`, read directly off session()).
-     *
-     * `FlashKey::Status` carries the current `[Severity, message]` pair;
-     * the four scalar keys below are the pre-convergence shape, kept for one
-     * cycle. Same palette as ui/alert (tokens.css's semantic colors) — this
-     * is the floating counterpart of that inline component, not a second
-     * design.
+     * `FlashKey::Status` carries the current `[Severity, message]` pair; the
+     * four scalar keys below are the older shape, kept for one cycle. Every
+     * surface pushes through the same `notify` browser event, and the palette
+     * is `ui/alert`'s, of which this is the floating counterpart.
      */
     $legacyFlash = [];
 

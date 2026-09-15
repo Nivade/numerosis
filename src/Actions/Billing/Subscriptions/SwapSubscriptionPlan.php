@@ -5,19 +5,23 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Billing\Subscriptions;
 
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Subscription;
-use Nvade\Numerosis\Numerosis;
 
 class SwapSubscriptionPlan
 {
     use AsAction;
 
-    public function __construct(private readonly PlanPolicy $planPolicy) {}
+    public function __construct(
+        private readonly PlanPolicy $planPolicy,
+        private readonly PaymentPlanRepository $paymentPlans,
+    ) {}
 
     public function handle(
         Subscribable $for,
@@ -32,10 +36,14 @@ class SwapSubscriptionPlan
             ]);
         }
 
+        $target = $this->paymentPlans->findBySlugOrFail($to->slug());
+
+        if (! $target instanceof PaymentPlan) {
+            throw new InvalidArgumentException("Payment plan is not stored locally: {$to->slug()}");
+        }
+
         $subscription->swapAndInvoice($priceId);
-        $subscription->update([
-            'payment_plan_id' => Numerosis::model(PaymentPlan::class)::where('slug', $to->slug())->value('id'),
-        ]);
+        $subscription->update(['payment_plan_id' => $target->getKey()]);
 
         // No `Events\Billing\SubscriptionPlanChanged` here: the swap produces
         // a `customer.subscription.updated` webhook, which

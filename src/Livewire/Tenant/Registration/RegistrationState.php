@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Livewire\Tenant\Registration;
 
 use Illuminate\Support\Fluent;
+use LogicException;
 use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Contracts\Tenancy\ContributesProvisionData;
 use Nvade\Numerosis\Contracts\Tenancy\ProvidesTenantIdentity;
@@ -89,18 +90,18 @@ class RegistrationState extends State
      */
     public function provisionData(string $globalId, ?string $slug = null): TenantProvisionData
     {
-        $name = $this->get('name');
+        $name = $this->get(ProvidesTenantIdentity::NAME_KEY);
 
         // The step collecting the slug has not written it to wizard state yet
         // when it submits, so it passes its own value in.
-        $slug ??= $this->get('domain');
+        $slug ??= $this->get(ProvidesTenantIdentity::SLUG_KEY);
 
         if (! is_string($name) || $name === '') {
-            throw new MissingTenantIdentity($this->stepProviding('name'));
+            throw new MissingTenantIdentity($this->stepProviding(ProvidesTenantIdentity::NAME_KEY));
         }
 
         if (! is_string($slug) || $slug === '') {
-            throw new MissingTenantIdentity($this->stepProviding('domain'));
+            throw new MissingTenantIdentity($this->stepProviding(ProvidesTenantIdentity::SLUG_KEY));
         }
 
         return new TenantProvisionData(
@@ -112,8 +113,11 @@ class RegistrationState extends State
 
     /**
      * Which configured step collects a given identity field, by the name the
-     * wizard knows it as. Derived rather than hardcoded, so replacing a
-     * shipped step still routes the user to the right screen.
+     * wizard knows it as. Derived, so replacing a shipped step still routes
+     * the user to the right screen.
+     *
+     * @throws LogicException When no configured step declares the key, which
+     *                        `ConfiguredSteps` refuses the boot over.
      */
     private function stepProviding(string $key): string
     {
@@ -129,7 +133,9 @@ class RegistrationState extends State
             }
         }
 
-        return '';
+        throw new LogicException(
+            "No configured registration step declares the tenant identity key [{$key}]."
+        );
     }
 
     /**

@@ -58,7 +58,7 @@ document.addEventListener('alpine:init', () => {
         // Ordering only — Stripe still decides eligibility (currency,
         // amount, account country). A method this array doesn't name still
         // appears if Stripe considers it eligible, just after the curated
-        // ones. See ResolveCheckoutRegion.
+        // ones. See CheckoutRegionResolver.
         paymentMethodOrder: paymentMethodOrder && paymentMethodOrder.length > 0 ? paymentMethodOrder : undefined,
       });
       paymentElement.mount(this.$refs.paymentElement);

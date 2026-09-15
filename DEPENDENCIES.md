@@ -56,12 +56,13 @@ Phase 3 — every migration and seeder.
 | `ryangjchandler/laravel-cloudflare-turnstile` | `TurnstileFeature::isEnabled()` — `class_exists(TurnstileRule::class)` | `<x-numerosis::turnstile-field />` renders nothing, `rules()` returns `[]`. |
 | `sentry/sentry-laravel` | `app()->bound('sentry')` in `TagsSentryScopeWithTenant` | No tenant tag on job-failure reports. |
 | `laravel/telescope` | `class_exists()` on the scheduled `telescope:prune` entry | No prune schedule; `telescope/*` stays CSRF-exempt harmlessly. |
-| `socialiteproviders/discord` / `socialiteproviders/zoho` | `Support\Social\ConfiguredProviders` — gated by `numerosis.social.providers` | Those two OAuth drivers unavailable; Socialite's own built-in providers are unaffected. |
+| `socialiteproviders/discord` / `socialiteproviders/zoho` | `Enums\Auth\SocialProvider::configured()` — gated by `numerosis.social.providers` | Those two OAuth drivers unavailable; Socialite's own built-in providers are unaffected. |
 
-`torann/geoip` was dropped outright in Phase 6, not moved to `suggest`:
-`ResolveCheckoutRegion` always returns null now, checkout always falls back
-to `numerosis.billing.payment_methods.default_order`. There is nothing left
-to guard.
+`torann/geoip` was dropped outright in Phase 6, not moved to `suggest`: the
+bound `Contracts\Billing\CheckoutRegionResolver` is
+`NullCheckoutRegionResolver`, so checkout always falls back to
+`numerosis.billing.payment_methods.default_order` unless a host binds its own.
+There is nothing left to guard.
 
 `laravel/reverb` / `pusher/pusher-php-server` and `illuminate/broadcasting`
 itself were dropped outright (chat's real-time presence channel was their

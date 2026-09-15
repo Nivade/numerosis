@@ -25,13 +25,16 @@ class CreateRegisteredUser implements CreatesNewUsers
     use AsAction;
 
     /**
-     * @param  array<string, mixed>  $input
+     * @param  array<array-key, mixed>  $input
      */
     public function handle(array $input): CentralUser
     {
         return $this->create($input);
     }
 
+    /**
+     * @param  array<array-key, mixed>  $input
+     */
     public function create(array $input): CentralUser
     {
         $data = RegistrationData::validateAndCreate($input);
