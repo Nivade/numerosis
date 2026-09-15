@@ -50,6 +50,10 @@ rest of this file is read:
   - one file/filter — `vendor/bin/pest --compact --filter=SomeTest`
   - static analysis — see `.ai/rules/static-analysis.md` (needs a `tmpDir` override)
   - MySQL must be up: `docker compose ps` should show `numerosis-mysql-1` healthy
+  - driver: `NUMEROSIS_TEST_DRIVER=mysql|mariadb|pgsql|sqlite`, unset means
+    MySQL. `pgsql` needs `numerosis-pgsql-1` up and the `pdo_pgsql` extension
+    installed; `sqlite` needs neither, and writes its files into
+    `vendor/orchestra/testbench-core/laravel/database/`
 
   **Run Pint before Pest, not after.** Pint rewrites files (`class_definition`,
   `fully_qualified_strict_types`, `braces_position`, `single_line_empty_body`,

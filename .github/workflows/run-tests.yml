@@ -29,10 +29,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     services:
-      # tests/TestCase.php hardcodes 127.0.0.1:3306, root/root, database
-      # `testing` — matches docker-compose.yml's local dev service so the
-      # same suite runs unmodified in both places. Tenant provisioning
-      # needs CREATE DATABASE, which sqlite cannot provide.
+      # tests/TestCase.php hardcodes both sets of credentials, matching
+      # docker-compose.yml's local dev services so the same suite runs
+      # unmodified in both places. Both services start for every job; the
+      # driver the job exercises is NUMEROSIS_TEST_DRIVER's job.
       mysql:
         image: mysql:8.4
         env:
@@ -45,6 +45,19 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+      pgsql:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     strategy:
       fail-fast: true
       # Matrix matches what composer.json actually claims to support.
@@ -54,12 +67,22 @@ jobs:
         os: [ubuntu-latest]
         php: [8.5, 8.4]
         laravel: [13.*]
+        database: [mysql, pgsql]
         stability: [prefer-stable]
         include:
           - laravel: 13.*
             testbench: 11.*
+          # SQLite is supported for development rather than at production
+          # scale, so it gets one job on one PHP version rather than a
+          # column in the matrix above.
+          - os: ubuntu-latest
+            php: 8.5
+            laravel: 13.*
+            database: sqlite
+            stability: prefer-stable
+            testbench: 11.*
 
-    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.os }}
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.database }} - ${{ matrix.os }}
 
     steps:
       - name: Checkout code
@@ -69,7 +92,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_mysql, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_mysql, pdo_pgsql, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
           ini-values: memory_limit=1G
           coverage: none
 
@@ -102,9 +125,12 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Execute tests
+        env:
+          NUMEROSIS_TEST_DRIVER: ${{ matrix.database }}
         run: vendor/bin/pest --ci --parallel
 
-      # One PHP version only — the analysis does not vary by PHP patch.
+      # One PHP version and one driver — neither the analysis nor its
+      # baseline varies by either.
       - name: Static analysis
-        if: matrix.php == '8.5'
+        if: matrix.php == '8.5' && matrix.database == 'mysql'
         run: php -d memory_limit=2G vendor/bin/phpstan analyse --no-progress

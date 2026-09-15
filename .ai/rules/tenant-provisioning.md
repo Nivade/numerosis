@@ -440,6 +440,12 @@ database creation, the `[0]`-is-special step convention) are deleted code.
   trusting a suspicious green run, not just for schema drift
   (`testing.md`'s existing warning) but for this class of bug too.
 
+  The other drivers have the same trap in their own shape. On SQLite the
+  template is a file in `vendor/orchestra/testbench-core/laravel/database/`
+  and on PostgreSQL it is a database `CREATE DATABASE ... WITH TEMPLATE`
+  copies from; a stale one of either hides the same paths a reused MySQL
+  volume does. Delete it, do not re-run.
+
   Fixed by not going through Artisan at all:
   `SeedTenantDatabase::handle()` now does `tenancy()->initialize($this->tenant)`,
   resolves `TenantDatabaseSeeder` from the container with

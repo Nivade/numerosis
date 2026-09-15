@@ -43,7 +43,9 @@ See [`docs/host-requirements.md`](docs/host-requirements.md) §0 for detail.
 
 - PHP 8.4+
 - Laravel 13
-- MySQL — tenancy needs `CREATE DATABASE`; SQLite cannot host it
+- MySQL 8.4+, MariaDB, or PostgreSQL 13+. SQLite runs too, for development
+  and small deploys: it allows one writer per database file, and the central
+  database is shared by every tenant
 - A queue worker on the `provisioning` queue
 - Stripe keys, and DNS matching your identification mode (`subdomain` by
   default — see `.ai/rules/identification-modes.md`)
@@ -101,7 +103,7 @@ Write the chain out to reach `health:` or `then:`. Never pass a callable
 its own callback and discards the package's routing entirely.
 
 Set `APP_URL`, `STRIPE_KEY` / `STRIPE_SECRET` / `STRIPE_WEBHOOK_SECRET` and
-MySQL credentials in `.env`, then:
+your database credentials in `.env`, then:
 
 ```bash
 php artisan migrate
