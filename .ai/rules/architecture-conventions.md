@@ -25,6 +25,21 @@ recommendation — match it, don't improve on it.
   `Stancl*`, `*Directly`). Consumers type-hint the interface and resolve
   through the container — never reference the concrete class directly.
 
+  **This governs one of the two populations in `src/Contracts/`, not all of
+  it** (recounted 2026-09-15: 35 files). Twelve are swap seams with a
+  `Services/` implementation — the eight billing ones, `TenantDomainPolicy`,
+  `TenantDatabaseManager`, `NotifiesTenantOwner`, `ProvidesExceptionContext` —
+  and those are what the mirror rule is about. Four more are swappable through
+  `numerosis.{billing,tenancy}.implementations` but implemented by an action
+  (`ProvisionsTenant`, and the three Fortify-facing `Auth` ones), so they have
+  nothing in `Services/` to mirror by design. The remaining nineteen are marker
+  and value interfaces a host or a model implements — `ProvisioningStep` and its
+  three refinements, `ProvisionContribution`/`PersistsToProvisionColumns`/
+  `ContributesProvisionData`, the model contracts, `Subscribable`, `Plan`,
+  `BillableUser`, `Feature`/`NamedFeature`, the `Has*` traits' interfaces. A
+  contract-to-implementation ratio counted across all 35 reads as
+  over-abstraction and is measuring the wrong thing.
+
 - **`Services/` is only for that.** The rule above used to read as an
   absolute while holding for 12 of 24 files. Four value objects and
   `Responsable` wrappers lived under `Services/Billing/Checkout/` and moved
