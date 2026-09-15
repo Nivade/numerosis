@@ -79,6 +79,16 @@ contravariance error — so the baseline rows went instead via
 `array<array-key, mixed>`. Suite 779 passed / 6 skipped, `composer analyse`
 clean.
 
+`module-depth-audit.md` moved to `archive/` 2026-09-15: all seven items
+executed on `refactor/module-depth-audit`, one commit each plus two extras —
+a stale `Billing::resolve*Using()` claim in `config/numerosis.php` the first
+item exposed, and item 5 and 6 landing separately. Two deviations, both noted
+in their commits: `CheckoutContext` is a plain readonly class rather than a
+`spatie/laravel-data` object, matching its two neighbours in
+`Data/Billing/Checkout/`; and moving the freshness assert to the charge choke
+point reorders one error in the saved-payment-method branch. Suite 790 passed
+/ 6 skipped, `composer analyse` clean.
+
 `cache-audit.md` moved to `archive/` 2026-09-14: all ten phases executed on
 `feat/cache-audit`. Phase 9's open decision was settled both ways — `null` is
 cached for `tenantPrimaryDomain()`, deliberately not for `FindUserByGlobalId`
@@ -93,7 +103,6 @@ enabling the cache alone would have cached entries nothing could forget. Suite
 | Plan | State |
 |---|---|
 | `sqlite-compatibility.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
-| `module-depth-audit.md` | **Not executed.** Module depth audit, written 2026-09-15. Seven items, one commit each: fold `MoneyFormatter`, fake `TenantDatabaseManager`, `HostConfig::set()` segment assertion, checkout cluster, three docs fixes. No open decisions — all seven were decided before it was written |
 
 ## Abandoned
 

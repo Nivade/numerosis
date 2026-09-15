@@ -1,6 +1,7 @@
 # Module depth audit — four builds and three docs fixes
 
-**Status: not executed.** Written 2026-09-15. Findings come from a
+**Status: executed 2026-09-15** on `refactor/module-depth-audit`, all seven
+items. Written 2026-09-15. Findings come from a
 `codebase-design` audit of three areas: `src/Contracts/**` + `src/Services/**`,
 the host bootstrap seam, and `src/Actions/**` call sites. Every decision below
 was put to the repo owner and answered; nothing here is an open question.

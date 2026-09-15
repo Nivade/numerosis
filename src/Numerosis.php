@@ -55,6 +55,10 @@ class Numerosis
         return in_array($request->getHost(), Config::array('tenancy.central_domains'), true);
     }
 
+    // The four below run while the ApplicationBuilder is still being built:
+    // before RegisterFacades, and before LoadConfiguration has finished. Never
+    // reach them through the Facades\Numerosis facade.
+
     /**
      * The greenfield convenience, reducing `bootstrap/app.php` to one line:
      *
@@ -100,6 +104,31 @@ class Numerosis
     {
         RouteLoader::load($withAuth, $apiPrefix);
     }
+
+    /**
+     * Middleware aliases, groups, and trust configuration for
+     * `bootstrap/app.php`'s `withMiddleware()`. CSRF is left alone: pass
+     * {@see self::csrfExceptions()} to `preventRequestForgery()` yourself,
+     * so you can add your own exempt paths to the list.
+     *
+     * Call it first in the closure: anything you configure afterwards wins.
+     */
+    public static function middleware(Middleware $middleware): void
+    {
+        MiddlewareRegistrar::apply($middleware);
+    }
+
+    /**
+     * Exception context and throttling for `bootstrap/app.php`'s
+     * `withExceptions()`. Adds the current tenant, guard and user to every
+     * report. {@see ExceptionRegistrar::apply()}
+     */
+    public static function exceptions(Exceptions $exceptions): void
+    {
+        ExceptionRegistrar::apply($exceptions);
+    }
+
+    // End of the boot-phase group.
 
     /** {@see RouteLoader::registered()} */
     public static function routesRegistered(): bool
@@ -153,19 +182,6 @@ class Numerosis
     public static function middlewareGroups(): array
     {
         return MiddlewareRegistrar::groups();
-    }
-
-    /**
-     * Middleware aliases, groups, and trust configuration for
-     * `bootstrap/app.php`'s `withMiddleware()`. CSRF is left alone: pass
-     * {@see self::csrfExceptions()} to `preventRequestForgery()` yourself,
-     * so you can add your own exempt paths to the list.
-     *
-     * Call it first in the closure: anything you configure afterwards wins.
-     */
-    public static function middleware(Middleware $middleware): void
-    {
-        MiddlewareRegistrar::apply($middleware);
     }
 
     /**
@@ -237,16 +253,6 @@ class Numerosis
     public static function assetTags(): Htmlable
     {
         return Assets::tags();
-    }
-
-    /**
-     * Exception context and throttling for `bootstrap/app.php`'s
-     * `withExceptions()`. Adds the current tenant, guard and user to every
-     * report. {@see ExceptionRegistrar::apply()}
-     */
-    public static function exceptions(Exceptions $exceptions): void
-    {
-        ExceptionRegistrar::apply($exceptions);
     }
 
     /**
