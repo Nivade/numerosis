@@ -202,8 +202,10 @@ staleness" failure mode and worth the same caution.
   correctly-ordered boot every one of them passes and behaviour is unchanged;
   a fourth package reopening the race one phase later becomes an exception
   naming the exact key instead of a truncated array that surfaces months
-  later on one route. Not built yet — recorded here so the next attempt
-  starts from the right diagnosis.
+  later on one route. **Built 2026-09-15**: `HostConfig::assertNamespaceIsReady()`
+  throws `Exceptions\Boot\ConfigNamespaceNotReady` from `self::set()`, exempting
+  `numerosis.*`. All nine passed unchanged, so a new entry failing this guard is
+  a phase problem, not a guard to relax.
 
 - **`Numerosis::middleware()` fatally crashed every real (non-Testbench)
   request and every `artisan` invocation, and no test in this repo could

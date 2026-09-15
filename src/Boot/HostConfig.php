@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Boot;
 use Illuminate\Support\Facades\Config;
 use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
+use Nvade\Numerosis\Exceptions\Boot\ConfigNamespaceNotReady;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -61,8 +62,38 @@ final class HostConfig
 
     private static function set(string $key, mixed $value): void
     {
+        self::assertNamespaceIsReady($key);
+
         Config::set($key, $value);
         self::$applied[] = $key;
+    }
+
+    /**
+     * `Arr::set()` replaces a missing intermediate segment wholesale, and the
+     * owning package's later one-level-deep `mergeConfigFrom()` then keeps the
+     * truncated value over its own complete defaults. Loud here beats one
+     * route breaking months later.
+     */
+    private static function assertNamespaceIsReady(string $key): void
+    {
+        $segments = explode('.', $key);
+
+        // numerosis.* is populated by this package's own mergeConfigFrom,
+        // before anything here runs.
+        if ($segments[0] === 'numerosis') {
+            return;
+        }
+
+        array_pop($segments);
+        $namespace = '';
+
+        foreach ($segments as $segment) {
+            $namespace = $namespace === '' ? $segment : "{$namespace}.{$segment}";
+
+            if (! is_array(Config::get($namespace))) {
+                throw ConfigNamespaceNotReady::for($key, $namespace);
+            }
+        }
     }
 
     /** Writes a preference only when it would actually change the key. */

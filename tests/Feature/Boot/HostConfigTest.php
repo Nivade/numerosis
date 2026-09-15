@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Config;
 use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Boot\HostConfig;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
+use Nvade\Numerosis\Exceptions\Boot\ConfigNamespaceNotReady;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -472,6 +473,34 @@ class HostConfigTest extends TestCase
         $this->rebootPackage();
 
         $this->assertSame('custom_activity_log', Config::get('activitylog.table_name'));
+    }
+
+    /**
+     * What the guard exists for: stancl's `mergeConfigFrom('tenancy')` not
+     * having run yet, so `tenancy.database` is absent and writing through it
+     * would truncate the namespace stancl still has to populate.
+     */
+    public function test_it_refuses_to_write_through_a_vendor_namespace_that_is_not_populated_yet(): void
+    {
+        Config::set('tenancy.database');
+
+        $this->expectException(ConfigNamespaceNotReady::class);
+        $this->expectExceptionMessage('[tenancy.database.central_connection]');
+        $this->expectExceptionMessage('[tenancy.database]');
+
+        $this->rebootPackage();
+    }
+
+    public function test_it_names_the_first_missing_segment_rather_than_the_deepest(): void
+    {
+        Config::set('auth.passwords');
+
+        try {
+            $this->rebootPackage();
+            $this->fail('Expected ConfigNamespaceNotReady to be thrown.');
+        } catch (ConfigNamespaceNotReady $e) {
+            $this->assertStringContainsString('[auth.passwords]', $e->getMessage());
+        }
     }
 
     /**
