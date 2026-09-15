@@ -14,7 +14,6 @@ use Livewire\Component;
 use Nvade\Numerosis\Actions\Billing\Checkout\AssertPendingReservationIsFresh;
 use Nvade\Numerosis\Actions\Billing\Checkout\AssertReservationIsOwned;
 use Nvade\Numerosis\Actions\Billing\Checkout\CreateInlineSubscription;
-use Nvade\Numerosis\Actions\Billing\Checkout\ResolveCheckoutRegion;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveSavedPaymentMethod;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveSetupIntent;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResumeCheckout;
@@ -26,6 +25,7 @@ use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Concerns\Billing\ConfirmsPayments;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
+use Nvade\Numerosis\Contracts\Billing\CheckoutRegionResolver;
 use Nvade\Numerosis\Enums\Billing\PaymentMethodType;
 use Nvade\Numerosis\Enums\FetchState;
 use Nvade\Numerosis\Enums\SessionKey;
@@ -81,8 +81,8 @@ class Checkout extends Component
     public FetchState $savedPaymentMethodsFetchState = FetchState::NotAttempted;
 
     /**
-     * ISO country code from {@see ResolveCheckoutRegion}, null on an
-     * unresolved lookup (private/local IP, database miss). Only pre-fills the
+     * ISO country code from {@see CheckoutRegionResolver}, null when the
+     * bound resolver has no answer. Only pre-fills the
      * Address Element's default and picks $paymentMethodOrder. It never
      * restricts what Stripe is willing to show.
      */
@@ -106,7 +106,7 @@ class Checkout extends Component
         $this->embedded = $embedded;
         $this->checkoutPublishableKey = Config::string('cashier.key');
 
-        $this->detectedCountry = ResolveCheckoutRegion::run($request);
+        $this->detectedCountry = resolve(CheckoutRegionResolver::class)->resolve($request);
         $this->paymentMethodOrder = $this->resolvePaymentMethodOrder($this->detectedCountry);
 
         $billable = GetAuthenticatedUser::run();
@@ -306,7 +306,7 @@ class Checkout extends Component
      * the config default when the country is null (unresolved) or has no
      * curated entry of its own. Ordering only, never eligibility.
      *
-     * @see ResolveCheckoutRegion
+     * @see CheckoutRegionResolver
      *
      * @return list<string>
      */

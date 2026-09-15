@@ -253,9 +253,14 @@ button list and the OAuth routes' `->where('provider', …)` constraint read.
 
 | Call | Replaces |
 |---|---|
-| `Numerosis::registerRoutesUsing(Closure)` | all of `Numerosis::routes()`, including the host route files |
-| `Numerosis::registerMiddlewareUsing(Closure)` | all alias and group registration |
-| `Numerosis::registerExceptionsUsing(Closure)` | the context callback, duplicate suppression and throttle `Numerosis::exceptions()` registers. Receives the `Exceptions` instance |
+| `Numerosis::registerRoutesUsing(?Closure)` | all of `Numerosis::routes()`, including the host route files |
+| `Numerosis::registerMiddlewareUsing(?Closure)` | all alias and group registration |
+| `Numerosis::registerExceptionsUsing(?Closure)` | the context callback, duplicate suppression and throttle `Numerosis::exceptions()` registers. Receives the `Exceptions` instance |
+
+Each takes `null` to clear the callback and put the package's own
+registration back. That is what a test that sets one of these has to do
+afterwards: the callback is static, so it outlives the application it was set
+on.
 
 ### The `Numerosis` facade
 

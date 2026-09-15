@@ -10,9 +10,9 @@ use Nvade\Numerosis\Contracts\Subscribable;
 interface BillableResolver
 {
     /**
-     * The two shapes a resolved billable actually takes: a central user
-     * (also `Subscribable`, via `BillableUser`) or a `Tenant` swapping its
-     * own plan, which is `Subscribable` only.
+     * A central user or a `Tenant` swapping its own plan. `BillableUser`
+     * extends `Subscribable`, so the Cashier paths needing more narrow on it
+     * themselves.
      */
-    public function resolve(): null|(Model&BillableUser)|(Model&Subscribable);
+    public function resolve(): null|(Model&Subscribable);
 }

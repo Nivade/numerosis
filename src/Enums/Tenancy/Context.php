@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Enums\Tenancy;
 
 use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Models\User;
 
 enum Context: string
 {
@@ -20,6 +21,18 @@ enum Context: string
     public static function current(): self
     {
         return tenancy()->initialized ? self::Tenant : self::Central;
+    }
+
+    /**
+     * The user model answering in this context, from the two
+     * `tenancy.*_user_model` keys `Boot\HostConfig` writes.
+     *
+     * @return class-string<User>
+     */
+    public function userModel(): string
+    {
+        /** @var class-string<User> */
+        return Config::string($this === self::Tenant ? 'tenancy.tenant_user_model' : 'tenancy.central_user_model');
     }
 
     /**

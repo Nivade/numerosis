@@ -7,7 +7,6 @@ namespace Nvade\Numerosis\Services\Billing;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
-use Nvade\Numerosis\Cache\CachedModel;
 use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Cache\CacheTtl;
 use Nvade\Numerosis\Cache\GlobalCache;
@@ -110,11 +109,13 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
      */
     private function hydratePlan(array $row): PaymentPlan
     {
-        $plan = CachedModel::hydrate(Numerosis::model(PaymentPlan::class), $row['plan']);
+        $planClass = Numerosis::model(PaymentPlan::class);
+
+        $plan = (new $planClass)->newFromBuilder($row['plan']);
 
         $features = array_map(
             function (array $feature) use ($plan): PlanFeature {
-                $model = CachedModel::hydrate(PlanFeature::class, $feature['attributes']);
+                $model = (new PlanFeature)->newFromBuilder($feature['attributes']);
 
                 $model->setRelation('pivot', PaymentPlanFeature::fromRawAttributes(
                     $plan,

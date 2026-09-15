@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Event;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Events\Billing\CheckoutCompleted;
-use Nvade\Numerosis\Facades\Billing;
+use Nvade\Numerosis\Testing\BillingFake;
 use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
 use Nvade\Numerosis\Tests\Concerns\DisablesWebhookSignature;
 use Nvade\Numerosis\Tests\TestCase;
@@ -89,7 +89,7 @@ class WebhookControllerSetupIntentTest extends TestCase
 
     public function test_payment_method_attached_completes_a_pending_checkout(): void
     {
-        $fake = Billing::fake();
+        $fake = BillingFake::swap();
 
         $this->createStarterPlan($this->starterPriceIdOrSkip());
 
@@ -125,7 +125,7 @@ class WebhookControllerSetupIntentTest extends TestCase
      */
     public function test_the_webhook_then_redirect_race_dispatches_checkout_completed_once(): void
     {
-        $fake = Billing::fake();
+        $fake = BillingFake::swap();
 
         $this->createStarterPlan($this->starterPriceIdOrSkip());
 

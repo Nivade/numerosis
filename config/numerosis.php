@@ -20,6 +20,7 @@ use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
+use Nvade\Numerosis\Contracts\Billing\CheckoutRegionResolver;
 use Nvade\Numerosis\Contracts\Billing\MoneyFormatter;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
@@ -54,6 +55,7 @@ use Nvade\Numerosis\Services\Billing\DefaultUnpaidTenantQuota;
 use Nvade\Numerosis\Services\Billing\EloquentPaymentPlanRepository;
 use Nvade\Numerosis\Services\Billing\EloquentSubscriptionRepository;
 use Nvade\Numerosis\Services\Billing\InlineCheckoutGateway;
+use Nvade\Numerosis\Services\Billing\NullCheckoutRegionResolver;
 use Nvade\Numerosis\Services\Billing\PlanOrDefaultTrialResolver;
 use Nvade\Numerosis\Services\Billing\SeatLimitPlanPolicy;
 use Nvade\Numerosis\Services\Billing\TenantOrUserBillableResolver;
@@ -319,6 +321,7 @@ return [
             TrialResolver::class => PlanOrDefaultTrialResolver::class,
             MoneyFormatter::class => CashierMoneyFormatter::class,
             UnpaidTenantQuota::class => DefaultUnpaidTenantQuota::class,
+            CheckoutRegionResolver::class => NullCheckoutRegionResolver::class,
         ],
 
         // Provisioning happens before settlement, so this caps how many

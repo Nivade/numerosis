@@ -227,6 +227,76 @@ test('everything in Services implements one of our contracts, or is a named exce
 });
 
 /**
+ * `src/Boot/` is for classes that validate or normalize the *host
+ * application*, which happens once per boot. A request-time read belongs
+ * somewhere a reader expects one: `Boot\UserModels` sat here reading live
+ * tenancy state until its two callers moved to `Enums\Tenancy\Context`.
+ */
+test('nothing in Boot reads live tenancy state', function (): void {
+    $files = (new Finder)
+        ->files()
+        ->in(dirname(__DIR__, 2).'/src/Boot')
+        ->name('*.php');
+
+    expect(iterator_count($files))->toBeGreaterThan(0, 'Scanned no files — the path above is wrong.');
+
+    foreach ($files as $file) {
+        $contents = $file->getContents();
+
+        foreach (['tenancy()', 'tenant()'] as $needle) {
+            expect($contents)->not->toContain(
+                $needle,
+                "Boot/{$file->getRelativePathname()} reads {$needle}, which is request-time state — Boot/ normalizes the host application.",
+            );
+        }
+
+        expect(str_contains($contents, 'final class'))->toBeTrue(
+            "Boot/{$file->getRelativePathname()} is not final; nothing here is an extension point.",
+        );
+    }
+});
+
+/** `src/Routing/` is route loading and route naming, and nothing else moves in beside them. */
+test('Routing holds only route classes', function (): void {
+    $files = (new Finder)
+        ->files()
+        ->in(dirname(__DIR__, 2).'/src/Routing')
+        ->name('*.php');
+
+    expect(iterator_count($files))->toBeGreaterThan(0, 'Scanned no files — the path above is wrong.');
+
+    foreach ($files as $file) {
+        expect($file->getFilenameWithoutExtension())->toStartWith(
+            'Route',
+            "Routing/{$file->getRelativePathname()} is not a route class.",
+        );
+    }
+});
+
+/**
+ * `Services/` mirrors `Contracts/` flatly, so an implementation is findable
+ * from its interface. `Services/Billing/` carried `Checkout/`, `Plans/`,
+ * `Subscriptions/` and `Resolvers/` until 2026-09-11.
+ */
+test('Services is one domain folder deep, like Contracts', function (): void {
+    foreach (['Services', 'Contracts'] as $directory) {
+        $files = (new Finder)
+            ->files()
+            ->in(dirname(__DIR__, 2).'/src/'.$directory)
+            ->name('*.php');
+
+        expect(iterator_count($files))->toBeGreaterThan(0, 'Scanned no files — the path above is wrong.');
+
+        foreach ($files as $file) {
+            expect(substr_count($file->getRelativePathname(), '/'))->toBeLessThan(
+                2,
+                "{$directory}/{$file->getRelativePathname()} nests below its domain folder.",
+            );
+        }
+    }
+});
+
+/**
  * `Stancl\Tenancy\Database\Concerns\TenantRun::run()` has no `try`/`finally`
  * — a throw inside its callback leaves the process initialized against that
  * tenant, and the next queued job on the same worker runs in the wrong
@@ -246,10 +316,15 @@ test('nothing calls ->run( on a tenant outside RunsInTenant', function (): void 
             continue;
         }
 
-        expect($file->getContents())->not->toMatch(
-            '/->run\(/',
-            "{$file->getRelativePathname()} calls ->run( directly — use Concerns\\Tenancy\\RunsInTenant::runInTenant() instead.",
-        );
+        // Narrowed to a tenant receiver and to the closure form: `/->run\(/`
+        // matched every action's own `->run(` and still missed a
+        // `$tenant->run(` whose closure started on the next line.
+        foreach (['/\$\w*[Tt]enant\w*\s*->\s*run\s*\(/', '/tenant\(\)\s*->\s*run\s*\(/', '/->run\(\s*function/'] as $pattern) {
+            expect($file->getContents())->not->toMatch(
+                $pattern,
+                "{$file->getRelativePathname()} calls ->run( on a tenant directly — use Concerns\\Tenancy\\RunsInTenant::runInTenant() instead.",
+            );
+        }
     }
 });
 

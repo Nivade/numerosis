@@ -13,7 +13,7 @@ use Nvade\Numerosis\Actions\Billing\Checkout\SettleCheckout;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Events\Billing\CheckoutCompleted;
-use Nvade\Numerosis\Facades\Billing;
+use Nvade\Numerosis\Testing\BillingFake;
 use Nvade\Numerosis\Tests\TestCase;
 
 class SettleCheckoutTest extends TestCase
@@ -23,7 +23,7 @@ class SettleCheckoutTest extends TestCase
     public function test_it_provisions_immediately_when_the_subscription_is_active(): void
     {
         Event::fake([CheckoutCompleted::class]);
-        $fake = Billing::fake();
+        $fake = BillingFake::swap();
 
         $user = CentralUser::factory()->create();
         $pending = TenantProvision::factory()->create([
@@ -57,7 +57,7 @@ class SettleCheckoutTest extends TestCase
      */
     public function test_it_still_provisions_when_the_subscription_is_not_yet_settled(): void
     {
-        $fake = Billing::fake();
+        $fake = BillingFake::swap();
 
         $user = CentralUser::factory()->create();
         $pending = TenantProvision::factory()->create([

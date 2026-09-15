@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Concerns\Tenancy;
 
-use Nvade\Numerosis\Boot\UserModels;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 
 trait TenancyAwareUserModel
 {
     public function userModel(): string
     {
-        return UserModels::current();
+        return Context::current()->userModel();
     }
 }

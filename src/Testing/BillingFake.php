@@ -9,7 +9,7 @@ use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 
 /**
  * Lives here, not on `BillingService`, so a published `src/` autoload never
- * instantiates a test double. `Billing::fake()` is the only caller.
+ * instantiates a test double.
  */
 final class BillingFake
 {

@@ -8,11 +8,12 @@ use App\Models\Central\CentralUser;
 use App\Models\Central\Subscription;
 use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
-use Nvade\Numerosis\Actions\Billing\Checkout\ResolveCheckoutRegion;
+use Nvade\Numerosis\Contracts\Billing\CheckoutRegionResolver;
 use Nvade\Numerosis\Enums\FetchState;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
 use Nvade\Numerosis\Testing\FakesStripe;
@@ -40,12 +41,9 @@ class CheckoutTest extends TestCase
     }
 
     /**
-     * The curated per-region order is still live code — a host that binds a
-     * region lookup back in gets it — even though `ResolveCheckoutRegion`
-     * itself always answers null since torann/geoip was dropped in Phase 6 of
-     * `.claude/plans/archive/humming-nibbling-flame.md`. Mocking the action rather
-     * than a GeoIP facade is what keeps that path covered without the
-     * dependency.
+     * The curated per-region order is live code a host reaches by binding its
+     * own `CheckoutRegionResolver`; core's ships a null one. Binding a fake
+     * here is what keeps that path covered without a GeoIP dependency.
      */
     public function test_it_exposes_the_curated_payment_method_order_for_a_resolved_region(): void
     {
@@ -56,7 +54,13 @@ class CheckoutTest extends TestCase
 
         $this->reserve('region-hit-test', $user, $setupIntent->id);
 
-        ResolveCheckoutRegion::mock()->shouldReceive('handle')->andReturn('NL');
+        app()->bind(CheckoutRegionResolver::class, fn (): CheckoutRegionResolver => new class implements CheckoutRegionResolver
+        {
+            public function resolve(Request $request): string
+            {
+                return 'NL';
+            }
+        });
 
         Livewire::test(Checkout::class, ['domain' => 'region-hit-test'])
             ->assertSet('detectedCountry', 'NL')
@@ -64,9 +68,9 @@ class CheckoutTest extends TestCase
     }
 
     /**
-     * With no lookup wired in this is now the only path production takes,
-     * which is exactly why it is asserted against the real action rather
-     * than a mock.
+     * With core's null resolver bound this is the only path production takes,
+     * which is exactly why it is asserted against the real binding rather
+     * than a fake.
      */
     public function test_it_falls_back_to_the_default_payment_method_order_when_the_region_is_unresolved(): void
     {

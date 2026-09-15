@@ -10,8 +10,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Enums\FlashKey;
-use Nvade\Numerosis\Facades\Billing;
 use Nvade\Numerosis\Features\FeatureRegistry;
+use Nvade\Numerosis\Testing\BillingFake;
 use Nvade\Numerosis\Tests\Concerns\CreatesCheckoutFixtures;
 use Nvade\Numerosis\Tests\TestCase;
 use Nvade\NumerosisUi\Enums\Severity;
@@ -29,7 +29,7 @@ class CompleteRedirectCheckoutTest extends TestCase
 
     public function test_it_provisions_once_for_the_owning_customer(): void
     {
-        $fake = Billing::fake();
+        $fake = BillingFake::swap();
 
         $this->createStarterPlan($this->starterPriceIdOrSkip());
 
@@ -62,7 +62,7 @@ class CompleteRedirectCheckoutTest extends TestCase
      */
     public function test_a_replayed_return_visit_does_not_create_a_second_subscription(): void
     {
-        $fake = Billing::fake();
+        $fake = BillingFake::swap();
 
         $this->createStarterPlan($this->starterPriceIdOrSkip());
 
