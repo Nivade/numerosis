@@ -43,6 +43,8 @@ class Authenticate extends Middleware
      * Authenticates the request, first promoting a central session into the
      * tenant guard where the central user may access the current tenant.
      *
+     * @param  array<array-key, mixed>  $guards
+     *
      * @throws AuthenticationException
      */
     #[Override]
@@ -72,6 +74,7 @@ class Authenticate extends Middleware
         }
     }
 
+    /** @param  array<array-key, mixed>  $guards */
     protected function unauthenticated($request, array $guards): void
     {
         throw new AuthenticationException(

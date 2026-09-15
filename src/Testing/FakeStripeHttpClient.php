@@ -38,6 +38,8 @@ class FakeStripeHttpClient implements ClientInterface
     public array $requests = [];
 
     /**
+     * @param  array<array-key, mixed>  $headers
+     * @param  array<array-key, mixed>  $params
      * @return array{0: string, 1: int, 2: array<string, mixed>}
      */
     public function request($method, $absUrl, $headers, $params, $hasFile, $apiMode = 'v1', $maxNetworkRetries = null): array

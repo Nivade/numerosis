@@ -57,6 +57,7 @@ class Subscription extends \Laravel\Cashier\Subscription
         ];
     }
 
+    /** @var array<array-key, mixed> */
     protected $with = ['items', 'subscribable'];
 
     /**

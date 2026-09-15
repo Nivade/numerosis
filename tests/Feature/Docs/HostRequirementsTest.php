@@ -179,7 +179,18 @@ class HostRequirementsTest extends TestCase
             if (str_starts_with($line, '|---')) {
                 continue;
             }
-            $cells = array_map(trim(...), explode('|', trim($line, "| \t")));
+            // Split on the outer pipes rather than trimming them off: a row
+            // carrying a stray leading empty cell shifts every column by one
+            // and renders wrong on GitHub, and `trim($line, "| \t")` ate that
+            // cell before the count below could see it.
+            $cells = explode('|', rtrim($line));
+            array_shift($cells);
+
+            if (end($cells) === '') {
+                array_pop($cells);
+            }
+
+            $cells = array_map(trim(...), $cells);
 
             if (end($cells) === 'Checked by') {
                 $inCheckedTable = true;
@@ -192,7 +203,7 @@ class HostRequirementsTest extends TestCase
             }
 
             // Key | Required value / shape | Why | Checked by
-            $this->assertCount(4, $cells, "Row '{$cells[0]}' does not have a 'Checked by' cell.");
+            $this->assertCount(4, $cells, "Row '{$cells[0]}' does not have exactly four cells.");
 
             $rows[] = ['key' => $cells[0], 'checked_by' => $cells[3]];
         }
