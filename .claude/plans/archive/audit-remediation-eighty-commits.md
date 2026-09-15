@@ -1,6 +1,11 @@
 # Audit remediation — 80-commit review
 
-**Status: not executed.** Written 2026-09-15 from an eight-batch review of
+**Status: executed 2026-09-15**, on branch
+`fix/audit-remediation-eighty-commits`, in seven commits (one per tier, tier 7
+alone as required). Five items were not done and are listed at the bottom
+under "Not done, and why", with the evidence: several findings had already
+been fixed or named code since deleted, and D5 could not be honoured as
+written. Written 2026-09-15 from an eight-batch review of
 `f6f1251..1d8cc8c` (80 commits, 1467 files), rewritten the same day to carry
 every finding rather than an ordered head. 67 items in seven tiers, ordered by
 importance across the whole set, not within batches.
@@ -560,3 +565,40 @@ closed, with the evidence.
   review's own rule that a documented repo standard overrides the baseline.
 - **`trusted_proxies` and `MembershipsFeature` scope creep** — both landed with
   matching docs and tests.
+
+
+---
+
+## Not done, and why
+
+Recorded 2026-09-15 at the end of execution.
+
+- **Item 19 (`HostConfig`'s `$applied` log).** Not speculative: `numerosis:install`
+  reads it, and `HostConfigTest`/`HostConfigDoctorCoverageTest` assert against it
+  in nine places, which is the only coverage of "a preference is written only
+  when it would change the key". Removing it would delete that coverage.
+- **Item 20's second half (the 11 `@var` deletions in `HostConfig` and
+  `InstallNumerosisCommand`).** Those tags were widening PHPStan's already
+  correct inferred type, which is why `4d26b2c` dropped them; restoring them
+  re-adds the defect. The nine baseline rows the item is really about are gone,
+  eight of them by annotating with `array<array-key, mixed>` — the same type as
+  a bare `array`, so it satisfies `missingType.iterableValue` without breaking
+  contravariance against Fortify, Cashier, Stripe and the wizard. D5's literal
+  instruction (`array<string, mixed>`) produces `method.childParameterType`
+  instead; verified.
+- **Item 51 (`InstallNumerosisCommand`).** The inline
+  `\Composer\Autoload\ClassLoader` was already an import, and the reflection
+  into `$missingClasses` is the only way to clear that cache. What is left —
+  a class edited for every unrelated config concern — is a decomposition this
+  plan did not scope.
+- **Item 52's second half (`recordCentralWrites()` parses SQL).** The query log
+  is a string; there is no structured signal to read instead.
+- **Item 63 (`RouteLoader::$authRoutesEnabled`).** Left as the plan's own text
+  suggests: private, living with its loader, and reconfigured only by a second
+  `load()` in one process, which nothing does.
+
+Three further items were already fixed or stale against `HEAD` and are recorded
+here so they are not re-raised: item 26 (`CacheTtl::popularPaymentPlanSlug()`
+exists), item 47 (`{@see ProvisioningStepRecord}` names nothing in the tree),
+and item 50's status-taxonomy half (the inline `in_array($status, ...)` is an
+`Enums\Billing\SubscriptionStatus` lookup now).
