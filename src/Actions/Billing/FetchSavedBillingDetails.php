@@ -11,8 +11,11 @@ use Nvade\Numerosis\Enums\FetchState;
 use Stripe\Customer;
 
 /**
+ * The address, name and VAT number Stripe already holds for a billable.
+ *
  * Takes an already-retrieved customer when the caller has one, so the checkout
- * screen pays for a single Stripe round trip rather than one per reader.
+ * screen pays for a single Stripe round trip rather than one per reader. A
+ * customer belonging to somebody else is ignored, not read.
  *
  * @method static SavedBillingDetails run(BillableUser $billable, ?Customer $customer = null)
  */
@@ -24,6 +27,10 @@ class FetchSavedBillingDetails
     {
         if (! $billable->hasStripeId()) {
             return new SavedBillingDetails;
+        }
+
+        if ($customer !== null && $customer->id !== $billable->stripeId()) {
+            $customer = null;
         }
 
         $customer ??= FetchStripeCustomer::run($billable);

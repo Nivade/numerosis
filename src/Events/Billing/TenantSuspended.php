@@ -13,8 +13,10 @@ class TenantSuspended
     use Dispatchable;
     use SerializesModels;
 
-    public function __construct(
-        public readonly Tenant $tenant,
-        public readonly string $tenantId,
-    ) {}
+    public readonly string $tenantId;
+
+    public function __construct(public readonly Tenant $tenant)
+    {
+        $this->tenantId = (string) $tenant->getTenantKey();
+    }
 }

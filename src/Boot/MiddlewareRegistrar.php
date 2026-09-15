@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Boot;
 
-use Closure;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Concerns\Boot\RegistersOnce;
 use Nvade\Numerosis\Enums\MiddlewareAlias;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
@@ -23,10 +23,7 @@ use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
  */
 final class MiddlewareRegistrar
 {
-    /** Replaces this class's registration entirely; receives the `Application`. */
-    public static ?Closure $registerCallback = null;
-
-    private static bool $registered = false;
+    use RegistersOnce;
 
     /**
      * Pure class-string literals only, with no config or container read: this
@@ -131,25 +128,5 @@ final class MiddlewareRegistrar
         return is_array($configured)
             ? array_values(array_filter($configured, is_string(...)))
             : [];
-    }
-
-    /**
-     * Whether {@see self::apply()} has run. `NumerosisServiceProvider` stands
-     * down when it has, so trust configuration and alias swaps made after it
-     * in the same `withMiddleware()` closure survive.
-     */
-    public static function registered(): bool
-    {
-        return self::$registered;
-    }
-
-    /**
-     * For tests only. The flag is a process-lifetime static, so one test
-     * calling {@see self::apply()} would otherwise stand the service provider
-     * down for every test after it in the same worker.
-     */
-    public static function resetForTesting(): void
-    {
-        self::$registered = false;
     }
 }

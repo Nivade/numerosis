@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookController;
 use Laravel\Cashier\Subscription;
 use Nvade\Numerosis\Actions\Billing\Checkout\SettleAttachedPaymentMethod;
+use Nvade\Numerosis\Actions\Billing\FindLocalSubscriptionPrice;
 use Nvade\Numerosis\Actions\Billing\FindTenantByStripeCustomer;
 use Nvade\Numerosis\Actions\Billing\ResolvePlanChangeDirection;
 use Nvade\Numerosis\Actions\Tenancy\RestoreTenant;
@@ -26,7 +27,6 @@ use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\SubscriptionCancelled;
 use Nvade\Numerosis\Events\Billing\SubscriptionPlanChanged;
 use Nvade\Numerosis\Models\Central\CentralUser;
-use Nvade\Numerosis\Models\Central\Subscription as CentralSubscription;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
 use Override;
@@ -210,7 +210,6 @@ class WebhookController extends CashierWebhookController
             event(new SubscriptionCancelled(
                 $tenant,
                 $periodEnd !== null ? Date::createFromTimestamp($periodEnd) : null,
-                (string) $tenant->getTenantKey(),
             ));
         }
 
@@ -239,7 +238,7 @@ class WebhookController extends CashierWebhookController
 
         // Read before Cashier's handler, which overwrites `stripe_price` with
         // the payload's own value.
-        $previousPriceId = $this->localPriceIdFor($subscriptionId);
+        $previousPriceId = FindLocalSubscriptionPrice::run(is_string($subscriptionId) ? $subscriptionId : null);
 
         $response = parent::handleCustomerSubscriptionUpdated($payload) ?? $this->successMethod();
 
@@ -271,7 +270,6 @@ class WebhookController extends CashierWebhookController
                 $previousPriceId,
                 $newPriceId,
                 ResolvePlanChangeDirection::run($previousPriceId, $newPriceId),
-                (string) $tenant->getTenantKey(),
             ));
         }
 
@@ -322,19 +320,6 @@ class WebhookController extends CashierWebhookController
         return is_int($periodEnd) ? $periodEnd : null;
     }
 
-    private function localPriceIdFor(mixed $stripeSubscriptionId): ?string
-    {
-        if (! is_string($stripeSubscriptionId)) {
-            return null;
-        }
-
-        $price = Numerosis::model(CentralSubscription::class)::query()
-            ->where('stripe_id', $stripeSubscriptionId)
-            ->value('stripe_price');
-
-        return is_string($price) ? $price : null;
-    }
-
     /**
      * The dunning notice, sent while still in Stripe's retry/grace period.
      * Suspension itself happens in handleCustomerSubscriptionUpdated once
@@ -359,7 +344,7 @@ class WebhookController extends CashierWebhookController
         $owner = $tenant?->owner();
 
         if ($tenant !== null && $owner !== null) {
-            event(new PaymentSettled($tenant, $owner->id, (string) $tenant->getTenantKey()));
+            event(new PaymentSettled($tenant, $owner->id));
         }
     }
 
@@ -368,7 +353,7 @@ class WebhookController extends CashierWebhookController
         $tenant = FindTenantByStripeCustomer::run($customerId);
 
         if ($tenant !== null) {
-            event(new PaymentFailed($tenant, (string) $tenant->getTenantKey()));
+            event(new PaymentFailed($tenant));
         }
     }
 

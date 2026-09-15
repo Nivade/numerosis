@@ -36,7 +36,7 @@ class BillingNotificationsFeatureTest extends TestCase
         $tenant = Tenant::factory()->create();
         $tenant->users()->attach($owner->global_id, ['role' => 'owner']);
 
-        (new SendPaymentConfirmedNotification)->handle(new PaymentSettled($tenant, $owner->id, (string) $tenant->getTenantKey()));
+        (new SendPaymentConfirmedNotification)->handle(new PaymentSettled($tenant, $owner->id));
 
         Notification::assertNothingSent();
     }
@@ -51,7 +51,7 @@ class BillingNotificationsFeatureTest extends TestCase
         $tenant = Tenant::factory()->create();
         $tenant->users()->attach($owner->global_id, ['role' => 'owner']);
 
-        (new SendPaymentFailedNotification)->handle(new PaymentFailed($tenant, (string) $tenant->getTenantKey()));
+        (new SendPaymentFailedNotification)->handle(new PaymentFailed($tenant));
 
         Notification::assertNothingSent();
     }
@@ -66,7 +66,7 @@ class BillingNotificationsFeatureTest extends TestCase
         $tenant = Tenant::factory()->create();
         $tenant->users()->attach($owner->global_id, ['role' => 'owner']);
 
-        (new SendTenantSuspendedNotification)->handle(new TenantSuspended($tenant, (string) $tenant->getTenantKey()));
+        (new SendTenantSuspendedNotification)->handle(new TenantSuspended($tenant));
 
         Notification::assertNothingSent();
     }

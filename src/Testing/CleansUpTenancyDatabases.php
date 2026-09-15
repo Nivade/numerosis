@@ -143,6 +143,8 @@ trait CleansUpTenancyDatabases
             return;
         }
 
+        $databases = [];
+
         try {
             try {
                 try {
@@ -154,7 +156,7 @@ trait CleansUpTenancyDatabases
 
                     $this->deleteCentralWrites();
                 } finally {
-                    $this->dropTenantDatabases($databases ?? []);
+                    $this->dropTenantDatabases($databases);
                 }
             } finally {
                 $this->disconnectDatabaseConnections();

@@ -82,7 +82,7 @@ enabling the cache alone would have cached entries nothing could forget. Suite
 
 | Plan | State |
 |---|---|
-| `luminous-wandering-brook.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
+| `sqlite-compatibility.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
 | `module-depth-audit.md` | **Not executed.** Module depth audit, written 2026-09-15. Seven items, one commit each: fold `MoneyFormatter`, fake `TenantDatabaseManager`, `HostConfig::set()` segment assertion, checkout cluster, three docs fixes. No open decisions — all seven were decided before it was written |
 | `audit-remediation-eighty-commits.md` | **Not executed.** Remediation of an eight-batch review of `f6f1251..1d8cc8c`, written 2026-09-15. 67 items in seven tiers, ordered by importance across the whole set; every one re-verified against `HEAD`, with the closed findings and their evidence kept at the end. All seven decisions settled 2026-09-15, so nothing blocks execution. Tier 7 (comment budget) lands as its own commit |
 

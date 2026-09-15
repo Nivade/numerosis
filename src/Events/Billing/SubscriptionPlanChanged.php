@@ -21,11 +21,14 @@ class SubscriptionPlanChanged
     use Dispatchable;
     use SerializesModels;
 
+    public readonly string $tenantId;
+
     public function __construct(
         public readonly Tenant $tenant,
         public readonly ?string $fromPriceId,
         public readonly string $toPriceId,
         public readonly PlanChangeDirection $direction,
-        public readonly string $tenantId,
-    ) {}
+    ) {
+        $this->tenantId = (string) $tenant->getTenantKey();
+    }
 }

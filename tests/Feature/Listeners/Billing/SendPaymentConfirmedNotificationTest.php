@@ -29,7 +29,7 @@ class SendPaymentConfirmedNotificationTest extends TestCase
         $tenant = Tenant::factory()->create();
         $tenant->users()->attach($owner->global_id, ['role' => 'owner']);
 
-        (new SendPaymentConfirmedNotification)->handle(new PaymentSettled($tenant, $owner->id, (string) $tenant->getTenantKey()));
+        (new SendPaymentConfirmedNotification)->handle(new PaymentSettled($tenant, $owner->id));
 
         Notification::assertSentTo($owner, PaymentConfirmed::class);
     }
@@ -61,7 +61,7 @@ class SendPaymentConfirmedNotificationTest extends TestCase
 
         app()->instance(NotifiesTenantOwner::class, $spy);
 
-        (new SendPaymentConfirmedNotification)->handle(new PaymentSettled($tenant, $owner->id, (string) $tenant->getTenantKey()));
+        (new SendPaymentConfirmedNotification)->handle(new PaymentSettled($tenant, $owner->id));
 
         $this->assertTrue($spy->called);
         Notification::assertNothingSent();

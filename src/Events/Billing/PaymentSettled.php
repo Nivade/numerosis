@@ -18,9 +18,12 @@ class PaymentSettled
     use Dispatchable;
     use SerializesModels;
 
+    public readonly string $tenantId;
+
     public function __construct(
         public readonly Tenant $tenant,
         public readonly string|int $ownerId,
-        public readonly string $tenantId,
-    ) {}
+    ) {
+        $this->tenantId = (string) $tenant->getTenantKey();
+    }
 }

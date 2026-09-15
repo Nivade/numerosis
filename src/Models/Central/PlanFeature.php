@@ -34,7 +34,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property-read string $name
  * @property-read Collection<int, PaymentPlan> $paymentPlans
  * @property-read int|null $payment_plans_count
- * @property-read PaymentPlanFeature $pivot
+ * @property-read PaymentPlanFeature $pivot Only present on a model read through `PaymentPlan::features()`.
  *
  * @mixin Model
  */

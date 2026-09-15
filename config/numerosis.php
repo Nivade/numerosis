@@ -86,8 +86,8 @@ return [
         // exist is Enums\Auth\SocialProvider, not config.
         SocialLoginFeature::class,
 
-        // Team invitations: invite/accept flow, InvitationResource, the
-        // invitation-sent notification.
+        // Team invitations: the invite/accept flow and the invitation-sent
+        // notification.
         InvitationsFeature::class,
 
         // Self-serve tenant registration wizard (/get-started). Tenant

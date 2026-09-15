@@ -86,18 +86,18 @@ class extends Component
 
     /**
      * Ownership is re-checked here rather than trusted from the rendered
-     * list — $domain arrives as a plain Livewire method argument, which is
+     * list: $slug arrives as a plain Livewire method argument, which is
      * client-controlled the same way a route parameter is.
      */
-    public function cancelProvision(string $domain): void
+    public function cancelProvision(string $slug): void
     {
-        $owned = Numerosis::model(TenantProvision::class)::ownedBy($domain, $this->user?->global_id);
+        $owned = Numerosis::model(TenantProvision::class)::ownedBy($slug, $this->user?->global_id);
 
         if (! $owned) {
             return;
         }
 
-        MarkProvisionCancelled::run($domain);
+        MarkProvisionCancelled::run($slug);
 
         $this->refreshTenants();
     }
