@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Nvade\Numerosis\Enums\Auth\PermissionAction;
 use Nvade\Numerosis\Policies\Auth\PermissionPolicy;
 
@@ -19,8 +20,8 @@ use Nvade\Numerosis\Policies\Auth\PermissionPolicy;
  * @property int $id
  * @property string $name
  * @property string $guard_name
- * @property string $ability
- * @property string $context
+ * @property-read string $ability
+ * @property-read string $context
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Collection<int, Role> $roles
@@ -35,14 +36,26 @@ use Nvade\Numerosis\Policies\Auth\PermissionPolicy;
     'name',
     'guard_name',
 ])]
-#[Guarded([
-    'ability',
-    'context',
-])]
 class Permission extends \Spatie\Permission\Models\Permission
 {
     /** @use HasFactory<Factory<static>> */
     use HasFactory;
+
+    /**
+     * @return Attribute<string, never>
+     */
+    protected function ability(): Attribute
+    {
+        return Attribute::get(fn (): string => Str::before($this->name, ' '));
+    }
+
+    /**
+     * @return Attribute<string, never>
+     */
+    protected function context(): Attribute
+    {
+        return Attribute::get(fn (): string => Str::afterLast($this->name, ' '));
+    }
 
     /**
      * @return list<PermissionAction>
