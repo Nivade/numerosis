@@ -12,6 +12,8 @@ interface Plan
 
     public function name(): string;
 
+    public function description(): ?string;
+
     public function priceId(BillingCycle $cycle): ?string;
 
     /**

@@ -61,16 +61,24 @@ final class ConfiguredSteps
      */
     public static function assertARegistrationStepProvidesTenantIdentity(array $steps): void
     {
+        $covered = [];
+
         foreach ($steps as $step) {
             if (is_a($step, ProvidesTenantIdentity::class, true)) {
-                return;
+                $covered = [...$covered, ...$step::tenantIdentityStateKeys()];
             }
         }
 
-        throw new LogicException(
-            'numerosis.tenancy.registration.steps must include at least one step implementing '
-            .ProvidesTenantIdentity::class.', or the provisioning pipeline has no source for '
-            ."the tenant's identifier or display name.",
+        $missing = array_diff(
+            [ProvidesTenantIdentity::NAME_KEY, ProvidesTenantIdentity::SLUG_KEY],
+            $covered,
         );
+
+        throw_if($missing !== [], new LogicException(
+            'numerosis.tenancy.registration.steps must include steps implementing '
+            .ProvidesTenantIdentity::class.' whose tenantIdentityStateKeys() cover ['
+            .implode('], [', $missing).'], or the provisioning pipeline has no source for '
+            ."the tenant's identifier or display name.",
+        ));
     }
 }

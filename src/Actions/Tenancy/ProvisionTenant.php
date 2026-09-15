@@ -10,6 +10,7 @@ use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
+use Nvade\Numerosis\Exceptions\Tenancy\ProvisioningAlreadyClaimed;
 use Nvade\Numerosis\Jobs\RunProvisioningStep;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
@@ -43,12 +44,15 @@ class ProvisionTenant implements ProvisionsTenant
             ->dispatch();
     }
 
+    /**
+     * @throws ProvisioningAlreadyClaimed
+     */
     public function now(TenantProvisionData $data): void
     {
         $slug = $this->claimFor($data);
 
         if ($slug === null) {
-            return;
+            throw new ProvisioningAlreadyClaimed("Provisioning for [{$data->slug}] is already running.");
         }
 
         // Not `Bus::chain(...)->onConnection('sync')`: a chain defers the

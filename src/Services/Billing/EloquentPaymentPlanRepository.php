@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Services\Billing;
 
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
 use Nvade\Numerosis\Cache\CachedModel;
 use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Cache\CacheTtl;
@@ -22,16 +23,6 @@ use Nvade\Numerosis\Numerosis;
 
 class EloquentPaymentPlanRepository implements PaymentPlanRepository
 {
-    /**
-     * Per-request memo over the cached rows. Rebuilding the catalogue's models
-     * from those rows measured ~1.5ms against ~23us to read them, and the
-     * container binds this class per resolve, so the memo has to be static to
-     * be reached twice in one request.
-     *
-     * @var Collection<int, Plan>|null
-     */
-    private static ?Collection $memo = null;
-
     /**
      * Scoped to available plans on purpose. Every checkout path resolves its
      * plan through here from a client-supplied slug, and existence is not
@@ -79,10 +70,6 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
      */
     public function available(): Collection
     {
-        if (self::$memo instanceof Collection) {
-            return self::$memo;
-        }
-
         $rows = GlobalCache::flexible(
             CacheKeys::availablePaymentPlans(),
             CacheTtl::window(CacheTtl::availablePaymentPlans()),
@@ -92,17 +79,7 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
         /** @var Collection<int, Plan> $result */
         $result = new Collection(array_map($this->hydratePlan(...), $rows));
 
-        return self::$memo = $result;
-    }
-
-    /**
-     * Drops the memo. {@see \Nvade\Numerosis\Actions\Cache\ForgetAvailablePaymentPlans}
-     * calls this beside the cache forget; anything invalidating the key
-     * without it reads its own stale answer back.
-     */
-    public static function flushMemo(): void
-    {
-        self::$memo = null;
+        return $result;
     }
 
     /**
@@ -188,11 +165,13 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
 
     /**
      * @return Collection<int, PlanFeatureData>
+     *
+     * @throws InvalidArgumentException
      */
     public function featuresFor(Plan $plan): Collection
     {
         if (! $plan instanceof PaymentPlan) {
-            return new Collection;
+            throw new InvalidArgumentException("Payment plan is not stored locally: {$plan->slug()}");
         }
 
         return $plan->features->map(fn (PlanFeature $feature): PlanFeatureData => new PlanFeatureData(

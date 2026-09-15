@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Contracts\Tenancy;
 
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
+use Nvade\Numerosis\Exceptions\Tenancy\ProvisioningAlreadyClaimed;
 
 /**
  * Entry point for provisioning a tenant. Point
@@ -19,8 +20,10 @@ interface ProvisionsTenant
 
     /**
      * The same steps, run inline, with a failure thrown at the call site
-     * rather than left in `failed_jobs`. For a console command, a seeder or
-     * tinker — never a web request, which is what `queue()` is for.
+     * instead of left in `failed_jobs`. For a console command, a seeder or
+     * tinker; never a web request, which is what `queue()` is for.
+     *
+     * @throws ProvisioningAlreadyClaimed When another chain already holds the slug.
      */
     public function now(TenantProvisionData $data): void;
 }

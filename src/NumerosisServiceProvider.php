@@ -43,7 +43,6 @@ use Nvade\Numerosis\Actions\Auth\RedirectIfOneTimePasswordAuthenticatable;
 use Nvade\Numerosis\Actions\Auth\ResetUserPassword;
 use Nvade\Numerosis\Actions\Auth\UpdateUserPassword;
 use Nvade\Numerosis\Actions\Auth\UpdateUserProfile;
-use Nvade\Numerosis\Actions\Queries\GetTenantsByGlobalId;
 use Nvade\Numerosis\Boot\Assets;
 use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Boot\HostConfig;
@@ -108,7 +107,6 @@ use Nvade\Numerosis\Policies\Tenancy\TenantPolicy;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Routing\RouteNames;
-use Nvade\Numerosis\Services\Billing\EloquentPaymentPlanRepository;
 use Nvade\Numerosis\Services\Exceptions\TenantAwareExceptionContext;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\PasswordBrokerBootstrapper;
@@ -157,8 +155,6 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         Numerosis::resetModelCache();
         GlobalCache::flush();
-        GetTenantsByGlobalId::flushMemo();
-        EloquentPaymentPlanRepository::flushMemo();
 
         // Deferred until every provider has registered, so config shipped by
         // stancl/tenancy and Laravel itself is normalized once it is merged.
