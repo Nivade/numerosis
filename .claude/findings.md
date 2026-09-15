@@ -1,3 +1,5 @@
 # Findings
 
 - 2026-09-14: numerosis:install tests publish package assets into the Testbench skeleton under vendor/ and never clean up (tests/Feature/Console/Commands/InstallNumerosisCommandTest.php:397), so any later edit to resources/js/* or resources/css/* fails verifyPublishedAssetsMatchSource with a message blaming published-asset drift rather than stale vendor residue — bug — worked around on feat/cache-audit by deleting the stale stripe-*.js copies; the real fix (publish to a temp target, or clean up in a finally) is outside that branch.
+- 2026-09-15: NumerosisSeamTest "assetTags() prefers vite()" failed once under `composer test` (parallel) and passed alone and on a rerun — risk — likely shared published-asset state across parallel processes, same family as the 2026-09-14 finding above; not reproducible, so nothing to fix yet.
+- 2026-09-15: docs/extending.md:329 is an orphan table row stranded below the "The `Numerosis` facade" prose, outside any table — bug — renders as a literal pipe-delimited line; belongs in the seams or the auth-customization table, but picking which is a docs decision, not this task's.
