@@ -16,6 +16,7 @@ use Nvade\Numerosis\Boot\Assets;
 use Nvade\Numerosis\Boot\HostConfig;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
@@ -71,6 +72,14 @@ class InstallNumerosisCommand extends Command
     /** @var list<string> */
     private array $failures = [];
 
+    /**
+     * Config that works but costs something a host should have chosen
+     * deliberately. Reported without failing the install.
+     *
+     * @var list<string>
+     */
+    private array $warnings = [];
+
     public function handle(): int
     {
         if (! $this->option('verify-only')) {
@@ -112,6 +121,14 @@ class InstallNumerosisCommand extends Command
         $this->verifyStripeKeys();
         $this->verifyModelOverrides();
         $this->verifyCentralDataSeeded();
+
+        if ($this->warnings !== []) {
+            $this->newLine();
+
+            foreach ($this->warnings as $warning) {
+                $this->components->warn($warning);
+            }
+        }
 
         if ($this->failures !== []) {
             $this->newLine();
@@ -422,13 +439,18 @@ class InstallNumerosisCommand extends Command
             $this->failures[] = "config('database.connections.central') is missing — see docs/host-requirements.md's config/database.php row.";
         }
 
-        // Driver as well as presence: on SQLite this surfaces as a tenant
-        // seeder dying on `unknown function: SUBSTRING_INDEX()`, five queued
-        // jobs after the real mistake.
-        $driver = Config::get('database.connections.central.driver');
+        // Driver as well as presence: an unsupported one surfaces as a tenant
+        // seeder dying five queued jobs after the real mistake.
+        $name = Config::get('database.connections.central.driver');
 
-        if (is_string($driver) && ! in_array($driver, ['mysql', 'mariadb'], true)) {
-            $this->failures[] = "config('database.connections.central.driver') is '{$driver}'; tenancy needs CREATE DATABASE per tenant and MySQL-only generated columns — see docs/host-requirements.md's DB credentials row.";
+        if (is_string($name)) {
+            $driver = DatabaseDriver::tryFrom($name);
+
+            if ($driver === null) {
+                $this->failures[] = "config('database.connections.central.driver') is '{$name}'; tenancy runs on MySQL, MariaDB, PostgreSQL and SQLite — see docs/host-requirements.md's DB credentials row.";
+            } elseif ($driver->warning() !== null) {
+                $this->warnings[] = $driver->warning();
+            }
         }
 
         $template = Config::get('tenancy.database.template_tenant_connection');

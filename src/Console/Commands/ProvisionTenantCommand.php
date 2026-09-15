@@ -14,6 +14,7 @@ use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Data\Tenancy\CustomDomainContribution;
 use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
+use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Exceptions\Tenancy\ProvisioningAlreadyClaimed;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -48,15 +49,21 @@ class ProvisionTenantCommand extends Command
         $slug = is_string($this->argument('slug')) ? $this->argument('slug') : '';
         $owner = is_string($this->option('owner')) ? $this->option('owner') : '';
 
-        // Checked up front because the failure is otherwise the fifth queued
-        // job dying on `unknown function: SUBSTRING_INDEX()`, which names
-        // neither the driver nor this command.
-        $driver = Config::string('database.connections.'.Config::string('numerosis.tenancy.central_connection', 'central').'.driver', '');
+        // Checked up front because an unsupported driver otherwise surfaces
+        // as a seeder dying five queued jobs later, naming neither the driver
+        // nor this command.
+        $name = Config::string('database.connections.'.Config::string('numerosis.tenancy.central_connection', 'central').'.driver', '');
 
-        if (! in_array($driver, ['mysql', 'mariadb'], true)) {
-            $this->error("The central connection uses the [{$driver}] driver. Tenancy needs CREATE DATABASE per tenant and MySQL-only generated columns, so MySQL or MariaDB is required — see docs/host-requirements.md.");
+        $driver = DatabaseDriver::tryFrom($name);
+
+        if ($driver === null) {
+            $this->error("The central connection uses the [{$name}] driver. Tenant provisioning runs on MySQL, MariaDB, PostgreSQL and SQLite — see docs/host-requirements.md.");
 
             return self::FAILURE;
+        }
+
+        if ($driver->warning() !== null) {
+            $this->warn($driver->warning());
         }
 
         // The policy covers the domains table, but a tenant row can exist
