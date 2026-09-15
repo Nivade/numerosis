@@ -21,7 +21,6 @@ use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Billing\CheckoutRegionResolver;
-use Nvade\Numerosis\Contracts\Billing\MoneyFormatter;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
 use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
@@ -50,7 +49,6 @@ use Nvade\Numerosis\Models\Central\SubscriptionItem;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
-use Nvade\Numerosis\Services\Billing\CashierMoneyFormatter;
 use Nvade\Numerosis\Services\Billing\DefaultUnpaidTenantQuota;
 use Nvade\Numerosis\Services\Billing\EloquentPaymentPlanRepository;
 use Nvade\Numerosis\Services\Billing\EloquentSubscriptionRepository;
@@ -310,8 +308,8 @@ return [
         'trial_days' => 14,
 
         // Swap any of these for your own implementation. PlanPolicy,
-        // TrialResolver, BillableResolver and MoneyFormatter also accept a
-        // closure override via Billing::resolve*Using(), checked first.
+        // TrialResolver and BillableResolver also accept a closure override
+        // via Billing::resolve*Using(), checked first.
         'implementations' => [
             CheckoutGateway::class => InlineCheckoutGateway::class,
             PaymentPlanRepository::class => EloquentPaymentPlanRepository::class,
@@ -319,7 +317,6 @@ return [
             BillableResolver::class => TenantOrUserBillableResolver::class,
             PlanPolicy::class => SeatLimitPlanPolicy::class,
             TrialResolver::class => PlanOrDefaultTrialResolver::class,
-            MoneyFormatter::class => CashierMoneyFormatter::class,
             UnpaidTenantQuota::class => DefaultUnpaidTenantQuota::class,
             CheckoutRegionResolver::class => NullCheckoutRegionResolver::class,
         ],

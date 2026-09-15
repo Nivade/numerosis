@@ -7,9 +7,9 @@ namespace Nvade\Numerosis\Services\Billing;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
+use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
-use Nvade\Numerosis\Contracts\Billing\MoneyFormatter;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
@@ -33,7 +33,6 @@ class BillingService
         private readonly BillableResolver $billables,
         private readonly TrialResolver $trials,
         private readonly PlanPolicy $planPolicy,
-        private readonly MoneyFormatter $money,
     ) {}
 
     /**
@@ -84,7 +83,11 @@ class BillingService
      */
     public function formatAmount(int $amount, ?string $currency = null): string
     {
-        return $this->money->format($amount, $currency);
+        return Cashier::formatAmount(
+            amount: $amount,
+            currency: $currency ?? $this->currency(),
+            options: ['min_fraction_digits' => 2],
+        );
     }
 
     public function currency(): string
