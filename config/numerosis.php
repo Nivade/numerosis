@@ -307,9 +307,9 @@ return [
         // its own trial_days.
         'trial_days' => 14,
 
-        // Swap any of these for your own implementation. PlanPolicy,
-        // TrialResolver and BillableResolver also accept a closure override
-        // via Billing::resolve*Using(), checked first.
+        // Swap any of these for your own implementation. Each row is bound
+        // as-is by BillingServiceProvider::register(); a host wanting a
+        // closure binds the contract in its own provider instead.
         'implementations' => [
             CheckoutGateway::class => InlineCheckoutGateway::class,
             PaymentPlanRepository::class => EloquentPaymentPlanRepository::class,
