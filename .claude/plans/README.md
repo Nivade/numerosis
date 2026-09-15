@@ -102,7 +102,7 @@ enabling the cache alone would have cached entries nothing could forget. Suite
 
 | Plan | State |
 |---|---|
-| `sqlite-compatibility.md` | **Not executed.** SQLite compatibility, written 2026-09-12. Six phases. Carries one open decision — what SQLite support would promise — that changes the size of phases 3 and 4 by a large factor and is deliberately unsettled |
+| `sql-driver-compatibility.md` | **In progress.** SQLite and PostgreSQL compatibility, written 2026-09-12, widened to PostgreSQL 2026-09-15. Six phases. Option 2 chosen 2026-09-15: PostgreSQL at production parity, SQLite for development |
 
 ## Abandoned
 
