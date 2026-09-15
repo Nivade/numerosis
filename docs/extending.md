@@ -41,6 +41,26 @@ named `route()` — it has to stay installable on its own.
 | a model | publish `--tag numerosis-models`, or set `numerosis.models.<FQCN>` | Convention (`App\Models\<suffix>`) is found automatically; the config key is for a non-conventional location |
 | a provisioning step | `numerosis.tenancy.provisioning.steps` | Flat ordered list, every entry `Contracts\Tenancy\ProvisioningStep`, one queued chain link each — see "Provisioning steps and the contribution seam" below |
 
+### The four boot-phase calls
+
+`configure()`, `routes()`, `middleware()` and `exceptions()` are not ordinary
+`Numerosis::` calls, and the class groups them together for that reason. They
+run while `ApplicationBuilder` is being built — before `RegisterFacades`, and
+before `LoadConfiguration` has finished — so they go through the class and
+never the facade (see "The `Numerosis` facade" below), anything they touch
+that reads `Config` needs a facade-root guard, and their order relative to
+your own `bootstrap/app.php` calls decides which wins.
+
+| Call | Where it goes |
+|---|---|
+| `Numerosis::configure(basePath: …)` | stands in for the whole `Application::configure()` chain, applying the three below |
+| `Numerosis::routes(withAuth: …, apiPrefix: …)` | `withRouting(using: …)` |
+| `Numerosis::middleware(…)` | `withMiddleware(…)`, first in the closure |
+| `Numerosis::exceptions(…)` | `withExceptions(…)` |
+
+Every other method on `Numerosis` runs against a booted application and has
+none of these constraints.
+
 ### What a container binding swaps
 
 `bind()` these from your own `AppServiceProvider`, which registers after the
