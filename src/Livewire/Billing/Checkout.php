@@ -14,19 +14,15 @@ use Livewire\Component;
 use Nvade\Numerosis\Actions\Billing\Checkout\AssertPendingReservationIsFresh;
 use Nvade\Numerosis\Actions\Billing\Checkout\AssertReservationIsOwned;
 use Nvade\Numerosis\Actions\Billing\Checkout\CreateInlineSubscription;
+use Nvade\Numerosis\Actions\Billing\Checkout\LoadCheckoutContext;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveSavedPaymentMethod;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveSetupIntent;
-use Nvade\Numerosis\Actions\Billing\Checkout\ResumeCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\SettleCheckout;
-use Nvade\Numerosis\Actions\Billing\FetchReusablePaymentMethods;
-use Nvade\Numerosis\Actions\Billing\FetchSavedBillingDetails;
-use Nvade\Numerosis\Actions\Billing\FetchStripeCustomer;
 use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
-use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Concerns\Billing\ConfirmsPayments;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Contracts\Billing\CheckoutRegionResolver;
-use Nvade\Numerosis\Enums\Billing\PaymentMethodType;
+use Nvade\Numerosis\Data\Billing\Checkout\CheckoutContext;
 use Nvade\Numerosis\Enums\FetchState;
 use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
@@ -106,76 +102,39 @@ class Checkout extends Component
         $this->embedded = $embedded;
         $this->checkoutPublishableKey = Config::string('cashier.key');
 
-        $this->detectedCountry = resolve(CheckoutRegionResolver::class)->resolve($request);
-        $this->paymentMethodOrder = $this->resolvePaymentMethodOrder($this->detectedCountry);
+        $context = LoadCheckoutContext::run($domain, $request);
 
-        $billable = GetAuthenticatedUser::run();
-        $this->customerEmail = $billable instanceof BillableUser ? $billable->email : null;
+        $this->detectedCountry = $context->detectedCountry;
+        $this->paymentMethodOrder = $context->paymentMethodOrder;
+        $this->customerEmail = $context->customerEmail;
+        $this->vatNumber = $context->vatNumber;
+        $this->savedBillingAddress = $context->savedBillingAddress;
+        $this->savedBillingFetchState = $context->savedBillingFetchState;
+        $this->savedPaymentMethods = $context->savedPaymentMethods;
+        $this->savedPaymentMethodsFetchState = $context->savedPaymentMethodsFetchState;
 
-        if ($billable instanceof BillableUser && $billable->hasStripeId()) {
-            // One retrieve for both readers below. They each did their own,
-            // serially, which cost the page a second Stripe round trip for
-            // the same customer.
-            $customer = FetchStripeCustomer::run($billable);
-
-            if ($customer === null) {
-                $this->savedBillingFetchState = FetchState::Failed;
-                $this->savedPaymentMethodsFetchState = FetchState::Failed;
-
-                $this->resume($domain);
-
-                return;
-            }
-
-            $saved = FetchSavedBillingDetails::run($billable, $customer);
-
-            $this->savedBillingFetchState = $saved->fetchState;
-
-            if ($saved->fetchState !== FetchState::Failed && $saved->hasAddress()) {
-                $this->savedBillingAddress = [
-                    'name' => $saved->name,
-                    'address' => [
-                        'line1' => $saved->line1,
-                        'line2' => $saved->line2,
-                        'city' => $saved->city,
-                        'state' => $saved->state,
-                        'postal_code' => $saved->postalCode,
-                        'country' => $saved->country,
-                    ],
-                ];
-            }
-
-            $this->vatNumber = $saved->vatNumber;
-
-            $result = FetchReusablePaymentMethods::run($billable, $customer);
-            $this->savedPaymentMethods = $result->options->map->toArray()->all();
-            $this->savedPaymentMethodsFetchState = $result->fetchState;
-        }
-
-        $this->resume($domain);
+        $this->resume($context);
     }
 
     /**
      * Picks the checkout back up where it was left, or settles it when it
      * already succeeded.
      */
-    private function resume(string $domain): void
+    private function resume(CheckoutContext $context): void
     {
-        try {
-            $resumed = ResumeCheckout::run($domain);
-        } catch (ShowsMessageToUser $e) {
-            $this->paymentError = $e->getMessage();
+        if ($context->error !== null) {
+            $this->paymentError = $context->error;
 
             return;
         }
 
-        if ($resumed->alreadySucceeded()) {
+        if ($context->resumed?->alreadySucceeded() === true) {
             $this->settleFromPendingSubscription();
 
             return;
         }
 
-        $this->checkoutClientSecret = $resumed->clientSecret;
+        $this->checkoutClientSecret = $context->resumed?->clientSecret;
     }
 
     /**
@@ -252,14 +211,6 @@ class Checkout extends Component
         }
 
         try {
-            AssertPendingReservationIsFresh::run($pending, $billable);
-        } catch (CheckoutAlreadyCompleted) {
-            $this->settleFromPendingSubscription();
-
-            return;
-        }
-
-        try {
             $paymentMethod = ResolveSavedPaymentMethod::run($billable, $paymentMethodId);
         } catch (ShowsMessageToUser $e) {
             $this->paymentError = $e->getMessage();
@@ -281,11 +232,28 @@ class Checkout extends Component
         $this->settleFromPendingSubscription();
     }
 
+    /**
+     * The one road to a charge, so no branch picks its own guards: the payer
+     * owns the reservation, and the reservation has not been paid for already.
+     */
     private function createSubscriptionAndSettle(
         TenantProvision $pending,
         BillableUser $billable,
         string $paymentMethodId,
     ): void {
+        try {
+            AssertReservationIsOwned::run($pending);
+            AssertPendingReservationIsFresh::run($pending, $billable);
+        } catch (CheckoutAlreadyCompleted) {
+            $this->settleFromPendingSubscription();
+
+            return;
+        } catch (ShowsMessageToUser $e) {
+            $this->paymentError = $e->getMessage();
+
+            return;
+        }
+
         try {
             $subscription = CreateInlineSubscription::run($pending, $paymentMethodId, $billable);
         } catch (IncompletePayment $e) {
@@ -299,30 +267,6 @@ class Checkout extends Component
         }
 
         $this->settle($subscription, $pending, $billable);
-    }
-
-    /**
-     * The curated payment method display order for a resolved country, or
-     * the config default when the country is null (unresolved) or has no
-     * curated entry of its own. Ordering only, never eligibility.
-     *
-     * @see CheckoutRegionResolver
-     *
-     * @return list<string>
-     */
-    private function resolvePaymentMethodOrder(?string $country): array
-    {
-        $default = Config::array('numerosis.billing.payment_methods.default_order');
-
-        /** @var array<mixed> $order */
-        $order = $country !== null
-            ? Config::array("numerosis.billing.payment_methods.regions.{$country}", $default)
-            : $default;
-
-        return array_values(array_filter(
-            $order,
-            fn (mixed $type): bool => is_string($type) && PaymentMethodType::tryFrom($type) !== null,
-        ));
     }
 
     /**

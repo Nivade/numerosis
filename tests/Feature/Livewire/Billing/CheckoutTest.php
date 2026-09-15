@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Config;
 use Laravel\Cashier\Cashier;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
+use Nvade\Numerosis\Actions\Billing\Checkout\CreateInlineSubscription;
 use Nvade\Numerosis\Contracts\Billing\CheckoutRegionResolver;
 use Nvade\Numerosis\Enums\FetchState;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
@@ -174,6 +175,44 @@ class CheckoutTest extends TestCase
         $pending = TenantProvision::find('confirm-unrelated-test');
         $this->assertNotNull($pending);
         $this->assertNull($pending->stripe_subscription_id);
+    }
+
+    /**
+     * Both charging branches end at `createSubscriptionAndSettle()`, which
+     * runs the ownership and freshness asserts itself rather than trusting
+     * the branch to have chosen them. A reservation already carrying a
+     * subscription id is never charged a second time, whichever branch asked
+     * — and a subscription id with no local row counts as live, not as safe.
+     */
+    public function test_neither_charging_branch_charges_a_reservation_that_is_already_paid_for(): void
+    {
+        $this->fakeStripe();
+        $user = $this->signedInCustomer();
+
+        $customer = $user->createOrGetStripeCustomer();
+        $stripe = Cashier::stripe();
+        $paymentMethod = $stripe->paymentMethods->create(['type' => 'card', 'card' => ['token' => 'tok_visa']]);
+        $stripe->paymentMethods->attach($paymentMethod->id, ['customer' => $customer->id]);
+
+        $setupIntent = $this->confirmedSetupIntentFor($user, $paymentMethod->id);
+
+        $this->reserve('already-paid-test', $user, $setupIntent->id, [
+            'stripe_subscription_id' => 'sub_not_synced_yet',
+        ]);
+
+        CreateInlineSubscription::mock()->shouldReceive('handle')->never();
+
+        Livewire::test(Checkout::class, ['domain' => 'already-paid-test'])
+            ->call('subscribeWithSavedPaymentMethod', $paymentMethod->id)
+            ->assertSet('paymentError', __('numerosis::billing.checkout.confirmation_failed'))
+            ->assertNoRedirect();
+
+        Livewire::test(Checkout::class, ['domain' => 'already-paid-test'])
+            ->call('subscribe', $setupIntent->id)
+            ->assertSet('paymentError', __('numerosis::billing.checkout.confirmation_failed'))
+            ->assertNoRedirect();
+
+        $this->assertSame('sub_not_synced_yet', TenantProvision::find('already-paid-test')?->stripe_subscription_id);
     }
 
     public function test_the_pending_domain_cannot_be_set_by_the_client(): void
