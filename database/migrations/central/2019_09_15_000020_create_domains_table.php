@@ -20,7 +20,10 @@ return new class extends Migration
             $table->string('domain', 255)->unique();
             $table->string('tenant_id');
 
-            $table->timestamps();
+            // Microseconds, because `Tenant::primaryDomain()` orders on
+            // `created_at` and two domains added in the same second are
+            // otherwise returned in whatever order the driver chooses.
+            $table->timestamps(6);
             $table->foreign('tenant_id')->references('id')->on('tenants')->onUpdate('cascade')->onDelete('cascade');
         });
     }

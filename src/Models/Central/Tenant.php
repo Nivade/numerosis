@@ -259,6 +259,7 @@ class Tenant extends BaseTenant implements HasTenantOwner, Subscribable, Suspend
             CacheTtl::tenantPrimaryDomain(),
             fn (): array|false => $this->domains()
                 ->orderByDesc('created_at')
+                ->orderByDesc('id')
                 ->limit(1)
                 ->first()?->getAttributes() ?? false
         );

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
+use Illuminate\Database\Eloquent\Attributes\DateFormat;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\WithoutIncrementing;
@@ -32,6 +33,7 @@ use Stancl\Tenancy\Database\Concerns\InvalidatesTenantsResolverCache;
  */
 #[WithoutIncrementing]
 #[ObservedBy(DomainObserver::class)]
+#[DateFormat('Y-m-d H:i:s.u')]
 class Domain extends \Stancl\Tenancy\Database\Models\Domain
 {
     /** @use HasFactory<Factory<static>> */
