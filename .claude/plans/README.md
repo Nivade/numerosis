@@ -102,7 +102,7 @@ enabling the cache alone would have cached entries nothing could forget. Suite
 
 | Plan | State |
 |---|---|
-| `sql-driver-compatibility.md` | **In progress.** SQLite and PostgreSQL compatibility, written 2026-09-12, widened to PostgreSQL 2026-09-15. Six phases. Option 2 chosen 2026-09-15: PostgreSQL at production parity, SQLite for development |
+| `sql-driver-compatibility.md` | **Executed 2026-09-16 on `feat/sql-driver-compatibility`, except PostgreSQL verification (no local `pdo_pgsql`).** SQLite and PostgreSQL compatibility, written 2026-09-12, widened to PostgreSQL 2026-09-15. Six phases, all built. Option 2: PostgreSQL at production parity, SQLite for development |
 
 ## Abandoned
 

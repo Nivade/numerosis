@@ -1,15 +1,22 @@
 # SQLite and PostgreSQL compatibility
 
-**Status: not executed.** Written 2026-09-12 on branch
-`refactor/provisioning-pipeline`, widened to PostgreSQL 2026-09-15. Nothing
-below is built. Six phases. Phase 1 is worth landing on its own merits even if
-the rest is dropped, and phases 2 and 5 are small; phases 3 and 4 carry almost
-all of the cost and all of the ongoing cost.
+**Status: executed on `feat/sql-driver-compatibility`, 2026-09-16, except
+PostgreSQL verification.** Written 2026-09-12 on branch
+`refactor/provisioning-pipeline`, widened to PostgreSQL 2026-09-15. Option 2
+was chosen: PostgreSQL at production parity, SQLite for development.
 
-This plan has one open decision in it that changes the size of phases 3 and 4
-by a large factor. It is stated below under "What we would be promising" and
-is not settled here. The two drivers are independent: PostgreSQL can be landed
-without SQLite, or the reverse, and the phase list is the same either way.
+All six phases are built. MySQL is green (815 passed) and SQLite is green
+(802 passed, 19 skipped, no leaked tenant file), both including an
+end-to-end `tenancy:provision` run across a real queue worker reaching
+`status=completed`.
+
+**PostgreSQL is written and unverified.** The `pdo_pgsql` extension is not
+installed on this machine, so no PHP has ever connected to the `postgres:17`
+container this branch adds. Its four SQL assumptions were checked directly
+with `psql` — `WITH (FORCE)`, `WITH TEMPLATE`, `pg_database` matching, and
+`session_replication_role = 'replica'` — and the suite has not run on it.
+Install `php8.5-pgsql`, then `NUMEROSIS_TEST_DRIVER=pgsql composer test`
+before trusting the CI axis this branch turns on.
 
 ## Context
 
