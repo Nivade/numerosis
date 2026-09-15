@@ -6,8 +6,10 @@ namespace Nvade\Numerosis\Tests\Feature\Testing;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * `Nvade\Numerosis\Testing\CleansUpTenancyDatabases` is what this suite's own
@@ -118,11 +120,35 @@ class CleansUpTenancyDatabasesTest extends TestCase
         $this->assertSame(0, DB::table('tenants')->count());
     }
 
+    /**
+     * A write statement is recorded off its SQL, and the three supported
+     * drivers do not agree on how an identifier is quoted. Left unquoted-only
+     * this returns null on PostgreSQL and SQLite, teardown finds no dirty
+     * tables, and every central row leaks into the next test.
+     */
+    #[DataProvider('writeStatements')]
+    public function test_it_reads_the_table_off_a_write_however_the_driver_quotes_it(string $sql, ?string $table): void
+    {
+        $this->assertSame($table, $this->tableWrittenTo($sql));
+    }
+
+    /**
+     * @return array<string, array{string, string|null}>
+     */
+    public static function writeStatements(): array
+    {
+        return [
+            'mysql insert' => ['insert into `users` (`email`) values (?)', 'users'],
+            'postgres insert' => ['insert into "users" ("email") values (?)', 'users'],
+            'sqlite insert' => ['insert into "users" ("email") values (?)', 'users'],
+            'postgres update' => ['update "tenant_provisions" set "status" = ?', 'tenant_provisions'],
+            'unquoted insert' => ['insert into users (email) values (?)', 'users'],
+            'select' => ['select * from "users"', null],
+        ];
+    }
+
     private function databaseExists(string $database): bool
     {
-        return DB::connection('central')->selectOne(
-            'select schema_name from information_schema.schemata where schema_name = ?',
-            [$database],
-        ) !== null;
+        return in_array($database, resolve(TenantDatabaseManager::class)->namesMatchingPrefix($database), true);
     }
 }
