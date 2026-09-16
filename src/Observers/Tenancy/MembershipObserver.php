@@ -7,8 +7,10 @@ namespace Nvade\Numerosis\Observers\Tenancy;
 use Nvade\Numerosis\Actions\Cache\ForgetUserTenants;
 use Nvade\Numerosis\Actions\Tenancy\SyncTenantUserForMembership;
 use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Events\Tenancy\MemberJoined;
 use Nvade\Numerosis\Events\Tenancy\MemberRemoved;
+use Nvade\Numerosis\Events\Tenancy\MemberRoleChanged;
 use Nvade\Numerosis\Models\Central\Membership;
 use Nvade\Numerosis\Observers\Concerns\ForgetsCacheKey;
 
@@ -41,6 +43,28 @@ class MembershipObserver
             $membership->global_user_id,
             $membership->role,
             $membership->invited_by,
+        ));
+    }
+
+    public function updated(Membership $membership): void
+    {
+        if (! $membership->wasChanged('role')) {
+            return;
+        }
+
+        // Cast, so the original is the enum; a row written before the cast
+        // existed would not be.
+        $from = $membership->getOriginal('role');
+
+        if (! $from instanceof MembershipRole) {
+            return;
+        }
+
+        event(new MemberRoleChanged(
+            $membership->tenant_id,
+            $membership->global_user_id,
+            $from,
+            $membership->role,
         ));
     }
 

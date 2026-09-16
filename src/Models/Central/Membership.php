@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Models\Central;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Table;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,7 @@ use Illuminate\Support\Carbon;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Observers\Tenancy\MembershipObserver;
+use Nvade\Numerosis\Policies\Tenancy\MembershipPolicy;
 use Override;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 use Stancl\Tenancy\Database\Models\TenantPivot;
@@ -45,6 +47,7 @@ use Stancl\Tenancy\Database\Models\TenantPivot;
 ])]
 #[Table(name: 'memberships')]
 #[ObservedBy(MembershipObserver::class)]
+#[UsePolicy(MembershipPolicy::class)]
 class Membership extends TenantPivot
 {
     use CentralConnection;
@@ -75,7 +78,9 @@ class Membership extends TenantPivot
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(Numerosis::model(CentralUser::class));
+        // `global_user_id` references `users.global_id`, so both keys are
+        // explicit; the convention pair resolves nothing.
+        return $this->belongsTo(Numerosis::model(CentralUser::class), 'global_user_id', 'global_id');
     }
 
     /**
@@ -83,11 +88,21 @@ class Membership extends TenantPivot
      */
     public function inviter(): BelongsTo
     {
-        return $this->belongsTo(Numerosis::model(CentralUser::class), 'invited_by');
+        return $this->belongsTo(Numerosis::model(CentralUser::class), 'invited_by', 'global_id');
     }
 
     public function isOwner(): bool
     {
         return $this->role === MembershipRole::Owner;
+    }
+
+    /** Whether removing or demoting this row would leave the tenant with no admin. */
+    public function isLastAdmin(): bool
+    {
+        return $this->role === MembershipRole::Admin
+            && static::query()
+                ->where('tenant_id', $this->tenant_id)
+                ->where('role', MembershipRole::Admin->value)
+                ->count() === 1;
     }
 }

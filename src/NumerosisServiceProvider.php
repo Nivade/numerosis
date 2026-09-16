@@ -88,6 +88,7 @@ use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
 use Nvade\Numerosis\Livewire\Settings\DeleteUserForm;
 use Nvade\Numerosis\Models\Central;
 use Nvade\Numerosis\Models\Central\Invitation;
+use Nvade\Numerosis\Models\Central\Membership;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\PlanFeature;
 use Nvade\Numerosis\Models\Central\SocialAccount;
@@ -103,6 +104,7 @@ use Nvade\Numerosis\Policies\Billing\PaymentPlanPolicy;
 use Nvade\Numerosis\Policies\Billing\PlanFeaturePolicy;
 use Nvade\Numerosis\Policies\Billing\SubscriptionPolicy;
 use Nvade\Numerosis\Policies\Invitations\InvitationPolicy;
+use Nvade\Numerosis\Policies\Tenancy\MembershipPolicy;
 use Nvade\Numerosis\Policies\Tenancy\TenantPolicy;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
@@ -393,6 +395,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
     {
         $policies = [
             Invitation::class => InvitationPolicy::class,
+            Membership::class => MembershipPolicy::class,
             PaymentPlan::class => PaymentPlanPolicy::class,
             PlanFeature::class => PlanFeaturePolicy::class,
             SocialAccount::class => SocialAccountPolicy::class,

@@ -83,7 +83,8 @@ class InvitationIssuingTest extends TestCase
             ->assertRedirect('http://'.$domain.'/team/invitations')
             ->assertSessionHasErrors('email', errorBag: 'inviteMember');
 
-        $this->get('http://'.$domain.'/team/invitations')->assertOk()->assertSeeHtml('The email field must be a valid email address.');
+        // The form lives on `/team` now; `/team/invitations` redirects there.
+        $this->get('http://'.$domain.'/team')->assertOk()->assertSeeHtml('The email field must be a valid email address.');
     }
 
     public function test_an_owner_role_cannot_be_invited(): void

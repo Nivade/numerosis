@@ -2,14 +2,19 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Nvade\Numerosis\Enums\MiddlewareAlias;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Http\Controllers\Invitations\DestroyInvitationController;
 use Nvade\Numerosis\Http\Controllers\Invitations\StoreInvitationController;
+use Nvade\Numerosis\Http\Controllers\Team\DestroyMemberController;
+use Nvade\Numerosis\Http\Controllers\Team\UpdateMemberRoleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -42,9 +47,17 @@ Route::middleware(['universal', MiddlewareAlias::TenancyAuth->value.':'.Context:
     // The subscription gate: every authenticated tenant screen that is the
     // product itself. Fortify's own screens load outside it, since a suspended
     // tenant still has to verify an address.
-    Route::middleware(MiddlewareAlias::TenancySubscription->value)->group(function () {
+    Route::middleware([MiddlewareAlias::TenancySubscription->value, MiddlewareAlias::TenancyMembership->value])->group(function () {
+        Route::livewire('team', 'numerosis-pages::tenant.team')->name('team.index');
+        Route::patch('team/members/{membership}', UpdateMemberRoleController::class)->name('team.members.update');
+        Route::delete('team/members/{membership}', DestroyMemberController::class)->name('team.members.destroy');
+
         if (FeatureRegistry::enabled(InvitationsFeature::NAME)) {
-            Route::livewire('team/invitations', 'numerosis-pages::tenant.invitations')->name('team.invitations.index');
+            // The invitations screen folded into `team.index`; the name stays
+            // because a host may link it. `Str::beforeLast` on the current
+            // URL, not `route()`, which throws in path mode.
+            Route::get('team/invitations', fn (Request $request): RedirectResponse => redirect()->to(Str::beforeLast($request->url(), '/invitations')))
+                ->name('team.invitations.index');
             Route::post('team/invitations', StoreInvitationController::class)->name('team.invitations.store');
             Route::delete('team/invitations/{invitation}', DestroyInvitationController::class)->name('team.invitations.destroy');
         }

@@ -10,6 +10,7 @@ use Nvade\Numerosis\Concerns\Boot\RegistersOnce;
 use Nvade\Numerosis\Enums\MiddlewareAlias;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
+use Nvade\Numerosis\Http\Middleware\EnsureTenantMembership;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
 use Nvade\Numerosis\Http\Middleware\RequirePasswordIfSet;
@@ -52,6 +53,11 @@ final class MiddlewareRegistrar
             MiddlewareAlias::TenancyIdentification->value => InitializeTenancy::class,
             MiddlewareAlias::TenancyRoute->value => TenantRouteGuard::class,
             MiddlewareAlias::TenancySession->value => EnsureSessionMatchesTenant::class,
+
+            // Off the `tenant` group for the same reason as the subscription
+            // gate: it redirects to a central route and reads the tenant
+            // guard, so it belongs on the authenticated tenant routes only.
+            MiddlewareAlias::TenancyMembership->value => EnsureTenantMembership::class,
         ];
     }
 
