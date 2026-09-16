@@ -51,10 +51,12 @@ use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
 use Nvade\Numerosis\Console\Commands\DeleteTenants;
 use Nvade\Numerosis\Console\Commands\InstallNumerosisCommand;
+use Nvade\Numerosis\Console\Commands\ListClosedTenants;
 use Nvade\Numerosis\Console\Commands\ProvisionTenantCommand;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedStripeCustomers;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
+use Nvade\Numerosis\Console\Commands\ReopenTenantCommand;
 use Nvade\Numerosis\Console\Commands\TransferTenantOwnershipCommand;
 use Nvade\Numerosis\Contracts\Exceptions\ProvidesExceptionContext;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder as PackageDatabaseSeeder;
@@ -136,6 +138,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->runsMigrations()
             ->hasCommand(InstallNumerosisCommand::class)
             ->hasCommand(DeleteTenants::class)
+            ->hasCommand(ListClosedTenants::class)
+            ->hasCommand(ReopenTenantCommand::class)
             ->hasCommand(PruneOrphanedStripeCustomers::class)
             ->hasCommand(PruneOrphanedTenantDatabases::class)
             ->hasCommand(PruneStalledTenantProvisions::class)

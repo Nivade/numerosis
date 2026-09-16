@@ -1,7 +1,8 @@
 # Closing a tenant, and getting it back
 
-**Status: not executed. Written 2026-09-16.** Wave 1 of
-`saas-readiness-roadmap.md`. Depends on `tenant-ownership-transfer.md`.
+**Status: executed 2026-09-16 on `feat/tenant-close-and-recovery`.** Wave 1 of
+`saas-readiness-roadmap.md`. Depends on `tenant-ownership-transfer.md`. See
+"What shipped" at the bottom for the three places it deviates.
 
 ## Today: hard delete, no undo
 
@@ -104,3 +105,38 @@ three and mailing support.
 - **Webhooks after closure.** Stripe keeps sending events for a cancelling
   subscription. `WebhookController` must not resurrect a closed tenant through
   `SuspendUnlessEntitled` or the subscription-updated path.
+
+## What shipped
+
+`closed_at` on `tenants`, `Contracts\Tenancy\Closable`, `CloseTenant` /
+`ReopenTenant` / `AssertTenantClosable`, `TenantClosed` / `TenantReopened`, the
+`account-closed` notice with the owner's reopen, `team/close` behind
+`CloseTenantRequest` (typed name, `current_password`, unpaid-balance
+acknowledgement) and `MembershipPolicy::manageClosure`, the closed cohort in
+`tenancy:prune-orphaned-databases` behind
+`numerosis.tenancy.closure.purge_closed`, and the recovery-window guard on
+`tenants:delete`. Both webhook paths now stand aside for a closed tenant, and
+`SuspendTenant` does too: reopening clears `closed_at` and would otherwise
+leave `suspended_at` behind.
+
+Three deviations.
+
+**Phase 5 is two console commands, not a staff panel.** There is no staff
+panel — `staff-admin-panel.md` has not been executed and Filament went in
+Phase 1 — so the reopen-on-day-three case is `tenancy:closed-tenants` (days
+remaining) plus `tenancy:reopen`, the same substitution
+`tenant-ownership-transfer.md` made for the same reason.
+
+**Grace days are one config key, and `--days` now defaults to it.**
+`numerosis.tenancy.closure.grace_days` is the single number; the command's
+`--days` falls back to it rather than to a literal 30, and the suspended
+cohort excludes closed tenants so it cannot delete one the `purge_closed`
+flag is holding.
+
+**A reopen whose subscription has lapsed lands on `tenants.mine`, not on
+checkout.** `checkout/subscription/new` needs a plan slug and there is no
+plan-picker screen for an existing tenant to link to.
+
+`Testing\FakeStripeHttpClient` gained subscription retrieve/update and
+subscription-item retrieve, since `cancel()` and `resume()` are real API calls
+and `Subscription::currentPeriodEnd()` reads the item, not the subscription.

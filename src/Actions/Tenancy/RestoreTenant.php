@@ -15,7 +15,9 @@ class RestoreTenant
 
     public function handle(Tenant $tenant): void
     {
-        if (! $tenant->isSuspended()) {
+        // A closed tenant's subscription still emits `updated` events while it
+        // runs out its period, and none of them mean "let them back in".
+        if ($tenant->isClosed() || ! $tenant->isSuspended()) {
             return;
         }
 

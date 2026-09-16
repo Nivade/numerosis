@@ -25,6 +25,7 @@ use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Concerns\Billing\Billable;
 use Nvade\Numerosis\Concerns\Tenancy\RunsInTenant;
 use Nvade\Numerosis\Contracts\Subscribable;
+use Nvade\Numerosis\Contracts\Tenancy\Closable;
 use Nvade\Numerosis\Contracts\Tenancy\HasTenantOwner;
 use Nvade\Numerosis\Contracts\Tenancy\Suspendable;
 use Nvade\Numerosis\Database\Factories\Central\TenantFactory;
@@ -50,6 +51,7 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  * @property string|null $pm_last_four
  * @property Carbon|null $trial_ends_at
  * @property Carbon|null $suspended_at
+ * @property Carbon|null $closed_at
  * @property Carbon|null $provisioned_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -77,11 +79,12 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
     'created_by',
     'provisioned_at',
     'suspended_at',
+    'closed_at',
     'name',
 ])]
 #[ObservedBy(TenantObserver::class)]
 #[UsePolicy(TenantPolicy::class)]
-class Tenant extends BaseTenant implements HasTenantOwner, Subscribable, Suspendable, TenantWithDatabase
+class Tenant extends BaseTenant implements Closable, HasTenantOwner, Subscribable, Suspendable, TenantWithDatabase
 {
     use Billable;
     use HasDatabase;
@@ -111,6 +114,7 @@ class Tenant extends BaseTenant implements HasTenantOwner, Subscribable, Suspend
         'trial_ends_at',
         'provisioned_at',
         'suspended_at',
+        'closed_at',
     ];
 
     /** @var list<string>|null */
@@ -187,12 +191,23 @@ class Tenant extends BaseTenant implements HasTenantOwner, Subscribable, Suspend
     {
         return [
             'suspended_at' => 'datetime',
+            'closed_at' => 'datetime',
         ];
     }
 
     public function isSuspended(): bool
     {
         return $this->suspended_at !== null;
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->closed_at !== null;
+    }
+
+    public function purgeAt(): ?Carbon
+    {
+        return $this->closed_at?->copy()->addDays(Config::integer('numerosis.tenancy.closure.grace_days', 30));
     }
 
     public function isProvisioned(): bool

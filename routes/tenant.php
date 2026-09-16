@@ -13,8 +13,10 @@ use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Http\Controllers\Invitations\DestroyInvitationController;
 use Nvade\Numerosis\Http\Controllers\Invitations\StoreInvitationController;
+use Nvade\Numerosis\Http\Controllers\Team\CloseTenantController;
 use Nvade\Numerosis\Http\Controllers\Team\DestroyMemberController;
 use Nvade\Numerosis\Http\Controllers\Team\DestroyOwnershipNominationController;
+use Nvade\Numerosis\Http\Controllers\Team\ReopenTenantController;
 use Nvade\Numerosis\Http\Controllers\Team\StoreOwnershipNominationController;
 use Nvade\Numerosis\Http\Controllers\Team\UpdateMemberRoleController;
 
@@ -46,6 +48,13 @@ Route::middleware(['universal', MiddlewareAlias::TenancyAuth->value.':'.Context:
     Route::livewire('account-suspended', 'numerosis-pages::tenant.suspended')
         ->name('tenant.suspended');
 
+    // Outside the gate for the same reason, and the reopen with it: the owner
+    // undoing a closure has to reach it while the closure is still in force.
+    Route::livewire('account-closed', 'numerosis-pages::tenant.closed')
+        ->name('tenant.closed');
+
+    Route::post('account-closed/reopen', ReopenTenantController::class)->name('tenant.reopen');
+
     // The subscription gate: every authenticated tenant screen that is the
     // product itself. Fortify's own screens load outside it, since a suspended
     // tenant still has to verify an address.
@@ -55,6 +64,8 @@ Route::middleware(['universal', MiddlewareAlias::TenancyAuth->value.':'.Context:
         Route::delete('team/members/{membership}', DestroyMemberController::class)->name('team.members.destroy');
 
         Route::post('team/ownership', StoreOwnershipNominationController::class)->name('team.ownership.store');
+
+        Route::post('team/close', CloseTenantController::class)->name('team.close');
 
         Route::delete('team/ownership/{nomination}', DestroyOwnershipNominationController::class)
             ->name('team.ownership.destroy');

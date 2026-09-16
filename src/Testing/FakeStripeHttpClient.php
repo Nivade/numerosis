@@ -27,6 +27,15 @@ class FakeStripeHttpClient implements ClientInterface
     /** @var array<string, array<string, mixed>> */
     private array $setupIntents = [];
 
+    /** @var array<string, array<string, mixed>> */
+    private array $subscriptions = [];
+
+    /**
+     * How far out a materialized subscription item's period runs, which is
+     * what Cashier's `cancel()` writes to `subscriptions.ends_at`.
+     */
+    public int $currentPeriodEndsInDays = 30;
+
     private int $sequence = 0;
 
     /**
@@ -68,6 +77,9 @@ class FakeStripeHttpClient implements ClientInterface
                 $segments === ['setup_intents'] && $method === 'post' => $this->createSetupIntent($params),
                 \count($segments) === 2 && $segments[0] === 'setup_intents' && $method === 'get' => $this->retrieveSetupIntent($segments[1], $params),
                 \count($segments) === 3 && $segments[0] === 'setup_intents' && $segments[2] === 'confirm' && $method === 'post' => $this->confirmSetupIntent($segments[1], $params),
+                \count($segments) === 2 && $segments[0] === 'subscriptions' && $method === 'get' => $this->retrieveSubscription($segments[1]),
+                \count($segments) === 2 && $segments[0] === 'subscriptions' && $method === 'post' => $this->updateSubscription($segments[1], $params),
+                \count($segments) === 2 && $segments[0] === 'subscription_items' && $method === 'get' => $this->retrieveSubscriptionItem($segments[1]),
                 default => throw new RuntimeException("FakeStripeHttpClient has no handler for {$method} {$path} — add one, this is not a real Stripe API call."),
             };
         } catch (FakeStripeApiError $e) {
@@ -336,6 +348,51 @@ class FakeStripeHttpClient implements ClientInterface
         $this->paymentMethods[$id]['customer'] = $customerId;
 
         return $this->paymentMethods[$id];
+    }
+
+    /**
+     * Materialized on first sight, like {@see ensurePaymentMethod()}: a local
+     * `subscriptions` row created by a factory has a Stripe id nothing here
+     * ever posted.
+     *
+     * @return array<string, mixed>
+     */
+    private function retrieveSubscription(string $id): array
+    {
+        $this->subscriptions[$id] ??= [
+            'id' => $id,
+            'object' => 'subscription',
+            'status' => 'active',
+            'cancel_at_period_end' => false,
+            'customer' => null,
+            'billing_mode' => ['type' => 'flexible'],
+            'items' => ['object' => 'list', 'data' => [], 'has_more' => false, 'url' => '/v1/subscription_items'],
+        ];
+
+        return $this->subscriptions[$id];
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function updateSubscription(string $id, array $params): array
+    {
+        $this->retrieveSubscription($id);
+
+        $this->subscriptions[$id] = array_merge($this->subscriptions[$id], $params);
+
+        return $this->subscriptions[$id];
+    }
+
+    /** @return array<string, mixed> */
+    private function retrieveSubscriptionItem(string $id): array
+    {
+        return [
+            'id' => $id,
+            'object' => 'subscription_item',
+            'current_period_end' => now()->addDays($this->currentPeriodEndsInDays)->getTimestamp(),
+        ];
     }
 
     /**

@@ -376,6 +376,16 @@ return [
         // The seeder new tenant databases run.
         'seeder' => TenantDatabaseSeeder::class,
 
+        // An owner-closed tenant keeps its data for 'grace_days', during
+        // which a reopen restores it. 'purge_closed' is what lets
+        // tenancy:prune-orphaned-databases delete one past that window; keep
+        // it off until you have backups you could restore from.
+        'closure' => [
+            'grace_days' => (int) env('NUMEROSIS_CLOSURE_GRACE_DAYS', 30),
+
+            'purge_closed' => (bool) env('NUMEROSIS_PURGE_CLOSED_TENANTS', false),
+        ],
+
         'provisioning' => [
             // Run in order, each its own link in a queued chain and each
             // recorded on the provision row, so a retry resumes. Insert your
