@@ -17,6 +17,8 @@ class StaffPanelRoutesTest extends TestCase
 {
     use RefreshDatabase;
 
+    private bool $permissionsSeeded = false;
+
     /** @var list<string> */
     private const array ROUTES = [
         'staff.tenants',
@@ -82,10 +84,26 @@ class StaffPanelRoutesTest extends TestCase
      */
     private function userWithoutPermissions(): BaseCentralUser
     {
-        (new RoleAndPermissionSeeder)->run();
+        $this->seedPermissionsOnce();
 
         CentralUser::factory()->create();
 
         return CentralUser::factory()->create();
+    }
+
+    /**
+     * Once per test: every central role and permission row is written through
+     * the `central` connection, which is autocommit, so re-seeding inside one
+     * test leaves more rows for teardown to chase than it needs to.
+     */
+    private function seedPermissionsOnce(): void
+    {
+        if ($this->permissionsSeeded) {
+            return;
+        }
+
+        $this->permissionsSeeded = true;
+
+        (new RoleAndPermissionSeeder)->run();
     }
 }

@@ -34,7 +34,7 @@ use Nvade\Numerosis\Tests\Support\OverriddenTenant;
 
 uses(RefreshDatabase::class);
 
-it('registers the 4 middleware aliases and both groups, tenant group in order', function () {
+it('registers the middleware aliases and both groups, tenant group in order', function () {
     $middleware = new Middleware;
 
     Numerosis::middleware($middleware);
@@ -52,6 +52,7 @@ it('registers the 4 middleware aliases and both groups, tenant group in order', 
         'tenancy.identification',
         'tenancy.route',
         'tenancy.session',
+        'impersonation',
     ]);
 
     expect($groups)->toHaveKey('universal', []);
@@ -200,6 +201,7 @@ it('registers the middleware aliases/groups against the real router with no host
         'tenancy.identification',
         'tenancy.route',
         'tenancy.session',
+        'impersonation',
     ]);
 
     $kernel = resolve(Kernel::class);

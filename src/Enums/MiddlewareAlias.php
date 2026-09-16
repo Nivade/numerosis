@@ -18,4 +18,5 @@ enum MiddlewareAlias: string
     case TenancyRoute = 'tenancy.route';
     case TenancySession = 'tenancy.session';
     case TenancyMembership = 'tenancy.membership';
+    case Impersonation = 'impersonation';
 }

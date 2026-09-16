@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Invoice;
@@ -286,6 +287,24 @@ class Tenant extends BaseTenant implements Closable, HasTenantOwner, Subscribabl
         $domain = Numerosis::model(Domain::class);
 
         return (new $domain)->newFromBuilder($attributes);
+    }
+
+    /**
+     * Where this tenant answers, in every identification mode. Path mode
+     * creates no `domains` row at all, so there the tenant hangs off the
+     * central host under its own key.
+     */
+    public function baseUrl(): string
+    {
+        $domain = $this->primaryDomain();
+
+        if ($domain instanceof Domain) {
+            return Request::getScheme().'://'.$domain->getHost();
+        }
+
+        return Request::getScheme().'://'
+            .Config::string('numerosis.domains.central')
+            .'/'.$this->getTenantKey();
     }
 
     public function latestInvoice(): ?Invoice

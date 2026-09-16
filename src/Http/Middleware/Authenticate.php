@@ -11,8 +11,10 @@ use Illuminate\Auth\Middleware\Authenticate as Middleware;
 use Illuminate\Contracts\Auth\Factory;
 use Nvade\Numerosis\Actions\Auth\LoginUser;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Actions\Queries\GetCurrentImpersonation;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\Central\ImpersonationSession;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Override;
@@ -52,7 +54,11 @@ class Authenticate extends Middleware
     {
         $centralGuard = Context::Central->guard();
 
-        if (tenancy()->initialized && $this->authManager->guard($centralGuard)->check()) {
+        // Promotion would sign the staff user back in as themselves and end
+        // the impersonation silently, on any tenant they happen to belong to.
+        $impersonating = GetCurrentImpersonation::run() instanceof ImpersonationSession;
+
+        if (! $impersonating && tenancy()->initialized && $this->authManager->guard($centralGuard)->check()) {
             /** @var CentralUser $centralUser */
             $centralUser = GetAuthenticatedUser::run($centralGuard);
 

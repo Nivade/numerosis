@@ -146,21 +146,27 @@ central domain under `numerosis.routes.staff_prefix`. Impersonation stayed out
 — it belongs to `support-impersonation.md`, which rebuilds what Phase 2 of the
 six-package collapse deleted. Deviations in the plan's own "What shipped".
 
+`support-impersonation.md` moved to `archive/` 2026-09-16, the day it was
+written: stancl's own `UserImpersonation` behind a feature flag, with an
+`impersonation_sessions` audit row, a banner, a 60-minute cap and mail
+suppression around it. The link is unsigned on purpose — a 128-character
+single-use token with its own TTL, because signing would need a URL built for
+another host. Deviations in the plan's own "What shipped".
+
 ## Live
 
 Twenty-one files added 2026-09-16 from a capability sweep of the tree:
 `saas-readiness-roadmap.md` is the parent and holds the sequencing, the
 cross-cutting decisions and the shared foundations. The other twenty are one
-feature each and are listed here in the roadmap's wave order. Five,
+feature each and are listed here in the roadmap's wave order. Six,
 `seat-limit-at-invite.md`, `team-members-management.md`,
-`tenant-ownership-transfer.md`, `tenant-close-and-recovery.md` and
-`staff-admin-panel.md`, have since been executed and archived; the rest are
-not.
+`tenant-ownership-transfer.md`, `tenant-close-and-recovery.md`,
+`staff-admin-panel.md` and `support-impersonation.md`, have since been
+executed and archived; the rest are not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `support-impersonation.md` | Not executed. Wave 2. Rebuilds what Phase 2 deleted, with an audit trail |
 | `provisioning-observability.md` | Not executed. Wave 2. `step_records` is written and never read |
 | `fleet-tenant-migrations.md` | Not executed. Wave 2. No way to migrate tenants that already exist |
 | `two-factor-authentication.md` | Not executed. Wave 3. Fortify ships it; `HostConfig` leaves it off |

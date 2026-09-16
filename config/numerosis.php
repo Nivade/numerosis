@@ -110,6 +110,10 @@ return [
         // Staff screens on the central domain, under
         // 'routes.staff_prefix'. Off by default.
         // \Nvade\Numerosis\Features\Admin\StaffPanelFeature::class,
+
+        // Support staff signing in as a tenant user, audited and banner-visible
+        // for the whole session. Off by default.
+        // \Nvade\Numerosis\Features\Admin\ImpersonationFeature::class,
     ],
 
     /*
@@ -131,6 +135,10 @@ return [
         'prune_orphaned_databases' => (bool) env('SCHEDULE_PRUNE_ORPHANED_DATABASES', false),
 
         'prune_stalled_provisions' => (bool) env('SCHEDULE_PRUNE_STALLED_PROVISIONS', true),
+
+        // Closes impersonation rows nobody returned to. The per-request guard
+        // covers the rest.
+        'end_stale_impersonations' => (bool) env('SCHEDULE_END_STALE_IMPERSONATIONS', true),
         'prune_invitations' => (bool) env('SCHEDULE_PRUNE_INVITATIONS', true),
     ],
 
@@ -399,6 +407,19 @@ return [
             'grace_days' => (int) env('NUMEROSIS_CLOSURE_GRACE_DAYS', 30),
 
             'purge_closed' => (bool) env('NUMEROSIS_PURGE_CLOSED_TENANTS', false),
+        ],
+
+        // 'token_seconds' is how long a minted link may be redeemed for, and
+        // 'session_minutes' how long the impersonated session runs before the
+        // next request ends it. Both only matter under ImpersonationFeature.
+        'impersonation' => [
+            'token_seconds' => (int) env('NUMEROSIS_IMPERSONATION_TOKEN_SECONDS', 60),
+
+            'session_minutes' => (int) env('NUMEROSIS_IMPERSONATION_SESSION_MINUTES', 60),
+
+            // Outbound mail and notifications are dropped while impersonating,
+            // so support cannot send confusing email from inside an account.
+            'suppress_mail' => (bool) env('NUMEROSIS_IMPERSONATION_SUPPRESS_MAIL', true),
         ],
 
         'provisioning' => [

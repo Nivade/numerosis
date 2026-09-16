@@ -9,8 +9,11 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Nvade\Numerosis\Enums\MiddlewareAlias;
 use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Features\Admin\ImpersonationFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
+use Nvade\Numerosis\Http\Controllers\Admin\EndImpersonationController;
+use Nvade\Numerosis\Http\Controllers\Admin\RedeemImpersonationController;
 use Nvade\Numerosis\Http\Controllers\Invitations\DestroyInvitationController;
 use Nvade\Numerosis\Http\Controllers\Invitations\StoreInvitationController;
 use Nvade\Numerosis\Http\Controllers\Team\CloseTenantController;
@@ -37,6 +40,17 @@ use Nvade\Numerosis\Http\Controllers\Team\UpdateMemberRoleController;
 // where an unauthenticated visitor to a tenant lands.
 Route::get('/', fn () => view(Config::string('numerosis.routes.home_view')))
     ->name('tenant.home');
+
+// Outside every auth group: the staff user redeeming this has no tenant
+// session yet, which is the whole point. The 128-character single-use token
+// with its own TTL is the secret.
+if (FeatureRegistry::enabled(ImpersonationFeature::NAME)) {
+    Route::get('impersonate/{token}', RedeemImpersonationController::class)
+        ->middleware('throttle:10,1')
+        ->name('impersonate.redeem');
+
+    Route::post('impersonate/exit', EndImpersonationController::class)->name('impersonate.exit');
+}
 
 // `tenancy.auth`, not `auth`: Laravel's Authenticate plus the central-to-tenant
 // session promotion, so a central user who may access this tenant is signed in
