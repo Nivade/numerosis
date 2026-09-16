@@ -16,11 +16,13 @@ use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Foundation\Exceptions\Handler;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Middleware\TrustHosts;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Notifications\Events\NotificationSending;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -74,6 +76,7 @@ use Nvade\Numerosis\Events\Admin\ImpersonationStarted;
 use Nvade\Numerosis\Events\Auth\PasswordChanged;
 use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
+use Nvade\Numerosis\Events\Auth\SuspiciousLoginDetected;
 use Nvade\Numerosis\Events\Auth\TwoFactorAuthenticationCleared;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
@@ -604,6 +607,12 @@ class NumerosisServiceProvider extends PackageServiceProvider
             Route::middlewareGroup($name, $stack);
         }
 
+        foreach (Numerosis::middlewareGroupAppends() as $name => $stack) {
+            foreach ($stack as $middleware) {
+                Route::pushMiddlewareToGroup($name, $middleware);
+            }
+        }
+
         // Defaults to trusting nobody — see `numerosis.trusted_proxies`. A
         // host behind a real proxy that relies on this fallback (rather than
         // wiring `Numerosis::middleware()` itself) must set that config key.
@@ -682,9 +691,21 @@ class NumerosisServiceProvider extends PackageServiceProvider
     {
         Config::set('fortify.limiters.login', 'login');
 
-        RateLimiter::for('login', fn (Request $request): Limit => Limit::perMinute(5)->by(
-            $this->authThrottleKey($request, (string) $request->string(Fortify::username()))
-        ));
+        RateLimiter::for('login', function (Request $request): Limit {
+            $email = (string) $request->string(Fortify::username());
+            $key = $this->authThrottleKey($request, $email);
+
+            // Throws rather than returns, which is what the limiter does
+            // without a response callback; the callback exists only to reach
+            // the exhaustion moment.
+            return Limit::perMinute(5)->by($key)->response(
+                function (Request $request, array $headers) use ($email, $key): never {
+                    $this->reportExhaustedLoginLimiter($request, $email, $key);
+
+                    throw new ThrottleRequestsException('Too Many Attempts.', null, $headers);
+                }
+            );
+        });
 
         RateLimiter::for(OneTimePasswordFeature::LIMITER, fn (Request $request): Limit => Limit::perMinute(5)->by(
             $this->authThrottleKey($request, $this->pendingLoginAddress($request))
@@ -726,6 +747,22 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $email = $request->hasSession() ? $request->session()->get(SessionKey::LoginEmail->value) : null;
 
         return is_string($email) ? $email : '';
+    }
+
+    /**
+     * One {@see SuspiciousLoginDetected} per lockout window, not per blocked
+     * attempt: the marker is added for the limiter's own decay period and
+     * every later attempt in that window finds it already there.
+     */
+    protected function reportExhaustedLoginLimiter(Request $request, string $email, string $key): void
+    {
+        if (! Cache::add(CacheKeys::loginLockout($key), true, 60)) {
+            return;
+        }
+
+        $tenant = tenancy()->tenant;
+
+        event(new SuspiciousLoginDetected(Str::lower($email), $tenant instanceof Tenant ? (string) $tenant->getTenantKey() : null, $request->ip()));
     }
 
     /**

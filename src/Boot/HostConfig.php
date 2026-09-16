@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Boot;
 
 use Illuminate\Support\Facades\Config;
+use Illuminate\Validation\Rules\Password;
 use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Exceptions\Boot\ConfigNamespaceNotReady;
@@ -49,6 +50,7 @@ final class HostConfig
         self::authPasswordBroker();
         self::applyCorrections();
         self::fortifyFeatures();
+        self::passwordDefaults();
     }
 
     /**
@@ -434,5 +436,19 @@ final class HostConfig
         if (Config::array('fortify.features') !== $features) {
             self::set('fortify.features', $features);
         }
+    }
+
+    /**
+     * `uncompromised()` fails open: `NotPwnedVerifier` reports the exception
+     * and treats an unreachable API as no match, so a network outage never
+     * blocks a signup.
+     */
+    private static function passwordDefaults(): void
+    {
+        if (! Config::boolean('numerosis.auth.check_compromised_passwords')) {
+            return;
+        }
+
+        Password::defaults(static fn (): Password => Password::min(8)->uncompromised());
     }
 }

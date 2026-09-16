@@ -90,6 +90,12 @@ final class CacheKeys
         return self::prefix().':observability:scheduler_heartbeat';
     }
 
+    /** The gate that collapses one login lockout window into a single event. */
+    public static function loginLockout(string $throttleKey): string
+    {
+        return self::prefix().':auth:login_lockout:'.sha1($throttleKey);
+    }
+
     /** Global: the gate that collapses a burst of provisioning failures into one alert. */
     public static function provisioningAlertThrottle(): string
     {

@@ -186,6 +186,16 @@ class Numerosis
     }
 
     /**
+     * {@see MiddlewareRegistrar::groupAppends()}
+     *
+     * @return array<string, list<string>>
+     */
+    public static function middlewareGroupAppends(): array
+    {
+        return MiddlewareRegistrar::groupAppends();
+    }
+
+    /**
      * Registered as Laravel's factory-name resolver.
      *
      * Implementation, and the full caveat about it answering for your own

@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\Rules\Password;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
 use Laravel\Fortify\Fortify;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
@@ -253,6 +254,13 @@ abstract class TestCase extends Orchestra
             LinkTenantSubscription::class,
             FinalizeTenantProvisioning::class,
         ]);
+
+        // HostConfig::apply() already ran (see the boot-order note below) and
+        // put uncompromised() on Password::defaults(), which would call the
+        // Have I Been Pwned API from every test that sets a password.
+        // CompromisedPasswordTest opts back in with the HTTP client faked.
+        $app->make(Repository::class)->set('numerosis.auth.check_compromised_passwords', false);
+        Password::defaults(static fn (): Password => Password::min(8));
 
         $app->make(Repository::class)->set('numerosis.domains.apex', 'numerosistest.test');
         $app->make(Repository::class)->set('numerosis.domains.central', 'central.numerosistest.test');

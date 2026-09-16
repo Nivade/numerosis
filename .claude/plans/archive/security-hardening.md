@@ -1,6 +1,6 @@
 # Security hardening pass
 
-**Status: not executed. Written 2026-09-16.** Wave 3 of
+**Status: executed 2026-09-17.** See "What shipped" at the bottom. Wave 3 of
 `saas-readiness-roadmap.md`. Three unrelated small items kept together because
 each is an afternoon and none justifies its own session.
 
@@ -92,3 +92,30 @@ which needs a GeoIP database this package no longer depends on.
 - **`x-turnstile` compiles `@this` to `$_instance`** — a Turnstile widget in a
   plain Blade form is already a 500 rather than a degraded widget. Do not
   discover that while debugging a CSP report.
+
+## What shipped
+
+All four phases, 2026-09-17.
+
+- `HostConfig::passwordDefaults()` sets `Password::min(8)->uncompromised()`
+  behind `numerosis.auth.check_compromised_passwords`, default on.
+  `Tests\TestCase` turns it off for the rest of the suite so no other test
+  calls the range API; `CompromisedPasswordTest` opts back in with `Http::fake`.
+- `Http\Middleware\SecurityHeaders`, appended to the `web` group through a new
+  `MiddlewareRegistrar::groupAppends()` — `groups()` replaces a stack and the
+  `web` group is the host's, so appending needed its own seam. The `tenant`
+  group nests `web`, which is why one entry covers both.
+- The webhook exemption is a path list (`numerosis.security.headers.except`),
+  not a content-type check: Cashier answers the webhook with `text/html`.
+- `Events\Auth\SuspiciousLoginDetected`, dispatched from a `Limit::response()`
+  callback that **throws** `ThrottleRequestsException` rather than returning a
+  response, so the limiter's behaviour is unchanged. Once per lockout window
+  via `CacheKeys::loginLockout()`.
+- Documented in `docs/host-requirements.md` (both the flag and the
+  report-only-to-enforcing procedure) and `docs/extending.md` (the event).
+
+Not done, and deliberately: the plan's "checkout renders Stripe Elements under
+the shipped policy" test. A report-only policy blocks nothing, so the test
+would pass against a policy missing every origin. What it asserts instead is
+that the shipped directives name `js.stripe.com`, `challenges.cloudflare.com`
+and `fonts.bunny.net`, which is the fact a tightening would break.

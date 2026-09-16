@@ -260,6 +260,11 @@ return [
         // Whether HostConfig may write fortify.features. Set false once you
         // have edited that key yourself.
         'manage_fortify_features' => true,
+
+        // Adds uncompromised() to Password::defaults(), which calls the Have I
+        // Been Pwned range API. Turn off for an air-gapped deployment, or when
+        // the host sets Password::defaults() itself.
+        'check_compromised_passwords' => env('NUMEROSIS_CHECK_COMPROMISED_PASSWORDS', true),
     ],
 
     /*
@@ -275,6 +280,83 @@ return [
         'routes' => [
             'redirect' => ['name' => 'social.redirect'],
             'callback' => ['name' => 'social.callback'],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Security Headers
+    |--------------------------------------------------------------------------
+    |
+    | Set on every HTML response by Http\Middleware\SecurityHeaders, which the
+    | package appends to the 'web' group. A null or empty value omits that
+    | header. 'except' holds path patterns for routes that share the group but
+    | serve no browser: Stripe's webhook answers with text/html.
+    |
+    | The CSP ships report-only with the Stripe, Turnstile and Bunny Fonts
+    | origins allowed. Watch your browser console for a week, add the origins
+    | your own assets need, then set 'report_only' to false.
+    */
+
+    'security' => [
+        'headers' => [
+            'enabled' => env('NUMEROSIS_SECURITY_HEADERS', true),
+
+            'except' => ['stripe/*', 'billing/webhook', 'telescope/*'],
+
+            // includeSubDomains is load-bearing in subdomain identification
+            // mode: without it every tenant host is exempt.
+            'strict_transport_security' => 'max-age=31536000; includeSubDomains',
+
+            'x_content_type_options' => 'nosniff',
+
+            'referrer_policy' => 'strict-origin-when-cross-origin',
+
+            'x_frame_options' => 'DENY',
+
+            'permissions_policy' => 'camera=(), microphone=(), geolocation=()',
+
+            'content_security_policy' => [
+                'enabled' => true,
+
+                'report_only' => env('NUMEROSIS_CSP_REPORT_ONLY', true),
+
+                'report_uri' => env('NUMEROSIS_CSP_REPORT_URI'),
+
+                'directives' => [
+                    'default-src' => ["'self'"],
+
+                    // Livewire injects an inline script and Alpine evaluates
+                    // expressions, so neither allowance can be dropped.
+                    'script-src' => [
+                        "'self'",
+                        "'unsafe-inline'",
+                        "'unsafe-eval'",
+                        'https://js.stripe.com',
+                        'https://challenges.cloudflare.com',
+                    ],
+
+                    'style-src' => ["'self'", "'unsafe-inline'", 'https://fonts.bunny.net'],
+
+                    'img-src' => ["'self'", 'data:', 'https:'],
+
+                    'font-src' => ["'self'", 'data:', 'https://fonts.bunny.net'],
+
+                    'connect-src' => ["'self'", 'https://api.stripe.com'],
+
+                    'frame-src' => [
+                        'https://js.stripe.com',
+                        'https://hooks.stripe.com',
+                        'https://challenges.cloudflare.com',
+                    ],
+
+                    'frame-ancestors' => ["'none'"],
+
+                    'base-uri' => ["'self'"],
+
+                    'form-action' => ["'self'"],
+                ],
+            ],
         ],
     ],
 
