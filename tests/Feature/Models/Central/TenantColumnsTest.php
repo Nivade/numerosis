@@ -49,7 +49,7 @@ class TenantColumnsTest extends TestCase
         /** @var array<string, mixed> $data */
         $data = json_decode((string) $row->data, true) ?: [];
 
-        foreach (['stripe_id', 'pm_type', 'pm_last_four', 'trial_ends_at', 'provisioned_at', 'created_at', 'updated_at'] as $column) {
+        foreach (['stripe_id', 'pm_type', 'pm_last_four', 'trial_ends_at', 'provisioned_at', 'closed_at', 'created_at', 'updated_at'] as $column) {
             $this->assertArrayNotHasKey($column, $data, "`{$column}` is a real column but was written to `data`.");
         }
 
@@ -70,6 +70,18 @@ class TenantColumnsTest extends TestCase
 
         $this->assertTrue($provisioned->contains($ready->id));
         $this->assertFalse($provisioned->contains($pending->id));
+    }
+
+    /** `closed_at` decides the recovery window, and the prune command reads it in SQL. */
+    public function test_closed_at_is_queryable_in_sql(): void
+    {
+        $closed = Tenant::create(['id' => 'closed-'.uniqid(), 'closed_at' => now()]);
+        $open = Tenant::create(['id' => 'open-'.uniqid()]);
+
+        $ids = Tenant::query()->whereNotNull('closed_at')->pluck('id');
+
+        $this->assertTrue($ids->contains($closed->id));
+        $this->assertFalse($ids->contains($open->id));
     }
 
     public function test_a_column_added_by_migration_is_recognised_without_registration(): void

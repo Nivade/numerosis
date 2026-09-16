@@ -7,30 +7,77 @@ namespace Nvade\Numerosis\Console\Commands;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 
 #[Description('Delete tenants by id, or every tenant, dropping each database with the row')]
 #[Signature('tenants:delete
                             {tenants?* : Tenant IDs to delete}
-                            {--all : Delete all tenants}')]
+                            {--all : Delete all tenants}
+                            {--force : Delete even a closed tenant still inside its recovery window}')]
 class DeleteTenants extends Command
 {
-    public function handle(): void
+    public function handle(): int
     {
         $tenantClass = Numerosis::model(Tenant::class);
+        $skipped = 0;
 
         if ($this->option('all')) {
-            $tenantClass::each(fn ($tenant) => $tenant->delete());
+            $tenantClass::each(function ($tenant) use (&$skipped): void {
+                $tenant instanceof Tenant && $this->isProtected($tenant)
+                    ? $skipped++
+                    : $tenant->delete();
+            });
 
-            return;
+            return $this->report($skipped);
         }
 
         /** @var list<string> $tenantIds */
         $tenantIds = (array) $this->argument('tenants');
 
         foreach ($tenantIds as $tenantId) {
-            $tenantClass::find($tenantId)?->delete();
+            $tenant = $tenantClass::find($tenantId);
+
+            if (! $tenant instanceof Tenant) {
+                continue;
+            }
+
+            if ($this->isProtected($tenant)) {
+                $skipped++;
+
+                continue;
+            }
+
+            $tenant->delete();
         }
+
+        return $this->report($skipped);
+    }
+
+    /**
+     * A closed tenant was promised its data until this date, so deleting it
+     * before then takes `--force`, or the recovery window is decorative.
+     */
+    private function isProtected(Tenant $tenant): bool
+    {
+        if ($this->option('force')) {
+            return false;
+        }
+
+        $purgeAt = $tenant->purgeAt();
+
+        if (! $purgeAt instanceof Carbon || $purgeAt->isPast()) {
+            return false;
+        }
+
+        $this->warn("Skipped {$tenant->id}: closed, recoverable until {$purgeAt->toDateString()}. Pass --force to delete it anyway.");
+
+        return true;
+    }
+
+    private function report(int $skipped): int
+    {
+        return $skipped === 0 ? self::SUCCESS : self::FAILURE;
     }
 }

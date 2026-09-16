@@ -24,6 +24,12 @@ class SuspendUnlessEntitled
 
     public function handle(Tenant $tenant): void
     {
+        // Closure already blocks access and says why; suspending on top of it
+        // sends dunning mail for a subscription the owner cancelled.
+        if ($tenant->isClosed()) {
+            return;
+        }
+
         $stillEntitled = $tenant->subscriptions()
             ->get()
             ->contains(fn (Subscription $subscription): bool => $subscription->valid());

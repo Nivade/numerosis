@@ -131,20 +131,28 @@ path mode on a `{tenant}`-prefixed route, and phase 5 is a console command
 because `staff-admin-panel.md` has not been executed. All four recorded in the
 plan's own "What shipped".
 
+`tenant-close-and-recovery.md` moved to `archive/` 2026-09-16, the day it was
+written: owner-initiated closure with a 30-day recovery window, subscription
+cancelled at period end. Phase 5 is two console commands rather than a staff
+view, for the same reason `tenant-ownership-transfer.md`'s was — there is no
+staff panel yet. Purging a closed tenant stays behind
+`numerosis.tenancy.closure.purge_closed`, off, until backups exist, and that
+key's `grace_days` sibling is now what `--days` defaults to. Deviations in the
+plan's own "What shipped".
+
 ## Live
 
 Twenty-one files added 2026-09-16 from a capability sweep of the tree:
 `saas-readiness-roadmap.md` is the parent and holds the sequencing, the
 cross-cutting decisions and the shared foundations. The other twenty are one
-feature each and are listed here in the roadmap's wave order. Three,
-`seat-limit-at-invite.md`, `team-members-management.md` and
-`tenant-ownership-transfer.md`, have since been executed and archived; the
-rest are not.
+feature each and are listed here in the roadmap's wave order. Four,
+`seat-limit-at-invite.md`, `team-members-management.md`,
+`tenant-ownership-transfer.md` and `tenant-close-and-recovery.md`, have since
+been executed and archived; the rest are not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `tenant-close-and-recovery.md` | Not executed. Wave 1. Deletion is irreversible and has no customer-facing path |
 | `staff-admin-panel.md` | Not executed. Wave 2. Livewire, not Filament; off by default |
 | `support-impersonation.md` | Not executed. Wave 2. Rebuilds what Phase 2 deleted, with an audit trail |
 | `provisioning-observability.md` | Not executed. Wave 2. `step_records` is written and never read |

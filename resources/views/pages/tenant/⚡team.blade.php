@@ -1,11 +1,13 @@
 <?php
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Config;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Queries\GetPendingInvitationsForTenant;
 use Nvade\Numerosis\Actions\Queries\GetTenantMembers;
 use Nvade\Numerosis\Actions\Queries\GetTenantSeatUsage;
+use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
@@ -29,6 +31,14 @@ class extends Component
 
     /** Scalars, not the model: Livewire re-queries a hydrated model on the default connection. */
     public ?array $nomination = null;
+
+    public string $tenantName = '';
+
+    public int $graceDays = 30;
+
+    public string $purgeDate = '';
+
+    public bool $hasUnpaidInvoice = false;
 
     public function mount(): void
     {
@@ -60,6 +70,13 @@ class extends Component
 
             $this->seatsUsed = $seats->used();
             $this->seatLimit = $seats->limit;
+
+            $this->tenantName = (string) $tenant->name;
+            $this->graceDays = Config::integer('numerosis.tenancy.closure.grace_days', 30);
+            $this->purgeDate = now()->addDays($this->graceDays)->toFormattedDayDateString();
+            $this->hasUnpaidInvoice = $this->isOwner && $tenant->subscriptions()
+                ->whereIn('stripe_status', [SubscriptionStatus::PastDue->value, SubscriptionStatus::Unpaid->value])
+                ->exists();
         }
     }
 }; ?>
@@ -192,6 +209,49 @@ class extends Component
                         </form>
                     @endif
                 @endif
+            </x-numerosis::ui.card>
+        @endif
+
+        @if ($isOwner)
+            <div>
+                <x-numerosis::ui.heading :level="2">{{ __('Close this workspace') }}</x-numerosis::ui.heading>
+                <x-numerosis::ui.subheading class="mt-1">
+                    {{ __('Access stops immediately. Your data is kept for :days days and permanently deleted on :date. Billing stops at the end of the period you have already paid for.', ['days' => $graceDays, 'date' => $purgeDate]) }}
+                </x-numerosis::ui.subheading>
+            </div>
+
+            <x-numerosis::ui.card>
+                <x-numerosis::ui.text variant="subtle" size="sm">
+                    {{ __('Leaving rather than shutting down? Transfer ownership above instead, and the workspace keeps running.') }}
+                </x-numerosis::ui.text>
+
+                <form method="POST" action="{{ url()->current().'/close' }}" class="mt-4 flex flex-col gap-4">
+                    @csrf
+
+                    <div>
+                        <flux:input name="name" :label="__('Type :name to confirm', ['name' => $tenantName])" />
+                        <flux:error name="name" bag="closeTenant" />
+                    </div>
+
+                    @if (filled(auth()->user()?->getAuthPassword()))
+                        <div>
+                            <flux:input name="password" :label="__('Your password')" type="password" />
+                            <flux:error name="password" bag="closeTenant" />
+                        </div>
+                    @endif
+
+                    @if ($hasUnpaidInvoice)
+                        <flux:checkbox
+                            name="acknowledge_balance"
+                            value="1"
+                            :label="__('I understand this workspace has an unpaid invoice that stays owed.')"
+                        />
+                    @endif
+
+                    <flux:button type="submit" variant="danger" class="self-start">
+                        {{ __('Close workspace') }}
+                    </flux:button>
+                </form>
             </x-numerosis::ui.card>
         @endif
 

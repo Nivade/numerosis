@@ -71,6 +71,14 @@ class MembershipPolicy
         return $role === MembershipRole::Owner;
     }
 
+    /** Closing and reopening a workspace is the owner's own decision, on their own membership row. */
+    public function manageClosure(User $user, Membership $membership): bool
+    {
+        return $this->belongsToCurrentTenant($membership)
+            && $membership->isOwner()
+            && $membership->global_user_id === $user->global_id;
+    }
+
     /**
      * `memberships` is a central table, so binding `{membership}` on a tenant
      * route resolves any id regardless of owner, and every tenant's `admin`

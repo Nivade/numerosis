@@ -14,7 +14,9 @@ class SuspendTenant
 
     public function handle(Tenant $tenant): void
     {
-        if ($tenant->isSuspended()) {
+        // Suspending a closed tenant would outlive the closure: reopening
+        // clears `closed_at` and would leave `suspended_at` behind.
+        if ($tenant->isClosed() || $tenant->isSuspended()) {
             return;
         }
 

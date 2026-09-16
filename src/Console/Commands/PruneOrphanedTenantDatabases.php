@@ -13,9 +13,9 @@ use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 
-#[Description('Drop tenant databases that have no matching tenant record, and tenants suspended and never paid for too long')]
+#[Description('Drop tenant databases that have no matching tenant record, and tenants suspended or closed for too long')]
 #[Signature('tenancy:prune-orphaned-databases
-                            {--days=30 : How long a tenant must have been suspended before it is eligible for deletion}
+                            {--days= : How many days a tenant must have been suspended or closed before it is eligible for deletion, defaulting to numerosis.tenancy.closure.grace_days}
                             {--dry-run : List what would be dropped without dropping anything}
                             {--force : Skip the confirmation prompt}')]
 class PruneOrphanedTenantDatabases extends Command
@@ -27,12 +27,23 @@ class PruneOrphanedTenantDatabases extends Command
 
     public function handle(): int
     {
-        $orphanResult = $this->pruneOrphanedDatabases();
-        $suspendedResult = $this->pruneSuspendedTenants();
+        $results = [
+            $this->pruneOrphanedDatabases(),
+            $this->pruneSuspendedTenants(),
+            $this->pruneClosedTenants(),
+        ];
 
-        return $orphanResult === self::FAILURE || $suspendedResult === self::FAILURE
-            ? self::FAILURE
-            : self::SUCCESS;
+        return in_array(self::FAILURE, $results, true) ? self::FAILURE : self::SUCCESS;
+    }
+
+    /** One number for both cohorts: the recovery window a closed tenant is promised. */
+    private function graceDays(): int
+    {
+        $option = $this->option('days');
+
+        return is_numeric($option)
+            ? (int) $option
+            : Config::integer('numerosis.tenancy.closure.grace_days', 30);
     }
 
     private function pruneOrphanedDatabases(): int
@@ -89,12 +100,15 @@ class PruneOrphanedTenantDatabases extends Command
      */
     private function pruneSuspendedTenants(): int
     {
-        $days = (int) $this->option('days');
+        $days = $this->graceDays();
         $cutoff = now()->subDays($days);
 
         $tenantClass = Numerosis::model(Tenant::class);
 
+        // A closed tenant is only ever deleted through the closed cohort,
+        // which `purge_closed` gates; reaching it here would bypass that.
         $suspended = $tenantClass::query()
+            ->whereNull('closed_at')
             ->whereNotNull('suspended_at')
             ->where('suspended_at', '<', $cutoff);
 
@@ -129,6 +143,63 @@ class PruneOrphanedTenantDatabases extends Command
         }
 
         $this->info("Deleted {$deleted} suspended tenant(s).");
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Off unless `numerosis.tenancy.closure.purge_closed` says otherwise:
+     * this is the only path that destroys a tenant its owner was promised a
+     * recovery window for, and there is no backup to restore it from yet.
+     */
+    private function pruneClosedTenants(): int
+    {
+        if (! Config::boolean('numerosis.tenancy.closure.purge_closed', false)) {
+            $this->info('Purging closed tenants is off (numerosis.tenancy.closure.purge_closed).');
+
+            return self::SUCCESS;
+        }
+
+        $days = $this->graceDays();
+        $cutoff = now()->subDays($days);
+
+        $tenantClass = Numerosis::model(Tenant::class);
+
+        $closed = $tenantClass::query()
+            ->whereNotNull('closed_at')
+            ->where('closed_at', '<', $cutoff);
+
+        $count = $closed->count();
+
+        if ($count === 0) {
+            $this->info('No tenants closed long enough to purge.');
+
+            return self::SUCCESS;
+        }
+
+        $this->warn("Found {$count} tenant(s) closed for more than {$days} day(s).");
+
+        /** @var Collection<int, Tenant> $tenants */
+        $tenants = $closed->get();
+
+        if ($this->option('dry-run')) {
+            $tenants->each(fn (Tenant $tenant) => $this->line("  would delete {$tenant->id} (closed {$tenant->closed_at})"));
+
+            return self::SUCCESS;
+        }
+
+        if (! $this->option('force') && ! $this->confirm("Permanently delete {$count} closed tenant(s) and their data?")) {
+            return self::FAILURE;
+        }
+
+        $deleted = 0;
+
+        foreach ($tenants as $tenant) {
+            $tenant->delete();
+            $deleted++;
+        }
+
+        $this->info("Deleted {$deleted} closed tenant(s).");
 
         return self::SUCCESS;
     }
