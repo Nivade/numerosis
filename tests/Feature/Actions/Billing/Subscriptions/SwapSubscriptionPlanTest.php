@@ -50,6 +50,16 @@ class SwapSubscriptionPlanTest extends TestCase
             {
                 return false;
             }
+
+            public function hasSeatForNewInvitation(Subscribable $for): bool
+            {
+                return true;
+            }
+
+            public function hasSeatForNewMember(Subscribable $for): bool
+            {
+                return true;
+            }
         });
 
         $tenant = Tenant::factory()->create();

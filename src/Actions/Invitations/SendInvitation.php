@@ -6,8 +6,10 @@ namespace Nvade\Numerosis\Actions\Invitations;
 
 use Illuminate\Database\UniqueConstraintViolationException;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
 use Nvade\Numerosis\Data\Invitations\InvitationData;
 use Nvade\Numerosis\Events\Invitations\InvitationCreated;
+use Nvade\Numerosis\Exceptions\Invitations\SeatLimitReached;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -27,6 +29,10 @@ use RuntimeException;
 class SendInvitation
 {
     use AsAction;
+
+    public function __construct(
+        private readonly PlanPolicy $planPolicy,
+    ) {}
 
     public function handle(Tenant $tenant, InvitationData $data, User $inviter): Invitation
     {
@@ -54,6 +60,16 @@ class SendInvitation
 
         /** @var Invitation $invitation */
         $invitation = $invitationClass::firstOrNew($identity);
+
+        // A row that is still pending already holds a seat, so re-issuing onto
+        // it consumes nothing.
+        $holdsASeatAlready = $invitation->exists && ! $invitation->isAccepted() && ! $invitation->isExpired();
+
+        throw_unless(
+            $holdsASeatAlready || $this->planPolicy->hasSeatForNewInvitation($tenant),
+            SeatLimitReached::class,
+            'This workspace has no seats left. Upgrade its plan to invite more members.',
+        );
 
         try {
             $invitation->forceFill($state)->save();

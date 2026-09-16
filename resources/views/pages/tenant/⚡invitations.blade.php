@@ -4,12 +4,18 @@ use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Queries\GetPendingInvitationsForTenant;
+use Nvade\Numerosis\Actions\Queries\GetTenantSeatUsage;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
+use Nvade\Numerosis\Models\Central\Tenant;
 
 new #[Layout('numerosis-layouts::app')]
 class extends Component
 {
     public Collection $invitations;
+
+    public int $seatsUsed = 0;
+
+    public ?int $seatLimit = null;
 
     public function mount(): void
     {
@@ -18,7 +24,16 @@ class extends Component
 
     private function refreshInvitations(): void
     {
-        $this->invitations = GetPendingInvitationsForTenant::run((string) tenant()->getKey());
+        $tenant = tenant();
+
+        $this->invitations = GetPendingInvitationsForTenant::run((string) $tenant->getKey());
+
+        if ($tenant instanceof Tenant) {
+            $seats = GetTenantSeatUsage::run($tenant);
+
+            $this->seatsUsed = $seats->used();
+            $this->seatLimit = $seats->limit;
+        }
     }
 }; ?>
 <section class="mx-auto max-w-prose w-full h-full content-center">
@@ -27,6 +42,12 @@ class extends Component
         <div>
             <x-numerosis::ui.heading :level="1">{{ __('Team Invitations') }}</x-numerosis::ui.heading>
             <x-numerosis::ui.subheading class="mt-1">{{ __('Invite new members to this tenant') }}</x-numerosis::ui.subheading>
+
+            @if ($seatLimit !== null)
+                <x-numerosis::ui.text variant="subtle" size="sm" class="mt-1">
+                    {{ __(':used of :limit seats used', ['used' => $seatsUsed, 'limit' => $seatLimit]) }}
+                </x-numerosis::ui.text>
+            @endif
         </div>
 
         @if (session('status'))
