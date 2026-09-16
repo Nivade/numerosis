@@ -41,6 +41,26 @@ class PackageScheduleTest extends TestCase
         $this->assertSame('0 0 * * *', $this->expressionFor($schedule, 'billing:prune-orphaned-customers'));
     }
 
+    /** Off by default, because every cohort it prunes is unrecoverable. */
+    public function test_it_does_not_schedule_database_pruning_unless_asked(): void
+    {
+        $this->assertNotContains('tenancy:prune-orphaned-databases', $this->scheduledCommands());
+
+        Config::set('numerosis.schedule.prune_orphaned_databases', true);
+        app()->forgetInstance(Schedule::class);
+
+        $this->assertContains('tenancy:prune-orphaned-databases', $this->scheduledCommands());
+    }
+
+    /** A scheduled run has nobody to answer the command's own confirmation. */
+    public function test_scheduled_database_pruning_is_forced(): void
+    {
+        Config::set('numerosis.schedule.prune_orphaned_databases', true);
+        app()->forgetInstance(Schedule::class);
+
+        $this->assertStringContainsString('--force', $this->invocationOf('tenancy:prune-orphaned-databases'));
+    }
+
     public function test_each_entry_is_gated_by_its_own_config_switch(): void
     {
         Config::set('numerosis.schedule.prune_orphaned_customers', false);
@@ -89,6 +109,17 @@ class PackageScheduleTest extends TestCase
             $this->commandNameOf(...),
             $this->schedule()->events(),
         ));
+    }
+
+    private function invocationOf(string $command): string
+    {
+        foreach ($this->schedule()->events() as $event) {
+            if ($this->commandNameOf($event) === $command) {
+                return (string) $event->command;
+            }
+        }
+
+        $this->fail("No scheduled event runs [{$command}].");
     }
 
     private function expressionFor(Schedule $schedule, string $command): string

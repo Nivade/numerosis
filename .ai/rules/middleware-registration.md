@@ -38,6 +38,25 @@ regenerates and discards. The facts are the same; only the home changed.
   auth is not a precondition; it sits inside the authenticated group because
   that is the surface worth gating, not because it needs a guard.
 
+- **`tenancy.subscription` gates two states, and the closed one answers
+  first** (added 2026-09-16). `EnsureTenantSubscriptionActive` reads
+  `closed_at` before `suspended_at`: a closure the owner asked for outranks a
+  payment that failed, and the two screens say opposite things ("here is how
+  to undo this" against "fix your card"). Both targets — `tenant.closed` and
+  `tenant.suspended` — sit outside the inner group for the loop reason above,
+  and so does `tenant.reopen`, since the owner undoing a closure has to reach
+  it while the closure is still in force.
+
+  **Both branches call `to_route()`, which throws in path identification
+  mode.** `route('tenant.closed')` needs the `{tenant}` parameter no
+  `URL::defaults()` supplies (see `central-rows-on-tenant-routes.md`), so the
+  gate is `UrlGenerationException` rather than a redirect in that mode. The
+  suspended branch has always had this; the closed one copies it. A test
+  cannot see it in the default mode either: `Tests\TestCase` forces a central
+  root URL, so the redirect resolves to the *central* host and a bare
+  `assertRedirect()` still passes. `TenantClosureTest` asserts the path with
+  `assertRedirectContains()` for that reason.
+
 - **One alias registry, and it is structured that way on purpose.**
   `Numerosis::middlewareAliases()` / `::middlewareGroups()` are the single
   source: `NumerosisServiceProvider::registerMiddleware()` iterates them for

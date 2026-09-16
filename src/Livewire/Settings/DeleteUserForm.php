@@ -40,9 +40,10 @@ class DeleteUserForm extends Component
         } else {
             $owned = $user->tenants()
                 ->wherePivot('role', MembershipRole::Owner->value)
+                ->whereNull('closed_at')
                 ->pluck('name');
 
-            $this->addError('password', __('You still own :names. Transfer ownership from each of those workspaces, on its team page, before deleting your account.', [
+            $this->addError('password', __('You still own :names. Transfer ownership or close each of those workspaces, on its team page, before deleting your account.', [
                 'names' => $owned->implode(', '),
             ]));
         }

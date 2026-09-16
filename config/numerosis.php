@@ -119,6 +119,13 @@ return [
 
     'schedule' => [
         'prune_orphaned_customers' => (bool) env('SCHEDULE_PRUNE_ORPHANED_CUSTOMERS', true),
+
+        // Drops tenant databases with no tenant row, deletes tenants
+        // suspended past the cutoff, and — only when
+        // numerosis.tenancy.closure.purge_closed is on as well — purges
+        // closed ones. Off by default: nothing here is recoverable.
+        'prune_orphaned_databases' => (bool) env('SCHEDULE_PRUNE_ORPHANED_DATABASES', false),
+
         'prune_stalled_provisions' => (bool) env('SCHEDULE_PRUNE_STALLED_PROVISIONS', true),
         'prune_invitations' => (bool) env('SCHEDULE_PRUNE_INVITATIONS', true),
     ],
