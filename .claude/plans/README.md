@@ -188,13 +188,13 @@ feature each and are listed here in the roadmap's wave order. Ten,
 `tenant-ownership-transfer.md`, `tenant-close-and-recovery.md`,
 `staff-admin-panel.md`, `support-impersonation.md`,
 `provisioning-observability.md`, `fleet-tenant-migrations.md`,
-`session-management.md` and `two-factor-authentication.md`, have since been
-executed and archived; the rest are not.
+`session-management.md`, `two-factor-authentication.md` and
+`security-hardening.md`, have since been executed and archived; the rest are
+not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `security-hardening.md` | Not executed. Wave 3. Breached-password check, security headers, login anomaly event |
 | `audit-log-coverage.md` | Not executed. Wave 3. One model is logged; no screen reads the table |
 | `tenant-backup-restore.md` | Not executed. Wave 3. Owns the tenant data serializer |
 | `gdpr-data-export.md` | Not executed. Wave 3. Erasure is half-built, access is absent |
@@ -204,6 +204,14 @@ executed and archived; the rest are not.
 | `custom-domain-verification.md` | Not executed. Wave 5. A documented mode with no ownership proof |
 | `public-api-and-webhooks.md` | Not executed. Wave 5. Largest of the set; splits into three |
 | `notification-center.md` | Not executed. Wave 5. The `notifications` table has no writer |
+
+`security-hardening.md` moved to `archive/` 2026-09-17, the day it was
+executed: `uncompromised()` on `Password::defaults()` behind a flag the test
+suite turns off, a `SecurityHeaders` middleware appended to the `web` group
+through a new `MiddlewareRegistrar::groupAppends()`, and a
+`SuspiciousLoginDetected` event dispatched once per login lockout. Stripe's
+webhook is exempt by path rather than by content type — Cashier answers it
+with `text/html`. Deviations in the plan's own "What shipped".
 
 ## Abandoned
 
