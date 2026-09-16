@@ -22,6 +22,14 @@ So when a signup fails at `SeedTenantDatabase`, the evidence is complete and
 nobody is told. The customer sees a half-finished signup; the operator finds
 out when they complain.
 
+## Settled before execution (2026-09-16)
+
+| Question | Ruling |
+|---|---|
+| Alert transport | A `ProvisioningFailed` notification to whatever `numerosis.notifications.operator` resolves to, through an `OperatorRecipient` contract a host can bind. Null means silent, so nothing ships enabled and a host wanting Slack or PagerDuty swaps the binding rather than writing a listener |
+| Health endpoint | Registered with the feature, unauthenticated, counts and booleans only. A health document a monitor cannot reach unauthenticated is not doing its job; the disclosure is queue depth and failure counts, never a tenant name or slug. 503 when the central connection is down |
+| Screens | One provisions index, the staff panel's, widened with the failing step, error and retry count. Provision detail and queue screens are new. Two indexes with two retry buttons is how one of them goes stale, so the plan's separate screen set is not built |
+
 ## Scope
 
 Three things: a health endpoint machines poll, screens humans read, and alerts
