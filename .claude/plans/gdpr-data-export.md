@@ -1,0 +1,113 @@
+# Data export, erasure and consent records
+
+**Status: not executed. Written 2026-09-16.** Wave 3 of
+`saas-readiness-roadmap.md`. Consumes the exporter from
+`tenant-backup-restore.md` and the coverage from `audit-log-coverage.md`.
+
+## Where it stands
+
+Half of erasure exists and none of access does.
+`src/Actions/Auth/DeleteUserAccount.php:13` soft-deletes the central user and
+refuses when they own a tenant. There is no export of personal data, no record
+of consent, no retention policy, and no defined answer to what "delete me"
+means for a user whose rows are scattered across a central database and N
+tenant databases.
+
+For a package sold as a SaaS foundation, the export and erasure paths are
+table stakes the buyer's legal review asks for by name.
+
+## The hard question first
+
+**What does erasure mean for a member of somebody else's tenant?**
+
+A tenant is a customer's workspace. The rows a member created inside it —
+records, comments, audit entries — belong to the tenant, not to the member.
+Deleting them on request destroys the customer's data.
+
+The settled shape, and the one most SaaS products land on:
+
+| Data | On erasure |
+|---|---|
+| Central identity: name, email, password, social accounts, sessions | Deleted |
+| Membership rows | Deleted |
+| Tenant-side `Tenant\User` row | Anonymized, not deleted — name and email replaced, id retained so the tenant's foreign keys survive |
+| Content authored inside a tenant | Retained, attributed to the anonymized user |
+| Activity log entries naming the user as causer | Anonymized causer, entry retained |
+| Billing records | Retained. Financial records have their own statutory retention and are not erasable on request |
+
+Anonymize-in-place is the mechanism; the current `DeleteUserAccount` soft
+delete is not enough on its own because it leaves name and email in the row.
+
+## Phases
+
+### 1. `PersonalDataExporter`
+
+Built on `TenantDataExporter`, filtered to one subject. Walks the central
+rows for the user and, for each tenant they belong to, the tenant-side rows
+naming them. Output is a zip with a human-readable manifest — a JSON dump with
+no explanation does not satisfy an access request in practice.
+
+### 2. Self-service export
+
+On `/settings`, a request button. Generation is queued (it crosses N tenant
+databases), the artefact lands on a configurable disk, and the user gets a
+signed, short-lived download link by mail. Rate-limited to one request per
+day per user, because it is expensive and is an obvious abuse vector.
+
+### 3. `AnonymizeUser` action
+
+Replaces `DeleteUserAccount`'s soft delete with the table above, in one
+transaction per database. Fires `UserAnonymized`. Idempotent — re-running on
+an already-anonymized user is a no-op.
+
+Ownership still blocks, and now points at `tenant-ownership-transfer.md` and
+`tenant-close-and-recovery.md` rather than dead-ending.
+
+### 4. Tenant-level export and erasure
+
+The Owner can export the whole tenant (the logical exporter, unfiltered) and
+close the tenant, which is the tenant-level erasure path. Purge after the
+30-day window is the erasure.
+
+### 5. Consent and retention records
+
+A central `consents` table: subject, purpose, version of the terms, timestamp,
+IP. Written at registration and whenever terms change. Without a record of
+what was agreed and when, the rest of this is unprovable.
+
+Retention windows for activity logs, backups, closed tenants and export
+artefacts gathered into one config block, documented in
+`docs/host-requirements.md` as host-owned decisions with package defaults.
+
+### 6. Staff-side
+
+Export and erasure on behalf of a user from the staff panel, activity-logged,
+for requests that arrive by mail rather than through the product.
+
+## Tests
+
+- Export contains every central row naming the user and the tenant-side rows
+  from each of their tenants, proven against a user in two tenants.
+- Export contains no other user's personal data — the assertion that makes it
+  safe to hand over.
+- Download link is signed, single-use and expires.
+- Rate limit allows one request per day.
+- Anonymization removes name and email centrally and tenant-side while leaving
+  foreign keys intact and authored content readable.
+- Anonymization is idempotent.
+- Billing rows survive anonymization, deliberately, with a test that says so
+  in its name so nobody "fixes" it later.
+- Consent row is written at registration with the terms version.
+
+## Risks
+
+- **Export is a data-exfiltration primitive.** It bundles everything about a
+  person into one downloadable file. Signed single-use links, short expiry,
+  rate limiting and an activity-log entry per generation are all required, not
+  optional.
+- **Anonymization across N databases is not atomic.** A failure halfway leaves
+  a partially anonymized user. Make it resumable per tenant and record
+  progress, the same shape as the provisioning chain.
+- **Legal advice is not this plan.** It implements a defensible shape. The
+  host's counsel decides retention periods and lawful basis; the config block
+  is where their answer goes.

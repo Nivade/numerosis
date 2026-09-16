@@ -111,9 +111,35 @@ case-sensitivity sweep the plan expected on PostgreSQL found nothing.
 
 ## Live
 
+Twenty-one files added 2026-09-16 from a capability sweep of the tree:
+`saas-readiness-roadmap.md` is the parent and holds the sequencing, the
+cross-cutting decisions and the shared foundations. The other twenty are one
+feature each and are listed here in the roadmap's wave order. None is
+executed.
+
 | Plan | State |
 |---|---|
-| _(none)_ | |
+| `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
+| `seat-limit-at-invite.md` | Not executed. Wave 1. A live defect — seats are capped at checkout and unenforced at invite |
+| `team-members-management.md` | Not executed. Wave 1. No HTTP surface exists for `Membership` at all |
+| `tenant-ownership-transfer.md` | Not executed. Wave 1. An owner can never delete their account today |
+| `tenant-close-and-recovery.md` | Not executed. Wave 1. Deletion is irreversible and has no customer-facing path |
+| `staff-admin-panel.md` | Not executed. Wave 2. Livewire, not Filament; off by default |
+| `support-impersonation.md` | Not executed. Wave 2. Rebuilds what Phase 2 deleted, with an audit trail |
+| `provisioning-observability.md` | Not executed. Wave 2. `step_records` is written and never read |
+| `fleet-tenant-migrations.md` | Not executed. Wave 2. No way to migrate tenants that already exist |
+| `two-factor-authentication.md` | Not executed. Wave 3. Fortify ships it; `HostConfig` leaves it off |
+| `session-management.md` | Not executed. Wave 3. A stolen session cannot be revoked |
+| `security-hardening.md` | Not executed. Wave 3. Breached-password check, security headers, login anomaly event |
+| `audit-log-coverage.md` | Not executed. Wave 3. One model is logged; no screen reads the table |
+| `tenant-backup-restore.md` | Not executed. Wave 3. Owns the tenant data serializer |
+| `gdpr-data-export.md` | Not executed. Wave 3. Erasure is half-built, access is absent |
+| `runtime-entitlements.md` | Not executed. Wave 4. Owns the shared usage counter |
+| `usage-metering.md` | Not executed. Wave 4. `meter_id` is migrated and never written |
+| `coupons-and-promotions.md` | Not executed. Wave 4. No discount path exists anywhere |
+| `custom-domain-verification.md` | Not executed. Wave 5. A documented mode with no ownership proof |
+| `public-api-and-webhooks.md` | Not executed. Wave 5. Largest of the set; splits into three |
+| `notification-center.md` | Not executed. Wave 5. The `notifications` table has no writer |
 
 ## Abandoned
 
