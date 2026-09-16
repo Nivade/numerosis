@@ -140,20 +140,26 @@ staff panel yet. Purging a closed tenant stays behind
 key's `grace_days` sibling is now what `--days` defaults to. Deviations in the
 plan's own "What shipped".
 
+`staff-admin-panel.md` moved to `archive/` 2026-09-16, the day it was written:
+five Livewire screens behind `StaffPanelFeature`, off by default, on the
+central domain under `numerosis.routes.staff_prefix`. Impersonation stayed out
+— it belongs to `support-impersonation.md`, which rebuilds what Phase 2 of the
+six-package collapse deleted. Deviations in the plan's own "What shipped".
+
 ## Live
 
 Twenty-one files added 2026-09-16 from a capability sweep of the tree:
 `saas-readiness-roadmap.md` is the parent and holds the sequencing, the
 cross-cutting decisions and the shared foundations. The other twenty are one
-feature each and are listed here in the roadmap's wave order. Four,
+feature each and are listed here in the roadmap's wave order. Five,
 `seat-limit-at-invite.md`, `team-members-management.md`,
-`tenant-ownership-transfer.md` and `tenant-close-and-recovery.md`, have since
-been executed and archived; the rest are not.
+`tenant-ownership-transfer.md`, `tenant-close-and-recovery.md` and
+`staff-admin-panel.md`, have since been executed and archived; the rest are
+not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `staff-admin-panel.md` | Not executed. Wave 2. Livewire, not Filament; off by default |
 | `support-impersonation.md` | Not executed. Wave 2. Rebuilds what Phase 2 deleted, with an audit trail |
 | `provisioning-observability.md` | Not executed. Wave 2. `step_records` is written and never read |
 | `fleet-tenant-migrations.md` | Not executed. Wave 2. No way to migrate tenants that already exist |
