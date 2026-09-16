@@ -470,6 +470,12 @@ class NumerosisServiceProvider extends PackageServiceProvider
                 $schedule->command('tenancy:prune-stalled-provisions')->hourly();
             }
 
+            // `--force` because a scheduled run has nobody to confirm to, and
+            // off by default because this one drops databases.
+            if (Config::boolean('numerosis.schedule.prune_orphaned_databases')) {
+                $schedule->command('tenancy:prune-orphaned-databases', ['--force' => true])->daily();
+            }
+
             // Resolved through Numerosis::model() so a host that subclassed
             // Invitation prunes its own class. Invitation::prunable() keeps
             // accepted and expired rows for 30 days.

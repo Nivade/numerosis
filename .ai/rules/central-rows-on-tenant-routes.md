@@ -57,10 +57,16 @@ everything.
 
 ## The reading path needs the same filter, and had it
 
-`numerosis-pages::tenant.invitations` scopes with
-`->where('tenant_id', tenant()->getKey())`. A central-table query written from
-tenant context returns every tenant's rows by default. Treat the missing
-`where` as the bug, not the present one as belt-and-braces.
+`Actions\Queries\GetPendingInvitationsForTenant` scopes with
+`->where('tenant_id', $tenantId)`, and `GetTenantMembers` does the same. A
+central-table query written from tenant context returns every tenant's rows by
+default. Treat the missing `where` as the bug, not the present one as
+belt-and-braces.
+
+The scoping used to sit inline in `numerosis-pages::tenant.invitations`, which
+went when the invitations screen folded into `/team` (2026-09-16). A rule
+naming a view is worth re-checking after any screen move; the query action
+outlives it.
 
 ## `route()` on a tenant route name throws in path mode
 

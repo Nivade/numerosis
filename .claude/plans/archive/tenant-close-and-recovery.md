@@ -137,6 +137,15 @@ flag is holding.
 checkout.** `checkout/subscription/new` needs a plan slug and there is no
 plan-picker screen for an existing tenant to link to.
 
+A merge audit the same day closed four gaps this pass had left. Closure now
+counts as an exit from account deletion (`DeleteUserAccount` skips a closed
+tenant, which is what `tenant-ownership-transfer.md`'s phase 4 was waiting
+for), `tenancy:prune-orphaned-databases` has a scheduler entry at last
+(`numerosis.schedule.prune_orphaned_databases`, off, forced when on — before
+it, no cohort of that command ever ran unattended), and the two traps worth
+inheriting went into `middleware-registration.md` and
+`tenant-provisioning.md`.
+
 `Testing\FakeStripeHttpClient` gained subscription retrieve/update and
 subscription-item retrieve, since `cancel()` and `resume()` are real API calls
 and `Subscription::currentPeriodEnd()` reads the item, not the subscription.

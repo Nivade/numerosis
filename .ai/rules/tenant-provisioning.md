@@ -125,6 +125,28 @@ head/tail, no outer queued job. Everything below this section that predates
   inside a Pest closure as `Pest\PendingCalls\TestCall`, which puts an
   instance helper out of reach of half the suite.
 
+### `tenancy:prune-orphaned-databases` has three cohorts, and two guards that only work together (2026-09-16)
+
+The command drops orphaned databases, deletes tenants suspended past the
+cutoff, and purges tenants closed past it. The closed cohort is gated on
+`numerosis.tenancy.closure.purge_closed`, off by default, because it destroys
+data the owner was promised a recovery window for.
+
+**The suspended cohort must keep its `whereNull('closed_at')`, or that gate is
+decorative.** A tenant that was suspended before it was closed matches both
+queries, and the suspended one asks no flag. The exclusion is what makes
+`purge_closed` the only door.
+
+**Nothing runs any of it unless `numerosis.schedule.prune_orphaned_databases`
+is on, and that is off by default too.** The key was added the day this was
+written; before it, the command had no scheduler entry at all, so every cohort
+— including the pre-existing suspended one — only ever ran when somebody typed
+it. A scheduled run passes `--force`, since there is nobody to confirm to.
+
+`--days` defaults to `numerosis.tenancy.closure.grace_days` rather than a
+literal 30, so the recovery window the closure screen names and the cutoff the
+command enforces cannot drift apart.
+
 ### `$tenant->run()` leaks tenancy when the callback throws
 
 stancl's `TenantRun::run()` initializes,

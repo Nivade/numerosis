@@ -9,6 +9,7 @@ use App\Models\Central\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Nvade\Numerosis\Actions\Auth\DeleteUserAccount;
 use Nvade\Numerosis\Actions\Tenancy\CloseTenant;
 use Nvade\Numerosis\Actions\Tenancy\RestoreTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
@@ -214,6 +215,23 @@ class TenantClosureTest extends TestCase
         $this->assertEquals($closedAt, $tenant->refresh()->closed_at);
 
         Event::assertDispatchedTimes(TenantClosed::class, 1);
+    }
+
+    /** Closing is the owner's other exit, so it has to release the account the way a transfer does. */
+    public function test_closing_a_workspace_unblocks_account_deletion(): void
+    {
+        $this->fakeStripe();
+
+        [$tenant] = $this->tenant();
+        [$ownerCentral] = $this->member($tenant, MembershipRole::Owner);
+
+        $this->assertFalse(DeleteUserAccount::run($ownerCentral));
+
+        CloseTenant::run($tenant);
+
+        $ownerCentral->refresh();
+
+        $this->assertTrue(DeleteUserAccount::run($ownerCentral));
     }
 
     public function test_a_webhook_does_not_resurrect_a_closed_tenant(): void
