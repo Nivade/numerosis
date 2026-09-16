@@ -42,6 +42,7 @@ use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Invitation;
+use Nvade\Numerosis\Models\Central\OwnershipNomination;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\SocialAccount;
 use Nvade\Numerosis\Models\Central\Subscription;
@@ -160,6 +161,8 @@ return [
             'tenants_mine' => 'tenants.mine',
             'invitation_show' => 'invitations.show',
             'invitation_accept' => 'invitations.accept',
+            'ownership_nomination_show' => 'ownership.nominations.show',
+            'ownership_nomination_accept' => 'ownership.nominations.accept',
             'checkout_subscription' => 'checkout.subscription',
         ],
 
@@ -283,6 +286,7 @@ return [
         TenantProvision::class => null,
         TenantUser::class => null,
         Invitation::class => null,
+        OwnershipNomination::class => null,
         SocialAccount::class => null,
     ],
 

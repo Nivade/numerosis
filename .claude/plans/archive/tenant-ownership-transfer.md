@@ -1,8 +1,9 @@
 # Transfer tenant ownership
 
-**Status: not executed. Written 2026-09-16.** Wave 1 of
-`saas-readiness-roadmap.md`. Depends on `team-members-management.md` for the
-screen it lives on.
+**Status: executed 2026-09-16, on `feat/tenant-ownership-transfer`.** Wave 1
+of `saas-readiness-roadmap.md`. Depends on `team-members-management.md` for
+the screen it lives on. See "What shipped" at the bottom for the two places
+the plan was wrong about the code.
 
 ## Why
 
@@ -108,3 +109,57 @@ step, always written to the activity log. This is the path that resolves
   Refuse transfer while the subscription is `past_due` or `unpaid` and say so.
 - **`AddTenantOwner` assumes one owner forever.** Check it does not re-promote
   on a re-run of the provisioning chain against a transferred tenant.
+
+## What shipped
+
+All five phases, with two corrections to the plan's own premises.
+
+**"Billing moves with ownership" was solving a problem that no longer exists.**
+The table above says the Stripe customer sits on the central user who checked
+out. It does not: `Actions\Tenancy\LinkTenantSubscription` writes
+`tenants.stripe_id` and re-points `subscriptions.subscribable` at the
+`Tenant`, so the customer *is* the tenant and the subscription never belonged
+to the departing user. Nothing has to move between customers, which is
+fortunate, because Stripe's API does not allow it — `customer` is create-only
+on a subscription, so the plan's "Stripe customer change on the subscription"
+was unimplementable as written. What ownership actually changes is who the
+customer's name and email describe, and
+`Actions\Billing\SyncTenantToStripe` already re-sends both; the transfer
+dispatches it, gated on `numerosis.billing.sync.stripe_customer`.
+
+**Password confirmation is a form field, not the middleware.**
+`RequirePasswordIfSet` redirects to `route('password.confirm')`, and the
+tenant group is prefixed `{tenant}` in path identification mode with no URL
+default registered, so the middleware would throw `UrlGenerationException` on
+the nominating POST. `NominateOwnerRequest` validates `current_password`
+against the tenant guard instead, skipping the rule for an account with no
+password, which is the case `RequirePasswordIfSet` exists for.
+
+**Phase 5 is a console command, not a staff panel.** `staff-admin-panel.md`
+has not been executed, so `tenancy:transfer-ownership {tenant} {email}`
+carries the support path: it confirms, skips the nomination, deletes any open
+one, and writes the activity-log entry naming both parties. Surfacing it in
+the panel is that plan's job. The log entry carries the tenant id in
+`properties` rather than through `performedOn()`, because
+`activity_log.subject_id` is an integer column and a tenant key is a string.
+
+**Phase 4 links one path, not two.** `tenant-close-and-recovery.md` has not
+been executed either, so `DeleteUserForm` names the workspaces the account
+still owns and points at the transfer, with no closing link to offer yet.
+
+New: `tenant_ownership_nominations` (one open row per tenant, `unique(tenant_id)`,
+72-hour expiry, ULID re-minted on re-nomination so a superseded link dies),
+`Models\Central\OwnershipNomination`, four actions
+(`AssertOwnershipTransferable`, `NominateTenantOwner`,
+`AcceptOwnershipNomination`, `TransferTenantOwnership`),
+`Events\Tenancy\TenantOwnershipTransferred`,
+`OwnershipNominationNotification`, `OwnershipNominationPolicy`,
+`MembershipPolicy::transferOwnership()`, the signed central
+`/ownership-transfers/{nomination}` pair, `POST`/`DELETE team/ownership` on the
+tenant domain, and the Ownership card on `/team`. Twelve tests in
+`tests/Feature/Team/OwnershipTransferTest.php`. Suite 846 passed / 6 skipped,
+`composer analyse` clean.
+
+`AddTenantOwner` needed no change: it is `if (! $user->tenants()->where(...)->exists())`,
+so a re-run against a transferred tenant sees the existing membership and
+attaches nothing.

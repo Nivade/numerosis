@@ -8,6 +8,7 @@ use Illuminate\View\View;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Auth\DeleteUserAccount;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Livewire\Actions\Logout;
 use Nvade\Numerosis\Models\Central\CentralUser;
 
@@ -37,7 +38,13 @@ class DeleteUserForm extends Component
 
             $this->redirect('/', navigate: true);
         } else {
-            $this->addError('password', 'You cannot delete your account while you are the owner of one or more tenants. Please transfer ownership or delete the tenants first.');
+            $owned = $user->tenants()
+                ->wherePivot('role', MembershipRole::Owner->value)
+                ->pluck('name');
+
+            $this->addError('password', __('You still own :names. Transfer ownership from each of those workspaces, on its team page, before deleting your account.', [
+                'names' => $owned->implode(', '),
+            ]));
         }
     }
 

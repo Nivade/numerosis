@@ -55,6 +55,7 @@ use Nvade\Numerosis\Console\Commands\ProvisionTenantCommand;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedStripeCustomers;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
+use Nvade\Numerosis\Console\Commands\TransferTenantOwnershipCommand;
 use Nvade\Numerosis\Contracts\Exceptions\ProvidesExceptionContext;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder as PackageDatabaseSeeder;
 use Nvade\Numerosis\Enums\SessionKey;
@@ -89,6 +90,7 @@ use Nvade\Numerosis\Livewire\Settings\DeleteUserForm;
 use Nvade\Numerosis\Models\Central;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\Membership;
+use Nvade\Numerosis\Models\Central\OwnershipNomination;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\PlanFeature;
 use Nvade\Numerosis\Models\Central\SocialAccount;
@@ -105,6 +107,7 @@ use Nvade\Numerosis\Policies\Billing\PlanFeaturePolicy;
 use Nvade\Numerosis\Policies\Billing\SubscriptionPolicy;
 use Nvade\Numerosis\Policies\Invitations\InvitationPolicy;
 use Nvade\Numerosis\Policies\Tenancy\MembershipPolicy;
+use Nvade\Numerosis\Policies\Tenancy\OwnershipNominationPolicy;
 use Nvade\Numerosis\Policies\Tenancy\TenantPolicy;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
@@ -136,7 +139,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->hasCommand(PruneOrphanedStripeCustomers::class)
             ->hasCommand(PruneOrphanedTenantDatabases::class)
             ->hasCommand(PruneStalledTenantProvisions::class)
-            ->hasCommand(ProvisionTenantCommand::class);
+            ->hasCommand(ProvisionTenantCommand::class)
+            ->hasCommand(TransferTenantOwnershipCommand::class);
     }
 
     public function packageRegistered(): void
@@ -396,6 +400,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $policies = [
             Invitation::class => InvitationPolicy::class,
             Membership::class => MembershipPolicy::class,
+            OwnershipNomination::class => OwnershipNominationPolicy::class,
             PaymentPlan::class => PaymentPlanPolicy::class,
             PlanFeature::class => PlanFeaturePolicy::class,
             SocialAccount::class => SocialAccountPolicy::class,
@@ -466,7 +471,10 @@ class NumerosisServiceProvider extends PackageServiceProvider
             // accepted and expired rows for 30 days.
             if (Config::boolean('numerosis.schedule.prune_invitations')) {
                 $schedule->command('model:prune', [
-                    '--model' => [Numerosis::model(Invitation::class)],
+                    '--model' => [
+                        Numerosis::model(Invitation::class),
+                        Numerosis::model(OwnershipNomination::class),
+                    ],
                 ])->daily();
             }
         });

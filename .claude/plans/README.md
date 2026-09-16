@@ -120,19 +120,30 @@ database `CreateTenantDatabase` had already made, since
 SQLite cannot take `--parallel`, so it runs serially in CI. The
 case-sensitivity sweep the plan expected on PostgreSQL found nothing.
 
+`tenant-ownership-transfer.md` moved to `archive/` 2026-09-16, the day it was
+written: all five phases executed on `feat/tenant-ownership-transfer`. Its
+billing decision turned out to be moot and unimplementable at once — the
+Stripe customer is the tenant, not the departing user, and Stripe will not
+move a subscription between customers anyway — so what ships is a re-sync of
+the customer's name and email. Password confirmation is a `current_password`
+field rather than the `password.confirm.if-set` middleware, which throws in
+path mode on a `{tenant}`-prefixed route, and phase 5 is a console command
+because `staff-admin-panel.md` has not been executed. All four recorded in the
+plan's own "What shipped".
+
 ## Live
 
 Twenty-one files added 2026-09-16 from a capability sweep of the tree:
 `saas-readiness-roadmap.md` is the parent and holds the sequencing, the
 cross-cutting decisions and the shared foundations. The other twenty are one
-feature each and are listed here in the roadmap's wave order. Two,
-`seat-limit-at-invite.md` and `team-members-management.md`, have since been
-executed and archived; the rest are not.
+feature each and are listed here in the roadmap's wave order. Three,
+`seat-limit-at-invite.md`, `team-members-management.md` and
+`tenant-ownership-transfer.md`, have since been executed and archived; the
+rest are not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `tenant-ownership-transfer.md` | Not executed. Wave 1. An owner can never delete their account today |
 | `tenant-close-and-recovery.md` | Not executed. Wave 1. Deletion is irreversible and has no customer-facing path |
 | `staff-admin-panel.md` | Not executed. Wave 2. Livewire, not Filament; off by default |
 | `support-impersonation.md` | Not executed. Wave 2. Rebuilds what Phase 2 deleted, with an audit trail |

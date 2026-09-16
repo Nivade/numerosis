@@ -1082,3 +1082,14 @@ Copy the edited files over the published ones, or re-run the publish:
 ```bash
 cp resources/js/*.js vendor/orchestra/testbench-core/laravel/resources/js/
 ```
+
+## `$this->artisan()`'s assertions run on destruct, after the rest of the test
+
+`PendingCommand::assertSuccessful()` records an expectation and returns `$this`;
+the command itself runs in `__destruct()`, which is after every assertion
+written below it. A test that calls `artisan(...)->assertSuccessful()` and then
+asserts on what the command wrote reads the *pre-command* state and fails,
+while the command's own exit code still passes — and it fails intermittently,
+because destruct order depends on whether the `PendingCommand` is still
+referenced. Call `->run()` at the end of the chain to execute it there.
+Measured 2026-09-16 on `tests/Feature/Team/OwnershipTransferTest`.
