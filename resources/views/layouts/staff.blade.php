@@ -24,6 +24,11 @@
                     {{ __('numerosis::staff.nav.queue') }}
                 </flux:navbar.item>
 
+                <flux:navbar.item icon="circle-stack" :href="route('staff.migrations')"
+                                  :current="request()->routeIs('staff.migrations')" wire:navigate>
+                    {{ __('numerosis::staff.nav.migrations') }}
+                </flux:navbar.item>
+
                 <flux:navbar.item icon="credit-card" :href="route('staff.subscriptions')"
                                   :current="request()->routeIs('staff.subscriptions')" wire:navigate>
                     {{ __('numerosis::staff.nav.subscriptions') }}

@@ -30,7 +30,7 @@ named `route()` — it has to stay installable on its own.
 | tenant routes | `routes/tenant.php` | Same, inside the single `Route::middleware('tenant')` group. `php artisan vendor:publish --tag=numerosis-routes` writes an empty one |
 | API routes | `routes/api.php` | Loaded outside the domain groups, under `Route::middleware('api')->prefix($apiPrefix)`. `withRouting(using: …)` skips everything `ApplicationBuilder` would have built, so without this an app with an API loses it on adoption |
 | a feature | `Features::register(class-string<Feature>)` | Merges with `config('numerosis.features')`. `Features::registered()` tells a contributed feature from a host-configured one |
-| tenant migrations | `database/migrations/tenant` | Stancl's conventional directory, seeded into `tenancy.migration_parameters['--path']` alongside the package's. Setting that key yourself in `config/tenancy.php` replaces the default outright |
+| tenant migrations | `database/migrations/tenant` | Stancl's conventional directory, seeded into `tenancy.migration_parameters['--path']` alongside the package's. Setting that key yourself in `config/tenancy.php` replaces the default outright. **Provisioning only migrates new tenants** — see "Rolling a migration across the fleet" |
 | seed data | publish `--tag numerosis-seeders`, or bind over a package seeder | `Seeder::resolve()` goes through the container, so `bind(PackageSeeder::class, YourSeeder::class)` swaps any seeder the package's own `DatabaseSeeder`/`TenantDatabaseSeeder` calls, and you keep inheriting seeders core adds later |
 | permissions | subclass `RoleAndPermissionSeeder` (central) or `Tenant\PermissionAndRoleSeeder`, override `contexts()`, bind it | **A missing permission row is a 500, not a 403** — Spatie throws `PermissionDoesNotExist` rather than returning false, so any navigation that gates its own visibility on a check breaks every page carrying it, not just its own screen |
 | non-CRUD permission verbs | override `Permission::additionalActions()` on a subclass | Empty in core, read through `Permission::actionsFor()`. See the two caveats below |
@@ -134,6 +134,43 @@ step 4). They are not speculative abstraction:
 
 "One implementation" is the expected state for a framework whose whole point is
 that the *host* supplies the second one.
+
+### Rolling a migration across the fleet
+
+`MigrateTenantDatabase` is a provisioning step, so it runs once, for one
+tenant, at creation. Tenants that already exist are migrated by
+`tenancy:migrate`:
+
+```bash
+php artisan tenancy:migrate --dry-run        # who is behind, and on what
+php artisan tenancy:migrate                  # inline, every tenant
+php artisan tenancy:migrate --queue          # one job per tenant
+php artisan tenancy:migrate --resume=<run-id>
+```
+
+Both paths go through `Actions\Tenancy\MigrateTenant`, so a rollout and a new
+signup cannot end up at different schemas. Every path in
+`tenancy.migration_parameters['--path']` is included, which is what makes your
+own tenant migrations part of the rollout without registering them anywhere
+else.
+
+| Flag | What it does |
+|---|---|
+| `--tenants=` | Limit to specific tenant ids, repeatable |
+| `--pending` | Skip tenants already at the target, recording them `skipped` |
+| `--dry-run` | Report pending migrations per tenant, writing nothing |
+| `--chunk` / `--delay` | Tenants per chunk, and seconds between chunks. Thousands of `ALTER` statements saturate a database server; the pause is the knob. Defaults in `numerosis.tenancy.migrations` |
+| `--queue` | Dispatch one job per tenant to `numerosis.tenancy.migrations.queue` (`migrations`). **Run a worker for that queue** — it is deliberately not `provisioning`, whose depth the health endpoint reports as customers waiting on a signup |
+| `--stop-on-failure` | Off by default. A fleet rollout continues past a failing tenant and names every failure at the end |
+| `--resume=` | Re-run one run id, skipping the tenants it already finished |
+
+One `tenant_migration_runs` row per tenant per run records what was applied,
+how long it took and what failed. That table is what `--resume` reads and what
+the staff panel's migrations screen renders. The run exits non-zero if any
+tenant failed.
+
+There is no `--rollback`: a fleet-wide rollback is almost always a mistake, and
+stancl's own `tenants:rollback --tenants=acme` covers the single-tenant case.
 
 ### Operator alerts
 

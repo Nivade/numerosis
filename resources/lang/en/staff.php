@@ -9,6 +9,7 @@ return [
         'tenants' => 'Tenants',
         'provisions' => 'Provisions',
         'queue' => 'Queue',
+        'migrations' => 'Migrations',
         'subscriptions' => 'Subscriptions',
         'users' => 'Users',
         'leave' => 'Back to app',
@@ -127,6 +128,17 @@ return [
             'queue' => 'Queue',
             'depth' => 'Depth',
             'oldest' => 'Oldest job',
+        ],
+    ],
+
+    'migrations' => [
+        'heading' => 'Fleet migrations',
+        'subheading' => 'What each tenant did in a rollout, failures first',
+        'empty' => 'No migration runs yet.',
+        'failures' => ':count tenant(s) failed in this run. Fix, then resume the run with its id.',
+        'columns' => [
+            'tenant' => 'Tenant',
+            'applied' => 'Applied',
         ],
     ],
 

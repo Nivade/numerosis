@@ -49,6 +49,7 @@ use Nvade\Numerosis\Models\Central\SocialAccount;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\SubscriptionItem;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Models\Central\TenantMigrationRun;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Services\Billing\DefaultUnpaidTenantQuota;
@@ -343,6 +344,7 @@ return [
         Subscription::class => null,
         PaymentPlan::class => null,
         TenantProvision::class => null,
+        TenantMigrationRun::class => null,
         TenantUser::class => null,
         Invitation::class => null,
         OwnershipNomination::class => null,
@@ -456,6 +458,19 @@ return [
             // Outbound mail and notifications are dropped while impersonating,
             // so support cannot send confusing email from inside an account.
             'suppress_mail' => (bool) env('NUMEROSIS_IMPERSONATION_SUPPRESS_MAIL', true),
+        ],
+
+        // Fleet rollouts: `tenancy:migrate`. The queue is deliberately not
+        // 'provisioning' — health reports that queue's depth as customers
+        // waiting on a signup, and a fleet rollout would drown the signal.
+        'migrations' => [
+            'queue' => env('NUMEROSIS_MIGRATION_QUEUE', 'migrations'),
+
+            // Tenants per chunk, and seconds to wait between chunks. Thousands
+            // of ALTERs saturate a database server; the pause is the knob.
+            'chunk' => (int) env('NUMEROSIS_MIGRATION_CHUNK', 50),
+
+            'delay' => (int) env('NUMEROSIS_MIGRATION_DELAY', 0),
         ],
 
         'provisioning' => [

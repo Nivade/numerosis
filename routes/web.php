@@ -168,6 +168,7 @@ if (FeatureRegistry::enabled(StaffPanelFeature::NAME)) {
             Route::livewire('/provisions', 'numerosis-pages::staff.provisions')->name('provisions');
             Route::livewire('/provisions/{slug}', 'numerosis-pages::staff.provision')->name('provisions.show');
             Route::livewire('/queue', 'numerosis-pages::staff.queue')->name('queue');
+            Route::livewire('/migrations', 'numerosis-pages::staff.migrations')->name('migrations');
             Route::livewire('/subscriptions', 'numerosis-pages::staff.subscriptions')->name('subscriptions');
             Route::livewire('/users', 'numerosis-pages::staff.users')->name('users');
         });
