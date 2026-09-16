@@ -37,6 +37,24 @@ What this package adds around it:
 1. **Authorization** — `tenants` context permission plus an explicit
    `impersonate` ability, so it can be withheld from a staff user who may
    otherwise administer tenants.
+
+   Decided 2026-09-16, before implementation. The permission is
+   `impersonate tenants` on guard `web`, and **each seeder grows a protected
+   `additionalActions()` mirroring its existing `contexts()`** — the central
+   one returns `['tenants' => ['impersonate']]`, the tenant one delegates to
+   `Permission::additionalActions()`, so that seam is untouched and
+   `SeedsAdminRole` keeps one code path. Guard is already decided at the
+   seeder, which is why the per-guard vocabulary belongs there rather than on
+   the model, where a context-keyed map would seed a dead
+   `impersonate tenants` row into every tenant database. This closes the
+   central/tenant split recorded in `.ai/rules/auth-guards.md`, so update that
+   bullet in the same pass.
+
+   **The row is written whether or not the feature is enabled.** Spatie throws
+   `PermissionDoesNotExist` on a missing name rather than denying, so seeding
+   behind the flag turns "enable the feature on an existing database" into a
+   500 on every page carrying the check. One unused row per install is the
+   price.
 2. **Audit** — a central `impersonation_sessions` row: staff user, tenant,
    target user, started, ended, token id. This is the compliance artefact;
    the activity log is the human-readable one.
