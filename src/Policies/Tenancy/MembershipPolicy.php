@@ -56,6 +56,21 @@ class MembershipPolicy
         return ! $membership->isLastAdmin();
     }
 
+    /** Only the sitting owner nominates, and only an accepted non-owner can be nominated. */
+    public function transferOwnership(User $user, Membership $membership): bool
+    {
+        if (! $this->belongsToCurrentTenant($membership) || $membership->isOwner() || $membership->joined_at === null) {
+            return false;
+        }
+
+        $role = Membership::query()
+            ->where('tenant_id', $membership->tenant_id)
+            ->where('global_user_id', $user->global_id)
+            ->value('role');
+
+        return $role === MembershipRole::Owner;
+    }
+
     /**
      * `memberships` is a central table, so binding `{membership}` on a tenant
      * route resolves any id regardless of owner, and every tenant's `admin`

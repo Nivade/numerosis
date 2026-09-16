@@ -21,6 +21,8 @@ use Nvade\Numerosis\Http\Controllers\Auth\Social\RedirectToProviderController;
 use Nvade\Numerosis\Http\Controllers\Billing\WebhookController;
 use Nvade\Numerosis\Http\Controllers\Invitations\AcceptInvitationController;
 use Nvade\Numerosis\Http\Controllers\Invitations\ShowInvitationController;
+use Nvade\Numerosis\Http\Controllers\Tenancy\AcceptOwnershipNominationController;
+use Nvade\Numerosis\Http\Controllers\Tenancy\ShowOwnershipNominationController;
 use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
 use Nvade\Numerosis\Livewire\Settings\Password as PasswordSettings;
 use Nvade\Numerosis\Livewire\Settings\Profile as ProfileSettings;
@@ -76,6 +78,16 @@ if (FeatureRegistry::enabled(InvitationsFeature::NAME)) {
             ->name(RouteNames::invitationAccept());
     });
 }
+
+// Signed and authenticated: the nominee already holds an account, unlike an
+// invitee, so there is no guest branch to stash state for.
+Route::middleware(['signed', 'throttle:6,1', $centralAuth])->group(function (): void {
+    Route::get('/ownership-transfers/{nomination}', ShowOwnershipNominationController::class)
+        ->name(RouteNames::ownershipNominationShow());
+
+    Route::post('/ownership-transfers/{nomination}', AcceptOwnershipNominationController::class)
+        ->name(RouteNames::ownershipNominationAccept());
+});
 
 Route::middleware([$centralAuth])->group(function () {
     // The account UI ships with core unconditionally; there is no feature

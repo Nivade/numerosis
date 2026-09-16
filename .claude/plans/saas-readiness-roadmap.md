@@ -29,7 +29,7 @@ in parallel; a later wave has at least one plan that needs an earlier one.
 |---|---|---|
 | 6 | `seat-limit-at-invite.md` | A live defect, not a feature. Smallest file in the set |
 | 1 | `team-members-management.md` (executed, archived) | No HTTP surface exists for `Membership` at all |
-| 2 | `tenant-ownership-transfer.md` | An owner cannot delete their own account today |
+| 2 | `tenant-ownership-transfer.md` (executed, archived) | An owner cannot delete their own account today |
 | 13 | `tenant-close-and-recovery.md` | Needs ownership transfer to exist first |
 
 These four touch the same files — `Membership`, `MembershipRole`,

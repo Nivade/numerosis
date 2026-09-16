@@ -14,6 +14,8 @@ use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Http\Controllers\Invitations\DestroyInvitationController;
 use Nvade\Numerosis\Http\Controllers\Invitations\StoreInvitationController;
 use Nvade\Numerosis\Http\Controllers\Team\DestroyMemberController;
+use Nvade\Numerosis\Http\Controllers\Team\DestroyOwnershipNominationController;
+use Nvade\Numerosis\Http\Controllers\Team\StoreOwnershipNominationController;
 use Nvade\Numerosis\Http\Controllers\Team\UpdateMemberRoleController;
 
 /*
@@ -51,6 +53,11 @@ Route::middleware(['universal', MiddlewareAlias::TenancyAuth->value.':'.Context:
         Route::livewire('team', 'numerosis-pages::tenant.team')->name('team.index');
         Route::patch('team/members/{membership}', UpdateMemberRoleController::class)->name('team.members.update');
         Route::delete('team/members/{membership}', DestroyMemberController::class)->name('team.members.destroy');
+
+        Route::post('team/ownership', StoreOwnershipNominationController::class)->name('team.ownership.store');
+
+        Route::delete('team/ownership/{nomination}', DestroyOwnershipNominationController::class)
+            ->name('team.ownership.destroy');
 
         if (FeatureRegistry::enabled(InvitationsFeature::NAME)) {
             // The invitations screen folded into `team.index`; the name stays

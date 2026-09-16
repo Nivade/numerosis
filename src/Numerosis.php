@@ -22,6 +22,7 @@ use Nvade\Numerosis\Models\Central;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Invitation;
+use Nvade\Numerosis\Models\Central\OwnershipNomination;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\SocialAccount;
 use Nvade\Numerosis\Models\Central\Subscription;
@@ -273,6 +274,7 @@ class Numerosis
             PaymentPlan::class => 'Central/PaymentPlan',
             TenantProvision::class => 'Central/TenantProvision',
             Invitation::class => 'Central/Invitation',
+            OwnershipNomination::class => 'Central/OwnershipNomination',
             SocialAccount::class => 'Central/SocialAccount',
             TenantModels\User::class => 'Tenant/User',
         ];

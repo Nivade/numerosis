@@ -35,6 +35,16 @@ final class RouteNames
         return Config::string('numerosis.routes.names.invitation_accept');
     }
 
+    public static function ownershipNominationShow(): string
+    {
+        return Config::string('numerosis.routes.names.ownership_nomination_show');
+    }
+
+    public static function ownershipNominationAccept(): string
+    {
+        return Config::string('numerosis.routes.names.ownership_nomination_accept');
+    }
+
     public static function checkoutSubscription(): string
     {
         return Config::string('numerosis.routes.names.checkout_subscription');

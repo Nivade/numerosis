@@ -9,6 +9,7 @@ use Nvade\Numerosis\Actions\Queries\GetTenantSeatUsage;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
+use Nvade\Numerosis\Models\Central\OwnershipNomination;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 new #[Layout('numerosis-layouts::app')]
@@ -24,6 +25,11 @@ class extends Component
 
     public ?int $seatLimit = null;
 
+    public bool $isOwner = false;
+
+    /** Scalars, not the model: Livewire re-queries a hydrated model on the default connection. */
+    public ?array $nomination = null;
+
     public function mount(): void
     {
         $tenant = tenant();
@@ -31,6 +37,20 @@ class extends Component
 
         $this->invitationsEnabled = FeatureRegistry::enabled(InvitationsFeature::NAME);
         $this->members = GetTenantMembers::run($tenantId);
+
+        $this->isOwner = $this->members
+            ->contains(fn ($membership): bool => $membership->isOwner()
+                && $membership->global_user_id === auth()->user()?->global_id);
+
+        $pending = $this->isOwner
+            ? OwnershipNomination::query()->pending()->where('tenant_id', $tenantId)->with('nominee:id,global_id,name,email')->first()
+            : null;
+
+        $this->nomination = $pending === null ? null : [
+            'ulid' => $pending->ulid,
+            'nominee' => $pending->nominee?->email,
+            'expires' => $pending->expires_at->diffForHumans(),
+        ];
         $this->invitations = $this->invitationsEnabled
             ? GetPendingInvitationsForTenant::run($tenantId)
             : new Collection;
@@ -120,6 +140,60 @@ class extends Component
                 {{ __('Removing a member revokes their access; their records stay.') }}
             </x-numerosis::ui.text>
         </x-numerosis::ui.card>
+
+        @if ($isOwner)
+            <div>
+                <x-numerosis::ui.heading :level="2">{{ __('Ownership') }}</x-numerosis::ui.heading>
+                <x-numerosis::ui.subheading class="mt-1">{{ __('Ownership moves once the person you nominate accepts it.') }}</x-numerosis::ui.subheading>
+            </div>
+
+            <x-numerosis::ui.card>
+                <flux:error name="membership" bag="ownershipTransfer" />
+
+                @if ($nomination !== null)
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <x-numerosis::ui.text variant="subtle" size="sm">
+                            {{ __('Waiting for :email to accept, expires :when', ['email' => $nomination['nominee'], 'when' => $nomination['expires']]) }}
+                        </x-numerosis::ui.text>
+
+                        <form method="POST" action="{{ url()->current().'/ownership/'.$nomination['ulid'] }}">
+                            @csrf
+                            @method('DELETE')
+                            <flux:button type="submit" variant="danger" size="sm">{{ __('Revoke') }}</flux:button>
+                        </form>
+                    </div>
+                @else
+                    @php($eligible = $members->filter(fn ($membership) => ! $membership->isOwner() && $membership->joined_at !== null))
+
+                    @if ($eligible->isEmpty())
+                        <x-numerosis::ui.text variant="subtle" size="sm">
+                            {{ __('Ownership can only move to a member who has accepted their invitation.') }}
+                        </x-numerosis::ui.text>
+                    @else
+                        <form method="POST" action="{{ url()->current().'/ownership' }}" class="flex flex-col gap-4 sm:flex-row sm:items-start">
+                            @csrf
+
+                            <div class="flex-1">
+                                <flux:select name="membership" :label="__('New owner')">
+                                    @foreach ($eligible as $membership)
+                                        <option value="{{ $membership->getKey() }}">{{ $membership->user?->name }} ({{ $membership->user?->email }})</option>
+                                    @endforeach
+                                </flux:select>
+                            </div>
+
+                            @if (filled(auth()->user()?->getAuthPassword()))
+                                <div class="flex-1">
+                                    <flux:input name="password" :label="__('Your password')" type="password" />
+                                    <flux:error name="password" bag="ownershipTransfer" />
+                                </div>
+                            @endif
+
+                            <flux:button type="submit" variant="danger" class="sm:mt-6">{{ __('Transfer ownership') }}</flux:button>
+                        </form>
+                    @endif
+                @endif
+            </x-numerosis::ui.card>
+        @endif
 
         @if ($invitationsEnabled)
             <div>

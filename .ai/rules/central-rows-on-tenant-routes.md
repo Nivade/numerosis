@@ -152,6 +152,33 @@ request in the test, since before that tenancy is not initialized and the sync
 does not run. `tenancy()->end()` between fixture steps is the fix;
 `tests/Feature/Team/TeamMembersTest::member()` carries it.
 
+## `tenant_ownership_nominations` is the third, and it is the tenant that is billed
+
+`team/ownership` (POST) and `team/ownership/{nomination}` (DELETE), added
+2026-09-16, bind `Models\Central\OwnershipNomination`.
+`Policies\Tenancy\OwnershipNominationPolicy::delete()` makes the same
+ambient-tenant comparison `MembershipPolicy` does, and
+`MembershipPolicy::transferOwnership()` guards the nominating side.
+
+Two facts about what ownership controls, both easy to get backwards:
+
+**The Stripe customer is the tenant, not the owner.**
+`Actions\Tenancy\LinkTenantSubscription` writes `tenants.stripe_id` and
+re-points `subscriptions.subscribable` at the `Tenant`, so a transfer moves no
+money and no customer. What it changes is who `Tenant::stripeEmail()` resolves
+to, which `Actions\Billing\SyncTenantToStripe` re-sends. Do not write code
+that moves a subscription between Stripe customers: `customer` is create-only
+on a Stripe subscription and the API refuses it.
+
+**`password.confirm.if-set` cannot go on a tenant route.** `RequirePassword`
+redirects to `route('password.confirm')`, and in path identification mode the
+tenant group is prefixed `{tenant}` with no `URL::defaults()` registered, so
+the middleware throws `UrlGenerationException` instead of asking for a
+password. `Http\Requests\Team\NominateOwnerRequest` validates
+`current_password` against the tenant guard in the form instead, and skips the
+rule when `getAuthPassword()` is blank, which is the OAuth case the middleware
+exists for.
+
 ## Two invitation-row traps, both silent
 
 **Re-inviting an address reuses its row**, because `tenant_invitations` is
