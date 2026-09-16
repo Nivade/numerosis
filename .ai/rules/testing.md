@@ -126,6 +126,27 @@ rest of this file is read:
   suite, and it cost two false starts before `vendor/bin/pest --filter=…`
   written straight to a file returned in 0.78s. Redirect, then read the file.
 
+- **A test that removes `database.connections.central` used to leak every
+  central row it had already written, into a worker database that outlives the
+  run** (found and fixed 2026-09-16). `deleteCentralWrites()` bailed when the
+  connection was gone, which is exactly the state
+  `InstallNumerosisCommandTest::test_it_fails_when_the_central_database_connection_is_missing`
+  leaves behind — after `RoleAndPermissionSeeder` had committed a role and its
+  permissions through that autocommitting connection. The rows then sat in
+  `testing_test_N` for every later run drawing that worker, and surfaced as a
+  duplicate-key on `roles.admin-web` plus an inverted assertion in
+  `PromoteFirstCentralUserToAdminTest`, which creates the `admin` role itself.
+  The trait now captures the connection's config when it arms the write
+  tracking and puts it back for the deletes.
+
+  **Two things about diagnosing this class.** A failing `--parallel` run is
+  replayable: `vendor/bin/pest --parallel --random-order-seed=N` with the seed
+  the red run printed reproduces it exactly. And once a run has leaked, every
+  later run inherits the rows, so **drop the worker databases before
+  attributing anything** — instrumenting teardown without doing that names the
+  first test of each worker as the culprit, which is merely the first one to
+  observe state an earlier run left.
+
 - **Two teardown hooks do work `RefreshDatabase` cannot**, both defined in
   `src/Testing/CleansUpTenancyDatabases.php` — shipped to hosts, not test-suite
   code — and registered from `Tests\TestCase::setUp()` via

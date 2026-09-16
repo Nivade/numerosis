@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Tests\Feature\Testing;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Tests\Support\TestTenant;
@@ -68,6 +69,48 @@ class CleansUpTenancyDatabasesTest extends TestCase
             0,
             DB::connection('central')->table('users')->where('global_id', 'teardown-probe')->count(),
             'A row written on the central connection survived teardown — RefreshDatabase does not roll that connection back.',
+        );
+    }
+
+    /**
+     * `InstallNumerosisCommandTest` removes the central connection to assert
+     * what a host without one sees, and its own seeded rows were autocommitted
+     * before that. Teardown used to give up here, so a role and 64 permissions
+     * survived in the worker database — and `PromoteFirstCentralUserToAdmin`'s
+     * tests, which create the `admin` role themselves, then died on a
+     * duplicate key in whichever run drew that worker next.
+     */
+    public function test_it_deletes_central_rows_even_where_the_test_removed_the_connection(): void
+    {
+        DB::connection('central')->table('users')->insert([
+            'global_id' => 'connection-removed-probe',
+            'name' => 'Connection Removed Probe',
+            'email' => 'connection-removed-probe@example.test',
+            'password' => bcrypt('password'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $configured = Config::array('database.connections.central');
+
+        // Rebuilt without the key, the way `InstallNumerosisCommandTest` does
+        // it: `Config::offsetUnset()` would write null and leave the key.
+        $connections = Config::array('database.connections');
+        unset($connections['central']);
+        Config::set('database.connections', $connections);
+
+        $this->cleanUpTenancyDatabases();
+
+        $this->assertNull(
+            Config::get('database.connections.central'),
+            'Teardown left the connection it borrowed behind, so the next test sees config this one removed.',
+        );
+
+        Config::set('database.connections.central', $configured);
+
+        $this->assertSame(
+            0,
+            DB::connection('central')->table('users')->where('global_id', 'connection-removed-probe')->count(),
         );
     }
 

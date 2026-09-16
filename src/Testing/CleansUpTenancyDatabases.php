@@ -42,6 +42,14 @@ trait CleansUpTenancyDatabases
     private ?object $centralWritesRecordedFor = null;
 
     /**
+     * The central connection's config as it stood when tracking was armed, so
+     * teardown can delete through it even where the test under way removed it.
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $centralConnectionConfig = null;
+
+    /**
      * A connection with its own PDO session, so the `DROP DATABASE` statements
      * cannot implicitly commit a transaction another connection holds.
      */
@@ -238,6 +246,13 @@ trait CleansUpTenancyDatabases
 
         $central = $this->centralConnectionName();
 
+        /** @var array<string, mixed>|null $configured */
+        $configured = Config::get('database.connections.'.$central);
+
+        if (is_array($configured)) {
+            $this->centralConnectionConfig = $configured;
+        }
+
         DB::listen(function (QueryExecuted $query) use ($central): void {
             if ($query->connectionName !== $central) {
                 return;
@@ -284,11 +299,15 @@ trait CleansUpTenancyDatabases
 
         $name = $this->centralConnectionName();
 
-        // A test that unset the connection to assert what a host sees leaves
-        // nothing to delete through, and a failed statement here reconnects,
-        // which throws `Database connection [central] not configured` from a
-        // teardown callback with no test-side frame.
-        if (! array_key_exists($name, Config::array('database.connections'))) {
+        // A test that removed the connection to assert what a host sees still
+        // wrote central rows first, and those rows are autocommitted: skipping
+        // the deletes here leaves them for whichever test the runner schedules
+        // next, in a worker database that outlives the run. The config is put
+        // back for the deletes and taken away again below.
+        $restored = Config::get('database.connections.'.$name) === null
+            && $this->restoreCentralConnection($name);
+
+        if (! $restored && Config::get('database.connections.'.$name) === null) {
             $this->dirtyCentralTables = [];
 
             return;
@@ -309,8 +328,35 @@ trait CleansUpTenancyDatabases
                 $this->withoutForeignKeyChecks($connection, true);
             }
 
+            if ($restored) {
+                DB::purge($name);
+
+                // `Config::offsetUnset()` writes null rather than removing the
+                // key, which is indistinguishable here and is what the guard
+                // above tests for.
+                Config::set('database.connections.'.$name);
+            }
+
             $this->dirtyCentralTables = [];
         }
+    }
+
+    /**
+     * Puts the central connection's own config back, as it stood when the
+     * write tracking was armed. Returns false when nothing was captured, which
+     * is a test that removed the connection before this trait ever saw it.
+     */
+    private function restoreCentralConnection(string $name): bool
+    {
+        if ($this->centralConnectionConfig === null) {
+            return false;
+        }
+
+        Config::set('database.connections.'.$name, $this->centralConnectionConfig);
+
+        DB::purge($name);
+
+        return true;
     }
 
     /**
