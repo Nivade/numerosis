@@ -135,6 +135,24 @@ step 4). They are not speculative abstraction:
 "One implementation" is the expected state for a framework whose whole point is
 that the *host* supplies the second one.
 
+### Listing sessions on a driver that is not `database`
+
+`Contracts\Auth\SessionRegistry` is what `settings/sessions` reads and
+revokes through, bound to `Services\Auth\DatabaseSessionRegistry`. That
+implementation returns `listable() === false` on any other driver, and the
+screen then offers only "sign out other devices", which works everywhere
+because it moves the password stamp `AuthenticateSession` compares rather than
+deleting stored rows.
+
+A host on Redis keeping its own per-user index of session ids binds its own
+class through `numerosis.tenancy.implementations` and gets the listing back.
+Two things any implementation has to reproduce: the guard a session belongs to
+is only knowable from the login key inside the payload, since the `user_id`
+column holds whichever guard was ambient when the row was written; and
+`forgetTenantAccess()` has to strip one tenant's keys from a session rather
+than delete it, because the same session carries the user's central login and
+every other tenant they are in.
+
 ### Rolling a migration across the fleet
 
 `MigrateTenantDatabase` is a provisioning step, so it runs once, for one
@@ -406,6 +424,7 @@ touching core.
 | `Auth\SocialAccountUnlinked` | `Http\Controllers\Auth\Social\DestroySocialAccountController` deletes a `SocialAccount` | `globalUserId`, `provider` (scalars only — the row is gone by dispatch time) | Audit |
 | `Auth\UserAccountDeleting` | Before `Actions\Auth\DeleteUserAccount` deletes the row | `user`, `globalId`. Listen synchronously — a queued listener unserializes `user` after the delete committed and gets a `ModelNotFoundException` | A host purging or exporting its own rows before the account is gone |
 | `Auth\UserAccountDeleted` | After the row is deleted | `globalId`, `email` (scalars only, the model no longer exists) | Cleanup that only needs the identifiers |
+| `Auth\PasswordChanged` | `Actions\Auth\UpdateUserPassword` and `Actions\Auth\ResetUserPassword`, after the write | `guard`, `userId` (scalars — a tenant primary key means nothing against the central `users` table, so the guard travels with it) | `Listeners\Auth\RevokeSessionsAfterPasswordChange` deletes the user's other stored sessions |
 | `Auth\AdminGranted` | `Actions\Auth\PromoteFirstCentralUserToAdmin` or `Actions\Tenancy\PromoteFirstUserToAdmin` grants the admin role | `globalId`, `grantedBy` (always `null` today — both dispatch sites are automatic first-user promotion), `tenantId` (`null` for the central role) | Privilege-escalation audit |
 | `Billing\PaymentSettled` | A payment settles after having previously failed or the tenant was suspended | `tenant`, `ownerId` | Clearing a payment-status banner |
 | `Billing\PaymentFailed` | `invoice.payment_failed` webhook | `tenant` | The dunning notice |

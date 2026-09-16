@@ -6,6 +6,7 @@
             @if (PasswordResetFeature::available())
                 <flux:navlist.item :href="route('settings.password')" wire:navigate>{{ __('Password') }}</flux:navlist.item>
             @endif
+            <flux:navlist.item :href="route('settings.sessions')" wire:navigate>{{ __('Sessions') }}</flux:navlist.item>
         </flux:navlist>
     </div>
 

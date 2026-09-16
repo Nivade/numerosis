@@ -109,13 +109,14 @@ central hostname, so a central route registered with a plain `Route::get()`
 would also answer on every tenant subdomain, silently.
 
 The `tenant` group is `['web', 'tenancy.identification', 'tenancy.route',
-'tenancy.session']`:
+'tenancy.session', AuthenticateSession::class, 'impersonation']`:
 
 | Middleware | Job |
 |---|---|
 | `tenancy.identification` | resolves the tenant, per `numerosis.tenancy.identification.mode` — `subdomain` (default), `custom_domain`, or `path`. The class differs per mode |
 | `tenancy.route` | stancl's route-level tenancy guard |
 | `tenancy.session` | `EnsureSessionMatchesTenant` — **must stay after `StartSession`**. One session spans every subdomain and `SessionGuard` stores only a primary key, so without it a user who is id 2 on tenant A authenticates as whoever id 2 is on tenant B |
+| `AuthenticateSession` | Laravel's own, behind `tenancy.session` for the reason that row gives: it reads the tenant guard, so it must not run while the session still holds the previous tenant's state. Ends a session whose password stamp no longer matches, which is what revokes one after a password change on any driver |
 
 `universal` is registered as an empty group (a marker for routes that answer on
 both sides). `TrustProxies::at('*')` and a prepended `TrustHosts` are applied

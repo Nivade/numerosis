@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Boot;
 
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Concerns\Boot\RegistersOnce;
 use Nvade\Numerosis\Enums\MiddlewareAlias;
@@ -77,6 +78,12 @@ final class MiddlewareRegistrar
                 MiddlewareAlias::TenancyIdentification->value,
                 MiddlewareAlias::TenancyRoute->value,
                 MiddlewareAlias::TenancySession->value,
+
+                // After the three above, never before: it reads the tenant
+                // guard, which only exists once tenancy is initialized and
+                // `EnsureSessionMatchesTenant` has dropped another tenant's
+                // session state.
+                AuthenticateSession::class,
 
                 // On the group, not on the authenticated routes: an expired
                 // impersonation has to end on whatever request arrives next,

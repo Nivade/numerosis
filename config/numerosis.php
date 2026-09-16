@@ -18,6 +18,7 @@ use Nvade\Numerosis\Boot\Domains;
 use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
+use Nvade\Numerosis\Contracts\Auth\SessionRegistry;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Billing\CheckoutRegionResolver;
@@ -52,6 +53,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantMigrationRun;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
+use Nvade\Numerosis\Services\Auth\DatabaseSessionRegistry;
 use Nvade\Numerosis\Services\Billing\DefaultUnpaidTenantQuota;
 use Nvade\Numerosis\Services\Billing\EloquentPaymentPlanRepository;
 use Nvade\Numerosis\Services\Billing\EloquentSubscriptionRepository;
@@ -510,6 +512,7 @@ return [
             ResolvesLoginCandidate::class => ResolveLoginCandidate::class,
             AuthenticatesLoginCandidate::class => AuthenticateLoginCandidate::class,
             SendsEmailVerificationNotification::class => SendEmailVerificationNotification::class,
+            SessionRegistry::class => DatabaseSessionRegistry::class,
         ],
     ],
 
