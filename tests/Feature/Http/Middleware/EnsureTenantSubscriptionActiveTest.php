@@ -8,10 +8,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDomain;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
+use Nvade\Numerosis\Tests\Support\HostRouteFiles;
 use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -38,8 +38,7 @@ class EnsureTenantSubscriptionActiveTest extends TestCase
         // and never the user, so auth is not a precondition — and an auth
         // redirect for an unauthenticated request would mask the very
         // redirect under test.
-        File::ensureDirectoryExists(base_path('routes'));
-        File::put(base_path('routes/tenant.php'), <<<'PHP'
+        HostRouteFiles::write('tenant.php', <<<'PHP'
             <?php
 
             use Illuminate\Support\Facades\Route;
@@ -54,7 +53,7 @@ class EnsureTenantSubscriptionActiveTest extends TestCase
 
     protected function tearDown(): void
     {
-        File::delete(base_path('routes/tenant.php'));
+        HostRouteFiles::release();
 
         parent::tearDown();
     }

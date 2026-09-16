@@ -376,6 +376,15 @@ final class HostConfig
         foreach ($table as $key => [$stockValues, $value]) {
             $current = Config::get($key);
 
+            // A stock value can equal the correction's own target: on SQLite
+            // `database.default` is `central`, which is what
+            // `queue.failed.database` is corrected *to*. Rewriting it there
+            // reports work that changed nothing, and applied() stops meaning
+            // "this host needed correcting".
+            if ($current === $value) {
+                continue;
+            }
+
             if ($current === null || in_array($current, $stockValues, true)) {
                 self::set($key, $value);
             }

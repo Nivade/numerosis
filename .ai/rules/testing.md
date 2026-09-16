@@ -50,6 +50,18 @@ rest of this file is read:
   - one file/filter — `vendor/bin/pest --compact --filter=SomeTest`
   - static analysis — see `.ai/rules/static-analysis.md` (needs a `tmpDir` override)
   - MySQL must be up: `docker compose ps` should show `numerosis-mysql-1` healthy
+  - driver: `NUMEROSIS_TEST_DRIVER=mysql|mariadb|pgsql|sqlite`, unset means
+    MySQL. `pgsql` needs `numerosis-pgsql-1` up and the `pdo_pgsql` extension
+    installed; `sqlite` needs neither, and writes its files into
+    `vendor/orchestra/testbench-core/laravel/database/`
+  - **SQLite runs serially, never `--parallel`** (`vendor/bin/pest`, not
+    `composer test`), and CI branches on the driver for the same reason.
+    Eight processes over one directory of SQLite files fail somewhere
+    different each run — `SQLITE_BUSY`, `attempt to write a readonly
+    database`, `disk I/O error`, a template copied without the commits still
+    sitting in its `-wal`. WAL plus a busy timeout fixed the first two and
+    turned the third into `no such table: users` once in three runs; serial
+    is green every time and covers the same tests
 
   **Run Pint before Pest, not after.** Pint rewrites files (`class_definition`,
   `fully_qualified_strict_types`, `braces_position`, `single_line_empty_body`,

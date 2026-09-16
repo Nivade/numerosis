@@ -382,20 +382,31 @@ view which has never existed in this repo; nothing reported it because the
 route it sat on was unreachable. Check `route:list` for the *handler*, not just
 the path, before assuming a workbench route is live.
 
-**What actually blocks SQLite is smaller than "MySQL-only" suggests, and
-`CREATE DATABASE` is not part of it.** stancl ships
-`TenantDatabaseManagers\SQLiteDatabaseManager`, which writes one file per
-tenant, and it is wired in its own config: on a SQLite run `CreateTenant`,
-`CreateTenantDatabase` and `MigrateTenantDatabase` all complete. Seeding is
-where it dies, on `unknown function: SUBSTRING_INDEX()` from
-`2025_12_17_035929_add_ability_and_context_virtual_columns_to_permissions`.
-Measured 2026-09-12; do not repeat the guess that the tenancy model itself
-rules SQLite out.
+**Four drivers run now: MySQL, MariaDB, PostgreSQL and SQLite** (2026-09-15,
+superseding the 2026-09-12 measurement this section used to carry). The
+`CREATE DATABASE` claim that made MySQL sound mandatory was never true —
+stancl wires a database manager per driver in its own config, and this repo
+never overrides `tenancy.database.managers`, so PostgreSQL needed no wiring
+at all.
 
-The rest of the MySQL surface is two places, both small, plus one gap:
-`PruneOrphanedTenantDatabases` querying `INFORMATION_SCHEMA.SCHEMATA`, the
-generated `permissions.ability`/`context` columns (which are `#[Guarded]`,
-derived from `name`, and queried by nothing in this repo), and
-`CleansUpTenancyDatabases` returning early for a non-MySQL driver, so SQLite
-tenant files would leak rather than fail. The cost of supporting SQLite is
-the test matrix, not the code.
+Three facts that cost the most to find:
+
+- `information_schema.schemata` and `information_schema.tables` both answer a
+  *different question* on PostgreSQL rather than erroring: the first lists
+  schemas, the second is filtered by a `table_schema` that means `public`
+  there. A query ported unchanged succeeds and reports nothing. Go through
+  `Contracts\Tenancy\TenantDatabaseManager`, which owns the per-driver
+  spelling, rather than writing catalogue SQL at a call site.
+- `DROP DATABASE` on PostgreSQL needs `WITH (FORCE)`. Without it the drop
+  fails while any session is still attached, which teardown always has.
+- On SQLite the default connection and `central` have to be one connection.
+  Two PDO handles on one file deadlock the moment `RefreshDatabase`'s
+  transaction takes the write lock, and pdo_sqlite defaults
+  `PDO::ATTR_TIMEOUT` to 60 seconds, so the run reads as hung rather than
+  failing. `tests/TestCase.php` does this, and
+  `CleansUpTenancyDatabases::releaseTestTransactions()` skips itself there as
+  a consequence.
+
+`Enums\Tenancy\DatabaseDriver` is the supported set. SQLite is accepted with
+a warning rather than refused — one writer per file, and the central database
+is shared by every tenant.

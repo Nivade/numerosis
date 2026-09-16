@@ -11,6 +11,21 @@ untagged checkout.
 
 ## [Unreleased]
 
+### Changed
+
+- `domains.created_at` and `updated_at` carry microseconds, and
+  `Models\Central\Domain` writes them with matching precision.
+  `Tenant::primaryDomain()` returns the most recently added domain, which two
+  domains added in the same second could not decide before — the answer came
+  back in whatever order the driver chose.
+- `Permission::$ability` and `Permission::$context` are accessors splitting
+  `name` rather than generated columns, and
+  `2025_12_17_035929_add_ability_and_context_virtual_columns_to_permissions`
+  is deleted. **Breaking for a host that queries either column**, since they
+  no longer exist in the database and cannot appear in a `where`, `orderBy`
+  or `groupBy`. Reading them off a model is unchanged, and they now resolve
+  on the central connection too, where they had always been null.
+
 ### Removed
 
 - Filament (both panels, `packages/filament`, `filament/filament` itself),

@@ -35,6 +35,9 @@ class TenantPrimaryDomainCacheTest extends TestCase
 
         $this->assertSame($original->id, $tenant->primaryDomain()?->id);
 
+        // Deliberately within the same second: `domains.created_at` carries
+        // microseconds so that this resolves, and on a second-precision column
+        // the winner is whichever row the driver happened to return first.
         $newer = $tenant->domains()->create([
             'id' => $tenant->id.'-newer',
             'domain' => $this->tenantDomain($tenant->id.'-newer'),

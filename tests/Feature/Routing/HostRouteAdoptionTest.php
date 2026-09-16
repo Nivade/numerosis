@@ -7,10 +7,10 @@ use Illuminate\Routing\RouteCollection;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Routing\RouteNames;
+use Nvade\Numerosis\Tests\Support\HostRouteFiles;
 
 /*
  * Adopting numerosis into an app that already works must not delete what
@@ -21,8 +21,7 @@ use Nvade\Numerosis\Routing\RouteNames;
 
 function writeHostRoute(string $file, string $body): void
 {
-    File::ensureDirectoryExists(base_path('routes'));
-    File::put(base_path('routes/'.$file), "<?php\n\nuse Illuminate\\Support\\Facades\\Route;\n\n".$body);
+    HostRouteFiles::write($file, "<?php\n\nuse Illuminate\\Support\\Facades\\Route;\n\n".$body);
 }
 
 /**
@@ -41,15 +40,18 @@ function registeredRoutesFor(string $uri): Collection
 }
 
 beforeEach(function (): void {
+    // Held for the whole test, including the last one here, which asserts what
+    // happens when none of the three files exist: another worker's file would
+    // answer that question instead.
+    HostRouteFiles::acquire();
+
     // TestCase::defineRoutes() already ran Numerosis::routes() before the host
     // files below existed, and registration order is what these assert.
     resolve(Router::class)->setRoutes(new RouteCollection);
 });
 
 afterEach(function (): void {
-    foreach (['web.php', 'tenant.php', 'api.php'] as $file) {
-        File::delete(base_path('routes/'.$file));
-    }
+    HostRouteFiles::release();
 });
 
 it('loads the host routes/web.php into every central domain group', function () {

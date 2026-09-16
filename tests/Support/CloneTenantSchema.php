@@ -11,9 +11,12 @@ use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
 use Nvade\Numerosis\Actions\Tenancy\MigrateTenantDatabase;
 use Nvade\Numerosis\Actions\Tenancy\SeedTenantDatabase;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
+use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
+use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
+use Nvade\Numerosis\Tests\TestCase;
 use RuntimeException;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 
@@ -143,7 +146,7 @@ class CloneTenantSchema implements ProvisioningStep
     {
         $database = self::templateDatabase();
 
-        self::central()->statement("DROP DATABASE IF EXISTS `{$database}`");
+        resolve(TenantDatabaseManager::class)->dropDatabase($database, self::centralConnectionName());
 
         // Tenant is abstract (see .claude/plans/archive/package-extraction.md Phase
         // 4.4) — forceCreate() calls `new static`, which late static binding
@@ -187,6 +190,57 @@ class CloneTenantSchema implements ProvisioningStep
 
     private static function copyDatabase(string $from, string $to): void
     {
+        match (TestCase::databaseDriver()) {
+            DatabaseDriver::Sqlite => self::copyDatabaseFile($from, $to),
+            DatabaseDriver::Pgsql => self::copyDatabaseFromTemplate($from, $to),
+            default => self::replayTableDefinitions($from, $to),
+        };
+    }
+
+    /**
+     * One file per database, so the copy is the whole thing — foreign keys,
+     * indexes and seeded rows included — with no DDL to replay.
+     */
+    private static function copyDatabaseFile(string $from, string $to): void
+    {
+        if (! self::databaseExists($from)) {
+            self::buildTemplate();
+        }
+
+        copy(database_path($from), database_path($to));
+    }
+
+    /**
+     * `CREATE DATABASE ... WITH TEMPLATE` is server-side and keeps the foreign
+     * keys the MySQL path has to replay DDL to preserve. PostgreSQL refuses it
+     * while another session is attached to the template, so the connection the
+     * template was built through is purged first.
+     *
+     * `CreateTenantDatabase` has already created `$to` by the time this runs,
+     * and unlike the MySQL path — which fills an existing database with tables
+     * — the template copy *is* the creation, so the empty one it made has to
+     * go first.
+     */
+    private static function copyDatabaseFromTemplate(string $from, string $to): void
+    {
+        if (! self::databaseExists($from)) {
+            self::buildTemplate();
+        }
+
+        DB::purge(self::CONNECTION);
+        DB::purge('tenant');
+
+        resolve(TenantDatabaseManager::class)->dropDatabase($to, self::centralConnectionName());
+
+        self::central()->statement(sprintf(
+            'CREATE DATABASE %s WITH TEMPLATE %s',
+            self::quoted($to),
+            self::quoted($from),
+        ));
+    }
+
+    private static function replayTableDefinitions(string $from, string $to): void
+    {
         $connection = self::connectionTo($to);
 
         // Template tables reference each other, so no creation order satisfies
@@ -212,6 +266,11 @@ class CloneTenantSchema implements ProvisioningStep
         }
     }
 
+    private static function quoted(string $identifier): string
+    {
+        return '"'.str_replace('"', '""', $identifier).'"';
+    }
+
     /**
      * A connection whose *default* database is the new tenant.
      *
@@ -225,7 +284,12 @@ class CloneTenantSchema implements ProvisioningStep
         /** @var array<string, mixed> $config */
         $config = config('database.connections.'.self::centralConnectionName());
 
-        config(['database.connections.'.self::CONNECTION => [...$config, 'database' => $database]]);
+        // SQLite names a database by path, and every other driver by name.
+        $target = TestCase::databaseDriver() === DatabaseDriver::Sqlite
+            ? database_path($database)
+            : $database;
+
+        config(['database.connections.'.self::CONNECTION => [...$config, 'database' => $target]]);
 
         DB::purge(self::CONNECTION);
 
@@ -294,27 +358,42 @@ class CloneTenantSchema implements ProvisioningStep
         return collect($columns)->map(fn ($column) => "`{$column->name}`")->implode(',');
     }
 
+    /**
+     * `information_schema.tables` is filtered by `table_schema`, which names a
+     * database on MySQL and a schema on PostgreSQL — the same query there
+     * answers about `public` and reports the wrong database's tables.
+     */
     private static function hasTables(string $database): bool
     {
         if (! self::databaseExists($database)) {
             return false;
         }
 
-        /** @var list<object{total: int}> $rows */
-        $rows = self::central()->select(
-            'select count(*) as total from information_schema.tables where table_schema = ?',
-            [$database],
-        );
+        if (TestCase::databaseDriver() === DatabaseDriver::Sqlite) {
+            return filesize(database_path($database)) > 0;
+        }
+
+        $connection = self::connectionTo($database);
+
+        try {
+            /** @var list<object{total: int}> $rows */
+            $rows = TestCase::databaseDriver() === DatabaseDriver::Pgsql
+                ? $connection->select("select count(*) as total from information_schema.tables where table_schema = 'public'")
+                : $connection->select('select count(*) as total from information_schema.tables where table_schema = ?', [$database]);
+        } finally {
+            DB::purge(self::CONNECTION);
+        }
 
         return ($rows[0]->total ?? 0) > 0;
     }
 
     private static function databaseExists(string $database): bool
     {
-        return self::central()->select(
-            'SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?',
-            [$database],
-        ) !== [];
+        return in_array(
+            $database,
+            resolve(TenantDatabaseManager::class)->namesMatchingPrefix($database, self::centralConnectionName()),
+            true,
+        );
     }
 
     private static function central(): Connection

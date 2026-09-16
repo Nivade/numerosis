@@ -36,10 +36,10 @@ class ProvisionTenantCommandTest extends TestCase
 
     /**
      * Left to the pipeline, an unsupported driver surfaces as the tenant
-     * seeder dying on `unknown function: SUBSTRING_INDEX()` inside the fifth
-     * queued job, naming neither the driver nor this command.
+     * seeder dying inside the fifth queued job, naming neither the driver nor
+     * this command.
      */
-    public function test_it_refuses_a_central_connection_that_is_not_mysql(): void
+    public function test_it_refuses_a_central_connection_on_an_unsupported_driver(): void
     {
         Bus::fake();
 
@@ -49,10 +49,10 @@ class ProvisionTenantCommandTest extends TestCase
         $driver = Config::string('database.connections.central.driver');
 
         try {
-            Config::set('database.connections.central.driver', 'sqlite');
+            Config::set('database.connections.central.driver', 'sqlsrv');
 
-            $this->command('tenancy:provision', ['slug' => 'sqliteco'])
-                ->expectsOutputToContain('MySQL or MariaDB is required')
+            $this->command('tenancy:provision', ['slug' => 'sqlsrvco'])
+                ->expectsOutputToContain('MySQL, MariaDB, PostgreSQL and SQLite')
                 ->assertFailed();
         } finally {
             Config::set('database.connections.central.driver', $driver);

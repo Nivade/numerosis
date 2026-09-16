@@ -15,6 +15,23 @@ services:
             retries: 3
             timeout: 5s
 
+    pgsql:
+        image: 'postgres:17'
+        ports:
+            - '${FORWARD_PGSQL_PORT:-5432}:5432'
+        environment:
+            POSTGRES_USER: '${PGSQL_USERNAME:-postgres}'
+            POSTGRES_PASSWORD: '${PGSQL_PASSWORD:-postgres}'
+            POSTGRES_DB: '${PGSQL_DATABASE:-testing}'
+        volumes:
+            - 'numerosis-pgsql:/var/lib/postgresql/data'
+        healthcheck:
+            test: ['CMD', 'pg_isready', '-U', 'postgres']
+            retries: 3
+            timeout: 5s
+
 volumes:
     numerosis-mysql:
+        driver: local
+    numerosis-pgsql:
         driver: local

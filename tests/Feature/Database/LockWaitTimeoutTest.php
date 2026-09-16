@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Database;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -34,6 +35,13 @@ use PHPUnit\Framework\Attributes\DataProvider;
 class LockWaitTimeoutTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->skipUnlessDriverIs(DatabaseDriver::Mysql, DatabaseDriver::Mariadb);
+    }
 
     /**
      * @return list<array{string, string}>

@@ -13,6 +13,7 @@ use Illuminate\Testing\PendingCommand;
 use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Boot\Assets;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
+use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
 use Nvade\Numerosis\Tests\TestCase;
@@ -207,6 +208,8 @@ class InstallNumerosisCommandTest extends TestCase
     /** @verifies verifyLockWaitTimeout */
     public function test_it_fails_when_lock_wait_timeout_is_set_without_the_innodb_variant(): void
     {
+        $this->skipUnlessDriverIs(DatabaseDriver::Mysql, DatabaseDriver::Mariadb);
+
         /** @var array<string, mixed> $central */
         $central = config('database.connections.central');
         $central['options'] = ['SET SESSION lock_wait_timeout = 10'];
@@ -638,22 +641,51 @@ class InstallNumerosisCommandTest extends TestCase
      * chained call without a baseline entry.
      */
     /**
-     * Presence was checked and the driver was not, so a SQLite host passed
-     * install and then failed five queued jobs into its first provision, on
-     * `unknown function: SUBSTRING_INDEX()`.
+     * Presence was checked and the driver was not, so a host on a driver this
+     * package never runs on passed install and then failed five queued jobs
+     * into its first provision.
      */
-    public function test_it_fails_when_the_central_connection_is_not_mysql(): void
+    public function test_it_fails_when_the_central_connection_names_an_unsupported_driver(): void
     {
-        $driver = Config::string('database.connections.central.driver');
+        $this->withCentralDriver('sqlsrv', function (): void {
+            $this->install()
+                ->expectsOutputToContain("driver') is 'sqlsrv'")
+                ->assertFailed();
+        });
+    }
+
+    /**
+     * SQLite runs, so refusing the install would be wrong; its one writer per
+     * file is a property of the deployment rather than a misconfiguration.
+     */
+    public function test_it_warns_without_failing_when_the_central_connection_is_sqlite(): void
+    {
+        $this->withCentralDriver('sqlite', function (): void {
+            $this->install()
+                ->expectsOutputToContain('one writer per database file')
+                ->assertSuccessful();
+        });
+    }
+
+    public function test_it_accepts_postgresql_without_a_warning(): void
+    {
+        $this->withCentralDriver('pgsql', function (): void {
+            $this->install()
+                ->doesntExpectOutputToContain('one writer per database file')
+                ->assertSuccessful();
+        });
+    }
+
+    private function withCentralDriver(string $driver, callable $assertions): void
+    {
+        $original = Config::string('database.connections.central.driver');
 
         try {
-            Config::set('database.connections.central.driver', 'sqlite');
-
-            $this->install()
-                ->expectsOutputToContain("driver') is 'sqlite'")
-                ->assertFailed();
-        } finally {
             Config::set('database.connections.central.driver', $driver);
+
+            $assertions();
+        } finally {
+            Config::set('database.connections.central.driver', $original);
         }
     }
 

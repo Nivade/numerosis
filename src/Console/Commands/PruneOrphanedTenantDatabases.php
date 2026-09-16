@@ -9,7 +9,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
+use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 
@@ -20,6 +20,11 @@ use Nvade\Numerosis\Numerosis;
                             {--force : Skip the confirmation prompt}')]
 class PruneOrphanedTenantDatabases extends Command
 {
+    public function __construct(private readonly TenantDatabaseManager $databases)
+    {
+        parent::__construct();
+    }
+
     public function handle(): int
     {
         $orphanResult = $this->pruneOrphanedDatabases();
@@ -41,16 +46,7 @@ class PruneOrphanedTenantDatabases extends Command
 
         $expected = $tenantIds->map(fn (string $id): string => $prefix.$id)->all();
 
-        // Non-string schema names are dropped, never coerced: this command
-        // issues DROP DATABASE, so anything unrecognised must fall out of the
-        // orphan list.
-        $orphans = collect(DB::select(
-            'SELECT SCHEMA_NAME AS name FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME LIKE ?',
-            [$prefix.'%'],
-        ))
-            ->pluck('name')
-            ->filter(fn ($name): bool => is_string($name) && $name !== '')
-            ->map(fn ($name): string => (string) $name)
+        $orphans = collect($this->databases->namesMatchingPrefix($prefix))
             ->reject(fn (string $name): bool => in_array($name, $expected, true))
             ->values();
 
@@ -75,11 +71,7 @@ class PruneOrphanedTenantDatabases extends Command
         $dropped = 0;
 
         foreach ($orphans as $name) {
-            // Names are quoted, never interpolated bare: tenant ids have
-            // historically contained spaces, commas and apostrophes.
-            $escaped = str_replace('`', '``', $name);
-
-            DB::statement("DROP DATABASE IF EXISTS `{$escaped}`");
+            $this->databases->dropDatabase($name);
             $dropped++;
         }
 

@@ -21,11 +21,13 @@ use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Actions\Tenancy\SeedTenantDatabase;
 use Nvade\Numerosis\Data\Tenancy\OwnerContribution;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
+use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\NumerosisServiceProvider;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\SpatiePermissionsBootstrapper;
+use Nvade\Numerosis\Tests\TestCase;
 use Orchestra\Testbench\TestCase as Orchestra;
 use PDO;
 
@@ -131,6 +133,12 @@ class FreshHostTest extends Orchestra
      */
     protected function setUp(): void
     {
+        // Builds its own host against a raw MySQL PDO, so there is no
+        // connection array here for a driver selector to reach.
+        if (TestCase::databaseDriver() !== DatabaseDriver::Mysql) {
+            $this->markTestSkipped('Builds a MySQL host directly; this run is on '.TestCase::databaseDriver()->value.'.');
+        }
+
         foreach ([
             'APP_URL' => self::APP_URL,
             'APP_KEY' => 'base64:'.base64_encode(str_repeat('f', 32)),

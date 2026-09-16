@@ -19,10 +19,28 @@ final class FakeTenantDatabaseManager implements TenantDatabaseManager
 
     public function __construct(private readonly bool $exists) {}
 
+    /** @var list<string> */
+    public array $dropped = [];
+
     public function databaseExists(TenantWithDatabase $tenant): bool
     {
         $this->asked[] = (string) $tenant->getTenantKey();
 
         return $this->exists;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function namesMatchingPrefix(string $prefix, ?string $connection = null): array
+    {
+        return [];
+    }
+
+    public function dropDatabase(string $name, ?string $connection = null): bool
+    {
+        $this->dropped[] = $name;
+
+        return true;
     }
 }
