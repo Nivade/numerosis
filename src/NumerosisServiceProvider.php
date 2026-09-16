@@ -56,6 +56,7 @@ use Nvade\Numerosis\Console\Commands\DeleteTenants;
 use Nvade\Numerosis\Console\Commands\EndStaleImpersonations;
 use Nvade\Numerosis\Console\Commands\InstallNumerosisCommand;
 use Nvade\Numerosis\Console\Commands\ListClosedTenants;
+use Nvade\Numerosis\Console\Commands\MigrateTenants;
 use Nvade\Numerosis\Console\Commands\ProvisionTenantCommand;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedStripeCustomers;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
@@ -151,6 +152,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->hasCommand(DeleteTenants::class)
             ->hasCommand(EndStaleImpersonations::class)
             ->hasCommand(ListClosedTenants::class)
+            ->hasCommand(MigrateTenants::class)
             ->hasCommand(ReopenTenantCommand::class)
             ->hasCommand(PruneOrphanedStripeCustomers::class)
             ->hasCommand(PruneOrphanedTenantDatabases::class)

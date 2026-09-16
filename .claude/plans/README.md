@@ -166,17 +166,16 @@ screens read. Deviations in the plan's own "What shipped".
 Twenty-one files added 2026-09-16 from a capability sweep of the tree:
 `saas-readiness-roadmap.md` is the parent and holds the sequencing, the
 cross-cutting decisions and the shared foundations. The other twenty are one
-feature each and are listed here in the roadmap's wave order. Seven,
+feature each and are listed here in the roadmap's wave order. Eight,
 `seat-limit-at-invite.md`, `team-members-management.md`,
 `tenant-ownership-transfer.md`, `tenant-close-and-recovery.md`,
-`staff-admin-panel.md`, `support-impersonation.md` and
-`provisioning-observability.md`, have since been executed and archived; the
-rest are not.
+`staff-admin-panel.md`, `support-impersonation.md`,
+`provisioning-observability.md` and `fleet-tenant-migrations.md`, have since
+been executed and archived; the rest are not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `fleet-tenant-migrations.md` | Not executed. Wave 2. No way to migrate tenants that already exist |
 | `two-factor-authentication.md` | Not executed. Wave 3. Fortify ships it; `HostConfig` leaves it off |
 | `session-management.md` | Not executed. Wave 3. A stolen session cannot be revoked |
 | `security-hardening.md` | Not executed. Wave 3. Breached-password check, security headers, login anomaly event |
