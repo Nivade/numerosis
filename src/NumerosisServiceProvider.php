@@ -19,6 +19,8 @@ use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\Middleware\TrustHosts;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -50,6 +52,7 @@ use Nvade\Numerosis\Boot\MiddlewareRegistrar;
 use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
 use Nvade\Numerosis\Console\Commands\DeleteTenants;
+use Nvade\Numerosis\Console\Commands\EndStaleImpersonations;
 use Nvade\Numerosis\Console\Commands\InstallNumerosisCommand;
 use Nvade\Numerosis\Console\Commands\ListClosedTenants;
 use Nvade\Numerosis\Console\Commands\ProvisionTenantCommand;
@@ -61,6 +64,8 @@ use Nvade\Numerosis\Console\Commands\TransferTenantOwnershipCommand;
 use Nvade\Numerosis\Contracts\Exceptions\ProvidesExceptionContext;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder as PackageDatabaseSeeder;
 use Nvade\Numerosis\Enums\SessionKey;
+use Nvade\Numerosis\Events\Admin\ImpersonationEnded;
+use Nvade\Numerosis\Events\Admin\ImpersonationStarted;
 use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
@@ -76,6 +81,9 @@ use Nvade\Numerosis\Http\Requests\Auth\NumerosisVerifyEmailRequest;
 use Nvade\Numerosis\Http\Responses\Auth\NumerosisLoginResponse;
 use Nvade\Numerosis\Http\Responses\Auth\NumerosisLogoutResponse;
 use Nvade\Numerosis\Http\Responses\Auth\NumerosisVerifyEmailResponse;
+use Nvade\Numerosis\Listeners\Admin\LogImpersonationEnded;
+use Nvade\Numerosis\Listeners\Admin\LogImpersonationStarted;
+use Nvade\Numerosis\Listeners\Admin\SuppressMailWhileImpersonating;
 use Nvade\Numerosis\Listeners\Auth\EndOtherGuardSession;
 use Nvade\Numerosis\Listeners\Auth\LogSocialAccountLinked;
 use Nvade\Numerosis\Listeners\Auth\LogSocialAccountUnlinked;
@@ -138,6 +146,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->runsMigrations()
             ->hasCommand(InstallNumerosisCommand::class)
             ->hasCommand(DeleteTenants::class)
+            ->hasCommand(EndStaleImpersonations::class)
             ->hasCommand(ListClosedTenants::class)
             ->hasCommand(ReopenTenantCommand::class)
             ->hasCommand(PruneOrphanedStripeCustomers::class)
@@ -466,6 +475,10 @@ class NumerosisServiceProvider extends PackageServiceProvider
                 $schedule->command('billing:prune-orphaned-customers')->daily();
             }
 
+            if (Config::boolean('numerosis.schedule.end_stale_impersonations')) {
+                $schedule->command('impersonation:end-stale')->everyFifteenMinutes();
+            }
+
             if (Config::boolean('numerosis.schedule.prune_stalled_provisions')) {
                 $schedule->command('tenancy:prune-stalled-provisions')->hourly();
             }
@@ -509,6 +522,14 @@ class NumerosisServiceProvider extends PackageServiceProvider
             TenantRestored::class => SendTenantRestoredNotification::class,
             TenantProvisioned::class => BackfillTenantUsers::class,
             MigrationsEnded::class => ForgetTenantColumnListing::class,
+            ImpersonationStarted::class => LogImpersonationStarted::class,
+            ImpersonationEnded::class => LogImpersonationEnded::class,
+
+            // Both events cancel the send when their listener returns false,
+            // which is how support avoids mailing a customer from inside
+            // their own account.
+            MessageSending::class => SuppressMailWhileImpersonating::class,
+            NotificationSending::class => SuppressMailWhileImpersonating::class,
             // Auto-discovery only scans a host's `app/Listeners`, never a
             // package's `src/`, so this explicit registration is the only
             // thing that makes {@see EndOtherGuardSession} fire.

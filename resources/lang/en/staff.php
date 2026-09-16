@@ -60,6 +60,7 @@ return [
         'restore' => 'Restore',
         'reopen' => 'Reopen',
         'reassign' => 'Make owner',
+        'impersonate' => 'Sign in as',
         'retry' => 'Retry',
         'cancel' => 'Cancel',
         'confirm' => 'Confirm',

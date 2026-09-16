@@ -5,12 +5,16 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Nvade\Numerosis\Actions\Admin\StartImpersonation;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Actions\Tenancy\ReopenTenant;
 use Nvade\Numerosis\Actions\Tenancy\RestoreTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
 use Nvade\Numerosis\Actions\Tenancy\TransferTenantOwnership;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Exceptions\Tenancy\OwnershipTransferBlocked;
+use Nvade\Numerosis\Features\Admin\ImpersonationFeature;
+use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Membership;
 use Nvade\Numerosis\Models\Central\Subscription;
@@ -18,6 +22,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Numerosis;
+use Nvade\Numerosis\Policies\Tenancy\TenantPolicy;
 
 new #[Layout('numerosis-layouts::staff')]
 class extends Component
@@ -112,6 +117,33 @@ class extends Component
     }
 
     /**
+     * Mints a one-time link and sends the staff user to the tenant host to
+     * spend it. Gated on its own ability, so a staff user may administer
+     * tenants without being able to sign in as their members.
+     */
+    public function impersonate(int $membershipId): mixed
+    {
+        $this->authorize(TenantPolicy::IMPERSONATE, $this->tenant);
+
+        $membership = $this->membershipHere($membershipId);
+        $staff = GetAuthenticatedUser::run(Context::Central->guard());
+
+        if (! $membership instanceof Membership || ! $staff instanceof CentralUser) {
+            return null;
+        }
+
+        try {
+            $url = StartImpersonation::run($this->tenant, $membership->global_user_id, $staff);
+        } catch (\DomainException $e) {
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
+
+            return null;
+        }
+
+        return $this->redirect($url);
+    }
+
+    /**
      * The membership id arrives as a plain Livewire argument, so it is scoped
      * to this tenant here rather than trusted from the rendered list.
      */
@@ -119,10 +151,7 @@ class extends Component
     {
         $this->authorize('update', $this->tenant);
 
-        $membership = Membership::query()
-            ->where('tenant_id', $this->tenant->getKey())
-            ->whereKey($membershipId)
-            ->first();
+        $membership = $this->membershipHere($membershipId);
 
         if (! $membership instanceof Membership) {
             return;
@@ -137,6 +166,16 @@ class extends Component
         }
 
         $this->record('reassigned', ['user' => $membership->user?->email]);
+    }
+
+    private function membershipHere(int $membershipId): ?Membership
+    {
+        $membership = Membership::query()
+            ->where('tenant_id', $this->tenant->getKey())
+            ->whereKey($membershipId)
+            ->first();
+
+        return $membership instanceof Membership ? $membership : null;
     }
 
     /**
@@ -227,6 +266,16 @@ class extends Component
                                 </flux:table.cell>
 
                                 <flux:table.cell class="text-right">
+                                    @if (ImpersonationFeature::available() && auth()->user()?->can(TenantPolicy::IMPERSONATE, $tenant))
+                                        <flux:button
+                                            size="sm"
+                                            variant="filled"
+                                            wire:click="impersonate({{ $membership->getKey() }})"
+                                        >
+                                            {{ __('numerosis::staff.actions.impersonate') }}
+                                        </flux:button>
+                                    @endif
+
                                     @unless ($membership->isOwner())
                                         <flux:modal.trigger :name="'reassign-'.$membership->getKey()">
                                             <flux:button size="sm" variant="filled">

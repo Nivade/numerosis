@@ -12,6 +12,7 @@ use Nvade\Numerosis\Http\Middleware\Authenticate;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantMembership;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
+use Nvade\Numerosis\Http\Middleware\GuardImpersonation;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
 use Nvade\Numerosis\Http\Middleware\RequirePasswordIfSet;
 use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
@@ -58,6 +59,8 @@ final class MiddlewareRegistrar
             // gate: it redirects to a central route and reads the tenant
             // guard, so it belongs on the authenticated tenant routes only.
             MiddlewareAlias::TenancyMembership->value => EnsureTenantMembership::class,
+
+            MiddlewareAlias::Impersonation->value => GuardImpersonation::class,
         ];
     }
 
@@ -74,6 +77,11 @@ final class MiddlewareRegistrar
                 MiddlewareAlias::TenancyIdentification->value,
                 MiddlewareAlias::TenancyRoute->value,
                 MiddlewareAlias::TenancySession->value,
+
+                // On the group, not on the authenticated routes: an expired
+                // impersonation has to end on whatever request arrives next,
+                // including the tenant's own landing page.
+                MiddlewareAlias::Impersonation->value,
             ],
             'universal' => [],
         ];

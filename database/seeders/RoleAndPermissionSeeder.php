@@ -10,6 +10,7 @@ use Nvade\Numerosis\Database\Seeders\Concerns\SeedsAdminRole;
 use Nvade\Numerosis\Enums\Auth\PermissionAction;
 use Nvade\Numerosis\Enums\Auth\PermissionContext;
 use Nvade\Numerosis\Models\Permission;
+use Nvade\Numerosis\Policies\Tenancy\TenantPolicy;
 
 class RoleAndPermissionSeeder extends Seeder
 {
@@ -26,9 +27,34 @@ class RoleAndPermissionSeeder extends Seeder
         $this->seedAdminRole(
             $this->contexts(),
             'web',
-            fn (): array => array_map(fn (PermissionAction $action): string => $action->value, Permission::defaultActions()),
+            fn (string $context): array => [
+                ...array_map(fn (PermissionAction $action): string => $action->value, Permission::defaultActions()),
+                ...($this->additionalActions()[$context] ?? []),
+            ],
             Config::string('tenancy.database.central_connection', 'central'),
         );
+    }
+
+    /**
+     * Non-CRUD verbs for the central guard, keyed by context, and the mirror
+     * of {@see self::contexts()}: guard is decided here, so the per-guard
+     * vocabulary belongs here too. `Permission::additionalActions()` is the
+     * tenant guard's source and stays that way — a map shared by both would
+     * seed `impersonate tenants` into every tenant database, where nothing
+     * reads it.
+     *
+     * `impersonate tenants` is seeded whether or not
+     * {@see \Nvade\Numerosis\Features\Admin\ImpersonationFeature} is enabled,
+     * because spatie throws `PermissionDoesNotExist` for a name that does not
+     * exist rather than denying.
+     *
+     * @return array<string, list<string>>
+     */
+    protected function additionalActions(): array
+    {
+        return [
+            PermissionContext::Tenants->value => [TenantPolicy::IMPERSONATE],
+        ];
     }
 
     /**

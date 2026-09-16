@@ -4,6 +4,8 @@
     <body class="min-h-screen bg-white dark:bg-zinc-800">
         @include('numerosis::partials.toasts')
 
+        <x-numerosis::impersonation.banner/>
+
         <livewire:numerosis-layouts::header />
         {{ $slot }}
 

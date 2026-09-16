@@ -17,6 +17,9 @@ enum SessionKey: string
     case TenancySessionTenant = 'tenancy.session_tenant';
     case RegistrationWizardState = 'registration.wizard_state';
 
+    /** The open `impersonation_sessions` row's primary key. */
+    case ImpersonationSession = 'impersonation.session';
+
     /**
      * A dotted sub-key of this one, e.g. `pending_invitation.email` — the
      * only place that nesting convention is spelled out.

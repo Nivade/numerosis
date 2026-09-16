@@ -1,7 +1,8 @@
 # Support impersonation
 
-**Status: not executed. Written 2026-09-16.** Wave 2 of
-`saas-readiness-roadmap.md`. Needs the shell from `staff-admin-panel.md`.
+**Status: ✅ Executed 2026-09-16** on `feat/support-impersonation`, the day it
+was written. Wave 2 of `saas-readiness-roadmap.md`, on the shell
+`staff-admin-panel.md` landed the same day. Deviations in "What shipped".
 
 ## Why it is being rebuilt
 
@@ -111,3 +112,40 @@ without re-login.
 - **Notifications.** Actions taken while impersonating may mail the customer.
   Suppress outbound mail for impersonated sessions, or support will send
   confusing email from inside someone's account.
+
+## What shipped
+
+`Features\Admin\ImpersonationFeature` (`impersonation`), commented out in
+`config('numerosis.features')`. `StartImpersonation` mints a stancl
+`ImpersonationToken` and opens an `impersonation_sessions` row;
+`RedeemImpersonation` spends it on the tenant host through
+`UserImpersonation::makeResponse()`, stamps `started_at` and marks the session;
+`EndImpersonation` closes the row and forgets the tenant guard's session
+without resolving its user. `GuardImpersonation` sits on the `tenant`
+middleware group, ends a session past the cap, and points spatie's
+`CauserResolver` at the staff user for the rest of the request.
+`impersonation:end-stale` sweeps what nobody came back to.
+
+Five deviations, each with its reason:
+
+- **The link carries no signature.** The token is 128 random characters, single
+  use, with its own TTL. Signing it would mean generating a URL for another
+  host, and path mode has no `URL::defaults(['tenant' => …])` to build one
+  from — the same trap that keeps `route()` off tenant-group names.
+- **`Authenticate` skips its central-to-tenant promotion while impersonating.**
+  Otherwise a staff user who happens to be a member of the tenant is signed
+  back in as themselves and the impersonation ends with no symptom. The
+  session-tenant check is untouched, which is what the plan's "do not
+  special-case the middleware" is about.
+- **Mail suppression is a listener returning `null`, never `true`.**
+  `Dispatcher::until()` returns the first non-null response, so answering
+  `true` outside impersonation would stop every other listener on
+  `MessageSending`/`NotificationSending` from running at all.
+- **`GetCurrentImpersonation` is not memoized.** A static would hand the next
+  request on the same worker somebody else's session.
+- **`Tenant::baseUrl()` and `Routing\RouteUrls`** are new, because both the
+  redeem link and the exit redirect cross hosts, in three identification modes.
+
+The permission decision recorded above shipped with it: each seeder now owns
+its guard's non-CRUD vocabulary in a protected `additionalActions()`, and
+`.ai/rules/auth-guards.md`'s bullet was rewritten to match.

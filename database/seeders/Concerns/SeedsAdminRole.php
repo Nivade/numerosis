@@ -15,8 +15,8 @@ use Spatie\Permission\PermissionRegistrar;
  * The central and tenant permission seeders build the same graph, one
  * permission per context/action pair granted to that guard's `admin` role,
  * and differ only in guard, connection and action source. The action source
- * is a callback because the tenant seeder honours a subclass's
- * {@see Permission::additionalActions()} and the central seeder does not.
+ * is a callback because each guard has its own non-CRUD vocabulary:
+ * `impersonate tenants` exists on `web` and nowhere else.
  */
 trait SeedsAdminRole
 {
