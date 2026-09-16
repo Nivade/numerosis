@@ -1,7 +1,8 @@
 # Staff admin panel
 
-**Status: not executed. Written 2026-09-16.** Wave 2 of
-`saas-readiness-roadmap.md`, and the shell three other plans land screens in.
+**Status: ✅ Executed 2026-09-16** on `feat/staff-admin-panel`, the day it was
+written. Wave 2 of `saas-readiness-roadmap.md`, and the shell three other
+plans land screens in. Deviations in "What shipped" at the bottom.
 
 ## Why there is nothing
 
@@ -109,3 +110,32 @@ screens.
   be copied to tenant-side screens where they would be far too permissive.
 - **`PackageBoundariesTest` stays green** only if nothing here reaches for a
   Filament symbol out of habit. Keep the assertion.
+
+## What shipped
+
+`Features\Admin\StaffPanelFeature` (`staff_panel`), commented out in
+`config('numerosis.features')`, with `numerosis.routes.staff_prefix` defaulting
+to `staff`. Five Livewire single-file pages under
+`resources/views/pages/staff/`, reached as `numerosis-pages::staff.*` through a
+route group carrying the central guard plus
+`can:viewAny,<Numerosis::model(Tenant::class)>`. One Flux layout,
+`numerosis-layouts::staff`, holds the navigation.
+
+Four deviations from the plan above:
+
+- **Impersonation is not on the detail screen.** It was deleted in Phase 2 of
+  the six-package collapse and `support-impersonation.md` is what rebuilds it;
+  the surface table listed it, the phases did not.
+- **The detail route parameter is `{tenantId}`, not `{tenant}`.** Under the
+  path identification mode `{tenant}` is the parameter that initializes
+  tenancy, and these are central screens.
+- **Activity entries carry no `performedOn()`.** `activity_log.subject_id` is
+  an integer column and a tenant key is a string, the same reason
+  `TransferTenantOwnershipCommand` logs with `withProperties()` only.
+- **The tenants index formats `provisioned_at` itself.** `Tenant` casts
+  `suspended_at` and `closed_at` and not that one, so it arrives as the raw
+  column value.
+
+Phases 3 and 5 are narrower than written: the index searches name, slug and
+domain and filters by status, and the subscriptions screen deep-links to
+Stripe rather than reading Cashier state beyond plan, status and end date.

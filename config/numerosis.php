@@ -106,6 +106,10 @@ return [
         // Passwordless email OTP login, layered on Fortify rather than
         // replacing it. Off by default.
         // \Nvade\Numerosis\Features\Auth\OneTimePasswordFeature::class,
+
+        // Staff screens on the central domain, under
+        // 'routes.staff_prefix'. Off by default.
+        // \Nvade\Numerosis\Features\Admin\StaffPanelFeature::class,
     ],
 
     /*
@@ -177,6 +181,10 @@ return [
         // to keep core's route, or declare `/` in your own `routes/web.php`,
         // which is loaded afterwards and replaces it.
         'home_view' => 'numerosis::home',
+
+        // Where StaffPanelFeature's screens live. Not 'admin': hosts use that
+        // path for their own product.
+        'staff_prefix' => env('NUMEROSIS_STAFF_PREFIX', 'staff'),
     ],
 
     /*

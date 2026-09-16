@@ -10,6 +10,7 @@ use Nvade\Numerosis\Actions\Billing\Checkout\StartLocalCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
 use Nvade\Numerosis\Enums\Auth\SocialProvider;
 use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Features\Admin\StaffPanelFeature;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
@@ -27,6 +28,8 @@ use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
 use Nvade\Numerosis\Livewire\Settings\Password as PasswordSettings;
 use Nvade\Numerosis\Livewire\Settings\Profile as ProfileSettings;
 use Nvade\Numerosis\Livewire\Tenant\Registration;
+use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Routing\RouteNames;
 
 // The central guard's name is a host-overridable config key, read once here
@@ -139,6 +142,25 @@ Route::middleware([$centralAuth])->group(function () {
         Route::get('/checkout/subscription/dev', StartLocalCheckout::class)->name('checkout.subscription.dev');
     }
 });
+
+// Staff screens. The `can:` check runs against the tenants context, so a
+// central user without staff permissions gets a 403 instead of a login loop.
+if (FeatureRegistry::enabled(StaffPanelFeature::NAME)) {
+    Route::middleware([$centralAuth, 'can:viewAny,'.Numerosis::model(Tenant::class)])
+        ->prefix(Config::string('numerosis.routes.staff_prefix'))
+        ->name('staff.')
+        ->group(function (): void {
+            Route::livewire('/tenants', 'numerosis-pages::staff.tenants')->name('tenants');
+
+            // `{tenantId}`, never `{tenant}`: under the path identification
+            // mode that parameter name is what initializes tenancy.
+            Route::livewire('/tenants/{tenantId}', 'numerosis-pages::staff.tenant')->name('tenants.show');
+
+            Route::livewire('/provisions', 'numerosis-pages::staff.provisions')->name('provisions');
+            Route::livewire('/subscriptions', 'numerosis-pages::staff.subscriptions')->name('subscriptions');
+            Route::livewire('/users', 'numerosis-pages::staff.users')->name('users');
+        });
+}
 
 // Fortify owns `login`, `register`, `logout` and the password and
 // verification routes, loaded by `Routing\RouteLoader::load()` into this
