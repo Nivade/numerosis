@@ -17,6 +17,7 @@ use Nvade\Numerosis\Http\Middleware\EnsureTwoFactorEnrolled;
 use Nvade\Numerosis\Http\Middleware\GuardImpersonation;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
 use Nvade\Numerosis\Http\Middleware\RequirePasswordIfSet;
+use Nvade\Numerosis\Http\Middleware\SecurityHeaders;
 use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
 
 /**
@@ -100,6 +101,20 @@ final class MiddlewareRegistrar
     }
 
     /**
+     * Appended to a group the host owns, rather than replacing its stack the
+     * way {@see self::groups()} does. The `tenant` group nests `web`, so one
+     * entry there covers both sides of tenancy.
+     *
+     * @return array<string, list<string>>
+     */
+    public static function groupAppends(): array
+    {
+        return [
+            'web' => [SecurityHeaders::class],
+        ];
+    }
+
+    /**
      * Paths exempt from CSRF verification: Stripe and Telescope both post to
      * this app from outside a browser session, so a CSRF token is never
      * available on those requests.
@@ -119,6 +134,10 @@ final class MiddlewareRegistrar
 
         foreach (self::groups() as $name => $stack) {
             $middleware->group($name, $stack);
+        }
+
+        foreach (self::groupAppends() as $name => $stack) {
+            $middleware->appendToGroup($name, $stack);
         }
 
         // No trustProxies() call, deliberately: trusting a proxy the host did

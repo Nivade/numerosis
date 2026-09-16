@@ -136,6 +136,50 @@ lose real client IPs behind your proxy's; too broad (`'*'` when directly
 reachable) and rate limiting silently stops working. There is no boot-time
 check for it — it is a fact about your infrastructure, not your config file.
 
+### Security headers and the content security policy
+
+`Http\Middleware\SecurityHeaders` is appended to the `web` group, which the
+`tenant` group nests, so every HTML response on both sides of tenancy carries
+`Strict-Transport-Security`, `X-Content-Type-Options`, `Referrer-Policy`,
+`X-Frame-Options` and `Permissions-Policy`. Every value lives in
+`numerosis.security.headers`; an empty one omits that header, and
+`numerosis.security.headers.enabled` turns the whole middleware off.
+
+`numerosis.security.headers.except` holds path patterns that share the group
+but serve no browser. Stripe's webhook is on it, because Cashier answers it
+with a `text/html` response a content-type check cannot tell from a page.
+
+The CSP ships **report-only**, with the Stripe, Turnstile and Bunny Fonts
+origins already allowed, plus the `'unsafe-inline'`/`'unsafe-eval'` that
+Livewire's injected script and Alpine's expressions need. To go enforcing:
+
+1. Point `NUMEROSIS_CSP_REPORT_URI` at a collector, or watch the browser
+   console, for as long as it takes to exercise checkout, the registration
+   wizard and your own screens.
+2. Add the origins your own assets and analytics load from to
+   `numerosis.security.headers.content_security_policy.directives`.
+3. Set `NUMEROSIS_CSP_REPORT_ONLY=false`.
+
+Enforcing it before step 1 is what breaks payments: Stripe Elements renders in
+an iframe, and a `frame-src` that omits `js.stripe.com` removes the card field
+with no error the server ever sees.
+
+### Breached-password checking
+
+`numerosis.auth.check_compromised_passwords` (default on) adds Laravel's
+`uncompromised()` rule to `Password::defaults()`, so registration, reset and
+the password settings screen all refuse a password found in a public breach
+corpus. Only five characters of the password's SHA-1 leave the process. The
+rule fails **open**: an unreachable API reports the exception and accepts the
+password rather than blocking a signup.
+
+Turn it off (`NUMEROSIS_CHECK_COMPROMISED_PASSWORDS=false`) for an air-gapped
+deployment, or when you set `Password::defaults()` yourself — the package
+writes that static during boot and would otherwise overwrite your rule set.
+
+Existing accounts are never re-checked. Nothing refuses a login because the
+password has since appeared in a breach.
+
 ## 2. What the package configures for you, and how to override it
 
 Everything below has a package default. A row exists here because a host
