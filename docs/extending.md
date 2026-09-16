@@ -135,6 +135,19 @@ step 4). They are not speculative abstraction:
 "One implementation" is the expected state for a framework whose whole point is
 that the *host* supplies the second one.
 
+### Operator alerts
+
+`Contracts\Notifications\OperatorRecipient` answers "who does this
+installation tell when provisioning fails". Core binds
+`Services\Notifications\MailsConfiguredOperator`, which mails
+`numerosis.notifications.operator` and sends nothing when that key is unset —
+so nothing ships enabled.
+
+Bind your own against the contract (through `numerosis.tenancy.implementations`)
+to reach Slack, PagerDuty or an on-call rota. One alert per
+`numerosis.notifications.throttle_minutes` window reaches it, whichever failure
+gets there first: a bad deploy fails every provision it touches.
+
 ### Checkout payment methods, by region
 
 `Contracts\Billing\CheckoutRegionResolver` answers "which country is this

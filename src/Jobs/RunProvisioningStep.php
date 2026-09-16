@@ -14,6 +14,7 @@ use Nvade\Numerosis\Enums\Tenancy\StepOutcome;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Numerosis;
 use RuntimeException;
+use Throwable;
 
 /**
  * One link in the provisioning chain: the bookkeeping around a single
@@ -65,7 +66,30 @@ final class RunProvisioningStep implements ShouldQueue
 
         resolve($this->step)->handle($provision);
 
-        $provision->recordStep($this->step, StepOutcome::Done);
+        $provision->recordStep($this->step, StepOutcome::Done, attempts: $this->attempts());
+    }
+
+    /**
+     * Writes the failing step onto the row once the retries are spent. The
+     * record is not a run: {@see TenantProvision::hasRun()} rejects a failed
+     * outcome, so a retried chain starts again at this step.
+     */
+    public function failed(?Throwable $e): void
+    {
+        $provision = Numerosis::model(TenantProvision::class)::find($this->slug);
+
+        // A sync chain runs each link inside the one before it, so the throw
+        // bubbles through every earlier link and fails each of them too.
+        if (! $provision instanceof TenantProvision || $provision->hasRun($this->step)) {
+            return;
+        }
+
+        $provision->recordStep(
+            $this->step,
+            StepOutcome::Failed,
+            $e?->getMessage(),
+            max($this->attempts(), 1),
+        );
     }
 
     /**

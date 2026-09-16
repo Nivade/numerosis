@@ -15,8 +15,13 @@
                 </flux:navbar.item>
 
                 <flux:navbar.item icon="wrench-screwdriver" :href="route('staff.provisions')"
-                                  :current="request()->routeIs('staff.provisions')" wire:navigate>
+                                  :current="request()->routeIs('staff.provisions*')" wire:navigate>
                     {{ __('numerosis::staff.nav.provisions') }}
+                </flux:navbar.item>
+
+                <flux:navbar.item icon="queue-list" :href="route('staff.queue')"
+                                  :current="request()->routeIs('staff.queue')" wire:navigate>
+                    {{ __('numerosis::staff.nav.queue') }}
                 </flux:navbar.item>
 
                 <flux:navbar.item icon="credit-card" :href="route('staff.subscriptions')"

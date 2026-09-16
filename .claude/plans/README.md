@@ -153,21 +153,29 @@ suppression around it. The link is unsigned on purpose — a 128-character
 single-use token with its own TTL, because signing would need a URL built for
 another host. Deviations in the plan's own "What shipped".
 
+`provisioning-observability.md` moved to `archive/` 2026-09-16, the day it was
+written: an unauthenticated health document behind `HealthEndpointFeature`
+(off by default, counts and booleans only), a provision detail timeline and a
+queue screen in the staff panel, and an operator alert behind
+`Contracts\Notifications\OperatorRecipient`. A step that exhausts its retries
+now records `StepOutcome::Failed` with its attempt count, which is what the
+screens read. Deviations in the plan's own "What shipped".
+
 ## Live
 
 Twenty-one files added 2026-09-16 from a capability sweep of the tree:
 `saas-readiness-roadmap.md` is the parent and holds the sequencing, the
 cross-cutting decisions and the shared foundations. The other twenty are one
-feature each and are listed here in the roadmap's wave order. Six,
+feature each and are listed here in the roadmap's wave order. Seven,
 `seat-limit-at-invite.md`, `team-members-management.md`,
 `tenant-ownership-transfer.md`, `tenant-close-and-recovery.md`,
-`staff-admin-panel.md` and `support-impersonation.md`, have since been
-executed and archived; the rest are not.
+`staff-admin-panel.md`, `support-impersonation.md` and
+`provisioning-observability.md`, have since been executed and archived; the
+rest are not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `provisioning-observability.md` | Not executed. Wave 2. `step_records` is written and never read |
 | `fleet-tenant-migrations.md` | Not executed. Wave 2. No way to migrate tenants that already exist |
 | `two-factor-authentication.md` | Not executed. Wave 3. Fortify ships it; `HostConfig` leaves it off |
 | `session-management.md` | Not executed. Wave 3. A stolen session cannot be revoked |

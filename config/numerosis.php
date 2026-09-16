@@ -27,6 +27,7 @@ use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
 use Nvade\Numerosis\Contracts\Billing\TrialResolver;
 use Nvade\Numerosis\Contracts\Billing\UnpaidTenantQuota;
 use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
+use Nvade\Numerosis\Contracts\Notifications\OperatorRecipient;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
@@ -58,6 +59,7 @@ use Nvade\Numerosis\Services\Billing\NullCheckoutRegionResolver;
 use Nvade\Numerosis\Services\Billing\PlanOrDefaultTrialResolver;
 use Nvade\Numerosis\Services\Billing\SeatLimitPlanPolicy;
 use Nvade\Numerosis\Services\Billing\TenantOrUserBillableResolver;
+use Nvade\Numerosis\Services\Notifications\MailsConfiguredOperator;
 use Nvade\Numerosis\Services\Notifications\NotifiesTenantOwnerDirectly;
 use Nvade\Numerosis\Services\Tenancy\DefaultTenantDomainPolicy;
 use Nvade\Numerosis\Services\Tenancy\StanclTenantDatabaseManager;
@@ -114,6 +116,10 @@ return [
         // Support staff signing in as a tenant user, audited and banner-visible
         // for the whole session. Off by default.
         // \Nvade\Numerosis\Features\Admin\ImpersonationFeature::class,
+
+        // Unauthenticated health document at 'routes.health_path', for uptime
+        // monitors. Counts and booleans only. Off by default.
+        // \Nvade\Numerosis\Features\Observability\HealthEndpointFeature::class,
     ],
 
     /*
@@ -140,6 +146,11 @@ return [
         // covers the rest.
         'end_stale_impersonations' => (bool) env('SCHEDULE_END_STALE_IMPERSONATIONS', true),
         'prune_invitations' => (bool) env('SCHEDULE_PRUNE_INVITATIONS', true),
+
+        // Stamps a cache key every minute. The health document reports how
+        // long ago, which is the only way to tell a stopped cron from a quiet
+        // one.
+        'heartbeat' => (bool) env('SCHEDULE_HEARTBEAT', true),
     ],
 
     /*
@@ -193,6 +204,10 @@ return [
         // Where StaffPanelFeature's screens live. Not 'admin': hosts use that
         // path for their own product.
         'staff_prefix' => env('NUMEROSIS_STAFF_PREFIX', 'staff'),
+
+        // Where HealthEndpointFeature answers. Not '/up': that path is the
+        // framework's own health slot and belongs to the host.
+        'health_path' => env('NUMEROSIS_HEALTH_PATH', 'up/numerosis'),
     ],
 
     /*
@@ -286,7 +301,28 @@ return [
             'tenant_owner_global_id' => 3600,
             'available_payment_plans' => 3600,
             'popular_payment_plan_slug' => 300,
+            'health_report' => 5,
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Operator notifications
+    |--------------------------------------------------------------------------
+    |
+    | Where this installation's operators are told about a failure nobody else
+    | sees. 'operator' is a mail address; null sends nothing at all. A host
+    | wanting Slack or PagerDuty binds Contracts\Notifications\OperatorRecipient
+    | to its own implementation instead of setting this.
+    |
+    | 'throttle_minutes' is how long one alert suppresses the next, so a bad
+    | deploy failing two hundred provisions sends one mail.
+    */
+
+    'notifications' => [
+        'operator' => env('NUMEROSIS_OPERATOR_EMAIL'),
+
+        'throttle_minutes' => (int) env('NUMEROSIS_OPERATOR_THROTTLE_MINUTES', 15),
     ],
 
     /*
@@ -455,6 +491,7 @@ return [
             ProvisionsTenant::class => ProvisionTenant::class,
             TenantDatabaseManager::class => StanclTenantDatabaseManager::class,
             NotifiesTenantOwner::class => NotifiesTenantOwnerDirectly::class,
+            OperatorRecipient::class => MailsConfiguredOperator::class,
             ResolvesLoginCandidate::class => ResolveLoginCandidate::class,
             AuthenticatesLoginCandidate::class => AuthenticateLoginCandidate::class,
             SendsEmailVerificationNotification::class => SendEmailVerificationNotification::class,

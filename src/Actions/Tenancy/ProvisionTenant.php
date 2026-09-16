@@ -27,6 +27,9 @@ class ProvisionTenant implements ProvisionsTenant
 {
     use AsAction;
 
+    /** The queue every link of the chain runs on, and the one health reads the depth of. */
+    public const QUEUE = 'provisioning';
+
     public function queue(TenantProvisionData $data): void
     {
         $slug = $this->claimFor($data);
@@ -36,7 +39,7 @@ class ProvisionTenant implements ProvisionsTenant
         }
 
         Bus::chain($this->links($slug))
-            ->onQueue('provisioning')
+            ->onQueue(self::QUEUE)
             // Scalars only: `->catch()` callbacks are wrapped in a
             // SerializableClosure, which serializes the whole `use` scope, so
             // capturing the model would drag it into the payload.
@@ -62,6 +65,10 @@ class ProvisionTenant implements ProvisionsTenant
             try {
                 dispatch_sync($link);
             } catch (Throwable $e) {
+                // `dispatch_sync()` runs the handler directly, so nothing else
+                // calls the job's own failure hook on this path.
+                $link->failed($e);
+
                 self::recordFailure($slug, $e);
 
                 throw $e;

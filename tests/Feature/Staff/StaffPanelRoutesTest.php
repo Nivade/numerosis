@@ -24,6 +24,8 @@ class StaffPanelRoutesTest extends TestCase
         'staff.tenants',
         'staff.tenants.show',
         'staff.provisions',
+        'staff.provisions.show',
+        'staff.queue',
         'staff.subscriptions',
         'staff.users',
     ];
@@ -53,6 +55,8 @@ class StaffPanelRoutesTest extends TestCase
         $this->get(route('staff.subscriptions'))->assertForbidden();
         $this->get(route('staff.users'))->assertForbidden();
         $this->get(route('staff.tenants.show', 'whatever'))->assertForbidden();
+        $this->get(route('staff.provisions.show', 'whatever'))->assertForbidden();
+        $this->get(route('staff.queue'))->assertForbidden();
     }
 
     public function test_a_guest_is_redirected_rather_than_forbidden(): void
@@ -68,6 +72,7 @@ class StaffPanelRoutesTest extends TestCase
         $this->get(route('staff.provisions'))->assertOk();
         $this->get(route('staff.subscriptions'))->assertOk();
         $this->get(route('staff.users'))->assertOk();
+        $this->get(route('staff.queue'))->assertOk();
     }
 
     private function admin(): BaseCentralUser

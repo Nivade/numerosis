@@ -1,7 +1,8 @@
 # Provisioning health and queue observability
 
-**Status: not executed. Written 2026-09-16.** Wave 2 of
-`saas-readiness-roadmap.md`. Screens land in the `staff-admin-panel.md` shell.
+**Status: ✅ Executed 2026-09-16** on `feat/provisioning-observability`, the
+day it was written. Wave 2 of `saas-readiness-roadmap.md`. Screens landed in
+the `staff-admin-panel.md` shell. Deviations in "What shipped" at the bottom.
 
 ## What exists, unread
 
@@ -104,3 +105,43 @@ set.
   and some do not answer at all. Degrade to "unknown" rather than throwing,
   and never let the health endpoint's own failure look like a provisioning
   failure.
+
+## What shipped
+
+`Features\Observability\HealthEndpointFeature` (`health_endpoint`), commented
+out in `config('numerosis.features')`, serving
+`Http\Controllers\Observability\HealthController` at
+`numerosis.routes.health_path` (default `up/numerosis`). The document is
+`Data\Observability\HealthReport` — central-database boolean, queue depth,
+oldest job age, failed-job count, provisions failed in the last hour, stalled
+and in-flight counts, and the scheduler's last-run age — built by
+`Actions\Queries\GetSystemHealth` and cached for
+`numerosis.cache.ttl.health_report` seconds.
+
+Alerts go through `Contracts\Notifications\OperatorRecipient`, bound to
+`Services\Notifications\MailsConfiguredOperator`, fired by
+`Listeners\Tenancy\SendProvisioningFailedAlert` on the existing
+`TenantProvisioningFailed` event and throttled on one global cache key.
+
+Screens: the provisions index gained an attempts column and a link to a new
+detail screen (`staff.provisions.show`), and there is a new queue screen
+(`staff.queue`) in the layout's navigation.
+
+Five deviations from the plan above:
+
+- **A failing step is now recorded, which the plan assumed but the code could
+  not do.** `StepOutcome::Failed`, written by `RunProvisioningStep::failed()`
+  with the attempt count, and `TenantProvision::hasRun()` rejects it so a retry
+  still resumes at exactly that step. Without this there was no failing step,
+  no error per step and no retry count for the index to widen with.
+- **The failure hook guards on `hasRun()`.** A sync chain runs each link inside
+  the one before it, so a throw bubbles through every earlier link and fails
+  each of them; without the guard every step of the chain recorded itself
+  failed.
+- **The detail screen is read-only.** Retry and cancel stay on the index, which
+  is what the "two retry buttons" ruling was protecting against.
+- **Scheduler last-run age needed a writer.** `numerosis.schedule.heartbeat`
+  (on by default) stamps a global cache key every minute; nothing in Laravel
+  records when the scheduler last ran.
+- **Phases 4 and 6 were already half-built.** Retry and cancel shipped with
+  `staff-admin-panel.md`; this added the failing-step data they now show.

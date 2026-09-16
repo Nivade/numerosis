@@ -49,6 +49,7 @@ use Nvade\Numerosis\Boot\Assets;
 use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Boot\HostConfig;
 use Nvade\Numerosis\Boot\MiddlewareRegistrar;
+use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
 use Nvade\Numerosis\Console\Commands\DeleteTenants;
@@ -73,6 +74,7 @@ use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\TenantSuspended;
 use Nvade\Numerosis\Events\Invitations\InvitationCreated;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
+use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
 use Nvade\Numerosis\Events\Tenancy\TenantRestored;
 use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
@@ -93,6 +95,7 @@ use Nvade\Numerosis\Listeners\Billing\SendTenantSuspendedNotification;
 use Nvade\Numerosis\Listeners\Invitations\SendInvitationNotification;
 use Nvade\Numerosis\Listeners\Tenancy\BackfillTenantUsers;
 use Nvade\Numerosis\Listeners\Tenancy\ForgetTenantColumnListing;
+use Nvade\Numerosis\Listeners\Tenancy\SendProvisioningFailedAlert;
 use Nvade\Numerosis\Listeners\Tenancy\SendTenantRestoredNotification;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
 use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
@@ -479,6 +482,14 @@ class NumerosisServiceProvider extends PackageServiceProvider
                 $schedule->command('impersonation:end-stale')->everyFifteenMinutes();
             }
 
+            if (Config::boolean('numerosis.schedule.heartbeat')) {
+                $schedule->call(static fn (): bool => GlobalCache::store()
+                    ->forever(CacheKeys::schedulerHeartbeat(), now()->getTimestamp()))
+                    ->everyMinute()
+                    ->name('numerosis-scheduler-heartbeat')
+                    ->withoutOverlapping();
+            }
+
             if (Config::boolean('numerosis.schedule.prune_stalled_provisions')) {
                 $schedule->command('tenancy:prune-stalled-provisions')->hourly();
             }
@@ -521,6 +532,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             TenantSuspended::class => SendTenantSuspendedNotification::class,
             TenantRestored::class => SendTenantRestoredNotification::class,
             TenantProvisioned::class => BackfillTenantUsers::class,
+            TenantProvisioningFailed::class => SendProvisioningFailedAlert::class,
             MigrationsEnded::class => ForgetTenantColumnListing::class,
             ImpersonationStarted::class => LogImpersonationStarted::class,
             ImpersonationEnded::class => LogImpersonationEnded::class,

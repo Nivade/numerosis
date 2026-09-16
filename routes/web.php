@@ -15,6 +15,7 @@ use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
+use Nvade\Numerosis\Features\Observability\HealthEndpointFeature;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Http\Controllers\Auth\Social\DestroySocialAccountController;
 use Nvade\Numerosis\Http\Controllers\Auth\Social\HandleProviderCallbackController;
@@ -22,6 +23,7 @@ use Nvade\Numerosis\Http\Controllers\Auth\Social\RedirectToProviderController;
 use Nvade\Numerosis\Http\Controllers\Billing\WebhookController;
 use Nvade\Numerosis\Http\Controllers\Invitations\AcceptInvitationController;
 use Nvade\Numerosis\Http\Controllers\Invitations\ShowInvitationController;
+use Nvade\Numerosis\Http\Controllers\Observability\HealthController;
 use Nvade\Numerosis\Http\Controllers\Tenancy\AcceptOwnershipNominationController;
 use Nvade\Numerosis\Http\Controllers\Tenancy\ShowOwnershipNominationController;
 use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
@@ -47,6 +49,13 @@ Route::post(
     Config::string('numerosis.billing.webhook_path', 'billing/webhook'),
     [WebhookController::class, 'handleWebhook']
 )->name('billing.webhook');
+
+// Counts and booleans for an uptime monitor, unauthenticated and outside
+// every auth group. The framework's own `health:` slot stays the host's.
+if (FeatureRegistry::enabled(HealthEndpointFeature::NAME)) {
+    Route::get(Config::string('numerosis.routes.health_path'), HealthController::class)
+        ->name('numerosis.health');
+}
 
 // Self-serve tenant registration wizard. Deliberately outside the `auth:web`
 // group below — signing up is how a user gets an account in the first place.
@@ -157,6 +166,8 @@ if (FeatureRegistry::enabled(StaffPanelFeature::NAME)) {
             Route::livewire('/tenants/{tenantId}', 'numerosis-pages::staff.tenant')->name('tenants.show');
 
             Route::livewire('/provisions', 'numerosis-pages::staff.provisions')->name('provisions');
+            Route::livewire('/provisions/{slug}', 'numerosis-pages::staff.provision')->name('provisions.show');
+            Route::livewire('/queue', 'numerosis-pages::staff.queue')->name('queue');
             Route::livewire('/subscriptions', 'numerosis-pages::staff.subscriptions')->name('subscriptions');
             Route::livewire('/users', 'numerosis-pages::staff.users')->name('users');
         });
