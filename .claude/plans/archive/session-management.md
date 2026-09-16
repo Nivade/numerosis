@@ -1,7 +1,8 @@
 # Session management and device revocation
 
-**Status: not executed. Written 2026-09-16.** Wave 3 of
-`saas-readiness-roadmap.md`.
+**Status: executed 2026-09-16 on `feat/session-management`.** Wave 3 of
+`saas-readiness-roadmap.md`. See "What shipped" at the bottom for the four
+places it deviates.
 
 ## The gap
 
@@ -107,3 +108,38 @@ The `MemberRemoved` listener is what closes the risk recorded in
   change, not just the happy path.
 - **Session table growth.** Database sessions on a busy fleet need pruning;
   Laravel's own `session:prune` handles it but nothing schedules it here.
+
+## What shipped
+
+`Contracts\Auth\SessionRegistry` with `Services\Auth\DatabaseSessionRegistry`,
+`Data\Auth\DeviceSession`, `Livewire\Settings\Sessions` at
+`settings/sessions`, a central `sessions` migration, `session.connection`
+pinned to the central connection by `HostConfig`, `AuthenticateSession` on both
+the `tenant` group and every authenticated central route,
+`Events\Auth\PasswordChanged` with `RevokeSessionsAfterPasswordChange`,
+`RevokeSessionsAfterTwoFactorDisabled` on Fortify's event, and
+`EndSessionsForRemovedMember` on `MemberRemoved`.
+
+Four deviations.
+
+**The registry matches on the payload, not on `user_id`.** Laravel's handler
+writes whichever guard was ambient into that column, so a tenant request stores
+a tenant primary key there and a central lookup by id returns the wrong rows.
+Every read decodes the payload and matches the guard's login key instead, with
+`last_activity` bounding the scan.
+
+**`MemberRemoved` strips keys from a session rather than deleting it.** One
+session row carries the central login and every tenant the user has visited, so
+deleting it would log them out of all of them. `forgetTenantAccess()` removes
+the tenant guard's key and `tenancy.session_tenant`, leaving the rest.
+
+**There is no separate listing of the tenant guard's sessions.** Phase 4 asked
+for both guards listed; they are the same rows. `Authenticate` promotes from
+the central guard, so a tenant session is a central session carrying a tenant
+id, and the screen labels it with the tenant's name.
+
+**Password changes revoke through `AuthenticateSession`, not
+`logoutOtherDevices()`.** The hash itself moves, so the stamp every other
+session holds stops matching without the plaintext travelling anywhere. The
+plaintext form is still what the screen's "sign out other devices" button uses,
+since that runs with the password unchanged.

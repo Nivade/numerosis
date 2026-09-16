@@ -50,7 +50,7 @@ across sessions means three rounds of the same context.
 | # | Plan |
 |---|---|
 | 7 | `two-factor-authentication.md` |
-| 8 | `session-management.md` |
+| 8 | `session-management.md` (executed, archived) |
 | 11 | `security-hardening.md` |
 | 10 | `audit-log-coverage.md` |
 | 14 | `tenant-backup-restore.md` |

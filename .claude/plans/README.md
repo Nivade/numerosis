@@ -161,23 +161,31 @@ queue screen in the staff panel, and an operator alert behind
 now records `StepOutcome::Failed` with its attempt count, which is what the
 screens read. Deviations in the plan's own "What shipped".
 
+`session-management.md` moved to `archive/` 2026-09-16, the day it was
+written: a `SessionRegistry` seam with a database implementation, the
+`settings/sessions` screen, `AuthenticateSession` on the tenant group and every
+authenticated central route, and revocation on password change, 2FA disable and
+`MemberRemoved`. The registry matches on the session payload rather than the
+`user_id` column, which holds whichever guard was ambient when the row was
+written. Deviations in the plan's own "What shipped".
+
 ## Live
 
 Twenty-one files added 2026-09-16 from a capability sweep of the tree:
 `saas-readiness-roadmap.md` is the parent and holds the sequencing, the
 cross-cutting decisions and the shared foundations. The other twenty are one
-feature each and are listed here in the roadmap's wave order. Eight,
+feature each and are listed here in the roadmap's wave order. Nine,
 `seat-limit-at-invite.md`, `team-members-management.md`,
 `tenant-ownership-transfer.md`, `tenant-close-and-recovery.md`,
 `staff-admin-panel.md`, `support-impersonation.md`,
-`provisioning-observability.md` and `fleet-tenant-migrations.md`, have since
-been executed and archived; the rest are not.
+`provisioning-observability.md`, `fleet-tenant-migrations.md` and
+`session-management.md`, have since been executed and archived; the rest are
+not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
 | `two-factor-authentication.md` | Not executed. Wave 3. Fortify ships it; `HostConfig` leaves it off |
-| `session-management.md` | Not executed. Wave 3. A stolen session cannot be revoked |
 | `security-hardening.md` | Not executed. Wave 3. Breached-password check, security headers, login anomaly event |
 | `audit-log-coverage.md` | Not executed. Wave 3. One model is logged; no screen reads the table |
 | `tenant-backup-restore.md` | Not executed. Wave 3. Owns the tenant data serializer |

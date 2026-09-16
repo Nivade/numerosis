@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Hash;
 use Laravel\Fortify\Contracts\ResetsUserPasswords;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Auth\ResetPasswordData;
+use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Events\Auth\PasswordChanged;
 use Nvade\Numerosis\Models\User;
 use RuntimeException;
 
@@ -42,5 +44,7 @@ class ResetUserPassword implements ResetsUserPasswords
         $user->forceFill([
             'password' => Hash::make($data->password),
         ])->save();
+
+        event(new PasswordChanged(Context::current()->guard(), $user->id));
     }
 }

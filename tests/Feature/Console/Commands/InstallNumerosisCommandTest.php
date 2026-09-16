@@ -253,6 +253,17 @@ class InstallNumerosisCommandTest extends TestCase
             ->assertFailed();
     }
 
+    /** @verifies verifySessionStore */
+    public function test_it_fails_when_database_sessions_name_no_real_connection(): void
+    {
+        config()->set('session.driver', 'database');
+        config()->set('session.connection', 'no_such_connection');
+
+        $this->install()
+            ->expectsOutputToContain("config('session.connection') must name a connection")
+            ->assertFailed();
+    }
+
     /** @verifies verifyAuthGuards */
     public function test_it_fails_when_a_numerosis_auth_guard_does_not_resolve(): void
     {

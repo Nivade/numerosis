@@ -35,6 +35,7 @@ use Laravel\Fortify\Actions\PrepareAuthenticatedSession;
 use Laravel\Fortify\Contracts\LoginResponse as FortifyLoginResponse;
 use Laravel\Fortify\Contracts\LogoutResponse as FortifyLogoutResponse;
 use Laravel\Fortify\Contracts\VerifyEmailResponse as FortifyVerifyEmailResponse;
+use Laravel\Fortify\Events\TwoFactorAuthenticationDisabled;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Http\Requests\LoginRequest as FortifyLoginRequest;
 use Laravel\Fortify\Http\Requests\VerifyEmailRequest as FortifyVerifyEmailRequest;
@@ -68,12 +69,14 @@ use Nvade\Numerosis\Database\Seeders\DatabaseSeeder as PackageDatabaseSeeder;
 use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Events\Admin\ImpersonationEnded;
 use Nvade\Numerosis\Events\Admin\ImpersonationStarted;
+use Nvade\Numerosis\Events\Auth\PasswordChanged;
 use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\TenantSuspended;
 use Nvade\Numerosis\Events\Invitations\InvitationCreated;
+use Nvade\Numerosis\Events\Tenancy\MemberRemoved;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
 use Nvade\Numerosis\Events\Tenancy\TenantRestored;
@@ -90,11 +93,14 @@ use Nvade\Numerosis\Listeners\Admin\SuppressMailWhileImpersonating;
 use Nvade\Numerosis\Listeners\Auth\EndOtherGuardSession;
 use Nvade\Numerosis\Listeners\Auth\LogSocialAccountLinked;
 use Nvade\Numerosis\Listeners\Auth\LogSocialAccountUnlinked;
+use Nvade\Numerosis\Listeners\Auth\RevokeSessionsAfterPasswordChange;
+use Nvade\Numerosis\Listeners\Auth\RevokeSessionsAfterTwoFactorDisabled;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentConfirmedNotification;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentFailedNotification;
 use Nvade\Numerosis\Listeners\Billing\SendTenantSuspendedNotification;
 use Nvade\Numerosis\Listeners\Invitations\SendInvitationNotification;
 use Nvade\Numerosis\Listeners\Tenancy\BackfillTenantUsers;
+use Nvade\Numerosis\Listeners\Tenancy\EndSessionsForRemovedMember;
 use Nvade\Numerosis\Listeners\Tenancy\ForgetTenantColumnListing;
 use Nvade\Numerosis\Listeners\Tenancy\SendProvisioningFailedAlert;
 use Nvade\Numerosis\Listeners\Tenancy\SendTenantRestoredNotification;
@@ -534,6 +540,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             TenantSuspended::class => SendTenantSuspendedNotification::class,
             TenantRestored::class => SendTenantRestoredNotification::class,
             TenantProvisioned::class => BackfillTenantUsers::class,
+            MemberRemoved::class => EndSessionsForRemovedMember::class,
             TenantProvisioningFailed::class => SendProvisioningFailedAlert::class,
             MigrationsEnded::class => ForgetTenantColumnListing::class,
             ImpersonationStarted::class => LogImpersonationStarted::class,
@@ -548,6 +555,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
             // package's `src/`, so this explicit registration is the only
             // thing that makes {@see EndOtherGuardSession} fire.
             Logout::class => EndOtherGuardSession::class,
+
+            PasswordChanged::class => RevokeSessionsAfterPasswordChange::class,
+            TwoFactorAuthenticationDisabled::class => RevokeSessionsAfterTwoFactorDisabled::class,
         ];
 
         foreach ($listeners as $event => $listener) {

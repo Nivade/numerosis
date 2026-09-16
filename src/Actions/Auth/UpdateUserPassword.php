@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\UpdatesUserPasswords;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Auth\UpdatePasswordData;
+use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Events\Auth\PasswordChanged;
 use Nvade\Numerosis\Models\User;
 
 /**
@@ -43,5 +45,7 @@ class UpdateUserPassword implements UpdatesUserPasswords
         $user->update([
             'password' => Hash::make($data->password),
         ]);
+
+        event(new PasswordChanged(Context::current()->guard(), $user->id));
     }
 }

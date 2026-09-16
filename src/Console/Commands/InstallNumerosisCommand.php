@@ -55,6 +55,7 @@ class InstallNumerosisCommand extends Command
         'database.connections.central' => 'verifyDatabaseConnections',
         'fortify.features' => 'verifyFortifyFeatures',
         'queue.failed.database' => 'verifyFailedJobsConnection',
+        'session.connection' => 'verifySessionStore',
         'session.domain' => 'verifySessionDomain',
         'tenancy.bootstrappers' => 'verifyTenancyBootstrappers',
         'tenancy.central_domains' => 'verifyCentralDomains',
@@ -102,6 +103,7 @@ class InstallNumerosisCommand extends Command
         $this->verifyDatabaseConnections();
         $this->verifyLockWaitTimeout();
         $this->verifySessionDomain();
+        $this->verifySessionStore();
         $this->verifyAuthGuards();
         $this->verifyAuthPasswordBroker();
         $this->verifyTenantAuthProvider();
@@ -457,6 +459,31 @@ class InstallNumerosisCommand extends Command
 
         if (is_string($template) && ! array_key_exists($template, $connections)) {
             $this->failures[] = "config('tenancy.database.template_tenant_connection') names '{$template}', which is not in config('database.connections').";
+        }
+    }
+
+    /**
+     * The driver is a warning, never a failure: `file` and `cookie` sessions
+     * work, they just cannot be enumerated, so `settings/sessions` degrades to
+     * signing out everywhere. The connection is a failure, because a tenant
+     * request writes its session through it.
+     */
+    private function verifySessionStore(): void
+    {
+        $driver = Config::get('session.driver');
+
+        if ($driver !== 'database') {
+            $name = is_string($driver) ? $driver : 'unset';
+
+            $this->warnings[] = "config('session.driver') is '{$name}'; the sessions screen cannot list devices on it — see docs/host-requirements.md's config/session.php row.";
+
+            return;
+        }
+
+        $connection = Config::get('session.connection');
+
+        if (! is_string($connection) || ! array_key_exists($connection, Config::array('database.connections', []))) {
+            $this->failures[] = "config('session.connection') must name a connection in config('database.connections'), and must not follow the default one: inside tenancy that points at the tenant database, which has no sessions table.";
         }
     }
 

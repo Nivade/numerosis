@@ -294,6 +294,40 @@ class HostConfigTest extends TestCase
         $this->assertSame('.custom.test', Config::get('session.domain'));
     }
 
+    public function test_it_pins_database_sessions_to_the_central_connection(): void
+    {
+        Config::set('session.driver', 'database');
+        Config::set('session.connection');
+
+        $this->rebootPackage();
+
+        $this->assertSame('central', Config::get('session.connection'));
+    }
+
+    /**
+     * Nothing to pin: the other drivers do not read a database connection at
+     * all, so writing one would report a change that changed nothing.
+     */
+    public function test_it_leaves_the_session_connection_alone_on_another_driver(): void
+    {
+        Config::set('session.driver', 'file');
+        Config::set('session.connection');
+
+        $this->rebootPackage();
+
+        $this->assertNull(Config::get('session.connection'));
+    }
+
+    public function test_it_does_not_override_a_hosts_session_connection(): void
+    {
+        Config::set('session.driver', 'database');
+        Config::set('session.connection', 'sessions_replica');
+
+        $this->rebootPackage();
+
+        $this->assertSame('sessions_replica', Config::get('session.connection'));
+    }
+
     public function test_it_defaults_failed_jobs_connection_when_riding_database_default(): void
     {
         Config::set('database.default', 'mysql');

@@ -45,6 +45,7 @@ final class HostConfig
         self::centralConnectionPreference();
         self::centralDatabaseConnection();
         self::sessionDomain();
+        self::sessionConnection();
         self::authPasswordBroker();
         self::applyCorrections();
         self::fortifyFeatures();
@@ -295,6 +296,21 @@ final class HostConfig
                 self::set('session.domain', '.'.$apex);
             }
         }
+    }
+
+    /**
+     * Pins database sessions to the central connection. The default connection
+     * points at the tenant database inside tenancy, where there is no
+     * `sessions` table, so a tenant request otherwise throws
+     * `QueryException` on the first write.
+     */
+    private static function sessionConnection(): void
+    {
+        if (Config::get('session.driver') !== 'database' || Config::get('session.connection') !== null) {
+            return;
+        }
+
+        self::set('session.connection', Config::string('tenancy.database.central_connection', 'central'));
     }
 
     /**

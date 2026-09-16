@@ -13,6 +13,7 @@ use Illuminate\Foundation\Vite;
 use Illuminate\Http\Middleware\TrustHosts;
 use Illuminate\Routing\Route as IlluminateRoute;
 use Illuminate\Routing\Router;
+use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\Facades\File;
@@ -47,11 +48,15 @@ it('registers the middleware aliases and both groups, tenant group in order', fu
 
     $groups = $middleware->getMiddlewareGroups();
 
+    // AuthenticateSession reads the tenant guard, so it has to sit behind
+    // tenancy.session: the middleware that drops another tenant's session
+    // state runs first or it reads the wrong person's password stamp.
     expect($groups['tenant'])->toBe([
         'web',
         'tenancy.identification',
         'tenancy.route',
         'tenancy.session',
+        AuthenticateSession::class,
         'impersonation',
     ]);
 
@@ -201,6 +206,7 @@ it('registers the middleware aliases/groups against the real router with no host
         'tenancy.identification',
         'tenancy.route',
         'tenancy.session',
+        AuthenticateSession::class,
         'impersonation',
     ]);
 

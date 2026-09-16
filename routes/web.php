@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Nvade\Numerosis\Actions\Billing\Checkout\CompleteRedirectCheckout;
@@ -29,6 +30,7 @@ use Nvade\Numerosis\Http\Controllers\Tenancy\ShowOwnershipNominationController;
 use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
 use Nvade\Numerosis\Livewire\Settings\Password as PasswordSettings;
 use Nvade\Numerosis\Livewire\Settings\Profile as ProfileSettings;
+use Nvade\Numerosis\Livewire\Settings\Sessions as SessionSettings;
 use Nvade\Numerosis\Livewire\Tenant\Registration;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
@@ -37,6 +39,11 @@ use Nvade\Numerosis\Routing\RouteNames;
 // The central guard's name is a host-overridable config key, read once here
 // instead of spelled `auth:web` at each call site.
 $centralAuth = 'auth:'.Context::Central->guard();
+
+// Every authenticated central route, not the sessions screen alone: the
+// password stamp is what revokes a stolen session on drivers that cannot be
+// listed, and it is only checked where this middleware runs.
+$centralAuthenticated = [$centralAuth, AuthenticateSession::class];
 
 // Registered unconditionally: the one central route name everything else
 // falls back to. The view is a placeholder a host replaces through
@@ -82,18 +89,18 @@ if (FeatureRegistry::enabled(SocialLoginFeature::NAME)) {
 }
 
 if (FeatureRegistry::enabled(InvitationsFeature::NAME)) {
-    Route::middleware(['signed', 'throttle:6,1'])->group(function () use ($centralAuth): void {
+    Route::middleware(['signed', 'throttle:6,1'])->group(function () use ($centralAuthenticated): void {
         Route::get('/invitations/{invitation}', ShowInvitationController::class)
             ->name(RouteNames::invitationShow());
 
-        Route::middleware($centralAuth)->post('/invitations/{invitation}', AcceptInvitationController::class)
+        Route::middleware($centralAuthenticated)->post('/invitations/{invitation}', AcceptInvitationController::class)
             ->name(RouteNames::invitationAccept());
     });
 }
 
 // Signed and authenticated: the nominee already holds an account, unlike an
 // invitee, so there is no guest branch to stash state for.
-Route::middleware(['signed', 'throttle:6,1', $centralAuth])->group(function (): void {
+Route::middleware(['signed', 'throttle:6,1', ...$centralAuthenticated])->group(function (): void {
     Route::get('/ownership-transfers/{nomination}', ShowOwnershipNominationController::class)
         ->name(RouteNames::ownershipNominationShow());
 
@@ -101,12 +108,14 @@ Route::middleware(['signed', 'throttle:6,1', $centralAuth])->group(function (): 
         ->name(RouteNames::ownershipNominationAccept());
 });
 
-Route::middleware([$centralAuth])->group(function () {
+Route::middleware($centralAuthenticated)->group(function () {
     // The account UI ships with core unconditionally; there is no feature
     // flag to toggle it.
     Route::redirect('settings', 'settings/profile');
 
     Route::livewire('settings/profile', ProfileSettings::class)->name('settings.profile');
+
+    Route::livewire('settings/sessions', SessionSettings::class)->name('settings.sessions');
 
     // The password page has nowhere to send a user who cannot set a password.
     if (FeatureRegistry::enabled(PasswordResetFeature::NAME)) {
@@ -155,7 +164,7 @@ Route::middleware([$centralAuth])->group(function () {
 // Staff screens. The `can:` check runs against the tenants context, so a
 // central user without staff permissions gets a 403 instead of a login loop.
 if (FeatureRegistry::enabled(StaffPanelFeature::NAME)) {
-    Route::middleware([$centralAuth, 'can:viewAny,'.Numerosis::model(Tenant::class)])
+    Route::middleware([...$centralAuthenticated, 'can:viewAny,'.Numerosis::model(Tenant::class)])
         ->prefix(Config::string('numerosis.routes.staff_prefix'))
         ->name('staff.')
         ->group(function (): void {
