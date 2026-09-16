@@ -54,6 +54,11 @@ over-budget docblocks and 35 over-cap `//` runs to zero of each. Suite 734
 passed / 6 skipped, `composer analyse` cold-clean, PHPStan baseline unchanged
 at 17.
 
+`seat-limit-at-invite.md` moved to `archive/` 2026-09-16, the day it was
+written: all five phases executed. Its phase 1 shape changed on contact — the
+counter is an action rather than a `Services/` class, and the invite and accept
+checks count differently. Both recorded in the plan's own "What shipped".
+
 `post-extraction-review.md` moved to `archive/` 2026-09-14: its last two open
 items, 4.2 and 4.4, were re-validated as shipped, and 6.2 — the second-consumer
 smoke test, never built — moved to `.claude/findings.md` rather than keeping a
@@ -114,13 +119,13 @@ case-sensitivity sweep the plan expected on PostgreSQL found nothing.
 Twenty-one files added 2026-09-16 from a capability sweep of the tree:
 `saas-readiness-roadmap.md` is the parent and holds the sequencing, the
 cross-cutting decisions and the shared foundations. The other twenty are one
-feature each and are listed here in the roadmap's wave order. None is
-executed.
+feature each and are listed here in the roadmap's wave order. One,
+`seat-limit-at-invite.md`, has since been executed and archived; the rest are
+not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `seat-limit-at-invite.md` | Not executed. Wave 1. A live defect — seats are capped at checkout and unenforced at invite |
 | `team-members-management.md` | Not executed. Wave 1. No HTTP surface exists for `Membership` at all |
 | `tenant-ownership-transfer.md` | Not executed. Wave 1. An owner can never delete their account today |
 | `tenant-close-and-recovery.md` | Not executed. Wave 1. Deletion is irreversible and has no customer-facing path |

@@ -1,6 +1,6 @@
 # Seat limit is not enforced at invite or accept
 
-**Status: not executed. Written 2026-09-16.** Wave 1 of
+**Status: executed 2026-09-16, written the same day.** Wave 1 of
 `saas-readiness-roadmap.md`. This is a defect, not a feature — a tenant on a
 capped plan can exceed its seat count and never be charged for it.
 
@@ -84,6 +84,19 @@ arrives with no warning.
 - A plan with no `options.max_users` admits members without limit.
 - Seat count includes unaccepted, unexpired invitations and excludes expired
   ones.
+
+## What shipped, where it differs
+
+The counter is `Actions\Queries\GetTenantSeatUsage` returning a
+`Data\Billing\SeatUsage`, not `Services\Billing\SeatCounter` — `ArchTest`
+requires everything in `Services/` to implement one of our own contracts.
+
+The two checks count differently, which phase 1 did not anticipate. An invite
+is judged against memberships plus pending invitations; an accept against
+memberships alone. Counting pending invitations at accept time would have made
+the "ten invitations, downgrade to three" case admit nobody at all, since nine
+still-pending invitations already exceed the new cap. `PlanPolicy` therefore
+gained two methods, `hasSeatForNewInvitation()` and `hasSeatForNewMember()`.
 
 ## Risks
 

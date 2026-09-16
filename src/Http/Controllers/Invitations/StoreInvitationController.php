@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Http\Controllers\Invitations;
 
 use Illuminate\Http\RedirectResponse;
 use Nvade\Numerosis\Actions\Invitations\SendInvitation;
+use Nvade\Numerosis\Exceptions\Invitations\SeatLimitReached;
 use Nvade\Numerosis\Http\Controllers\Controller;
 use Nvade\Numerosis\Http\Requests\Invitations\StoreInvitationRequest;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -22,7 +23,11 @@ class StoreInvitationController extends Controller
 
         abort_unless($user instanceof User, 403);
 
-        SendInvitation::run($currentTenant, $request->toInvitationData(), $user);
+        try {
+            SendInvitation::run($currentTenant, $request->toInvitationData(), $user);
+        } catch (SeatLimitReached $e) {
+            return back()->withInput()->withErrors(['email' => $e->getMessage()], 'inviteMember');
+        }
 
         // `back()`, never the named route: path mode prefixes the tenant group
         // `{tenant}`, and with no URL default for that parameter
