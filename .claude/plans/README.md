@@ -98,11 +98,22 @@ on the `Route` it was handed while its invalidator keys on the tenant id, so
 enabling the cache alone would have cached entries nothing could forget. Suite
 767 passed / 6 skipped, `composer analyse` clean.
 
+`sql-driver-compatibility.md` moved to `archive/` 2026-09-16: all six phases
+executed on `feat/sql-driver-compatibility`, option 2 (PostgreSQL at
+production parity, SQLite for development). Verified on all three drivers —
+MySQL 815 passed, PostgreSQL 803 passed, SQLite 802 passed — each with an
+end-to-end `tenancy:provision` run across a real queue worker. Two things the
+plan did not predict: the clone helper's PostgreSQL path collided with the
+database `CreateTenantDatabase` had already made, since
+`CREATE DATABASE ... WITH TEMPLATE` is the creation rather than a fill; and
+SQLite cannot take `--parallel`, so it runs serially in CI. The
+case-sensitivity sweep the plan expected on PostgreSQL found nothing.
+
 ## Live
 
 | Plan | State |
 |---|---|
-| `sql-driver-compatibility.md` | **Executed 2026-09-16 on `feat/sql-driver-compatibility`, except PostgreSQL verification (no local `pdo_pgsql`).** SQLite and PostgreSQL compatibility, written 2026-09-12, widened to PostgreSQL 2026-09-15. Six phases, all built. Option 2: PostgreSQL at production parity, SQLite for development |
+| _(none)_ | |
 
 ## Abandoned
 
