@@ -643,7 +643,7 @@ abstract class TestCase extends Orchestra
                 'prefix' => '',
                 'prefix_indexes' => true,
                 'foreign_key_constraints' => true,
-                'busy_timeout' => null,
+                'busy_timeout' => 10_000,
                 'journal_mode' => null,
                 'synchronous' => null,
             ],

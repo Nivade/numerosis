@@ -215,6 +215,11 @@ class CloneTenantSchema implements ProvisioningStep
      * keys the MySQL path has to replay DDL to preserve. PostgreSQL refuses it
      * while another session is attached to the template, so the connection the
      * template was built through is purged first.
+     *
+     * `CreateTenantDatabase` has already created `$to` by the time this runs,
+     * and unlike the MySQL path — which fills an existing database with tables
+     * — the template copy *is* the creation, so the empty one it made has to
+     * go first.
      */
     private static function copyDatabaseFromTemplate(string $from, string $to): void
     {
@@ -224,6 +229,8 @@ class CloneTenantSchema implements ProvisioningStep
 
         DB::purge(self::CONNECTION);
         DB::purge('tenant');
+
+        resolve(TenantDatabaseManager::class)->dropDatabase($to, self::centralConnectionName());
 
         self::central()->statement(sprintf(
             'CREATE DATABASE %s WITH TEMPLATE %s',
@@ -277,7 +284,12 @@ class CloneTenantSchema implements ProvisioningStep
         /** @var array<string, mixed> $config */
         $config = config('database.connections.'.self::centralConnectionName());
 
-        config(['database.connections.'.self::CONNECTION => [...$config, 'database' => $database]]);
+        // SQLite names a database by path, and every other driver by name.
+        $target = TestCase::databaseDriver() === DatabaseDriver::Sqlite
+            ? database_path($database)
+            : $database;
+
+        config(['database.connections.'.self::CONNECTION => [...$config, 'database' => $target]]);
 
         DB::purge(self::CONNECTION);
 

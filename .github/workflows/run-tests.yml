@@ -124,10 +124,15 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
+      # SQLite runs serially. `--parallel` puts eight processes on one
+      # directory of database files, which is what SQLite is worst at: the
+      # run fails somewhere different each time (SQLITE_BUSY, `attempt to
+      # write a readonly database`, a half-copied template) rather than
+      # failing consistently. The serial run covers the same tests.
       - name: Execute tests
         env:
           NUMEROSIS_TEST_DRIVER: ${{ matrix.database }}
-        run: vendor/bin/pest --ci --parallel
+        run: vendor/bin/pest --ci ${{ matrix.database == 'sqlite' && '' || '--parallel' }}
 
       # One PHP version and one driver — neither the analysis nor its
       # baseline varies by either.
