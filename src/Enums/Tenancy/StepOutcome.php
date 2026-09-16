@@ -18,4 +18,16 @@ enum StepOutcome: string
      * missing contribution so the absence is visible, not silent.
      */
     case Skipped = 'skipped';
+
+    /**
+     * The step threw and exhausted its retries. Recorded so the failing step,
+     * its attempts and its error survive the queue, and deliberately not
+     * counted as run: a retry of the chain runs this step again.
+     */
+    case Failed = 'failed';
+
+    public function finishesStep(): bool
+    {
+        return $this !== self::Failed;
+    }
 }

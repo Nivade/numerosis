@@ -78,6 +78,24 @@ final class CacheKeys
         return self::prefix().':billing:popular_plan_slug';
     }
 
+    /** Global: the health document is central-wide and carries no tenant data. */
+    public static function healthReport(): string
+    {
+        return self::prefix().':observability:health';
+    }
+
+    /** Global: written by the scheduler itself, read to answer whether it runs. */
+    public static function schedulerHeartbeat(): string
+    {
+        return self::prefix().':observability:scheduler_heartbeat';
+    }
+
+    /** Global: the gate that collapses a burst of provisioning failures into one alert. */
+    public static function provisioningAlertThrottle(): string
+    {
+        return self::prefix().':observability:provisioning_alert';
+    }
+
     /*
      * Keys owned by something other than core deliberately do not live here:
      * one registry per owner, so core carries no reference to a class it does

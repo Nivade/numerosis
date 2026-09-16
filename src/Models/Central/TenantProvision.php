@@ -50,7 +50,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property Carbon|null $settled_at
  * @property Carbon|null $provisioning_started_at
  * @property Carbon|null $completed_at
- * @property array<string, array{outcome: string, at: string}> $step_records
+ * @property array<string, array{outcome: string, reason?: string, attempts?: int, at: string}> $step_records
  * @property array<string, array<string, mixed>> $contributions
  * @property Carbon|null $failed_at
  * @property string|null $error
@@ -226,13 +226,41 @@ class TenantProvision extends Model
      */
     public function hasRun(string $step): bool
     {
-        return isset(($this->step_records ?? [])[$step]);
+        return $this->outcomeOf($step)?->finishesStep() === true;
+    }
+
+    public function outcomeOf(string $step): ?StepOutcome
+    {
+        $outcome = ($this->step_records ?? [])[$step]['outcome'] ?? null;
+
+        return is_string($outcome) ? StepOutcome::tryFrom($outcome) : null;
+    }
+
+    /** The step whose last attempt threw, if the row carries one. */
+    public function failedStep(): ?string
+    {
+        foreach (array_keys($this->step_records ?? []) as $step) {
+            if ($this->outcomeOf($step) === StepOutcome::Failed) {
+                return $step;
+            }
+        }
+
+        return null;
+    }
+
+    /** How many times the failing step was tried before its retries ran out. */
+    public function failedAttempts(): ?int
+    {
+        $step = $this->failedStep();
+        $attempts = $step === null ? null : (($this->step_records ?? [])[$step]['attempts'] ?? null);
+
+        return is_int($attempts) ? $attempts : null;
     }
 
     /**
      * @param  class-string  $step
      */
-    public function recordStep(string $step, StepOutcome $outcome, ?string $reason = null): void
+    public function recordStep(string $step, StepOutcome $outcome, ?string $reason = null, ?int $attempts = null): void
     {
         $this->forceFill([
             'step_records' => [
@@ -240,6 +268,7 @@ class TenantProvision extends Model
                 $step => array_filter([
                     'outcome' => $outcome->value,
                     'reason' => $reason,
+                    'attempts' => $attempts,
                     'at' => now()->toIso8601String(),
                 ], static fn (mixed $value): bool => $value !== null),
             ],
@@ -274,10 +303,16 @@ class TenantProvision extends Model
     {
         $step = $this->currentStep();
 
-        if ($step === null) {
-            return __('numerosis::tenancy.provisioning.fallback');
-        }
+        return $step === null
+            ? __('numerosis::tenancy.provisioning.fallback')
+            : self::labelFor($step);
+    }
 
+    /**
+     * @param  class-string  $step
+     */
+    public static function labelFor(string $step): string
+    {
         $key = 'numerosis::tenancy.provisioning.steps.'.class_basename($step);
 
         return Lang::has($key)

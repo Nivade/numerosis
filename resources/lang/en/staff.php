@@ -8,6 +8,7 @@ return [
     'nav' => [
         'tenants' => 'Tenants',
         'provisions' => 'Provisions',
+        'queue' => 'Queue',
         'subscriptions' => 'Subscriptions',
         'users' => 'Users',
         'leave' => 'Back to app',
@@ -93,8 +94,39 @@ return [
             'slug' => 'Slug',
             'status' => 'Status',
             'steps' => 'Steps',
+            'attempts' => 'Attempts',
             'started' => 'Started',
             'error' => 'Error',
+        ],
+    ],
+
+    'provision' => [
+        'back' => 'Back to provisions',
+        'timeline' => 'Steps',
+        'completed' => 'Completed',
+        'pending' => 'pending',
+        'columns' => [
+            'step' => 'Step',
+            'state' => 'State',
+            'duration' => 'Duration',
+            'at' => 'Recorded',
+        ],
+    ],
+
+    'queue' => [
+        'heading' => 'Queue',
+        'subheading' => 'Depth per queue, and what the last hour did to provisioning',
+        'health' => 'Health',
+        'unknown' => 'unknown',
+        'never' => 'never',
+        'failed_jobs' => 'Failed jobs',
+        'scheduler' => 'Scheduler last ran',
+        'failed_provisions' => 'Provisions failed in the last hour',
+        'stalled_provisions' => 'Stalled provisions',
+        'columns' => [
+            'queue' => 'Queue',
+            'depth' => 'Depth',
+            'oldest' => 'Oldest job',
         ],
     ],
 

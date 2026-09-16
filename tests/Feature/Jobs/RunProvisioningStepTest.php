@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Tests\Feature\Jobs;
 
 use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
 use Nvade\Numerosis\Actions\Tenancy\MarkTenantProvisioned;
 use Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin;
@@ -16,6 +17,7 @@ use Nvade\Numerosis\Tests\Concerns\BuildsTenantProvisionData;
 use Nvade\Numerosis\Tests\Support\PatientHostStep;
 use Nvade\Numerosis\Tests\Support\TestTenant;
 use Nvade\Numerosis\Tests\TestCase;
+use RuntimeException;
 
 class RunProvisioningStepTest extends TestCase
 {
@@ -92,5 +94,54 @@ class RunProvisioningStepTest extends TestCase
             tenancy()->initialized,
             'A job queued after this one would inherit this step\'s tenant context.',
         );
+    }
+
+    /**
+     * A failed record carries the failing step, its error and its attempt
+     * count, and is deliberately not a run: the retry the staff screen fires
+     * has to start again at exactly this step.
+     */
+    public function test_an_exhausted_step_records_its_failure_without_counting_as_run(): void
+    {
+        $user = CentralUser::factory()->create(['global_id' => 'failing-'.uniqid()]);
+        $provision = $this->provisionRow($user, 'recordsfailure-'.uniqid());
+
+        new RunProvisioningStep($provision->slug, CreateTenant::class)
+            ->failed(new RuntimeException('disk full'));
+
+        $provision->refresh();
+
+        $record = $provision->step_records[CreateTenant::class];
+
+        $this->assertSame(StepOutcome::Failed->value, $record['outcome']);
+        $this->assertSame('disk full', $record['reason'] ?? null);
+        $this->assertSame(1, $record['attempts'] ?? null);
+        $this->assertFalse($provision->hasRun(CreateTenant::class));
+        $this->assertSame(CreateTenant::class, $provision->failedStep());
+        $this->assertSame(1, $provision->failedAttempts());
+    }
+
+    /**
+     * Three done and one failed is the row the retry button acts on: the
+     * failed step is where the chain resumes, and the three before it are not
+     * re-run.
+     */
+    public function test_a_row_with_three_done_steps_and_one_failed_resumes_at_the_failed_one(): void
+    {
+        $user = CentralUser::factory()->create(['global_id' => 'resume-'.uniqid()]);
+        $provision = $this->provisionRow($user, 'resumeshere-'.uniqid());
+
+        /** @var list<class-string> $steps */
+        $steps = Config::array('numerosis.tenancy.provisioning.steps');
+
+        foreach (array_slice($steps, 0, 3) as $step) {
+            $provision->recordStep($step, StepOutcome::Done);
+        }
+
+        $failed = $steps[3];
+        $provision->recordStep($failed, StepOutcome::Failed, 'exhausted', 5);
+
+        $this->assertSame($failed, $provision->currentStep());
+        $this->assertSame($failed, $provision->failedStep());
     }
 }

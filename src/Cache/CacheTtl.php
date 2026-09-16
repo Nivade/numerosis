@@ -53,6 +53,11 @@ final class CacheTtl
         return self::seconds('popular_payment_plan_slug', 300);
     }
 
+    public static function healthReport(): ?int
+    {
+        return self::seconds('health_report', 5);
+    }
+
     /**
      * The `[fresh, stale]` pair {@see GlobalCache::flexible()} takes.
      *

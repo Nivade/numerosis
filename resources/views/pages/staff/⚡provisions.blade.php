@@ -128,6 +128,7 @@ class extends Component
                         <flux:table.column>{{ __('numerosis::staff.provisions.columns.slug') }}</flux:table.column>
                         <flux:table.column>{{ __('numerosis::staff.provisions.columns.status') }}</flux:table.column>
                         <flux:table.column>{{ __('numerosis::staff.provisions.columns.steps') }}</flux:table.column>
+                        <flux:table.column>{{ __('numerosis::staff.provisions.columns.attempts') }}</flux:table.column>
                         <flux:table.column>{{ __('numerosis::staff.provisions.columns.started') }}</flux:table.column>
                         <flux:table.column/>
                     </flux:table.columns>
@@ -136,7 +137,9 @@ class extends Component
                         @foreach ($this->provisions as $provision)
                             <flux:table.row :key="$provision->slug">
                                 <flux:table.cell>
-                                    <div>{{ $provision->slug }}</div>
+                                    <flux:link :href="route('staff.provisions.show', $provision->slug)" wire:navigate>
+                                        {{ $provision->slug }}
+                                    </flux:link>
                                     @if ($provision->error !== null)
                                         <div class="text-xs text-danger-text">{{ $provision->error }}</div>
                                     @endif
@@ -146,7 +149,9 @@ class extends Component
                                     <flux:badge size="sm">{{ $provision->status->value }}</flux:badge>
                                 </flux:table.cell>
 
-                                <flux:table.cell>{{ $provision->currentStepLabel() ?? count($provision->step_records) }}</flux:table.cell>
+                                <flux:table.cell>{{ $provision->currentStepLabel() }}</flux:table.cell>
+
+                                <flux:table.cell>{{ $provision->failedAttempts() ?? '—' }}</flux:table.cell>
 
                                 <flux:table.cell>{{ $provision->provisioning_started_at?->diffForHumans() ?? '—' }}</flux:table.cell>
 

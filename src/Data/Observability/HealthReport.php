@@ -1,0 +1,34 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Nvade\Numerosis\Data\Observability;
+
+use Spatie\LaravelData\Attributes\MapOutputName;
+use Spatie\LaravelData\Data;
+use Spatie\LaravelData\Mappers\SnakeCaseMapper;
+
+/**
+ * What the health endpoint serves and the staff screens read. Booleans, counts
+ * and ages; never a tenant name or slug.
+ */
+#[MapOutputName(SnakeCaseMapper::class)]
+final class HealthReport extends Data
+{
+    public function __construct(
+        public bool $centralDatabase,
+        public QueueHealth $queue,
+        public ProvisioningHealth $provisioning,
+        public ?int $schedulerLastRunSeconds,
+    ) {}
+
+    /**
+     * Only the central database decides this. A deep provisioning queue is
+     * what an operator reads the counts for, and a monitor paging on it would
+     * page on every busy morning.
+     */
+    public function healthy(): bool
+    {
+        return $this->centralDatabase;
+    }
+}
