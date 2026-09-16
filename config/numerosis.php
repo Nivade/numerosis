@@ -34,6 +34,7 @@ use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
+use Nvade\Numerosis\Features\Audit\ActivityLogFeature;
 use Nvade\Numerosis\Features\Auth\EmailVerificationFeature;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
@@ -108,6 +109,11 @@ return [
         // unaffected.
         PasswordResetFeature::class,
 
+        // The screens that read the activity log: 'team/activity' for a
+        // tenant's owner and admins, and the staff feed. Entries are written
+        // either way.
+        ActivityLogFeature::class,
+
         // Passwordless email OTP login, layered on Fortify rather than
         // replacing it. Off by default.
         // \Nvade\Numerosis\Features\Auth\OneTimePasswordFeature::class,
@@ -149,6 +155,11 @@ return [
         // covers the rest.
         'end_stale_impersonations' => (bool) env('SCHEDULE_END_STALE_IMPERSONATIONS', true),
         'prune_invitations' => (bool) env('SCHEDULE_PRUNE_INVITATIONS', true),
+
+        // Runs numerosis:prune-activity-log, deleting central entries older
+        // than activitylog.clean_after_days (365 by default). Retention of an
+        // audit log is a compliance decision, so the window is the host's.
+        'prune_activity_log' => (bool) env('SCHEDULE_PRUNE_ACTIVITY_LOG', true),
 
         // Stamps a cache key every minute. The health document reports how
         // long ago, which is the only way to tell a stopped cron from a quiet

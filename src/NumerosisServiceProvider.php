@@ -63,6 +63,7 @@ use Nvade\Numerosis\Console\Commands\InstallNumerosisCommand;
 use Nvade\Numerosis\Console\Commands\ListClosedTenants;
 use Nvade\Numerosis\Console\Commands\MigrateTenants;
 use Nvade\Numerosis\Console\Commands\ProvisionTenantCommand;
+use Nvade\Numerosis\Console\Commands\PruneActivityLog;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedStripeCustomers;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
@@ -81,10 +82,16 @@ use Nvade\Numerosis\Events\Auth\TwoFactorAuthenticationCleared;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\TenantSuspended;
+use Nvade\Numerosis\Events\Invitations\InvitationAccepted;
 use Nvade\Numerosis\Events\Invitations\InvitationCreated;
+use Nvade\Numerosis\Events\Tenancy\MemberJoined;
 use Nvade\Numerosis\Events\Tenancy\MemberRemoved;
+use Nvade\Numerosis\Events\Tenancy\MemberRoleChanged;
+use Nvade\Numerosis\Events\Tenancy\TenantClosed;
+use Nvade\Numerosis\Events\Tenancy\TenantOwnershipTransferred;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
+use Nvade\Numerosis\Events\Tenancy\TenantReopened;
 use Nvade\Numerosis\Events\Tenancy\TenantRestored;
 use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
@@ -97,6 +104,7 @@ use Nvade\Numerosis\Http\Responses\Auth\NumerosisVerifyEmailResponse;
 use Nvade\Numerosis\Listeners\Admin\LogImpersonationEnded;
 use Nvade\Numerosis\Listeners\Admin\LogImpersonationStarted;
 use Nvade\Numerosis\Listeners\Admin\SuppressMailWhileImpersonating;
+use Nvade\Numerosis\Listeners\Audit\RecordDomainEventActivity;
 use Nvade\Numerosis\Listeners\Auth\EndOtherGuardSession;
 use Nvade\Numerosis\Listeners\Auth\LogSocialAccountLinked;
 use Nvade\Numerosis\Listeners\Auth\LogSocialAccountUnlinked;
@@ -171,6 +179,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->hasCommand(PruneOrphanedStripeCustomers::class)
             ->hasCommand(PruneOrphanedTenantDatabases::class)
             ->hasCommand(PruneStalledTenantProvisions::class)
+            ->hasCommand(PruneActivityLog::class)
             ->hasCommand(ProvisionTenantCommand::class)
             ->hasCommand(TransferTenantOwnershipCommand::class);
     }
@@ -521,6 +530,13 @@ class NumerosisServiceProvider extends PackageServiceProvider
                 $schedule->command('tenancy:prune-orphaned-databases', ['--force' => true])->daily();
             }
 
+            // `activitylog.clean_after_days` decides the window; the tenant
+            // databases' own logs are cleaned by the same command run inside
+            // tenancy, which is the host's own scheduling decision.
+            if (Config::boolean('numerosis.schedule.prune_activity_log')) {
+                $schedule->command('numerosis:prune-activity-log')->daily();
+            }
+
             // Resolved through Numerosis::model() so a host that subclassed
             // Invitation prunes its own class. Invitation::prunable() keeps
             // accepted and expired rows for 30 days.
@@ -542,6 +558,24 @@ class NumerosisServiceProvider extends PackageServiceProvider
      *
      * Billing and tenancy listeners are registered by their own providers.
      */
+    /**
+     * The domain events {@see RecordDomainEventActivity} writes an audit entry
+     * for, each one a question asked after the fact.
+     *
+     * @var list<class-string>
+     */
+    private const array AUDITED_EVENTS = [
+        MemberJoined::class,
+        MemberRemoved::class,
+        MemberRoleChanged::class,
+        InvitationAccepted::class,
+        TenantOwnershipTransferred::class,
+        TenantSuspended::class,
+        TenantRestored::class,
+        TenantClosed::class,
+        TenantReopened::class,
+    ];
+
     protected function registerEventListeners(): void
     {
         $listeners = [
@@ -576,6 +610,12 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         foreach ($listeners as $event => $listener) {
             Event::listen($event, $listener);
+        }
+
+        // Separate from the map above because three of these already have a
+        // listener there, and one event may only appear as a key once.
+        foreach (self::AUDITED_EVENTS as $event) {
+            Event::listen($event, RecordDomainEventActivity::class);
         }
     }
 

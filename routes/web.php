@@ -13,6 +13,7 @@ use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
 use Nvade\Numerosis\Enums\Auth\SocialProvider;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Features\Admin\StaffPanelFeature;
+use Nvade\Numerosis\Features\Audit\ActivityLogFeature;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
@@ -194,6 +195,10 @@ if (FeatureRegistry::enabled(StaffPanelFeature::NAME)) {
             Route::livewire('/migrations', 'numerosis-pages::staff.migrations')->name('migrations');
             Route::livewire('/subscriptions', 'numerosis-pages::staff.subscriptions')->name('subscriptions');
             Route::livewire('/users', 'numerosis-pages::staff.users')->name('users');
+
+            if (FeatureRegistry::enabled(ActivityLogFeature::NAME)) {
+                Route::livewire('/activity', 'numerosis-pages::staff.activity')->name('activity');
+            }
         });
 }
 

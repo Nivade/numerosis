@@ -29,6 +29,8 @@ use Nvade\Numerosis\Models\User;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Observers\Auth\CentralUserObserver;
 use Override;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 
@@ -84,6 +86,7 @@ class CentralUser extends User implements BillableUser, CentralUserModel, HasTen
     use Billable;
     use CentralConnection;
     use HasGlobalIdentity;
+    use LogsActivity;
     use ResourceSyncing;
     use SoftDeletes;
     use TwoFactorAuthenticatable;
@@ -185,5 +188,18 @@ class CentralUser extends User implements BillableUser, CentralUserModel, HasTen
     public function getForeignKey(): string
     {
         return 'user_id';
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'name',
+                'email',
+                'email_verified_at',
+                'deleted_at',
+            ])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
     }
 }

@@ -27,9 +27,14 @@ return new class extends Migration
             // position the ALTER that once added it gave it.
             $table->string('subject_type')->nullable();
             $table->string('event')->nullable();
-            $table->unsignedBigInteger('subject_id')->nullable();
+            // String rather than the stub's unsignedBigInteger: `tenants.id`
+            // is a UUID, and a central log that cannot hold a tenant's key
+            // cannot record anything about a tenant.
+            $table->string('subject_id')->nullable();
             $table->index(['subject_type', 'subject_id'], 'subject');
-            $table->nullableMorphs('causer', 'causer');
+            $table->string('causer_type')->nullable();
+            $table->string('causer_id')->nullable();
+            $table->index(['causer_type', 'causer_id'], 'causer');
             $table->json('properties')->nullable();
             $table->uuid('batch_uuid')->nullable();
             $table->timestamps();

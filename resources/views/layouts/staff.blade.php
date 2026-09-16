@@ -1,3 +1,5 @@
+@use(Nvade\Numerosis\Features\Audit\ActivityLogFeature)
+@use(Nvade\Numerosis\Features\FeatureRegistry)
 @use(Nvade\Numerosis\Routing\RouteNames)
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -38,6 +40,12 @@
                                   :current="request()->routeIs('staff.users')" wire:navigate>
                     {{ __('numerosis::staff.nav.users') }}
                 </flux:navbar.item>
+                @if (FeatureRegistry::enabled(ActivityLogFeature::NAME))
+                    <flux:navbar.item icon="clipboard-document-list" :href="route('staff.activity')"
+                                      :current="request()->routeIs('staff.activity')" wire:navigate>
+                        {{ __('numerosis::staff.nav.activity') }}
+                    </flux:navbar.item>
+                @endif
             </flux:navbar>
 
             <flux:spacer/>

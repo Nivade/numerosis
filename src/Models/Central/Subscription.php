@@ -20,6 +20,8 @@ use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Observers\Billing\SubscriptionObserver;
 use Nvade\Numerosis\Policies\Billing\SubscriptionPolicy;
 use Override;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -47,6 +49,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
 class Subscription extends \Laravel\Cashier\Subscription
 {
     use CentralConnection;
+    use LogsActivity;
 
     #[Override]
     protected function casts(): array
@@ -119,5 +122,20 @@ class Subscription extends \Laravel\Cashier\Subscription
         $ownerType = $this->getAttribute('subscribable_type');
 
         return $this->belongsTo($ownerType, 'subscribable_id');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'stripe_status',
+                'stripe_price',
+                'quantity',
+                'payment_plan_id',
+                'trial_ends_at',
+                'ends_at',
+            ])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
     }
 }

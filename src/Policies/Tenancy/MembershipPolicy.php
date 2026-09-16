@@ -27,6 +27,18 @@ class MembershipPolicy
         return true;
     }
 
+    /**
+     * The audit trail names who removed whom and when a role changed, which
+     * is management information rather than team information.
+     */
+    public function viewActivity(User $user): bool
+    {
+        $tenant = tenant();
+
+        return $tenant instanceof TenancyTenant
+            && $this->manages($user, (string) $tenant->getTenantKey());
+    }
+
     public function update(User $user, Membership $membership): bool
     {
         if (! $this->belongsToCurrentTenant($membership) || $membership->isOwner()) {

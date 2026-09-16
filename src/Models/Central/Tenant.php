@@ -38,6 +38,8 @@ use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Observers\Tenancy\TenantObserver;
 use Nvade\Numerosis\Policies\Tenancy\TenantPolicy;
 use Override;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
@@ -101,6 +103,7 @@ class Tenant extends BaseTenant implements Closable, HasTenantOwner, Subscribabl
     /** Clears the cached domain lookup when a domain or tenant changes. */
     use InvalidatesResolverCache;
 
+    use LogsActivity;
     use RunsInTenant;
 
     /**
@@ -389,5 +392,21 @@ class Tenant extends BaseTenant implements Closable, HasTenantOwner, Subscribabl
                 ->take(2)
                 ->implode('')
         );
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'name',
+                'suspended_at',
+                'closed_at',
+                'provisioned_at',
+                'trial_ends_at',
+                'requires_two_factor',
+                'requires_two_factor_from',
+            ])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
     }
 }

@@ -17,6 +17,7 @@ use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
 use Nvade\Numerosis\Tests\TestCase;
+use Spatie\Activitylog\Models\Activity as SpatieActivity;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
 use stdClass;
 
@@ -622,6 +623,26 @@ class InstallNumerosisCommandTest extends TestCase
 
         $this->install()
             ->expectsOutputToContain('no_such_activity_table')
+            ->assertFailed();
+    }
+
+    /** @verifies verifyActivityModel */
+    public function test_it_fails_when_the_activity_model_is_spaties_own(): void
+    {
+        Config::set('activitylog.activity_model', SpatieActivity::class);
+
+        $this->install()
+            ->expectsOutputToContain('activitylog.activity_model')
+            ->assertFailed();
+    }
+
+    /** @verifies verifyActivityLogSecrets */
+    public function test_it_fails_when_a_credential_is_not_excluded_from_the_log(): void
+    {
+        Config::set('activitylog.default_except_attributes', ['password']);
+
+        $this->install()
+            ->expectsOutputToContain('two_factor_secret')
             ->assertFailed();
     }
 

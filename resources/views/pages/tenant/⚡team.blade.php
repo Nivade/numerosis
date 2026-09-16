@@ -10,8 +10,10 @@ use Nvade\Numerosis\Actions\Queries\GetTenantMembers;
 use Nvade\Numerosis\Actions\Queries\GetTenantSeatUsage;
 use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
+use Nvade\Numerosis\Features\Audit\ActivityLogFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
+use Nvade\Numerosis\Models\Central\Membership;
 use Nvade\Numerosis\Models\Central\OwnershipNomination;
 use Nvade\Numerosis\Models\Central\Tenant;
 
@@ -41,6 +43,8 @@ class extends Component
 
     public bool $hasUnpaidInvoice = false;
 
+    public bool $activityLogEnabled = false;
+
     public bool $twoFactorAvailable = false;
 
     public bool $requiresTwoFactor = false;
@@ -53,6 +57,7 @@ class extends Component
         $tenantId = (string) $tenant->getKey();
 
         $this->invitationsEnabled = FeatureRegistry::enabled(InvitationsFeature::NAME);
+        $this->activityLogEnabled = FeatureRegistry::enabled(ActivityLogFeature::NAME);
         $this->members = GetTenantMembers::run($tenantId);
 
         $this->isOwner = $this->members
@@ -109,6 +114,16 @@ class extends Component
 
         @if (session('status'))
             <x-numerosis::ui.text variant="default" size="sm">{{ session('status') }}</x-numerosis::ui.text>
+        @endif
+
+        @if ($activityLogEnabled)
+            @can('viewActivity', Membership::class)
+            {{-- `url()->current()`, not `route('team.activity')`: path mode
+                 prefixes the tenant group `{tenant}`, which has no URL default. --}}
+                <flux:link href="{{ url()->current() }}/activity" wire:navigate>
+                    {{ __('Activity') }}
+                </flux:link>
+            @endcan
         @endif
 
         <flux:error name="member" bag="teamMembers" />

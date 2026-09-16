@@ -7,6 +7,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Admin\StartImpersonation;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Actions\Queries\ReadActivityLog;
 use Nvade\Numerosis\Actions\Tenancy\ReopenTenant;
 use Nvade\Numerosis\Actions\Tenancy\RestoreTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
@@ -14,6 +15,9 @@ use Nvade\Numerosis\Actions\Tenancy\TransferTenantOwnership;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Exceptions\Tenancy\OwnershipTransferBlocked;
 use Nvade\Numerosis\Features\Admin\ImpersonationFeature;
+use Nvade\Numerosis\Features\Audit\ActivityLogFeature;
+use Nvade\Numerosis\Features\FeatureRegistry;
+use Nvade\Numerosis\Models\Activity;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Membership;
@@ -47,6 +51,19 @@ class extends Component
             ->where('tenant_id', $this->tenant->getKey())
             ->orderBy('role')
             ->get();
+    }
+
+    /**
+     * @return Collection<int, Activity>
+     */
+    #[Computed]
+    public function recentActivity(): Collection
+    {
+        if (! FeatureRegistry::enabled(ActivityLogFeature::NAME)) {
+            return new Collection;
+        }
+
+        return ReadActivityLog::forTenant($this->tenant)->orderByDesc('id')->limit(10)->get();
     }
 
     /**
@@ -374,6 +391,27 @@ class extends Component
                 </dl>
             @endif
         </x-numerosis::ui.card>
+
+        @if ($this->recentActivity->isNotEmpty())
+            <x-numerosis::ui.card>
+                <div class="flex items-center justify-between">
+                    <x-numerosis::ui.heading :level="2">{{ __('numerosis::staff.activity.heading') }}</x-numerosis::ui.heading>
+
+                    <flux:link href="{{ route('staff.activity', ['tenant' => $tenant->getKey()]) }}" wire:navigate>
+                        {{ __('numerosis::staff.activity.see_all') }}
+                    </flux:link>
+                </div>
+
+                <ul class="mt-3 space-y-2 text-sm">
+                    @foreach ($this->recentActivity as $entry)
+                        <li class="flex items-center justify-between gap-4">
+                            <span>{{ $entry->description }}</span>
+                            <span class="text-zinc-500">{{ $entry->created_at?->diffForHumans() }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            </x-numerosis::ui.card>
+        @endif
     </div>
 
     <flux:modal name="suspend-tenant" class="max-w-md">

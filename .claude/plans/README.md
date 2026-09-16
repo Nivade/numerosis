@@ -189,13 +189,12 @@ feature each and are listed here in the roadmap's wave order. Ten,
 `staff-admin-panel.md`, `support-impersonation.md`,
 `provisioning-observability.md`, `fleet-tenant-migrations.md`,
 `session-management.md`, `two-factor-authentication.md` and
-`security-hardening.md`, have since been executed and archived; the rest are
-not.
+`security-hardening.md` and `audit-log-coverage.md`, have since been executed
+and archived; the rest are not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `audit-log-coverage.md` | Not executed. Wave 3. One model is logged; no screen reads the table |
 | `tenant-backup-restore.md` | Not executed. Wave 3. Owns the tenant data serializer |
 | `gdpr-data-export.md` | Not executed. Wave 3. Erasure is half-built, access is absent |
 | `runtime-entitlements.md` | Not executed. Wave 4. Owns the shared usage counter |
@@ -212,6 +211,16 @@ through a new `MiddlewareRegistrar::groupAppends()`, and a
 `SuspiciousLoginDetected` event dispatched once per login lockout. Stripe's
 webhook is exempt by path rather than by content type — Cashier answers it
 with `text/html`. Deviations in the plan's own "What shipped".
+
+`audit-log-coverage.md` moved to `archive/` 2026-09-17, the day it was
+executed: a `Models\Activity` that picks its connection off the subject,
+`logOnly()` lists on six central models, nine domain events logged by one
+listener, screens behind `ActivityLogFeature`, and
+`numerosis:prune-activity-log` for retention. Two things the plan did not
+predict: `activity_log.subject_id` was an integer column, so nothing about a
+tenant could be logged at all; and Spatie's own `activitylog:clean` deletes
+through the model's default connection, which is never reliably the central
+one. Deviations in the plan's own "What shipped".
 
 ## Abandoned
 
