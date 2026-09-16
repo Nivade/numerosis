@@ -16,6 +16,7 @@ use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
+use Nvade\Numerosis\Tests\Support\UnavailableDumper;
 use Nvade\Numerosis\Tests\TestCase;
 use Spatie\Activitylog\Models\Activity as SpatieActivity;
 use Stancl\Tenancy\Resolvers\DomainTenantResolver;
@@ -643,6 +644,16 @@ class InstallNumerosisCommandTest extends TestCase
 
         $this->install()
             ->expectsOutputToContain('two_factor_secret')
+            ->assertFailed();
+    }
+
+    /** @verifies verifyBackupDumper */
+    public function test_it_fails_when_the_configured_backup_dumper_cannot_run(): void
+    {
+        Config::set('numerosis.tenancy.backup.dumpers.'.Config::string('database.connections.tenant.driver'), UnavailableDumper::class);
+
+        $this->install()
+            ->expectsOutputToContain('backup dumper')
             ->assertFailed();
     }
 

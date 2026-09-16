@@ -189,13 +189,13 @@ feature each and are listed here in the roadmap's wave order. Ten,
 `staff-admin-panel.md`, `support-impersonation.md`,
 `provisioning-observability.md`, `fleet-tenant-migrations.md`,
 `session-management.md`, `two-factor-authentication.md` and
-`security-hardening.md` and `audit-log-coverage.md`, have since been executed
-and archived; the rest are not.
+`security-hardening.md`, `audit-log-coverage.md` and
+`tenant-backup-restore.md`, have since been executed and archived; the rest
+are not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `tenant-backup-restore.md` | Not executed. Wave 3. Owns the tenant data serializer |
 | `gdpr-data-export.md` | Not executed. Wave 3. Erasure is half-built, access is absent |
 | `runtime-entitlements.md` | Not executed. Wave 4. Owns the shared usage counter |
 | `usage-metering.md` | Not executed. Wave 4. `meter_id` is migrated and never written |
@@ -221,6 +221,15 @@ predict: `activity_log.subject_id` was an integer column, so nothing about a
 tenant could be logged at all; and Spatie's own `activitylog:clean` deletes
 through the model's default connection, which is never reliably the central
 one. Deviations in the plan's own "What shipped".
+
+`tenant-backup-restore.md` moved to `archive/` 2026-09-17, the day it was
+executed: a per-driver `TenantDatabaseDumper`, `tenancy:backup`/`tenancy:restore`
+with a clone path that rewrites the source tenant's id, encrypted artefacts,
+a retention command, and the purge interlock that finally makes
+`purge_closed` safe to turn on. One deliberate deviation: the default dumper
+is PHP-native rather than `mysqldump`, because no dump binary exists on the
+development host and a binary-only default would have shipped untested.
+Deviations in the plan's own "What shipped".
 
 ## Abandoned
 

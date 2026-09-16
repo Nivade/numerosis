@@ -1,6 +1,6 @@
 # Per-tenant backup, restore and import
 
-**Status: not executed. Written 2026-09-16.** Wave 3 of
+**Status: executed 2026-09-17.** See "What shipped" at the bottom. Wave 3 of
 `saas-readiness-roadmap.md`. Owns the tenant data serializer that
 `gdpr-data-export.md` and `tenant-close-and-recovery.md` consume.
 
@@ -102,3 +102,47 @@ fails. This is the interlock that makes the 30-day window meaningful.
   documented retention window are part of the feature, not a follow-up.
 - **SQLite's single writer.** Copying a live SQLite tenant file mid-write
   gives a corrupt artefact; use the driver's backup API or take a write lock.
+
+## What shipped
+
+All five phases, 2026-09-17.
+
+- `Contracts\Tenancy\TenantDatabaseDumper`, resolved per driver from
+  `numerosis.tenancy.backup.dumpers` by a binding in `TenancyServiceProvider`.
+- **The default dumper is PHP-native, not a binary**, which is the plan's one
+  real deviation. `PortableTenantDatabaseDumper` reads and writes JSON Lines
+  through PDO, so a backup needs nothing installed. `mysqldump`/`pg_dump`
+  wrappers ship beside it as an opt-in for installations large enough to want
+  them, and `SqliteFileTenantDatabaseDumper` uses `VACUUM INTO` rather than a
+  file copy, which is the plan's own SQLite risk. The reason is testability:
+  no `mysqldump` exists on the development host (only inside the MySQL
+  container), so a binary-only default would have shipped with its round trip
+  untested. The cost is that a PostgreSQL portable artefact carries rows
+  without DDL and restores into a migrated database; `verifyBackupDumper()`
+  warns about exactly that.
+- `tenancy:backup {tenant|--all}` and `tenancy:restore {tenant} --from= [--into=]`,
+  with `RewriteClonedTenantReferences` behind `--into`.
+- Encryption is on by default: `ArtifactCipher` streams the artefact through
+  libsodium's secretstream a megabyte at a time. `Crypt::encryptString()`
+  would have held a whole tenant database in memory, and a truncated artefact
+  now fails to decrypt rather than restoring half a database.
+- `Services\Tenancy\TenantDataExporter` behind `Contracts\Tenancy\ExportsTenantData`:
+  a zip of JSON Lines per table, the tenant's files, and the central rows that
+  belong to it. `?string $forGlobalUserId` narrows every table to one person,
+  which is the seam `gdpr-data-export.md` consumes.
+- Retention is `numerosis:prune-tenant-backups`, scheduled behind
+  `numerosis.schedule.prune_tenant_backups`.
+- Purge interlock: `tenancy:prune-orphaned-databases` takes a final backup per
+  closed tenant and keeps the database when it fails, exiting non-zero.
+  `numerosis.tenancy.backup.before_purge` is the switch.
+
+Two things the plan did not predict. Stancl's `run()` has no `try`/`finally`,
+so a dumper failing inside it left tenancy initialized and broke the *next*
+test's teardown — everything here goes through `Tenant::runHere()`, which
+`tests/Feature/ArchTest.php` already enforced for `src/`. And
+`getSchemaBuilder()->getTables()` lists every schema the connection can see on
+MySQL, central included, so each call names the tenant's own database.
+
+`PruneOrphanedTenantDatabasesTest`'s existing recovery-window test gained a
+line turning the interlock off: its subject is the window, and its factory
+tenants have no database to snapshot.
