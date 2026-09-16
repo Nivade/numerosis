@@ -4,6 +4,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Laravel\Fortify\Features;
 use Nvade\Numerosis\Actions\Queries\GetPendingInvitationsForTenant;
 use Nvade\Numerosis\Actions\Queries\GetTenantMembers;
 use Nvade\Numerosis\Actions\Queries\GetTenantSeatUsage;
@@ -39,6 +40,12 @@ class extends Component
     public string $purgeDate = '';
 
     public bool $hasUnpaidInvoice = false;
+
+    public bool $twoFactorAvailable = false;
+
+    public bool $requiresTwoFactor = false;
+
+    public string $twoFactorEnforcedFrom = '';
 
     public function mount(): void
     {
@@ -77,6 +84,12 @@ class extends Component
             $this->hasUnpaidInvoice = $this->isOwner && $tenant->subscriptions()
                 ->whereIn('stripe_status', [SubscriptionStatus::PastDue->value, SubscriptionStatus::Unpaid->value])
                 ->exists();
+
+            $this->twoFactorAvailable = Features::canManageTwoFactorAuthentication();
+            $this->requiresTwoFactor = $tenant->requires_two_factor;
+            $this->twoFactorEnforcedFrom = $tenant->requires_two_factor_from?->isFuture()
+                ? $tenant->requires_two_factor_from->toFormattedDayDateString()
+                : '';
         }
     }
 }; ?>
@@ -209,6 +222,41 @@ class extends Component
                         </form>
                     @endif
                 @endif
+            </x-numerosis::ui.card>
+        @endif
+
+        @if ($isOwner && $twoFactorAvailable)
+            <div>
+                <x-numerosis::ui.heading :level="2">{{ __('Two-factor authentication') }}</x-numerosis::ui.heading>
+                <x-numerosis::ui.subheading class="mt-1">
+                    {{ __('Require every member to confirm an authenticator app before they can use this workspace.') }}
+                </x-numerosis::ui.subheading>
+            </div>
+
+            <x-numerosis::ui.card>
+                @if ($requiresTwoFactor && $twoFactorEnforcedFrom !== '')
+                    <x-numerosis::ui.text variant="subtle" size="sm">
+                        {{ __('Members who have not set it up keep access until :date.', ['date' => $twoFactorEnforcedFrom]) }}
+                    </x-numerosis::ui.text>
+                @endif
+
+                <form method="POST" action="{{ url()->current().'/two-factor' }}" class="mt-4 flex flex-col gap-4">
+                    @csrf
+                    @method('PATCH')
+
+                    <input type="hidden" name="required" value="{{ $requiresTwoFactor ? 0 : 1 }}">
+
+                    @if (filled(auth()->user()?->getAuthPassword()))
+                        <div>
+                            <flux:input name="password" :label="__('Your password')" type="password" />
+                            <flux:error name="password" bag="twoFactorRequirement" />
+                        </div>
+                    @endif
+
+                    <flux:button type="submit" class="self-start">
+                        {{ $requiresTwoFactor ? __('Stop requiring two-factor') : __('Require two-factor') }}
+                    </flux:button>
+                </form>
             </x-numerosis::ui.card>
         @endif
 

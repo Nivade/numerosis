@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Actions\Auth\ClearTwoFactorAuthentication;
 use Nvade\Numerosis\Database\Seeders\Concerns\SeedsAdminRole;
 use Nvade\Numerosis\Enums\Auth\PermissionAction;
 use Nvade\Numerosis\Enums\Auth\PermissionContext;
@@ -54,6 +55,7 @@ class RoleAndPermissionSeeder extends Seeder
     {
         return [
             PermissionContext::Tenants->value => [TenantPolicy::IMPERSONATE],
+            PermissionContext::Users->value => [ClearTwoFactorAuthentication::PERMISSION],
         ];
     }
 

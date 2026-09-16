@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Subscription;
+use Laravel\Fortify\TwoFactorAuthenticatable;
 use Nvade\Numerosis\Concerns\Billing\Billable;
 use Nvade\Numerosis\Concerns\Tenancy\HasGlobalIdentity;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
@@ -39,6 +40,9 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
  * @property string $global_id
  * @property Carbon|null $email_verified_at
  * @property string|null $remember_token
+ * @property string|null $two_factor_secret
+ * @property string|null $two_factor_recovery_codes
+ * @property Carbon|null $two_factor_confirmed_at
  * @property Carbon|null $deleted_at
  * @property string|null $stripe_id
  * @property string|null $pm_type
@@ -72,6 +76,8 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 #[Hidden([
     'password',
     'remember_token',
+    'two_factor_secret',
+    'two_factor_recovery_codes',
 ])]
 class CentralUser extends User implements BillableUser, CentralUserModel, HasTenants, Subscribable
 {
@@ -80,10 +86,23 @@ class CentralUser extends User implements BillableUser, CentralUserModel, HasTen
     use HasGlobalIdentity;
     use ResourceSyncing;
     use SoftDeletes;
+    use TwoFactorAuthenticatable;
 
     protected $with = [
         'tenants.domains',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    #[Override]
+    protected function casts(): array
+    {
+        return [
+            ...parent::casts(),
+            'two_factor_confirmed_at' => 'datetime',
+        ];
+    }
 
     /**
      * @return HasMany<SocialAccount, $this>

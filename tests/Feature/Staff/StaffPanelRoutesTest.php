@@ -83,7 +83,7 @@ class StaffPanelRoutesTest extends TestCase
         $admin = $this->userWithoutPermissions();
         $admin->assignRole('admin');
 
-        return $admin;
+        return $this->withConfirmedTwoFactor($admin);
     }
 
     /**

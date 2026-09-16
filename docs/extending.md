@@ -241,14 +241,34 @@ numerosis-specific auth API to learn on top of it:
 
 `fortify.features` is defaulted by `HostConfig::fortifyFeatures()`, gated by
 `numerosis.auth.manage_fortify_features` (default `true`) rather than a
-stock-value comparison. Two entries differ from Fortify's own shipped list:
-two-factor authentication and passkeys are dropped, since neither has a view
-under `numerosis::auth.` nor the columns its controllers write, so leaving
-them on registers screens that fail only once somebody reaches them; and
-password reset follows `PasswordResetFeature` so the two configs cannot
-disagree about whether it exists. Set `numerosis.auth.manage_fortify_features`
-to `false` and edit `fortify.features` yourself to own it outright, including
-turning 2FA back on — adding the missing views and columns with it.
+stock-value comparison. Three entries differ from Fortify's own shipped list:
+passkeys are dropped, since they have no view under `numerosis::auth.` nor the
+column their controllers write, so leaving them on registers screens that fail
+only once somebody reaches them; two-factor authentication is on with
+`['confirm' => true, 'confirmPassword' => true]`; and password reset follows
+`PasswordResetFeature` so the two configs cannot disagree about whether it
+exists. Set `numerosis.auth.manage_fortify_features` to `false` and edit
+`fortify.features` yourself to own it outright.
+
+Two-factor enrolment is a **central** screen, `settings/two-factor`, and the
+package registers Fortify's enrolment routes on the central domains only.
+Credentials are checked against the central user provider on every domain — a
+tenant session is promoted from the central one by `tenancy.auth` — so a secret
+stored on a tenant user would never be challenged. The challenge itself
+(`two-factor.login`) is registered in the tenant group too, since a login that
+begins on a tenant domain has to finish there.
+
+An owner can require a second factor of every member from the team screen,
+which writes `tenants.requires_two_factor` and a
+`requires_two_factor_from` deadline (`numerosis.tenancy.two_factor.grace_days`,
+7 by default). The `tenancy.two_factor` middleware alias is what enforces it;
+core applies it to its own gated tenant routes, so put it on yours too. It is
+deliberately off the `tenant` group: it redirects to the central enrolment
+screen, and the team screen itself stays outside it so an owner who let the
+deadline pass can still reach the switch. Central users holding the staff
+permissions need a confirmed factor unconditionally — no grace, no toggle —
+and a staff user holding `clearTwoFactor users` can clear someone else's from
+the staff users screen, which is always activity-logged.
 
 `numerosis.features` and `fortify.features` stay separate on purpose:
 numerosis's gates tenancy/billing surfaces (invitations, the registration

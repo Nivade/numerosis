@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
+use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Actions\Billing\Checkout\CompleteRedirectCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartLocalCheckout;
 use Nvade\Numerosis\Actions\Billing\Checkout\StartSubscriptionCheckout;
@@ -27,10 +28,12 @@ use Nvade\Numerosis\Http\Controllers\Invitations\ShowInvitationController;
 use Nvade\Numerosis\Http\Controllers\Observability\HealthController;
 use Nvade\Numerosis\Http\Controllers\Tenancy\AcceptOwnershipNominationController;
 use Nvade\Numerosis\Http\Controllers\Tenancy\ShowOwnershipNominationController;
+use Nvade\Numerosis\Http\Middleware\EnsureStaffTwoFactor;
 use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
 use Nvade\Numerosis\Livewire\Settings\Password as PasswordSettings;
 use Nvade\Numerosis\Livewire\Settings\Profile as ProfileSettings;
 use Nvade\Numerosis\Livewire\Settings\Sessions as SessionSettings;
+use Nvade\Numerosis\Livewire\Settings\TwoFactor as TwoFactorSettings;
 use Nvade\Numerosis\Livewire\Tenant\Registration;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
@@ -117,6 +120,15 @@ Route::middleware($centralAuthenticated)->group(function () {
 
     Route::livewire('settings/sessions', SessionSettings::class)->name('settings.sessions');
 
+    // Central only, and `password.confirm.if-set` rather than
+    // `password.confirm`: an account that registered through OAuth has no
+    // password, and Fortify's confirm screen can never pass for it.
+    if (FortifyFeatures::canManageTwoFactorAuthentication()) {
+        Route::livewire('settings/two-factor', TwoFactorSettings::class)
+            ->middleware('password.confirm.if-set')
+            ->name('settings.two-factor');
+    }
+
     // The password page has nowhere to send a user who cannot set a password.
     if (FeatureRegistry::enabled(PasswordResetFeature::NAME)) {
         Route::livewire('settings/password', PasswordSettings::class)->name('settings.password');
@@ -164,7 +176,9 @@ Route::middleware($centralAuthenticated)->group(function () {
 // Staff screens. The `can:` check runs against the tenants context, so a
 // central user without staff permissions gets a 403 instead of a login loop.
 if (FeatureRegistry::enabled(StaffPanelFeature::NAME)) {
-    Route::middleware([...$centralAuthenticated, 'can:viewAny,'.Numerosis::model(Tenant::class)])
+    // `EnsureStaffTwoFactor` after the `can:` check, never before: a visitor
+    // with no staff permissions gets a 403 rather than an invitation to enrol.
+    Route::middleware([...$centralAuthenticated, 'can:viewAny,'.Numerosis::model(Tenant::class), EnsureStaffTwoFactor::class])
         ->prefix(Config::string('numerosis.routes.staff_prefix'))
         ->name('staff.')
         ->group(function (): void {

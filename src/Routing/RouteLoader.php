@@ -7,7 +7,9 @@ namespace Nvade\Numerosis\Routing;
 use Closure;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
+use Laravel\Fortify\Features as FortifyFeatures;
 use Laravel\Fortify\Fortify as FortifyFacade;
+use Laravel\Fortify\Http\Controllers\TwoFactorAuthenticatedSessionController;
 use Laravel\Fortify\RoutePath;
 use Nvade\Numerosis\Concerns\Boot\RegistersOnce;
 use Nvade\Numerosis\Enums\Tenancy\Context;
@@ -130,11 +132,47 @@ final class RouteLoader
         Config::set('fortify.guard', $guard);
         Config::set('fortify.middleware', []);
 
+        $tenantGroup = $guard !== Context::Central->guard();
+        $twoFactor = FortifyFeatures::enabled(FortifyFeatures::twoFactorAuthentication());
+
+        if ($tenantGroup && $twoFactor) {
+            Config::set('fortify.features', array_values(array_filter(
+                Config::array('fortify.features'),
+                static fn (mixed $feature): bool => $feature !== FortifyFeatures::twoFactorAuthentication(),
+            )));
+        }
+
         try {
             require self::fortifyRoutesPath();
+
+            if ($tenantGroup && $twoFactor) {
+                self::loadTwoFactorChallengeRoutes($guard);
+            }
         } finally {
             Config::set('fortify', $original);
         }
+    }
+
+    /**
+     * The challenge alone, in the tenant group. Enrolment is a central screen
+     * because the account every login checks its credentials against is the
+     * central one, so a secret on a tenant user would never be challenged.
+     */
+    private static function loadTwoFactorChallengeRoutes(string $guard): void
+    {
+        $path = RoutePath::for('two-factor.login', '/two-factor-challenge');
+        $limiter = Config::get('fortify.limiters.two-factor');
+
+        Route::get($path, [TwoFactorAuthenticatedSessionController::class, 'create'])
+            ->middleware('guest:'.$guard)
+            ->name('two-factor.login');
+
+        Route::post($path, [TwoFactorAuthenticatedSessionController::class, 'store'])
+            ->middleware(array_filter([
+                'guest:'.$guard,
+                is_string($limiter) ? 'throttle:'.$limiter : null,
+            ]))
+            ->name('two-factor.login.store');
     }
 
     private static function fortifyRoutesPath(): string

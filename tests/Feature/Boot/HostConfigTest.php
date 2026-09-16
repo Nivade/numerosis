@@ -476,7 +476,7 @@ class HostConfigTest extends TestCase
         $this->assertNotContains('fortify.features', HostConfig::applied());
     }
 
-    public function test_it_drops_two_factor_from_fortifys_stock_feature_list(): void
+    public function test_it_drops_passkeys_from_fortifys_stock_feature_list(): void
     {
         $this->rebootPackage();
 
@@ -485,10 +485,24 @@ class HostConfigTest extends TestCase
         $this->assertContains(FortifyFeatures::registration(), $features);
         $this->assertContains(FortifyFeatures::emailVerification(), $features);
 
-        // No `numerosis::auth.two-factor-challenge` view ships, and the
-        // columns its controllers write do not exist — so the screens would
-        // only fail once somebody reached them.
-        $this->assertNotContains(FortifyFeatures::twoFactorAuthentication(), $features);
+        // No enrolment screen ships for passkeys, and the column its
+        // controllers write does not exist — so those screens would only fail
+        // once somebody reached them.
+        $this->assertNotContains(FortifyFeatures::passkeys(), $features);
+    }
+
+    /**
+     * `confirm` is what makes enrolment prove the user can produce a code, and
+     * `confirmPassword` is what keeps a stolen session from enrolling its own
+     * authenticator through Fortify's own endpoints.
+     */
+    public function test_it_turns_two_factor_on_with_confirmation(): void
+    {
+        $this->rebootPackage();
+
+        $this->assertContains(FortifyFeatures::twoFactorAuthentication(), Config::array('fortify.features'));
+        $this->assertTrue(Config::boolean('fortify-options.two-factor-authentication.confirm'));
+        $this->assertTrue(Config::boolean('fortify-options.two-factor-authentication.confirmPassword'));
     }
 
     public function test_it_defaults_the_activity_log_table_name_when_unset(): void

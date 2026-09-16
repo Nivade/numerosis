@@ -449,6 +449,13 @@ return [
             'purge_closed' => (bool) env('NUMEROSIS_PURGE_CLOSED_TENANTS', false),
         ],
 
+        // Days a member has to enrol after an owner turns the tenant's
+        // two-factor requirement on. Zero locks unenrolled members out of the
+        // tenant the moment the switch is flipped.
+        'two_factor' => [
+            'grace_days' => (int) env('NUMEROSIS_TWO_FACTOR_GRACE_DAYS', 7),
+        ],
+
         // 'token_seconds' is how long a minted link may be redeemed for, and
         // 'session_minutes' how long the impersonated session runs before the
         // next request ends it. Both only matter under ImpersonationFeature.

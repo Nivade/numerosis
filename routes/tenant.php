@@ -22,6 +22,7 @@ use Nvade\Numerosis\Http\Controllers\Team\DestroyOwnershipNominationController;
 use Nvade\Numerosis\Http\Controllers\Team\ReopenTenantController;
 use Nvade\Numerosis\Http\Controllers\Team\StoreOwnershipNominationController;
 use Nvade\Numerosis\Http\Controllers\Team\UpdateMemberRoleController;
+use Nvade\Numerosis\Http\Controllers\Team\UpdateTwoFactorRequirementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,25 +74,36 @@ Route::middleware(['universal', MiddlewareAlias::TenancyAuth->value.':'.Context:
     // product itself. Fortify's own screens load outside it, since a suspended
     // tenant still has to verify an address.
     Route::middleware([MiddlewareAlias::TenancySubscription->value, MiddlewareAlias::TenancyMembership->value])->group(function () {
+        // Outside the enrolment gate below, and the team screen with it: an
+        // owner who let the grace period lapse has to be able to reach the
+        // switch that turned the requirement on.
         Route::livewire('team', 'numerosis-pages::tenant.team')->name('team.index');
-        Route::patch('team/members/{membership}', UpdateMemberRoleController::class)->name('team.members.update');
-        Route::delete('team/members/{membership}', DestroyMemberController::class)->name('team.members.destroy');
 
-        Route::post('team/ownership', StoreOwnershipNominationController::class)->name('team.ownership.store');
+        Route::patch('team/two-factor', UpdateTwoFactorRequirementController::class)
+            ->name('team.two-factor.update');
 
-        Route::post('team/close', CloseTenantController::class)->name('team.close');
+        // The enrolment gate: the product itself, for a tenant whose owner
+        // requires a second factor of every member.
+        Route::middleware(MiddlewareAlias::TenancyTwoFactor->value)->group(function () {
+            Route::patch('team/members/{membership}', UpdateMemberRoleController::class)->name('team.members.update');
+            Route::delete('team/members/{membership}', DestroyMemberController::class)->name('team.members.destroy');
 
-        Route::delete('team/ownership/{nomination}', DestroyOwnershipNominationController::class)
-            ->name('team.ownership.destroy');
+            Route::post('team/ownership', StoreOwnershipNominationController::class)->name('team.ownership.store');
 
-        if (FeatureRegistry::enabled(InvitationsFeature::NAME)) {
-            // The invitations screen folded into `team.index`; the name stays
-            // because a host may link it. `Str::beforeLast` on the current
-            // URL, not `route()`, which throws in path mode.
-            Route::get('team/invitations', fn (Request $request): RedirectResponse => redirect()->to(Str::beforeLast($request->url(), '/invitations')))
-                ->name('team.invitations.index');
-            Route::post('team/invitations', StoreInvitationController::class)->name('team.invitations.store');
-            Route::delete('team/invitations/{invitation}', DestroyInvitationController::class)->name('team.invitations.destroy');
-        }
+            Route::post('team/close', CloseTenantController::class)->name('team.close');
+
+            Route::delete('team/ownership/{nomination}', DestroyOwnershipNominationController::class)
+                ->name('team.ownership.destroy');
+
+            if (FeatureRegistry::enabled(InvitationsFeature::NAME)) {
+                // The invitations screen folded into `team.index`; the name
+                // stays because a host may link it. `Str::beforeLast` on the
+                // current URL, not `route()`, which throws in path mode.
+                Route::get('team/invitations', fn (Request $request): RedirectResponse => redirect()->to(Str::beforeLast($request->url(), '/invitations')))
+                    ->name('team.invitations.index');
+                Route::post('team/invitations', StoreInvitationController::class)->name('team.invitations.store');
+                Route::delete('team/invitations/{invitation}', DestroyInvitationController::class)->name('team.invitations.destroy');
+            }
+        });
     });
 });

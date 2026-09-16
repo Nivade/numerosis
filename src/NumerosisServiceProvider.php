@@ -32,10 +32,12 @@ use Laravel\Fortify\Actions\AttemptToAuthenticate;
 use Laravel\Fortify\Actions\CanonicalizeUsername;
 use Laravel\Fortify\Actions\EnsureLoginIsNotThrottled;
 use Laravel\Fortify\Actions\PrepareAuthenticatedSession;
+use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Contracts\LoginResponse as FortifyLoginResponse;
 use Laravel\Fortify\Contracts\LogoutResponse as FortifyLogoutResponse;
 use Laravel\Fortify\Contracts\VerifyEmailResponse as FortifyVerifyEmailResponse;
 use Laravel\Fortify\Events\TwoFactorAuthenticationDisabled;
+use Laravel\Fortify\Features as FortifyFeatures;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Http\Requests\LoginRequest as FortifyLoginRequest;
 use Laravel\Fortify\Http\Requests\VerifyEmailRequest as FortifyVerifyEmailRequest;
@@ -72,6 +74,7 @@ use Nvade\Numerosis\Events\Admin\ImpersonationStarted;
 use Nvade\Numerosis\Events\Auth\PasswordChanged;
 use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
+use Nvade\Numerosis\Events\Auth\TwoFactorAuthenticationCleared;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\TenantSuspended;
@@ -82,6 +85,7 @@ use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
 use Nvade\Numerosis\Events\Tenancy\TenantRestored;
 use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
+use Nvade\Numerosis\Http\Middleware\RequirePasswordIfSet;
 use Nvade\Numerosis\Http\Requests\Auth\NumerosisLoginRequest;
 use Nvade\Numerosis\Http\Requests\Auth\NumerosisVerifyEmailRequest;
 use Nvade\Numerosis\Http\Responses\Auth\NumerosisLoginResponse;
@@ -93,6 +97,7 @@ use Nvade\Numerosis\Listeners\Admin\SuppressMailWhileImpersonating;
 use Nvade\Numerosis\Listeners\Auth\EndOtherGuardSession;
 use Nvade\Numerosis\Listeners\Auth\LogSocialAccountLinked;
 use Nvade\Numerosis\Listeners\Auth\LogSocialAccountUnlinked;
+use Nvade\Numerosis\Listeners\Auth\LogTwoFactorAuthenticationCleared;
 use Nvade\Numerosis\Listeners\Auth\RevokeSessionsAfterPasswordChange;
 use Nvade\Numerosis\Listeners\Auth\RevokeSessionsAfterTwoFactorDisabled;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentConfirmedNotification;
@@ -353,6 +358,11 @@ class NumerosisServiceProvider extends PackageServiceProvider
         Livewire::addComponent(name: 'billing.checkout', class: Checkout::class);
         Livewire::addComponent(name: 'settings.delete-user-form', class: DeleteUserForm::class);
         Livewire::addComponent(name: 'settings.connected-accounts', class: ConnectedAccounts::class);
+
+        // Route middleware does not cover `/livewire/update`, so without this
+        // the two-factor screen's password confirmation would hold for the
+        // page load and for nothing the user then clicks.
+        Livewire::addPersistentMiddleware(RequirePasswordIfSet::class);
     }
 
     protected function registerPublishing(): void
@@ -558,6 +568,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
             PasswordChanged::class => RevokeSessionsAfterPasswordChange::class,
             TwoFactorAuthenticationDisabled::class => RevokeSessionsAfterTwoFactorDisabled::class,
+            TwoFactorAuthenticationCleared::class => LogTwoFactorAuthenticationCleared::class,
         ];
 
         foreach ($listeners as $event => $listener) {
@@ -641,6 +652,11 @@ class NumerosisServiceProvider extends PackageServiceProvider
             Config::get('fortify.limiters.login') !== null ? null : EnsureLoginIsNotThrottled::class,
             Config::boolean('fortify.lowercase_usernames') ? CanonicalizeUsername::class : null,
             OneTimePasswordFeature::available() ? RedirectIfOneTimePasswordAuthenticatable::class : null,
+
+            // After the OTP step, which never calls `$next()`: an emailed code
+            // already proves possession, so that login is not challenged for a
+            // second one.
+            FortifyFeatures::canManageTwoFactorAuthentication() ? RedirectIfTwoFactorAuthenticatable::class : null,
             AttemptToAuthenticate::class,
             PrepareAuthenticatedSession::class,
             LogInToCentralGuard::class,
@@ -656,7 +672,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Both limiters replace Fortify's default, which keys on
+     * The login limiter replaces Fortify's default, which keys on
      * `lower(username).'|'.$request->ip()` and so shares one lockout counter
      * between two tenants holding a user at the same address. Regression-test
      * either one with two tenants; a single-tenant test passes whether or not
@@ -674,7 +690,30 @@ class NumerosisServiceProvider extends PackageServiceProvider
             $this->authThrottleKey($request, $this->pendingLoginAddress($request))
         ));
 
+        Config::set('fortify.limiters.two-factor', 'two-factor');
+
+        // Six digits stays guessable at five tries a minute over an evening,
+        // so the challenge gets a tighter window than login.
+        RateLimiter::for('two-factor', fn (Request $request): Limit => Limit::perMinutes(5, 5)->by(
+            $this->twoFactorThrottleKey($request)
+        ));
+
         RateLimiter::for('social', fn (Request $request): Limit => Limit::perMinute(10)->by($request->ip()));
+    }
+
+    /**
+     * Tenant + the account the password step challenged + IP. Keyed on
+     * `login.id` rather than the session id, so cycling the session cookie
+     * does not hand the same pending login a fresh set of guesses; the request
+     * never carries that id, so a caller cannot choose whose bucket to spend.
+     */
+    protected function twoFactorThrottleKey(Request $request): string
+    {
+        $tenant = tenancy()->tenant;
+        $tenantKey = $tenant instanceof Tenant ? (string) $tenant->getTenantKey() : 'central';
+        $challenged = $request->hasSession() ? $request->session()->get('login.id') : null;
+
+        return $tenantKey.'|'.(is_scalar($challenged) ? (string) $challenged : '').'|'.$request->ip();
     }
 
     /**
