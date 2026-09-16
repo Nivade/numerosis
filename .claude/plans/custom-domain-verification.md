@@ -1,0 +1,130 @@
+# Custom domain ownership verification and TLS
+
+**Status: not executed. Written 2026-09-16.** Wave 5 of
+`saas-readiness-roadmap.md`. Fixes a mode the package documents as supported.
+
+## The defect
+
+`custom_domain` is one of three identification modes
+(`src/Enums/Tenancy/IdentificationMode.php`), documented and shipped. Its
+entire validation is a well-formed-FQDN check plus uniqueness across tenants
+(`src/Services/Tenancy/DefaultTenantDomainPolicy.php:51`).
+
+Nothing proves the tenant controls the domain. A tenant can claim any hostname
+that is not already claimed here. There is also no certificate story at all,
+so even a legitimately claimed domain serves nothing over HTTPS unless an
+operator wires it by hand.
+
+Decision 2026-09-16: **fix it.** Marking the mode unsupported was the
+alternative and was rejected.
+
+## Decision: the package issues no certificates
+
+The package proves ownership and publishes the verified set. Certificates
+belong to the deployment, and there are four reasonable deployments:
+
+| Deployment | How it gets certs | What the package gives it |
+|---|---|---|
+| Caddy (shipped default) | On-demand TLS | `GET /numerosis/tls/ask?domain=` answering 200 or 404 |
+| Traefik | ACME per router | `GET /numerosis/tls/routers` returning dynamic config for its HTTP provider |
+| Cloudflare for SaaS | Their API | `DomainVerified` event; the host calls Cloudflare |
+| Anything else | Host's own | The same event, and the verified-domain query |
+
+One verified-domain query underneath, several thin presenters over it. Nothing
+TLS-shaped leaks into the domain logic, and a development environment on
+Traefik with a local wildcard certificate needs none of it — dev hostnames are
+known ahead of time, so on-demand issuance never comes up.
+
+## Ownership proof
+
+A `TXT` record at `_numerosis-challenge.<domain>` containing a per-domain
+token, plus a required `CNAME` (or `A`) pointing the hostname at the platform.
+`TXT` proves control of the zone; the `CNAME` is what makes traffic arrive.
+Check both — a domain verified but not pointed produces a tenant that
+"verified fine" and still 404s.
+
+## Domain states
+
+`domains` gains `verification_token`, `verified_at`, `verification_failed_at`,
+`last_checked_at` and a status:
+
+```
+pending → verifying → verified → active
+             ↓
+          failed (retryable)
+```
+
+`verified` means ownership proven. `active` means traffic resolves and a
+certificate exists. They are separate because the gap between them is where
+every support ticket lives.
+
+## Phases
+
+### 1. Schema, token minting, state machine
+
+Token is per domain, stable across retries, and regenerated only on explicit
+request.
+
+### 2. DNS checker
+
+`Services\Tenancy\DnsVerifier` over PHP's resolver behind a contract, so tests
+fake it and a host can swap in a resolver that bypasses local caching. Checks
+`TXT` and the `CNAME`/`A` target independently and reports which half failed.
+
+### 3. Verification job and schedule
+
+Verify on demand when the tenant clicks, and re-verify on a schedule with
+backoff — DNS propagates on its own timetable, so a failed check is "not yet",
+not "no". Give up after a configurable window and mark failed, retryable.
+
+Re-verify verified domains periodically too: a domain whose DNS is pulled
+should eventually stop being served.
+
+### 4. Tenant-facing screen
+
+Setup instructions with the exact records to add, live status per record, a
+re-check button, and the distinction between verified and active stated in
+words. This screen is the product; the rest is plumbing.
+
+### 5. Presenters
+
+The Caddy ask endpoint and the Traefik routers endpoint, both reading the one
+verified-domain query, both cached briefly — Caddy calls the ask endpoint per
+new SNI and an uncached database query there is a denial-of-service vector.
+
+The ask endpoint answers on the apex, unauthenticated by necessity, and must
+leak nothing beyond "yes this hostname is ours".
+
+### 6. Event seam and documentation
+
+`DomainVerified` and `DomainRevoked`, carrying scalars. `docs/host-requirements.md`
+gains the deployment matrix above, since choosing a proxy is a host decision
+the package now has an opinion about.
+
+## Tests
+
+- Verification fails when only the `TXT` exists, when only the `CNAME` exists,
+  and succeeds with both, with a distinct reported reason for each failure.
+- A domain already claimed by another tenant cannot be verified, and the
+  uniqueness check happens before the token is minted.
+- Ask endpoint answers 200 for verified, non-200 for pending, failed, revoked,
+  and for a domain belonging to a suspended or closed tenant.
+- Ask endpoint responses are cached and the cache is invalidated on
+  verification and revocation.
+- Routers endpoint output is valid Traefik dynamic configuration and contains
+  every verified domain exactly once.
+- Re-verification of a domain whose DNS was removed transitions it out of
+  active.
+- `DomainVerified` fires once per transition, not per check.
+
+## Risks
+
+- **The ask endpoint is a public, unauthenticated, per-request database hit.**
+  Cache it, rate-limit it, and never make it do work proportional to the
+  number of tenants.
+- **Suspension and closure must reach TLS.** A closed tenant whose domain
+  still answers is a data-exposure bug, not a cosmetic one. The verified-domain
+  query filters on tenant state, and that is the assertion worth writing
+  first.
+- **Identification mode is a deploy-time choice.** Switching modes does not
+  migrate tenants already provisioned; this plan does not change that.
