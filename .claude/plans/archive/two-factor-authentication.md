@@ -1,8 +1,8 @@
 # Two-factor authentication
 
-**Status: not executed. Written 2026-09-16.** Wave 3 of
-`saas-readiness-roadmap.md`. Cheapest high-value item in the set — Fortify
-ships the mechanism and this package switches it off.
+**Status: executed 2026-09-17 on `feat/two-factor-authentication`.** Written
+2026-09-16. Wave 3 of `saas-readiness-roadmap.md`. See "What shipped" at the
+bottom for the three places it deviates.
 
 ## Where it stands
 
@@ -106,3 +106,43 @@ never silently. Without it, every lost phone is a database edit.
 - **Passkeys.** Fortify has them, and they make the TOTP flow redundant for
   users who adopt them. Out of scope here, but do not design the enrolment
   screen as if TOTP is the only possible factor.
+
+## What shipped
+
+Three deviations from the plan above.
+
+**Enrolment is central-only, not per-guard.** Phase 1 recommended two secrets,
+one per guard, on the premise that "the two guards authenticate separately".
+They do not: Fortify's `StatefulGuard` binding resolves
+`config('fortify.guard')`, which is `'web'` for the whole process, so a login
+on a tenant domain checks credentials against the *central* provider and
+`Http\Middleware\Authenticate` then promotes that session into the tenant
+guard. A secret on a tenant user would never be challenged by anything. So the
+columns live on central `users` only, `RouteLoader` strips the two-factor
+feature out of `fortify.features` while it registers the tenant group — leaving
+Fortify's enrolment endpoints on the central domains — and hand-registers the
+challenge routes there, since a login that begins on a tenant domain has to
+finish on it.
+
+**The challenge limiter keys on `login.id`, not the session id.** Phase 3 asked
+for the lock to follow the session. Keying on the challenged account is
+strictly stronger: cycling the session cookie no longer buys a fresh set of
+guesses, and the request never carries that id, so a caller cannot choose whose
+bucket to spend. 5 attempts per 5 minutes, against login's 5 per minute. The
+session-id version was also untestable — the test harness hands every request a
+new session id.
+
+**The enrolment screen calls Fortify's actions rather than posting its routes.**
+`Livewire\Settings\TwoFactor` behind `password.confirm.if-set`, which
+`Livewire::addPersistentMiddleware()` re-applies to `/livewire/update` —
+route middleware does not reach it. Fortify's own endpoints keep
+`confirmPassword => true`, so a stolen session cannot enrol through them, while
+an account that registered through OAuth and has no password can still enrol
+through the screen.
+
+Two smaller notes. `RevokeSessionsAfterTwoFactorDisabled` now reads
+`$event->user` instead of the current guard's id — it was revoking the *staff*
+user's sessions when staff cleared someone else's factor. And
+`EnsureStaffTwoFactor` sits after the `can:` check on the staff group, so a
+visitor with no staff permissions still gets a 403 rather than an invitation to
+enrol.

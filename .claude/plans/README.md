@@ -169,23 +169,31 @@ authenticated central route, and revocation on password change, 2FA disable and
 `user_id` column, which holds whichever guard was ambient when the row was
 written. Deviations in the plan's own "What shipped".
 
+`two-factor-authentication.md` moved to `archive/` 2026-09-17, the day after it
+was written: Fortify's two-factor feature on with `confirm` and
+`confirmPassword`, a `settings/two-factor` Livewire screen, a per-tenant
+requirement with a grace period, an unconditional requirement for the staff
+screens, and a staff clear path that writes an activity-log entry naming both
+people. Enrolment is central-only, against the plan's own recommendation —
+every login checks credentials on the central provider, so a secret on a tenant
+user would never be challenged. Deviations in the plan's own "What shipped".
+
 ## Live
 
 Twenty-one files added 2026-09-16 from a capability sweep of the tree:
 `saas-readiness-roadmap.md` is the parent and holds the sequencing, the
 cross-cutting decisions and the shared foundations. The other twenty are one
-feature each and are listed here in the roadmap's wave order. Nine,
+feature each and are listed here in the roadmap's wave order. Ten,
 `seat-limit-at-invite.md`, `team-members-management.md`,
 `tenant-ownership-transfer.md`, `tenant-close-and-recovery.md`,
 `staff-admin-panel.md`, `support-impersonation.md`,
-`provisioning-observability.md`, `fleet-tenant-migrations.md` and
-`session-management.md`, have since been executed and archived; the rest are
-not.
+`provisioning-observability.md`, `fleet-tenant-migrations.md`,
+`session-management.md` and `two-factor-authentication.md`, have since been
+executed and archived; the rest are not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `two-factor-authentication.md` | Not executed. Wave 3. Fortify ships it; `HostConfig` leaves it off |
 | `security-hardening.md` | Not executed. Wave 3. Breached-password check, security headers, login anomaly event |
 | `audit-log-coverage.md` | Not executed. Wave 3. One model is logged; no screen reads the table |
 | `tenant-backup-restore.md` | Not executed. Wave 3. Owns the tenant data serializer |

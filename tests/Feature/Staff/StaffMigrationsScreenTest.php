@@ -68,7 +68,7 @@ class StaffMigrationsScreenTest extends TestCase
 
         CentralUser::factory()->create();
 
-        $admin = CentralUser::factory()->create();
+        $admin = CentralUser::factory()->withTwoFactor()->create();
         $admin->assignRole('admin');
 
         return $admin;

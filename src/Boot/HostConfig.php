@@ -408,8 +408,8 @@ final class HostConfig
     }
 
     /**
-     * The auth screens Fortify registers, dropping two-factor and passkeys,
-     * which have neither views nor columns here. Written only while
+     * The auth screens Fortify registers, dropping passkeys, which have
+     * neither views nor columns here. Written only while
      * `numerosis.auth.manage_fortify_features` is true; set it false once you
      * have edited `fortify.features` yourself.
      */
@@ -425,6 +425,10 @@ final class HostConfig
             FortifyFeatures::updateProfileInformation(),
             FortifyFeatures::updatePasswords(),
             FortifyFeatures::emailVerification(),
+
+            // `confirm` is what makes enrolment prove the user can produce a
+            // code before the factor starts gating their next login.
+            FortifyFeatures::twoFactorAuthentication(['confirm' => true, 'confirmPassword' => true]),
         ], static fn (?string $feature): bool => $feature !== null));
 
         if (Config::array('fortify.features') !== $features) {

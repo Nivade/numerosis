@@ -382,8 +382,8 @@ class InstallNumerosisCommand extends Command
     }
 
     /**
-     * Two-factor and passkeys have neither views nor columns here, so enabling
-     * either registers routes that 500 on the first request.
+     * Passkeys have neither views nor columns here, so enabling them registers
+     * routes that 500 on the first request.
      */
     private function verifyFortifyFeatures(): void
     {
@@ -391,7 +391,6 @@ class InstallNumerosisCommand extends Command
         $features = Config::array('fortify.features', []);
 
         $unsupported = array_values(array_intersect($features, [
-            FortifyFeatures::twoFactorAuthentication(),
             FortifyFeatures::passkeys(),
         ]));
 

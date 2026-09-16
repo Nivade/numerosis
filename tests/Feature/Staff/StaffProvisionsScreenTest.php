@@ -88,7 +88,7 @@ class StaffProvisionsScreenTest extends TestCase
         $admin = $this->userWithoutPermissions();
         $admin->assignRole('admin');
 
-        return $admin;
+        return $this->withConfirmedTwoFactor($admin);
     }
 
     /** The decoy covers `CentralUserObserver`'s promotion of the first user. */

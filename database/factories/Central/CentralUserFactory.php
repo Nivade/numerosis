@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Database\Factories\Central;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
+use Laravel\Fortify\Fortify;
+use Laravel\Fortify\RecoveryCode;
 use Nvade\Numerosis\Database\Factories\Concerns\GeneratesUniqueEmails;
 
 /**
@@ -48,6 +52,31 @@ class CentralUserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * A confirmed authenticator, so the account satisfies every gate that
+     * reads `hasEnabledTwoFactorAuthentication()`.
+     */
+    public function withTwoFactor(?string $secret = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'two_factor_secret' => Fortify::currentEncrypter()->encrypt(
+                $secret ?? resolve(TwoFactorAuthenticationProvider::class)->generateSecretKey()
+            ),
+            'two_factor_recovery_codes' => Fortify::currentEncrypter()->encrypt((string) json_encode(
+                Collection::times(8, fn (): string => RecoveryCode::generate())->all()
+            )),
+            'two_factor_confirmed_at' => now(),
+        ]);
+    }
+
+    /** A secret the user never proved they could produce a code from. */
+    public function withUnconfirmedTwoFactor(): static
+    {
+        return $this->withTwoFactor()->state(fn (array $attributes) => [
+            'two_factor_confirmed_at' => null,
         ]);
     }
 }

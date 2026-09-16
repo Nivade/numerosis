@@ -68,6 +68,7 @@ return [
         'confirm' => 'Confirm',
         'never_mind' => 'Never mind',
         'open_in_stripe' => 'Open in Stripe',
+        'clear_two_factor' => 'Clear two-factor',
     ],
 
     'confirm' => [
@@ -163,7 +164,13 @@ return [
             'user' => 'User',
             'email' => 'Email',
             'tenants' => 'Tenants',
+            'two_factor' => 'Two-factor',
             'joined' => 'Joined',
         ],
+        'two_factor' => [
+            'on' => 'On',
+            'off' => 'Off',
+        ],
+        'two_factor_cleared' => 'Two-factor authentication cleared.',
     ],
 ];

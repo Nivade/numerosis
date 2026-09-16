@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\URL;
+use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
+use Laravel\Fortify\Fortify;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantOwner;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenant;
 use Nvade\Numerosis\Actions\Tenancy\CreateTenantDatabase;
@@ -26,6 +28,7 @@ use Nvade\Numerosis\Actions\Tenancy\PromoteFirstUserToAdmin;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Features\FeatureRegistry;
+use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
 use Nvade\Numerosis\Numerosis;
@@ -38,6 +41,7 @@ use Nvade\Numerosis\Tests\Support\TestTenant;
 use Orchestra\Testbench\TestCase as Orchestra;
 use PDO;
 use Pdo\Mysql;
+use PragmaRX\Google2FA\Google2FA;
 use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
 use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
@@ -111,6 +115,34 @@ abstract class TestCase extends Orchestra
         $this->actingAs($user, Config::string('numerosis.auth.guards.central'));
 
         return $this;
+    }
+
+    /**
+     * A confirmed authenticator on an existing central account, which
+     * `EnsureStaffTwoFactor` and a tenant's own requirement both read.
+     *
+     * @template TUser of BaseCentralUser
+     *
+     * @param  TUser  $user
+     * @return TUser
+     */
+    protected function withConfirmedTwoFactor(BaseCentralUser $user): BaseCentralUser
+    {
+        resolve(EnableTwoFactorAuthentication::class)($user);
+
+        $user->forceFill(['two_factor_confirmed_at' => now()])->save();
+
+        return $user;
+    }
+
+    /** The code the user's authenticator app would be showing right now. */
+    protected function currentTwoFactorCode(BaseCentralUser $user): string
+    {
+        $secret = Fortify::currentEncrypter()->decrypt((string) $user->two_factor_secret);
+
+        $this->assertIsString($secret);
+
+        return resolve(Google2FA::class)->getCurrentOtp($secret);
     }
 
     /**

@@ -639,10 +639,10 @@ class InstallNumerosisCommandTest extends TestCase
     public function test_it_fails_when_fortify_enables_a_feature_with_no_views(): void
     {
         Config::set('numerosis.auth.manage_fortify_features', false);
-        Config::set('fortify.features', [FortifyFeatures::twoFactorAuthentication()]);
+        Config::set('fortify.features', [FortifyFeatures::passkeys()]);
 
         $this->install()
-            ->expectsOutputToContain('two-factor-authentication')
+            ->expectsOutputToContain('passkeys')
             ->assertFailed();
     }
 

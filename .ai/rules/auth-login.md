@@ -106,6 +106,45 @@ paths:
   under Octane the same leak is a live concern.
 
 
+- **Credentials are only ever checked against the central provider, on every
+  domain — the tenant guard is never credential-authenticated.** Fortify binds
+  `StatefulGuard` to `Auth::guard(config('fortify.guard'))`, and that key is
+  `'web'` for the whole process: `RouteLoader::loadFortifyRoutes()` swaps it
+  per group at *registration* time and its `finally` puts the array back, so by
+  request time every login, password confirmation and 2FA challenge resolves
+  the central guard even on a tenant subdomain. The tenant session is a
+  *promotion* — `Http\Middleware\Authenticate` signs the central user into the
+  tenant guard on the next authenticated request. Consequences, found while
+  building 2FA (2026-09-17): anything that gates *login* belongs on the central
+  user and nowhere else, which is why `two_factor_secret` exists only in
+  central `users` and why `RouteLoader` strips the two-factor feature out of
+  `fortify.features` while registering the tenant group (it hand-registers the
+  challenge routes there instead, since a login that begins on a tenant domain
+  has to finish on it). A per-guard enrolment looks symmetrical with the rest
+  of the package and would store a secret nothing ever challenges.
+
+- **A rate limiter keyed on the session id is untestable here, and weaker than
+  one keyed on what the session holds.** Every `$this->post()` in a feature
+  test lands on a new session id — measured 2026-09-17: seven consecutive posts
+  reported seven ids while session *data* persisted — so the bucket is fresh
+  each time and the assertion can only pass by accident. The 2FA challenge
+  limiter keys on `login.id` instead, which also means cycling the session
+  cookie does not buy a fresh set of guesses; the request never carries that id,
+  so a caller still cannot choose whose bucket to spend. Same reasoning as the
+  OTP limiter's session-stashed address.
+
+- **Route middleware does not reach `/livewire/update`, and
+  `Livewire::addPersistentMiddleware()` is the fix, not a re-check inside the
+  component.** `password.confirm.if-set` on `settings/two-factor` would
+  otherwise hold for the page load and for nothing the user then clicks.
+  Livewire re-runs a persistent middleware against a fake request rebuilt from
+  the original route, and `Utils::applyMiddleware()` `abort()`s on a
+  `RedirectResponse`, so the confirm screen still happens. Registered in
+  `NumerosisServiceProvider::registerLivewireComponents()`. The older lesson
+  further down — that a component method cannot be trusted to gate on prior
+  state — is about *ordering between methods* and is not satisfied by this;
+  both apply.
+
 Guard *selection* is `.ai/rules/auth-guards.md`. This file is about who runs
 what during login/logout, and the two traps worth re-reading before touching
 any of it.
