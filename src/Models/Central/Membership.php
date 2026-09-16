@@ -18,6 +18,8 @@ use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Observers\Tenancy\MembershipObserver;
 use Nvade\Numerosis\Policies\Tenancy\MembershipPolicy;
 use Override;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 use Stancl\Tenancy\Database\Models\TenantPivot;
 
@@ -54,6 +56,8 @@ class Membership extends TenantPivot
 
     /** @use HasFactory<Factory<static>> */
     use HasFactory;
+
+    use LogsActivity;
 
     #[Override]
     protected function casts(): array
@@ -104,5 +108,18 @@ class Membership extends TenantPivot
                 ->where('tenant_id', $this->tenant_id)
                 ->where('role', MembershipRole::Admin->value)
                 ->count() === 1;
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'role',
+                'invited_by',
+                'invited_at',
+                'joined_at',
+            ])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
     }
 }

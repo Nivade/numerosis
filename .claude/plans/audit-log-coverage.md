@@ -1,6 +1,6 @@
 # Audit log: full coverage and a way to read it
 
-**Status: not executed. Written 2026-09-16.** Wave 3 of
+**Status: executed 2026-09-17.** See "What shipped" at the bottom. Wave 3 of
 `saas-readiness-roadmap.md`.
 
 ## What is logged today
@@ -99,3 +99,41 @@ as a decision the host owns.
 - **`activity_log` exists centrally and per tenant.** Two tables, same name,
   different connections. Any query that forgets which connection it is on
   reads the wrong one and returns plausible, wrong data.
+
+## What shipped
+
+All five phases, 2026-09-17.
+
+- `Models\Activity` replaces Spatie's, wired through
+  `activitylog.activity_model`. It resolves its connection from the subject: a
+  central-connection subject writes centrally, so a `Membership` attached
+  inside a tenant request no longer records against a tenant database. It also
+  stamps two properties on every entry — `impersonated_global_id` and an
+  `actor` of `user`/`staff`/`system` (`Enums\Audit\ActivityActor`), which is
+  phase 3 for both the impersonation and the queued-job halves.
+- `activity_log.subject_id` is a string column now, not `unsignedBigInteger`.
+  Nothing about a tenant could be logged before this: `tenants.id` is a UUID.
+  `causer_id` moved with it.
+- `logOnly()` lists on `Tenant`, `Membership`, `Subscription`, `Invitation`,
+  `SocialAccount` and `CentralUser`, plus
+  `activitylog.default_except_attributes` holding the four credential columns,
+  both backfilled by `HostConfig` and checked by two new `verify*()` methods.
+- `Listeners\Audit\RecordDomainEventActivity` on nine events, registered from
+  its own loop: three of them already had a listener in the map, and an event
+  may only be a key there once.
+- Screens behind `Features\Audit\ActivityLogFeature` (on by default), and
+  `Actions\Queries\ReadActivityLog` as the one place either log is read from.
+  `MembershipPolicy::viewActivity()` is what keeps a plain member out.
+- Retention is `numerosis:prune-activity-log`, not Spatie's
+  `activitylog:clean`. That command deletes through the model's *default*
+  connection, which is the tenant's inside tenancy — under `RefreshDatabase`
+  it silently deleted nothing, which is how this was found.
+
+One test-support fix came with it: `Tests\Support\SubscriptionWithoutStripe`
+had to name its `items()` foreign key, since logging reads the model and
+Cashier eager-loads that relation off the class basename.
+
+Not done: nothing. The plan's tenant-side "that tenant's log" is the central
+entries scoped to the tenant rather than the tenant database's own table —
+the tenant table holds tenant-user attribute diffs, and the questions the
+screen exists to answer (who was removed, when a role changed) are central.

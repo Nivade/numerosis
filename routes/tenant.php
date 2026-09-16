@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 use Nvade\Numerosis\Enums\MiddlewareAlias;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Features\Admin\ImpersonationFeature;
+use Nvade\Numerosis\Features\Audit\ActivityLogFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Http\Controllers\Admin\EndImpersonationController;
@@ -91,6 +92,10 @@ Route::middleware(['universal', MiddlewareAlias::TenancyAuth->value.':'.Context:
             Route::post('team/ownership', StoreOwnershipNominationController::class)->name('team.ownership.store');
 
             Route::post('team/close', CloseTenantController::class)->name('team.close');
+
+            if (FeatureRegistry::enabled(ActivityLogFeature::NAME)) {
+                Route::livewire('team/activity', 'numerosis-pages::tenant.activity')->name('team.activity');
+            }
 
             Route::delete('team/ownership/{nomination}', DestroyOwnershipNominationController::class)
                 ->name('team.ownership.destroy');

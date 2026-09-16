@@ -11,6 +11,7 @@ use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
 use Nvade\Numerosis\Exceptions\Boot\ConfigNamespaceNotReady;
 use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
+use Nvade\Numerosis\Models\Activity;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -19,6 +20,7 @@ use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\PasswordBrokerBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\SpatiePermissionsBootstrapper;
+use Spatie\Activitylog\Models\Activity as SpatieActivity;
 use Stancl\Tenancy\Database\Models\Domain as StanclDomain;
 use Stancl\Tenancy\Database\Models\Tenant as StanclTenant;
 
@@ -369,6 +371,18 @@ final class HostConfig
                 'throttle' => 60,
             ]],
             'activitylog.table_name' => [[], 'activity_log'],
+
+            'activitylog.activity_model' => [[SpatieActivity::class], Activity::class],
+
+            // An audit log holding a credential is worse than no audit log, and
+            // `logAll()` on a user model would otherwise record every one of
+            // these.
+            'activitylog.default_except_attributes' => [[[]], [
+                'password',
+                'remember_token',
+                'two_factor_secret',
+                'two_factor_recovery_codes',
+            ]],
 
             // Corrects stancl's stock tenant root, which predates Laravel 11
             // moving the `local` disk to `storage/app/private`.

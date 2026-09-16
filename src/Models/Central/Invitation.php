@@ -25,6 +25,8 @@ use Nvade\Numerosis\Exceptions\Invitations\InvitationExpired;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Policies\Invitations\InvitationPolicy;
 use Override;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -57,6 +59,7 @@ class Invitation extends Model
     /** @use HasFactory<InvitationFactory> */
     use HasFactory;
 
+    use LogsActivity;
     use MassPrunable;
 
     #[Boot]
@@ -149,5 +152,18 @@ class Invitation extends Model
             ->orWhere(function (Builder $query): void {
                 $query->whereNull('accepted_at')->where('expires_at', '<', now()->subDays(30));
             });
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'email',
+                'role',
+                'accepted_at',
+                'expires_at',
+            ])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
     }
 }

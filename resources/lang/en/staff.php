@@ -12,7 +12,29 @@ return [
         'migrations' => 'Migrations',
         'subscriptions' => 'Subscriptions',
         'users' => 'Users',
+        'activity' => 'Activity',
         'leave' => 'Back to app',
+    ],
+
+    'activity' => [
+        'heading' => 'Activity',
+        'subheading' => 'Every audited change on the central connection',
+        'empty' => 'No entries match this filter.',
+        'see_all' => 'See all',
+        'filters' => [
+            'tenant' => 'Filter by tenant id',
+        ],
+        'actors' => [
+            'user' => 'A user',
+            'staff' => 'Support',
+            'system' => 'The system',
+        ],
+        'columns' => [
+            'when' => 'When',
+            'what' => 'What',
+            'subject' => 'Subject',
+            'actor' => 'Actor',
+        ],
     ],
 
     'tenants' => [

@@ -19,6 +19,8 @@ use Nvade\Numerosis\Enums\Auth\SocialProvider;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Policies\Auth\SocialAccountPolicy;
 use Override;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -50,6 +52,8 @@ class SocialAccount extends Model
     /** @use HasFactory<Factory<static>> */
     use HasFactory;
 
+    use LogsActivity;
+
     #[Override]
     protected function casts(): array
     {
@@ -67,5 +71,17 @@ class SocialAccount extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(Numerosis::model(CentralUser::class));
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'provider',
+                'provider_id',
+                'email',
+            ])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
     }
 }

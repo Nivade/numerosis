@@ -18,6 +18,7 @@ use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
+use Nvade\Numerosis\Models\Activity;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
@@ -47,6 +48,8 @@ class InstallNumerosisCommand extends Command
      * prefix, since the default broker's name is the host's to choose.
      */
     public const array VERIFIED_CONFIG_KEYS = [
+        'activitylog.activity_model' => 'verifyActivityModel',
+        'activitylog.default_except_attributes' => 'verifyActivityLogSecrets',
         'activitylog.table_name' => 'verifyActivityLogTable',
         'auth.guards.tenant' => 'verifyAuthGuards',
         'auth.passwords.' => 'verifyAuthPasswordBroker',
@@ -108,6 +111,8 @@ class InstallNumerosisCommand extends Command
         $this->verifyAuthPasswordBroker();
         $this->verifyTenantAuthProvider();
         $this->verifyActivityLogTable();
+        $this->verifyActivityModel();
+        $this->verifyActivityLogSecrets();
         $this->verifyTenantFilesystemRoot();
         $this->verifyFortifyFeatures();
         $this->verifySocialRoutes();
@@ -356,6 +361,34 @@ class InstallNumerosisCommand extends Command
 
         if (! Schema::connection($connection)->hasTable($table)) {
             $this->failures[] = "config('activitylog.table_name') is '{$table}', which does not exist on the '{$connection}' connection.";
+        }
+    }
+
+    /**
+     * A subclass is fine and expected; Spatie's own model is not, because it
+     * writes a central subject's entry into whichever tenant database the
+     * request happened to be in.
+     */
+    private function verifyActivityModel(): void
+    {
+        $model = Config::get('activitylog.activity_model');
+
+        if (! is_string($model) || ! is_a($model, Activity::class, true)) {
+            $this->failures[] = "config('activitylog.activity_model') must be ".Activity::class." or a subclass of it — anything else records a central row's history in the tenant database that happened to be active.";
+        }
+    }
+
+    private function verifyActivityLogSecrets(): void
+    {
+        $excluded = Config::array('activitylog.default_except_attributes', []);
+
+        $missing = array_diff(
+            ['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'],
+            array_filter($excluded, is_string(...))
+        );
+
+        if ($missing !== []) {
+            $this->failures[] = "config('activitylog.default_except_attributes') is missing ".implode(', ', $missing).' — a logged model writes those values into the audit log in clear text.';
         }
     }
 
