@@ -80,9 +80,10 @@ this package or in `stancl/tenancy` registers a `URL::defaults(['tenant' => …]
 a `#[RedirectToRoute]`, or a Blade form action, is a 500 in that mode.
 
 Reach for `back()` in controllers and form requests, and `url()->current()` in
-views, both of which are correct in all three modes. `resources/views/pages/tenant/⚡invitations.blade.php`
-posts its create form to `url()->current()` and its revoke form to
-`url()->current().'/'.$invitation->getRouteKey()` for this reason.
+views, both of which are correct in all three modes. `resources/views/pages/tenant/⚡team.blade.php`
+posts every form off `url()->current()` for this reason — the invite form to
+`url()->current().'/invitations'`, the member forms to
+`url()->current().'/members/'.$membership->id`.
 
 Two things hide it. `tests/TestCase.php` calls
 `URL::forceRootUrl('http://central.numerosistest.test')`, so in the default
@@ -119,6 +120,37 @@ The trait also short-circuits `updateAny`/`deleteAny` ahead of the per-record
 check, so an admin holding the blanket permission is never refused a single
 record. Both behaviours are in the trait rather than in each policy on purpose;
 a policy with real domain logic of its own should not build on it.
+
+## `memberships` is the second central table bound on a tenant route
+
+`team/members/{membership}` (PATCH and DELETE, added 2026-09-16) binds
+`Models\Central\Membership`, and everything above about `tenant_invitations`
+applies unchanged: no tenant scope on the binder, `deleteAny invitations`
+seeded to every tenant's admin. `Policies\Tenancy\MembershipPolicy` compares
+`tenant_id` to `tenant()->getTenantKey()` on both methods, and refuses `Owner`
+rows outright — ownership moves only through its own transfer flow.
+
+Two rules there are not permission checks and belong nowhere else: removing
+the **last admin** is refused, and **self-removal is exempt** from that
+refusal, because a member with no way out of a team is the worse failure.
+Demotion of the last admin is refused in `ChangeMemberRole` instead, since the
+policy never sees the target role.
+
+`EnsureTenantMembership` (`tenancy.membership`) re-checks membership per
+request, off `GetTenantsByGlobalId`'s cached list, which `ForgetUserTenants`
+invalidates on every membership write. Without it a removed member's tenant
+guard session keeps working until it expires: the guard stores a per-database
+primary key and re-resolves nothing.
+
+## Creating a tenant-side `User` attaches a membership by itself
+
+`Models\Tenant\User` is `ResourceSyncing`, so writing one inside an
+initialized tenancy syncs it back to central — creating the `CentralUser` *and*
+attaching the pivot. A fixture that does both by hand dies on
+`memberships.unique(tenant_id, global_user_id)`, and only after the first
+request in the test, since before that tenancy is not initialized and the sync
+does not run. `tenancy()->end()` between fixture steps is the fix;
+`tests/Feature/Team/TeamMembersTest::member()` carries it.
 
 ## Two invitation-row traps, both silent
 

@@ -1,6 +1,6 @@
 # Team members: list, remove, change role
 
-**Status: not executed. Written 2026-09-16.** Wave 1 of
+**Status: executed 2026-09-16, written the same day.** Wave 1 of
 `saas-readiness-roadmap.md`, and the largest single hole in the package.
 
 ## What is missing
@@ -105,3 +105,22 @@ lost access to the domain they were on.
   Recommend the middleware check now and the session invalidation later —
   a stale session outliving a removal is the one failure here that looks like
   a security bug.
+
+## What shipped
+
+All five phases, plus the risk's middleware recommendation.
+
+- `/team` is the screen (`team.index`); `/team/invitations` redirects to it
+  and keeps its name, so the invitations page view is gone and the two lists
+  live on one page.
+- `MembershipPolicy` encodes the table above. Self-removal is exempt from the
+  last-admin refusal — a member with no way out of a team is the worse
+  failure, and the owner can promote a replacement.
+- Demoting the last admin is refused too, in `ChangeMemberRole`, since the
+  policy cannot see the target role.
+- `MemberRoleChanged` fires from `MembershipObserver::updated()`, matching
+  where `MemberJoined`/`MemberRemoved` come from rather than from the action.
+- `Membership::user()`/`inviter()` named no keys, so both relations resolved
+  to nothing; both reference `users.global_id` and now say so.
+- `tenancy.membership` (`EnsureTenantMembership`) re-checks membership per
+  request off the cached tenant list, closing the stale-session hole.

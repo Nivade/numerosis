@@ -54,6 +54,12 @@ over-budget docblocks and 35 over-cap `//` runs to zero of each. Suite 734
 passed / 6 skipped, `composer analyse` cold-clean, PHPStan baseline unchanged
 at 17.
 
+`team-members-management.md` moved to `archive/` 2026-09-16, the day it was
+written: all five phases plus the session-survival middleware its risk section
+recommended. Two shape changes, both in the plan's "What shipped": the screen
+is a page view rather than a `Livewire\Tenant\Team\Members` class, and
+self-removal is exempt from the last-admin refusal.
+
 `seat-limit-at-invite.md` moved to `archive/` 2026-09-16, the day it was
 written: all five phases executed. Its phase 1 shape changed on contact — the
 counter is an action rather than a `Services/` class, and the invite and accept
@@ -119,14 +125,13 @@ case-sensitivity sweep the plan expected on PostgreSQL found nothing.
 Twenty-one files added 2026-09-16 from a capability sweep of the tree:
 `saas-readiness-roadmap.md` is the parent and holds the sequencing, the
 cross-cutting decisions and the shared foundations. The other twenty are one
-feature each and are listed here in the roadmap's wave order. One,
-`seat-limit-at-invite.md`, has since been executed and archived; the rest are
-not.
+feature each and are listed here in the roadmap's wave order. Two,
+`seat-limit-at-invite.md` and `team-members-management.md`, have since been
+executed and archived; the rest are not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `team-members-management.md` | Not executed. Wave 1. No HTTP surface exists for `Membership` at all |
 | `tenant-ownership-transfer.md` | Not executed. Wave 1. An owner can never delete their account today |
 | `tenant-close-and-recovery.md` | Not executed. Wave 1. Deletion is irreversible and has no customer-facing path |
 | `staff-admin-panel.md` | Not executed. Wave 2. Livewire, not Filament; off by default |
