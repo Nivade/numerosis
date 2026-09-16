@@ -29,10 +29,13 @@ use Nvade\Numerosis\Contracts\Billing\TrialResolver;
 use Nvade\Numerosis\Contracts\Billing\UnpaidTenantQuota;
 use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Contracts\Notifications\OperatorRecipient;
+use Nvade\Numerosis\Contracts\Tenancy\EncryptsArtifacts;
+use Nvade\Numerosis\Contracts\Tenancy\ExportsTenantData;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDomainPolicy;
 use Nvade\Numerosis\Database\Seeders\TenantDatabaseSeeder;
+use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Features\Audit\ActivityLogFeature;
 use Nvade\Numerosis\Features\Auth\EmailVerificationFeature;
@@ -65,8 +68,12 @@ use Nvade\Numerosis\Services\Billing\SeatLimitPlanPolicy;
 use Nvade\Numerosis\Services\Billing\TenantOrUserBillableResolver;
 use Nvade\Numerosis\Services\Notifications\MailsConfiguredOperator;
 use Nvade\Numerosis\Services\Notifications\NotifiesTenantOwnerDirectly;
+use Nvade\Numerosis\Services\Tenancy\ArtifactCipher;
 use Nvade\Numerosis\Services\Tenancy\DefaultTenantDomainPolicy;
+use Nvade\Numerosis\Services\Tenancy\PortableTenantDatabaseDumper;
+use Nvade\Numerosis\Services\Tenancy\SqliteFileTenantDatabaseDumper;
 use Nvade\Numerosis\Services\Tenancy\StanclTenantDatabaseManager;
+use Nvade\Numerosis\Services\Tenancy\TenantDataExporter;
 
 $apex = env('NUMEROSIS_APEX_DOMAIN') ?: Domains::apexFromAppUrl();
 
@@ -155,6 +162,10 @@ return [
         // covers the rest.
         'end_stale_impersonations' => (bool) env('SCHEDULE_END_STALE_IMPERSONATIONS', true),
         'prune_invitations' => (bool) env('SCHEDULE_PRUNE_INVITATIONS', true),
+
+        // Runs numerosis:prune-tenant-backups, deleting artefacts older than
+        // numerosis.tenancy.backup.keep_days.
+        'prune_tenant_backups' => (bool) env('SCHEDULE_PRUNE_TENANT_BACKUPS', true),
 
         // Runs numerosis:prune-activity-log, deleting central entries older
         // than activitylog.clean_after_days (365 by default). Retention of an
@@ -542,6 +553,44 @@ return [
             'purge_closed' => (bool) env('NUMEROSIS_PURGE_CLOSED_TENANTS', false),
         ],
 
+        // Per-tenant snapshots: tenancy:backup / tenancy:restore, and the
+        // final backup a purge takes before dropping a database. The default
+        // dumper reads and writes through PDO and needs no binary; point a
+        // driver at a binary dumper once a tenant database is too large for
+        // that, and numerosis:install --verify-only will tell you when the
+        // binary is missing.
+        'backup' => [
+            'disk' => env('NUMEROSIS_BACKUP_DISK', 'local'),
+
+            'path' => env('NUMEROSIS_BACKUP_PATH', 'tenant-backups'),
+
+            // Artefacts hold everything a tenant has. Encrypted with the
+            // app key, streamed a block at a time, so a leaked bucket is not
+            // a leaked customer database. Turning it off makes an artefact
+            // readable by anything that can read the disk.
+            'encrypt' => (bool) env('NUMEROSIS_BACKUP_ENCRYPT', true),
+
+            // How long numerosis:prune-tenant-backups keeps an artefact.
+            // Retention of a customer's whole database is a compliance
+            // decision, so the window is yours.
+            'keep_days' => (int) env('NUMEROSIS_BACKUP_KEEP_DAYS', 30),
+
+            // A purge takes one last snapshot and refuses to drop the
+            // database if it fails, which is what makes the closure recovery
+            // window mean something.
+            'before_purge' => (bool) env('NUMEROSIS_BACKUP_BEFORE_PURGE', true),
+
+            // Seconds a binary dumper may run before it is killed.
+            'timeout' => (int) env('NUMEROSIS_BACKUP_TIMEOUT', 900),
+
+            'dumpers' => [
+                DatabaseDriver::Mysql->value => PortableTenantDatabaseDumper::class,
+                DatabaseDriver::Mariadb->value => PortableTenantDatabaseDumper::class,
+                DatabaseDriver::Pgsql->value => PortableTenantDatabaseDumper::class,
+                DatabaseDriver::Sqlite->value => SqliteFileTenantDatabaseDumper::class,
+            ],
+        ],
+
         // Days a member has to enrol after an owner turns the tenant's
         // two-factor requirement on. Zero locks unenrolled members out of the
         // tenant the moment the switch is flipped.
@@ -613,6 +662,8 @@ return [
             AuthenticatesLoginCandidate::class => AuthenticateLoginCandidate::class,
             SendsEmailVerificationNotification::class => SendEmailVerificationNotification::class,
             SessionRegistry::class => DatabaseSessionRegistry::class,
+            ExportsTenantData::class => TenantDataExporter::class,
+            EncryptsArtifacts::class => ArtifactCipher::class,
         ],
     ],
 

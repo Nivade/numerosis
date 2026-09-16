@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Schema;
 use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Boot\Assets;
 use Nvade\Numerosis\Boot\HostConfig;
+use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseDumper;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
@@ -49,6 +50,7 @@ class InstallNumerosisCommand extends Command
      */
     public const array VERIFIED_CONFIG_KEYS = [
         'activitylog.activity_model' => 'verifyActivityModel',
+        'numerosis.tenancy.backup.dumpers' => 'verifyBackupDumper',
         'activitylog.default_except_attributes' => 'verifyActivityLogSecrets',
         'activitylog.table_name' => 'verifyActivityLogTable',
         'auth.guards.tenant' => 'verifyAuthGuards',
@@ -113,6 +115,7 @@ class InstallNumerosisCommand extends Command
         $this->verifyActivityLogTable();
         $this->verifyActivityModel();
         $this->verifyActivityLogSecrets();
+        $this->verifyBackupDumper();
         $this->verifyTenantFilesystemRoot();
         $this->verifyFortifyFeatures();
         $this->verifySocialRoutes();
@@ -361,6 +364,25 @@ class InstallNumerosisCommand extends Command
 
         if (! Schema::connection($connection)->hasTable($table)) {
             $this->failures[] = "config('activitylog.table_name') is '{$table}', which does not exist on the '{$connection}' connection.";
+        }
+    }
+
+    /**
+     * A dumper that shells out to a binary nobody installed fails at 3am
+     * during a purge otherwise, which is the one moment it matters.
+     */
+    private function verifyBackupDumper(): void
+    {
+        $dumper = resolve(TenantDatabaseDumper::class);
+
+        if (! $dumper->isAvailable()) {
+            $this->failures[] = "The backup dumper configured in config('numerosis.tenancy.backup.dumpers') cannot run: ".$dumper->unavailableReason();
+
+            return;
+        }
+
+        if (! $dumper->carriesSchema()) {
+            $this->warnings[] = $dumper::class.' writes rows without a schema, so an artefact restores into a migrated database only. Point this driver at a binary dumper for a self-contained artefact.';
         }
     }
 

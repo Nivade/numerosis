@@ -12,12 +12,14 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 use Livewire;
 use Nvade\Numerosis\Boot\TenancyRouting;
+use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseDumper;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancyByTenantDomain;
 use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
 use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
+use Nvade\Numerosis\Services\Tenancy\PortableTenantDatabaseDumper;
 use Nvade\Numerosis\Services\Tenancy\PreservingPathTenantResolver;
 use Override;
 use Stancl\JobPipeline\JobPipeline;
@@ -149,8 +151,26 @@ class TenancyServiceProvider extends ServiceProvider
             $this->app->bind($contract, $concrete);
         }
 
+        $this->registerDatabaseDumper();
+
         $this->registerCachedDomainResolver();
         $this->registerCachedPathResolver();
+    }
+
+    /**
+     * Which dumper a backup uses is a question about the tenant connection's
+     * driver, so it is resolved per call rather than bound to one class.
+     */
+    protected function registerDatabaseDumper(): void
+    {
+        $this->app->bind(function (Application $app): TenantDatabaseDumper {
+            /** @var array<string, class-string<TenantDatabaseDumper>> $dumpers */
+            $dumpers = config('numerosis.tenancy.backup.dumpers', []);
+
+            $driver = config()->string('database.connections.tenant.driver', 'mysql');
+
+            return $app->make($dumpers[$driver] ?? PortableTenantDatabaseDumper::class);
+        });
     }
 
     /**

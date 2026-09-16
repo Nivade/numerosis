@@ -164,6 +164,39 @@ Enforcing it before step 1 is what breaks payments: Stripe Elements renders in
 an iframe, and a `frame-src` that omits `js.stripe.com` removes the card field
 with no error the server ever sees.
 
+### Tenant backups
+
+`tenancy:backup {tenant|--all}` writes one physical snapshot per tenant to
+`numerosis.tenancy.backup.disk`, and `tenancy:restore {tenant} --from=<path>`
+puts one back. `--into=<other-tenant>` restores into a different tenant and
+rewrites references to the source's id, which is how a production tenant is
+cloned into staging; without that rewrite the clone keeps pointing at the
+tenant it came from.
+
+Four decisions are yours:
+
+- **Which dumper.** The default reads and writes through PDO, so nothing has
+  to be installed. It cannot reproduce PostgreSQL's DDL, so a PostgreSQL
+  artefact restores into an already-migrated database; `pg_dump` is the answer
+  when you need a self-contained one.
+- **Where artefacts land.** `numerosis.tenancy.backup.disk` — point it at
+  object storage rather than a local volume.
+- **Encryption.** On by default, streamed a block at a time with the app key.
+  An artefact holds everything a tenant has, so turning this off makes the
+  disk as sensitive as the database.
+- **Retention.** `numerosis:prune-tenant-backups` keeps
+  `numerosis.tenancy.backup.keep_days` (30) and runs daily behind
+  `numerosis.schedule.prune_tenant_backups`.
+
+Purging a closed tenant takes one final backup first and refuses to drop the
+database when it fails (`numerosis.tenancy.backup.before_purge`). That
+interlock is what makes the closure recovery window mean something, so turn it
+off only if you back up outside the package.
+
+`Contracts\Tenancy\ExportsTenantData` is the other half: a zip of JSON Lines
+per table plus the tenant's files, for "send me my data" rather than for
+restoring.
+
 ### Breached-password checking
 
 `numerosis.auth.check_compromised_passwords` (default on) adds Laravel's
@@ -232,6 +265,7 @@ what stops the next normalization from shipping undocumented.
 | `Database\Seeders\DatabaseSeeder` (container binding, not config) | the package's own seeder, whenever the host hasn't defined that class | write `database/seeders/DatabaseSeeder.php` yourself (the class existing wins outright — nothing here can override it); call `$this->call(\Nvade\Numerosis\Database\Seeders\DatabaseSeeder::class)` from it to combine the two | — the binding itself isn't checked (it can't fail in a way an install-time check would catch); the *data* it seeds is: |
 | central `permissions` / `payment_plans` rows | seeded by `numerosis:install` (default; `--no-seed` to skip) or a fresh host's own `db:seed`, via the binding above | run either command | `verifyCentralDataSeeded()` |
 | `resources/{css,js}` (published `numerosis-assets`) | not required — `Numerosis::assetTags()` renders the prebuilt `dist/numerosis.js`/`dist/numerosis.css` whenever `resources/js/numerosis.js` hasn't been published | publish + customise (`numerosis.js` imports `stripe-checkout.js`/`stripe-confirm.js` by relative path, both load-bearing for payment — keep the directory together). Once `resources/js/numerosis.js` is also an entry in your `vite.config.js`, your build is used in place of the prebuilt bundle. Override the CSS through `tokens.css`'s custom properties rather than by publishing it | `verifyPublishedAssetsMatchSource()` (warns on drift between a published copy and the vendor original; doesn't fail the install) |
+| `numerosis.tenancy.backup.dumpers` (read, never written) | the portable PDO dumper for MySQL, MariaDB and PostgreSQL, and `VACUUM INTO` for SQLite | point a driver at `MysqlBinaryTenantDatabaseDumper` or `PostgresBinaryTenantDatabaseDumper` once a tenant database is too large to read through PDO — those need `mysqldump`/`mysql` or `pg_dump`/`psql` on the machine that runs the backup | `verifyBackupDumper()` (fails when the configured dumper's binary is missing; warns when the artefact carries rows without a schema, which restores into a migrated database only) |
 | `activitylog.activity_model` | `Nvade\Numerosis\Models\Activity`, whenever the key still holds Spatie's own model | subclass ours and name yours instead. Spatie's is the one value that fails: it writes a central subject's entry into whichever tenant database happened to be active, against an id from another one | `verifyActivityModel()` (fails on anything that is not that class or a subclass of it) |
 | `activitylog.default_except_attributes` | `password`, `remember_token`, `two_factor_secret`, `two_factor_recovery_codes`, whenever the key is still empty | add your own secret-shaped columns to the list; do not shorten it | `verifyActivityLogSecrets()` (fails when any of the four is missing — a logged model otherwise writes the value into the audit log in clear text) |
 | `activitylog.table_name` | `'activity_log'`, whenever unset | set it yourself | `verifyActivityLogTable()` (the table has to exist on the central connection; a wrong value otherwise surfaces as `Incorrect table name ''` from `migrate`) |

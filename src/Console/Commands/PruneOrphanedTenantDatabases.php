@@ -9,9 +9,11 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Actions\Tenancy\BackupTenant;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseManager;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
+use Throwable;
 
 #[Description('Drop tenant databases that have no matching tenant record, and tenants suspended or closed for too long')]
 #[Signature('tenancy:prune-orphaned-databases
@@ -193,14 +195,52 @@ class PruneOrphanedTenantDatabases extends Command
         }
 
         $deleted = 0;
+        $skipped = 0;
 
         foreach ($tenants as $tenant) {
+            if (! $this->backedUp($tenant)) {
+                $skipped++;
+
+                continue;
+            }
+
             $tenant->delete();
             $deleted++;
         }
 
         $this->info("Deleted {$deleted} closed tenant(s).");
 
+        if ($skipped > 0) {
+            $this->warn("Kept {$skipped} tenant(s) whose final backup failed.");
+
+            return self::FAILURE;
+        }
+
         return self::SUCCESS;
+    }
+
+    /**
+     * The interlock that makes the recovery window mean something: a purge
+     * takes one last snapshot, and a tenant whose backup failed keeps its
+     * database. Any failure counts, a missing database included: the tenant
+     * this cannot snapshot is exactly the one not to drop.
+     */
+    private function backedUp(Tenant $tenant): bool
+    {
+        if (! Config::boolean('numerosis.tenancy.backup.before_purge', true)) {
+            return true;
+        }
+
+        try {
+            $path = BackupTenant::run($tenant);
+        } catch (Throwable $failure) {
+            $this->error("Not deleting {$tenant->id}: its final backup failed ({$failure->getMessage()}).");
+
+            return false;
+        }
+
+        $this->line("  backed up {$tenant->id} to {$path}");
+
+        return true;
     }
 }

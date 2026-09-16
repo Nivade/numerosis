@@ -87,6 +87,10 @@ class PruneOrphanedTenantDatabasesTest extends TestCase
 
         config(['numerosis.tenancy.closure.purge_closed' => true]);
 
+        // The subject here is the window, not the backup interlock, and these
+        // factory tenants have no database to snapshot.
+        config(['numerosis.tenancy.backup.before_purge' => false]);
+
         $inside = Tenant::factory()->create(['closed_at' => now()->subDays(10)]);
         $outside = Tenant::factory()->create(['closed_at' => now()->subDays(31)]);
 
@@ -95,6 +99,27 @@ class PruneOrphanedTenantDatabasesTest extends TestCase
 
         $this->assertNotNull(Tenant::find($inside->id));
         $this->assertNull(Tenant::find($outside->id));
+    }
+
+    /**
+     * The interlock from `tenant-backup-restore.md`: a purge takes one final
+     * snapshot, and a tenant it cannot snapshot keeps its database.
+     */
+    public function test_it_refuses_to_purge_a_closed_tenant_whose_final_backup_fails(): void
+    {
+        Tenant::unsetEventDispatcher();
+
+        config(['numerosis.tenancy.closure.purge_closed' => true]);
+
+        // No database was ever created for a bare factory tenant, so the
+        // backup throws — which is exactly the case worth keeping.
+        $tenant = Tenant::factory()->create(['closed_at' => now()->subDays(31)]);
+
+        $this->pruneOrphanedDatabases(['--days' => 30, '--force' => true])
+            ->expectsOutputToContain('final backup failed')
+            ->assertExitCode(1);
+
+        $this->assertNotNull(Tenant::find($tenant->id));
     }
 
     /** The suspended cohort would otherwise delete it whatever `purge_closed` says. */
