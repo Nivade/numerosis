@@ -57,7 +57,7 @@ Tick a row only when its phase is committed.
 | [x] | 8 — Lifecycle and the staff panel | — |
 | [x] | 9 — Hardening configuration | — |
 | [x] | 10 — Duplication and dead weight | 2–9 all done |
-| [ ] | 11 — The comment sweep | phase 10 |
+| [x] | 11 — The comment sweep | phase 10 |
 | [ ] | 12 — Closing out | everything |
 
 ## The contract every brief runs under
