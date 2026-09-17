@@ -28,19 +28,27 @@ measures the window from `$domain->created_at` against
 months ago that loses DNS is therefore marked `Failed` on its first bad check,
 against the plan's rule that a failed check means "not yet", not "no".
 
-The table has nothing to measure a streak from — no failure counter, no
-failing-since timestamp. **Both 3.2 and 3.3 need one, so add it once:**
+The table has nothing to measure a streak from. `last_checked_at` and `status`
+are both overwritten on every check, so neither can say when the current run of
+failures began. **Both 3.2 and 3.3 need that, and one column carries it:**
 
-- New migration on the central connection adding to `domains`:
-  - `failing_since` — nullable timestamp, set on the transition into failing,
-    cleared on any successful check.
-  - `consecutive_failures` — unsigned integer, default 0, incremented per failed
-    check, reset to 0 on success.
-- `RecordDomainVerification::handle()` maintains both. It already writes
-  `status` and `last_checked_at`; these go in the same write.
-- `statusFor()` measures the window from `failing_since` when set, and from
-  `created_at` otherwise — which keeps a never-verified claim behaving exactly as
-  it does today.
+- New migration on the central connection adding `failing_since` to `domains` —
+  nullable timestamp, set on the transition into failing, cleared on any
+  successful check. **Decided: one column, not a failure counter beside it.**
+  Elapsed failing time is what both the window and the backoff want, and it is
+  the more useful thing to show a human.
+- `RecordDomainVerification::handle()` maintains it in the `forceFill()` that
+  already stamps `status` and `last_checked_at` (`:33-36`). One write, not two.
+- `statusFor()` (`:51`) measures the window from `failing_since` when set and
+  from `created_at` otherwise, so a never-verified claim behaves exactly as it
+  does today.
+
+**A once-verified domain is still marked `Failed` eventually** — 72 hours after
+its DNS broke rather than on the first bad check. The `DomainRevoked` event
+keeps firing the moment it stops being servable, unchanged. Do not make
+`Failed` unreachable for a domain that once served; that was considered and
+rejected, because it would need a durable first-verified marker and P25 settled
+against reintroducing one.
 
 ## 3.3 — Back off between rechecks (P20)
 
@@ -48,10 +56,11 @@ failing-since timestamp. **Both 3.2 and 3.3 need one, so add it once:**
 `numerosis.tenancy.custom_domains.recheck_minutes` (default 60,
 `config/numerosis.php:731`) for every domain.
 
-Derive the interval from `consecutive_failures` with a cap, reading the base
-from that same config key. **Decision, already made:** exponential on the
-failure count — `base * 2 ** min(failures, n)` — capped at 24 hours. Add the cap
-as a sibling config key with a default, not as a literal in the command.
+Derive the interval from how long the domain has been failing, reading the base
+from that same config key. **Decided:** `base * 2 ** floor(hours_failing / 12)`,
+capped at 24 hours, with `failing_since` null meaning the base interval. Add the
+cap and the doubling period as sibling config keys with defaults, not as
+literals in the command.
 
 `Domain::dueForCheck()` (`src/Models/Central/Domain.php:92`) is where the
 interval is applied; it orders by `last_checked_at` today and must compare
@@ -68,8 +77,8 @@ Add:
   `Failed`; the streak starts at that check.
 - The same domain crossing the window measured from `failing_since` **is**
   `Failed`.
-- One successful check clears `failing_since` and zeroes `consecutive_failures`.
-- The recheck interval grows with the failure count and stops at the cap.
+- One successful check clears `failing_since`.
+- The recheck interval grows with the elapsed failing time and stops at the cap.
 
 Prove each: write it, revert the fix, watch it fail, restore.
 
@@ -92,11 +101,12 @@ leaves a never-verified claim behaving exactly as before.
 
 Rechecks used one flat interval whatever the history, so a domain nobody
 was ever going to fix was polled at the same rate as one mid-setup. The
-interval grows with the consecutive failure count and caps.
+interval grows with how long the failure has lasted, and caps.
 
-Both needed a streak the table did not record, so domains carry
-failing_since and consecutive_failures, maintained by the same write that
-already stamped status and last_checked_at.
+Both needed a streak the table did not record. last_checked_at and status
+are overwritten on every check, so neither could say when the current run
+of failures began; domains carry failing_since, written by the same
+forceFill() that already stamped the other two.
 
 Closes P26 and P20.
 ```
