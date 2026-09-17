@@ -55,6 +55,13 @@ abstract class TenantNotification extends Notification
         ]);
     }
 
+    protected function unsubscribeLine(object $notifiable): ?string
+    {
+        $unsubscribe = $this->unsubscribeUrl($notifiable);
+
+        return $unsubscribe === null ? null : "Stop these emails: {$unsubscribe}";
+    }
+
     /**
      * @return array{type: string, title: string, body: string, action_url: string|null, tenant_id: string, tenant_name: string|null}
      */

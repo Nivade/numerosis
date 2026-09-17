@@ -22,11 +22,11 @@ class TenantRestored extends TenantNotification
             ->line("Access to {$this->tenant->name} has been restored.")
             ->line('Everything is back to normal.');
 
-        $unsubscribe = $this->unsubscribeUrl($notifiable);
+        $unsubscribeLine = $this->unsubscribeLine($notifiable);
 
-        return $unsubscribe === null
+        return $unsubscribeLine === null
             ? $message
-            : $message->line("Stop these emails: {$unsubscribe}");
+            : $message->line($unsubscribeLine);
     }
 
     public function notificationType(): NotificationType
