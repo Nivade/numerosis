@@ -28,7 +28,8 @@ interface TenantDatabaseDumper
     /** Whether an artefact this dumper wrote carries the schema as well as the rows. */
     public function carriesSchema(): bool;
 
-    public function dump(TenantWithDatabase $tenant, string $file): void;
+    /** $chunk is the restore batch size a dumper that supports it records for its own artefact. */
+    public function dump(TenantWithDatabase $tenant, string $file, int $chunk = 500): void;
 
     public function restore(TenantWithDatabase $tenant, string $file): void;
 }

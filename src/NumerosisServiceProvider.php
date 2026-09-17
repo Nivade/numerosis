@@ -74,6 +74,7 @@ use Nvade\Numerosis\Console\Commands\PruneDataExports;
 use Nvade\Numerosis\Console\Commands\PruneNotifications;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedStripeCustomers;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
+use Nvade\Numerosis\Console\Commands\PruneSessions;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
 use Nvade\Numerosis\Console\Commands\PruneTenantBackups;
 use Nvade\Numerosis\Console\Commands\ReconcileUsage;
@@ -207,6 +208,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->hasCommand(ReportUsage::class)
             ->hasCommand(VerifyDomains::class)
             ->hasCommand(PruneNotifications::class)
+            ->hasCommand(PruneSessions::class)
             ->hasCommand(ReconcileUsage::class)
             ->hasCommand(TransferTenantOwnershipCommand::class);
     }
@@ -636,6 +638,10 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
             if (Config::boolean('numerosis.schedule.prune_activity_log')) {
                 $schedule->command('numerosis:prune-activity-log')->daily();
+            }
+
+            if (Config::boolean('numerosis.schedule.prune_sessions')) {
+                $schedule->command('numerosis:prune-sessions')->daily();
             }
 
             // Resolved through Numerosis::model() so a host that subclassed

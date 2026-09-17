@@ -23,6 +23,7 @@ return [
         'see_all' => 'See all',
         'filters' => [
             'tenant' => 'Filter by tenant id',
+            'causer' => 'Filter by causer id',
         ],
         'actors' => [
             'user' => 'A user',

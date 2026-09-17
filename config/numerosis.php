@@ -219,6 +219,10 @@ return [
         // audit log is a compliance decision, so the window is the host's.
         'prune_activity_log' => (bool) env('SCHEDULE_PRUNE_ACTIVITY_LOG', true),
 
+        // Runs numerosis:prune-sessions, deleting database session rows past
+        // session.lifetime. Only relevant when session.driver is database.
+        'prune_sessions' => (bool) env('SCHEDULE_PRUNE_SESSIONS', true),
+
         // Stamps a cache key every minute. The health document reports how
         // long ago, which is the only way to tell a stopped cron from a quiet
         // one.

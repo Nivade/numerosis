@@ -39,7 +39,7 @@ class PortableTenantDatabaseDumper implements TenantDatabaseDumper
         return $this->driver() !== DatabaseDriver::Pgsql;
     }
 
-    public function dump(TenantWithDatabase $tenant, string $file): void
+    public function dump(TenantWithDatabase $tenant, string $file, int $chunk = self::CHUNK): void
     {
         $handle = fopen($file, 'wb');
 
@@ -48,7 +48,7 @@ class PortableTenantDatabaseDumper implements TenantDatabaseDumper
         }
 
         try {
-            $this->model($tenant)->runHere(function () use ($handle): void {
+            $this->model($tenant)->runHere(function () use ($handle, $chunk): void {
                 $connection = DB::connection();
                 $tables = $this->tables($connection);
 
@@ -57,6 +57,7 @@ class PortableTenantDatabaseDumper implements TenantDatabaseDumper
                     'driver' => $this->driver()->value,
                     'tables' => $tables,
                     'schema' => $this->carriesSchema() ? $this->schema($connection, $tables) : [],
+                    'chunk' => $chunk,
                 ]);
 
                 foreach ($tables as $table) {
@@ -85,10 +86,12 @@ class PortableTenantDatabaseDumper implements TenantDatabaseDumper
         /** @var array<string, string> $schema */
         $schema = array_filter((array) ($header['schema'] ?? []), is_string(...));
 
-        $this->model($tenant)->runHere(function () use ($lines, $tables, $schema): void {
+        $chunk = is_int($header['chunk'] ?? null) ? $header['chunk'] : self::CHUNK;
+
+        $this->model($tenant)->runHere(function () use ($lines, $tables, $schema, $chunk): void {
             $connection = DB::connection();
 
-            $this->withoutForeignKeys($connection, function () use ($connection, $lines, $tables, $schema): void {
+            $this->withoutForeignKeys($connection, function () use ($connection, $lines, $tables, $schema, $chunk): void {
                 $this->prepareTables($connection, $tables, $schema);
 
                 $buffer = [];
@@ -105,7 +108,7 @@ class PortableTenantDatabaseDumper implements TenantDatabaseDumper
                     $table = is_string($line['t']) ? $line['t'] : '';
                     $buffer[$table][] = (array) $line['r'];
 
-                    if (count($buffer[$table]) >= self::CHUNK) {
+                    if (count($buffer[$table]) >= $chunk) {
                         $connection->table($table)->insert($buffer[$table]);
                         $buffer[$table] = [];
                     }

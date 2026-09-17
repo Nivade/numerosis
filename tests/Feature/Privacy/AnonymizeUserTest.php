@@ -17,6 +17,7 @@ use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
 use Nvade\Numerosis\Models\Central\Consent;
 use Nvade\Numerosis\Models\Central\Membership;
 use Nvade\Numerosis\Tests\TestCase;
+use stdClass;
 
 class AnonymizeUserTest extends TestCase
 {
@@ -124,6 +125,44 @@ class AnonymizeUserTest extends TestCase
             1,
             DB::connection('central')->table('subscriptions')->where('stripe_id', 'sub_retained')->count()
         );
+    }
+
+    public function test_it_nulls_the_causer_and_scrubs_identity_from_activity_entries_on_both_connections(): void
+    {
+        $user = CentralUser::factory()->create(['name' => 'Ada Lovelace', 'email' => 'ada@example.test']);
+        $tenant = $this->tenantWith($user);
+
+        activity()
+            ->causedBy($user)
+            ->withProperties(['attributes' => ['name' => 'Ada Lovelace', 'email' => 'ada@example.test']])
+            ->log('Central action by Ada');
+
+        $tenant->run(function () use ($user): void {
+            activity()
+                ->causedBy($user)
+                ->withProperties(['attributes' => ['name' => 'Ada Lovelace', 'email' => 'ada@example.test']])
+                ->log('Tenant action by Ada');
+        });
+
+        AnonymizeUser::run($user);
+
+        $central = DB::connection('central')->table('activity_log')
+            ->where('description', 'Central action by Ada')->first();
+
+        $this->assertNotNull($central);
+        $this->assertNull($central->causer_id);
+        $this->assertNull($central->causer_type);
+        $this->assertStringNotContainsString('Ada Lovelace', $central->properties);
+        $this->assertStringNotContainsString('ada@example.test', $central->properties);
+
+        $tenantEntry = $tenant->run(fn (): ?stdClass => DB::table('activity_log')
+            ->where('description', 'Tenant action by Ada')->first());
+
+        $this->assertInstanceOf(stdClass::class, $tenantEntry);
+        $this->assertNull($tenantEntry->causer_id);
+        $this->assertNull($tenantEntry->causer_type);
+        $this->assertStringNotContainsString('Ada Lovelace', $tenantEntry->properties);
+        $this->assertStringNotContainsString('ada@example.test', $tenantEntry->properties);
     }
 
     private function twinId(Tenant $tenant, string $globalId): int

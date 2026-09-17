@@ -78,6 +78,19 @@ class PackageScheduleTest extends TestCase
         $this->assertNotContains('tenancy:prune-stalled-provisions', $commands);
     }
 
+    public function test_it_schedules_session_pruning_by_default(): void
+    {
+        $this->assertContains('numerosis:prune-sessions', $this->scheduledCommands());
+    }
+
+    public function test_session_pruning_is_gated_by_its_own_config_switch(): void
+    {
+        Config::set('numerosis.schedule.prune_sessions', false);
+        app()->forgetInstance(Schedule::class);
+
+        $this->assertNotContains('numerosis:prune-sessions', $this->scheduledCommands());
+    }
+
     public function test_it_does_not_schedule_telescope_pruning_when_telescope_is_absent(): void
     {
         // laravel/telescope is a `suggest`, so it is genuinely not installed

@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Tests\Feature\Tenancy;
 
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -54,6 +55,49 @@ class TenantBackupTest extends TestCase
             ['first@example.test', 'second@example.test'],
             $this->emails($tenant)
         );
+    }
+
+    public function test_chunk_changes_the_restore_batch_size_and_the_artefact_still_round_trips(): void
+    {
+        Config::set('numerosis.tenancy.backup.encrypt', false);
+
+        $tenant = $this->tenant();
+
+        $this->seedUsers($tenant, ['first@example.test', 'second@example.test']);
+
+        $path = BackupTenant::run($tenant, null, 1);
+
+        $header = json_decode(strtok((string) Storage::disk('backups')->get($path), "\n") ?: '', true);
+
+        $this->assertIsArray($header);
+        $this->assertSame(1, $header['chunk']);
+
+        $this->truncateUsers($tenant);
+
+        RestoreTenantBackup::run($tenant, $path, force: true);
+
+        $this->assertSame(2, $this->userCount($tenant));
+    }
+
+    public function test_the_backup_command_wires_chunk_into_the_artefact(): void
+    {
+        Config::set('numerosis.tenancy.backup.encrypt', false);
+
+        $tenant = $this->tenant();
+
+        $this->seedUsers($tenant, ['only@example.test']);
+
+        $exitCode = Artisan::call('tenancy:backup', ['tenant' => $tenant->id, '--chunk' => '1']);
+
+        $this->assertSame(0, $exitCode);
+
+        $files = Storage::disk('backups')->allFiles("tenant-backups/{$tenant->id}");
+        $this->assertNotEmpty($files);
+
+        $header = json_decode(strtok((string) Storage::disk('backups')->get($files[0]), "\n") ?: '', true);
+
+        $this->assertIsArray($header);
+        $this->assertSame(1, $header['chunk']);
     }
 
     public function test_an_artefact_is_encrypted_at_rest(): void

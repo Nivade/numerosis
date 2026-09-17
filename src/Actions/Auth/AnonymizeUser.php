@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Auth;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Enums\Tenancy\Context;
@@ -40,7 +41,7 @@ class AnonymizeUser
             ->all();
 
         foreach ($tenantIds as $tenantId) {
-            $this->anonymizeInTenant($tenantId, $globalId);
+            $this->anonymizeInTenant($tenantId, $user);
         }
 
         $this->anonymizeCentrally($user, $globalId);
@@ -54,7 +55,7 @@ class AnonymizeUser
      * The row is kept and rewritten: deleting it would take the workspace's
      * own content with it.
      */
-    private function anonymizeInTenant(string $tenantId, string $globalId): void
+    private function anonymizeInTenant(string $tenantId, CentralUser $user): void
     {
         $tenant = Numerosis::model(Tenant::class)::query()->find($tenantId);
 
@@ -62,11 +63,30 @@ class AnonymizeUser
             return;
         }
 
-        $tenant->runHere(function () use ($globalId): void {
-            Numerosis::model(TenantUser::class)::query()
+        $globalId = (string) $user->global_id;
+
+        $tenant->runHere(function () use ($globalId, $user): void {
+            $tenantUserClass = Numerosis::model(TenantUser::class);
+
+            /** @var list<int> $twinIds */
+            $twinIds = $tenantUserClass::query()
+                ->where('global_id', $globalId)
+                ->whereNull('anonymized_at')
+                ->pluck('id')
+                ->map(fn (mixed $id): int => is_numeric($id) ? (int) $id : 0)
+                ->values()
+                ->all();
+
+            $tenantUserClass::query()
                 ->where('global_id', $globalId)
                 ->whereNull('anonymized_at')
                 ->update($this->redactedAttributes($globalId));
+
+            $this->scrubActivity(null, (new $tenantUserClass)->getMorphClass(), $twinIds);
+
+            // Domain events always causedBy() the central user, never the tenant
+            // twin, even for entries written to a tenant's own database.
+            $this->scrubActivity(null, $user->getMorphClass(), [$user->id]);
         });
     }
 
@@ -91,6 +111,8 @@ class AnonymizeUser
             $user->delete();
         });
 
+        $this->scrubActivity($connection->getName(), $user->getMorphClass(), [$user->id]);
+
         RevokeOtherSessions::run(Context::Central->guard(), $user->id, keepCurrent: false);
     }
 
@@ -105,5 +127,54 @@ class AnonymizeUser
             'email_verified_at' => null,
             'anonymized_at' => now(),
         ];
+    }
+
+    /**
+     * @param  list<int>  $causerIds
+     */
+    private function scrubActivity(?string $connection, string $causerType, array $causerIds): void
+    {
+        if ($causerIds === []) {
+            return;
+        }
+
+        DB::connection($connection)->table('activity_log')
+            ->where('causer_type', $causerType)
+            ->whereIn('causer_id', $causerIds)
+            ->orderBy('id')
+            ->chunkById(100, function ($rows) use ($connection): void {
+                foreach ($rows as $row) {
+                    /** @var array<string, mixed> $properties */
+                    $properties = json_decode((string) $row->properties, true) ?? [];
+
+                    DB::connection($connection)->table('activity_log')
+                        ->where('id', $row->id)
+                        ->update([
+                            'causer_id' => null,
+                            'causer_type' => null,
+                            'properties' => json_encode($this->scrubIdentity($properties)),
+                        ]);
+                }
+            });
+    }
+
+    /**
+     * @param  array<string, mixed>  $properties
+     * @return array<string, mixed>
+     */
+    private function scrubIdentity(array $properties): array
+    {
+        unset($properties['name'], $properties['email']);
+
+        foreach (['attributes', 'old'] as $key) {
+            $nested = $properties[$key] ?? null;
+
+            if (is_array($nested)) {
+                unset($nested['name'], $nested['email']);
+                $properties[$key] = $nested;
+            }
+        }
+
+        return $properties;
     }
 }

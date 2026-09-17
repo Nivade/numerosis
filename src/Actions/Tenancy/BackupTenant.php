@@ -17,7 +17,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
  * `numerosis.tenancy.backup.disk` and encrypted unless the host turned that
  * off. Returns the artefact's path on that disk.
  *
- * @method static string run(Tenant $tenant, ?string $disk = null)
+ * @method static string run(Tenant $tenant, ?string $disk = null, int $chunk = 500)
  */
 class BackupTenant
 {
@@ -28,7 +28,7 @@ class BackupTenant
         private readonly EncryptsArtifacts $cipher,
     ) {}
 
-    public function handle(Tenant $tenant, ?string $disk = null): string
+    public function handle(Tenant $tenant, ?string $disk = null, int $chunk = 500): string
     {
         if (! $this->dumper->isAvailable()) {
             throw TenantBackupFailed::dumperUnavailable((string) $this->dumper->unavailableReason());
@@ -37,7 +37,7 @@ class BackupTenant
         $working = (string) tempnam(sys_get_temp_dir(), 'numerosis-dump');
 
         try {
-            $this->dumper->dump($tenant, $working);
+            $this->dumper->dump($tenant, $working, $chunk);
 
             $path = $this->path($tenant);
 

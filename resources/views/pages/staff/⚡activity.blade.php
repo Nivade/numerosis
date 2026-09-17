@@ -21,6 +21,9 @@ class extends Component
     public string $actor = '';
 
     #[Url]
+    public string $causer = '';
+
+    #[Url]
     public string $since = '';
 
     public function updated(): void
@@ -37,6 +40,7 @@ class extends Component
         return ReadActivityLog::run()
             ->when($this->tenant !== '', fn (Builder $query) => $query->where('subject_id', $this->tenant))
             ->when($this->actor !== '', fn (Builder $query) => $query->where('properties->actor', $this->actor))
+            ->when($this->causer !== '', fn (Builder $query) => $query->where('causer_id', $this->causer))
             ->when($this->since !== '', fn (Builder $query) => $query->where('created_at', '>=', $this->since))
             ->orderByDesc('id')
             ->paginate(25);
@@ -65,6 +69,13 @@ class extends Component
                 <flux:select.option value="staff">{{ __('numerosis::staff.activity.actors.staff') }}</flux:select.option>
                 <flux:select.option value="system">{{ __('numerosis::staff.activity.actors.system') }}</flux:select.option>
             </flux:select>
+
+            <flux:input
+                wire:model.live.debounce.300ms="causer"
+                class="max-w-xs"
+                icon="user"
+                :placeholder="__('numerosis::staff.activity.filters.causer')"
+            />
 
             <flux:input wire:model.live="since" type="date" class="max-w-44"/>
         </div>

@@ -19,7 +19,7 @@ class MysqlBinaryTenantDatabaseDumper extends BinaryTenantDatabaseDumper
         parent::__construct($dumpBinary, $restoreBinary);
     }
 
-    public function dump(TenantWithDatabase $tenant, string $file): void
+    public function dump(TenantWithDatabase $tenant, string $file, int $chunk = 500): void
     {
         $this->runWithDefaults(
             [$this->dumpBinary, '--single-transaction', '--quick', '--routines', $this->database($tenant)],
