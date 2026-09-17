@@ -64,9 +64,9 @@ The other four are independent.
 
 | # | Plan |
 |---|---|
-| 5 | `runtime-entitlements.md` |
-| 18 | `usage-metering.md` |
-| 17 | `coupons-and-promotions.md` |
+| 5 | `runtime-entitlements.md` (executed, archived) |
+| 18 | `usage-metering.md` (executed, archived) |
+| 17 | `coupons-and-promotions.md` (executed, archived) |
 
 `runtime-entitlements.md` builds the tenant-scoped counter service.
 `usage-metering.md` is its second reader. Building metering first means
@@ -76,9 +76,9 @@ building that counter twice.
 
 | # | Plan |
 |---|---|
-| 15 | `custom-domain-verification.md` |
-| 19 | `public-api-and-webhooks.md` |
-| 20 | `notification-center.md` |
+| 15 | `custom-domain-verification.md` (executed, archived) |
+| 19 | `public-api-and-webhooks.md` (tokens and the read API executed; outbound webhooks open) |
+| 20 | `notification-center.md` (executed bar the digest) |
 
 ## Decisions already settled
 
