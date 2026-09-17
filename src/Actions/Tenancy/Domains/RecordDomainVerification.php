@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Tenancy\Domains;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Cache\CacheKeys;
@@ -28,11 +29,19 @@ class RecordDomainVerification
     public function handle(Domain $domain, DomainVerificationResult $result): Domain
     {
         $wasServable = $domain->isServable();
-        $status = $this->statusFor($domain, $result);
+
+        $failingSince = match (true) {
+            $result->status->isServable() => null,
+            $wasServable => now(),
+            default => $domain->failing_since,
+        };
+
+        $status = $this->statusFor($domain, $result, $failingSince);
 
         $domain->forceFill([
             'status' => $status,
             'last_checked_at' => now(),
+            'failing_since' => $failingSince,
         ])->save();
 
         GlobalCache::store()->forget(CacheKeys::servableDomain($domain->domain));
@@ -48,16 +57,16 @@ class RecordDomainVerification
      * still retryable by hand — the customer may have fixed their zone a week
      * later.
      */
-    private function statusFor(Domain $domain, DomainVerificationResult $result): DomainStatus
+    private function statusFor(Domain $domain, DomainVerificationResult $result, ?Carbon $failingSince): DomainStatus
     {
         if ($result->status->isServable() || $result->status === DomainStatus::Failed) {
             return $result->status;
         }
 
         $hours = Config::integer('numerosis.tenancy.custom_domains.verification_window_hours', 72);
-        $claimedAt = $domain->created_at;
+        $anchor = $failingSince ?? $domain->created_at;
 
-        return $claimedAt !== null && $claimedAt->diffInHours(now()) >= $hours
+        return $anchor !== null && $anchor->diffInHours(now()) >= $hours
             ? DomainStatus::Failed
             : $result->status;
     }

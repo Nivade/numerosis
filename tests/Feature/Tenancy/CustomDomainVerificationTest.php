@@ -193,6 +193,82 @@ class CustomDomainVerificationTest extends TestCase
         $this->assertNotNull($domain->last_checked_at);
     }
 
+    public function test_a_domain_that_served_for_longer_than_the_window_is_not_failed_on_its_first_bad_check(): void
+    {
+        Config::set('numerosis.tenancy.custom_domains.verification_window_hours', 1);
+
+        [, $domain] = $this->claimed('app.example.com');
+        $this->pointHere($domain);
+        RecordDomainVerification::run($domain, VerifyDomainOwnership::run($domain));
+
+        $domain->refresh()->forceFill(['created_at' => now()->subDays(30)])->save();
+
+        $this->dns = new FakeDnsResolver;
+        app()->instance(DnsResolver::class, $this->dns);
+
+        RecordDomainVerification::run($domain, VerifyDomainOwnership::run($domain));
+
+        $domain->refresh();
+        $this->assertNotSame(DomainStatus::Failed, $domain->status);
+        $this->assertTrue(now()->diffInSeconds($domain->failing_since) < 5);
+    }
+
+    public function test_the_same_domain_is_failed_once_the_window_has_elapsed_since_the_streak_began(): void
+    {
+        Config::set('numerosis.tenancy.custom_domains.verification_window_hours', 1);
+
+        [, $domain] = $this->claimed('app.example.com');
+        $this->pointHere($domain);
+        RecordDomainVerification::run($domain, VerifyDomainOwnership::run($domain));
+
+        $domain->refresh()->forceFill(['created_at' => now()->subDays(30)])->save();
+
+        $this->dns = new FakeDnsResolver;
+        app()->instance(DnsResolver::class, $this->dns);
+
+        RecordDomainVerification::run($domain, VerifyDomainOwnership::run($domain));
+        $domain->refresh()->forceFill(['failing_since' => now()->subHours(2)])->save();
+
+        RecordDomainVerification::run($domain, VerifyDomainOwnership::run($domain));
+
+        $this->assertSame(DomainStatus::Failed, $domain->refresh()->status);
+    }
+
+    public function test_a_successful_check_clears_the_failing_streak(): void
+    {
+        [, $domain] = $this->claimed('app.example.com');
+        $this->pointHere($domain);
+        RecordDomainVerification::run($domain, VerifyDomainOwnership::run($domain));
+
+        $this->dns = new FakeDnsResolver;
+        app()->instance(DnsResolver::class, $this->dns);
+        RecordDomainVerification::run($domain, VerifyDomainOwnership::run($domain->refresh()));
+
+        $this->assertNotNull($domain->refresh()->failing_since);
+
+        $this->pointHere($domain);
+        RecordDomainVerification::run($domain, VerifyDomainOwnership::run($domain->refresh()));
+
+        $this->assertNull($domain->refresh()->failing_since);
+    }
+
+    public function test_the_recheck_interval_grows_with_elapsed_failing_time_and_caps(): void
+    {
+        Config::set('numerosis.tenancy.custom_domains.recheck_minutes', 60);
+        Config::set('numerosis.tenancy.custom_domains.recheck_backoff_period_hours', 12);
+        Config::set('numerosis.tenancy.custom_domains.recheck_backoff_cap_minutes', 200);
+
+        [, $domain] = $this->claimed('app.example.com');
+
+        $this->assertSame(60, $domain->recheckIntervalMinutes());
+
+        $domain->failing_since = now()->subHours(12);
+        $this->assertSame(120, $domain->recheckIntervalMinutes());
+
+        $domain->failing_since = now()->subHours(24);
+        $this->assertSame(200, $domain->recheckIntervalMinutes());
+    }
+
     /**
      * @return array{0: BaseTenant, 1: Domain}
      */

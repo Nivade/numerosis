@@ -734,6 +734,11 @@ return [
             // How long between automatic checks of one domain.
             'recheck_minutes' => (int) env('NUMEROSIS_DOMAIN_RECHECK_MINUTES', 60),
 
+            // The recheck interval doubles for every this-many hours a domain
+            // has been failing, and stops growing once it hits the cap below.
+            'recheck_backoff_period_hours' => (int) env('NUMEROSIS_DOMAIN_RECHECK_BACKOFF_PERIOD', 12),
+            'recheck_backoff_cap_minutes' => (int) env('NUMEROSIS_DOMAIN_RECHECK_BACKOFF_CAP', 1440),
+
             // TLS presenters for the proxy in front of this deployment. The
             // package issues no certificates; it publishes the verified set.
             // See docs/host-requirements.md for the deployment matrix.
