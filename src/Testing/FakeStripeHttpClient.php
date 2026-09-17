@@ -36,6 +36,21 @@ class FakeStripeHttpClient implements ClientInterface
      */
     public int $currentPeriodEndsInDays = 30;
 
+    /**
+     * Accepted meter events, keyed by the identifier they carried.
+     *
+     * @var array<string, array{event_name: string, value: int, stripe_customer_id: string}>
+     */
+    public array $meterEvents = [];
+
+    /**
+     * Pinned aggregated totals per meter id, for tests that need Stripe to
+     * disagree with the local counter.
+     *
+     * @var array<string, int>
+     */
+    public array $meterSummaries = [];
+
     private int $sequence = 0;
 
     /**
@@ -80,6 +95,8 @@ class FakeStripeHttpClient implements ClientInterface
                 \count($segments) === 2 && $segments[0] === 'subscriptions' && $method === 'get' => $this->retrieveSubscription($segments[1]),
                 \count($segments) === 2 && $segments[0] === 'subscriptions' && $method === 'post' => $this->updateSubscription($segments[1], $params),
                 \count($segments) === 2 && $segments[0] === 'subscription_items' && $method === 'get' => $this->retrieveSubscriptionItem($segments[1]),
+                $segments === ['billing', 'meter_events'] && $method === 'post' => $this->createMeterEvent($params),
+                \count($segments) === 4 && $segments[0] === 'billing' && $segments[1] === 'meters' && $segments[3] === 'event_summaries' && $method === 'get' => $this->listEventSummaries($segments[2]),
                 default => throw new RuntimeException("FakeStripeHttpClient has no handler for {$method} {$path} — add one, this is not a real Stripe API call."),
             };
         } catch (FakeStripeApiError $e) {
@@ -87,6 +104,60 @@ class FakeStripeHttpClient implements ClientInterface
         }
 
         return [json_encode($body, JSON_THROW_ON_ERROR), 200, []];
+    }
+
+    /**
+     * Stripe deduplicates meter events on their identifier, so a second event
+     * carrying one already seen is accepted and ignored. Tests assert against
+     * this array to prove a retry did not bill twice.
+     *
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function createMeterEvent(array $params): array
+    {
+        $identifier = $this->stringParam($params, 'identifier');
+        $payload = $this->arrayParam($params, 'payload');
+
+        if (! array_key_exists($identifier, $this->meterEvents)) {
+            $value = $payload['value'] ?? 0;
+            $customerId = $payload['stripe_customer_id'] ?? '';
+
+            $this->meterEvents[$identifier] = [
+                'event_name' => $this->stringParam($params, 'event_name'),
+                'value' => is_numeric($value) ? (int) $value : 0,
+                'stripe_customer_id' => is_scalar($customerId) ? (string) $customerId : '',
+            ];
+        }
+
+        return [
+            'object' => 'v2.billing.meter_event',
+            'identifier' => $identifier,
+            'event_name' => $this->stringParam($params, 'event_name'),
+            'created' => now()->toIso8601ZuluString(),
+        ];
+    }
+
+    /**
+     * Summed off the accepted events unless a test pins a total, which is how
+     * a divergence between Stripe and the local counter is seeded.
+     *
+     * @return array<string, mixed>
+     */
+    private function listEventSummaries(string $meterId): array
+    {
+        $aggregated = $this->meterSummaries[$meterId]
+            ?? array_sum(array_map(static fn (array $event): int => $event['value'], $this->meterEvents));
+
+        return [
+            'object' => 'list',
+            'data' => [[
+                'object' => 'billing.meter_event_summary',
+                'id' => $this->id('mtrsum'),
+                'meter' => $meterId,
+                'aggregated_value' => $aggregated,
+            ]],
+        ];
     }
 
     private function id(string $prefix): string

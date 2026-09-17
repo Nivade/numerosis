@@ -14,6 +14,9 @@ class SendPaymentConfirmedNotification
 
     public function handle(PaymentSettled $event): void
     {
-        $this->notifyTenantOwner($event->tenant, new PaymentConfirmed($event->tenant));
+        $this->notifyTenantOwner(
+            $event->tenant,
+            new PaymentConfirmed($event->tenant, $event->usageAmount, $event->currency),
+        );
     }
 }

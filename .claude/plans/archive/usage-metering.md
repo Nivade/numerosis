@@ -1,8 +1,9 @@
 # Usage-based billing: finish the metering pipeline
 
-**Status: not executed. Written 2026-09-16.** Wave 4 of
+**Status: executed 2026-09-17 on `feat/usage-metering`.** Wave 4 of
 `saas-readiness-roadmap.md`. Depends on the counter from
-`runtime-entitlements.md`.
+`runtime-entitlements.md`. All six phases landed; see "What shipped" at the
+bottom for the three shape changes contact with the code forced.
 
 ## Decision: finish, do not drop
 
@@ -109,3 +110,34 @@ and the payment-confirmed notification should name the usage component.
   hatch and `Billable` methods are preferred where they exist.
 - **Clock skew across period boundaries.** Report against the subscription
   period recorded locally, not against wall-clock time at job execution.
+
+## What shipped
+
+Three shape changes against the plan above, all found on contact:
+
+- **The meter columns are on `subscription_items`, not `subscriptions`.** The
+  plan cites `create_subscriptions_table.php:48`, which is inside the
+  `subscription_items` block. Stripe also moved the billing period onto the
+  item, so `current_period_start`/`current_period_end` were added there too:
+  the reporting job needs the period without a Stripe call.
+- **There is no `SubscriptionDualWriter` class.** The name is a test
+  (`SubscriptionDualWriterTest`) covering the two writers of a subscription
+  row. Phase 3 landed as `Actions\Billing\Usage\StampSubscriptionMeters`
+  (plan-declared event name onto the item) plus `SyncMeteredItems` (Stripe's
+  meter id and period off a webhook payload), called from
+  `LinkSubscriptionToTenant` and both subscription webhook handlers.
+- **The identifier derives from the cumulative total, not from the period
+  alone.** A fixed per-period identifier would have Stripe deduplicate every
+  increment after the first, so the counter's running total is part of the
+  hash and each report sends the delta. `tenant_usage` gained
+  `reported_value`, `report_identifier` and `reported_at` for that, and the
+  row is never deleted.
+
+Also worth knowing: a metered capability's `included` allowance reads as its
+limit but never refuses `Entitlements::consume()` — the overage is what the
+plan sells. Phase 6's "must not assume a fixed amount" needed no repair (the
+handler reads no amounts); what it gained is the metered total on
+`PaymentSettled` and a line naming it in `PaymentConfirmed`.
+
+The customer-facing screen is `UsageMeteringFeature` (off by default) at the
+tenant route `usage`, since no billing screen existed to add a panel to.

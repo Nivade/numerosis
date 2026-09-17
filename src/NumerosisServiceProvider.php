@@ -71,7 +71,9 @@ use Nvade\Numerosis\Console\Commands\PruneOrphanedStripeCustomers;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
 use Nvade\Numerosis\Console\Commands\PruneTenantBackups;
+use Nvade\Numerosis\Console\Commands\ReconcileUsage;
 use Nvade\Numerosis\Console\Commands\ReopenTenantCommand;
+use Nvade\Numerosis\Console\Commands\ReportUsage;
 use Nvade\Numerosis\Console\Commands\RestoreTenantCommand;
 use Nvade\Numerosis\Console\Commands\TransferTenantOwnershipCommand;
 use Nvade\Numerosis\Contracts\Billing\Entitlements;
@@ -191,6 +193,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->hasCommand(PruneDataExports::class)
             ->hasCommand(RestoreTenantCommand::class)
             ->hasCommand(ProvisionTenantCommand::class)
+            ->hasCommand(ReportUsage::class)
+            ->hasCommand(ReconcileUsage::class)
             ->hasCommand(TransferTenantOwnershipCommand::class);
     }
 
@@ -528,6 +532,16 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
             if (Config::boolean('numerosis.schedule.prune_orphaned_customers')) {
                 $schedule->command('billing:prune-orphaned-customers')->daily();
+            }
+
+            // Hourly rather than daily: an hour of unreported usage is an hour
+            // of a period boundary Stripe may already have closed.
+            if (Config::boolean('numerosis.schedule.report_usage')) {
+                $schedule->command('billing:report-usage')->hourly()->withoutOverlapping();
+            }
+
+            if (Config::boolean('numerosis.schedule.reconcile_usage')) {
+                $schedule->command('billing:reconcile-usage')->daily();
             }
 
             if (Config::boolean('numerosis.schedule.end_stale_impersonations')) {

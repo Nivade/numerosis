@@ -190,13 +190,12 @@ feature each and are listed here in the roadmap's wave order. Ten,
 `provisioning-observability.md`, `fleet-tenant-migrations.md`,
 `session-management.md`, `two-factor-authentication.md` and
 `security-hardening.md`, `audit-log-coverage.md`, `tenant-backup-restore.md`,
-`gdpr-data-export.md` and `runtime-entitlements.md`, have since been executed
-and archived; the rest are not.
+`gdpr-data-export.md`, `runtime-entitlements.md` and `usage-metering.md`, have
+since been executed and archived; the rest are not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `usage-metering.md` | Not executed. Wave 4. `meter_id` is migrated and never written |
 | `coupons-and-promotions.md` | Not executed. Wave 4. No discount path exists anywhere |
 | `custom-domain-verification.md` | Not executed. Wave 5. A documented mode with no ownership proof |
 | `public-api-and-webhooks.md` | Not executed. Wave 5. Largest of the set; splits into three |
@@ -249,6 +248,14 @@ broke invitations for every tenant before its first checkout), and
 `DefaultUnpaidTenantQuota` stayed where it was, since it counts tenants per
 user and the counter is keyed on a tenant. Deviations in the plan's own
 "What shipped".
+
+`usage-metering.md` moved to `archive/` 2026-09-17, the day it was executed:
+all six phases, over the counter `runtime-entitlements.md` built. Three shape
+changes, all in the plan's own "What shipped" — the meter columns live on
+`subscription_items` rather than `subscriptions`, `SubscriptionDualWriter` is a
+test name and not a class, and the Stripe meter-event identifier derives from
+the counter's cumulative total rather than from the period alone, which is what
+lets a retry be a no-op without freezing usage after the first report.
 
 ## Abandoned
 

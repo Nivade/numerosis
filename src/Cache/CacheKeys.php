@@ -96,6 +96,12 @@ final class CacheKeys
         return self::prefix().':auth:login_lockout:'.sha1($throttleKey);
     }
 
+    /** Global: one divergence alert per tenant, meter and period, however often reconciliation runs. */
+    public static function usageDivergenceAlert(string $tenantId, string $eventName, string $periodStart): string
+    {
+        return self::prefix().":billing:usage_divergence:{$tenantId}:{$eventName}:{$periodStart}";
+    }
+
     /** Global: the gate that collapses a burst of provisioning failures into one alert. */
     public static function provisioningAlertThrottle(): string
     {

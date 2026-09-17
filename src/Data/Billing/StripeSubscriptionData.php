@@ -42,7 +42,23 @@ class StripeSubscriptionData extends Data
                 'stripe_price' => $item->price->id,
                 'stripe_product' => $item->price->product,
                 'quantity' => $item->quantity,
+                'meter_id' => self::meterId($item),
+                'current_period_start' => self::timestamp($item->current_period_start ?? null),
+                'current_period_end' => self::timestamp($item->current_period_end ?? null),
             ]))->all()),
         );
+    }
+
+    /** Usage-based prices carry the meter; a licensed price carries nothing here. */
+    private static function meterId(mixed $item): ?string
+    {
+        $meter = is_object($item) ? ($item->price->recurring->meter ?? null) : null;
+
+        return is_string($meter) ? $meter : null;
+    }
+
+    private static function timestamp(mixed $value): ?string
+    {
+        return is_int($value) ? now()->setTimestamp($value)->toDateTimeString() : null;
     }
 }

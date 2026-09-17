@@ -4,10 +4,18 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Services\Billing;
 
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Date;
+use Nvade\Numerosis\Actions\Queries\GetActiveSubscription;
+use Nvade\Numerosis\Actions\Queries\GetBillingPeriod;
+use Nvade\Numerosis\Actions\Queries\GetTenantMeters;
 use Nvade\Numerosis\Actions\Queries\GetTenantSeatUsage;
 use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Contracts\Billing\UsageCounter;
+use Nvade\Numerosis\Data\Billing\BillingPeriod;
+use Nvade\Numerosis\Data\Billing\MeterDefinitionData;
 use Nvade\Numerosis\Exceptions\Billing\EntitlementDenied;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Subscription;
@@ -31,6 +39,12 @@ class PlanEntitlements implements Entitlements
     /** @var array<string, array{capabilities: list<string>, limits: array<string, int>, plan: string|null, upgrade: string|null}> */
     private array $resolved = [];
 
+    /** @var array<string, Collection<int, MeterDefinitionData>> */
+    private array $meters = [];
+
+    /** @var array<string, string> The period bucket as a date, empty when the tenant has no subscription. */
+    private array $buckets = [];
+
     public function __construct(private readonly UsageCounter $counter) {}
 
     public function allows(string $capability, ?TenantContract $tenant = null): bool
@@ -41,7 +55,10 @@ class PlanEntitlements implements Entitlements
             return false;
         }
 
-        return in_array($capability, $this->entitlements($tenant)['capabilities'], true);
+        // A declared meter is a capability the plan sells by the unit, so the
+        // plan need not also list it as a feature slug to allow it.
+        return in_array($capability, $this->entitlements($tenant)['capabilities'], true)
+            || $this->meter($tenant, $capability) instanceof MeterDefinitionData;
     }
 
     public function limit(string $capability, ?TenantContract $tenant = null): ?int
@@ -68,7 +85,7 @@ class PlanEntitlements implements Entitlements
         // action that decrements.
         return $capability === self::SEATS
             ? GetTenantSeatUsage::run($tenant)->used()
-            : $this->counter->value($tenant, $capability);
+            : $this->counter->value($tenant, $capability, $this->bucket($tenant, $capability));
     }
 
     public function remaining(string $capability, ?TenantContract $tenant = null): ?int
@@ -97,11 +114,16 @@ class PlanEntitlements implements Entitlements
         $limit = $this->limit($capability, $tenant);
         $used = $this->used($capability, $tenant);
 
-        if ($limit !== null && $used + $amount > $limit) {
+        // A metered capability's included allowance is where the overage
+        // starts, not where the customer is cut off: refusing it here would
+        // refuse usage the plan sells.
+        $metered = $this->meter($tenant, $capability) instanceof MeterDefinitionData;
+
+        if (! $metered && $limit !== null && $used + $amount > $limit) {
             throw EntitlementDenied::exhausted($capability, $limit, $this->entitlements($tenant)['upgrade']);
         }
 
-        return $this->counter->increment($tenant, $capability, $amount);
+        return $this->counter->increment($tenant, $capability, $amount, $this->bucket($tenant, $capability));
     }
 
     public function assertAllowed(string $capability, ?TenantContract $tenant = null): void
@@ -116,6 +138,35 @@ class PlanEntitlements implements Entitlements
             $capability,
             $resolvedTenant instanceof Tenant ? $this->entitlements($resolvedTenant)['upgrade'] : null,
         );
+    }
+
+    /** The meter a capability is billed through, when the plan declares one. */
+    private function meter(Tenant $tenant, string $capability): ?MeterDefinitionData
+    {
+        $key = (string) $tenant->getTenantKey();
+
+        $meters = $this->meters[$key] ??= GetTenantMeters::run($tenant);
+
+        return $meters->first(fn (MeterDefinitionData $meter): bool => $meter->key === $capability);
+    }
+
+    /**
+     * A metered counter is per billing period; a quota counter is for the life
+     * of the tenant, which is what `null` means to the counter.
+     */
+    private function bucket(Tenant $tenant, string $capability): ?Carbon
+    {
+        if (! $this->meter($tenant, $capability) instanceof MeterDefinitionData) {
+            return null;
+        }
+
+        $key = (string) $tenant->getTenantKey();
+
+        $period = GetBillingPeriod::run($tenant);
+
+        $bucket = $this->buckets[$key] ??= $period instanceof BillingPeriod ? $period->bucket()->toDateString() : '';
+
+        return $bucket === '' ? null : Date::parse($bucket);
     }
 
     /**
@@ -159,10 +210,9 @@ class PlanEntitlements implements Entitlements
 
     private function activePlan(Tenant $tenant): ?PaymentPlan
     {
-        $subscription = $tenant->subscriptions()->get()
-            ->first(fn (Subscription $subscription): bool => $subscription->valid());
+        $subscription = GetActiveSubscription::run($tenant);
 
-        return $subscription?->paymentPlan;
+        return $subscription instanceof Subscription ? $subscription->paymentPlan : null;
     }
 
     /**
@@ -193,6 +243,14 @@ class PlanEntitlements implements Entitlements
 
             if (is_numeric($maxUsers)) {
                 $limits[self::SEATS] = (int) $maxUsers;
+            }
+        }
+
+        // A meter's included allowance reads as its limit, which is what the
+        // usage screen compares against; consumption past it is billed.
+        foreach (GetTenantMeters::forPlan($plan) as $meter) {
+            if ($meter->included !== null) {
+                $limits[$meter->key] = $meter->included;
             }
         }
 

@@ -11,6 +11,7 @@ use Nvade\Numerosis\Enums\MiddlewareAlias;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Features\Admin\ImpersonationFeature;
 use Nvade\Numerosis\Features\Audit\ActivityLogFeature;
+use Nvade\Numerosis\Features\Billing\UsageMeteringFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Http\Controllers\Admin\EndImpersonationController;
@@ -98,6 +99,10 @@ Route::middleware(['universal', MiddlewareAlias::TenancyAuth->value.':'.Context:
 
             if (FeatureRegistry::enabled(ActivityLogFeature::NAME)) {
                 Route::livewire('team/activity', 'numerosis-pages::tenant.activity')->name('team.activity');
+            }
+
+            if (FeatureRegistry::enabled(UsageMeteringFeature::NAME)) {
+                Route::livewire('usage', 'numerosis-pages::tenant.usage')->name('usage.index');
             }
 
             Route::delete('team/ownership/{nomination}', DestroyOwnershipNominationController::class)

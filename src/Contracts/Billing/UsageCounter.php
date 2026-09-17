@@ -31,4 +31,14 @@ interface UsageCounter
     public function all(Tenant $tenant, ?Carbon $period = null): array;
 
     public function reset(Tenant $tenant, string $key, ?Carbon $period = null): void;
+
+    /** How much of this counter Stripe has already been told about, cumulatively. */
+    public function reported(Tenant $tenant, string $key, ?Carbon $period = null): int;
+
+    /**
+     * Records that usage up to `$value` reached Stripe under `$identifier`.
+     * Cumulative rather than a delta, because the identifier derives from it
+     * and that is what makes a retry a no-op on Stripe's side.
+     */
+    public function markReported(Tenant $tenant, string $key, int $value, string $identifier, ?Carbon $period = null): void;
 }

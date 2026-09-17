@@ -219,6 +219,32 @@ A tenant with no active subscription gets `numerosis.billing.free_tier`, which
 ships empty — the behaviour that predates entitlements. Put `'seats' => 1`
 there to cap a workspace nobody is paying for.
 
+### Usage-based billing
+
+A plan bills a capability by the unit by declaring a meter beside its limits:
+
+```php
+'options' => [
+    'meters' => [
+        [
+            'key' => 'api-calls',          // the counter key Entitlements::consume() uses
+            'event_name' => 'api_calls',   // the Stripe billing meter's event name
+            'meter_id' => 'mtr_123',       // needed by billing:reconcile-usage only
+            'price' => 'price_metered',    // optional: which subscription item it bills through
+            'included' => 10_000,          // optional allowance before the overage starts
+        ],
+    ],
+],
+```
+
+A metered key counts per billing period rather than for the life of the tenant,
+and `consume()` never refuses it once the allowance is gone: the overage is what
+the plan sells. Reporting is `billing:report-usage`
+(`numerosis.schedule.report_usage`), checking is `billing:reconcile-usage`
+(`numerosis.schedule.reconcile_usage`), both off by default. The screen showing
+a customer their current period is `UsageMeteringFeature`, and is separate from
+both — a host may bill usage without showing the breakdown.
+
 Three enforcement seams, and only one of them enforces:
 
 | Seam | What it is for |
@@ -353,6 +379,7 @@ what stops the next normalization from shipping undocumented.
 | central `permissions` / `payment_plans` rows | seeded by `numerosis:install` (default; `--no-seed` to skip) or a fresh host's own `db:seed`, via the binding above | run either command | `verifyCentralDataSeeded()` |
 | `resources/{css,js}` (published `numerosis-assets`) | not required — `Numerosis::assetTags()` renders the prebuilt `dist/numerosis.js`/`dist/numerosis.css` whenever `resources/js/numerosis.js` hasn't been published | publish + customise (`numerosis.js` imports `stripe-checkout.js`/`stripe-confirm.js` by relative path, both load-bearing for payment — keep the directory together). Once `resources/js/numerosis.js` is also an entry in your `vite.config.js`, your build is used in place of the prebuilt bundle. Override the CSS through `tokens.css`'s custom properties rather than by publishing it | `verifyPublishedAssetsMatchSource()` (warns on drift between a published copy and the vendor original; doesn't fail the install) |
 | `payment_plans.metadata.options` (read, never written) | nothing — the limits a plan sells are yours to write | put numeric limits under `options.limits.<capability>`, and `options.max_users` for seats. `Contracts\Billing\Entitlements` reads both | `verifyPlanMetadata()` (fails on a non-numeric limit, which reads as uncapped — the plan is sold as limited and enforces nothing) |
+| `payment_plans.metadata.options.meters` (read, never written) | nothing — a plan meters something only if you say so | one entry per metered capability, with `key`, `event_name` and ideally `meter_id`; see the usage-based billing section above | `verifyPlanMeters()` (fails on a meter missing `key` or `event_name`, which meters nothing and so under-bills; warns when it declares no `meter_id`, which only `billing:reconcile-usage` needs) |
 | `numerosis.tenancy.backup.dumpers` (read, never written) | the portable PDO dumper for MySQL, MariaDB and PostgreSQL, and `VACUUM INTO` for SQLite | point a driver at `MysqlBinaryTenantDatabaseDumper` or `PostgresBinaryTenantDatabaseDumper` once a tenant database is too large to read through PDO — those need `mysqldump`/`mysql` or `pg_dump`/`psql` on the machine that runs the backup | `verifyBackupDumper()` (fails when the configured dumper's binary is missing; warns when the artefact carries rows without a schema, which restores into a migrated database only) |
 | `activitylog.activity_model` | `Nvade\Numerosis\Models\Activity`, whenever the key still holds Spatie's own model | subclass ours and name yours instead. Spatie's is the one value that fails: it writes a central subject's entry into whichever tenant database happened to be active, against an id from another one | `verifyActivityModel()` (fails on anything that is not that class or a subclass of it) |
 | `activitylog.default_except_attributes` | `password`, `remember_token`, `two_factor_secret`, `two_factor_recovery_codes`, whenever the key is still empty | add your own secret-shaped columns to the list; do not shorten it | `verifyActivityLogSecrets()` (fails when any of the four is missing — a logged model otherwise writes the value into the audit log in clear text) |
