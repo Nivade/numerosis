@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Services\Billing;
 
 use Illuminate\Validation\ValidationException;
 use Nvade\Numerosis\Actions\Queries\GetTenantSeatUsage;
+use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
 use Nvade\Numerosis\Contracts\Subscribable;
@@ -21,6 +22,8 @@ use Nvade\Numerosis\Models\Central\Tenant;
  */
 class SeatLimitPlanPolicy implements PlanPolicy
 {
+    public function __construct(private readonly Entitlements $entitlements) {}
+
     public function assertEligible(Subscribable $for, Plan $plan): void
     {
         if (! $for instanceof Tenant) {
@@ -43,16 +46,33 @@ class SeatLimitPlanPolicy implements PlanPolicy
         }
     }
 
+    /**
+     * Reads the entitlement rather than the plan directly, so a downgrade that
+     * left the tenant over its new limit blocks the next addition instead of
+     * being refused at swap time.
+     */
     public function hasSeatForNewInvitation(Subscribable $for): bool
     {
-        return ! $for instanceof Tenant
-            || GetTenantSeatUsage::run($for)->hasRoomForAnotherInvitation();
+        if (! $for instanceof Tenant) {
+            return true;
+        }
+
+        $remaining = $this->entitlements->remaining(PlanEntitlements::SEATS, $for);
+
+        return $remaining === null || $remaining > 0;
     }
 
     public function hasSeatForNewMember(Subscribable $for): bool
     {
-        return ! $for instanceof Tenant
-            || GetTenantSeatUsage::run($for)->hasRoomForAnotherMember();
+        if (! $for instanceof Tenant) {
+            return true;
+        }
+
+        $limit = $this->entitlements->limit(PlanEntitlements::SEATS, $for);
+
+        // Members, not members plus pending invitations: an invitation that
+        // was issued while a seat was free has to be acceptable.
+        return $limit === null || GetTenantSeatUsage::run($for)->hasRoomForAnotherMember();
     }
 
     public function canSwap(Subscribable $for, Plan $from, Plan $to): bool

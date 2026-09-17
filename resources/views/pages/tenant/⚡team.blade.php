@@ -109,6 +109,12 @@ class extends Component
                 <x-numerosis::ui.text variant="subtle" size="sm" class="mt-1">
                     {{ __(':used of :limit seats used', ['used' => $seatsUsed, 'limit' => $seatLimit]) }}
                 </x-numerosis::ui.text>
+
+                @if ($seatsUsed > $seatLimit)
+                    <x-numerosis::ui.text variant="subtle" size="sm" class="mt-1">
+                        {{ __('Your plan allows fewer seats than you are using. Nobody is removed, but you cannot add anyone until you are back under :limit.', ['limit' => $seatLimit]) }}
+                    </x-numerosis::ui.text>
+                @endif
             @endif
         </div>
 

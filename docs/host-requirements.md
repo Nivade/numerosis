@@ -197,6 +197,45 @@ off only if you back up outside the package.
 per table plus the tenant's files, for "send me my data" rather than for
 restoring.
 
+### Entitlements: what a plan actually allows
+
+`Contracts\Billing\Entitlements` answers two questions over the plan a tenant
+is on: whether a capability is included (a `features.slug` marked available on
+the plan's pivot) and how much of an allowance is left.
+
+```php
+Entitlements::allows('custom-branding');
+Entitlements::remaining('seats');
+Entitlements::consume('api-calls');     // throws EntitlementDenied when exhausted
+```
+
+Limits live in plan metadata under `options.limits.<capability>`, with
+`options.max_users` still meaning seats. **An absent or non-numeric limit is
+uncapped**, deliberately: a malformed entry must not lock a customer out of
+what they are paying for, which is why `numerosis:install --verify-only`
+reports one instead.
+
+A tenant with no active subscription gets `numerosis.billing.free_tier`, which
+ships empty — the behaviour that predates entitlements. Put `'seats' => 1`
+there to cap a workspace nobody is paying for.
+
+Three enforcement seams, and only one of them enforces:
+
+| Seam | What it is for |
+|---|---|
+| `entitlement:<capability>` route middleware | Keeping a screen out of reach |
+| `@entitled('<capability>')` Blade directive | Hiding what is not sold |
+| `Entitlements::assertAllowed()` / `consume()` in the action | The actual gate — a queue job, a webhook and an API token reach the action and never the other two |
+
+A downgrade to a plan whose limits the tenant already exceeds **is allowed**,
+and blocks the next addition rather than the swap. Refusing would trap a
+customer trying to spend less.
+
+Usage is counted in the central `tenant_usage` table through
+`Contracts\Billing\UsageCounter`, not in the cache: a counter that loses
+writes on a cache flush is a counter that under-bills. Seats are counted from
+the membership rows instead, since they are state rather than events.
+
 ### Subject access requests and erasure
 
 `settings/data` is where a person asks for a copy of everything this account
@@ -313,6 +352,7 @@ what stops the next normalization from shipping undocumented.
 | `Database\Seeders\DatabaseSeeder` (container binding, not config) | the package's own seeder, whenever the host hasn't defined that class | write `database/seeders/DatabaseSeeder.php` yourself (the class existing wins outright — nothing here can override it); call `$this->call(\Nvade\Numerosis\Database\Seeders\DatabaseSeeder::class)` from it to combine the two | — the binding itself isn't checked (it can't fail in a way an install-time check would catch); the *data* it seeds is: |
 | central `permissions` / `payment_plans` rows | seeded by `numerosis:install` (default; `--no-seed` to skip) or a fresh host's own `db:seed`, via the binding above | run either command | `verifyCentralDataSeeded()` |
 | `resources/{css,js}` (published `numerosis-assets`) | not required — `Numerosis::assetTags()` renders the prebuilt `dist/numerosis.js`/`dist/numerosis.css` whenever `resources/js/numerosis.js` hasn't been published | publish + customise (`numerosis.js` imports `stripe-checkout.js`/`stripe-confirm.js` by relative path, both load-bearing for payment — keep the directory together). Once `resources/js/numerosis.js` is also an entry in your `vite.config.js`, your build is used in place of the prebuilt bundle. Override the CSS through `tokens.css`'s custom properties rather than by publishing it | `verifyPublishedAssetsMatchSource()` (warns on drift between a published copy and the vendor original; doesn't fail the install) |
+| `payment_plans.metadata.options` (read, never written) | nothing — the limits a plan sells are yours to write | put numeric limits under `options.limits.<capability>`, and `options.max_users` for seats. `Contracts\Billing\Entitlements` reads both | `verifyPlanMetadata()` (fails on a non-numeric limit, which reads as uncapped — the plan is sold as limited and enforces nothing) |
 | `numerosis.tenancy.backup.dumpers` (read, never written) | the portable PDO dumper for MySQL, MariaDB and PostgreSQL, and `VACUUM INTO` for SQLite | point a driver at `MysqlBinaryTenantDatabaseDumper` or `PostgresBinaryTenantDatabaseDumper` once a tenant database is too large to read through PDO — those need `mysqldump`/`mysql` or `pg_dump`/`psql` on the machine that runs the backup | `verifyBackupDumper()` (fails when the configured dumper's binary is missing; warns when the artefact carries rows without a schema, which restores into a migrated database only) |
 | `activitylog.activity_model` | `Nvade\Numerosis\Models\Activity`, whenever the key still holds Spatie's own model | subclass ours and name yours instead. Spatie's is the one value that fails: it writes a central subject's entry into whichever tenant database happened to be active, against an id from another one | `verifyActivityModel()` (fails on anything that is not that class or a subclass of it) |
 | `activitylog.default_except_attributes` | `password`, `remember_token`, `two_factor_secret`, `two_factor_recovery_codes`, whenever the key is still empty | add your own secret-shaped columns to the list; do not shorten it | `verifyActivityLogSecrets()` (fails when any of the four is missing — a logged model otherwise writes the value into the audit log in clear text) |

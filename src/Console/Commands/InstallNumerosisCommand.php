@@ -20,6 +20,7 @@ use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Models\Activity;
+use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
@@ -131,6 +132,7 @@ class InstallNumerosisCommand extends Command
         $this->verifyStripeKeys();
         $this->verifyModelOverrides();
         $this->verifyCentralDataSeeded();
+        $this->verifyPlanMetadata();
 
         if ($this->warnings !== []) {
             $this->newLine();
@@ -364,6 +366,42 @@ class InstallNumerosisCommand extends Command
 
         if (! Schema::connection($connection)->hasTable($table)) {
             $this->failures[] = "config('activitylog.table_name') is '{$table}', which does not exist on the '{$connection}' connection.";
+        }
+    }
+
+    /**
+     * A limit is only a limit if it is a number. `options.max_users` and
+     * `options.limits.*` are host-editable JSON, and a typo there reads as
+     * uncapped — the plan is sold as limited and enforces nothing.
+     */
+    private function verifyPlanMetadata(): void
+    {
+        foreach (Numerosis::model(PaymentPlan::class)::query()->get() as $plan) {
+            $options = $plan->metadata()['options'] ?? [];
+
+            if (! is_array($options)) {
+                $this->failures[] = "Plan [{$plan->slug}] has a non-array `metadata.options`.";
+
+                continue;
+            }
+
+            if (array_key_exists('max_users', $options) && ! is_numeric($options['max_users'])) {
+                $this->failures[] = "Plan [{$plan->slug}] has a non-numeric `metadata.options.max_users`, which reads as uncapped.";
+            }
+
+            $limits = $options['limits'] ?? [];
+
+            if (! is_array($limits)) {
+                $this->failures[] = "Plan [{$plan->slug}] has a non-array `metadata.options.limits`.";
+
+                continue;
+            }
+
+            foreach ($limits as $capability => $value) {
+                if (! is_numeric($value)) {
+                    $this->failures[] = "Plan [{$plan->slug}] has a non-numeric limit for `{$capability}`, which reads as uncapped.";
+                }
+            }
         }
     }
 

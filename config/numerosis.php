@@ -23,11 +23,13 @@ use Nvade\Numerosis\Contracts\Auth\SessionRegistry;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Billing\CheckoutRegionResolver;
+use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
 use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
 use Nvade\Numerosis\Contracts\Billing\TrialResolver;
 use Nvade\Numerosis\Contracts\Billing\UnpaidTenantQuota;
+use Nvade\Numerosis\Contracts\Billing\UsageCounter;
 use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Contracts\Notifications\OperatorRecipient;
 use Nvade\Numerosis\Contracts\Tenancy\EncryptsArtifacts;
@@ -60,11 +62,13 @@ use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Services\Auth\DatabaseSessionRegistry;
 use Nvade\Numerosis\Services\Auth\PersonalDataExporter;
+use Nvade\Numerosis\Services\Billing\DatabaseUsageCounter;
 use Nvade\Numerosis\Services\Billing\DefaultUnpaidTenantQuota;
 use Nvade\Numerosis\Services\Billing\EloquentPaymentPlanRepository;
 use Nvade\Numerosis\Services\Billing\EloquentSubscriptionRepository;
 use Nvade\Numerosis\Services\Billing\InlineCheckoutGateway;
 use Nvade\Numerosis\Services\Billing\NullCheckoutRegionResolver;
+use Nvade\Numerosis\Services\Billing\PlanEntitlements;
 use Nvade\Numerosis\Services\Billing\PlanOrDefaultTrialResolver;
 use Nvade\Numerosis\Services\Billing\SeatLimitPlanPolicy;
 use Nvade\Numerosis\Services\Billing\TenantOrUserBillableResolver;
@@ -526,6 +530,22 @@ return [
             TrialResolver::class => PlanOrDefaultTrialResolver::class,
             UnpaidTenantQuota::class => DefaultUnpaidTenantQuota::class,
             CheckoutRegionResolver::class => NullCheckoutRegionResolver::class,
+            UsageCounter::class => DatabaseUsageCounter::class,
+            Entitlements::class => PlanEntitlements::class,
+        ],
+
+        // What a tenant gets with no active subscription, which is the normal
+        // state during dunning and before the first checkout. Capabilities are
+        // `features.slug` values; limits are read by
+        // Contracts\Billing\Entitlements alongside a plan's own
+        // `metadata.options.limits`, and an absent limit means uncapped.
+        //
+        // Empty by default, which is the behaviour that predates entitlements:
+        // put 'seats' => 1 here to cap a workspace nobody is paying for.
+        'free_tier' => [
+            'capabilities' => [],
+
+            'limits' => [],
         ],
 
         // Provisioning happens before settlement, so this caps how many

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Concerns\Boot\RegistersOnce;
 use Nvade\Numerosis\Enums\MiddlewareAlias;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
+use Nvade\Numerosis\Http\Middleware\EnsureEntitlement;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantMembership;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantSubscriptionActive;
@@ -68,6 +69,9 @@ final class MiddlewareRegistrar
             MiddlewareAlias::TenancyTwoFactor->value => EnsureTwoFactorEnrolled::class,
 
             MiddlewareAlias::Impersonation->value => GuardImpersonation::class,
+
+            // Takes the capability as a parameter: `entitlement:custom-branding`.
+            MiddlewareAlias::Entitlement->value => EnsureEntitlement::class,
         ];
     }
 
