@@ -26,6 +26,7 @@ use Nvade\Numerosis\Http\Controllers\Auth\Social\RedirectToProviderController;
 use Nvade\Numerosis\Http\Controllers\Billing\WebhookController;
 use Nvade\Numerosis\Http\Controllers\Invitations\AcceptInvitationController;
 use Nvade\Numerosis\Http\Controllers\Invitations\ShowInvitationController;
+use Nvade\Numerosis\Http\Controllers\Notifications\UnsubscribeController;
 use Nvade\Numerosis\Http\Controllers\Observability\HealthController;
 use Nvade\Numerosis\Http\Controllers\Privacy\DownloadDataExportController;
 use Nvade\Numerosis\Http\Controllers\Tenancy\AcceptOwnershipNominationController;
@@ -35,6 +36,7 @@ use Nvade\Numerosis\Http\Controllers\Tls\RoutersController;
 use Nvade\Numerosis\Http\Middleware\EnsureStaffTwoFactor;
 use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
 use Nvade\Numerosis\Livewire\Settings\Data as DataSettings;
+use Nvade\Numerosis\Livewire\Settings\Notifications as NotificationSettings;
 use Nvade\Numerosis\Livewire\Settings\Password as PasswordSettings;
 use Nvade\Numerosis\Livewire\Settings\Profile as ProfileSettings;
 use Nvade\Numerosis\Livewire\Settings\Sessions as SessionSettings;
@@ -79,6 +81,12 @@ if (Config::boolean('numerosis.tenancy.custom_domains.tls.routers', false)) {
         ->middleware('throttle:60,1')
         ->name('numerosis.tls.routers');
 }
+
+// One-click unsubscribe, signed and outside every auth group: a mail recipient
+// following it has no session, and often no account on this browser.
+Route::get('notifications/unsubscribe/{globalId}/{type}', UnsubscribeController::class)
+    ->middleware(['signed', 'throttle:20,1'])
+    ->name('notifications.unsubscribe');
 
 // Counts and booleans for an uptime monitor, unauthenticated and outside
 // every auth group. The framework's own `health:` slot stays the host's.
@@ -141,6 +149,8 @@ Route::middleware($centralAuthenticated)->group(function () {
     Route::livewire('settings/sessions', SessionSettings::class)->name('settings.sessions');
 
     Route::livewire('settings/data', DataSettings::class)->name('settings.data');
+
+    Route::livewire('settings/notifications', NotificationSettings::class)->name('settings.notifications');
 
     // Signed and single-use, and still behind the central guard: the artefact
     // is everything the package holds about one person, and a signature alone

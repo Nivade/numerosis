@@ -68,6 +68,7 @@ use Nvade\Numerosis\Console\Commands\MigrateTenants;
 use Nvade\Numerosis\Console\Commands\ProvisionTenantCommand;
 use Nvade\Numerosis\Console\Commands\PruneActivityLog;
 use Nvade\Numerosis\Console\Commands\PruneDataExports;
+use Nvade\Numerosis\Console\Commands\PruneNotifications;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedStripeCustomers;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
@@ -132,6 +133,7 @@ use Nvade\Numerosis\Listeners\Tenancy\RevokeApiTokensForRemovedMember;
 use Nvade\Numerosis\Listeners\Tenancy\SendProvisioningFailedAlert;
 use Nvade\Numerosis\Listeners\Tenancy\SendTenantRestoredNotification;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
+use Nvade\Numerosis\Livewire\Notifications\Center as NotificationCenter;
 use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
 use Nvade\Numerosis\Livewire\Settings\DeleteUserForm;
 use Nvade\Numerosis\Models\Central;
@@ -199,6 +201,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->hasCommand(ProvisionTenantCommand::class)
             ->hasCommand(ReportUsage::class)
             ->hasCommand(VerifyDomains::class)
+            ->hasCommand(PruneNotifications::class)
             ->hasCommand(ReconcileUsage::class)
             ->hasCommand(TransferTenantOwnershipCommand::class);
     }
@@ -405,6 +408,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
         Livewire::addComponent(name: 'billing.checkout', class: Checkout::class);
         Livewire::addComponent(name: 'settings.delete-user-form', class: DeleteUserForm::class);
         Livewire::addComponent(name: 'settings.connected-accounts', class: ConnectedAccounts::class);
+        Livewire::addComponent(name: 'notifications.center', class: NotificationCenter::class);
 
         // Route middleware does not cover `/livewire/update`, so without this
         // the two-factor screen's password confirmation would hold for the
@@ -590,6 +594,10 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
             if (Config::boolean('numerosis.schedule.prune_tenant_backups')) {
                 $schedule->command('numerosis:prune-tenant-backups')->daily();
+            }
+
+            if (Config::boolean('numerosis.schedule.prune_notifications')) {
+                $schedule->command('numerosis:prune-notifications')->daily();
             }
 
             if (Config::boolean('numerosis.schedule.prune_activity_log')) {

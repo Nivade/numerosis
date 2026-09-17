@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Notifications\Billing;
 
 use Illuminate\Notifications\Messages\MailMessage;
+use Nvade\Numerosis\Enums\Notifications\NotificationType;
 use Nvade\Numerosis\Notifications\Tenancy\TenantNotification;
 
 /**
@@ -22,5 +23,22 @@ class PaymentFailed extends TenantNotification
             ->line('Please update your payment method to avoid interruption to your workspace.')
             ->action('Update payment method', route('billing-portal'))
             ->line("If this isn't fixed soon, access to {$this->tenant->name} will be paused until it is.");
+    }
+
+    public function notificationType(): NotificationType
+    {
+        return NotificationType::PaymentFailed;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toDatabase(object $notifiable): array
+    {
+        return $this->payload(
+            NotificationType::PaymentFailed->label(),
+            __("We couldn't collect the latest payment for :name.", ['name' => (string) $this->tenant->name]),
+            route('billing-portal'),
+        );
     }
 }
