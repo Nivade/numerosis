@@ -14,13 +14,15 @@ use Nvade\Numerosis\Contracts\Auth\SessionRegistry;
 use Nvade\Numerosis\Data\Auth\DeviceSession;
 use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Models\User;
 use stdClass;
 
 /**
  * Laravel's `sessions` table stores the guard's login key inside the payload
  * and only the *ambient* guard's id in `user_id`, so a tenant request writes a
- * tenant primary key there. Every read below therefore matches on the decoded
- * payload and uses `last_activity` only to bound the scan.
+ * tenant primary key there. The decoded payload therefore stays the authority
+ * for what a read returns; `global_user_id` and `last_activity` only bound the
+ * rows it has to decode.
  */
 class DatabaseSessionRegistry implements SessionRegistry
 {
@@ -127,10 +129,18 @@ class DatabaseSessionRegistry implements SessionRegistry
     {
         $guardKey = $this->guardSessionKey($guard);
         $since = CarbonImmutable::now()->subMinutes(Config::integer('session.lifetime'))->getTimestamp();
-
+        $globalId = $this->globalIdOf($guard, $userId);
         $matches = [];
 
-        foreach ($this->table()->where('last_activity', '>=', $since)->get() as $row) {
+        // Rows written before the stamp landed carry no global id and are
+        // still this person's, so they stay in the scan until they expire.
+        $query = $this->table()
+            ->where('last_activity', '>=', $since)
+            ->where(fn (Builder $rows): Builder => $rows
+                ->where('global_user_id', $globalId)
+                ->orWhereNull('global_user_id'));
+
+        foreach ($query->get() as $row) {
             if (! $row instanceof stdClass || ! is_string($row->payload ?? null)) {
                 continue;
             }
@@ -145,6 +155,21 @@ class DatabaseSessionRegistry implements SessionRegistry
         }
 
         return $matches;
+    }
+
+    /**
+     * The one identity both guards agree on: `user_id` holds whichever guard
+     * was ambient when the row was written, so only this narrows the scan.
+     */
+    private function globalIdOf(string $guard, int|string $userId): ?string
+    {
+        $provider = $this->auth->guard($guard) instanceof SessionGuard
+            ? $this->auth->guard($guard)->getProvider()
+            : null;
+
+        $user = $provider?->retrieveById($userId);
+
+        return $user instanceof User && is_string($user->global_id) ? $user->global_id : null;
     }
 
     private function belongsTo(stdClass $row, string $guard, int|string $userId): bool

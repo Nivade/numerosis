@@ -86,8 +86,10 @@ class PersonalDataExporter implements ExportsPersonalData
 
             $inner = new ZipArchive;
 
+            // A partial archive that looks complete answers a subject access
+            // request wrongly, so the whole export fails instead.
             if ($inner->open($local) !== true) {
-                return;
+                throw TenantBackupFailed::unreadable($path);
             }
 
             for ($index = 0; $index < $inner->numFiles; $index++) {

@@ -7,8 +7,11 @@ namespace Nvade\Numerosis\Tests\Feature\Tenancy;
 use App\Models\Central\CentralUser;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
 use Nvade\Numerosis\Actions\Tenancy\SetTenantTwoFactorRequirement;
+use Nvade\Numerosis\Enums\MiddlewareAlias;
+use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -37,6 +40,40 @@ class TenantTwoFactorRequirementTest extends TestCase
         $this->actingAsCentralUser($user)
             ->get('http://'.$this->tenantDomain($tenant->id).self::GATED_PATH)
             ->assertRedirect(route('settings.two-factor'));
+    }
+
+    /**
+     * The gate sits on the `tenant` middleware group, so a route this package
+     * never sees is held too. A host's product routes are the whole point.
+     */
+    public function test_a_host_route_on_the_tenant_group_is_gated(): void
+    {
+        $user = $this->centralUser();
+        $tenant = $this->tenantFor($user);
+
+        Route::middleware(['tenant', MiddlewareAlias::TenancyAuth->value.':'.Context::Tenant->guard()])
+            ->get('/product', fn (): string => 'the product');
+
+        SetTenantTwoFactorRequirement::run($tenant, true);
+        $this->lapseGrace($tenant);
+
+        $this->actingAsCentralUser($user)
+            ->get('http://'.$this->tenantDomain($tenant->id).'/product')
+            ->assertRedirect(route('settings.two-factor'));
+    }
+
+    /** The switch that turned the requirement on has to stay reachable. */
+    public function test_an_unenrolled_member_still_reaches_the_team_screen(): void
+    {
+        $user = $this->centralUser();
+        $tenant = $this->tenantFor($user);
+
+        SetTenantTwoFactorRequirement::run($tenant, true);
+        $this->lapseGrace($tenant);
+
+        $this->actingAsCentralUser($user)
+            ->get('http://'.$this->tenantDomain($tenant->id).'/team')
+            ->assertOk();
     }
 
     public function test_an_enrolled_member_passes(): void

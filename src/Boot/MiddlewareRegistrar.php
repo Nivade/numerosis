@@ -66,8 +66,6 @@ final class MiddlewareRegistrar
             // guard, so it belongs on the authenticated tenant routes only.
             MiddlewareAlias::TenancyMembership->value => EnsureTenantMembership::class,
 
-            // Off the `tenant` group as well: it redirects to the central
-            // enrolment screen, which no tenant route may gate.
             MiddlewareAlias::TenancyTwoFactor->value => EnsureTwoFactorEnrolled::class,
 
             MiddlewareAlias::Impersonation->value => GuardImpersonation::class,
@@ -109,6 +107,11 @@ final class MiddlewareRegistrar
                 // impersonation has to end on whatever request arrives next,
                 // including the tenant's own landing page.
                 MiddlewareAlias::Impersonation->value,
+
+                // On the group so a host's own product routes are gated too.
+                // It redirects to a central route, so it cannot loop the way
+                // the subscription gate would.
+                MiddlewareAlias::TenancyTwoFactor->value,
             ],
             // The API's own stack: tenancy identification without a session,
             // since a token carries the caller and a cookie must not.

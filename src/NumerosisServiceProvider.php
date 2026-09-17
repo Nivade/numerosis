@@ -11,6 +11,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,6 +23,9 @@ use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Notifications\Events\NotificationSending;
+use Illuminate\Session\DatabaseSessionHandler;
+use Illuminate\Session\SessionManager;
+use Illuminate\Session\Store;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -162,6 +166,7 @@ use Nvade\Numerosis\Policies\Tenancy\TenantPolicy;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Routing\RouteNames;
+use Nvade\Numerosis\Services\Auth\GlobalIdSessionHandler;
 use Nvade\Numerosis\Services\Exceptions\TenantAwareExceptionContext;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\PasswordBrokerBootstrapper;
@@ -328,6 +333,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->registerEventListeners();
 
         $this->registerSchedule();
+
+        $this->registerSessionHandler();
 
         $this->registerMiddleware();
 
@@ -529,6 +536,33 @@ class NumerosisServiceProvider extends PackageServiceProvider
             /** @var Request $this */
             return Numerosis::isCentralDomain($this);
         });
+    }
+
+    /**
+     * Swaps the handler on the built store rather than registering a custom
+     * driver, so the cookie, encryption and serialization settings stay
+     * whatever the host configured.
+     */
+    protected function registerSessionHandler(): void
+    {
+        if (Config::get('session.driver') !== 'database') {
+            return;
+        }
+
+        $store = $this->app->make(SessionManager::class)->driver();
+
+        if (! $store instanceof Store || ! $store->getHandler() instanceof DatabaseSessionHandler) {
+            return;
+        }
+
+        $connection = Config::get('session.connection');
+
+        $store->setHandler(new GlobalIdSessionHandler(
+            $this->app->make(ConnectionResolverInterface::class)->connection(is_string($connection) ? $connection : null),
+            Config::string('session.table', 'sessions'),
+            Config::integer('session.lifetime'),
+            $this->app,
+        ));
     }
 
     /**

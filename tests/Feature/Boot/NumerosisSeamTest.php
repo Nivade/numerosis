@@ -58,6 +58,7 @@ it('registers the middleware aliases and both groups, tenant group in order', fu
         'tenancy.session',
         AuthenticateSession::class,
         'impersonation',
+        'tenancy.two_factor',
     ]);
 
     expect($groups)->toHaveKey('universal', []);
@@ -208,6 +209,7 @@ it('registers the middleware aliases/groups against the real router with no host
         'tenancy.session',
         AuthenticateSession::class,
         'impersonation',
+        'tenancy.two_factor',
     ]);
 
     $kernel = resolve(Kernel::class);

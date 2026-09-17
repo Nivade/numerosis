@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Str;
 use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Actions\Admin\StartImpersonation;
 use Nvade\Numerosis\Actions\Queries\ReadActivityLog;
@@ -76,6 +77,29 @@ class ImpersonationTest extends TestCase
         $this->travel(61)->seconds();
 
         $this->get($url)->assertForbidden();
+
+        $this->assertNull(ImpersonationSession::query()->firstOrFail()->started_at);
+    }
+
+    /** The token stays the secret; the signature is what a leaked one still needs. */
+    public function test_a_tampered_signature_is_refused_and_leaves_the_token_unspent(): void
+    {
+        [$tenant, $member] = $this->tenantWithMember();
+
+        $url = StartImpersonation::run($tenant, $member->global_id, $this->staff());
+
+        $this->get(substr($url, 0, -1).'0')->assertForbidden();
+
+        $this->assertNull(ImpersonationSession::query()->firstOrFail()->started_at);
+    }
+
+    public function test_an_unsigned_link_is_refused(): void
+    {
+        [$tenant, $member] = $this->tenantWithMember();
+
+        $url = StartImpersonation::run($tenant, $member->global_id, $this->staff());
+
+        $this->get(Str::before($url, '?'))->assertForbidden();
 
         $this->assertNull(ImpersonationSession::query()->firstOrFail()->started_at);
     }
