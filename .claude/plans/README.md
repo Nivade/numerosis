@@ -189,14 +189,13 @@ feature each and are listed here in the roadmap's wave order. Ten,
 `staff-admin-panel.md`, `support-impersonation.md`,
 `provisioning-observability.md`, `fleet-tenant-migrations.md`,
 `session-management.md`, `two-factor-authentication.md` and
-`security-hardening.md`, `audit-log-coverage.md` and
-`tenant-backup-restore.md`, have since been executed and archived; the rest
-are not.
+`security-hardening.md`, `audit-log-coverage.md`, `tenant-backup-restore.md`
+and `gdpr-data-export.md`, have since been executed and archived; the rest are
+not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `gdpr-data-export.md` | Not executed. Wave 3. Erasure is half-built, access is absent |
 | `runtime-entitlements.md` | Not executed. Wave 4. Owns the shared usage counter |
 | `usage-metering.md` | Not executed. Wave 4. `meter_id` is migrated and never written |
 | `coupons-and-promotions.md` | Not executed. Wave 4. No discount path exists anywhere |
@@ -230,6 +229,16 @@ a retention command, and the purge interlock that finally makes
 is PHP-native rather than `mysqldump`, because no dump binary exists on the
 development host and a binary-only default would have shipped untested.
 Deviations in the plan's own "What shipped".
+
+`gdpr-data-export.md` moved to `archive/` 2026-09-17, the day it was executed:
+a personal exporter wrapping the tenant one, a queued request with a signed
+single-use link, anonymize-in-place erasure, consent records, staff-side
+paths, and every retention window gathered into one documented table. Wave 3
+is complete with it. Three traps it turned up: a tenant model read outside
+`run()` has no connection, a new tenant migration needs the harness's template
+databases dropped by hand, and seeding roles after the first central user
+exists leaves `assignRole('admin')` throwing. Deviations in the plan's own
+"What shipped".
 
 ## Abandoned
 
