@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Http\Controllers\Api\V1;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Nvade\Numerosis\Actions\Queries\GetTenantMembersPage;
-use Nvade\Numerosis\Data\Api\MemberResource;
+use Nvade\Numerosis\Data\Api\MemberData;
 use Nvade\Numerosis\Http\Controllers\Api\V1\Concerns\ResolvesApiTenant;
 use Nvade\Numerosis\Http\Controllers\Controller;
 use Nvade\Numerosis\Models\Central\Membership;
@@ -27,7 +27,7 @@ class MemberController extends Controller
 
         return new JsonResponse([
             'data' => array_values(array_map(
-                fn (Membership $membership): array => MemberResource::fromMembership($membership)->toArray(),
+                fn (Membership $membership): array => MemberData::fromMembership($membership)->toArray(),
                 $page->items(),
             )),
             'meta' => [

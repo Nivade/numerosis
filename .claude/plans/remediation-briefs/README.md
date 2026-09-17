@@ -53,7 +53,7 @@ Tick a row only when its phase is committed.
 | [x] | 4 — Privacy, audit and backup | — |
 | [x] | 5 — Notifications | — |
 | [x] | 6 — Entitlements and billing | phase 2 |
-| [ ] | 7 — Feature gating and the API | — |
+| [x] | 7 — Feature gating and the API | — |
 | [ ] | 8 — Lifecycle and the staff panel | — |
 | [ ] | 9 — Hardening configuration | — |
 | [ ] | 10 — Duplication and dead weight | 2–9 all done |

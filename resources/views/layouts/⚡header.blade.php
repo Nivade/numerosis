@@ -6,6 +6,8 @@ use Livewire\Component;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Actions\Queries\GetTenantsByGlobalId;
 use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Features\FeatureRegistry;
+use Nvade\Numerosis\Features\Notifications\NotificationCenterFeature;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Routing\RouteNames;
@@ -90,7 +92,7 @@ new class extends Component {
         </flux:tooltip>
     </flux:navbar>
 
-    @if ($this->user)
+    @if ($this->user && FeatureRegistry::enabled(NotificationCenterFeature::NAME))
         <livewire:notifications.center />
     @endif
 

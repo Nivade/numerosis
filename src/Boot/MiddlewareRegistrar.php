@@ -70,7 +70,7 @@ final class MiddlewareRegistrar
 
             MiddlewareAlias::Impersonation->value => GuardImpersonation::class,
 
-            // Takes the capability as a parameter: `entitlement:custom-branding`.
+            // Takes the capability as a parameter: `numerosis.entitlement:custom-branding`.
             MiddlewareAlias::Entitlement->value => EnsureEntitlement::class,
 
             // Expiry and the egress allowlist, neither of which Sanctum checks.

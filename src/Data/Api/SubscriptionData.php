@@ -12,7 +12,7 @@ use Spatie\LaravelData\Data;
  * Carries no Stripe customer or subscription id: an integration has no use for
  * them and a leaked one is an account identifier.
  */
-class SubscriptionResource extends Data
+class SubscriptionData extends Data
 {
     public function __construct(
         public string $status,

@@ -19,8 +19,8 @@ enum MiddlewareAlias: string
     case TenancySession = 'tenancy.session';
     case TenancyMembership = 'tenancy.membership';
     case TenancyTwoFactor = 'tenancy.two_factor';
-    case Impersonation = 'impersonation';
-    case Entitlement = 'entitlement';
+    case Impersonation = 'numerosis.impersonation';
+    case Entitlement = 'numerosis.entitlement';
     case ApiToken = 'numerosis.api-token';
     case ApiAbilities = 'numerosis.api-abilities';
 }

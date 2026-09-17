@@ -15,7 +15,10 @@ use Nvade\Numerosis\Models\User;
  * Only read actions are offered while the API is read-only. A granted ability
  * that no endpoint enforces reads to the grantee as a promise.
  *
- * @method static list<string> run()
+ * `$user` scopes the list to what that person may currently mint. Endpoints
+ * still check on every request, since a role can narrow after a token issues.
+ *
+ * @method static list<string> run(?User $user = null)
  */
 class GetApiAbilities
 {
@@ -27,6 +30,7 @@ class GetApiAbilities
         PermissionContext::Users,
         PermissionContext::Invitations,
         PermissionContext::Subscriptions,
+        PermissionContext::Domains,
     ];
 
     private const array READ_ACTIONS = [
@@ -37,38 +41,26 @@ class GetApiAbilities
     /**
      * @return list<string>
      */
-    public function handle(): array
+    public function handle(?User $user = null): array
     {
         $abilities = [];
 
         foreach (self::CONTEXTS as $context) {
             foreach (self::READ_ACTIONS as $action) {
-                $abilities[] = self::ability($context, $action);
+                $abilities[] = $context->abilityFor($action);
             }
         }
 
-        return $abilities;
-    }
+        if (! $user instanceof User) {
+            return $abilities;
+        }
 
-    public static function ability(PermissionContext $context, PermissionAction $action): string
-    {
-        return $context->value.'.'.$action->value;
-    }
-
-    /**
-     * What this person may mint. Defence in depth, not the enforcement: the
-     * endpoints ask again per request, because a role narrowed after the token
-     * was issued has to narrow the token with it.
-     *
-     * @return list<string>
-     */
-    public static function forUser(User $user): array
-    {
         $gate = Gate::forUser($user);
+        $subscriptionView = PermissionContext::Subscriptions->abilityFor(PermissionAction::View);
 
         return array_values(array_filter(
-            self::run(),
-            static fn (string $ability): bool => $ability !== self::ability(PermissionContext::Subscriptions, PermissionAction::View)
+            $abilities,
+            static fn (string $ability): bool => $ability !== $subscriptionView
                 || $gate->allows('viewBilling', Membership::class),
         ));
     }

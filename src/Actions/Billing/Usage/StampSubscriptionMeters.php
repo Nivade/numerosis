@@ -25,7 +25,7 @@ class StampSubscriptionMeters
     /** @return int How many items were stamped. */
     public function handle(Subscription $subscription): int
     {
-        $meters = GetTenantMeters::forPlan($subscription->paymentPlan);
+        $meters = GetTenantMeters::run($subscription->paymentPlan);
 
         if ($meters->isEmpty()) {
             return 0;

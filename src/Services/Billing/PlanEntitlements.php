@@ -248,7 +248,7 @@ class PlanEntitlements implements Entitlements
 
         // A meter's included allowance reads as its limit, which is what the
         // usage screen compares against; consumption past it is billed.
-        foreach (GetTenantMeters::forPlan($plan) as $meter) {
+        foreach (GetTenantMeters::run($plan) as $meter) {
             if ($meter->included !== null) {
                 $limits[$meter->key] = $meter->included;
             }

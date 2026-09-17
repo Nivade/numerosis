@@ -11,7 +11,7 @@ use Spatie\LaravelData\Data;
  * A pending invitation. Field by field on purpose: the row also carries the
  * token that accepts it, which no integration may read.
  */
-class InvitationResource extends Data
+class InvitationData extends Data
 {
     public function __construct(
         public ?string $email,

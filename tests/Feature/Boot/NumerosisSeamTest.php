@@ -57,7 +57,7 @@ it('registers the middleware aliases and both groups, tenant group in order', fu
         'tenancy.route',
         'tenancy.session',
         AuthenticateSession::class,
-        'impersonation',
+        'numerosis.impersonation',
         'tenancy.two_factor',
     ]);
 
@@ -208,7 +208,7 @@ it('registers the middleware aliases/groups against the real router with no host
         'tenancy.route',
         'tenancy.session',
         AuthenticateSession::class,
-        'impersonation',
+        'numerosis.impersonation',
         'tenancy.two_factor',
     ]);
 

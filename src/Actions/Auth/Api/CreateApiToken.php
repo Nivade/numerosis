@@ -33,7 +33,7 @@ class CreateApiToken
         ?Carbon $expiresAt = null,
         array $ipAllowlist = [],
     ): NewAccessToken {
-        $granted = array_values(array_intersect(GetApiAbilities::forUser($user), $abilities));
+        $granted = array_values(array_intersect(GetApiAbilities::run($user), $abilities));
 
         $token = $user->createToken($name, $granted, $expiresAt);
 

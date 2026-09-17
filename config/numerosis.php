@@ -49,6 +49,8 @@ use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
+use Nvade\Numerosis\Features\Notifications\NotificationCenterFeature;
+use Nvade\Numerosis\Features\Notifications\NotificationPreferencesFeature;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Models\Central\AppliedPromotion;
@@ -139,6 +141,12 @@ return [
         // either way.
         ActivityLogFeature::class,
 
+        // The bell in the header.
+        NotificationCenterFeature::class,
+
+        // The 'settings/notifications' channel matrix.
+        NotificationPreferencesFeature::class,
+
         // Passwordless email OTP login, layered on Fortify rather than
         // replacing it. Off by default.
         // \Nvade\Numerosis\Features\Auth\OneTimePasswordFeature::class,
@@ -159,6 +167,10 @@ return [
         // `metadata.options.meters`. Off by default; reporting usage to Stripe
         // is numerosis.schedule.report_usage and is separate.
         // \Nvade\Numerosis\Features\Billing\UsageMeteringFeature::class,
+
+        // The read-only /api/v1 surface and the token screen that mints keys
+        // for it. Off by default.
+        // \Nvade\Numerosis\Features\Api\ReadApiFeature::class,
     ],
 
     /*

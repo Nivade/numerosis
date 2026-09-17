@@ -7,8 +7,8 @@ namespace Nvade\Numerosis\Http\Controllers\Api\V1;
 use Illuminate\Http\JsonResponse;
 use Nvade\Numerosis\Actions\Queries\GetActiveSubscription;
 use Nvade\Numerosis\Actions\Queries\GetTenantUsage;
-use Nvade\Numerosis\Data\Api\SubscriptionResource;
-use Nvade\Numerosis\Data\Api\UsageResource;
+use Nvade\Numerosis\Data\Api\SubscriptionData;
+use Nvade\Numerosis\Data\Api\UsageData;
 use Nvade\Numerosis\Data\Billing\MeterUsage;
 use Nvade\Numerosis\Http\Controllers\Api\V1\Concerns\ResolvesApiTenant;
 use Nvade\Numerosis\Http\Controllers\Controller;
@@ -31,14 +31,14 @@ class SubscriptionController extends Controller
         $subscription = GetActiveSubscription::run($tenant);
 
         $usage = GetTenantUsage::run($tenant)
-            ->map(fn (MeterUsage $meter): array => UsageResource::fromMeter($meter)->toArray())
+            ->map(fn (MeterUsage $meter): array => UsageData::fromMeter($meter)->toArray())
             ->values()
             ->all();
 
         return new JsonResponse([
             'data' => [
                 'subscription' => $subscription instanceof Subscription
-                    ? SubscriptionResource::fromSubscription($subscription)->toArray()
+                    ? SubscriptionData::fromSubscription($subscription)->toArray()
                     : null,
                 'usage' => $usage,
             ],

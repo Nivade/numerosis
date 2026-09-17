@@ -11,6 +11,7 @@ use Nvade\Numerosis\Enums\MiddlewareAlias;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Features\Admin\ImpersonationFeature;
+use Nvade\Numerosis\Features\Api\ReadApiFeature;
 use Nvade\Numerosis\Features\Audit\ActivityLogFeature;
 use Nvade\Numerosis\Features\Billing\UsageMeteringFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
@@ -112,7 +113,9 @@ Route::middleware(['universal', MiddlewareAlias::TenancyAuth->value.':'.Context:
             Route::livewire('domain', 'numerosis-pages::tenant.domain')->name('domain.index');
         }
 
-        Route::livewire('api-tokens', 'numerosis-pages::tenant.api-tokens')->name('api-tokens.index');
+        if (FeatureRegistry::enabled(ReadApiFeature::NAME)) {
+            Route::livewire('api-tokens', 'numerosis-pages::tenant.api-tokens')->name('api-tokens.index');
+        }
 
         if (FeatureRegistry::enabled(UsageMeteringFeature::NAME)) {
             Route::livewire('usage', 'numerosis-pages::tenant.usage')->name('usage.index');

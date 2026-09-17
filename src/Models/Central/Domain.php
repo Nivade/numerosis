@@ -16,8 +16,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Request;
+use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Enums\Tenancy\DomainStatus;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Observers\Tenancy\DomainObserver;
 use Stancl\Tenancy\Database\Concerns\InvalidatesTenantsResolverCache;
 
@@ -83,6 +86,42 @@ class Domain extends \Stancl\Tenancy\Database\Models\Domain
     protected function servable(Builder $query): void
     {
         $query->whereIn('status', [DomainStatus::Verified->value, DomainStatus::Active->value]);
+    }
+
+    /**
+     * Combines `servable()` with the tenant not being suspended or closed. A
+     * hostname still answering DNS for a shut-down workspace must not serve.
+     *
+     * @param  Builder<static>  $query
+     */
+    #[Scope]
+    protected function servableAcrossTenants(Builder $query): void
+    {
+        $tenantTable = (new (Numerosis::model(Tenant::class))())->getTable();
+
+        $query->servable()->whereExists(function ($q) use ($tenantTable): void {
+            $q->select('id')
+                ->from($tenantTable)
+                ->whereColumn($tenantTable.'.id', 'domains.tenant_id')
+                ->whereNull($tenantTable.'.suspended_at')
+                ->whereNull($tenantTable.'.closed_at');
+        });
+    }
+
+    /** The ask endpoint runs per new SNI, so this hostname gets its own cache entry. */
+    public static function isHostnameServable(string $hostname): bool
+    {
+        $hostname = strtolower(trim($hostname));
+        $seconds = Config::integer('numerosis.tenancy.custom_domains.tls.cache_seconds', 60);
+
+        return (bool) GlobalCache::store()->remember(
+            CacheKeys::servableDomain($hostname),
+            $seconds,
+            static fn (): bool => Numerosis::model(self::class)::query()
+                ->servableAcrossTenants()
+                ->where('domains.domain', $hostname)
+                ->exists(),
+        );
     }
 
     /**

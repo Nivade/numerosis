@@ -12,7 +12,7 @@ use Spatie\LaravelData\Data;
  * timestamps because an integration reconciling against an invoice needs the
  * window, not the object modelling it.
  */
-class UsageResource extends Data
+class UsageData extends Data
 {
     public function __construct(
         public string $key,

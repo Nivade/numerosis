@@ -12,7 +12,7 @@ use Spatie\LaravelData\Data;
  * the model, so a column added later does not appear in a customer's payload
  * without anyone deciding it should.
  */
-class TenantResource extends Data
+class TenantData extends Data
 {
     public function __construct(
         public string $id,

@@ -12,11 +12,11 @@ use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * The meters the tenant's current plan bills through, read from
- * `metadata.options.meters`. A tenant with no active subscription meters
- * nothing: there is no price to report against.
+ * The meters a plan bills through, read from `metadata.options.meters`. A
+ * tenant with no active subscription has no price to report against, so it
+ * meters nothing.
  *
- * @method static Collection<int, MeterDefinitionData> run(Tenant $tenant)
+ * @method static Collection<int, MeterDefinitionData> run(Tenant|Plan|null $subject)
  */
 class GetTenantMeters
 {
@@ -25,18 +25,12 @@ class GetTenantMeters
     /**
      * @return Collection<int, MeterDefinitionData>
      */
-    public function handle(Tenant $tenant): Collection
+    public function handle(Tenant|Plan|null $subject): Collection
     {
-        $subscription = GetActiveSubscription::run($tenant);
+        $plan = $subject instanceof Tenant
+            ? $this->activePlan($subject)
+            : $subject;
 
-        return self::forPlan($subscription instanceof Subscription ? $subscription->paymentPlan : null);
-    }
-
-    /**
-     * @return Collection<int, MeterDefinitionData>
-     */
-    public static function forPlan(?Plan $plan): Collection
-    {
         $declared = $plan?->metadata()['options']['meters'] ?? null;
 
         if (! is_array($declared)) {
@@ -47,5 +41,12 @@ class GetTenantMeters
             ->map(fn (mixed $entry): ?MeterDefinitionData => is_array($entry) ? MeterDefinitionData::tryFrom($entry) : null)
             ->filter()
             ->values();
+    }
+
+    private function activePlan(Tenant $tenant): ?Plan
+    {
+        $subscription = GetActiveSubscription::run($tenant);
+
+        return $subscription instanceof Subscription ? $subscription->paymentPlan : null;
     }
 }
