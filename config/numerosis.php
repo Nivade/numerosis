@@ -16,6 +16,7 @@ use Nvade\Numerosis\Actions\Tenancy\ProvisionTenant;
 use Nvade\Numerosis\Actions\Tenancy\SeedTenantDatabase;
 use Nvade\Numerosis\Boot\Domains;
 use Nvade\Numerosis\Contracts\Auth\AuthenticatesLoginCandidate;
+use Nvade\Numerosis\Contracts\Auth\ExportsPersonalData;
 use Nvade\Numerosis\Contracts\Auth\ResolvesLoginCandidate;
 use Nvade\Numerosis\Contracts\Auth\SendsEmailVerificationNotification;
 use Nvade\Numerosis\Contracts\Auth\SessionRegistry;
@@ -58,6 +59,7 @@ use Nvade\Numerosis\Models\Central\TenantMigrationRun;
 use Nvade\Numerosis\Models\Central\TenantProvision;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Services\Auth\DatabaseSessionRegistry;
+use Nvade\Numerosis\Services\Auth\PersonalDataExporter;
 use Nvade\Numerosis\Services\Billing\DefaultUnpaidTenantQuota;
 use Nvade\Numerosis\Services\Billing\EloquentPaymentPlanRepository;
 use Nvade\Numerosis\Services\Billing\EloquentSubscriptionRepository;
@@ -162,6 +164,10 @@ return [
         // covers the rest.
         'end_stale_impersonations' => (bool) env('SCHEDULE_END_STALE_IMPERSONATIONS', true),
         'prune_invitations' => (bool) env('SCHEDULE_PRUNE_INVITATIONS', true),
+
+        // Runs numerosis:prune-data-exports, deleting subject access request
+        // artefacts older than numerosis.privacy.keep_days.
+        'prune_data_exports' => (bool) env('SCHEDULE_PRUNE_DATA_EXPORTS', true),
 
         // Runs numerosis:prune-tenant-backups, deleting artefacts older than
         // numerosis.tenancy.backup.keep_days.
@@ -303,6 +309,36 @@ return [
             'redirect' => ['name' => 'social.redirect'],
             'callback' => ['name' => 'social.callback'],
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Privacy
+    |--------------------------------------------------------------------------
+    |
+    | Subject access requests and erasure. 'terms_version' is what a consent
+    | row records; change it when your terms change and the next registration
+    | records the new one. Retention windows are the host's decision — counsel
+    | decides the numbers, this block is where their answer goes.
+    */
+
+    'privacy' => [
+        // Where export artefacts land; falls back to the backup disk.
+        'disk' => env('NUMEROSIS_PRIVACY_DISK'),
+
+        // How long a download link stays valid. It is signed and single-use;
+        // this is the outer bound on a link sitting in a mailbox.
+        'link_expiry_minutes' => (int) env('NUMEROSIS_EXPORT_LINK_MINUTES', 60),
+
+        // An export crosses every tenant the subject belongs to, so it is
+        // expensive and an obvious abuse vector.
+        'request_interval_hours' => (int) env('NUMEROSIS_EXPORT_INTERVAL_HOURS', 24),
+
+        // Days an artefact is kept before numerosis:prune-data-exports
+        // deletes it. The request row survives it as the audit trail.
+        'keep_days' => (int) env('NUMEROSIS_EXPORT_KEEP_DAYS', 7),
+
+        'terms_version' => env('NUMEROSIS_TERMS_VERSION', '1.0'),
     ],
 
     /*
@@ -663,6 +699,7 @@ return [
             SendsEmailVerificationNotification::class => SendEmailVerificationNotification::class,
             SessionRegistry::class => DatabaseSessionRegistry::class,
             ExportsTenantData::class => TenantDataExporter::class,
+            ExportsPersonalData::class => PersonalDataExporter::class,
             EncryptsArtifacts::class => ArtifactCipher::class,
         ],
     ],

@@ -27,6 +27,7 @@ use Stancl\Tenancy\Contracts\Syncable;
  * @property string $password
  * @property string $global_id
  * @property Carbon|null $email_verified_at
+ * @property Carbon|null $anonymized_at
  * @property string|null $remember_token
  * @property-read DatabaseNotificationCollection<int, DatabaseNotification> $notifications
  * @property-read int|null $notifications_count
@@ -50,6 +51,7 @@ abstract class User extends Authenticatable implements MustVerifyEmail, Syncable
     {
         return [
             'email_verified_at' => 'datetime',
+            'anonymized_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

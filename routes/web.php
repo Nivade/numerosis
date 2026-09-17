@@ -27,10 +27,12 @@ use Nvade\Numerosis\Http\Controllers\Billing\WebhookController;
 use Nvade\Numerosis\Http\Controllers\Invitations\AcceptInvitationController;
 use Nvade\Numerosis\Http\Controllers\Invitations\ShowInvitationController;
 use Nvade\Numerosis\Http\Controllers\Observability\HealthController;
+use Nvade\Numerosis\Http\Controllers\Privacy\DownloadDataExportController;
 use Nvade\Numerosis\Http\Controllers\Tenancy\AcceptOwnershipNominationController;
 use Nvade\Numerosis\Http\Controllers\Tenancy\ShowOwnershipNominationController;
 use Nvade\Numerosis\Http\Middleware\EnsureStaffTwoFactor;
 use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
+use Nvade\Numerosis\Livewire\Settings\Data as DataSettings;
 use Nvade\Numerosis\Livewire\Settings\Password as PasswordSettings;
 use Nvade\Numerosis\Livewire\Settings\Profile as ProfileSettings;
 use Nvade\Numerosis\Livewire\Settings\Sessions as SessionSettings;
@@ -120,6 +122,15 @@ Route::middleware($centralAuthenticated)->group(function () {
     Route::livewire('settings/profile', ProfileSettings::class)->name('settings.profile');
 
     Route::livewire('settings/sessions', SessionSettings::class)->name('settings.sessions');
+
+    Route::livewire('settings/data', DataSettings::class)->name('settings.data');
+
+    // Signed and single-use, and still behind the central guard: the artefact
+    // is everything the package holds about one person, and a signature alone
+    // would hand it to whoever holds the link.
+    Route::get('settings/data/exports/{export}', DownloadDataExportController::class)
+        ->middleware('signed')
+        ->name('privacy.exports.download');
 
     // Central only, and `password.confirm.if-set` rather than
     // `password.confirm`: an account that registered through OAuth has no

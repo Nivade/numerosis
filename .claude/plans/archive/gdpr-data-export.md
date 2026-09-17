@@ -1,6 +1,6 @@
 # Data export, erasure and consent records
 
-**Status: not executed. Written 2026-09-16.** Wave 3 of
+**Status: executed 2026-09-17.** See "What shipped" at the bottom. Wave 3 of
 `saas-readiness-roadmap.md`. Consumes the exporter from
 `tenant-backup-restore.md` and the coverage from `audit-log-coverage.md`.
 
@@ -111,3 +111,49 @@ for requests that arrive by mail rather than through the product.
 - **Legal advice is not this plan.** It implements a defensible shape. The
   host's counsel decides retention periods and lawful basis; the config block
   is where their answer goes.
+
+## What shipped
+
+All six phases, 2026-09-17.
+
+- `Services\Auth\PersonalDataExporter` behind `Contracts\Auth\ExportsPersonalData`,
+  wrapping the tenant exporter once per workspace the subject belongs to. The
+  contract takes a global id rather than a `CentralUser`: `ArchTest` forbids a
+  contract typed on this package's models, and it is the right boundary anyway.
+  The archive leads with a written `README.md`.
+- `settings/data` requests one, `Jobs\GeneratePersonalDataExport` produces it,
+  and the link is signed, single-use (`downloaded_at`) and expiring. Two gates
+  guard the download: the signature, and the row's own state — a link minted
+  before the row expired still 404s.
+- Throttled to `numerosis.privacy.request_interval_hours` per subject, not per
+  IP: the cost is the databases read and the person is known.
+- `Actions\Auth\AnonymizeUser` is what `DeleteUserAccount` now calls. Central
+  identity, social accounts and memberships go; the tenant-side row keeps its
+  primary key with name and address replaced; consent and billing rows stay.
+  Idempotent on `anonymized_at`, which is a new column on both `users` tables.
+- `consents` is written at registration with `numerosis.privacy.terms_version`.
+- Staff paths on the users screen behind two new permissions,
+  `exportData users` and `eraseData users`, both activity-logged.
+- Owner-level workspace export from the team screen
+  (`Actions\Tenancy\RequestTenantDataExport`), sharing the request row and the
+  link with a personal export.
+- Retention: `numerosis:prune-data-exports` deletes artefacts and keeps the
+  request rows, which are the record that a request was answered.
+  `docs/host-requirements.md` now gathers every retention window — activity
+  log, backups, exports, closed tenants, invitations — into one table.
+
+Three things worth knowing, none of which the plan predicted:
+
+- A hydrated **tenant model returned out of `$tenant->run()` cannot be read
+  after tenancy ends** — its connection is resolved lazily and there is none.
+  Return scalars. `AnonymizeUserTest` hit this and says so inline.
+- Adding a tenant migration means the test harness's **template databases have
+  to be dropped by hand**, or `CloneTenantSchema` copies a stale schema and
+  unrelated tests fail with "Unknown column".
+- Seeding roles **after** creating a central user leaves `assignRole('admin')`
+  throwing: `CentralUserObserver` promotes the first user, and spatie caches
+  the missed lookup. Seed in `setUp()` before any user exists.
+
+`DeleteUserAccountTest` changed shape rather than meaning: it counted tenants
+off the event's user *after* the action, which erasure now empties, so it
+counts inside the listener — which is the only thing that event ever promised.

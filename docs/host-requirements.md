@@ -197,6 +197,54 @@ off only if you back up outside the package.
 per table plus the tenant's files, for "send me my data" rather than for
 restoring.
 
+### Subject access requests and erasure
+
+`settings/data` is where a person asks for a copy of everything this account
+holds. Generation is queued, because it reads every tenant database they
+belong to, and the archive arrives as a **signed, single-use, short-lived**
+link by mail rather than on the screen. The owner of a workspace can export
+the whole workspace from the team screen, and staff can start either on
+somebody's behalf from the users screen (`exportData users` and
+`eraseData users` permissions, seeded with the admin role).
+
+Erasure is **anonymize in place**, not a delete, and
+`Actions\Auth\DeleteUserAccount` is the entry point:
+
+| Data | On erasure |
+|---|---|
+| Central identity, social accounts, sessions | Removed |
+| Membership rows | Deleted |
+| Tenant-side user row | Name and address replaced, primary key kept — the workspace's own content hangs off it |
+| Content authored inside a workspace | Retained, attributed to the anonymized user |
+| Consent records | Retained; they hold a global id and no personal data |
+| Billing records | Retained. Financial records carry their own statutory retention |
+
+It is not atomic across N databases and cannot be — each tenant commits on its
+own connection. Every step is keyed on `anonymized_at` being null, so
+re-running finishes what a failure left. An owner is still refused: transfer
+the workspace or close it first.
+
+`consents` records what was agreed and which `numerosis.privacy.terms_version`
+was in force. Bump that key when your terms change; the next registration
+records the new one, and the old rows stay as they were.
+
+### Retention windows, in one place
+
+Every number here is yours to set. The package ships a default and a command;
+your counsel decides the period.
+
+| What | Key | Default | Swept by |
+|---|---|---|---|
+| Central activity log | `activitylog.clean_after_days` | 365 days | `numerosis:prune-activity-log` |
+| Tenant backup artefacts | `numerosis.tenancy.backup.keep_days` | 30 days | `numerosis:prune-tenant-backups` |
+| Export artefacts | `numerosis.privacy.keep_days` | 7 days | `numerosis:prune-data-exports` |
+| Closed tenants | `numerosis.tenancy.closure.grace_days` | 30 days | `tenancy:prune-orphaned-databases` (only while `purge_closed` is on) |
+| Accepted or expired invitations | — | 30 days | `model:prune` |
+
+Each sweep has its own `numerosis.schedule.*` switch. The export request row
+outlives its artefact deliberately: it is the record that a request was
+answered, and it holds nothing but a global id.
+
 ### Breached-password checking
 
 `numerosis.auth.check_compromised_passwords` (default on) adds Laravel's

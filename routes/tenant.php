@@ -20,6 +20,7 @@ use Nvade\Numerosis\Http\Controllers\Invitations\StoreInvitationController;
 use Nvade\Numerosis\Http\Controllers\Team\CloseTenantController;
 use Nvade\Numerosis\Http\Controllers\Team\DestroyMemberController;
 use Nvade\Numerosis\Http\Controllers\Team\DestroyOwnershipNominationController;
+use Nvade\Numerosis\Http\Controllers\Team\ExportTenantDataController;
 use Nvade\Numerosis\Http\Controllers\Team\ReopenTenantController;
 use Nvade\Numerosis\Http\Controllers\Team\StoreOwnershipNominationController;
 use Nvade\Numerosis\Http\Controllers\Team\UpdateMemberRoleController;
@@ -92,6 +93,8 @@ Route::middleware(['universal', MiddlewareAlias::TenancyAuth->value.':'.Context:
             Route::post('team/ownership', StoreOwnershipNominationController::class)->name('team.ownership.store');
 
             Route::post('team/close', CloseTenantController::class)->name('team.close');
+
+            Route::post('team/export', ExportTenantDataController::class)->name('team.export');
 
             if (FeatureRegistry::enabled(ActivityLogFeature::NAME)) {
                 Route::livewire('team/activity', 'numerosis-pages::tenant.activity')->name('team.activity');
