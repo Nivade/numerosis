@@ -1,8 +1,11 @@
 # Public API, API tokens and outbound webhooks
 
-**Status: not executed. Written 2026-09-16.** Wave 5 of
-`saas-readiness-roadmap.md`. The largest plan in the set and the one most
-worth splitting if a session runs out of room.
+**Status: partially executed 2026-09-17 on `feat/public-api-and-webhooks`.**
+Wave 5 of `saas-readiness-roadmap.md`. Pieces 1 and 2 shipped — Sanctum tokens
+bound to the tenant side, the token screen, the `/api/v1` read endpoints, docs.
+**Piece 3, outbound webhooks (phases 4–6), is not built** and is what keeps this
+file live; the plan's own risk section is the reason, quoted below: half a
+webhook system is worse than none. See "What shipped" at the bottom.
 
 ## Where it stands
 
@@ -129,3 +132,37 @@ already fires twenty-odd domain events carrying scalars with
 - **Sanctum's own token table** lives wherever the connection points at
   creation time. Tenant-side tokens belong in the tenant database; get this
   wrong and every tenant sees a shared token table.
+
+## What shipped (2026-09-17)
+
+Phases 1, 2, 3 and 7. Phases 4, 5 and 6 — endpoint registration, HMAC signing,
+the dispatcher with its retry schedule and auto-disable, the delivery log and
+manual replay — remain open, on this plan's own advice.
+
+- **`laravel/sanctum` `^4.2` is a `require`**, with its row in
+  `DEPENDENCIES.md`. Its `personal_access_tokens` table is this package's own
+  migration in `database/migrations/tenant/`, plus an `ip_allowlist` column.
+- **A token belongs to a tenant user rather than to a `Membership` row.** The
+  plan asked for the membership; the tenant `users` row is what Sanctum can be
+  `tokenable` against, and it is already per workspace — so the invariant the
+  plan wanted (`revoking a membership revokes the token`) is a listener,
+  `RevokeApiTokensForRemovedMember`, and a test.
+- **Abilities are `context.action` over the existing permission vocabulary**, and
+  only read actions can be granted while the API is read-only: an ability no
+  endpoint honours would read as a promise. `GetApiAbilities::only()` filters
+  what a caller asks for rather than trusting it.
+- **Expiry answers 401 `token_expired` and an allowlist miss answers 403
+  `address_not_allowed`.** The plan asked for the distinction; these are the two
+  refusals Sanctum does not make.
+- **The API stack is a new `tenant-api` middleware group** — identification and
+  the route guard, no session — so the token carries the caller and a cookie
+  cannot. Rate limiting is per token, asserted directly.
+- **Sanctum's `abilities` alias is registered under
+  `numerosis.api-abilities`**, because `abilities` is a name the framework's
+  default stack owns and a host may mean something else by it.
+
+Two traps found on contact, both recorded in `.ai/rules/`: the test harness's
+tenant template databases survive between runs, so a new tenant migration needs
+them dropped; and a guard memoizes its user for the life of the application, so a
+test making two requests either side of a revocation has to call
+`auth()->forgetGuards()` or it asserts nothing.

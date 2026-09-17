@@ -44,6 +44,7 @@ use Laravel\Fortify\Features as FortifyFeatures;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Http\Requests\LoginRequest as FortifyLoginRequest;
 use Laravel\Fortify\Http\Requests\VerifyEmailRequest as FortifyVerifyEmailRequest;
+use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Nvade\Numerosis\Actions\Auth\CreateRegisteredUser;
 use Nvade\Numerosis\Actions\Auth\LogInToCentralGuard;
@@ -127,6 +128,7 @@ use Nvade\Numerosis\Listeners\Invitations\SendInvitationNotification;
 use Nvade\Numerosis\Listeners\Tenancy\BackfillTenantUsers;
 use Nvade\Numerosis\Listeners\Tenancy\EndSessionsForRemovedMember;
 use Nvade\Numerosis\Listeners\Tenancy\ForgetTenantColumnListing;
+use Nvade\Numerosis\Listeners\Tenancy\RevokeApiTokensForRemovedMember;
 use Nvade\Numerosis\Listeners\Tenancy\SendProvisioningFailedAlert;
 use Nvade\Numerosis\Listeners\Tenancy\SendTenantRestoredNotification;
 use Nvade\Numerosis\Livewire\Billing\Checkout;
@@ -142,6 +144,7 @@ use Nvade\Numerosis\Models\Central\SocialAccount;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Role;
+use Nvade\Numerosis\Models\Tenant\ApiToken;
 use Nvade\Numerosis\Models\Tenant as TenantModels;
 use Nvade\Numerosis\Policies\Auth\PermissionPolicy;
 use Nvade\Numerosis\Policies\Auth\RolePolicy;
@@ -304,6 +307,10 @@ class NumerosisServiceProvider extends PackageServiceProvider
         Config::set('numerosis.views.path', __DIR__.'/../resources/views');
 
         $this->registerFactoryResolvers();
+
+        // Sanctum's own model is central-connection-agnostic but carries no
+        // `ip_allowlist`; this package's lives in the tenant database.
+        Sanctum::usePersonalAccessTokenModel(Numerosis::model(ApiToken::class));
 
         $this->assertConfiguredStepsAreWellShaped();
 
@@ -660,6 +667,11 @@ class NumerosisServiceProvider extends PackageServiceProvider
             TwoFactorAuthenticationCleared::class => LogTwoFactorAuthenticationCleared::class,
         ];
 
+        // A second listener for MemberRemoved, which the map above cannot hold
+        // twice: a revoked member's API token is the same breach as their
+        // session, and both have to go.
+        Event::listen(MemberRemoved::class, RevokeApiTokensForRemovedMember::class);
+
         foreach ($listeners as $event => $listener) {
             Event::listen($event, $listener);
         }
@@ -812,6 +824,18 @@ class NumerosisServiceProvider extends PackageServiceProvider
         ));
 
         RateLimiter::for('social', fn (Request $request): Limit => Limit::perMinute(10)->by($request->ip()));
+
+        // Per token, not per IP: two tenants behind one NAT must not spend each
+        // other's budget, and one tenant's runaway script must not spend the
+        // fleet's. Falls back to the address for an unauthenticated call.
+        RateLimiter::for('numerosis-api', function (Request $request): Limit {
+            $token = $request->user()?->currentAccessToken();
+            $key = $token instanceof ApiToken ? $token->getKey() : null;
+            $tokenId = is_int($key) || is_string($key) ? (string) $key : null;
+
+            return Limit::perMinute(Config::integer('numerosis.api.rate_limit', 60))
+                ->by($tokenId === null ? 'ip:'.$request->ip() : 'token:'.$tokenId);
+        });
     }
 
     /**

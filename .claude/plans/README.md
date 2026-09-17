@@ -197,7 +197,7 @@ executed and archived; the rest are not.
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `public-api-and-webhooks.md` | Not executed. Wave 5. Largest of the set; splits into three |
+| `public-api-and-webhooks.md` | **Partially executed 2026-09-17.** Tokens, the read API and its docs shipped; outbound webhooks (phases 4–6) are what keeps it live. Wave 5. Largest of the set; splits into three |
 | `notification-center.md` | Not executed. Wave 5. The `notifications` table has no writer |
 
 `security-hardening.md` moved to `archive/` 2026-09-17, the day it was

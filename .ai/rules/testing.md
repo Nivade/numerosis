@@ -1114,3 +1114,15 @@ while the command's own exit code still passes — and it fails intermittently,
 because destruct order depends on whether the `PendingCommand` is still
 referenced. Call `->run()` at the end of the chain to execute it there.
 Measured 2026-09-16 on `tests/Feature/Team/OwnershipTransferTest`.
+
+## A new tenant migration needs the phpunit template databases dropped
+Added 2026-09-17 while adding `personal_access_tokens` to `database/migrations/tenant/`.
+
+`tests/Support/CloneTenantSchema` migrates and seeds one template database and copies its **existing** DDL into every tenant a test creates. The template is built once and then survives between runs (one per parallel worker, `tenant{n}_phpunittemplate`), so a tenant migration added after it was built never reaches any tenant database: the failure is `Base table or view not found` for the new table, in a test that looks like it should have it.
+
+Drop them and let the next run rebuild: `docker exec numerosis-mysql-1 mysql -uroot -proot -e "drop database tenant1_phpunittemplate"` for each worker, or drop `tenantphpunittemplate` for a serial run.
+
+## A guard memoizes its user across requests inside one test
+Added 2026-09-17 with the API token tests.
+
+`$this->getJson()` twice in one test reuses the same application, and `AuthManager`'s guard instance caches the user it resolved. A test that authenticates, deletes the credential, then asserts the second call is refused passes on the *cached* user and asserts nothing — it answered 200 with the token row already gone. Call `auth()->forgetGuards()` between the two requests. The same applies to any test asserting a revocation, a suspension or a role change through two HTTP calls.

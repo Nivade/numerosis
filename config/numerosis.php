@@ -628,6 +628,30 @@ return [
     |--------------------------------------------------------------------------
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Public API
+    |--------------------------------------------------------------------------
+    |
+    | Read-only endpoints under the api prefix, authenticated by Sanctum tokens
+    | issued per tenant user. Abilities are `context.action` pairs over
+    | Enums\Auth\PermissionContext and PermissionAction — never a second
+    | vocabulary.
+    */
+
+    'api' => [
+
+        // Requests per minute per token, not per address: two tenants behind
+        // one NAT must not spend each other's budget.
+        'rate_limit' => (int) env('NUMEROSIS_API_RATE_LIMIT', 60),
+
+        // How long a newly issued token lasts, in days. Null never expires,
+        // which is a choice rather than a default worth inheriting silently.
+        'token_expiry_days' => env('NUMEROSIS_API_TOKEN_EXPIRY_DAYS') === null
+            ? null
+            : (int) env('NUMEROSIS_API_TOKEN_EXPIRY_DAYS'),
+    ],
+
     'tenancy' => [
 
         // How a request is matched to a tenant. Changing this after tenants
