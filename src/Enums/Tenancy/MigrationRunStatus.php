@@ -18,4 +18,14 @@ enum MigrationRunStatus: string
     case Succeeded = 'succeeded';
     case Failed = 'failed';
     case Skipped = 'skipped';
+
+    public function startsLeg(): bool
+    {
+        return $this === self::Running;
+    }
+
+    public function finishesLeg(): bool
+    {
+        return in_array($this, [self::Succeeded, self::Failed, self::Skipped], true);
+    }
 }

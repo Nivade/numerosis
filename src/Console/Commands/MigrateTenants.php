@@ -36,22 +36,8 @@ class MigrateTenants extends Command
 {
     private string $runId;
 
-    /** @var array<string, string> */
-    private array $failures = [];
-
-    private int $migrated = 0;
-
-    private int $skipped = 0;
-
     public function handle(): int
     {
-        // Console commands are resolved once and reused, so a second
-        // invocation in the same process inherits the first one's tally and
-        // reports failures that belong to a run that already ended.
-        $this->failures = [];
-        $this->migrated = 0;
-        $this->skipped = 0;
-
         $this->runId = $this->resolveRunId();
 
         if ($this->option('dry-run')) {
@@ -127,11 +113,13 @@ class MigrateTenants extends Command
 
     private function migrateInline(int $total): int
     {
+        $tally = new MigrationRunTally;
+
         $this->output->progressStart($total);
 
         $stopped = false;
 
-        $this->eachChunk(function (Tenant $tenant) use (&$stopped): bool {
+        $this->eachChunk(function (Tenant $tenant) use (&$stopped, $tally): bool {
             if ($stopped) {
                 return false;
             }
@@ -139,24 +127,24 @@ class MigrateTenants extends Command
             $tenantId = $tenant->id;
 
             if ($this->alreadyFinished($tenantId) || $this->isUpToDate($tenant)) {
-                $this->skipped++;
+                $tally->skipped();
                 $this->output->progressAdvance();
 
                 return true;
             }
 
-            RecordTenantMigrationLeg::started($this->runId, $tenantId);
+            RecordTenantMigrationLeg::run($this->runId, $tenantId, MigrationRunStatus::Running);
 
             try {
                 $applied = MigrateTenant::run($tenant);
 
-                RecordTenantMigrationLeg::succeeded($this->runId, $tenantId, $applied);
+                RecordTenantMigrationLeg::run($this->runId, $tenantId, MigrationRunStatus::Succeeded, $applied);
 
-                $this->migrated++;
+                $tally->migrated();
             } catch (Throwable $e) {
-                RecordTenantMigrationLeg::failed($this->runId, $tenantId, $e->getMessage());
+                RecordTenantMigrationLeg::run($this->runId, $tenantId, MigrationRunStatus::Failed, [], $e->getMessage());
 
-                $this->failures[$tenantId] = $e->getMessage();
+                $tally->failed($tenantId, $e->getMessage());
 
                 $stopped = (bool) $this->option('stop-on-failure');
             }
@@ -168,19 +156,20 @@ class MigrateTenants extends Command
 
         $this->output->progressFinish();
 
-        return $this->summarise($stopped);
+        return $this->summarise($stopped, $tally);
     }
 
     private function dispatchLegs(): int
     {
+        $tally = new MigrationRunTally;
         $queue = Config::string('numerosis.tenancy.migrations.queue', 'migrations');
         $dispatched = 0;
 
-        $this->eachChunk(function (Tenant $tenant) use ($queue, &$dispatched): void {
+        $this->eachChunk(function (Tenant $tenant) use ($queue, &$dispatched, $tally): void {
             $tenantId = $tenant->id;
 
             if ($this->alreadyFinished($tenantId) || $this->isUpToDate($tenant)) {
-                $this->skipped++;
+                $tally->skipped();
 
                 return;
             }
@@ -192,7 +181,7 @@ class MigrateTenants extends Command
             $dispatched++;
         });
 
-        $this->info("Dispatched {$dispatched} tenant(s) to the [{$queue}] queue, {$this->skipped} skipped.");
+        $this->info("Dispatched {$dispatched} tenant(s) to the [{$queue}] queue, {$tally->skippedCount()} skipped.");
         $this->comment("Nothing runs until a worker consumes [{$queue}].");
         $this->comment("Read the result with: tenancy:migrate --resume={$this->runId} --dry-run");
 
@@ -259,23 +248,23 @@ class MigrateTenants extends Command
             return false;
         }
 
-        RecordTenantMigrationLeg::skipped($this->runId, $tenant->id);
+        RecordTenantMigrationLeg::run($this->runId, $tenant->id, MigrationRunStatus::Skipped);
 
         return true;
     }
 
-    private function summarise(bool $stopped): int
+    private function summarise(bool $stopped, MigrationRunTally $tally): int
     {
         $this->newLine();
-        $this->info("Migrated {$this->migrated} tenant(s), skipped {$this->skipped}.");
+        $this->info("Migrated {$tally->migratedCount()} tenant(s), skipped {$tally->skippedCount()}.");
 
-        if ($this->failures === []) {
+        if (! $tally->hasFailures()) {
             return self::SUCCESS;
         }
 
-        $this->error(count($this->failures).' tenant(s) failed:');
+        $this->error(count($tally->failures()).' tenant(s) failed:');
 
-        foreach ($this->failures as $tenantId => $error) {
+        foreach ($tally->failures() as $tenantId => $error) {
             $this->line("  {$tenantId}: {$error}");
         }
 

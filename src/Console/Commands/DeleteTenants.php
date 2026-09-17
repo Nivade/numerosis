@@ -25,9 +25,14 @@ class DeleteTenants extends Command
 
         if ($this->option('all')) {
             $tenantClass::each(function ($tenant) use (&$skipped): void {
-                $tenant instanceof Tenant && $this->isProtected($tenant)
-                    ? $skipped++
-                    : $tenant->delete();
+                if ($tenant instanceof Tenant && ($purgeAt = $this->protectedUntil($tenant)) instanceof Carbon) {
+                    $skipped++;
+                    $this->warnSkipped($tenant, $purgeAt);
+
+                    return;
+                }
+
+                $tenant->delete();
             });
 
             return $this->report($skipped);
@@ -43,8 +48,11 @@ class DeleteTenants extends Command
                 continue;
             }
 
-            if ($this->isProtected($tenant)) {
+            $purgeAt = $this->protectedUntil($tenant);
+
+            if ($purgeAt instanceof Carbon) {
                 $skipped++;
+                $this->warnSkipped($tenant, $purgeAt);
 
                 continue;
             }
@@ -59,21 +67,20 @@ class DeleteTenants extends Command
      * A closed tenant was promised its data until this date, so deleting it
      * before then takes `--force`, or the recovery window is decorative.
      */
-    private function isProtected(Tenant $tenant): bool
+    private function protectedUntil(Tenant $tenant): ?Carbon
     {
         if ($this->option('force')) {
-            return false;
+            return null;
         }
 
         $purgeAt = $tenant->purgeAt();
 
-        if (! $purgeAt instanceof Carbon || $purgeAt->isPast()) {
-            return false;
-        }
+        return $purgeAt instanceof Carbon && $purgeAt->isFuture() ? $purgeAt : null;
+    }
 
+    private function warnSkipped(Tenant $tenant, Carbon $purgeAt): void
+    {
         $this->warn("Skipped {$tenant->id}: closed, recoverable until {$purgeAt->toDateString()}. Pass --force to delete it anyway.");
-
-        return true;
     }
 
     private function report(int $skipped): int

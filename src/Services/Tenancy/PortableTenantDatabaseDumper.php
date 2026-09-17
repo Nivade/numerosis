@@ -36,7 +36,7 @@ class PortableTenantDatabaseDumper implements TenantDatabaseDumper
 
     public function carriesSchema(): bool
     {
-        return $this->driver() !== DatabaseDriver::Pgsql;
+        return $this->driver()->carriesSchema();
     }
 
     public function dump(TenantWithDatabase $tenant, string $file, int $chunk = self::CHUNK): void
@@ -143,29 +143,26 @@ class PortableTenantDatabaseDumper implements TenantDatabaseDumper
 
     private function dropStatement(string $table): string
     {
-        return $this->driver() === DatabaseDriver::Sqlite
-            ? 'drop table if exists "'.$table.'"'
-            : 'drop table if exists `'.$table.'`';
+        return 'drop table if exists '.$this->driver()->quotedIdentifier($table);
     }
 
     private function withoutForeignKeys(Connection $connection, callable $work): void
     {
         $driver = $this->driver();
 
-        match ($driver) {
-            DatabaseDriver::Sqlite => $connection->statement('pragma foreign_keys = off'),
-            DatabaseDriver::Pgsql => null,
-            default => $connection->statement('set foreign_key_checks = 0'),
-        };
+        $this->runStatement($connection, $driver->disableForeignKeysStatement());
 
         try {
             $work();
         } finally {
-            match ($driver) {
-                DatabaseDriver::Sqlite => $connection->statement('pragma foreign_keys = on'),
-                DatabaseDriver::Pgsql => null,
-                default => $connection->statement('set foreign_key_checks = 1'),
-            };
+            $this->runStatement($connection, $driver->enableForeignKeysStatement());
+        }
+    }
+
+    private function runStatement(Connection $connection, ?string $statement): void
+    {
+        if ($statement !== null) {
+            $connection->statement($statement);
         }
     }
 

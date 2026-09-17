@@ -88,30 +88,17 @@ use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Contracts\Exceptions\ProvidesExceptionContext;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder as PackageDatabaseSeeder;
 use Nvade\Numerosis\Enums\SessionKey;
-use Nvade\Numerosis\Events\Admin\ImpersonationEnded;
-use Nvade\Numerosis\Events\Admin\ImpersonationStarted;
 use Nvade\Numerosis\Events\Auth\PasswordChanged;
 use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
 use Nvade\Numerosis\Events\Auth\SuspiciousLoginDetected;
-use Nvade\Numerosis\Events\Auth\TwoFactorAuthenticationCleared;
-use Nvade\Numerosis\Events\Auth\UserAnonymized;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\TenantSuspended;
-use Nvade\Numerosis\Events\Billing\UsageDivergenceDetected;
-use Nvade\Numerosis\Events\Invitations\InvitationAccepted;
 use Nvade\Numerosis\Events\Invitations\InvitationCreated;
-use Nvade\Numerosis\Events\Tenancy\DomainRevoked;
-use Nvade\Numerosis\Events\Tenancy\DomainVerified;
-use Nvade\Numerosis\Events\Tenancy\MemberJoined;
 use Nvade\Numerosis\Events\Tenancy\MemberRemoved;
-use Nvade\Numerosis\Events\Tenancy\MemberRoleChanged;
-use Nvade\Numerosis\Events\Tenancy\TenantClosed;
-use Nvade\Numerosis\Events\Tenancy\TenantOwnershipTransferred;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
-use Nvade\Numerosis\Events\Tenancy\TenantReopened;
 use Nvade\Numerosis\Events\Tenancy\TenantRestored;
 use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
@@ -683,32 +670,6 @@ class NumerosisServiceProvider extends PackageServiceProvider
      *
      * Billing and tenancy listeners are registered by their own providers.
      */
-    /**
-     * The domain events {@see RecordDomainEventActivity} writes an audit entry
-     * for, each one a question asked after the fact.
-     *
-     * @var list<class-string>
-     */
-    private const array AUDITED_EVENTS = [
-        MemberJoined::class,
-        MemberRemoved::class,
-        MemberRoleChanged::class,
-        InvitationAccepted::class,
-        TenantOwnershipTransferred::class,
-        TenantSuspended::class,
-        TenantRestored::class,
-        TenantClosed::class,
-        TenantReopened::class,
-        ImpersonationStarted::class,
-        ImpersonationEnded::class,
-        TwoFactorAuthenticationCleared::class,
-        SuspiciousLoginDetected::class,
-        UserAnonymized::class,
-        DomainVerified::class,
-        DomainRevoked::class,
-        UsageDivergenceDetected::class,
-    ];
-
     protected function registerEventListeners(): void
     {
         /** @var array<class-string, list<class-string>> $listeners */
@@ -743,7 +704,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             TwoFactorAuthenticationDisabled::class => [RevokeSessionsAfterTwoFactorDisabled::class],
         ];
 
-        foreach (self::AUDITED_EVENTS as $event) {
+        foreach (RecordDomainEventActivity::AUDITED_EVENTS as $event) {
             $listeners[$event][] = RecordDomainEventActivity::class;
         }
 

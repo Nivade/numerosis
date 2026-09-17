@@ -30,12 +30,12 @@ class RecordTenantMigrationLeg
     ): TenantMigrationRun {
         $attributes = ['status' => $status];
 
-        if ($status === MigrationRunStatus::Running) {
+        if ($status->startsLeg()) {
             $attributes['started_at'] = now();
             $attributes['error'] = null;
         }
 
-        if (in_array($status, [MigrationRunStatus::Succeeded, MigrationRunStatus::Failed, MigrationRunStatus::Skipped], true)) {
+        if ($status->finishesLeg()) {
             $attributes['finished_at'] = now();
         }
 
@@ -54,28 +54,5 @@ class RecordTenantMigrationLeg
         );
 
         return $leg;
-    }
-
-    public static function started(string $runId, string $tenantId): TenantMigrationRun
-    {
-        return self::run($runId, $tenantId, MigrationRunStatus::Running);
-    }
-
-    /**
-     * @param  list<string>  $migrations
-     */
-    public static function succeeded(string $runId, string $tenantId, array $migrations): TenantMigrationRun
-    {
-        return self::run($runId, $tenantId, MigrationRunStatus::Succeeded, $migrations);
-    }
-
-    public static function failed(string $runId, string $tenantId, string $error): TenantMigrationRun
-    {
-        return self::run($runId, $tenantId, MigrationRunStatus::Failed, [], $error);
-    }
-
-    public static function skipped(string $runId, string $tenantId): TenantMigrationRun
-    {
-        return self::run($runId, $tenantId, MigrationRunStatus::Skipped);
     }
 }
