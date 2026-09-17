@@ -52,7 +52,7 @@ Tick a row only when its phase is committed.
 | [x] | 3 — Custom domain verification | — |
 | [x] | 4 — Privacy, audit and backup | — |
 | [x] | 5 — Notifications | — |
-| [ ] | 6 — Entitlements and billing | phase 2 |
+| [x] | 6 — Entitlements and billing | phase 2 |
 | [ ] | 7 — Feature gating and the API | — |
 | [ ] | 8 — Lifecycle and the staff panel | — |
 | [ ] | 9 — Hardening configuration | — |
