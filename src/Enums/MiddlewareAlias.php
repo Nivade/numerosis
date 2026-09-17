@@ -20,4 +20,5 @@ enum MiddlewareAlias: string
     case TenancyMembership = 'tenancy.membership';
     case TenancyTwoFactor = 'tenancy.two_factor';
     case Impersonation = 'impersonation';
+    case Entitlement = 'entitlement';
 }

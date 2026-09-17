@@ -189,14 +189,13 @@ feature each and are listed here in the roadmap's wave order. Ten,
 `staff-admin-panel.md`, `support-impersonation.md`,
 `provisioning-observability.md`, `fleet-tenant-migrations.md`,
 `session-management.md`, `two-factor-authentication.md` and
-`security-hardening.md`, `audit-log-coverage.md`, `tenant-backup-restore.md`
-and `gdpr-data-export.md`, have since been executed and archived; the rest are
-not.
+`security-hardening.md`, `audit-log-coverage.md`, `tenant-backup-restore.md`,
+`gdpr-data-export.md` and `runtime-entitlements.md`, have since been executed
+and archived; the rest are not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `runtime-entitlements.md` | Not executed. Wave 4. Owns the shared usage counter |
 | `usage-metering.md` | Not executed. Wave 4. `meter_id` is migrated and never written |
 | `coupons-and-promotions.md` | Not executed. Wave 4. No discount path exists anywhere |
 | `custom-domain-verification.md` | Not executed. Wave 5. A documented mode with no ownership proof |
@@ -238,6 +237,17 @@ is complete with it. Three traps it turned up: a tenant model read outside
 `run()` has no connection, a new tenant migration needs the harness's template
 databases dropped by hand, and seeding roles after the first central user
 exists leaves `assignRole('admin')` throwing. Deviations in the plan's own
+"What shipped".
+
+`runtime-entitlements.md` moved to `archive/` 2026-09-17, the day it was
+executed: `Contracts\Billing\Entitlements` over a central `tenant_usage`
+counter, a route middleware, an `@entitled` directive, the install doctor's
+plan-metadata check, and the staff-side usage panel. Its phase 5 question was
+settled as the plan recommended — a downgrade is allowed and blocks the next
+addition. Two deviations: the free tier ships with no limits (a seat cap there
+broke invitations for every tenant before its first checkout), and
+`DefaultUnpaidTenantQuota` stayed where it was, since it counts tenants per
+user and the counter is keyed on a tenant. Deviations in the plan's own
 "What shipped".
 
 ## Abandoned

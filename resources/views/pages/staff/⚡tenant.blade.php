@@ -8,6 +8,9 @@ use Livewire\Component;
 use Nvade\Numerosis\Actions\Admin\StartImpersonation;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Actions\Queries\ReadActivityLog;
+use Nvade\Numerosis\Contracts\Billing\Entitlements;
+use Nvade\Numerosis\Contracts\Billing\UsageCounter;
+use Nvade\Numerosis\Services\Billing\PlanEntitlements;
 use Nvade\Numerosis\Actions\Tenancy\ReopenTenant;
 use Nvade\Numerosis\Actions\Tenancy\RestoreTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
@@ -51,6 +54,28 @@ class extends Component
             ->where('tenant_id', $this->tenant->getKey())
             ->orderBy('role')
             ->get();
+    }
+
+    /**
+     * Usage against the limits the tenant's plan sells, which is the question
+     * support is answering when a customer says a feature is missing.
+     *
+     * @return array<string, array{used: int, limit: int|null}>
+     */
+    #[Computed]
+    public function entitlementUsage(): array
+    {
+        $entitlements = resolve(Entitlements::class);
+        $usage = [];
+
+        foreach ([PlanEntitlements::SEATS, ...array_keys(resolve(UsageCounter::class)->all($this->tenant))] as $capability) {
+            $usage[$capability] = [
+                'used' => $entitlements->used($capability, $this->tenant),
+                'limit' => $entitlements->limit($capability, $this->tenant),
+            ];
+        }
+
+        return $usage;
     }
 
     /**
@@ -390,6 +415,19 @@ class extends Component
                     @endif
                 </dl>
             @endif
+        </x-numerosis::ui.card>
+
+        <x-numerosis::ui.card>
+            <x-numerosis::ui.heading :level="2">{{ __('numerosis::staff.tenant.entitlements') }}</x-numerosis::ui.heading>
+
+            <dl class="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+                @foreach ($this->entitlementUsage as $capability => $usage)
+                    <div>
+                        <dt class="text-zinc-500">{{ $capability }}</dt>
+                        <dd>{{ $usage['used'] }} / {{ $usage['limit'] ?? __('numerosis::staff.tenant.uncapped') }}</dd>
+                    </div>
+                @endforeach
+            </dl>
         </x-numerosis::ui.card>
 
         @if ($this->recentActivity->isNotEmpty())

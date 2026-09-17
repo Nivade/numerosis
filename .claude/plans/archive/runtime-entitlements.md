@@ -1,6 +1,6 @@
 # Runtime entitlements and quotas
 
-**Status: not executed. Written 2026-09-16.** Wave 4 of
+**Status: executed 2026-09-17.** See "What shipped" at the bottom. Wave 4 of
 `saas-readiness-roadmap.md`. Owns the tenant-scoped counter service that
 `usage-metering.md` and `seat-limit-at-invite.md` read.
 
@@ -125,3 +125,38 @@ detail.
   metadata at boot, the way `ConfiguredSteps` validates the step lists.
 - **Cached tenant models leak.** The rule is already written down in this repo
   because it has happened. Cache scalars, keyed per tenant, or do not cache.
+
+## What shipped
+
+Phases 1-4 and 6 in full, phase 5 decided as recommended, 2026-09-17.
+
+- `Contracts\Billing\UsageCounter` over a central `tenant_usage` table.
+  `increment()` is `increment()` on the row, and the insert races on the unique
+  index and retries — an upsert with `values(value)` was written first and
+  dropped, since that expression is MySQL's alone.
+- `Contracts\Billing\Entitlements` with `PlanEntitlements` behind it, bound as
+  a singleton so the per-request memo exists at all. Memo holds scalars keyed
+  by tenant id, never a plan model.
+- Limits read `options.limits.<capability>` and keep `options.max_users` as
+  seats. Absent or non-numeric is uncapped, and `verifyPlanMetadata()` in the
+  install doctor is what turns a typo into a message rather than silence.
+- Three seams: `entitlement:<capability>` middleware, `@entitled` Blade
+  directive, and `assertAllowed()`/`consume()` in an action.
+  `EntitlementSeamsTest` asserts all three agree on one input.
+- **Seats are counted from rows, not from the counter.** A counter would drift
+  the moment a member was removed anywhere but the one action that decrements.
+- Phase 5 decided as the plan recommended: a downgrade is allowed and the next
+  addition is blocked. `remaining()` never goes negative and the team screen
+  says what is over.
+- Usage against limits on the staff tenant detail.
+
+Two deviations:
+
+- **`numerosis.billing.free_tier.limits` ships empty**, not `seats => 1`. A
+  seat limit on the no-subscription path immediately broke invitations for
+  every tenant without one, which is the state a tenant is in before its first
+  checkout. The key is documented as the place to put one.
+- **`DefaultUnpaidTenantQuota` was left alone.** The plan calls it "the same
+  shape", but it counts unpaid *tenants per user* and the counter is keyed on a
+  tenant, with a foreign key to prove it. Moving it would need a second scope
+  on the table for the sake of symmetry.

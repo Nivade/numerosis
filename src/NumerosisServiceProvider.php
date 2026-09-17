@@ -22,6 +22,7 @@ use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Notifications\Events\NotificationSending;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -73,6 +74,7 @@ use Nvade\Numerosis\Console\Commands\PruneTenantBackups;
 use Nvade\Numerosis\Console\Commands\ReopenTenantCommand;
 use Nvade\Numerosis\Console\Commands\RestoreTenantCommand;
 use Nvade\Numerosis\Console\Commands\TransferTenantOwnershipCommand;
+use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Contracts\Exceptions\ProvidesExceptionContext;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder as PackageDatabaseSeeder;
 use Nvade\Numerosis\Enums\SessionKey;
@@ -321,6 +323,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         $this->registerLivewireComponents();
 
+        $this->registerBladeDirectives();
+
         $this->registerPublishing();
     }
 
@@ -367,6 +371,16 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
             $this->app->make($feature)->bootstrap();
         }
+    }
+
+    /**
+     * `@entitled('custom-branding')` hides what the plan does not sell. Like
+     * the route middleware, it is presentation: the action behind the button
+     * is what actually refuses.
+     */
+    protected function registerBladeDirectives(): void
+    {
+        Blade::if('entitled', fn (string $capability): bool => resolve(Entitlements::class)->allows($capability));
     }
 
     /**

@@ -14,6 +14,7 @@ use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Boot\Assets;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
+use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
 use Nvade\Numerosis\Tests\Support\UnavailableDumper;
@@ -644,6 +645,18 @@ class InstallNumerosisCommandTest extends TestCase
 
         $this->install()
             ->expectsOutputToContain('two_factor_secret')
+            ->assertFailed();
+    }
+
+    /** @verifies verifyPlanMetadata */
+    public function test_it_fails_when_a_plan_limit_is_not_a_number(): void
+    {
+        PaymentPlan::query()->firstOrFail()->update([
+            'metadata' => ['options' => ['max_users' => 'lots']],
+        ]);
+
+        $this->install()
+            ->expectsOutputToContain('reads as uncapped')
             ->assertFailed();
     }
 

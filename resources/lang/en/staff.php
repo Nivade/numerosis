@@ -67,6 +67,8 @@ return [
     ],
 
     'tenant' => [
+        'entitlements' => 'Plan usage',
+        'uncapped' => 'uncapped',
         'members' => 'Members',
         'domains' => 'Domains',
         'subscription' => 'Subscription',

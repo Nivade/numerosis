@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Providers;
 
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Support\Facades\Config;
@@ -12,9 +13,11 @@ use Illuminate\Support\ServiceProvider;
 use Laravel\Cashier\Cashier;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
+use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Listeners\Billing\SyncTenantToStripeOnSave;
 use Nvade\Numerosis\Numerosis;
+use Nvade\Numerosis\Services\Billing\PlanEntitlements;
 use Override;
 use Stancl\Tenancy\Events\TenantSaved;
 
@@ -29,6 +32,16 @@ class BillingServiceProvider extends ServiceProvider
         foreach ($implementations as $contract => $concrete) {
             $this->app->bind($contract, $concrete);
         }
+
+        // A singleton, unlike the rest: its per-request memo of resolved
+        // entitlements is the point, and a fresh instance per resolve would
+        // re-read the plan on every check.
+        $this->app->singleton(function (Application $app) use ($implementations): Entitlements {
+            /** @var class-string<Entitlements> $concrete */
+            $concrete = $implementations[Entitlements::class] ?? PlanEntitlements::class;
+
+            return $app->make($concrete);
+        });
     }
 
     public function boot(): void
