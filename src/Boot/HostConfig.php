@@ -470,6 +470,12 @@ final class HostConfig
             return;
         }
 
-        Password::defaults(static fn (): Password => Password::min(8)->uncompromised());
+        $previous = Password::$defaultCallback;
+
+        Password::defaults(static function () use ($previous): Password {
+            $base = is_callable($previous) ? $previous() : Password::min(8);
+
+            return $base->uncompromised();
+        });
     }
 }

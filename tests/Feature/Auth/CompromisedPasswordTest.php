@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Tests\Feature\Auth;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rules\Password;
@@ -57,6 +58,33 @@ class CompromisedPasswordTest extends TestCase
         Http::fake(fn () => throw new ConnectionException('unreachable'));
 
         $this->post('/register', $this->registration())->assertSessionHasNoErrors();
+    }
+
+    /**
+     * `HostConfig` used to force `Password::min(8)` on top of whatever the
+     * host already configured, so a host that wanted a shorter minimum had
+     * it silently raised back to 8. Length is the host's policy now: a host
+     * rule shorter than 8 is honoured, and `uncompromised()` still layers
+     * on top of it.
+     */
+    public function test_a_shorter_host_rule_is_no_longer_overridden(): void
+    {
+        Password::defaults(static fn (): Password => Password::min(4));
+
+        $this->enableTheCheck();
+
+        Http::fake([
+            'api.pwnedpasswords.com/*' => Http::response('0000000000000000000000000000000000:0'),
+        ]);
+
+        $this->from('/register')->post('/register', [
+            'name' => 'Short Password User',
+            'email' => 'short-'.uniqid().'@example.com',
+            'password' => 'ab12',
+            'password_confirmation' => 'ab12',
+        ])->assertSessionHasNoErrors();
+
+        Http::assertSent(fn (ClientRequest $request): bool => str_contains($request->url(), 'pwnedpasswords.com'));
     }
 
     public function test_the_flag_disables_the_check(): void

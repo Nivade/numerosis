@@ -6,6 +6,8 @@ namespace Nvade\Numerosis\Tests\Feature\Staff;
 
 use App\Models\Central\CentralUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Nvade\Numerosis\Actions\Auth\ClearTwoFactorAuthentication;
 use Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder;
@@ -40,6 +42,23 @@ class StaffTwoFactorTest extends TestCase
 
         $this->get(route('staff.tenants'))->assertRedirect(route('settings.two-factor'));
         $this->get(route('staff.users'))->assertRedirect(route('settings.two-factor'));
+    }
+
+    /**
+     * `EnsureStaffTwoFactor` used to hardcode `route('settings.two-factor')`.
+     * Renaming the config key and pointing it at an unrelated route proves the
+     * redirect target is read from `numerosis.routes.names`, not the literal.
+     */
+    public function test_the_redirect_target_is_read_from_config(): void
+    {
+        Route::get('/renamed-two-factor-screen', fn (): string => 'ok')->name('renamed.two-factor');
+        Route::getRoutes()->refreshNameLookups();
+
+        Config::set('numerosis.routes.names.two_factor_settings', 'renamed.two-factor');
+
+        $this->actingAsCentralUser($this->admin());
+
+        $this->get(route('staff.tenants'))->assertRedirect(route('renamed.two-factor'));
     }
 
     public function test_a_visitor_without_staff_permissions_still_gets_a_403(): void

@@ -147,7 +147,7 @@ final class MiddlewareRegistrar
      */
     public static function csrfExceptions(): array
     {
-        return ['stripe/*', 'billing/webhook', 'telescope/*'];
+        return ['stripe/*', 'billing/webhook'];
     }
 
     public static function apply(Middleware $middleware): void

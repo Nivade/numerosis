@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Services\Auth;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Nvade\Numerosis\Contracts\Auth\ExportsPersonalData;
 use Nvade\Numerosis\Contracts\Tenancy\ExportsTenantData;
 use Nvade\Numerosis\Exceptions\Tenancy\TenantBackupFailed;
+use Nvade\Numerosis\Jobs\Concerns\WritesDataExportOutcome;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Consent;
 use Nvade\Numerosis\Models\Central\Membership;
@@ -28,6 +28,8 @@ use ZipArchive;
  */
 class PersonalDataExporter implements ExportsPersonalData
 {
+    use WritesDataExportOutcome;
+
     public function __construct(private readonly ExportsTenantData $tenantExporter) {}
 
     public function export(string $globalUserId, ?string $disk = null): string
@@ -38,7 +40,7 @@ class PersonalDataExporter implements ExportsPersonalData
             throw TenantBackupFailed::unreadable($globalUserId);
         }
 
-        $diskName = $disk ?? Config::string('numerosis.privacy.disk', Config::string('numerosis.tenancy.backup.disk', 'local'));
+        $diskName = $disk ?? $this->exportDisk();
         $storage = Storage::disk($diskName);
 
         $archivePath = (string) tempnam(sys_get_temp_dir(), 'numerosis-personal');

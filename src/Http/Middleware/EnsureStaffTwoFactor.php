@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Routing\RouteNames;
 
 /**
  * No grace and no toggle. The staff screens suspend tenants and mint
@@ -32,7 +33,7 @@ class EnsureStaffTwoFactor
             return $next($request);
         }
 
-        return redirect()->to(route('settings.two-factor'))
+        return redirect()->to(route(RouteNames::twoFactorSettings()))
             ->with('status', __('Staff screens require two-factor authentication.'));
     }
 }

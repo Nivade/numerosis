@@ -88,7 +88,7 @@ it('registers mode-agnostic middleware aliases with no facade application bound'
 
 it('returns the exact csrf exceptions list', function () {
     expect(Numerosis::csrfExceptions())->toBe([
-        'stripe/*', 'billing/webhook', 'telescope/*',
+        'stripe/*', 'billing/webhook',
     ]);
 });
 

@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Tests\Feature\Tenancy;
 use App\Models\Central\CentralUser;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
 use Nvade\Numerosis\Actions\Tenancy\SetTenantTwoFactorRequirement;
@@ -60,6 +61,29 @@ class TenantTwoFactorRequirementTest extends TestCase
         $this->actingAsCentralUser($user)
             ->get('http://'.$this->tenantDomain($tenant->id).'/product')
             ->assertRedirect(route('settings.two-factor'));
+    }
+
+    /**
+     * `EnsureTwoFactorEnrolled` used to hardcode `route('settings.two-factor')`.
+     * Renaming the config key and pointing it at an unrelated route proves the
+     * redirect target is read from `numerosis.routes.names`, not the literal.
+     */
+    public function test_the_redirect_target_is_read_from_config(): void
+    {
+        Route::get('/renamed-two-factor-screen', fn (): string => 'ok')->name('renamed.two-factor');
+        Route::getRoutes()->refreshNameLookups();
+
+        Config::set('numerosis.routes.names.two_factor_settings', 'renamed.two-factor');
+
+        $user = $this->centralUser();
+        $tenant = $this->tenantFor($user);
+
+        SetTenantTwoFactorRequirement::run($tenant, true);
+        $this->lapseGrace($tenant);
+
+        $this->actingAsCentralUser($user)
+            ->get('http://'.$this->tenantDomain($tenant->id).self::GATED_PATH)
+            ->assertRedirect(route('renamed.two-factor'));
     }
 
     /** The switch that turned the requirement on has to stay reachable. */

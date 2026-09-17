@@ -297,6 +297,7 @@ return [
             'ownership_nomination_show' => 'ownership.nominations.show',
             'ownership_nomination_accept' => 'ownership.nominations.accept',
             'checkout_subscription' => 'checkout.subscription',
+            'two_factor_settings' => 'settings.two-factor',
         ],
 
         // Core registers 'home' unconditionally. Point this at your own view
@@ -432,7 +433,7 @@ return [
         'headers' => [
             'enabled' => env('NUMEROSIS_SECURITY_HEADERS', true),
 
-            'except' => ['stripe/*', 'billing/webhook', 'telescope/*'],
+            'except' => ['stripe/*', 'billing/webhook'],
 
             // includeSubDomains is load-bearing in subdomain identification
             // mode: without it every tenant host is exempt.

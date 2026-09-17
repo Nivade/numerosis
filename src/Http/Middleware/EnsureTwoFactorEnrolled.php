@@ -13,6 +13,7 @@ use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\User;
+use Nvade\Numerosis\Routing\RouteNames;
 
 /**
  * Holds a tenant that requires a second factor to members who have confirmed
@@ -42,7 +43,7 @@ class EnsureTwoFactorEnrolled
             return $next($request);
         }
 
-        return redirect()->to(route('settings.two-factor'))
+        return redirect()->to(route(RouteNames::twoFactorSettings()))
             ->with('status', __('This team requires two-factor authentication. Set it up to continue.'));
     }
 
