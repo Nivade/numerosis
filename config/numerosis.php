@@ -490,6 +490,7 @@ return [
             'available_payment_plans' => 3600,
             'popular_payment_plan_slug' => 300,
             'health_report' => 5,
+            'entitlements' => 300,
         ],
     ],
 

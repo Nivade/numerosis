@@ -8,6 +8,7 @@ use Nvade\Numerosis\Actions\Cache\ForgetAvailablePaymentPlans;
 use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
+use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Observers\Concerns\ForgetsCacheKey;
 use Nvade\Numerosis\Services\Billing\PlanEntitlements;
 
@@ -27,8 +28,16 @@ class PaymentPlanObserver
 
         $entitlements = resolve(Entitlements::class);
 
-        if ($entitlements instanceof PlanEntitlements) {
-            $entitlements->forget();
+        if (! $entitlements instanceof PlanEntitlements) {
+            return;
+        }
+
+        foreach ($plan->subscriptions as $subscription) {
+            $owner = $subscription->subscribable;
+
+            if ($owner instanceof Tenant) {
+                $entitlements->forget($owner);
+            }
         }
     }
 

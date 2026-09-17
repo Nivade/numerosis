@@ -58,6 +58,11 @@ final class CacheTtl
         return self::seconds('health_report', 5);
     }
 
+    public static function entitlements(): ?int
+    {
+        return self::seconds('entitlements', 300);
+    }
+
     /**
      * The `[fresh, stale]` pair {@see GlobalCache::flexible()} takes.
      *

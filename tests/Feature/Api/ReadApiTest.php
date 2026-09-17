@@ -15,6 +15,7 @@ use Nvade\Numerosis\Actions\Auth\Api\CreateApiToken;
 use Nvade\Numerosis\Actions\Queries\GetApiAbilities;
 use Nvade\Numerosis\Actions\Queries\GetTenantMembersPage;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
+use Nvade\Numerosis\Models\Central\SubscriptionItem;
 use Nvade\Numerosis\Models\Tenant\User as BaseTenantUser;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -102,9 +103,18 @@ class ReadApiTest extends TestCase
 
         Tenant::unsetEventDispatcher();
 
-        Subscription::factory()->create([
+        $subscription = Subscription::factory()->create([
             'subscribable_id' => $tenant->id,
             'payment_plan_id' => $plan->id,
+        ]);
+
+        // GetBillingPeriod only reads the period Stripe stamped on the item;
+        // nothing invents one from `created_at` any more.
+        SubscriptionItem::factory()->create([
+            'subscription_id' => $subscription->id,
+            'stripe_price' => $subscription->stripe_price,
+            'current_period_start' => now()->startOfMonth(),
+            'current_period_end' => now()->addMonthNoOverflow()->startOfMonth(),
         ]);
 
         /** @var array{subscription: array<string, mixed>, usage: list<array<string, mixed>>} $payload */

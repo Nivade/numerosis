@@ -59,6 +59,7 @@ use Nvade\Numerosis\Boot\Assets;
 use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Boot\HostConfig;
 use Nvade\Numerosis\Boot\MiddlewareRegistrar;
+use Nvade\Numerosis\Boot\PlanMetadata;
 use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
@@ -324,6 +325,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         $this->assertConfiguredStepsAreWellShaped();
 
+        $this->assertPlanMetadataIsWellShaped();
+
         $this->bootstrapFeatures();
 
         $this->registerPolicies();
@@ -378,6 +381,21 @@ class NumerosisServiceProvider extends PackageServiceProvider
         }
 
         ConfiguredSteps::assertEveryProvisioningStepIsOne(ConfiguredSteps::provisioningSteps());
+    }
+
+    /**
+     * Plan metadata's shape, on console boots only, same terms as
+     * {@see self::assertConfiguredStepsAreWellShaped()}. `numerosis:install`
+     * calls {@see PlanMetadata::check()} directly for the second, warnings-
+     * carrying report.
+     */
+    protected function assertPlanMetadataIsWellShaped(): void
+    {
+        if (! $this->app->runningInConsole()) {
+            return;
+        }
+
+        PlanMetadata::assertWellShaped();
     }
 
     /**

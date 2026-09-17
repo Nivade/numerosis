@@ -14,14 +14,13 @@ use Illuminate\Support\Facades\Schema;
 use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Boot\Assets;
 use Nvade\Numerosis\Boot\HostConfig;
+use Nvade\Numerosis\Boot\PlanMetadata;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseDumper;
-use Nvade\Numerosis\Data\Billing\MeterDefinitionData;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Models\Activity;
-use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
@@ -370,78 +369,13 @@ class InstallNumerosisCommand extends Command
         }
     }
 
-    /**
-     * A limit is only a limit if it is a number. `options.max_users` and
-     * `options.limits.*` are host-editable JSON, and a typo there reads as
-     * uncapped — the plan is sold as limited and enforces nothing.
-     */
+    /** Same check the boot-time assertion runs; the doctor also surfaces its warnings. */
     private function verifyPlanMetadata(): void
     {
-        foreach (Numerosis::model(PaymentPlan::class)::query()->get() as $plan) {
-            $options = $plan->metadata()['options'] ?? [];
+        $result = PlanMetadata::check();
 
-            if (! is_array($options)) {
-                $this->failures[] = "Plan [{$plan->slug}] has a non-array `metadata.options`.";
-
-                continue;
-            }
-
-            if (array_key_exists('max_users', $options) && ! is_numeric($options['max_users'])) {
-                $this->failures[] = "Plan [{$plan->slug}] has a non-numeric `metadata.options.max_users`, which reads as uncapped.";
-            }
-
-            $limits = $options['limits'] ?? [];
-
-            if (! is_array($limits)) {
-                $this->failures[] = "Plan [{$plan->slug}] has a non-array `metadata.options.limits`.";
-
-                continue;
-            }
-
-            foreach ($limits as $capability => $value) {
-                if (! is_numeric($value)) {
-                    $this->failures[] = "Plan [{$plan->slug}] has a non-numeric limit for `{$capability}`, which reads as uncapped.";
-                }
-            }
-
-            $this->verifyPlanMeters($plan, $options);
-        }
-    }
-
-    /**
-     * A meter that fails to parse meters nothing, which under-bills silently.
-     * `meter_id` is a warning rather than a failure: reporting works without
-     * it, reconciliation is what needs it.
-     *
-     * @param  array<array-key, mixed>  $options
-     */
-    private function verifyPlanMeters(PaymentPlan $plan, array $options): void
-    {
-        $declared = $options['meters'] ?? null;
-
-        if ($declared === null) {
-            return;
-        }
-
-        if (! is_array($declared)) {
-            $this->failures[] = "Plan [{$plan->slug}] has a non-array `metadata.options.meters`.";
-
-            return;
-        }
-
-        foreach ($declared as $index => $entry) {
-            $meter = is_array($entry) ? MeterDefinitionData::tryFrom($entry) : null;
-
-            if (! $meter instanceof MeterDefinitionData) {
-                $this->failures[] = "Plan [{$plan->slug}] meter #{$index} is missing a `key` or an `event_name`, so nothing is reported for it.";
-
-                continue;
-            }
-
-            if ($meter->meter_id === null) {
-                $this->warnings[] = "Plan [{$plan->slug}] meter [{$meter->event_name}] declares no `meter_id`, so billing:reconcile-usage cannot compare it against Stripe.";
-            }
-        }
+        array_push($this->failures, ...$result['failures']);
+        array_push($this->warnings, ...$result['warnings']);
     }
 
     /**

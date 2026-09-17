@@ -12,6 +12,9 @@ use Nvade\Numerosis\Actions\Queries\GetActiveSubscription;
 use Nvade\Numerosis\Actions\Queries\GetBillingPeriod;
 use Nvade\Numerosis\Actions\Queries\GetTenantMeters;
 use Nvade\Numerosis\Actions\Queries\GetTenantSeatUsage;
+use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Cache\CacheTtl;
+use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Contracts\Billing\UsageCounter;
 use Nvade\Numerosis\Data\Billing\BillingPeriod;
@@ -169,7 +172,11 @@ class PlanEntitlements implements Entitlements
     {
         $key = (string) $tenant->getTenantKey();
 
-        return $this->resolved[$key] ??= $this->resolve($tenant);
+        return $this->resolved[$key] ??= GlobalCache::remember(
+            CacheKeys::entitlements($key),
+            CacheTtl::entitlements(),
+            fn (): array => $this->resolve($tenant),
+        );
     }
 
     /**
@@ -311,6 +318,8 @@ class PlanEntitlements implements Entitlements
         }
 
         $key = (string) $tenant->getTenantKey();
+
+        GlobalCache::store()->forget(CacheKeys::entitlements($key));
 
         unset($this->resolved[$key], $this->meters[$key], $this->buckets[$key]);
     }

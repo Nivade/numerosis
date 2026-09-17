@@ -176,23 +176,23 @@ class UsageReportingTest extends TestCase
         $this->assertTrue($period->anchored);
     }
 
-    public function test_an_unstamped_subscription_falls_back_to_its_own_anniversary(): void
+    public function test_an_unstamped_subscription_reports_no_period_and_sends_no_usage(): void
     {
+        $stripe = $this->fakeStripe();
+
         Date::setTestNow('2026-03-20 09:00:00');
 
         [$tenant, $subscription] = $this->meteredTenant();
 
-        $subscription->forceFill(['created_at' => '2026-01-09 12:00:00'])->save();
         SubscriptionItem::where('subscription_id', $subscription->id)->update([
             'current_period_start' => null,
             'current_period_end' => null,
         ]);
 
-        $period = GetBillingPeriod::run($tenant->refresh());
+        $this->assertNull(GetBillingPeriod::run($tenant->refresh()));
 
-        $this->assertNotNull($period);
-        $this->assertSame('2026-03-09', $period->bucket()->toDateString());
-        $this->assertFalse($period->anchored);
+        $this->assertSame(0, ReportTenantUsage::run($tenant));
+        $this->assertCount(0, $stripe->meterEvents);
     }
 
     public function test_the_command_reports_every_metered_tenant(): void

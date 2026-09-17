@@ -124,6 +124,15 @@ final class CacheKeys
         return self::prefix().':observability:provisioning_alert';
     }
 
+    /**
+     * The tenant id is embedded in the key rather than relied on for
+     * isolation: `global_cache()` carries no tenant prefix of its own.
+     */
+    public static function entitlements(string $tenantId): string
+    {
+        return self::prefix().":billing:entitlements:{$tenantId}";
+    }
+
     /*
      * Keys owned by something other than core deliberately do not live here:
      * one registry per owner, so core carries no reference to a class it does
