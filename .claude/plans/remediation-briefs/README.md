@@ -56,7 +56,7 @@ Tick a row only when its phase is committed.
 | [x] | 7 — Feature gating and the API | — |
 | [x] | 8 — Lifecycle and the staff panel | — |
 | [x] | 9 — Hardening configuration | — |
-| [ ] | 10 — Duplication and dead weight | 2–9 all done |
+| [x] | 10 — Duplication and dead weight | 2–9 all done |
 | [ ] | 11 — The comment sweep | phase 10 |
 | [ ] | 12 — Closing out | everything |
 
