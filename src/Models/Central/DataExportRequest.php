@@ -20,7 +20,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
 /**
  * One subject access request. The artefact is deleted by the retention sweep
  * long before the row is, so a completed request whose `path` no longer
- * resolves is expected rather than a fault.
+ * resolves is expected behavior.
  *
  * @property int $id
  * @property string $ulid

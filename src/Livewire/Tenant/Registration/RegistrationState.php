@@ -81,7 +81,7 @@ class RegistrationState extends State
     }
 
     /**
-     * The payload provisioning takes, built once here rather than field by
+     * The payload provisioning takes, built once here instead of field by
      * field in whichever step happens to be submitting. Contributions come
      * from every configured step that offers one, core's and a host's alike.
      *

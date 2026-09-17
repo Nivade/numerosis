@@ -8,7 +8,7 @@ use Nvade\Numerosis\Enums\Notifications\NotificationType;
 
 /**
  * Which channels one notification takes for one recipient. Bound so a host can
- * add a channel of its own — Slack, push — without editing a notification class.
+ * add a channel of its own (Slack, push) without editing a notification class.
  */
 interface NotificationChannels
 {

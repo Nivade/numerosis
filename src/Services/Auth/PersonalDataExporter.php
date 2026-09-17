@@ -73,7 +73,7 @@ class PersonalDataExporter implements ExportsPersonalData
     }
 
     /**
-     * Copied entry by entry rather than embedded whole: a zip inside a zip is
+     * Copied entry by entry instead of embedded whole: a zip inside a zip is
      * one more thing the person receiving it has to work out.
      */
     private function addTenantArchive(ZipArchive $zip, Tenant $tenant, string $globalId, string $diskName): void

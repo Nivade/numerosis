@@ -47,8 +47,8 @@ class GetUserNotifications
             return $user->unreadNotifications()->count();
         }
 
-        // Unread rows only, and no NotificationItem per row: this runs for a
-        // count, not for copy.
+        // Unread rows only, and no NotificationItem per row, since this runs
+        // for a count instead of for display copy.
         return $user->unreadNotifications()->get()
             ->filter(function (DatabaseNotification $notification) use ($tenantId): bool {
                 $data = $notification->getAttribute('data');

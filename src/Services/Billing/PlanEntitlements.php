@@ -76,9 +76,9 @@ class PlanEntitlements implements Entitlements
             return 0;
         }
 
-        // Seats are rows, not events: counting them off the usage table would
-        // drift the moment a member was removed anywhere but through the one
-        // action that decrements.
+        // Seats are counted as rows, never as events: counting them off the
+        // usage table would drift the moment a member was removed anywhere
+        // but through the one action that decrements.
         return $capability === self::SEATS
             ? GetTenantSeatUsage::run($tenant)->used()
             : $this->counter->value($tenant, $capability, $this->bucket($tenant, $capability));
@@ -111,8 +111,8 @@ class PlanEntitlements implements Entitlements
         $used = $this->used($capability, $tenant);
 
         // A metered capability's included allowance is where the overage
-        // starts, not where the customer is cut off: refusing it here would
-        // refuse usage the plan sells.
+        // starts; it is never where the customer is cut off, so refusing it
+        // here would refuse usage the plan sells.
         $metered = $this->meter($tenant, $capability) instanceof MeterDefinitionData;
 
         if (! $metered && $limit !== null && $used + $amount > $limit) {

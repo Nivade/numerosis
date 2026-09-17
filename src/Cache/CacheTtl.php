@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Config;
 
 /**
  * The configured lifetime of every key in {@see CacheKeys}, in seconds. A null
- * means "do not cache": {@see GlobalCache::remember()} skips the store entirely
- * rather than writing a zero-second entry.
+ * means "do not cache": {@see GlobalCache::remember()} skips the store
+ * entirely instead of writing a zero-second entry.
  */
 final class CacheTtl
 {

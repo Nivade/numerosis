@@ -84,7 +84,7 @@ class ReportTenantUsage
 
     /**
      * Stable across process restarts and across retries, because every input
-     * is state rather than a clock or a random source.
+     * is state, never a clock or a random source.
      */
     public static function identifier(Tenant $tenant, string $eventName, Carbon $period, int $total): string
     {

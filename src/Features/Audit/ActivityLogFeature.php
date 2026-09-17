@@ -9,7 +9,7 @@ use Nvade\Numerosis\Features\Concerns\IsNamedFeature;
 
 /**
  * The screens that read the activity log, on by default. Writing entries is
- * unconditional — `activitylog.enabled` is the switch for that, and a log
+ * unconditional: `activitylog.enabled` is the switch for that, and a log
  * with holes in it answers nothing.
  */
 class ActivityLogFeature implements NamedFeature

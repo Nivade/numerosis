@@ -13,9 +13,9 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Routing\RouteNames;
 
 /**
- * No grace and no toggle. The staff screens suspend tenants and mint
- * impersonation links, so the credential behind them is the highest-value one
- * in the installation.
+ * No grace and no toggle. The staff screens suspend tenants and start
+ * impersonation sessions, so the credential behind them is the highest-value
+ * one in the installation.
  */
 class EnsureStaffTwoFactor
 {

@@ -9,7 +9,7 @@ use Nvade\Numerosis\Exceptions\DomainException;
 /**
  * One reason per failure mode. "Invalid code" for all five is the
  * support-ticket generator: a customer who typed a code that is real but
- * exhausted needs to be told that, not sent back to check their spelling.
+ * exhausted needs to be told that instead of sent back to check their spelling.
  */
 class PromotionCodeUnavailable extends DomainException
 {

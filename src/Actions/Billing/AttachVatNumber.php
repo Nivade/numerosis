@@ -12,7 +12,7 @@ use Stripe\Exception\ApiErrorException;
 /**
  * Attaches a tax id to a Stripe customer, replacing any it already carries.
  *
- * Takes a raw Stripe customer id, not a billable: its callers
+ * Takes a raw Stripe customer id instead of a billable. Its callers
  * ({@see SyncBillingAddress}, {@see AddVatNumber}) hold a `CentralUser` and a
  * `Tenant`, and Cashier ships no interface for "has the Billable trait" that
  * both satisfy.

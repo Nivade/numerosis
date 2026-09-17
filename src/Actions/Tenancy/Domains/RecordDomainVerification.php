@@ -53,9 +53,9 @@ class RecordDomainVerification
     }
 
     /**
-     * A domain that has been retried past the window is marked failed, which is
-     * still retryable by hand — the customer may have fixed their zone a week
-     * later.
+     * A domain that has been retried past the window is marked failed. It is
+     * still retryable by hand, since the customer may have fixed their zone a
+     * week later.
      */
     private function statusFor(Domain $domain, DomainVerificationResult $result, ?Carbon $failingSince): DomainStatus
     {

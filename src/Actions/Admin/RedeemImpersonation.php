@@ -19,8 +19,8 @@ use Stancl\Tenancy\Features\UserImpersonation;
  * check, the login and the delete, and this stamps the audit row and marks the
  * session so the banner, the causer resolver and the expiry guard can see it.
  *
- * Runs after `EnsureSessionMatchesTenant`, which is what keeps the impersonated
- * session an ordinary tenant session rather than an exception to the rule.
+ * Runs after `EnsureSessionMatchesTenant`, which keeps the impersonated
+ * session an ordinary tenant session for the rest of the stack.
  *
  * @method static RedirectResponse run(string $token)
  */

@@ -15,7 +15,7 @@ interface ProvisionContribution
     /**
      * Both of these are `Spatie\LaravelData\Data`'s own signatures, declared
      * here so the round trip through the provision row is part of the
-     * contract rather than an assumption the storage code has to cast around.
+     * contract, and not an assumption the storage code has to cast around.
      *
      * @return array<string, mixed>
      */

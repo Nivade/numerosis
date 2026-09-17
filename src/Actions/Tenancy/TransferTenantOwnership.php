@@ -14,9 +14,9 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 
 /**
- * The Stripe customer is the tenant, not the owner, so nothing moves between
- * customers here: the customer's name and email describe whoever owns the
- * tenant now, which is what `SyncTenantToStripe` re-sends.
+ * The Stripe customer belongs to the tenant, never the owner, so nothing
+ * moves between customers here. The customer's name and email describe
+ * whoever owns the tenant now, which is what `SyncTenantToStripe` re-sends.
  *
  * @method static void run(Tenant $tenant, Membership $target)
  */

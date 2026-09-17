@@ -32,7 +32,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * The record of one tenant being provisioned, from the moment its slug is
  * claimed at checkout (`reserved`) through to `completed`.
  *
- * It outlives the provision: `completed_at` is stamped rather than the row
+ * It outlives the provision: `completed_at` is stamped instead of the row
  * deleted, and tenant readiness stays `tenants.provisioned_at`.
  * `step_records` is written by `RunProvisioningStep`, one entry per step.
  *
@@ -131,8 +131,8 @@ class TenantProvision extends Model
 
     /**
      * Records the plan and SetupIntent chosen for an inline checkout. Scoped
-     * to the owner as well as the slug — an unscoped write would overwrite a
-     * stranger's SetupIntent and lock them out of their reservation.
+     * to the owner as well as the slug, since an unscoped write would
+     * overwrite a stranger's SetupIntent and lock them out of their reservation.
      */
     public static function claimSetupIntent(
         string $slug,
@@ -155,7 +155,7 @@ class TenantProvision extends Model
      * Whether the slug's reservation belongs to this global id. The slug
      * arrives as a client-controlled argument, the same shape as a route
      * parameter, so a caller re-checking ownership before acting on it needs
-     * this rather than trusting whatever it already rendered.
+     * this instead of trusting whatever it already rendered.
      */
     public static function ownedBy(string $slug, ?string $globalId): bool
     {
@@ -351,7 +351,7 @@ class TenantProvision extends Model
      * the configured steps, plus every entry in the JSON blob, which is
      * self-describing because it is keyed by class.
      *
-     * A registry is needed only for the column-backed half — nothing about a
+     * A registry is needed only for the column-backed half. Nothing about a
      * set of columns says which contribution owns them.
      *
      * @return list<ProvisionContribution>
@@ -378,7 +378,7 @@ class TenantProvision extends Model
     /**
      * Writes contributions onto the row: column-backed ones into their own
      * columns, the rest into the JSON blob under their class name. Merged
-     * rather than replaced, so a later stage contributing billing data does
+     * instead of replaced, so a later stage contributing billing data does
      * not drop what registration contributed.
      *
      * @param  list<ProvisionContribution>  $contributions

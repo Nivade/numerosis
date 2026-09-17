@@ -47,9 +47,9 @@ enum SubscriptionStatus: string
     }
 
     /**
-     * Deliberately narrower than `isSettled()` — a trial collects nothing
+     * Deliberately narrower than `isSettled()`. A trial collects nothing
      * upfront, and the unpaid-tenant quota exists to stop free tenant
-     * databases, not to gate on settlement.
+     * databases; it is not meant to gate on settlement.
      */
     public function isPaid(): bool
     {

@@ -62,8 +62,8 @@ class BackupTenant
     }
 
     /**
-     * Streamed rather than read into a string: an artefact is the size of the
-     * tenant's database.
+     * Streamed instead of read into a string, since an artefact is the size
+     * of the tenant's database.
      */
     private function put(?string $disk, string $path, string $file): void
     {

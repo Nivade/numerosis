@@ -262,7 +262,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Only read by the un-wired fallback boot (an app whose bootstrap/app.php
-    | never called Numerosis::middleware() itself) — see docs/host-requirements.md.
+    | never called Numerosis::middleware() itself).
     | Empty trusts nobody, Laravel's own default: X-Forwarded-* headers are
     | ignored, and $request->ip() is the real socket peer. Set proxy IP(s)/CIDR
     | here, or the literal '*' to trust every request's forwarded headers.
@@ -774,7 +774,6 @@ return [
 
             // TLS presenters for the proxy in front of this deployment. The
             // package issues no certificates; it publishes the verified set.
-            // See docs/host-requirements.md for the deployment matrix.
             'tls' => [
                 'ask' => (bool) env('NUMEROSIS_TLS_ASK_ENDPOINT', false),
                 'ask_path' => env('NUMEROSIS_TLS_ASK_PATH', 'numerosis/tls/ask'),

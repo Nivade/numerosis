@@ -126,7 +126,7 @@ class Domain extends \Stancl\Tenancy\Database\Models\Domain
 
     /**
      * Ordered by how long ago each was looked at, so a sweep with a limit takes
-     * the most overdue rather than whatever the driver returns first. Filters
+     * the most overdue instead of whatever the driver returns first. Filters
      * to the base interval, the shortest any domain can be due at; a caller
      * still has to test recheckIntervalMinutes() per row, since a failing
      * domain's real interval can be longer.

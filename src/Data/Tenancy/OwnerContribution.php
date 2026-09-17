@@ -10,11 +10,11 @@ use Override;
 use Spatie\LaravelData\Data;
 
 /**
- * Who will own the tenant. Absent when nobody will — a system or demo tenant,
- * or one imported from elsewhere — which is what makes `AddTenantOwner`
- * skippable rather than the pipeline's only unconditional relationship.
+ * Who will own the tenant. Absent when nobody will (a system or demo tenant,
+ * or one imported from elsewhere), which is what makes `AddTenantOwner`
+ * skippable instead of the pipeline's only unconditional relationship.
  *
- * A column rather than JSON: checkout looks a reservation up by its owner, and
+ * A column instead of JSON: checkout looks a reservation up by its owner, and
  * refuses one claimed by somebody else.
  */
 final class OwnerContribution extends Data implements PersistsToProvisionColumns

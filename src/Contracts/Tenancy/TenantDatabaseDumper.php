@@ -10,7 +10,7 @@ use Stancl\Tenancy\Contracts\TenantWithDatabase;
  * Writes and reads back a physical snapshot of one tenant database. The
  * implementation is chosen per driver through `numerosis.tenancy.backup.dumpers`.
  *
- * Restoring is not the same operation as importing a customer's archive — see
+ * Restoring is not the same operation as importing a customer's archive. See
  * `Services\Tenancy\TenantDataExporter` for the portable, readable format.
  */
 interface TenantDatabaseDumper
@@ -18,7 +18,7 @@ interface TenantDatabaseDumper
     /**
      * Whether this dumper can run at all. A dumper that shells out answers
      * false when its binary is missing, which `numerosis:install --verify-only`
-     * reports rather than leaving it to be discovered during a purge.
+     * reports instead of leaving it to be discovered during a purge.
      */
     public function isAvailable(): bool;
 

@@ -111,9 +111,9 @@ final class HostConfig
 
     /**
      * Points tenancy at this package's tenant, domain and user models.
-     * Left alone once any of them names a class of your own — unlike
+     * Left alone once any of them names a class of your own. Unlike
      * `auth.providers.users.model` below, a host may set one of these four
-     * directly rather than through `numerosis.models.*`.
+     * directly instead of through `numerosis.models.*`.
      */
     private static function tenancyModels(): void
     {
@@ -139,8 +139,8 @@ final class HostConfig
 
     /**
      * Derives the central domain from `numerosis.domains.central`. Stays a
-     * method rather than a plain projection: the vendor key is a list (a
-     * host serving several central hostnames sets more than one), so an
+     * method instead of a plain projection, since the vendor key is a list (a
+     * host serving several central hostnames sets more than one), and an
      * unconditional projection would flatten that list to one value.
      */
     private static function centralDomains(): void
@@ -223,7 +223,7 @@ final class HostConfig
 
     /**
      * Projects `numerosis.tenancy.seeder` onto `tenancy.seeder_parameters`,
-     * always — set the numerosis key to choose a seeder, not this one.
+     * always. Set the numerosis key to choose a seeder instead of this one.
      */
     private static function tenantSeederPreference(): void
     {
@@ -416,10 +416,8 @@ final class HostConfig
             $current = Config::get($key);
 
             // A stock value can equal the correction's own target: on SQLite
-            // `database.default` is `central`, which is what
-            // `queue.failed.database` is corrected *to*. Rewriting it there
-            // reports work that changed nothing, and applied() stops meaning
-            // "this host needed correcting".
+            // `database.default` is `central`, the same value
+            // `queue.failed.database` is corrected *to*, which would make applied() lie.
             if ($current === $value) {
                 continue;
             }

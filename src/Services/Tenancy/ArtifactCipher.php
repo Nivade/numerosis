@@ -11,8 +11,8 @@ use Nvade\Numerosis\Exceptions\Tenancy\TenantBackupFailed;
 
 /**
  * Encrypts a backup artefact a block at a time with libsodium's secretstream,
- * which authenticates each block and marks the end of the stream — a truncated
- * artefact fails to decrypt rather than restoring a partial database.
+ * which authenticates each block and marks the end of the stream, so a
+ * truncated artefact fails to decrypt instead of restoring a partial database.
  * `Crypt::encryptString()` would hold the whole tenant database in memory.
  */
 class ArtifactCipher implements EncryptsArtifacts

@@ -66,7 +66,7 @@ class Subscription extends \Laravel\Cashier\Subscription
     protected $with = ['items', 'subscribable'];
 
     /**
-     * No `casts()` entry for `stripe_status` — Cashier's own `incomplete()`
+     * No `casts()` entry for `stripe_status`. Cashier's own `incomplete()`
      * and `pastDue()` compare it with `===` against a plain string, and an
      * Eloquent cast would make both permanently false.
      */

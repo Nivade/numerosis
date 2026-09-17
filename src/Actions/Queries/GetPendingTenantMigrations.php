@@ -30,7 +30,7 @@ class GetPendingTenantMigrations
             $files = $migrator->getMigrationFiles(self::paths());
 
             // A database created but never migrated has no `migrations`
-            // table, and reading the ran list there throws rather than
+            // table, and reading the ran list there throws instead of
             // answering "none".
             $ran = $migrator->repositoryExists() ? $migrator->getRepository()->getRan() : [];
 

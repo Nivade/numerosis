@@ -8,7 +8,7 @@ use Nvade\Numerosis\Exceptions\DomainException;
 
 /**
  * Carries the capability and, when one exists, the plan that would allow it,
- * so an upgrade prompt is written once rather than at each call site.
+ * so an upgrade prompt is written once instead of at each call site.
  */
 class EntitlementDenied extends DomainException
 {

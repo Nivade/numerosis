@@ -96,7 +96,7 @@ class PortableTenantDatabaseDumper implements TenantDatabaseDumper
 
                 $buffer = [];
 
-                // Stepped by hand rather than with foreach, which rewinds a
+                // Stepped by hand instead of with foreach, which rewinds a
                 // generator whose header line has already been read.
                 for ($lines->next(); $lines->valid(); $lines->next()) {
                     $line = $lines->current();

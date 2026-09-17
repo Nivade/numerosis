@@ -10,8 +10,8 @@ use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 
 /**
- * Null is "this driver cannot answer", not zero. Redis, SQS and the null
- * driver each answer a different subset of these three questions.
+ * Null means "this driver cannot answer"; it is never zero. Redis, SQS and
+ * the null driver each answer a different subset of these three questions.
  */
 #[MapInputName(SnakeCaseMapper::class)]
 #[MapOutputName(SnakeCaseMapper::class)]

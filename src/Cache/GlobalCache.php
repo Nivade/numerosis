@@ -71,9 +71,9 @@ final class GlobalCache
     }
 
     /**
-     * Falls back to `cache.default` rather than null: the memo compares this,
-     * and a null would hide a changed default behind a store built for the old
-     * one.
+     * Falls back to `cache.default` instead of null. The memo compares this,
+     * and a null would hide a changed default behind a store built for the
+     * old one.
      */
     private static function storeName(): ?string
     {

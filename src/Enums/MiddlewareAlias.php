@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Enums;
 /**
  * The alias each entry in `MiddlewareRegistrar::aliases()` registers under.
  * An enum case reference resolves without the container, so this stays safe
- * inside `aliases()`'s literals-only constraint — see that class's docblock.
+ * inside `aliases()`'s literals-only constraint. See that class's docblock.
  */
 enum MiddlewareAlias: string
 {

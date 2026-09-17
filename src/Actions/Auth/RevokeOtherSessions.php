@@ -11,8 +11,8 @@ use Nvade\Numerosis\Contracts\Auth\SessionRegistry;
 /**
  * Deletes every stored session of one user but the one making the request.
  * On a driver the registry cannot list this does nothing, which is why the
- * password stamp — `AuthenticateSession` plus `logoutOtherDevices()` — is the
- * other half of revocation rather than a refinement of this one.
+ * password stamp (`AuthenticateSession` plus `logoutOtherDevices()`) covers
+ * the other half of revocation, separate from this one.
  */
 class RevokeOtherSessions
 {

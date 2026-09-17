@@ -11,9 +11,9 @@ use Nvade\Numerosis\Models\Central\Subscription;
 interface Subscribable
 {
     /**
-     * `Model`, not `static`: an interface is not a `Model`, so `static` here
-     * resolves to `static(Subscribable)` and `TDeclaringModel` rejects it.
-     * Measured 2026-09-14 — `static` on both sides is 5 errors, not 0.
+     * `Model` instead of `static`: an interface is not a `Model`, so `static`
+     * here resolves to `static(Subscribable)` and `TDeclaringModel` rejects it.
+     * Measured 2026-09-14: `static` on both sides produces 5 errors, `Model` 0.
      *
      * @return MorphMany<Subscription, Model>
      */

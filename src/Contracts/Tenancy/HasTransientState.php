@@ -9,7 +9,7 @@ namespace Nvade\Numerosis\Contracts\Tenancy;
  * secrets it re-derives for itself, and request-local UI flags. Anything a
  * step does not list here is persisted, a Stripe client secret included.
  *
- * Static, because the parent asks the configured step classes rather than
+ * Static, because the parent asks the configured step classes instead of
  * building a component on every transition.
  */
 interface HasTransientState

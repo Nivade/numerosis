@@ -13,9 +13,9 @@ use Nvade\Numerosis\Models\Central\DataExportRequest;
 use Nvade\Numerosis\Numerosis;
 
 /**
- * Deletes the artefacts, not the request rows: the row is the record that a
- * subject access request was answered, and it holds no personal data beyond a
- * global id.
+ * Deletes the artefacts only, leaving the request rows: the row is the
+ * record that a subject access request was answered, and it holds no
+ * personal data beyond a global id.
  */
 #[Description('Delete subject access request artefacts older than the retention window')]
 #[Signature('numerosis:prune-data-exports

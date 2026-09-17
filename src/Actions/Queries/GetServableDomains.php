@@ -13,8 +13,9 @@ use Nvade\Numerosis\Numerosis;
 
 /**
  * The one verified-domain query every TLS presenter reads. Filters on tenant
- * state as well as domain state: a suspended or closed tenant whose hostname
- * still answers over HTTPS is a data-exposure bug, not a cosmetic one.
+ * state as well as domain state, since a suspended or closed tenant whose
+ * hostname still answers over HTTPS is a data-exposure bug, never a cosmetic
+ * one.
  *
  * @method static list<string> run()
  */

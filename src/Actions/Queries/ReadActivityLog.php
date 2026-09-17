@@ -30,9 +30,9 @@ class ReadActivityLog
     }
 
     /**
-     * The central entries about one tenant. Scoped in the query rather than at
-     * the screen: a central row bound on a tenant route carries no tenant
-     * scope of its own.
+     * The central entries about one tenant. Scoped in the query instead of at
+     * the screen, since a central row bound on a tenant route carries no
+     * tenant scope of its own.
      *
      * @return Builder<Activity>
      */

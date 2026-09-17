@@ -60,7 +60,7 @@ class TenantProvisionData extends Data
     }
 
     /**
-     * Replaces by class rather than appending: `contribution()` returns the
+     * Replaces by class instead of appending: `contribution()` returns the
      * first match, so an appended second `BillingContribution` would be
      * shadowed by the one already there and silently ignored.
      *

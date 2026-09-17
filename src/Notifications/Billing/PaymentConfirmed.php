@@ -33,7 +33,7 @@ class PaymentConfirmed extends TenantNotification
             ->greeting('Good news!')
             ->line("Your payment for {$this->tenant->name} has been confirmed.");
 
-        // Named rather than left to be discovered on the invoice: a total that
+        // Named instead of left to be discovered on the invoice: a total that
         // moves every month reads as a billing error when nothing explains it.
         if ($this->usageAmount !== null) {
             $message->line("This invoice included {$this->formattedUsage()} of usage on top of your plan.");

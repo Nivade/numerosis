@@ -45,7 +45,7 @@ class StartImpersonation
     }
 
     /**
-     * Signed by hand, not through `URL::temporarySignedRoute()`: the link is
+     * Signed by hand instead of `URL::temporarySignedRoute()`. The link is
      * minted on the central domain and spent on the tenant's, and path mode has
      * no `URL::defaults(['tenant' => …])` to build that URL from a route name.
      */

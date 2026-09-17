@@ -26,8 +26,8 @@ class Activity extends BaseActivity
     /**
      * Two properties every entry carries, whether it came from an attribute
      * diff or from a domain event: who really did it while a staff user was
-     * impersonating, and that a causer-less entry was the system rather than
-     * an anonymous someone.
+     * impersonating, and that a causer-less entry was the system, never an
+     * anonymous someone.
      */
     protected static function booted(): void
     {

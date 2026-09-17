@@ -97,15 +97,14 @@ final class MiddlewareRegistrar
                 MiddlewareAlias::TenancyRoute->value,
                 MiddlewareAlias::TenancySession->value,
 
-                // After the three above, never before: it reads the tenant
-                // guard, which only exists once tenancy is initialized and
-                // `EnsureSessionMatchesTenant` has dropped another tenant's
-                // session state.
+                // Must run after the three above, since it reads the tenant
+                // guard that only exists once tenancy is initialized and
+                // `EnsureSessionMatchesTenant` has dropped the prior session.
                 AuthenticateSession::class,
 
-                // On the group, not on the authenticated routes: an expired
-                // impersonation has to end on whatever request arrives next,
-                // including the tenant's own landing page.
+                // On the group instead of the authenticated routes: an
+                // expired impersonation has to end on whatever request
+                // arrives next, including the tenant's own landing page.
                 MiddlewareAlias::Impersonation->value,
 
                 // On the group so a host's own product routes are gated too.
@@ -125,7 +124,7 @@ final class MiddlewareRegistrar
     }
 
     /**
-     * Appended to a group the host owns, rather than replacing its stack the
+     * Appended to a group the host owns instead of replacing its stack the
      * way {@see self::groups()} does. The `tenant` group nests `web`, so one
      * entry there covers both sides of tenancy.
      *
@@ -178,7 +177,7 @@ final class MiddlewareRegistrar
     }
 
     /**
-     * The proxy IP(s)/CIDR — or the literal `'*'` — read from
+     * The proxy IP(s)/CIDR (or the literal `'*'`) read from
      * `numerosis.trusted_proxies`. Only meaningful once config exists, so it
      * is never called from {@see self::apply()} itself; the un-wired fallback
      * in `NumerosisServiceProvider::registerMiddleware()` is the one caller,

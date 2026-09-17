@@ -31,8 +31,8 @@ class MembershipPolicy
     }
 
     /**
-     * The audit trail names who removed whom and when a role changed, which
-     * is management information rather than team information.
+     * The audit trail names who removed whom and when a role changed. That
+     * is management information, kept out of team-facing views.
      */
     public function viewActivity(User $user): bool
     {

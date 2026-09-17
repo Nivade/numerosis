@@ -350,7 +350,7 @@ class InstallNumerosisCommand extends Command
     /**
      * spatie/laravel-activitylog reads its table name from config on every
      * write, so a name with no table behind it fails at the first logged
-     * event rather than at boot.
+     * event instead of at boot.
      */
     private function verifyActivityLogTable(): void
     {

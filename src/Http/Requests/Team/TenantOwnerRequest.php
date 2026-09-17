@@ -53,7 +53,7 @@ abstract class TenantOwnerRequest extends FormRequest
     }
 
     /**
-     * `current_password` in the form rather than `password.confirm.if-set` on
+     * `current_password` in the form instead of `password.confirm.if-set` on
      * the route, which redirects to `route('password.confirm')` and throws
      * `UrlGenerationException` on a `{tenant}`-prefixed group.
      *

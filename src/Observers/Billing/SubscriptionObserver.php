@@ -14,7 +14,7 @@ use Nvade\Numerosis\Services\Billing\PlanEntitlements;
 /**
  * Keeps {@see \Nvade\Numerosis\Services\Billing\EloquentPaymentPlanRepository::mostPopularSlug()}'s
  * cached slug in step with subscription churn, which is what the aggregate
- * counts. `saved` rather than `created`, because a row moving to a different
+ * counts. `saved` instead of `created`, because a row moving to a different
  * `payment_plan_id` changes the aggregate too.
  */
 class SubscriptionObserver

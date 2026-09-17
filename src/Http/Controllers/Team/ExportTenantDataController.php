@@ -32,8 +32,8 @@ class ExportTenantDataController extends Controller
 
         abort_unless($membership instanceof Membership && Gate::allows('manageClosure', $membership), 403);
 
-        // The link goes to the central account, not to the tenant-side twin:
-        // that twin has no mailbox of its own.
+        // The link goes to the central account instead of the tenant-side
+        // twin, since that twin has no mailbox of its own.
         $owner = Numerosis::model(CentralUser::class)::query()->where('global_id', $user->global_id)->first();
 
         abort_unless($owner instanceof CentralUser, 403);

@@ -14,7 +14,7 @@ use Stripe\Exception\ApiErrorException;
 
 /**
  * Applies the retention code to the subscription the owner was about to close.
- * Re-resolved rather than taken from the request: the only code this can apply
+ * Re-resolved instead of taken from the request. The only code this can apply
  * is the one config names, however the button was pressed.
  *
  * @method static PromotionData|null run(Tenant $tenant)

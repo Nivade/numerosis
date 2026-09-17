@@ -13,7 +13,7 @@ use Nvade\Numerosis\Numerosis;
 /**
  * Writes the audit row for a redemption. Keyed on subscription and promotion
  * code, so the webhook and the checkout request recording the same application
- * leave one row rather than two.
+ * leave one row instead of two.
  *
  * @method static AppliedPromotion|null run(PromotionData $promotion, string $stripeSubscriptionId, ?string $globalId = null, ?string $tenantId = null)
  */

@@ -106,8 +106,8 @@ class Registration extends WizardComponent
 
     /**
      * The wizard state worth persisting: everything each step declares
-     * transient is dropped. Which state that is belongs to the step, not to
-     * this component — see {@see HasTransientState}.
+     * transient is dropped. Which state that is belongs to the step, never to
+     * this component. See {@see HasTransientState}.
      *
      * @return array<string, array<string, mixed>>
      */

@@ -546,7 +546,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Swaps the handler on the built store rather than registering a custom
+     * Swaps the handler on the built store instead of registering a custom
      * driver, so the cookie, encryption and serialization settings stay
      * whatever the host configured.
      */
@@ -588,7 +588,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
                 $schedule->command('billing:prune-orphaned-customers')->daily();
             }
 
-            // Hourly rather than daily: an hour of unreported usage is an hour
+            // Hourly instead of daily: an hour of unreported usage is an hour
             // of a period boundary Stripe may already have closed.
             if (Config::boolean('numerosis.schedule.report_usage')) {
                 $schedule->command('billing:report-usage')->hourly()->withoutOverlapping();
@@ -626,9 +626,6 @@ class NumerosisServiceProvider extends PackageServiceProvider
                 $schedule->command('tenancy:prune-orphaned-databases', ['--force' => true])->daily();
             }
 
-            // `activitylog.clean_after_days` decides the window; the tenant
-            // databases' own logs are cleaned by the same command run inside
-            // tenancy, which is the host's own scheduling decision.
             if (Config::boolean('numerosis.schedule.prune_data_exports')) {
                 $schedule->command('numerosis:prune-data-exports')->daily();
             }
@@ -641,6 +638,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
                 $schedule->command('numerosis:prune-notifications')->daily();
             }
 
+            // `activitylog.clean_after_days` decides the window; the tenant
+            // databases' own logs are cleaned by the same command run inside
+            // tenancy, which is the host's own scheduling decision.
             if (Config::boolean('numerosis.schedule.prune_activity_log')) {
                 $schedule->command('numerosis:prune-activity-log')->daily();
             }
@@ -749,9 +749,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
             }
         }
 
-        // Defaults to trusting nobody — see `numerosis.trusted_proxies`. A
-        // host behind a real proxy that relies on this fallback (rather than
-        // wiring `Numerosis::middleware()` itself) must set that config key.
+        // Defaults to trusting nobody. See `numerosis.trusted_proxies`. A
+        // host behind a real proxy that relies on this fallback instead of
+        // wiring `Numerosis::middleware()` itself must set that config key.
         TrustProxies::at(MiddlewareRegistrar::trustedProxies());
 
         $this->app->make(Kernel::class)->prependMiddleware(TrustHosts::class);
@@ -831,7 +831,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             $email = (string) $request->string(Fortify::username());
             $key = $this->authThrottleKey($request, $email);
 
-            // Throws rather than returns, which is what the limiter does
+            // Throws instead of returning, which is what the limiter does
             // without a response callback; the callback exists only to reach
             // the exhaustion moment.
             return Limit::perMinute(5)->by($key)->response(
@@ -857,9 +857,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         RateLimiter::for('social', fn (Request $request): Limit => Limit::perMinute(10)->by($request->ip()));
 
-        // Per token, not per IP: two tenants behind one NAT must not spend each
-        // other's budget, and one tenant's runaway script must not spend the
-        // fleet's. Falls back to the address for an unauthenticated call.
+        // Keyed per token instead of per IP, so two tenants behind one NAT
+        // cannot spend each other's budget. Falls back to the address for
+        // an unauthenticated call.
         RateLimiter::for('numerosis-api', function (Request $request): Limit {
             $token = $request->user()?->currentAccessToken();
             $key = $token instanceof ApiToken ? $token->getKey() : null;
@@ -872,7 +872,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
     /**
      * Tenant + the account the password step challenged + IP. Keyed on
-     * `login.id` rather than the session id, so cycling the session cookie
+     * `login.id` instead of the session id, so cycling the session cookie
      * does not hand the same pending login a fresh set of guesses; the request
      * never carries that id, so a caller cannot choose whose bucket to spend.
      */
@@ -898,7 +898,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * One {@see SuspiciousLoginDetected} per lockout window, not per blocked
+     * One {@see SuspiciousLoginDetected} per lockout window, never per blocked
      * attempt: the marker is added for the limiter's own decay period and
      * every later attempt in that window finds it already there.
      */

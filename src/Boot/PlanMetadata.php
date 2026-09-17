@@ -13,7 +13,7 @@ use Nvade\Numerosis\Numerosis;
 /**
  * A limit is only a limit if it is a number. `options.max_users` and
  * `options.limits.*` are host-editable JSON, and a typo there reads as
- * uncapped — the plan is sold as limited and enforces nothing.
+ * uncapped, so the plan is sold as limited and enforces nothing.
  */
 final class PlanMetadata
 {
@@ -73,8 +73,8 @@ final class PlanMetadata
 
     /**
      * A meter that fails to parse meters nothing, which under-bills silently.
-     * `meter_id` is a warning rather than a failure: reporting works without
-     * it, reconciliation is what needs it.
+     * `meter_id` is a warning instead of a failure, since reporting works
+     * without it and only reconciliation needs it.
      *
      * @param  array<array-key, mixed>  $options
      * @param  list<string>  $failures

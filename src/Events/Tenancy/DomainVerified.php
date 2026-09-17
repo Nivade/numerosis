@@ -9,9 +9,9 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Ownership of a custom domain has just been proven. Fired once per transition,
- * not once per check, so a listener may act on it — a Cloudflare for SaaS host
- * calls their API from here.
+ * Ownership of a custom domain has just been proven. Fired once per
+ * transition instead of once per check, so a listener may act on it: a
+ * Cloudflare for SaaS host calls their API from here.
  */
 class DomainVerified implements ShouldDispatchAfterCommit
 {

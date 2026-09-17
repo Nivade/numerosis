@@ -13,7 +13,7 @@ use Nvade\Numerosis\Actions\Queries\ReadActivityLog;
 /**
  * Spatie's own `activitylog:clean` deletes through the model's default
  * connection, which is the tenant's inside tenancy and the host's default
- * outside it — never reliably the central one. This names the connection.
+ * outside it, never reliably the central one. This names the connection.
  */
 #[Description('Delete central activity log entries older than the retention window')]
 #[Signature('numerosis:prune-activity-log

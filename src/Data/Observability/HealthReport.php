@@ -36,9 +36,9 @@ final class HealthReport extends Data
     }
 
     /**
-     * No heartbeat ever written is unknown, not failed -- a deployment
-     * running no scheduler at all must not report unhealthy on that basis
-     * alone.
+     * No heartbeat ever written counts as unknown, never as failed. A
+     * deployment running no scheduler at all must not report unhealthy on
+     * that basis alone.
      */
     private function schedulerStalled(): bool
     {

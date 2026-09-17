@@ -161,7 +161,7 @@ class TenantDataExporter implements ExportsTenantData
         }
 
         try {
-            // `cursor()` rather than `lazy()`: lazy chunking needs an
+            // `cursor()` instead of `lazy()`: lazy chunking needs an
             // orderBy, and not every table here has an obvious key to take.
             foreach ($query->cursor() as $row) {
                 fwrite($handle, json_encode((array) $row, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE)."\n");
@@ -175,7 +175,7 @@ class TenantDataExporter implements ExportsTenantData
 
     /**
      * The tenant's own files, read through the tenant-suffixed `local` disk
-     * rather than a path built by hand.
+     * instead of a path built by hand.
      */
     private function addTenantFiles(ZipArchive $zip, Tenant $tenant): void
     {

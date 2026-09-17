@@ -30,9 +30,9 @@ trait Billable
     }
 
     /**
-     * A `Model`-typed parameter, not `$this` directly: `$this` carries the
-     * concrete class, which `TDeclaringModel` will not accept against the
-     * interface's declared `Model`.
+     * A `Model`-typed parameter instead of `$this` directly. `$this` carries
+     * the concrete class, which `TDeclaringModel` will not accept against
+     * the interface's declared `Model`.
      *
      * @return MorphMany<Subscription, Model>
      */

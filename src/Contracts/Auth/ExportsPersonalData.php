@@ -13,7 +13,7 @@ namespace Nvade\Numerosis\Contracts\Auth;
 interface ExportsPersonalData
 {
     /**
-     * @param  string  $globalUserId  The subject's global identifier, not a model: a contract
+     * @param  string  $globalUserId  The subject's global identifier instead of a model: a contract
      *                                typed on this package's own Eloquent classes nails every
      *                                implementer to them.
      * @return string The archive's path on the disk.

@@ -76,7 +76,7 @@ class FakeStripeHttpClient implements ClientInterface
 
     /**
      * Every call the SDK made, in order, so a test can assert how many times a
-     * path was hit rather than only what came back.
+     * path was hit, beyond only what came back.
      *
      * @var list<array{method: string, path: string}>
      */
@@ -187,7 +187,7 @@ class FakeStripeHttpClient implements ClientInterface
 
     /**
      * The subscription as the fake holds it, for a test asserting on what was
-     * sent rather than on what came back.
+     * sent instead of on what came back.
      *
      * @return array<string, mixed>|null
      */
@@ -396,9 +396,9 @@ class FakeStripeHttpClient implements ClientInterface
 
     /**
      * `Billable::paymentMethods()` hits this top-level, customer-filtered
-     * list endpoint rather than `GET /v1/customers/{id}/payment_methods`
-     * ({@see listPaymentMethods()}) — a genuinely different Stripe endpoint,
-     * not a second spelling of the same call.
+     * list endpoint instead of `GET /v1/customers/{id}/payment_methods`
+     * ({@see listPaymentMethods()}), a genuinely different Stripe endpoint
+     * and not a second spelling of the same call.
      *
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
@@ -582,7 +582,7 @@ class FakeStripeHttpClient implements ClientInterface
      * Enough of a created subscription for Cashier to persist one: an active
      * status, so `handlePaymentFailure()` finds nothing to confirm. The
      * `discounts` payload is kept as sent, which is how a test proves a
-     * promotion code reached subscription creation rather than being applied
+     * promotion code reached subscription creation instead of being applied
      * afterwards.
      *
      * @param  array<string, mixed>  $params
@@ -629,7 +629,7 @@ class FakeStripeHttpClient implements ClientInterface
     }
 
     /**
-     * Stripe answers with discount objects, not with the `{promotion_code: id}`
+     * Stripe answers with discount objects instead of the `{promotion_code: id}`
      * pairs it was given.
      *
      * @param  array<array-key, mixed>  $discounts

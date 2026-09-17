@@ -16,9 +16,9 @@ class DeleteUserAccount
 
     public function handle(CentralUser $user): bool
     {
-        // A closed workspace is an exit, not a holding: it is already
-        // unreachable and its purge date is set, so it blocks nothing. The
-        // row is left ownerless until then and nobody can reopen it.
+        // A closed workspace is already unreachable with its purge date set,
+        // so it blocks nothing here. The row stays ownerless until then and
+        // nobody can reopen it.
         $isOwner = $user->tenants()
             ->wherePivot('role', MembershipRole::Owner->value)
             ->whereNull('closed_at')
@@ -33,9 +33,9 @@ class DeleteUserAccount
 
         event(new UserAccountDeleting($user, $globalId));
 
-        // Anonymize rather than delete: a soft delete leaves the name and
-        // address in the row, and a hard delete would take the workspace
-        // content attached to the tenant-side twin with it.
+        // Anonymizes instead of deleting. A soft delete would leave the name
+        // and address in the row, and a hard delete would drag away the
+        // workspace content attached to the tenant-side twin.
         $deleted = AnonymizeUser::run($user);
 
         if ($deleted) {

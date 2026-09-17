@@ -16,7 +16,7 @@ use Stancl\Tenancy\Middleware\InitializeTenancyByPath;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 /**
- * Config-derived answers about how this host identifies and caches tenants —
+ * Config-derived answers about how this host identifies and caches tenants,
  * read by {@see \Nvade\Numerosis\Http\Middleware\InitializeTenancy} and
  * {@see \Nvade\Numerosis\Http\Middleware\TenantRouteGuard} at request time.
  */

@@ -293,7 +293,7 @@ class WebhookController extends CashierWebhookController
     /**
      * Every handler here and in Cashier reads `data.object.customer` as an id,
      * but Stripe sends the whole object whenever the account or the endpoint
-     * expands it. Flattened once at the front door rather than per handler:
+     * expands it. Flattened once at the front door instead of per handler:
      * Cashier reads it in six handlers of its own, one of which
      * (`payment_method.automatically_updated`) this class does not override.
      *

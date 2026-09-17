@@ -35,7 +35,7 @@ class SettleCheckout
         $stripeSubscriptionId = $subscription->stripe_id;
 
         // Written to the row before it is read back, so the contribution the
-        // pipeline receives comes from one place rather than being assembled
+        // pipeline receives comes from one place instead of being assembled
         // twice.
         $pending->update([
             'stripe_subscription_id' => $stripeSubscriptionId,

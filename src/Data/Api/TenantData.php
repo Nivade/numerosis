@@ -8,7 +8,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Spatie\LaravelData\Data;
 
 /**
- * The tenant as the API describes it. Declared field by field rather than from
+ * The tenant as the API describes it. Declared field by field instead of from
  * the model, so a column added later does not appear in a customer's payload
  * without anyone deciding it should.
  */

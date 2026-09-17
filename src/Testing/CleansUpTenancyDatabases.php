@@ -296,10 +296,8 @@ trait CleansUpTenancyDatabases
         $name = $this->centralConnectionName();
 
         // A test that removed the connection to assert what a host sees still
-        // wrote central rows first, and those rows are autocommitted: skipping
-        // the deletes here leaves them for whichever test the runner schedules
-        // next, in a worker database that outlives the run. The config is put
-        // back for the deletes and taken away again below.
+        // wrote central rows first, autocommitted, so the config is put back
+        // here for the deletes and taken away again below.
         $restored = Config::get('database.connections.'.$name) === null
             && $this->restoreCentralConnection($name);
 
@@ -327,7 +325,7 @@ trait CleansUpTenancyDatabases
             if ($restored) {
                 DB::purge($name);
 
-                // `Config::offsetUnset()` writes null rather than removing the
+                // `Config::offsetUnset()` writes null instead of removing the
                 // key, which is indistinguishable here and is what the guard
                 // above tests for.
                 Config::set('database.connections.'.$name);
@@ -396,9 +394,8 @@ trait CleansUpTenancyDatabases
         }
 
         // On SQLite a tenant row written inside RefreshDatabase's transaction
-        // is gone by the time some test classes reach here, taking the only
-        // record of the file's name with it. One file per database makes the
-        // prefix itself an answer, which no server driver can offer safely.
+        // is gone by the time some test classes reach here, so the prefix
+        // itself has to answer, which no server driver can offer safely.
         if ($this->centralDriver() === 'sqlite') {
             $databases = [...$databases, ...resolve(TenantDatabaseManager::class)->namesMatchingPrefix(
                 Config::string('tenancy.database.prefix', 'tenant'),
@@ -415,9 +412,9 @@ trait CleansUpTenancyDatabases
     }
 
     /**
-     * A test is free to leave the central connection unconfigured — several
+     * A test is free to leave the central connection unconfigured; several
      * exist to assert what happens when a host does. Teardown still has to
-     * drop whatever it already knows about rather than throwing from a
+     * drop whatever it already knows about instead of throwing from a
      * `beforeApplicationDestroyed()` callback with no test-side frame.
      */
     private function centralHasTenantsTable(string $connection): bool

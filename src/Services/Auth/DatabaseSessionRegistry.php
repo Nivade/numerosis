@@ -67,8 +67,8 @@ class DatabaseSessionRegistry implements SessionRegistry
             return false;
         }
 
-        // The named row only, not the whole listable set: ownership is decided
-        // from that one payload.
+        // The named row only, instead of the whole listable set: ownership is
+        // decided from that one payload.
         $row = $this->table()->where('id', $sessionId)->first();
 
         if (! $row instanceof stdClass || ! $this->belongsTo($row, $guard, $userId)) {

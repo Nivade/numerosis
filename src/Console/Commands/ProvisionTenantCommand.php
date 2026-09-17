@@ -25,7 +25,7 @@ use Nvade\Numerosis\Numerosis;
  *
  * Until this existed the only ways in were the registration wizard, the Stripe
  * webhook and the local checkout shortcut, so "create a tenant without selling
- * anything" was reachable only from code. It queues the same chain those do —
+ * anything" was reachable only from code. It queues the same chain those do;
  * the billing steps skip themselves, because nothing contributed billing.
  */
 #[Description('Provision a tenant without going through checkout')]
@@ -75,8 +75,8 @@ class ProvisionTenantCommand extends Command
             return self::FAILURE;
         }
 
-        // ValidationException, not ShowsMessageToUser: the policy contract
-        // documents the former, and it is not one of the latter.
+        // Throws ValidationException: the policy contract documents that,
+        // and does not throw ShowsMessageToUser.
         try {
             $this->domainPolicy->assertAvailable($slug);
         } catch (ValidationException $e) {
@@ -85,7 +85,7 @@ class ProvisionTenantCommand extends Command
             return self::FAILURE;
         }
 
-        // Checked here rather than left to AddTenantOwner, which would fail
+        // Checked here instead of left to AddTenantOwner, which would fail
         // inside a queued job with nobody watching.
         $exists = Numerosis::model(CentralUser::class)::where('global_id', $owner)->exists();
 

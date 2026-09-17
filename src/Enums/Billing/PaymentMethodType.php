@@ -17,7 +17,7 @@ enum PaymentMethodType: string
 
     /**
      * Types a completed checkout may reuse on a later purchase. Redirect
-     * methods attach nothing directly — see `ResolveAttachedPaymentMethod`.
+     * methods attach nothing directly. See `ResolveAttachedPaymentMethod`.
      *
      * @return list<self>
      */

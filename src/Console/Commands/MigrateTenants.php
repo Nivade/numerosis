@@ -63,7 +63,7 @@ class MigrateTenants extends Command
 
     /**
      * A resumed run keeps its id, which is what makes its finished legs
-     * skippable and the screen show one run rather than two.
+     * skippable and the screen show one run instead of two.
      */
     private function resolveRunId(): string
     {
