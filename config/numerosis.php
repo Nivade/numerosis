@@ -243,6 +243,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Health
+    |--------------------------------------------------------------------------
+    |
+    | Read by HealthReport::healthy(). A scheduler heartbeat older than
+    | 'scheduler_stale_after_seconds' fails the check. A heartbeat that has
+    | never been written reads as unknown rather than failed, so a deployment
+    | running no scheduler at all still reports healthy.
+    */
+
+    'health' => [
+        'scheduler_stale_after_seconds' => env('NUMEROSIS_SCHEDULER_STALE_AFTER_SECONDS', 300),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Trusted proxies
     |--------------------------------------------------------------------------
     |

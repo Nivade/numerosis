@@ -144,6 +144,34 @@ class TenantClosureTest extends TestCase
             ->assertSee('Reopen this workspace');
     }
 
+    public function test_an_admin_sees_the_closure_detail_but_not_the_reopen_control(): void
+    {
+        $this->fakeStripe();
+
+        [$tenant, $domain] = $this->tenant();
+        [, $owner] = $this->member($tenant, MembershipRole::Owner);
+        [, $admin] = $this->member($tenant, MembershipRole::Admin);
+
+        CloseTenant::run($tenant);
+
+        $closedOn = $tenant->refresh()->closed_at?->toFormattedDayDateString();
+        $this->assertNotNull($closedOn);
+
+        $this->actingAsTenantUser($admin);
+
+        $this->get('http://'.$domain.'/account-closed')
+            ->assertOk()
+            ->assertSee($closedOn)
+            ->assertDontSee('Reopen this workspace');
+
+        $this->actingAsTenantUser($owner);
+
+        $this->get('http://'.$domain.'/account-closed')
+            ->assertOk()
+            ->assertSee($closedOn)
+            ->assertSee('Reopen this workspace');
+    }
+
     public function test_reopening_within_the_grace_period_restores_the_same_subscription(): void
     {
         Event::fake([TenantReopened::class]);
