@@ -7,9 +7,11 @@ namespace Nvade\Numerosis\Boot;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Support\Facades\Config;
+use Laravel\Sanctum\Http\Middleware\CheckAbilities;
 use Nvade\Numerosis\Concerns\Boot\RegistersOnce;
 use Nvade\Numerosis\Enums\MiddlewareAlias;
 use Nvade\Numerosis\Http\Middleware\Authenticate;
+use Nvade\Numerosis\Http\Middleware\EnsureApiTokenIsUsable;
 use Nvade\Numerosis\Http\Middleware\EnsureEntitlement;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\EnsureTenantMembership;
@@ -72,6 +74,14 @@ final class MiddlewareRegistrar
 
             // Takes the capability as a parameter: `entitlement:custom-branding`.
             MiddlewareAlias::Entitlement->value => EnsureEntitlement::class,
+
+            // Expiry and the egress allowlist, neither of which Sanctum checks.
+            MiddlewareAlias::ApiToken->value => EnsureApiTokenIsUsable::class,
+
+            // Sanctum's ability gate under this package's own alias: `abilities`
+            // is a name the framework's default stack owns, and a host that
+            // aliased it differently must keep its own meaning.
+            MiddlewareAlias::ApiAbilities->value => CheckAbilities::class,
         ];
     }
 
@@ -99,6 +109,13 @@ final class MiddlewareRegistrar
                 // impersonation has to end on whatever request arrives next,
                 // including the tenant's own landing page.
                 MiddlewareAlias::Impersonation->value,
+            ],
+            // The API's own stack: tenancy identification without a session,
+            // since a token carries the caller and a cookie must not.
+            'tenant-api' => [
+                'api',
+                MiddlewareAlias::TenancyIdentification->value,
+                MiddlewareAlias::TenancyRoute->value,
             ],
             'universal' => [],
         ];

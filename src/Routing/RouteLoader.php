@@ -95,7 +95,11 @@ final class RouteLoader
         });
 
         // Outside the domain groups, matching what `withRouting(api: ...)`
-        // would have built had `using:` left it reachable.
+        // would have built had `using:` left it reachable. The package's own
+        // API routes go first, so a host route on the same URI replaces one of
+        // them rather than being shadowed by it.
+        Route::prefix($apiPrefix)->group($routes.'/api.php');
+
         if (is_file($api = base_path('routes/api.php'))) {
             Route::middleware('api')->prefix($apiPrefix)->group($api);
         }

@@ -1,0 +1,175 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Nvade\Numerosis\Tests\Feature\Api;
+
+use App\Models\Central\CentralUser;
+use App\Models\Central\PaymentPlan;
+use App\Models\Central\Subscription;
+use App\Models\Central\Tenant;
+use App\Models\Tenant\User as TenantUser;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
+use Nvade\Numerosis\Actions\Auth\Api\CreateApiToken;
+use Nvade\Numerosis\Actions\Queries\GetApiAbilities;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
+use Nvade\Numerosis\Models\Tenant\User as BaseTenantUser;
+use Nvade\Numerosis\Tests\TestCase;
+
+/**
+ * Payload shape is the contract. Every field is declared on a `Data` object, so
+ * these assertions are what stops a column added to a model later from turning
+ * up in a customer's integration.
+ */
+class ReadApiTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_the_tenant_payload_carries_only_declared_fields(): void
+    {
+        [$tenant, $domain, $user] = $this->workspace();
+
+        /** @var array<string, mixed> $payload */
+        $payload = $this->getJson('http://'.$domain.'/api/v1/tenant', $this->tokenHeaders($tenant, $user))
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame(
+            ['closed', 'created_at', 'id', 'name', 'suspended'],
+            $this->sortedKeys($payload),
+        );
+    }
+
+    public function test_the_members_payload_names_the_role_and_nothing_private(): void
+    {
+        [$tenant, $domain, $user] = $this->workspace();
+
+        /** @var list<array<string, mixed>> $members */
+        $members = $this->getJson('http://'.$domain.'/api/v1/members', $this->tokenHeaders($tenant, $user))
+            ->assertOk()
+            ->json('data');
+
+        $this->assertCount(1, $members);
+        $this->assertSame(
+            ['email', 'global_id', 'joined_at', 'name', 'role'],
+            $this->sortedKeys($members[0]),
+        );
+        $this->assertSame(MembershipRole::Owner->value, $members[0]['role']);
+    }
+
+    public function test_the_subscription_payload_reports_status_and_usage_without_stripe_ids(): void
+    {
+        [$tenant, $domain, $user] = $this->workspace();
+
+        $plan = PaymentPlan::factory()->create([
+            'slug' => 'pro',
+            'metadata' => ['options' => ['meters' => [[
+                'key' => 'api-calls',
+                'event_name' => 'api_calls',
+                'included' => 100,
+            ]]]],
+        ]);
+
+        Tenant::unsetEventDispatcher();
+
+        Subscription::factory()->create([
+            'subscribable_id' => $tenant->id,
+            'payment_plan_id' => $plan->id,
+        ]);
+
+        /** @var array{subscription: array<string, mixed>, usage: list<array<string, mixed>>} $payload */
+        $payload = $this->getJson('http://'.$domain.'/api/v1/subscription', $this->tokenHeaders($tenant, $user))
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame(['active', 'ends_at', 'plan', 'status', 'trial_ends_at'], $this->sortedKeys($payload['subscription']));
+        $this->assertSame('pro', $payload['subscription']['plan']);
+        $this->assertStringNotContainsString('stripe_id', json_encode($payload, JSON_THROW_ON_ERROR));
+        $this->assertSame('api-calls', $payload['usage'][0]['key']);
+    }
+
+    public function test_an_unauthenticated_call_is_refused_rather_than_answered(): void
+    {
+        [, $domain] = $this->workspace();
+
+        $this->getJson('http://'.$domain.'/api/v1/tenant', ['Accept' => 'application/json'])
+            ->assertUnauthorized();
+    }
+
+    /** Per token, so one tenant's runaway script cannot spend the fleet's budget. */
+    public function test_the_rate_limit_is_spent_per_token(): void
+    {
+        Config::set('numerosis.api.rate_limit', 2);
+
+        [$tenant, $domain, $user] = $this->workspace();
+        $other = $this->memberOf($tenant, MembershipRole::Member);
+
+        $first = $this->tokenHeaders($tenant, $user);
+        $second = $this->tokenHeaders($tenant, $other);
+
+        $this->getJson('http://'.$domain.'/api/v1/tenant', $first)->assertOk();
+        auth()->forgetGuards();
+        $this->getJson('http://'.$domain.'/api/v1/tenant', $first)->assertOk();
+        auth()->forgetGuards();
+        $this->getJson('http://'.$domain.'/api/v1/tenant', $first)->assertTooManyRequests();
+
+        auth()->forgetGuards();
+
+        $this->getJson('http://'.$domain.'/api/v1/tenant', $second)->assertOk();
+    }
+
+    /**
+     * @param  array<array-key, mixed>|null  $payload
+     * @return list<string>
+     */
+    private function sortedKeys(?array $payload): array
+    {
+        $keys = array_keys($payload ?? []);
+        sort($keys);
+
+        /** @var list<string> $keys */
+        return $keys;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function tokenHeaders(Tenant $tenant, BaseTenantUser $user): array
+    {
+        $plaintext = $tenant->run(fn (): string => CreateApiToken::run(
+            $user,
+            'reader',
+            GetApiAbilities::run(),
+        )->plainTextToken);
+
+        $this->assertIsString($plaintext);
+
+        return ['Authorization' => 'Bearer '.$plaintext, 'Accept' => 'application/json'];
+    }
+
+    /**
+     * @return array{0: Tenant, 1: string, 2: BaseTenantUser}
+     */
+    private function workspace(): array
+    {
+        $id = 'api'.substr(uniqid(), -8);
+        $tenant = $this->createTenantWithDomain($id, 'Api Tenant');
+
+        return [$tenant, $this->tenantDomain($id), $this->memberOf($tenant, MembershipRole::Owner)];
+    }
+
+    private function memberOf(Tenant $tenant, MembershipRole $role): BaseTenantUser
+    {
+        tenancy()->end();
+
+        $central = CentralUser::factory()->create();
+
+        $tenant->users()->attach($central->global_id, ['role' => $role->value, 'joined_at' => now()]);
+
+        /** @var BaseTenantUser $member */
+        $member = $tenant->run(fn (): TenantUser => TenantUser::where('global_id', $central->global_id)->firstOrFail());
+
+        return $member;
+    }
+}

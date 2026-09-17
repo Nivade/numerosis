@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Laravel\Sanctum\HasApiTokens;
 use Nvade\Numerosis\Concerns\Tenancy\HasGlobalIdentity;
 use Nvade\Numerosis\Contracts\Auth\TenantUserModel;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -65,6 +66,7 @@ use Stancl\Tenancy\Database\Concerns\ResourceSyncing;
 ])]
 class User extends BaseUser implements TenantUserModel
 {
+    use HasApiTokens;
     use HasGlobalIdentity;
     use LogsActivity;
     use ResourceSyncing;

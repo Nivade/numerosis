@@ -112,6 +112,8 @@ Route::middleware(['universal', MiddlewareAlias::TenancyAuth->value.':'.Context:
                 Route::livewire('domain', 'numerosis-pages::tenant.domain')->name('domain.index');
             }
 
+            Route::livewire('api-tokens', 'numerosis-pages::tenant.api-tokens')->name('api-tokens.index');
+
             if (FeatureRegistry::enabled(UsageMeteringFeature::NAME)) {
                 Route::livewire('usage', 'numerosis-pages::tenant.usage')->name('usage.index');
             }

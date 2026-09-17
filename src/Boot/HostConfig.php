@@ -360,6 +360,13 @@ final class HostConfig
                 'driver' => 'session',
                 'provider' => 'tenant',
             ]],
+            // Sanctum's token guard, for the package's own /api routes. Its
+            // provider is the tenant one: an API token authorizes a person
+            // inside one workspace, never a central user.
+            'auth.guards.sanctum' => [[], [
+                'driver' => 'sanctum',
+                'provider' => 'tenant',
+            ]],
             'auth.providers.tenant' => [[], [
                 'driver' => 'eloquent',
                 'model' => Numerosis::model(TenantUser::class),
