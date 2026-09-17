@@ -1,6 +1,19 @@
 # Remediating the SaaS readiness review
 
-**Status: not executed, and partly overtaken. Written 2026-09-17 after a
+> **Status: partly executed. Do not execute this file.**
+>
+> Phase 1 is done (`e411bed`). Phases 2 through 12 are executed from
+> `.claude/plans/remediation-briefs/` — one brief per phase, anchors re-verified
+> against HEAD, every judgement call answered. **Start at that directory's
+> `README.md`**, which carries the kickoff prompt and the progress table.
+>
+> This file stays as the record of *why* each finding was raised. Its file:line
+> references predate `refactor/saas-readiness-simplify` and point at code that
+> has moved, and its D1–D4 decisions are settled (D1 sign, D2 drop, D3 three
+> feature classes, D4 **drop** `Password::min(8)` — note 9.1 below assumes the
+> opposite). Where this file and a brief disagree, the brief is right.
+
+**Originally written 2026-09-17 after a
 two-axis review of `5d3a2cc...HEAD`, the twenty feature plans of
 `saas-readiness-roadmap.md`.** Sixty-eight findings, all of them carried here:
 forty-two on the standards axis, twenty-six on the spec axis. Twelve phases,

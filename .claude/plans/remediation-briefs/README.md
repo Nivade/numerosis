@@ -9,6 +9,57 @@ wins — it was verified against HEAD, the plan was written before
 
 Phase 1 is done and committed (`e411bed`); there is no brief for it.
 
+## Starting a phase
+
+**One phase per session.** Do not chain two: the second starts with a context
+full of the first and the anchors stop getting read.
+
+Pick the phase from the progress table below — the first unticked row whose
+prerequisite is met. If the user named a phase, use that one instead.
+
+Then follow this, exactly:
+
+1. Read this whole file, then the brief for your phase, then
+   `.ai/rules/overview.md` and every rule file the brief names. Before touching
+   anything.
+2. The brief is the scope and the spec. Its anchors are verified file:line. **If
+   an anchor does not match what you find, stop and report** — do not hunt for a
+   substitute. **If you meet a decision the brief does not answer, stop and
+   ask.**
+3. Anything you notice outside the brief goes in `.claude/findings.md` through
+   the `note-finding` skill. Do not fix it.
+4. `docker start numerosis-mysql-1` before the first test run. Never start a run
+   while another is alive.
+5. Prove every behavioural fix: write the test, revert the fix, watch it fail,
+   restore the fix.
+6. Green suite, then `composer analyse`, then `composer lint`, then read
+   `git status` — anything Rector rewrote that your phase did not touch goes in
+   its own `refactor: apply rector` commit.
+7. Commit with the message at the bottom of the brief. One commit for the phase.
+8. Tick your row in the progress table below, in that same commit.
+9. Report what changed, what you tested, and anything you stopped on.
+
+Work on `fix/saas-readiness-remediation`. Do not create another branch.
+
+## Progress
+
+Tick a row only when its phase is committed.
+
+| Done | Phase | Prerequisite |
+|---|---|---|
+| [x] | 1 — Security correctness (`e411bed`) | — |
+| [ ] | 2 — Contracts and the seat counter | — |
+| [ ] | 3 — Custom domain verification | — |
+| [ ] | 4 — Privacy, audit and backup | — |
+| [ ] | 5 — Notifications | — |
+| [ ] | 6 — Entitlements and billing | phase 2 |
+| [ ] | 7 — Feature gating and the API | — |
+| [ ] | 8 — Lifecycle and the staff panel | — |
+| [ ] | 9 — Hardening configuration | — |
+| [ ] | 10 — Duplication and dead weight | 2–9 all done |
+| [ ] | 11 — The comment sweep | phase 10 |
+| [ ] | 12 — Closing out | everything |
+
 ## The contract every brief runs under
 
 1. **Anchors are verified, not approximate.** Each brief names file:line as of
