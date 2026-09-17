@@ -65,6 +65,7 @@ use Nvade\Numerosis\Console\Commands\ListClosedTenants;
 use Nvade\Numerosis\Console\Commands\MigrateTenants;
 use Nvade\Numerosis\Console\Commands\ProvisionTenantCommand;
 use Nvade\Numerosis\Console\Commands\PruneActivityLog;
+use Nvade\Numerosis\Console\Commands\PruneDataExports;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedStripeCustomers;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
@@ -185,6 +186,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->hasCommand(PruneActivityLog::class)
             ->hasCommand(BackupTenantCommand::class)
             ->hasCommand(PruneTenantBackups::class)
+            ->hasCommand(PruneDataExports::class)
             ->hasCommand(RestoreTenantCommand::class)
             ->hasCommand(ProvisionTenantCommand::class)
             ->hasCommand(TransferTenantOwnershipCommand::class);
@@ -539,6 +541,10 @@ class NumerosisServiceProvider extends PackageServiceProvider
             // `activitylog.clean_after_days` decides the window; the tenant
             // databases' own logs are cleaned by the same command run inside
             // tenancy, which is the host's own scheduling decision.
+            if (Config::boolean('numerosis.schedule.prune_data_exports')) {
+                $schedule->command('numerosis:prune-data-exports')->daily();
+            }
+
             if (Config::boolean('numerosis.schedule.prune_tenant_backups')) {
                 $schedule->command('numerosis:prune-tenant-backups')->daily();
             }

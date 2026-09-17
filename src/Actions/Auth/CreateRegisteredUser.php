@@ -41,10 +41,14 @@ class CreateRegisteredUser implements CreatesNewUsers
 
         $centralUserClass = Numerosis::model(CentralUser::class);
 
-        return $centralUserClass::create([
+        $user = $centralUserClass::create([
             'name' => $data->name,
             'email' => $data->email,
             'password' => Hash::make($data->password),
         ]);
+
+        RecordConsent::run($user);
+
+        return $user;
     }
 }

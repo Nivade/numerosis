@@ -11,6 +11,7 @@
                 <flux:navlist.item :href="route('settings.two-factor')" wire:navigate>{{ __('Two-factor') }}</flux:navlist.item>
             @endif
             <flux:navlist.item :href="route('settings.sessions')" wire:navigate>{{ __('Sessions') }}</flux:navlist.item>
+            <flux:navlist.item :href="route('settings.data')" wire:navigate>{{ __('Your data') }}</flux:navlist.item>
         </flux:navlist>
     </div>
 

@@ -8,9 +8,12 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Nvade\Numerosis\Actions\Auth\AnonymizeUserForStaff;
 use Nvade\Numerosis\Actions\Auth\ClearTwoFactorAuthentication;
+use Nvade\Numerosis\Actions\Auth\ExportUserDataForStaff;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
 use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Numerosis;
 
@@ -52,6 +55,74 @@ class extends Component
         unset($this->users);
 
         $this->dispatch('notify', type: 'success', message: __('numerosis::staff.users.two_factor_cleared'));
+    }
+
+    /** Starts an export for somebody who asked by mail; the link still goes to them. */
+    public function exportData(int $userId): void
+    {
+        $staff = $this->staffWith(ExportUserDataForStaff::ability());
+        $target = Numerosis::model(CentralUser::class)::query()->find($userId);
+
+        if (! $target instanceof CentralUser) {
+            return;
+        }
+
+        try {
+            ExportUserDataForStaff::run($staff, $target);
+        } catch (ShowsMessageToUser $refusal) {
+            $this->dispatch('notify', type: 'error', message: $refusal->getMessage());
+
+            return;
+        }
+
+        $this->dispatch('notify', type: 'success', message: __('numerosis::staff.users.export_started'));
+    }
+
+    public function eraseData(int $userId): void
+    {
+        $staff = $this->staffWith(AnonymizeUserForStaff::ability());
+        $target = Numerosis::model(CentralUser::class)::query()->find($userId);
+
+        if (! $target instanceof CentralUser) {
+            return;
+        }
+
+        $erased = AnonymizeUserForStaff::run($staff, $target);
+
+        unset($this->users);
+
+        $this->dispatch(
+            'notify',
+            type: $erased ? 'success' : 'error',
+            message: $erased
+                ? __('numerosis::staff.users.erased')
+                : __('numerosis::staff.users.erase_blocked'),
+        );
+    }
+
+    private function staffWith(string $ability): CentralUser
+    {
+        $staff = GetAuthenticatedUser::run(Context::Central->guard());
+
+        abort_unless($staff instanceof CentralUser && $staff->hasPermissionTo($ability), 403);
+
+        return $staff;
+    }
+
+    #[Computed]
+    public function canExportData(): bool
+    {
+        $staff = GetAuthenticatedUser::run(Context::Central->guard());
+
+        return $staff instanceof CentralUser && $staff->hasPermissionTo(ExportUserDataForStaff::ability());
+    }
+
+    #[Computed]
+    public function canEraseData(): bool
+    {
+        $staff = GetAuthenticatedUser::run(Context::Central->guard());
+
+        return $staff instanceof CentralUser && $staff->hasPermissionTo(AnonymizeUserForStaff::ability());
     }
 
     #[Computed]
@@ -108,6 +179,7 @@ class extends Component
                         <flux:table.column>{{ __('numerosis::staff.users.columns.tenants') }}</flux:table.column>
                         <flux:table.column>{{ __('numerosis::staff.users.columns.two_factor') }}</flux:table.column>
                         <flux:table.column>{{ __('numerosis::staff.users.columns.joined') }}</flux:table.column>
+                        <flux:table.column>{{ __('numerosis::staff.users.columns.privacy') }}</flux:table.column>
                     </flux:table.columns>
 
                     <flux:table.rows>
@@ -137,6 +209,24 @@ class extends Component
                                     @endif
                                 </flux:table.cell>
                                 <flux:table.cell>{{ $user->created_at?->toFormattedDateString() ?? '—' }}</flux:table.cell>
+                                <flux:table.cell>
+                                    @if ($this->canExportData)
+                                        <flux:button wire:click="exportData({{ $user->getKey() }})" variant="ghost" size="sm">
+                                            {{ __('numerosis::staff.users.export') }}
+                                        </flux:button>
+                                    @endif
+
+                                    @if ($this->canEraseData && $user->anonymized_at === null)
+                                        <flux:button
+                                            wire:click="eraseData({{ $user->getKey() }})"
+                                            wire:confirm="{{ __('numerosis::staff.users.erase_confirm') }}"
+                                            variant="ghost"
+                                            size="sm"
+                                        >
+                                            {{ __('numerosis::staff.users.erase') }}
+                                        </flux:button>
+                                    @endif
+                                </flux:table.cell>
                             </flux:table.row>
                         @endforeach
                     </flux:table.rows>

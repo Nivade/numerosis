@@ -116,6 +116,17 @@ class extends Component
             <x-numerosis::ui.text variant="default" size="sm">{{ session('status') }}</x-numerosis::ui.text>
         @endif
 
+        @if ($isOwner)
+            {{-- `url()->current()`, not `route('team.export')`: path mode
+                 prefixes the tenant group `{tenant}`, which has no URL default. --}}
+            <form method="POST" action="{{ url()->current() }}/export">
+                @csrf
+                <flux:button type="submit" variant="filled" size="sm">
+                    {{ __('Export this workspace') }}
+                </flux:button>
+            </form>
+        @endif
+
         @if ($activityLogEnabled)
             @can('viewActivity', Membership::class)
             {{-- `url()->current()`, not `route('team.activity')`: path mode

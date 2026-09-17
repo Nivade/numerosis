@@ -33,7 +33,10 @@ class DeleteUserAccount
 
         event(new UserAccountDeleting($user, $globalId));
 
-        $deleted = (bool) $user->delete();
+        // Anonymize rather than delete: a soft delete leaves the name and
+        // address in the row, and a hard delete would take the workspace
+        // content attached to the tenant-side twin with it.
+        $deleted = AnonymizeUser::run($user);
 
         if ($deleted) {
             event(new UserAccountDeleted($globalId, $email));

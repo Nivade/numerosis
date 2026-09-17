@@ -74,6 +74,7 @@ class User extends BaseUser implements TenantUserModel
     {
         return [
             'email_verified_at' => 'datetime',
+            'anonymized_at' => 'datetime',
             'is_bot' => 'boolean',
         ];
     }

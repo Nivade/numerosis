@@ -188,11 +188,18 @@ return [
             'tenants' => 'Tenants',
             'two_factor' => 'Two-factor',
             'joined' => 'Joined',
+            'privacy' => 'Data requests',
         ],
         'two_factor' => [
             'on' => 'On',
             'off' => 'Off',
         ],
         'two_factor_cleared' => 'Two-factor authentication cleared.',
+        'export' => 'Export data',
+        'export_started' => 'The export is running. The download link goes to the user.',
+        'erase' => 'Erase',
+        'erase_confirm' => 'Erase this account? Their name and address are replaced everywhere and this cannot be undone.',
+        'erased' => 'Account erased.',
+        'erase_blocked' => 'They still own a workspace. Transfer or close it first.',
     ],
 ];
