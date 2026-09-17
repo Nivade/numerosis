@@ -42,6 +42,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property string|null $global_id
  * @property string|null $payment_plan
  * @property BillingCycle|null $billing_cycle
+ * @property string|null $promotion_code
  * @property string|null $stripe_setup_intent_id
  * @property string|null $stripe_subscription_id
  * @property string|null $stripe_customer_id

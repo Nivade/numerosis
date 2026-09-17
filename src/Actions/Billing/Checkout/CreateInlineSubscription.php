@@ -4,14 +4,21 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing\Checkout;
 
+use Illuminate\Support\Facades\Log;
 use Laravel\Cashier\Cashier;
 use Laravel\Cashier\Exceptions\IncompletePayment;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Actions\Billing\Promotions\RecordAppliedPromotion;
+use Nvade\Numerosis\Actions\Billing\Promotions\ValidatePromotionCode;
 use Nvade\Numerosis\Contracts\Billing\BillableResolver;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
+use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Contracts\Billing\TrialResolver;
+use Nvade\Numerosis\Data\Billing\PromotionData;
+use Nvade\Numerosis\Enums\Billing\BillingCycle;
 use Nvade\Numerosis\Exceptions\Billing\BillingCycleRequired;
+use Nvade\Numerosis\Exceptions\Billing\PromotionCodeUnavailable;
 use Nvade\Numerosis\Exceptions\Billing\StripePriceNotConfigured;
 use Nvade\Numerosis\Exceptions\Billing\UnsupportedBillable;
 use Nvade\Numerosis\Models\Central\Subscription;
@@ -80,6 +87,16 @@ class CreateInlineSubscription
             $stripeSubscription->trialDays($trialDays);
         }
 
+        // Carried into the builder rather than applied to the subscription
+        // afterwards, so the first invoice is the discounted one. Re-validated
+        // here on purpose: the code was checked when it was typed, and a
+        // redemption limit can have been reached since.
+        $promotion = $this->promotionFor($pending, $billable, $plan, $billingCycle);
+
+        if ($promotion instanceof PromotionData) {
+            $stripeSubscription->withPromotionCode($promotion->promotion_code_id);
+        }
+
         try {
             $subscription = $stripeSubscription->create($paymentMethodId);
         } catch (IncompletePayment $e) {
@@ -99,6 +116,41 @@ class CreateInlineSubscription
 
         $pending->update(['stripe_subscription_id' => $subscription->stripe_id]);
 
+        if ($promotion instanceof PromotionData) {
+            RecordAppliedPromotion::run($promotion, $subscription->stripe_id, $pending->global_id);
+        }
+
         return $subscription;
+    }
+
+    /**
+     * A code that no longer validates is dropped rather than fatal: the
+     * customer already entered a card for a subscription they asked for, and
+     * refusing the whole charge over a discount loses the sale.
+     */
+    private function promotionFor(
+        TenantProvision $pending,
+        BillableUser $billable,
+        Plan $plan,
+        BillingCycle $billingCycle,
+    ): ?PromotionData {
+        $code = $pending->promotion_code;
+
+        if ($code === null || $code === '') {
+            return null;
+        }
+
+        try {
+            return ValidatePromotionCode::run($code, $billable, $plan, $billingCycle);
+        } catch (PromotionCodeUnavailable $e) {
+            Log::info('Promotion code dropped at subscription creation', [
+                'slug' => $pending->slug,
+                'reason' => $e->reason,
+            ]);
+
+            $pending->update(['promotion_code' => null]);
+
+            return null;
+        }
     }
 }

@@ -1,7 +1,9 @@
 # Coupons, promotion codes and discounts
 
-**Status: not executed. Written 2026-09-16.** Wave 4 of
-`saas-readiness-roadmap.md`.
+**Status: executed 2026-09-17 on `feat/coupons-and-promotions`.** Wave 4 of
+`saas-readiness-roadmap.md`. All six phases landed; "What shipped" at the bottom
+records the three places the shape changed and the one test that could not be
+written offline.
 
 ## The gap
 
@@ -100,3 +102,36 @@ retention coupon configured must not see a broken offer.
 - **Codes in URLs.** Accepting `?promo=` from a marketing link is the obvious
   next request and is an open redirect for pricing: validate server-side and
   never trust the query string beyond pre-filling the field.
+
+## What shipped
+
+- **The code travels on the reservation, not in the session.**
+  `tenant_provisions.promotion_code` holds what the customer typed, and
+  `BillingContribution` carries it like every other billing column. The Stripe
+  promotion code *id* is deliberately not stored: it is resolved again in
+  `CreateInlineSubscription`, because a redemption limit moves between typing a
+  code and entering a card.
+- **A code that stops validating is dropped, not fatal.** The customer has
+  already asked for the subscription; refusing the whole charge over a discount
+  loses the sale, and billing a code Stripe would reject is worse. The drop is
+  logged with its reason and clears the column.
+- **Phase 1's "both paths" was free.** The wizard embeds
+  `Livewire\Billing\Checkout` rather than owning a second field, so the code
+  surface exists once. `StartCheckoutRequest` gained a shape-only
+  `promotion_code` rule for the direct entry point.
+- **Display landed in three places, none of them a billing screen** — there is
+  no such screen. The checkout carries the field and the applied label, the team
+  page names an active discount and its end date, and the staff tenant detail
+  lists the `applied_promotions` rows.
+- **One test from the plan could not be written offline.** "Plan swap preserves
+  a discount where Stripe does" needs `swapAndInvoice()`, whose invoice
+  endpoints the in-memory Stripe fake does not implement. What is asserted
+  instead is the claim this package is responsible for: no local write sends
+  `discounts`, so an update leaves the discount Stripe is keeping
+  (`RetentionOfferTest::test_an_update_to_the_subscription_does_not_drop_the_discount`).
+  The trial-redemption test is asserted the same way — the package counts no
+  redemptions, Stripe does.
+
+The fake Stripe client gained promotion codes, coupons, prices, meter-aware
+subscription creation and clearable subscription discounts, so all of this runs
+without network access.

@@ -18,15 +18,19 @@ use Nvade\Numerosis\Actions\Billing\Checkout\LoadCheckoutContext;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveSavedPaymentMethod;
 use Nvade\Numerosis\Actions\Billing\Checkout\ResolveSetupIntent;
 use Nvade\Numerosis\Actions\Billing\Checkout\SettleCheckout;
+use Nvade\Numerosis\Actions\Billing\Promotions\ValidatePromotionCode;
 use Nvade\Numerosis\Actions\Billing\SyncBillingAddress;
 use Nvade\Numerosis\Concerns\Billing\ConfirmsPayments;
 use Nvade\Numerosis\Contracts\Billing\BillableUser;
 use Nvade\Numerosis\Contracts\Billing\CheckoutRegionResolver;
+use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Data\Billing\Checkout\CheckoutContext;
+use Nvade\Numerosis\Data\Billing\PromotionData;
 use Nvade\Numerosis\Enums\FetchState;
 use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutAlreadyCompleted;
 use Nvade\Numerosis\Exceptions\Billing\CheckoutSessionExpired;
+use Nvade\Numerosis\Exceptions\Billing\PromotionCodeUnavailable;
 use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\TenantProvision;
@@ -96,6 +100,17 @@ class Checkout extends Component
     #[Locked]
     public array $paymentMethodOrder = [];
 
+    /**
+     * Client input: what the customer typed, or what a marketing link
+     * pre-filled. Never trusted beyond being sent to Stripe for an answer.
+     */
+    public string $promotionCode = '';
+
+    #[Locked]
+    public ?PromotionData $appliedPromotion = null;
+
+    public ?string $promotionError = null;
+
     public function mount(string $domain, Request $request, bool $embedded = false): void
     {
         $this->pendingDomain = $domain;
@@ -114,6 +129,68 @@ class Checkout extends Component
         $this->savedPaymentMethodsFetchState = $context->savedPaymentMethodsFetchState;
 
         $this->resume($context);
+
+        // A `?promo=` link pre-fills and is then validated like anything typed:
+        // the query string decides what to try, never what is granted.
+        $fromLink = $request->query('promo');
+
+        $stored = $this->pendingReservation()?->promotion_code;
+
+        $this->promotionCode = $stored ?? (is_string($fromLink) ? $fromLink : '');
+
+        if ($this->promotionCode !== '') {
+            $this->applyPromotionCode();
+        }
+    }
+
+    /**
+     * Validated through Stripe, stored on the reservation, and shown with the
+     * discount Stripe reported. `CreateInlineSubscription` asks again before
+     * the charge, so what is displayed here is never what is billed from.
+     */
+    public function applyPromotionCode(): void
+    {
+        $this->promotionError = null;
+        $this->appliedPromotion = null;
+
+        $pending = $this->pendingReservation();
+
+        if (! $pending instanceof TenantProvision) {
+            $this->promotionError = __('numerosis::billing.checkout.session_expired');
+
+            return;
+        }
+
+        $billable = $this->billableFor($pending);
+
+        if (! $billable instanceof BillableUser) {
+            return;
+        }
+
+        try {
+            $this->appliedPromotion = ValidatePromotionCode::run(
+                $this->promotionCode,
+                $billable,
+                resolve(PaymentPlanRepository::class)->findBySlug((string) $pending->payment_plan),
+                $pending->billing_cycle,
+            );
+        } catch (PromotionCodeUnavailable $e) {
+            $this->promotionError = $e->getMessage();
+            $pending->update(['promotion_code' => null]);
+
+            return;
+        }
+
+        $pending->update(['promotion_code' => $this->appliedPromotion->code]);
+    }
+
+    public function removePromotionCode(): void
+    {
+        $this->promotionCode = '';
+        $this->promotionError = null;
+        $this->appliedPromotion = null;
+
+        $this->pendingReservation()?->update(['promotion_code' => null]);
     }
 
     /**

@@ -18,6 +18,7 @@ use Nvade\Numerosis\Http\Controllers\Admin\EndImpersonationController;
 use Nvade\Numerosis\Http\Controllers\Admin\RedeemImpersonationController;
 use Nvade\Numerosis\Http\Controllers\Invitations\DestroyInvitationController;
 use Nvade\Numerosis\Http\Controllers\Invitations\StoreInvitationController;
+use Nvade\Numerosis\Http\Controllers\Team\AcceptRetentionOfferController;
 use Nvade\Numerosis\Http\Controllers\Team\CloseTenantController;
 use Nvade\Numerosis\Http\Controllers\Team\DestroyMemberController;
 use Nvade\Numerosis\Http\Controllers\Team\DestroyOwnershipNominationController;
@@ -94,6 +95,9 @@ Route::middleware(['universal', MiddlewareAlias::TenancyAuth->value.':'.Context:
             Route::post('team/ownership', StoreOwnershipNominationController::class)->name('team.ownership.store');
 
             Route::post('team/close', CloseTenantController::class)->name('team.close');
+
+            Route::post('team/close/retention-offer', AcceptRetentionOfferController::class)
+                ->name('team.retention-offer.accept');
 
             Route::post('team/export', ExportTenantDataController::class)->name('team.export');
 

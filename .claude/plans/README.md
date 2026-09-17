@@ -190,13 +190,13 @@ feature each and are listed here in the roadmap's wave order. Ten,
 `provisioning-observability.md`, `fleet-tenant-migrations.md`,
 `session-management.md`, `two-factor-authentication.md` and
 `security-hardening.md`, `audit-log-coverage.md`, `tenant-backup-restore.md`,
-`gdpr-data-export.md`, `runtime-entitlements.md` and `usage-metering.md`, have
-since been executed and archived; the rest are not.
+`gdpr-data-export.md`, `runtime-entitlements.md`, `usage-metering.md` and
+`coupons-and-promotions.md`, have since been executed and archived; the rest are
+not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `coupons-and-promotions.md` | Not executed. Wave 4. No discount path exists anywhere |
 | `custom-domain-verification.md` | Not executed. Wave 5. A documented mode with no ownership proof |
 | `public-api-and-webhooks.md` | Not executed. Wave 5. Largest of the set; splits into three |
 | `notification-center.md` | Not executed. Wave 5. The `notifications` table has no writer |
@@ -256,6 +256,15 @@ changes, all in the plan's own "What shipped" — the meter columns live on
 test name and not a class, and the Stripe meter-event identifier derives from
 the counter's cumulative total rather than from the period alone, which is what
 lets a retry be a no-op without freezing usage after the first report.
+
+`coupons-and-promotions.md` moved to `archive/` 2026-09-17, the day it was
+executed: all six phases. Stripe keeps owning the arithmetic — the package
+applies, validates with one message per refusal, records redemptions in
+`applied_promotions` and displays what Stripe returns. Three notes in its own
+"What shipped": the code rides on the reservation and is re-validated before the
+charge, a code that stops validating is dropped rather than refusing the sale,
+and the plan's swap-preserves-discount test is asserted as "no local write sends
+`discounts`" because the offline Stripe fake has no invoice endpoints.
 
 ## Abandoned
 

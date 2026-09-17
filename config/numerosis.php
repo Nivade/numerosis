@@ -562,6 +562,18 @@ return [
             'limits' => [],
         ],
 
+        // Discounts. Coupons and promotion codes are Stripe objects; this
+        // package applies, validates, displays and records them, and computes
+        // no discounted amount itself.
+        'promotions' => [
+
+            // A promotion code offered to an owner on the close-workspace
+            // screen, before the closure is confirmed. Null means no offer is
+            // shown — and a code Stripe refuses is not shown either, so a
+            // retired coupon degrades to the plain close flow.
+            'retention_code' => env('BILLING_RETENTION_CODE'),
+        ],
+
         // Usage-based billing. Which meters exist is plan data, not config:
         // each plan's `metadata.options.meters` names the counter key, the
         // Stripe event name, the meter id and the included allowance.

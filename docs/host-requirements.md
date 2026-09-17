@@ -219,6 +219,28 @@ A tenant with no active subscription gets `numerosis.billing.free_tier`, which
 ships empty — the behaviour that predates entitlements. Put `'seats' => 1`
 there to cap a workspace nobody is paying for.
 
+### Discounts
+
+Coupons and promotion codes are Stripe objects. This package applies, validates,
+displays and records them, and computes no discounted amount itself — a locally
+derived figure eventually disagrees with the invoice.
+
+- The checkout screen carries a code field, in both the standalone checkout and
+  the registration wizard (the wizard embeds the same component). `?promo=CODE`
+  only pre-fills it; Stripe still decides.
+- Each refusal has its own message — unknown, expired, at its redemption limit,
+  pinned to another customer, first-purchase-only, product-restricted, below a
+  minimum order — because "invalid code" for all seven is a support ticket.
+- The code is re-validated when the subscription is created, since a redemption
+  limit moves in between. A code that no longer validates is dropped and the
+  plan is charged undiscounted rather than the sale being refused.
+- `applied_promotions` is the audit trail of redemptions. Whether a discount is
+  still live is Stripe's answer, read through `Actions\Queries\GetTenantDiscount`.
+- `numerosis.billing.promotions.retention_code` (`BILLING_RETENTION_CODE`, null
+  by default) offers one code to an owner on the close-workspace screen. A code
+  Stripe refuses is not shown at all, so a retired coupon degrades to the plain
+  close flow.
+
 ### Usage-based billing
 
 A plan bills a capability by the unit by declaring a meter beside its limits:

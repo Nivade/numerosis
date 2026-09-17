@@ -5,7 +5,9 @@ use Illuminate\Support\Facades\Config;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Laravel\Fortify\Features;
+use Nvade\Numerosis\Actions\Billing\Promotions\ResolveRetentionOffer;
 use Nvade\Numerosis\Actions\Queries\GetPendingInvitationsForTenant;
+use Nvade\Numerosis\Actions\Queries\GetTenantDiscount;
 use Nvade\Numerosis\Actions\Queries\GetTenantMembers;
 use Nvade\Numerosis\Actions\Queries\GetTenantSeatUsage;
 use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
@@ -44,6 +46,13 @@ class extends Component
     public bool $hasUnpaidInvoice = false;
 
     public bool $activityLogEnabled = false;
+
+    /** Stripe's own words for the offer and for any discount already running. */
+    public ?string $retentionOffer = null;
+
+    public ?string $activeDiscount = null;
+
+    public string $discountEnds = '';
 
     public bool $twoFactorAvailable = false;
 
@@ -90,6 +99,11 @@ class extends Component
                 ->whereIn('stripe_status', [SubscriptionStatus::PastDue->value, SubscriptionStatus::Unpaid->value])
                 ->exists();
 
+            $discount = GetTenantDiscount::run($tenant);
+            $this->activeDiscount = $discount?->label();
+            $this->discountEnds = $discount?->expires_at?->toFormattedDayDateString() ?? '';
+            $this->retentionOffer = $this->isOwner ? ResolveRetentionOffer::run($tenant)?->label() : null;
+
             $this->twoFactorAvailable = Features::canManageTwoFactorAuthentication();
             $this->requiresTwoFactor = $tenant->requires_two_factor;
             $this->twoFactorEnforcedFrom = $tenant->requires_two_factor_from?->isFuture()
@@ -115,6 +129,17 @@ class extends Component
                         {{ __('Your plan allows fewer seats than you are using. Nobody is removed, but you cannot add anyone until you are back under :limit.', ['limit' => $seatLimit]) }}
                     </x-numerosis::ui.text>
                 @endif
+            @endif
+
+            @if ($activeDiscount)
+                {{-- Named while it runs, because a discount that expires
+                     unannounced raises the next invoice and reads as a fault. --}}
+                <x-numerosis::ui.text variant="subtle" size="sm" class="mt-1">
+                    {{ __('Discount active: :label.', ['label' => $activeDiscount]) }}
+                    @if ($discountEnds)
+                        {{ __('It ends on :date.', ['date' => $discountEnds]) }}
+                    @endif
+                </x-numerosis::ui.text>
             @endif
         </div>
 
@@ -304,6 +329,23 @@ class extends Component
                 <x-numerosis::ui.text variant="subtle" size="sm">
                     {{ __('Leaving rather than shutting down? Transfer ownership above instead, and the workspace keeps running.') }}
                 </x-numerosis::ui.text>
+
+                @if ($retentionOffer)
+                    {{-- Before the confirm field, not after: an offer nobody
+                         reads before typing the workspace name is not an offer. --}}
+                    <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-success-bg border border-success-border px-4 py-3">
+                        <x-numerosis::ui.text size="sm" class="text-success-text">
+                            {{ __('Before you go: we can apply :label to this workspace.', ['label' => $retentionOffer]) }}
+                        </x-numerosis::ui.text>
+
+                        <form method="POST" action="{{ url()->current().'/close/retention-offer' }}">
+                            @csrf
+                            <flux:button type="submit" size="sm" variant="primary">
+                                {{ __('Apply it and stay') }}
+                            </flux:button>
+                        </form>
+                    </div>
+                @endif
 
                 <form method="POST" action="{{ url()->current().'/close' }}" class="mt-4 flex flex-col gap-4">
                     @csrf
