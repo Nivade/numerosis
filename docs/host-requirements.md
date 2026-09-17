@@ -219,6 +219,32 @@ A tenant with no active subscription gets `numerosis.billing.free_tier`, which
 ships empty — the behaviour that predates entitlements. Put `'seats' => 1`
 there to cap a workspace nobody is paying for.
 
+### Notifications
+
+Every notification the package sends goes to mail *and* to the in-app bell,
+unless the recipient says otherwise. Defaults live on
+`Enums\Notifications\NotificationType`; `notification_preferences` holds
+overrides only, keyed by `global_id` so a preference follows the person across
+workspaces and survives their removal from any one of them.
+
+**`NotificationType::mayDisableMail()` is the spine.** A user who has muted
+everything still gets the mail that says their card failed, their workspace was
+suspended, or their security settings changed. The rule is on the enum rather
+than on the preferences screen, so a notification added later cannot quietly
+become optional — and the one-click unsubscribe link honours it too, answering
+without changing anything.
+
+| Key | What it does |
+|---|---|
+| `numerosis.notifications.operator` | Where platform-level alerts nobody owns are mailed. Null sends nothing rather than throwing |
+| `numerosis.notifications.keep_days` | Retention for **read** in-app notifications, swept by `numerosis:prune-notifications` (`SCHEDULE_PRUNE_NOTIFICATIONS`, on by default). Unread ones are never pruned |
+
+The bell is one Livewire component on both sides of tenancy: inside a workspace
+it shows that workspace's notifications plus anything belonging to none, and on
+the central domain it shows everything. Notifications are central rows read from
+a tenant screen, so the scope is explicit rather than inherited from whichever
+connection happens to be open.
+
 ### Custom domains and TLS
 
 Under `IdentificationMode::CustomDomain` a tenant proves it controls a hostname

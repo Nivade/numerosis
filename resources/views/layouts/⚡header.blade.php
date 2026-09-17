@@ -90,6 +90,10 @@ new class extends Component {
         </flux:tooltip>
     </flux:navbar>
 
+    @if ($this->user)
+        <livewire:notifications.center />
+    @endif
+
     @island('desktop-menu')
     <!-- Desktop User Menu -->
     @if ($this->user)

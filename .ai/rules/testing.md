@@ -1126,3 +1126,8 @@ Drop them and let the next run rebuild: `docker exec numerosis-mysql-1 mysql -ur
 Added 2026-09-17 with the API token tests.
 
 `$this->getJson()` twice in one test reuses the same application, and `AuthManager`'s guard instance caches the user it resolved. A test that authenticates, deletes the credential, then asserts the second call is refused passes on the *cached* user and asserts nothing — it answered 200 with the token row already gone. Call `auth()->forgetGuards()` between the two requests. The same applies to any test asserting a revocation, a suspension or a role change through two HTTP calls.
+
+## Notifications are written on the notifiable's connection, not the model's
+Added 2026-09-17 with the notification centre.
+
+`$user->notifications()` is a morphMany on a `CentralConnection` model, so rows land on `central`. `DatabaseNotification::query()` in a test uses the **default** connection, which points at the same physical database under a different connection instance — and `RefreshDatabase` holds a transaction per connection. The result is a test that reads two rows through the relation and one through the model, or a `SQLSTATE 1205 Lock wait timeout` when one side deletes what the other side has locked. Read and write through the relation, and pin any command that sweeps the table (`numerosis:prune-notifications` does) to the central connection by name.

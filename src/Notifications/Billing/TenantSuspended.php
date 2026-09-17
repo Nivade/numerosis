@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Notifications\Billing;
 
 use Illuminate\Notifications\Messages\MailMessage;
+use Nvade\Numerosis\Enums\Notifications\NotificationType;
 use Nvade\Numerosis\Notifications\Tenancy\TenantNotification;
 
 /**
@@ -22,5 +23,22 @@ class TenantSuspended extends TenantNotification
             ->line('Your data has not been deleted — fixing your payment method restores access immediately.')
             ->action('Update payment method', route('billing-portal'))
             ->line('If this workspace stays unpaid, it will eventually be deleted — see your billing settings for details.');
+    }
+
+    public function notificationType(): NotificationType
+    {
+        return NotificationType::TenantSuspended;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toDatabase(object $notifiable): array
+    {
+        return $this->payload(
+            NotificationType::TenantSuspended->label(),
+            __('Access to :name is paused until payment is collected.', ['name' => (string) $this->tenant->name]),
+            route('billing-portal'),
+        );
     }
 }

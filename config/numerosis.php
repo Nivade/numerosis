@@ -30,6 +30,7 @@ use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
 use Nvade\Numerosis\Contracts\Billing\TrialResolver;
 use Nvade\Numerosis\Contracts\Billing\UnpaidTenantQuota;
 use Nvade\Numerosis\Contracts\Billing\UsageCounter;
+use Nvade\Numerosis\Contracts\Notifications\NotificationChannels;
 use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Contracts\Notifications\OperatorRecipient;
 use Nvade\Numerosis\Contracts\Tenancy\DnsResolver;
@@ -75,6 +76,7 @@ use Nvade\Numerosis\Services\Billing\SeatLimitPlanPolicy;
 use Nvade\Numerosis\Services\Billing\TenantOrUserBillableResolver;
 use Nvade\Numerosis\Services\Notifications\MailsConfiguredOperator;
 use Nvade\Numerosis\Services\Notifications\NotifiesTenantOwnerDirectly;
+use Nvade\Numerosis\Services\Notifications\PreferredNotificationChannels;
 use Nvade\Numerosis\Services\Tenancy\ArtifactCipher;
 use Nvade\Numerosis\Services\Tenancy\DefaultTenantDomainPolicy;
 use Nvade\Numerosis\Services\Tenancy\PortableTenantDatabaseDumper;
@@ -197,6 +199,11 @@ return [
         // Runs numerosis:prune-tenant-backups, deleting artefacts older than
         // numerosis.tenancy.backup.keep_days.
         'prune_tenant_backups' => (bool) env('SCHEDULE_PRUNE_TENANT_BACKUPS', true),
+
+        // Runs numerosis:prune-notifications, deleting read in-app
+        // notifications older than numerosis.notifications.keep_days. Unread
+        // ones are never pruned: nobody has looked at them yet.
+        'prune_notifications' => (bool) env('SCHEDULE_PRUNE_NOTIFICATIONS', true),
 
         // Runs numerosis:prune-activity-log, deleting central entries older
         // than activitylog.clean_after_days (365 by default). Retention of an
@@ -489,6 +496,11 @@ return [
 
     'notifications' => [
         'operator' => env('NUMEROSIS_OPERATOR_EMAIL'),
+
+        // How long a read in-app notification is kept before
+        // numerosis:prune-notifications deletes it. Every user, every event,
+        // forever is not a retention policy.
+        'keep_days' => (int) env('NUMEROSIS_NOTIFICATIONS_KEEP_DAYS', 90),
 
         'throttle_minutes' => (int) env('NUMEROSIS_OPERATOR_THROTTLE_MINUTES', 15),
     ],
@@ -828,6 +840,7 @@ return [
             ProvisionsTenant::class => ProvisionTenant::class,
             TenantDatabaseManager::class => StanclTenantDatabaseManager::class,
             NotifiesTenantOwner::class => NotifiesTenantOwnerDirectly::class,
+            NotificationChannels::class => PreferredNotificationChannels::class,
             OperatorRecipient::class => MailsConfiguredOperator::class,
             ResolvesLoginCandidate::class => ResolveLoginCandidate::class,
             AuthenticatesLoginCandidate::class => AuthenticateLoginCandidate::class,

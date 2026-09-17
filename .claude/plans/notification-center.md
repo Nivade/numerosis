@@ -1,7 +1,9 @@
 # In-app notifications and per-user preferences
 
-**Status: not executed. Written 2026-09-16.** Wave 5 of
-`saas-readiness-roadmap.md`.
+**Status: executed 2026-09-17 on `feat/notification-center`, except the digest.**
+Wave 5 of `saas-readiness-roadmap.md`. Phases 1–5 shipped and phase 7 turned out
+to already exist; phase 6, the digest, is deliberately not built — see "What
+shipped".
 
 ## The gap
 
@@ -117,3 +119,37 @@ belong to nobody's user account. Mail or Slack webhook, off unless configured.
   three contexts. Decide the scope per notification type at the point it is
   added, and test it, because the wrong answer here shows a user something
   about a tenant they are reading from another tenant's screen.
+
+## What shipped
+
+Phases 1, 2, 3, 4 and 5. Phase 7's operator channel already existed
+(`Contracts\Notifications\OperatorRecipient`, `MailsConfiguredOperator`,
+`numerosis.notifications.operator`), including the "sends nothing when
+unconfigured rather than throwing" behaviour the test list asked for.
+
+- **`NotificationType` carries the defaults and the `mayDisableMail()` rule**,
+  exactly where the plan said to put it. `SaveNotificationPreference` writes mail
+  as on for a locked type whatever it was asked for, so neither the screen nor
+  the unsubscribe link can route around it, and both directions are tested.
+- **`notification_preferences` is keyed by `global_id`**, not by a user id or a
+  membership: the preference is the person's and survives leaving a workspace.
+  Rows are overrides only; a missing row is the default, never "off".
+- **The bell is one component on both sides of tenancy**, scoped explicitly: a
+  notification carrying a `tenant_id` shows only inside that workspace, and one
+  carrying none shows everywhere. Its counts are read in `render()` rather than
+  memoized — a cached computed property keeps showing the badge the click was
+  meant to clear.
+- **`numerosis:prune-notifications` deletes read notifications only**, pinned to
+  the central connection, because the command may run while tenancy has swapped
+  the default one.
+
+**The digest (phase 6) is not built.** Only one type is marked `digestible()`
+(`MemberJoined`), which is off by mail by default, so the burst the digest exists
+to absorb cannot currently happen. Building the batching job now would be a
+scheduled command with nothing to batch; `NotificationType::digestible()` and the
+`notification_preferences.digest` column are the seam it will hang off.
+
+Two harness traps found here and recorded in `.ai/rules/testing.md`: reaching for
+`DatabaseNotification::query()` in a test writes on the default connection while
+the notifiable's relation reads the central one, and `$this->artisan()` returns a
+`PendingCommand` that executes on destruct — after every assertion below it.

@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Notifications\Billing;
 
 use Illuminate\Notifications\Messages\MailMessage;
 use Laravel\Cashier\Cashier;
+use Nvade\Numerosis\Enums\Notifications\NotificationType;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Notifications\Tenancy\TenantNotification;
 
@@ -38,11 +39,33 @@ class PaymentConfirmed extends TenantNotification
             $message->line("This invoice included {$this->formattedUsage()} of usage on top of your plan.");
         }
 
-        return $message->line('Everything is back to normal — thanks for your patience.');
+        $unsubscribe = $this->unsubscribeUrl($notifiable);
+
+        $message->line('Everything is back to normal — thanks for your patience.');
+
+        return $unsubscribe === null
+            ? $message
+            : $message->line("Stop these emails: {$unsubscribe}");
     }
 
     private function formattedUsage(): string
     {
         return Cashier::formatAmount($this->usageAmount ?? 0, $this->currency);
+    }
+
+    public function notificationType(): NotificationType
+    {
+        return NotificationType::PaymentConfirmed;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toDatabase(object $notifiable): array
+    {
+        return $this->payload(
+            NotificationType::PaymentConfirmed->label(),
+            __('Your payment for :name has been confirmed.', ['name' => (string) $this->tenant->name]),
+        );
     }
 }
