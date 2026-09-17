@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Console\Commands;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Nvade\Numerosis\Actions\Queries\FindMembershipForUser;
 use Nvade\Numerosis\Actions\Tenancy\TransferTenantOwnership;
 use Nvade\Numerosis\Exceptions\Tenancy\OwnershipTransferBlocked;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -46,10 +47,7 @@ class TransferTenantOwnershipCommand extends Command
             return self::FAILURE;
         }
 
-        $membership = Membership::query()
-            ->where('tenant_id', $tenant->getKey())
-            ->where('global_user_id', $user->global_id)
-            ->first();
+        $membership = FindMembershipForUser::run($tenant->id, $user->global_id);
 
         if (! $membership instanceof Membership) {
             $this->error("[{$email}] is not a member of [{$tenantId}].");

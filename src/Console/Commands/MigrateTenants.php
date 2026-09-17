@@ -209,11 +209,14 @@ class MigrateTenants extends Command
     {
         $size = $this->intOption('chunk', 'numerosis.tenancy.migrations.chunk', 50);
         $delay = $this->intOption('delay', 'numerosis.tenancy.migrations.delay', 0);
-        $page = 0;
+        $after = null;
 
         while (true) {
             /** @var Collection<int, Tenant> $tenants */
-            $tenants = $this->tenants()->forPage(++$page, $size)->get();
+            $tenants = $this->tenants()
+                ->when($after !== null, fn (Builder $query) => $query->where('id', '>', $after))
+                ->limit($size)
+                ->get();
 
             if ($tenants->isEmpty()) {
                 return;
@@ -224,6 +227,8 @@ class MigrateTenants extends Command
                     return;
                 }
             }
+
+            $after = $tenants->last()->id;
 
             if ($delay > 0) {
                 Sleep::sleep($delay);

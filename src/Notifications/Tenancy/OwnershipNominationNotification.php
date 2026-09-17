@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Notifications\Tenancy;
 
-use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\URL;
-use Nvade\Numerosis\Concerns\Notifications\RespectsPreferences;
 use Nvade\Numerosis\Enums\Notifications\NotificationType;
 use Nvade\Numerosis\Models\Central\OwnershipNomination;
 use Nvade\Numerosis\Routing\RouteNames;
+use Override;
 
-class OwnershipNominationNotification extends Notification
+class OwnershipNominationNotification extends TenantNotification
 {
-    use Queueable;
-    use RespectsPreferences;
+    public function __construct(public OwnershipNomination $nomination)
+    {
+        parent::__construct($nomination->tenant);
+    }
 
     public function notificationType(): NotificationType
     {
@@ -26,21 +26,14 @@ class OwnershipNominationNotification extends Notification
     /**
      * @return array<string, mixed>
      */
+    #[Override]
     public function toDatabase(object $notifiable): array
     {
-        return [
-            'type' => NotificationType::OwnershipNominated->value,
-            'title' => NotificationType::OwnershipNominated->label(),
-            'body' => __('You have been offered ownership of :name.', ['name' => (string) $this->nomination->tenant->name]),
-            'action_url' => null,
-            'tenant_id' => $this->nomination->tenant_id,
-            'tenant_name' => $this->nomination->tenant->name,
-        ];
+        return $this->payload(
+            NotificationType::OwnershipNominated->label(),
+            __('You have been offered ownership of :name.', ['name' => (string) $this->tenant->name]),
+        );
     }
-
-    public function __construct(
-        public OwnershipNomination $nomination
-    ) {}
 
     public function toMail(object $notifiable): MailMessage
     {

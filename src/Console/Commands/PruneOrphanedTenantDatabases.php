@@ -114,7 +114,9 @@ class PruneOrphanedTenantDatabases extends Command
             ->whereNotNull('suspended_at')
             ->where('suspended_at', '<', $cutoff);
 
-        $count = $suspended->count();
+        /** @var Collection<int, Tenant> $tenants */
+        $tenants = $suspended->get();
+        $count = $tenants->count();
 
         if ($count === 0) {
             $this->info('No tenants suspended long enough to prune.');
@@ -123,9 +125,6 @@ class PruneOrphanedTenantDatabases extends Command
         }
 
         $this->warn("Found {$count} tenant(s) suspended for more than {$days} day(s).");
-
-        /** @var Collection<int, Tenant> $tenants */
-        $tenants = $suspended->get();
 
         if ($this->option('dry-run')) {
             $tenants->each(fn (Tenant $tenant) => $this->line("  would delete {$tenant->id} (suspended {$tenant->suspended_at})"));
@@ -171,7 +170,9 @@ class PruneOrphanedTenantDatabases extends Command
             ->whereNotNull('closed_at')
             ->where('closed_at', '<', $cutoff);
 
-        $count = $closed->count();
+        /** @var Collection<int, Tenant> $tenants */
+        $tenants = $closed->get();
+        $count = $tenants->count();
 
         if ($count === 0) {
             $this->info('No tenants closed long enough to purge.');
@@ -180,9 +181,6 @@ class PruneOrphanedTenantDatabases extends Command
         }
 
         $this->warn("Found {$count} tenant(s) closed for more than {$days} day(s).");
-
-        /** @var Collection<int, Tenant> $tenants */
-        $tenants = $closed->get();
 
         if ($this->option('dry-run')) {
             $tenants->each(fn (Tenant $tenant) => $this->line("  would delete {$tenant->id} (closed {$tenant->closed_at})"));

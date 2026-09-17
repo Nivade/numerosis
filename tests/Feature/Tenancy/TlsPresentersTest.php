@@ -163,7 +163,6 @@ class TlsPresentersTest extends TestCase
             'tenant_id' => (string) $tenant->getTenantKey(),
             'status' => $status,
             'verification_token' => 'numerosis-verify-token',
-            'verified_at' => $status->isServable() ? now() : null,
         ]);
 
         return $domain;

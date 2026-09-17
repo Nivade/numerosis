@@ -18,13 +18,9 @@ use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use ZipArchive;
 
 /**
- * The portable, readable half of the two formats: a zip of JSON Lines per
- * table, the tenant's files, and the central rows that belong to the tenant.
- * A physical dump restores exactly and is unreadable to a customer; this reads
- * and cannot restore a schema.
- *
- * Every table is streamed through a temporary file, so a tenant with a large
- * table costs one row of memory rather than one table.
+ * A zip of JSON Lines per table, the tenant's files, and the central rows that
+ * belong to the tenant. The archive is readable by a customer and carries no
+ * schema, so it cannot restore a tenant. A physical dump does that.
  */
 class TenantDataExporter implements ExportsTenantData
 {

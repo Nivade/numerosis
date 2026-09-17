@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Actions\Admin\StartImpersonation;
+use Nvade\Numerosis\Actions\Queries\ReadActivityLog;
 use Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder;
 use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Enums\Tenancy\ImpersonationEndReason;
@@ -185,15 +186,14 @@ class ImpersonationTest extends TestCase
         $this->get($url)->assertRedirect();
         $this->post($tenant->baseUrl().'/impersonate/exit')->assertRedirect();
 
-        $this->assertDatabaseHas('activity_log', [
-            'description' => "Impersonation of {$member->global_id} in {$tenant->id} started by staff",
-            'causer_id' => $staff->getKey(),
-        ]);
+        // Read through ReadActivityLog, not assertDatabaseHas: both entries name
+        // the tenant as their subject and so are written centrally.
+        $descriptions = ReadActivityLog::forTenant($tenant)
+            ->where('causer_id', $staff->getKey())
+            ->pluck('description');
 
-        $this->assertDatabaseHas('activity_log', [
-            'description' => "Impersonation of {$member->global_id} in {$tenant->id} ended (exit)",
-            'causer_id' => $staff->getKey(),
-        ]);
+        $this->assertContains("Impersonation of {$member->global_id} in {$tenant->id} started by staff", $descriptions);
+        $this->assertContains("Impersonation of {$member->global_id} in {$tenant->id} ended (exit)", $descriptions);
     }
 
     /**

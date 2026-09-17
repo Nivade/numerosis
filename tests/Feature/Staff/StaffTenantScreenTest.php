@@ -12,6 +12,8 @@ use Nvade\Numerosis\Actions\Tenancy\RestoreTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
 use Nvade\Numerosis\Actions\Tenancy\TransferTenantOwnership;
 use Nvade\Numerosis\Database\Seeders\RoleAndPermissionSeeder;
+use Nvade\Numerosis\Enums\Auth\PermissionAction;
+use Nvade\Numerosis\Enums\Auth\PermissionContext;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Features\Admin\StaffPanelFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
@@ -54,7 +56,7 @@ class StaffTenantScreenTest extends TestCase
         $this->assertFalse(tenancy()->initialized);
     }
 
-    public function test_suspending_goes_through_the_action_and_is_logged(): void
+    public function test_suspending_goes_through_the_action_and_confirms_it(): void
     {
         SuspendTenant::shouldRun();
 
@@ -63,15 +65,11 @@ class StaffTenantScreenTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test('numerosis-pages::staff.tenant', ['tenantId' => $tenant->getKey()])
-            ->call('suspend');
-
-        $this->assertDatabaseHas('activity_log', [
-            'description' => "Tenant {$tenant->id} suspended by staff",
-            'causer_id' => $admin->getKey(),
-        ]);
+            ->call('suspend')
+            ->assertDispatched('notify', message: "Tenant {$tenant->id} suspended by staff");
     }
 
-    public function test_restoring_goes_through_the_action_and_is_logged(): void
+    public function test_restoring_goes_through_the_action_and_confirms_it(): void
     {
         RestoreTenant::shouldRun();
 
@@ -80,15 +78,11 @@ class StaffTenantScreenTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test('numerosis-pages::staff.tenant', ['tenantId' => $tenant->getKey()])
-            ->call('restore');
-
-        $this->assertDatabaseHas('activity_log', [
-            'description' => "Tenant {$tenant->id} restored by staff",
-            'causer_id' => $admin->getKey(),
-        ]);
+            ->call('restore')
+            ->assertDispatched('notify', message: "Tenant {$tenant->id} restored by staff");
     }
 
-    public function test_reopening_goes_through_the_action_and_is_logged(): void
+    public function test_reopening_goes_through_the_action_and_confirms_it(): void
     {
         ReopenTenant::shouldRun();
 
@@ -97,15 +91,30 @@ class StaffTenantScreenTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test('numerosis-pages::staff.tenant', ['tenantId' => $tenant->getKey()])
-            ->call('reopen');
-
-        $this->assertDatabaseHas('activity_log', [
-            'description' => "Tenant {$tenant->id} reopened by staff",
-            'causer_id' => $admin->getKey(),
-        ]);
+            ->call('reopen')
+            ->assertDispatched('notify', message: "Tenant {$tenant->id} reopened by staff");
     }
 
-    public function test_reassigning_the_owner_goes_through_the_action_and_is_logged(): void
+    /**
+     * Reopening is gated on its own verb, not on `restore`: undoing a closure
+     * and lifting a suspension are different decisions.
+     */
+    public function test_reopening_is_refused_without_the_reopen_permission(): void
+    {
+        ReopenTenant::shouldNotRun();
+
+        $tenant = TestTenant::provisioned(['provisioned_at' => now(), 'closed_at' => now()]);
+
+        $staff = $this->userWithoutPermissions();
+        $staff->givePermissionTo(PermissionAction::Restore->value.' '.PermissionContext::Tenants->value);
+
+        Livewire::actingAs($this->withConfirmedTwoFactor($staff))
+            ->test('numerosis-pages::staff.tenant', ['tenantId' => $tenant->getKey()])
+            ->call('reopen')
+            ->assertForbidden();
+    }
+
+    public function test_reassigning_the_owner_goes_through_the_action_and_confirms_it(): void
     {
         TransferTenantOwnership::shouldRun();
 
@@ -122,12 +131,8 @@ class StaffTenantScreenTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test('numerosis-pages::staff.tenant', ['tenantId' => $tenant->getKey()])
-            ->call('reassignOwner', $membership->getKey());
-
-        $this->assertDatabaseHas('activity_log', [
-            'description' => "Ownership of {$tenant->id} reassigned to {$member->email} by staff",
-            'causer_id' => $admin->getKey(),
-        ]);
+            ->call('reassignOwner', $membership->getKey())
+            ->assertDispatched('notify', message: "Ownership of {$tenant->id} reassigned to {$member->email} by staff");
     }
 
     /**

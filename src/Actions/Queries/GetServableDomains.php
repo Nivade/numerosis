@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Config;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Cache\GlobalCache;
-use Nvade\Numerosis\Enums\Tenancy\DomainStatus;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
@@ -79,7 +78,7 @@ class GetServableDomains
         $tenantTable = (new (Numerosis::model(Tenant::class))())->getTable();
 
         return Numerosis::model(Domain::class)::query()
-            ->whereIn('domains.status', [DomainStatus::Verified->value, DomainStatus::Active->value])
+            ->servable()
             ->whereExists(function ($query) use ($tenantTable): void {
                 $query->select('id')
                     ->from($tenantTable)

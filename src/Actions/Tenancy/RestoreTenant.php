@@ -6,7 +6,6 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Events\Tenancy\TenantRestored;
-use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 class RestoreTenant
@@ -23,10 +22,9 @@ class RestoreTenant
 
         $tenant->update(['suspended_at' => null]);
 
-        $owner = $tenant->owner();
-
-        if ($owner instanceof CentralUser) {
-            event(new TenantRestored($tenant, $owner->id, (string) $tenant->getTenantKey()));
-        }
+        // Fired whether or not anyone owns the tenant: the audit entry records
+        // that it came back, and the notification listener is what decides
+        // there is nobody to tell.
+        event(new TenantRestored($tenant, $tenant->owner()?->id, (string) $tenant->getTenantKey()));
     }
 }

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Models\Central;
 
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
@@ -76,6 +78,16 @@ class Subscription extends \Laravel\Cashier\Subscription
     public function isSettled(): bool
     {
         return $this->status()?->isSettled() ?? false;
+    }
+
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    #[Scope]
+    protected function withUnpaidInvoice(Builder $query): Builder
+    {
+        return $query->whereIn('stripe_status', SubscriptionStatus::unpaidInvoiceValues());
     }
 
     /**

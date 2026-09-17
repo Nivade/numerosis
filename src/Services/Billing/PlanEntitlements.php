@@ -24,13 +24,8 @@ use Nvade\Numerosis\Numerosis;
 use Stancl\Tenancy\Contracts\Tenant as TenantContract;
 
 /**
- * Reads the plan the tenant is actually on, falling back to the free tier in
- * `numerosis.billing.free_tier`. A tenant without an active subscription is
- * the normal state during a trial and during dunning, so nothing here throws
- * for the absence of one.
- *
- * Memoized per request and **only as scalars**: a cached plan model keyed
- * loosely is how tenant data leaks between tenants.
+ * Memoized per request, and only as scalars. A cached plan model keyed loosely
+ * is how tenant data leaks between tenants.
  */
 class PlanEntitlements implements Entitlements
 {

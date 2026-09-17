@@ -243,3 +243,8 @@ near-identical files — the two here (`HasOneTimePasswordsIfInstalled`,
 `LogsActivityIfInstalled`; the two Filament shims were deleted with
 `packages/filament` in Phase 1) are still simple enough that this wasn't
 worth building yet.
+
+## Feature class vs config boolean
+A `Features\*` class gates whether a capability ships: it is read at route/panel registration and appears in `FeatureRegistry`. A plain config boolean tunes something inside an already-enabled feature, and is read at request time.
+
+Do not convert a request-time boolean into a registration-time feature gate to make the vocabulary tidy. `numerosis.security.headers.enabled` is checked inside `SecurityHeaders::handle()` precisely so a host (and `SecurityHeadersTest`) can toggle it after boot; moving it to registration would leave the key silently inert. The TLS `custom_domains.tls.ask`/`routers` booleans already gate their routes at registration and default to false, which is what a feature flag does.

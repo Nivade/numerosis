@@ -23,7 +23,6 @@ use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -90,11 +89,15 @@ use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
 use Nvade\Numerosis\Events\Auth\SuspiciousLoginDetected;
 use Nvade\Numerosis\Events\Auth\TwoFactorAuthenticationCleared;
+use Nvade\Numerosis\Events\Auth\UserAnonymized;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\TenantSuspended;
+use Nvade\Numerosis\Events\Billing\UsageDivergenceDetected;
 use Nvade\Numerosis\Events\Invitations\InvitationAccepted;
 use Nvade\Numerosis\Events\Invitations\InvitationCreated;
+use Nvade\Numerosis\Events\Tenancy\DomainRevoked;
+use Nvade\Numerosis\Events\Tenancy\DomainVerified;
 use Nvade\Numerosis\Events\Tenancy\MemberJoined;
 use Nvade\Numerosis\Events\Tenancy\MemberRemoved;
 use Nvade\Numerosis\Events\Tenancy\MemberRoleChanged;
@@ -112,14 +115,11 @@ use Nvade\Numerosis\Http\Requests\Auth\NumerosisVerifyEmailRequest;
 use Nvade\Numerosis\Http\Responses\Auth\NumerosisLoginResponse;
 use Nvade\Numerosis\Http\Responses\Auth\NumerosisLogoutResponse;
 use Nvade\Numerosis\Http\Responses\Auth\NumerosisVerifyEmailResponse;
-use Nvade\Numerosis\Listeners\Admin\LogImpersonationEnded;
-use Nvade\Numerosis\Listeners\Admin\LogImpersonationStarted;
 use Nvade\Numerosis\Listeners\Admin\SuppressMailWhileImpersonating;
 use Nvade\Numerosis\Listeners\Audit\RecordDomainEventActivity;
 use Nvade\Numerosis\Listeners\Auth\EndOtherGuardSession;
 use Nvade\Numerosis\Listeners\Auth\LogSocialAccountLinked;
 use Nvade\Numerosis\Listeners\Auth\LogSocialAccountUnlinked;
-use Nvade\Numerosis\Listeners\Auth\LogTwoFactorAuthenticationCleared;
 use Nvade\Numerosis\Listeners\Auth\RevokeSessionsAfterPasswordChange;
 use Nvade\Numerosis\Listeners\Auth\RevokeSessionsAfterTwoFactorDisabled;
 use Nvade\Numerosis\Listeners\Billing\SendPaymentConfirmedNotification;
@@ -641,53 +641,58 @@ class NumerosisServiceProvider extends PackageServiceProvider
         TenantRestored::class,
         TenantClosed::class,
         TenantReopened::class,
+        ImpersonationStarted::class,
+        ImpersonationEnded::class,
+        TwoFactorAuthenticationCleared::class,
+        SuspiciousLoginDetected::class,
+        UserAnonymized::class,
+        DomainVerified::class,
+        DomainRevoked::class,
+        UsageDivergenceDetected::class,
     ];
 
     protected function registerEventListeners(): void
     {
+        /** @var array<class-string, list<class-string>> $listeners */
         $listeners = [
-            SocialAccountLinked::class => LogSocialAccountLinked::class,
-            SocialAccountUnlinked::class => LogSocialAccountUnlinked::class,
-            InvitationCreated::class => SendInvitationNotification::class,
-            PaymentSettled::class => SendPaymentConfirmedNotification::class,
-            PaymentFailed::class => SendPaymentFailedNotification::class,
-            TenantSuspended::class => SendTenantSuspendedNotification::class,
-            TenantRestored::class => SendTenantRestoredNotification::class,
-            TenantProvisioned::class => BackfillTenantUsers::class,
-            MemberRemoved::class => EndSessionsForRemovedMember::class,
-            TenantProvisioningFailed::class => SendProvisioningFailedAlert::class,
-            MigrationsEnded::class => ForgetTenantColumnListing::class,
-            ImpersonationStarted::class => LogImpersonationStarted::class,
-            ImpersonationEnded::class => LogImpersonationEnded::class,
+            SocialAccountLinked::class => [LogSocialAccountLinked::class],
+            SocialAccountUnlinked::class => [LogSocialAccountUnlinked::class],
+            InvitationCreated::class => [SendInvitationNotification::class],
+            PaymentSettled::class => [SendPaymentConfirmedNotification::class],
+            PaymentFailed::class => [SendPaymentFailedNotification::class],
+            TenantSuspended::class => [SendTenantSuspendedNotification::class],
+            TenantRestored::class => [SendTenantRestoredNotification::class],
+            TenantProvisioned::class => [BackfillTenantUsers::class],
+
+            // A revoked member's API token is the same breach as their
+            // session, and both have to go.
+            MemberRemoved::class => [EndSessionsForRemovedMember::class, RevokeApiTokensForRemovedMember::class],
+
+            TenantProvisioningFailed::class => [SendProvisioningFailedAlert::class],
+            MigrationsEnded::class => [ForgetTenantColumnListing::class],
 
             // Both events cancel the send when their listener returns false,
             // which is how support avoids mailing a customer from inside
             // their own account.
-            MessageSending::class => SuppressMailWhileImpersonating::class,
-            NotificationSending::class => SuppressMailWhileImpersonating::class,
+            MessageSending::class => [SuppressMailWhileImpersonating::class],
+            NotificationSending::class => [SuppressMailWhileImpersonating::class],
             // Auto-discovery only scans a host's `app/Listeners`, never a
             // package's `src/`, so this explicit registration is the only
             // thing that makes {@see EndOtherGuardSession} fire.
-            Logout::class => EndOtherGuardSession::class,
+            Logout::class => [EndOtherGuardSession::class],
 
-            PasswordChanged::class => RevokeSessionsAfterPasswordChange::class,
-            TwoFactorAuthenticationDisabled::class => RevokeSessionsAfterTwoFactorDisabled::class,
-            TwoFactorAuthenticationCleared::class => LogTwoFactorAuthenticationCleared::class,
+            PasswordChanged::class => [RevokeSessionsAfterPasswordChange::class],
+            TwoFactorAuthenticationDisabled::class => [RevokeSessionsAfterTwoFactorDisabled::class],
         ];
 
-        // A second listener for MemberRemoved, which the map above cannot hold
-        // twice: a revoked member's API token is the same breach as their
-        // session, and both have to go.
-        Event::listen(MemberRemoved::class, RevokeApiTokensForRemovedMember::class);
-
-        foreach ($listeners as $event => $listener) {
-            Event::listen($event, $listener);
+        foreach (self::AUDITED_EVENTS as $event) {
+            $listeners[$event][] = RecordDomainEventActivity::class;
         }
 
-        // Separate from the map above because three of these already have a
-        // listener there, and one event may only appear as a key once.
-        foreach (self::AUDITED_EVENTS as $event) {
-            Event::listen($event, RecordDomainEventActivity::class);
+        foreach ($listeners as $event => $eventListeners) {
+            foreach ($eventListeners as $listener) {
+                Event::listen($event, $listener);
+            }
         }
     }
 
@@ -880,7 +885,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
      */
     protected function reportExhaustedLoginLimiter(Request $request, string $email, string $key): void
     {
-        if (! Cache::add(CacheKeys::loginLockout($key), true, 60)) {
+        if (! GlobalCache::claim(CacheKeys::loginLockout($key), 60)) {
             return;
         }
 

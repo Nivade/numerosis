@@ -28,9 +28,4 @@ final class SeatUsage extends Data
     {
         return $this->limit === null || $this->members < $this->limit;
     }
-
-    public function hasRoomForAnotherInvitation(): bool
-    {
-        return $this->limit === null || $this->used() < $this->limit;
-    }
 }

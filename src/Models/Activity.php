@@ -15,12 +15,11 @@ use Spatie\Activitylog\Models\Activity as BaseActivity;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
- * `activity_log` exists twice, once per connection, and an entry lands
- * wherever the default connection points when it is written. A change to a
- * central row made during a tenant request would therefore be recorded in that
- * tenant's database, against an id from another one. The subject decides
- * instead: a central-connection subject writes centrally, everything else
- * writes where it is.
+ * `activity_log` exists twice, once per connection, so an entry written against
+ * the default connection records a central row inside a tenant's database with
+ * an id from another one. The subject picks the connection here. A
+ * central-connection subject writes centrally, everything else writes where it
+ * is.
  */
 class Activity extends BaseActivity
 {

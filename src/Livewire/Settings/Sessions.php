@@ -7,7 +7,6 @@ namespace Nvade\Numerosis\Livewire\Settings;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session as SessionFacade;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use InvalidArgumentException;
@@ -65,34 +64,9 @@ class Sessions extends Component
         $this->dispatch('sessions-revoked');
     }
 
-    /** Presentation only: the stored user agent is never parsed on the way in. */
     public function deviceLabel(DeviceSession $session): string
     {
-        $agent = $session->userAgent;
-
-        if ($agent === null || $agent === '') {
-            return __('Unknown device');
-        }
-
-        $browser = match (true) {
-            Str::contains($agent, 'Edg/') => 'Edge',
-            Str::contains($agent, 'OPR/') => 'Opera',
-            Str::contains($agent, 'Firefox/') => 'Firefox',
-            Str::contains($agent, 'Chrome/') => 'Chrome',
-            Str::contains($agent, 'Safari/') => 'Safari',
-            default => __('Unknown browser'),
-        };
-
-        $platform = match (true) {
-            Str::contains($agent, ['iPhone', 'iPad']) => 'iOS',
-            Str::contains($agent, 'Android') => 'Android',
-            Str::contains($agent, 'Mac OS X') => 'macOS',
-            Str::contains($agent, 'Windows') => 'Windows',
-            Str::contains($agent, ['Linux', 'X11']) => 'Linux',
-            default => __('unknown platform'),
-        };
-
-        return "{$browser} on {$platform}";
+        return $session->deviceLabel();
     }
 
     public function render(): View

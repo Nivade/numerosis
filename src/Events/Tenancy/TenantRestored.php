@@ -15,7 +15,7 @@ class TenantRestored
 
     public function __construct(
         public readonly Tenant $tenant,
-        public readonly string|int $ownerId,
+        public readonly string|int|null $ownerId,
         public readonly string $tenantId,
     ) {}
 }

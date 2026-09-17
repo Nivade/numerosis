@@ -55,7 +55,6 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  * @property Carbon|null $trial_ends_at
  * @property Carbon|null $suspended_at
  * @property Carbon|null $closed_at
- * @property bool $requires_two_factor
  * @property Carbon|null $requires_two_factor_from
  * @property Carbon|null $provisioned_at
  * @property Carbon|null $created_at
@@ -85,7 +84,6 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
     'provisioned_at',
     'suspended_at',
     'closed_at',
-    'requires_two_factor',
     'requires_two_factor_from',
     'name',
 ])]
@@ -123,7 +121,6 @@ class Tenant extends BaseTenant implements Closable, HasTenantOwner, Subscribabl
         'provisioned_at',
         'suspended_at',
         'closed_at',
-        'requires_two_factor',
         'requires_two_factor_from',
     ];
 
@@ -202,20 +199,24 @@ class Tenant extends BaseTenant implements Closable, HasTenantOwner, Subscribabl
         return [
             'suspended_at' => 'datetime',
             'closed_at' => 'datetime',
-            'requires_two_factor' => 'boolean',
             'requires_two_factor_from' => 'datetime',
         ];
+    }
+
+    /**
+     * The stamp is the switch: it is written when the requirement goes on and
+     * nulled when it comes off, so a separate boolean could only disagree.
+     */
+    public function requiresTwoFactor(): bool
+    {
+        return $this->requires_two_factor_from !== null;
     }
 
     /** Whether the requirement is on and its grace period has run out. */
     public function requiresTwoFactorNow(): bool
     {
-        if (! $this->requires_two_factor) {
-            return false;
-        }
-
-        return $this->requires_two_factor_from === null
-            || $this->requires_two_factor_from->isPast();
+        return $this->requires_two_factor_from !== null
+            && $this->requires_two_factor_from->isPast();
     }
 
     public function isSuspended(): bool
@@ -403,7 +404,6 @@ class Tenant extends BaseTenant implements Closable, HasTenantOwner, Subscribabl
                 'closed_at',
                 'provisioned_at',
                 'trial_ends_at',
-                'requires_two_factor',
                 'requires_two_factor_from',
             ])
             ->logOnlyDirty()

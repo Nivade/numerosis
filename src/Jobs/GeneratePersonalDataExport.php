@@ -6,9 +6,9 @@ namespace Nvade\Numerosis\Jobs;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Contracts\Auth\ExportsPersonalData;
 use Nvade\Numerosis\Enums\Auth\DataExportStatus;
+use Nvade\Numerosis\Jobs\Concerns\WritesDataExportOutcome;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\DataExportRequest;
 use Nvade\Numerosis\Notifications\Auth\PersonalDataExportReady;
@@ -23,6 +23,7 @@ use Throwable;
 final class GeneratePersonalDataExport implements ShouldQueue
 {
     use Queueable;
+    use WritesDataExportOutcome;
 
     public int $tries = 1;
 
@@ -41,28 +42,22 @@ final class GeneratePersonalDataExport implements ShouldQueue
             ->first();
 
         if (! $user instanceof CentralUser) {
-            $this->fail($request, 'The account was removed before the export ran.');
+            $this->markFailed($request, 'The account was removed before the export ran.');
 
             return;
         }
 
-        $disk = Config::string('numerosis.privacy.disk', Config::string('numerosis.tenancy.backup.disk', 'local'));
+        $disk = $this->exportDisk();
 
         try {
             $path = $exporter->export((string) $user->global_id, $disk);
         } catch (Throwable $failure) {
-            $this->fail($request, $failure->getMessage());
+            $this->markFailed($request, $failure->getMessage());
 
             throw $failure;
         }
 
-        $request->update([
-            'status' => DataExportStatus::Completed,
-            'disk' => $disk,
-            'path' => $path,
-            'completed_at' => now(),
-            'expires_at' => now()->addMinutes(Config::integer('numerosis.privacy.link_expiry_minutes', 60)),
-        ]);
+        $this->markCompleted($request, $disk, $path);
 
         activity()
             ->causedBy($user)
@@ -70,13 +65,5 @@ final class GeneratePersonalDataExport implements ShouldQueue
             ->log('Personal data export produced');
 
         $user->notify(new PersonalDataExportReady($request));
-    }
-
-    private function fail(DataExportRequest $request, string $reason): void
-    {
-        $request->update([
-            'status' => DataExportStatus::Failed,
-            'failure_reason' => $reason,
-        ]);
     }
 }

@@ -20,15 +20,17 @@ use Nvade\Numerosis\Numerosis;
  * tenant it shows that workspace's news plus anything that belongs to no
  * workspace, and on the central domain it shows everything the person has.
  *
- * Notifications are central rows read from a tenant screen, which is the trap
- * `.ai/rules/central-rows-on-tenant-routes.md` names — so the scope is explicit
- * here rather than left to whatever connection is open.
+ * Notifications are central rows read from a tenant screen, so the scope is
+ * explicit here instead of relying on whichever connection is open.
  */
 class Center extends Component
 {
     use RequiresAuthenticatedUser;
 
     public bool $open = false;
+
+    /** Not a Livewire property: a resolved model must not be rehydrated from the payload. */
+    private ?CentralUser $resolvedCentralUser = null;
 
     public function toggle(): void
     {
@@ -84,10 +86,14 @@ class Center extends Component
      */
     private function centralUser(): ?CentralUser
     {
+        if ($this->resolvedCentralUser instanceof CentralUser) {
+            return $this->resolvedCentralUser;
+        }
+
         $user = $this->authenticatedUser();
 
         if ($user instanceof CentralUser) {
-            return $user;
+            return $this->resolvedCentralUser = $user;
         }
 
         /** @var CentralUser|null $central */
@@ -95,7 +101,7 @@ class Center extends Component
             ->where('global_id', $user->global_id)
             ->first();
 
-        return $central;
+        return $this->resolvedCentralUser = $central;
     }
 
     private function tenantScope(): ?string

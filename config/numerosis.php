@@ -50,9 +50,14 @@ use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
+use Nvade\Numerosis\Models\Central\AppliedPromotion;
 use Nvade\Numerosis\Models\Central\CentralUser;
+use Nvade\Numerosis\Models\Central\Consent;
+use Nvade\Numerosis\Models\Central\DataExportRequest;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Invitation;
+use Nvade\Numerosis\Models\Central\Membership;
+use Nvade\Numerosis\Models\Central\NotificationPreference;
 use Nvade\Numerosis\Models\Central\OwnershipNomination;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\SocialAccount;
@@ -61,6 +66,7 @@ use Nvade\Numerosis\Models\Central\SubscriptionItem;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantMigrationRun;
 use Nvade\Numerosis\Models\Central\TenantProvision;
+use Nvade\Numerosis\Models\Tenant\ApiToken;
 use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Services\Auth\DatabaseSessionRegistry;
 use Nvade\Numerosis\Services\Auth\PersonalDataExporter;
@@ -206,7 +212,8 @@ return [
         'prune_notifications' => (bool) env('SCHEDULE_PRUNE_NOTIFICATIONS', true),
 
         // Runs numerosis:prune-activity-log, deleting central entries older
-        // than activitylog.clean_after_days (365 by default). Retention of an
+        // than numerosis.audit.keep_days (activitylog.clean_after_days when
+        // that is null, 365 by default). Retention of an
         // audit log is a compliance decision, so the window is the host's.
         'prune_activity_log' => (bool) env('SCHEDULE_PRUNE_ACTIVITY_LOG', true),
 
@@ -507,6 +514,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Audit log
+    |--------------------------------------------------------------------------
+    |
+    | The one retention window this package does not own outright: spatie's
+    | activitylog.clean_after_days is what its own commands read, and this is
+    | what numerosis:prune-activity-log reads. Left null it defers to that key,
+    | so the window is stated once wherever the host prefers to state it.
+    */
+
+    'audit' => [
+        'keep_days' => env('NUMEROSIS_AUDIT_KEEP_DAYS') === null
+            ? null
+            : (int) env('NUMEROSIS_AUDIT_KEEP_DAYS'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Model overrides
     |--------------------------------------------------------------------------
     |
@@ -528,6 +552,12 @@ return [
         Invitation::class => null,
         OwnershipNomination::class => null,
         SocialAccount::class => null,
+        Membership::class => null,
+        ApiToken::class => null,
+        AppliedPromotion::class => null,
+        Consent::class => null,
+        DataExportRequest::class => null,
+        NotificationPreference::class => null,
     ],
 
     /*

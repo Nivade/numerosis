@@ -29,10 +29,10 @@ class PreferredNotificationChannels implements NotificationChannels
         $override = $this->override($type, $this->globalIdOf($notifiable));
 
         $mail = $type->mayDisableMail()
-            ? ($override['mail'] ?? $type->mailByDefault())
+            ? ($override['mail'] ?? true)
             : true;
 
-        $database = $override['database'] ?? $type->databaseByDefault();
+        $database = $override['database'] ?? true;
 
         $channels = [];
 

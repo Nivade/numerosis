@@ -56,7 +56,7 @@ class RoleAndPermissionSeeder extends Seeder
     protected function additionalActions(): array
     {
         return [
-            PermissionContext::Tenants->value => [TenantPolicy::IMPERSONATE],
+            PermissionContext::Tenants->value => [TenantPolicy::IMPERSONATE, TenantPolicy::REOPEN],
             PermissionContext::Users->value => [
                 ClearTwoFactorAuthentication::PERMISSION,
                 ExportUserDataForStaff::PERMISSION,

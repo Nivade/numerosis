@@ -45,6 +45,6 @@ class SendProvisioningFailedAlert
             return true;
         }
 
-        return GlobalCache::store()->add(CacheKeys::provisioningAlertThrottle(), true, $minutes * 60);
+        return GlobalCache::claim(CacheKeys::provisioningAlertThrottle(), $minutes * 60);
     }
 }

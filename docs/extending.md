@@ -73,7 +73,7 @@ package's:
 | a feature class | any `Features::all()` entry | `bootstrapFeatures()` does `$app->make($feature)->bootstrap()`; `numerosis.features` still decides whether it runs at all |
 | `Contracts\Exceptions\ProvidesExceptionContext` | `Services\Exceptions\TenantAwareExceptionContext` | Adds your keys to every reported exception. Depend on the default in your constructor to decorate rather than replace it |
 | a policy class | any `Gate::policy()` pair core registers | `Gate` resolves policies through the container |
-| any `numerosis.{billing,tenancy}.implementations` contract | its concrete | See "Swapping an implementation" below. `Contracts\Billing\Entitlements` is bound as a **singleton**, since its per-request memo is the point |
+| any `numerosis.{billing,tenancy}.implementations` contract | its concrete | See "Swapping an implementation" below. `Contracts\Billing\Entitlements` is bound as **scoped**, since its per-request memo is the point and a worker must not serve one job's memo to the next |
 
 ### Overriding `Permission::additionalActions()`
 

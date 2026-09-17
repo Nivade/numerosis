@@ -20,7 +20,7 @@ class GetActiveSubscription
 
     public function handle(Tenant $tenant): ?Subscription
     {
-        return $tenant->subscriptions()->get()
+        return $tenant->subscriptions
             ->first(fn (Subscription $subscription): bool => $subscription->valid());
     }
 }

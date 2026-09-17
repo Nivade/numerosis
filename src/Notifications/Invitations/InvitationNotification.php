@@ -8,6 +8,8 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\URL;
+use Nvade\Numerosis\Concerns\Notifications\RespectsPreferences;
+use Nvade\Numerosis\Enums\Notifications\NotificationType;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Routing\RouteNames;
 
@@ -18,17 +20,15 @@ use Nvade\Numerosis\Routing\RouteNames;
 class InvitationNotification extends Notification
 {
     use Queueable;
+    use RespectsPreferences;
 
     public function __construct(
         public Invitation $invitation
     ) {}
 
-    /**
-     * @return list<string>
-     */
-    public function via(object $notifiable): array
+    public function notificationType(): NotificationType
     {
-        return ['mail'];
+        return NotificationType::InvitationReceived;
     }
 
     public function toMail(object $notifiable): MailMessage

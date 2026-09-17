@@ -27,8 +27,6 @@ use Stancl\Tenancy\Database\Concerns\InvalidatesTenantsResolverCache;
  * @property string $tenant_id
  * @property DomainStatus $status
  * @property string|null $verification_token
- * @property Carbon|null $verified_at
- * @property Carbon|null $verification_failed_at
  * @property Carbon|null $last_checked_at
  * @property-read string $url
  * @property Carbon|null $created_at
@@ -61,8 +59,6 @@ class Domain extends \Stancl\Tenancy\Database\Models\Domain
     {
         return [
             'status' => DomainStatus::class,
-            'verified_at' => 'datetime',
-            'verification_failed_at' => 'datetime',
             'last_checked_at' => 'datetime',
         ];
     }

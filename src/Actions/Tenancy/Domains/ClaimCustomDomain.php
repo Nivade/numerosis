@@ -13,13 +13,9 @@ use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 
 /**
- * Claims a hostname for a tenant, unverified. Uniqueness is asserted before a
- * token exists, so a domain another tenant already holds never gets one minted
- * for it — a token handed out for a hostname that can never be claimed is a
- * customer following instructions to nowhere.
- *
- * The token is stable across retries; `regenerate: true` is the explicit
- * request that replaces it.
+ * Uniqueness is asserted before a token exists, so a hostname another tenant
+ * already holds never gets one minted for it. A token for a hostname that can
+ * never be claimed sends a customer after instructions to nowhere.
  *
  * @method static Domain run(Tenant $tenant, string $hostname, bool $regenerate = false)
  */
@@ -60,8 +56,6 @@ class ClaimCustomDomain
         $domain->forceFill([
             'verification_token' => self::token(),
             'status' => DomainStatus::Pending,
-            'verified_at' => null,
-            'verification_failed_at' => null,
             'last_checked_at' => null,
         ])->save();
 

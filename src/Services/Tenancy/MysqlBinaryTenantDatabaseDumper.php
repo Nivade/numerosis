@@ -5,43 +5,18 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Services\Tenancy;
 
 use Illuminate\Support\Facades\Config;
-use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseDumper;
-use Nvade\Numerosis\Exceptions\Tenancy\TenantBackupFailed;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
-use Symfony\Component\Process\Process;
 
 /**
  * `mysqldump`/`mysql`, for an installation large enough that reading a tenant
- * database through PDO is too slow. Opt in through
- * `numerosis.tenancy.backup.dumpers`; the credentials go over a temporary
- * defaults file rather than the command line, which is world-readable in `ps`.
+ * database through PDO is too slow. The credentials go over a temporary
+ * defaults file, since a command line is world-readable in `ps`.
  */
-class MysqlBinaryTenantDatabaseDumper implements TenantDatabaseDumper
+class MysqlBinaryTenantDatabaseDumper extends BinaryTenantDatabaseDumper
 {
-    public function __construct(
-        private readonly string $dumpBinary = 'mysqldump',
-        private readonly string $restoreBinary = 'mysql',
-    ) {}
-
-    public function isAvailable(): bool
+    public function __construct(string $dumpBinary = 'mysqldump', string $restoreBinary = 'mysql')
     {
-        return $this->unavailableReason() === null;
-    }
-
-    public function unavailableReason(): ?string
-    {
-        foreach ([$this->dumpBinary, $this->restoreBinary] as $binary) {
-            if (new Process(['sh', '-c', 'command -v '.$binary])->run() !== 0) {
-                return "`{$binary}` is not on PATH.";
-            }
-        }
-
-        return null;
-    }
-
-    public function carriesSchema(): bool
-    {
-        return true;
+        parent::__construct($dumpBinary, $restoreBinary);
     }
 
     public function dump(TenantWithDatabase $tenant, string $file): void
@@ -68,15 +43,7 @@ class MysqlBinaryTenantDatabaseDumper implements TenantDatabaseDumper
         try {
             array_splice($command, 1, 0, ['--defaults-extra-file='.$defaults]);
 
-            $process = Process::fromShellCommandline(
-                implode(' ', array_map(escapeshellarg(...), $command)).($write ? ' > ' : ' < ').escapeshellarg($file)
-            );
-
-            $process->setTimeout(Config::integer('numerosis.tenancy.backup.timeout', 900))->run();
-
-            if (! $process->isSuccessful()) {
-                throw TenantBackupFailed::dumperUnavailable(trim($process->getErrorOutput()));
-            }
+            $this->run($command, $file, $write);
         } finally {
             @unlink($defaults);
         }

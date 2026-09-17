@@ -48,8 +48,8 @@ class Notifications extends Component
             SaveNotificationPreference::run(
                 $user->global_id,
                 $type,
-                mail: (bool) ($row['mail'] ?? $type->mailByDefault()),
-                database: (bool) ($row['database'] ?? $type->databaseByDefault()),
+                mail: (bool) ($row['mail'] ?? true),
+                database: (bool) ($row['database'] ?? true),
             );
         }
 
@@ -86,8 +86,8 @@ class Notifications extends Component
             $database = $preference instanceof NotificationPreference ? $preference->database : null;
 
             $rows[$type->value] = [
-                'mail' => $type->mayDisableMail() ? ($mail ?? $type->mailByDefault()) : true,
-                'database' => $database ?? $type->databaseByDefault(),
+                'mail' => $type->mayDisableMail() ? ($mail ?? true) : true,
+                'database' => $database ?? true,
             ];
         }
 

@@ -10,7 +10,6 @@ use Nvade\Numerosis\Actions\Queries\GetPendingInvitationsForTenant;
 use Nvade\Numerosis\Actions\Queries\GetTenantDiscount;
 use Nvade\Numerosis\Actions\Queries\GetTenantMembers;
 use Nvade\Numerosis\Actions\Queries\GetTenantSeatUsage;
-use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Features\Audit\ActivityLogFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
@@ -95,17 +94,19 @@ class extends Component
             $this->tenantName = (string) $tenant->name;
             $this->graceDays = Config::integer('numerosis.tenancy.closure.grace_days', 30);
             $this->purgeDate = now()->addDays($this->graceDays)->toFormattedDayDateString();
-            $this->hasUnpaidInvoice = $this->isOwner && $tenant->subscriptions()
-                ->whereIn('stripe_status', [SubscriptionStatus::PastDue->value, SubscriptionStatus::Unpaid->value])
-                ->exists();
+            $this->hasUnpaidInvoice = $this->isOwner && $tenant->subscriptions()->withUnpaidInvoice()->exists();
 
             $discount = GetTenantDiscount::run($tenant);
             $this->activeDiscount = $discount?->label();
             $this->discountEnds = $discount?->expires_at?->toFormattedDayDateString() ?? '';
-            $this->retentionOffer = $this->isOwner ? ResolveRetentionOffer::run($tenant)?->label() : null;
+            // Only without a discount: the offer resolver answers null in that
+            // case anyway, and asking costs several Stripe round trips.
+            $this->retentionOffer = $this->isOwner && $discount === null
+                ? ResolveRetentionOffer::run($tenant)?->label()
+                : null;
 
             $this->twoFactorAvailable = Features::canManageTwoFactorAuthentication();
-            $this->requiresTwoFactor = $tenant->requires_two_factor;
+            $this->requiresTwoFactor = $tenant->requiresTwoFactor();
             $this->twoFactorEnforcedFrom = $tenant->requires_two_factor_from?->isFuture()
                 ? $tenant->requires_two_factor_from->toFormattedDayDateString()
                 : '';

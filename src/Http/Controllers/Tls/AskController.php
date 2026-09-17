@@ -10,14 +10,8 @@ use Nvade\Numerosis\Actions\Queries\GetServableDomains;
 use Nvade\Numerosis\Http\Controllers\Controller;
 
 /**
- * Caddy's on-demand TLS ask endpoint: 200 means "issue a certificate for this
- * hostname", anything else means do not.
- *
- * Unauthenticated by necessity — Caddy calls it before any certificate exists —
- * so it answers with a status and an empty body, and leaks nothing beyond
- * whether the hostname is ours. The answer is cached per hostname, because Caddy
- * asks once per new SNI and an uncached query here is a denial-of-service
- * vector.
+ * Caddy's on-demand TLS ask endpoint. A 200 tells Caddy to issue a certificate
+ * for the hostname, and any other status tells it to refuse.
  */
 class AskController extends Controller
 {

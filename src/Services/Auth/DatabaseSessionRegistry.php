@@ -65,13 +65,15 @@ class DatabaseSessionRegistry implements SessionRegistry
             return false;
         }
 
-        foreach ($this->rowsFor($guard, $userId) as [$row, $payload]) {
-            if ((string) $row->id === $sessionId) {
-                return $this->table()->where('id', $sessionId)->delete() > 0;
-            }
+        // The named row only, not the whole listable set: ownership is decided
+        // from that one payload.
+        $row = $this->table()->where('id', $sessionId)->first();
+
+        if (! $row instanceof stdClass || ! $this->belongsTo($row, $guard, $userId)) {
+            return false;
         }
 
-        return false;
+        return $this->table()->where('id', $sessionId)->delete() > 0;
     }
 
     public function forgetOthers(string $guard, int|string $userId, ?string $exceptSessionId): int
@@ -135,17 +137,7 @@ class DatabaseSessionRegistry implements SessionRegistry
 
             $payload = $this->decode($row->payload);
 
-            if ($payload === null) {
-                continue;
-            }
-
-            $loggedInAs = $payload[$guardKey] ?? null;
-
-            if (! is_int($loggedInAs) && ! is_string($loggedInAs)) {
-                continue;
-            }
-
-            if ((string) $loggedInAs !== (string) $userId) {
+            if ($payload === null || ! $this->identifies($payload, $guardKey, $userId)) {
                 continue;
             }
 
@@ -153,6 +145,29 @@ class DatabaseSessionRegistry implements SessionRegistry
         }
 
         return $matches;
+    }
+
+    private function belongsTo(stdClass $row, string $guard, int|string $userId): bool
+    {
+        if (! is_string($row->payload ?? null)) {
+            return false;
+        }
+
+        $payload = $this->decode($row->payload);
+
+        return $payload !== null && $this->identifies($payload, $this->guardSessionKey($guard), $userId);
+    }
+
+    /** @param  array<array-key, mixed>  $payload */
+    private function identifies(array $payload, string $guardKey, int|string $userId): bool
+    {
+        $loggedInAs = $payload[$guardKey] ?? null;
+
+        if (! is_int($loggedInAs) && ! is_string($loggedInAs)) {
+            return false;
+        }
+
+        return (string) $loggedInAs === (string) $userId;
     }
 
     /** @return array<array-key, mixed>|null */

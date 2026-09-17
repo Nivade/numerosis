@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Console\Commands;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\LazyCollection;
 use Nvade\Numerosis\Actions\Billing\Usage\ReportTenantUsage;
 use Nvade\Numerosis\Actions\Queries\GetTenantMeters;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -54,18 +54,18 @@ class ReportUsage extends Command
      * Whether a plan meters anything lives in JSON metadata, so the filter is
      * in PHP rather than in the query.
      *
-     * @return Collection<int, Tenant>
+     * @return LazyCollection<int, Tenant>
      */
-    private function tenants(): Collection
+    private function tenants(): LazyCollection
     {
         /** @var list<string> $keys */
         $keys = array_values(array_filter((array) $this->option('tenant'), is_string(...)));
 
-        /** @var Collection<int, Tenant> $tenants */
+        /** @var LazyCollection<int, Tenant> $tenants */
         $tenants = Numerosis::model(Tenant::class)::query()
             ->whereNotNull('stripe_id')
             ->when($keys !== [], fn ($query) => $query->whereIn('id', $keys))
-            ->get();
+            ->lazyById();
 
         return $tenants;
     }

@@ -4,24 +4,21 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Illuminate\Database\Eloquent\Attributes\Boot;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
-use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 use Nvade\Numerosis\Database\Factories\Central\InvitationFactory;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationAlreadyAccepted;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationExpired;
+use Nvade\Numerosis\Models\Concerns\ClaimableOnce;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Policies\Invitations\InvitationPolicy;
 use Override;
@@ -55,20 +52,14 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
 class Invitation extends Model
 {
     use CentralConnection;
+    use ClaimableOnce, MassPrunable {
+        ClaimableOnce::prunable insteadof MassPrunable;
+    }
 
     /** @use HasFactory<InvitationFactory> */
     use HasFactory;
 
     use LogsActivity;
-    use MassPrunable;
-
-    #[Boot]
-    protected static function ulids(): void
-    {
-        static::creating(function (self $invitation): void {
-            $invitation->ulid ??= (string) Str::ulid();
-        });
-    }
 
     /**
      * @return array<string, string>
@@ -108,25 +99,6 @@ class Invitation extends Model
     }
 
     /**
-     * @param  Builder<static>  $query
-     */
-    #[Scope]
-    protected function pending(Builder $query): void
-    {
-        $query->whereNull('accepted_at')->where('expires_at', '>', now());
-    }
-
-    public function isExpired(): bool
-    {
-        return $this->expires_at->isPast();
-    }
-
-    public function isAccepted(): bool
-    {
-        return $this->accepted_at !== null;
-    }
-
-    /**
      * Both refusals a visitor can be shown before the row is claimed. The
      * claim itself is a conditional `UPDATE` in `AcceptInvitation`, which is
      * what makes concurrent acceptance safe; this only fails early and readably.
@@ -138,20 +110,6 @@ class Invitation extends Model
     {
         throw_if($this->isAccepted(), InvitationAlreadyAccepted::class, 'This invitation has already been accepted.');
         throw_if($this->isExpired(), InvitationExpired::class, 'This invitation has expired.');
-    }
-
-    /**
-     * @return Builder<static>
-     */
-    public function prunable(): Builder
-    {
-        return static::query()
-            ->where(function (Builder $query): void {
-                $query->whereNotNull('accepted_at')->where('accepted_at', '<', now()->subDays(30));
-            })
-            ->orWhere(function (Builder $query): void {
-                $query->whereNull('accepted_at')->where('expires_at', '<', now()->subDays(30));
-            });
     }
 
     public function getActivitylogOptions(): LogOptions

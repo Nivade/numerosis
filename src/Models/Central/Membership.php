@@ -100,6 +100,21 @@ class Membership extends TenantPivot
         return $this->role === MembershipRole::Owner;
     }
 
+    /** The role one person holds in one tenant, or null where they hold none. */
+    public static function roleFor(string $tenantId, ?string $globalUserId): ?MembershipRole
+    {
+        if ($globalUserId === null) {
+            return null;
+        }
+
+        $role = Numerosis::model(self::class)::query()
+            ->where('tenant_id', $tenantId)
+            ->where('global_user_id', $globalUserId)
+            ->value('role');
+
+        return $role instanceof MembershipRole ? $role : null;
+    }
+
     /** Whether removing or demoting this row would leave the tenant with no admin. */
     public function isLastAdmin(): bool
     {

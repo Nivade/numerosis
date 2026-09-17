@@ -5,43 +5,17 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Services\Tenancy;
 
 use Illuminate\Support\Facades\Config;
-use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseDumper;
-use Nvade\Numerosis\Exceptions\Tenancy\TenantBackupFailed;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
-use Symfony\Component\Process\Process;
 
 /**
  * `pg_dump`/`psql`. The only dumper that carries a PostgreSQL schema: the
- * portable one reads rows through PDO and has no way to reproduce
- * PostgreSQL's DDL, so a portable artefact restores into a migrated database
- * only.
+ * portable one reads rows through PDO and cannot reproduce PostgreSQL's DDL.
  */
-class PostgresBinaryTenantDatabaseDumper implements TenantDatabaseDumper
+class PostgresBinaryTenantDatabaseDumper extends BinaryTenantDatabaseDumper
 {
-    public function __construct(
-        private readonly string $dumpBinary = 'pg_dump',
-        private readonly string $restoreBinary = 'psql',
-    ) {}
-
-    public function isAvailable(): bool
+    public function __construct(string $dumpBinary = 'pg_dump', string $restoreBinary = 'psql')
     {
-        return $this->unavailableReason() === null;
-    }
-
-    public function unavailableReason(): ?string
-    {
-        foreach ([$this->dumpBinary, $this->restoreBinary] as $binary) {
-            if (new Process(['sh', '-c', 'command -v '.$binary])->run() !== 0) {
-                return "`{$binary}` is not on PATH.";
-            }
-        }
-
-        return null;
-    }
-
-    public function carriesSchema(): bool
-    {
-        return true;
+        parent::__construct($dumpBinary, $restoreBinary);
     }
 
     public function dump(TenantWithDatabase $tenant, string $file): void
@@ -52,22 +26,6 @@ class PostgresBinaryTenantDatabaseDumper implements TenantDatabaseDumper
     public function restore(TenantWithDatabase $tenant, string $file): void
     {
         $this->run([$this->restoreBinary, '--quiet', $this->connectionString($tenant)], $file, write: false);
-    }
-
-    /**
-     * @param  list<string>  $command
-     */
-    private function run(array $command, string $file, bool $write): void
-    {
-        $process = Process::fromShellCommandline(
-            implode(' ', array_map(escapeshellarg(...), $command)).($write ? ' > ' : ' < ').escapeshellarg($file)
-        );
-
-        $process->setTimeout(Config::integer('numerosis.tenancy.backup.timeout', 900))->run();
-
-        if (! $process->isSuccessful()) {
-            throw TenantBackupFailed::dumperUnavailable(trim($process->getErrorOutput()));
-        }
     }
 
     /**

@@ -16,14 +16,9 @@ use Nvade\Numerosis\Numerosis;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 
 /**
- * Reads and writes the snapshot through PDO, so it needs no `mysqldump` or
- * `pg_dump` on the machine running it. The artefact is JSON Lines: one header,
- * then one line per row, so neither dumping nor restoring holds a table in
- * memory.
- *
- * PostgreSQL artefacts carry rows only. The other three drivers can hand back
- * their own `CREATE TABLE` statements; `pg_dump` is the answer there, through
- * `numerosis.tenancy.backup.dumpers`.
+ * PostgreSQL artefacts carry rows only, since only the other three drivers can
+ * hand back their own `CREATE TABLE` statements. Point
+ * `numerosis.tenancy.backup.dumpers` at `pg_dump` when schema is needed.
  */
 class PortableTenantDatabaseDumper implements TenantDatabaseDumper
 {

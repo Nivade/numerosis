@@ -15,7 +15,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tenants', function (Blueprint $table) {
-            $table->boolean('requires_two_factor')->default(false);
             $table->timestamp('requires_two_factor_from')->nullable();
         });
     }
@@ -23,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tenants', function (Blueprint $table) {
-            $table->dropColumn(['requires_two_factor', 'requires_two_factor_from']);
+            $table->dropColumn(['requires_two_factor_from']);
         });
     }
 };

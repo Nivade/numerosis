@@ -27,11 +27,6 @@ class OwnershipNominationPolicy
             return false;
         }
 
-        $role = Membership::query()
-            ->where('tenant_id', $nomination->tenant_id)
-            ->where('global_user_id', $user->global_id)
-            ->value('role');
-
-        return $role === MembershipRole::Owner;
+        return Membership::roleFor($nomination->tenant_id, $user->global_id) === MembershipRole::Owner;
     }
 }

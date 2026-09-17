@@ -15,13 +15,9 @@ use Nvade\Numerosis\Data\Billing\MeterDefinitionData;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * Sends the tenant's counters to Stripe as meter events, one per meter, and
- * records how much of each has been sent.
- *
- * The identifier is derived, never generated: tenant, event name, period and
- * the cumulative total the event carries the counter up to. A retried job
- * recomputes the same identifier, Stripe deduplicates on it, and the customer
- * is billed once. Generating one per attempt is what double-bills.
+ * The meter event identifier is derived from tenant, event name, period and the
+ * cumulative total. A retried job recomputes the same identifier and Stripe
+ * deduplicates on it. Generating one per attempt double-bills the customer.
  *
  * @method static int run(Tenant $tenant)
  */

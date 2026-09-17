@@ -199,13 +199,9 @@ trait CleansUpTenancyDatabases
     }
 
     /**
-     * Rolls every connection back to level 0, so the central deletes below do
-     * not block on row locks this test's own transaction still holds.
-     *
-     * Skipped on SQLite, where `central` and the default connection are one
-     * PDO handle rather than two: there is no second session to block, and
-     * rolling back here would discard the `tenants` rows the tenant-database
-     * names are read from a moment later.
+     * Skipped on SQLite, where `central` and the default connection share one
+     * PDO handle. Rolling back there discards the `tenants` rows the
+     * tenant-database names are read from a moment later.
      */
     private function releaseTestTransactions(): void
     {
@@ -482,14 +478,9 @@ trait CleansUpTenancyDatabases
     }
 
     /**
-     * Returns whether the statement was accepted, so the caller does not
-     * re-enable something it never disabled.
-     *
-     * Not `Schema::disableForeignKeyConstraints()`: its PostgreSQL spelling is
-     * `SET CONSTRAINTS ALL DEFERRED`, which reaches only constraints declared
-     * `DEFERRABLE`, and none of these are. `session_replication_role` needs
-     * superuser and throws `QueryException` without it, leaving the deletes to
-     * run in whatever order the tables were written.
+     * `Schema::disableForeignKeyConstraints()` is no use here. Its PostgreSQL
+     * spelling is `SET CONSTRAINTS ALL DEFERRED`, which reaches only
+     * constraints declared `DEFERRABLE`, and none of these are.
      */
     private function withoutForeignKeyChecks(Connection $connection, bool $enabled): bool
     {

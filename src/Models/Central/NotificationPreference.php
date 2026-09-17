@@ -20,13 +20,12 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property NotificationType $type
  * @property bool|null $mail
  * @property bool|null $database
- * @property string|null $digest
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  *
  * @mixin Model
  */
-#[Fillable(['global_id', 'type', 'mail', 'database', 'digest'])]
+#[Fillable(['global_id', 'type', 'mail', 'database'])]
 class NotificationPreference extends Model
 {
     use CentralConnection;

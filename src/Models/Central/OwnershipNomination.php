@@ -4,19 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Models\Central;
 
-use Illuminate\Database\Eloquent\Attributes\Boot;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
-use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 use Nvade\Numerosis\Exceptions\Tenancy\OwnershipNominationUnavailable;
+use Nvade\Numerosis\Models\Concerns\ClaimableOnce;
 use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Policies\Tenancy\OwnershipNominationPolicy;
 use Override;
@@ -45,14 +42,8 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
 class OwnershipNomination extends Model
 {
     use CentralConnection;
-    use MassPrunable;
-
-    #[Boot]
-    protected static function ulids(): void
-    {
-        static::creating(function (self $nomination): void {
-            $nomination->ulid ??= (string) Str::ulid();
-        });
+    use ClaimableOnce, MassPrunable {
+        ClaimableOnce::prunable insteadof MassPrunable;
     }
 
     /**
@@ -92,44 +83,11 @@ class OwnershipNomination extends Model
     }
 
     /**
-     * @param  Builder<static>  $query
-     */
-    #[Scope]
-    protected function pending(Builder $query): void
-    {
-        $query->whereNull('accepted_at')->where('expires_at', '>', now());
-    }
-
-    public function isExpired(): bool
-    {
-        return $this->expires_at->isPast();
-    }
-
-    public function isAccepted(): bool
-    {
-        return $this->accepted_at !== null;
-    }
-
-    /**
      * @throws OwnershipNominationUnavailable
      */
     public function assertClaimable(): void
     {
         throw_if($this->isAccepted(), OwnershipNominationUnavailable::class, 'This ownership transfer has already been accepted.');
         throw_if($this->isExpired(), OwnershipNominationUnavailable::class, 'This ownership transfer has expired.');
-    }
-
-    /**
-     * @return Builder<static>
-     */
-    public function prunable(): Builder
-    {
-        return static::query()
-            ->where(function (Builder $query): void {
-                $query->whereNotNull('accepted_at')->where('accepted_at', '<', now()->subDays(30));
-            })
-            ->orWhere(function (Builder $query): void {
-                $query->whereNull('accepted_at')->where('expires_at', '<', now()->subDays(30));
-            });
     }
 }

@@ -22,9 +22,7 @@ return new class extends Migration
         Schema::table('domains', function (Blueprint $table): void {
             $table->string('status')->default(DomainStatus::Active->value)->after('tenant_id');
             $table->string('verification_token')->nullable()->after('status');
-            $table->timestamp('verified_at')->nullable()->after('verification_token');
-            $table->timestamp('verification_failed_at')->nullable()->after('verified_at');
-            $table->timestamp('last_checked_at')->nullable()->after('verification_failed_at');
+            $table->timestamp('last_checked_at')->nullable()->after('verification_token');
 
             $table->index(['status', 'last_checked_at']);
         });
@@ -37,8 +35,6 @@ return new class extends Migration
             $table->dropColumn([
                 'status',
                 'verification_token',
-                'verified_at',
-                'verification_failed_at',
                 'last_checked_at',
             ]);
         });

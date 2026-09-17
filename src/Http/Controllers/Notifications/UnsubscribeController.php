@@ -11,14 +11,9 @@ use Nvade\Numerosis\Enums\Notifications\NotificationType;
 use Nvade\Numerosis\Http\Controllers\Controller;
 
 /**
- * One click, no login, exactly one type. Signed, because the link identifies the
- * person, and single-purpose, because a link that switches everything off is a
- * griefing vector — anyone who forwards a mail would be handing over the whole
- * mailbox.
- *
- * A type whose mail may not be disabled answers without changing anything: the
- * recipient learns the link arrived, and the package does not pretend it can
- * mute a payment failure.
+ * The link is signed and turns off exactly one type. A link that switched
+ * everything off would let anyone who receives a forwarded mail silence the
+ * whole mailbox.
  */
 class UnsubscribeController extends Controller
 {
@@ -33,7 +28,7 @@ class UnsubscribeController extends Controller
                 $globalId,
                 $notificationType,
                 mail: false,
-                database: $notificationType->databaseByDefault(),
+                database: true,
             );
         }
 

@@ -5,14 +5,9 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Enums\Tenancy;
 
 /**
- * Where a domain is between "claimed" and "serving traffic".
- *
- * `Verified` and `Active` are deliberately separate: ownership of the zone is
- * proven long before traffic actually arrives at this platform, and the gap
- * between the two is where every support ticket about a custom domain lives.
- *
- * A subdomain needs no proof, so rows created under subdomain mode are `Active`
- * from the start.
+ * `Verified` and `Active` are deliberately separate. Ownership of the zone is
+ * proven long before traffic arrives at this platform, and a domain sits in the
+ * gap for as long as DNS takes to move.
  */
 enum DomainStatus: string
 {

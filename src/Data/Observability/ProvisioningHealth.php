@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Data\Observability;
 
+use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\MapOutputName;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 
 /** Counts only. This rides in an unauthenticated document, so no slug or name. */
+#[MapInputName(SnakeCaseMapper::class)]
 #[MapOutputName(SnakeCaseMapper::class)]
 final class ProvisioningHealth extends Data
 {

@@ -7,7 +7,6 @@ namespace Nvade\Numerosis\Actions\Queries;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Billing\SeatUsage;
 use Nvade\Numerosis\Models\Central\Invitation;
-use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 
@@ -34,15 +33,13 @@ class GetTenantSeatUsage
     }
 
     /**
-     * `options.max_users` comes from host-editable config, so a non-numeric
-     * value is uncapped exactly as an absent one is: a malformed entry must
-     * not lock a customer out of seats they are paying for.
+     * Read from the plan, not from {@see Entitlements::limit()}: that memoizes
+     * per tenant, and an accept has to see a downgrade written earlier in the
+     * same request.
      */
     private function limitFor(Tenant $tenant): ?int
     {
-        $subscription = $tenant->subscriptions()->get()
-            ->first(fn (Subscription $subscription): bool => $subscription->valid());
-
+        $subscription = GetActiveSubscription::run($tenant);
         $maxUsers = $subscription?->paymentPlan?->metadata()['options']['max_users'] ?? null;
 
         return is_numeric($maxUsers) ? (int) $maxUsers : null;

@@ -31,11 +31,16 @@ class GetSystemHealth
 
     public function handle(): HealthReport
     {
-        return GlobalCache::remember(
+        // The array is cached, not the Data object: a store whose
+        // `serializable_classes` does not name these classes reads an object
+        // back as `__PHP_Incomplete_Class`, and every poll would re-measure.
+        $cached = GlobalCache::remember(
             CacheKeys::healthReport(),
             CacheTtl::healthReport(),
-            fn (): HealthReport => $this->measure(),
+            fn (): array => $this->measure()->toArray(),
         );
+
+        return HealthReport::from($cached);
     }
 
     private function measure(): HealthReport

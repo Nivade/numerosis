@@ -16,6 +16,7 @@ use Nvade\Numerosis\Actions\Tenancy\RestoreTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
 use Nvade\Numerosis\Actions\Tenancy\TransferTenantOwnership;
 use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Exceptions\ShowsMessageToUser;
 use Nvade\Numerosis\Exceptions\Tenancy\OwnershipTransferBlocked;
 use Nvade\Numerosis\Features\Admin\ImpersonationFeature;
 use Nvade\Numerosis\Features\Audit\ActivityLogFeature;
@@ -162,7 +163,7 @@ class extends Component
 
         SuspendTenant::run($this->tenant);
 
-        $this->record('suspended');
+        $this->refreshAfterAction('suspended');
     }
 
     public function restore(): void
@@ -171,16 +172,16 @@ class extends Component
 
         RestoreTenant::run($this->tenant);
 
-        $this->record('restored');
+        $this->refreshAfterAction('restored');
     }
 
     public function reopen(): void
     {
-        $this->authorize('restore', $this->tenant);
+        $this->authorize(TenantPolicy::REOPEN, $this->tenant);
 
         ReopenTenant::run($this->tenant);
 
-        $this->record('reopened');
+        $this->refreshAfterAction('reopened');
     }
 
     /**
@@ -201,7 +202,7 @@ class extends Component
 
         try {
             $url = StartImpersonation::run($this->tenant, $membership->global_user_id, $staff);
-        } catch (\DomainException $e) {
+        } catch (ShowsMessageToUser $e) {
             $this->dispatch('notify', type: 'error', message: $e->getMessage());
 
             return null;
@@ -232,7 +233,7 @@ class extends Component
             return;
         }
 
-        $this->record('reassigned', ['user' => $membership->user?->email]);
+        $this->refreshAfterAction('reassigned', ['user' => $membership->user?->email]);
     }
 
     private function membershipHere(int $membershipId): ?Membership
@@ -246,12 +247,13 @@ class extends Component
     }
 
     /**
-     * No `performedOn()`: `activity_log.subject_id` is an integer column and a
-     * tenant key is a string.
+     * Confirms the action and drops the computed properties it invalidated. The
+     * audit entry is the listener's: each of these actions fires a domain event
+     * that `RecordDomainEventActivity` writes against the tenant.
      *
      * @param  array<string, string|null>  $replacements
      */
-    private function record(string $action, array $replacements = []): void
+    private function refreshAfterAction(string $action, array $replacements = []): void
     {
         $this->tenant->refresh();
 
@@ -262,12 +264,7 @@ class extends Component
             ...$replacements,
         ]);
 
-        activity()
-            ->causedBy(GetAuthenticatedUser::run())
-            ->withProperties(['tenant_id' => $this->tenant->getKey()])
-            ->log(is_string($message) ? $message : $action);
-
-        $this->dispatch('notify', type: 'success', message: $message);
+        $this->dispatch('notify', type: 'success', message: is_string($message) ? $message : $action);
     }
 }; ?>
 <section class="mx-auto w-full max-w-5xl">

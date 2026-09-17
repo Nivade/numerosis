@@ -9,6 +9,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Testing\PendingCommand;
 use Nvade\Numerosis\Actions\Queries\ReadActivityLog;
+use Nvade\Numerosis\Actions\Tenancy\ReopenTenant;
+use Nvade\Numerosis\Actions\Tenancy\RestoreTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
 use Nvade\Numerosis\Enums\Audit\ActivityActor;
 use Nvade\Numerosis\Enums\SessionKey;
@@ -43,6 +45,34 @@ class AuditLogCoverageTest extends TestCase
 
         $this->assertCount(1, $entries);
         $this->assertSame($tenant->id, $entries->first()?->subject_id);
+    }
+
+    /**
+     * The staff screen calls these actions and no longer writes its own entry,
+     * so the event is the only thing that records them.
+     */
+    public function test_restoring_and_reopening_a_tenant_each_write_one_entry(): void
+    {
+        // Both events name the owner, so neither fires on an ownerless tenant.
+        $suspended = TestTenant::provisioned(['provisioned_at' => now(), 'suspended_at' => now()]);
+        $suspended->users()->attach(CentralUser::factory()->create()->global_id, [
+            'role' => MembershipRole::Owner->value,
+            'joined_at' => now(),
+        ]);
+
+        RestoreTenant::run($suspended);
+
+        $this->assertCount(1, ReadActivityLog::forTenant($suspended)->where('description', 'Tenant restored')->get());
+
+        $closed = TestTenant::provisioned(['provisioned_at' => now(), 'closed_at' => now()]);
+        $closed->users()->attach(CentralUser::factory()->create()->global_id, [
+            'role' => MembershipRole::Owner->value,
+            'joined_at' => now(),
+        ]);
+
+        ReopenTenant::run($closed);
+
+        $this->assertCount(1, ReadActivityLog::forTenant($closed)->where('description', 'Tenant reopened')->get());
     }
 
     public function test_a_queued_step_records_the_system_actor_rather_than_nobody(): void

@@ -8,10 +8,6 @@ use Nvade\Numerosis\Exceptions\Billing\EntitlementDenied;
 use Stancl\Tenancy\Contracts\Tenant;
 
 /**
- * What the plan a tenant bought actually lets them do. Two questions over one
- * plan: whether a capability is included, and how much of an allowance is
- * left.
- *
  * `Feature` in this package means a code-level switch in
  * `config('numerosis.features')`, and `PlanFeature` means plan copy in the
  * database. This is neither, which is why it is not called either.

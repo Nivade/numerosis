@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Admin;
 
-use DomainException;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Exceptions\Admin\ImpersonationUnavailable;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\ImpersonationSession;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -15,13 +15,9 @@ use Nvade\Numerosis\Numerosis;
 use Stancl\Tenancy\Database\Models\ImpersonationToken;
 
 /**
- * Mints a one-time link that signs `$staff` in as the tenant user behind
- * `$targetGlobalId`, and opens the audit row the redeem step then stamps.
- *
- * The token is a 128-character single-use secret with its own TTL, which is
- * why the link carries no signature: signing it would need a URL built for
- * another host, and path mode has no `URL::defaults(['tenant' => …])` to build
- * it from.
+ * The link carries no signature, since the token is already a 128-character
+ * single-use secret with its own TTL. Signing it would need a URL built for
+ * another host, and path mode has no `URL::defaults(['tenant' => …])` for that.
  *
  * @method static string run(Tenant $tenant, string $targetGlobalId, CentralUser $staff)
  */
@@ -54,7 +50,7 @@ class StartImpersonation
      * The tenant guard logs in by primary key, and that key only exists inside
      * the tenant's own database.
      *
-     * @throws DomainException when the member has no tenant-side user yet
+     * @throws ImpersonationUnavailable when the member has no tenant-side user yet
      */
     private function tenantUserId(Tenant $tenant, string $targetGlobalId): string
     {
@@ -68,7 +64,7 @@ class StartImpersonation
 
         throw_unless(
             is_string($id),
-            DomainException::class,
+            ImpersonationUnavailable::class,
             "No tenant user in [{$tenant->getTenantKey()}] carries global id [{$targetGlobalId}]."
         );
 

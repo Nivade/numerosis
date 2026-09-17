@@ -35,11 +35,14 @@ class GetTenantUsage
             return new Collection;
         }
 
+        // One read for every meter, not one per meter.
+        $counts = $this->counter->all($tenant, $period->bucket());
+
         return GetTenantMeters::run($tenant)
             ->map(fn (MeterDefinitionData $meter): MeterUsage => new MeterUsage(
                 key: $meter->key,
                 event_name: $meter->event_name,
-                used: $this->counter->value($tenant, $meter->key, $period->bucket()),
+                used: $counts[$meter->key] ?? 0,
                 included: $meter->included,
                 period: $period,
             ))

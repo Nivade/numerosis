@@ -33,10 +33,11 @@ class BillingServiceProvider extends ServiceProvider
             $this->app->bind($contract, $concrete);
         }
 
-        // A singleton, unlike the rest: its per-request memo of resolved
-        // entitlements is the point, and a fresh instance per resolve would
-        // re-read the plan on every check.
-        $this->app->singleton(function (Application $app) use ($implementations): Entitlements {
+        // Scoped, unlike the rest: its per-request memo of resolved entitlements
+        // is the point, and a fresh instance per resolve would re-read the plan
+        // on every check. A singleton would serve one worker's memo to the next
+        // job, for a different tenant.
+        $this->app->scoped(function (Application $app) use ($implementations): Entitlements {
             /** @var class-string<Entitlements> $concrete */
             $concrete = $implementations[Entitlements::class] ?? PlanEntitlements::class;
 

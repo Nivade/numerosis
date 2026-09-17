@@ -6,7 +6,6 @@ namespace Nvade\Numerosis\Actions\Auth;
 
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Nvade\Numerosis\Contracts\Auth\SessionRegistry;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Events\Auth\UserAnonymized;
 use Nvade\Numerosis\Models\Central\CentralUser;
@@ -17,14 +16,9 @@ use Nvade\Numerosis\Models\Tenant\User as TenantUser;
 use Nvade\Numerosis\Numerosis;
 
 /**
- * Erasure, for a person whose rows live in somebody else's workspace. The
- * central identity goes; the tenant-side row stays with its name and address
- * replaced, because the content it is attached to belongs to the workspace and
- * its foreign keys have to survive.
- *
- * Not atomic across N databases and cannot be: each tenant is committed on its
- * own connection. Re-running finishes what a failure left, since every step is
- * keyed on `anonymized_at` being null.
+ * Not atomic across N databases and cannot be, since each tenant is committed
+ * on its own connection. Re-running finishes what a failure left, because every
+ * step is keyed on `anonymized_at` being null.
  *
  * @method static bool run(CentralUser $user)
  */
@@ -97,7 +91,7 @@ class AnonymizeUser
             $user->delete();
         });
 
-        resolve(SessionRegistry::class)->forgetOthers(Context::Central->guard(), $user->id, null);
+        RevokeOtherSessions::run(Context::Central->guard(), $user->id, keepCurrent: false);
     }
 
     /**

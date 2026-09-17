@@ -7,6 +7,8 @@ namespace Nvade\Numerosis\Notifications\Tenancy;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Nvade\Numerosis\Concerns\Notifications\RespectsPreferences;
+use Nvade\Numerosis\Enums\Notifications\NotificationType;
 
 /**
  * Operator-facing, so it names the tenant: whoever receives it already
@@ -16,6 +18,7 @@ use Illuminate\Notifications\Notification;
 class ProvisioningFailed extends Notification
 {
     use Queueable;
+    use RespectsPreferences;
 
     public function __construct(
         public readonly string $slug,
@@ -24,10 +27,9 @@ class ProvisioningFailed extends Notification
         public readonly int $failedLastHour,
     ) {}
 
-    /** @return array<int, string> */
-    public function via(object $notifiable): array
+    public function notificationType(): NotificationType
     {
-        return ['mail'];
+        return NotificationType::ProvisioningFailed;
     }
 
     public function toMail(object $notifiable): MailMessage

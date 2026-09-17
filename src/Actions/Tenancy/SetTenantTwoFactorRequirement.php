@@ -19,12 +19,11 @@ class SetTenantTwoFactorRequirement
     {
         // Turning it on a second time must not restart the clock, or an owner
         // toggling the switch keeps the team permanently inside the grace.
-        if ($required && $tenant->requires_two_factor) {
+        if ($required && $tenant->requiresTwoFactor()) {
             return;
         }
 
         $tenant->forceFill([
-            'requires_two_factor' => $required,
             'requires_two_factor_from' => $required
                 ? now()->addDays(Config::integer('numerosis.tenancy.two_factor.grace_days', 7))
                 : null,

@@ -8,13 +8,9 @@ use Illuminate\Support\Carbon;
 use Stancl\Tenancy\Contracts\Tenant;
 
 /**
- * One counter, read two ways: a quota asks how much of an allowance is gone,
- * a billing meter asks how much to charge for. Backed by the central database
- * rather than the cache — a counter that loses writes on a cache flush is a
- * counter that under-bills.
- *
- * Point `numerosis.billing.implementations` at your own class to count
- * somewhere else; keep the increment atomic if you do.
+ * Backed by the central database, never the cache. A counter that loses writes
+ * on a cache flush under-bills. Any replacement bound through
+ * `numerosis.billing.implementations` has to keep the increment atomic.
  */
 interface UsageCounter
 {

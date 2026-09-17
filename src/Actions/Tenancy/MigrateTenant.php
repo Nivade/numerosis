@@ -10,14 +10,6 @@ use Nvade\Numerosis\Actions\Queries\GetPendingTenantMigrations;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * Runs the outstanding tenant migrations against one tenant and reports what
- * it applied. Safe to re-run: the tenant's own migration table decides what is
- * outstanding.
- *
- * Takes a `Tenant` rather than a `TenantProvision` because most tenants have
- * no provision row — `tenancy:prune-stalled-provisions` deletes completed ones
- * after 30 days.
- *
  * The migrator runs through `Tenant::runHere()`, which ends tenancy in a
  * `finally`. stancl's own `runForMultiple()` does not, so a throwing tenant
  * there leaves the next one migrating into the wrong database.

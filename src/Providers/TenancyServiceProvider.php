@@ -12,6 +12,7 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 use Livewire;
 use Nvade\Numerosis\Boot\TenancyRouting;
+use Nvade\Numerosis\Contracts\Notifications\NotificationChannels;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseDumper;
 use Nvade\Numerosis\Http\Middleware\EnsureSessionMatchesTenant;
 use Nvade\Numerosis\Http\Middleware\InitializeTenancy;
@@ -19,6 +20,7 @@ use Nvade\Numerosis\Http\Middleware\InitializeTenancyByTenantDomain;
 use Nvade\Numerosis\Http\Middleware\TenantRouteGuard;
 use Nvade\Numerosis\Listeners\Tenancy\LogSyncedResourceChangedInForeignDatabase;
 use Nvade\Numerosis\Listeners\Tenancy\UpdateSyncedResource;
+use Nvade\Numerosis\Services\Notifications\PreferredNotificationChannels;
 use Nvade\Numerosis\Services\Tenancy\PortableTenantDatabaseDumper;
 use Nvade\Numerosis\Services\Tenancy\PreservingPathTenantResolver;
 use Override;
@@ -150,6 +152,13 @@ class TenancyServiceProvider extends ServiceProvider
         foreach ($implementations as $contract => $concrete) {
             $this->app->bind($contract, $concrete);
         }
+
+        // Scoped: the channel resolver memoizes one preference row per
+        // recipient, and a fan-out re-reads it for every member otherwise.
+        $this->app->scoped(
+            NotificationChannels::class,
+            $implementations[NotificationChannels::class] ?? PreferredNotificationChannels::class,
+        );
 
         $this->registerDatabaseDumper();
 

@@ -118,9 +118,8 @@ class ReconcileUsage extends Command
 
         $this->components->warn("Tenant [{$tenant->getTenantKey()}] reported {$local} of [{$meter->event_name}] for {$periodStart}; Stripe holds {$remote}.");
 
-        $first = GlobalCache::store()->add(
+        $first = GlobalCache::claim(
             CacheKeys::usageDivergenceAlert((string) $tenant->getTenantKey(), $meter->event_name, $periodStart),
-            true,
             $period->end,
         );
 

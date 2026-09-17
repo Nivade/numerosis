@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Data\Billing;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Laravel\Cashier\Cashier;
 use Livewire\Wireable;
 use Spatie\LaravelData\Concerns\WireableData;
 use Spatie\LaravelData\Data;
+use Stripe\Coupon as StripeCoupon;
+use Stripe\PromotionCode as StripePromotionCode;
 
 /**
  * A promotion code Stripe has just confirmed is usable. Carries what Stripe
@@ -30,6 +33,22 @@ class PromotionData extends Data implements Wireable
         public ?int $duration_in_months = null,
         public ?Carbon $expires_at = null,
     ) {}
+
+    /** The expiry is the caller's: a discount ends when Stripe says it does, a code when it does. */
+    public static function fromStripe(StripeCoupon $coupon, ?StripePromotionCode $promotionCode, ?int $expiresAt): self
+    {
+        return new self(
+            code: $promotionCode->code ?? $coupon->id,
+            promotion_code_id: $promotionCode->id ?? '',
+            coupon_id: $coupon->id,
+            percent_off: $coupon->percent_off === null ? null : (int) $coupon->percent_off,
+            amount_off: $coupon->amount_off,
+            currency: $coupon->currency,
+            duration: $coupon->duration,
+            duration_in_months: $coupon->duration_in_months,
+            expires_at: $expiresAt === null ? null : Date::createFromTimestamp($expiresAt),
+        );
+    }
 
     /** What to show beside the code, in Stripe's own terms. */
     public function label(): string

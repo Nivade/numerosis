@@ -23,7 +23,6 @@ return new class extends Migration
             $table->string('type');
             $table->boolean('mail')->nullable();
             $table->boolean('database')->nullable();
-            $table->string('digest')->nullable();
             $table->timestamps();
 
             $table->unique(['global_id', 'type']);

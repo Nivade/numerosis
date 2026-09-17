@@ -2,12 +2,14 @@
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Enums\Tenancy\TenantProvisionStatus;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantProvision;
@@ -24,12 +26,7 @@ class extends Component
     #[Url]
     public string $status = 'all';
 
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatedStatus(): void
+    public function updated(): void
     {
         $this->resetPage();
     }
@@ -44,7 +41,12 @@ class extends Component
     public function tenants(): LengthAwarePaginator
     {
         return Numerosis::model(Tenant::class)::query()
-            ->with(['users', 'subscriptions.paymentPlan'])
+            // Owners only: the listing shows one email per tenant, and loading
+            // every member to find it hydrates thousands of rows a page.
+            ->with([
+                'users' => fn (BelongsToMany $members) => $members->wherePivot('role', MembershipRole::Owner->value),
+                'subscriptions.paymentPlan',
+            ])
             ->when($this->search !== '', fn (Builder $query) => $query->where(
                 fn (Builder $inner) => $inner
                     ->where('id', 'like', '%'.$this->search.'%')

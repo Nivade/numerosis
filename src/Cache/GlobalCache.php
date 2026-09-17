@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Cache;
 
 use Closure;
+use DateTimeInterface;
 use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Cache\Factory;
 use Illuminate\Contracts\Cache\Lock;
@@ -131,6 +132,17 @@ final class GlobalCache
         }
 
         return $store->flexible($key, $window, $callback);
+    }
+
+    /**
+     * True for the first caller in the window and false for the rest, so one
+     * cause raises one alert. Through the global store on purpose: the `Cache`
+     * facade is tenant-prefixed inside tenancy, which would give each tenant
+     * its own window.
+     */
+    public static function claim(string $key, DateTimeInterface|int $for): bool
+    {
+        return self::store()->add($key, true, $for);
     }
 
     /**

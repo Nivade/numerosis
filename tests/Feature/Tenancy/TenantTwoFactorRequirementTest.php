@@ -59,7 +59,7 @@ class TenantTwoFactorRequirementTest extends TestCase
 
         SetTenantTwoFactorRequirement::run($tenant, true);
 
-        $this->assertTrue($tenant->refresh()->requires_two_factor);
+        $this->assertTrue($tenant->refresh()->requiresTwoFactor());
         $this->assertFalse($tenant->refresh()->requiresTwoFactorNow());
 
         $this->actingAsCentralUser($user)
@@ -107,7 +107,7 @@ class TenantTwoFactorRequirementTest extends TestCase
         SetTenantTwoFactorRequirement::run($tenant, true);
         SetTenantTwoFactorRequirement::run($tenant->refresh(), false);
 
-        $this->assertFalse($tenant->refresh()->requires_two_factor);
+        $this->assertFalse($tenant->refresh()->requiresTwoFactor());
         $this->assertNull($tenant->refresh()->requires_two_factor_from);
     }
 
@@ -126,7 +126,7 @@ class TenantTwoFactorRequirementTest extends TestCase
             ])
             ->assertRedirect('http://'.$domain.'/team');
 
-        $this->assertTrue($tenant->refresh()->requires_two_factor);
+        $this->assertTrue($tenant->refresh()->requiresTwoFactor());
     }
 
     public function test_a_member_who_is_not_the_owner_cannot_turn_it_on(): void
@@ -142,7 +142,7 @@ class TenantTwoFactorRequirementTest extends TestCase
             'password' => 'password',
         ])->assertForbidden();
 
-        $this->assertFalse($tenant->refresh()->requires_two_factor);
+        $this->assertFalse($tenant->refresh()->requiresTwoFactor());
     }
 
     /**

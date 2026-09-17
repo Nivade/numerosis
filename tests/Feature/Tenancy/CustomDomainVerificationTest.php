@@ -190,7 +190,7 @@ class CustomDomainVerificationTest extends TestCase
         RecordDomainVerification::run($domain, VerifyDomainOwnership::run($domain));
 
         $this->assertSame(DomainStatus::Failed, $domain->refresh()->status);
-        $this->assertNotNull($domain->verification_failed_at);
+        $this->assertNotNull($domain->last_checked_at);
     }
 
     /**

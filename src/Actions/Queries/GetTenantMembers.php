@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Actions\Queries;
 use Illuminate\Support\Collection;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Models\Central\Membership;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * @method static Collection<int, Membership> run(string $tenantId)
@@ -21,7 +22,7 @@ class GetTenantMembers
     public function handle(string $tenantId): Collection
     {
         /** @var Collection<int, Membership> $members */
-        $members = Membership::query()
+        $members = Numerosis::model(Membership::class)::query()
             ->where('tenant_id', $tenantId)
             ->with(['user:id,global_id,name,email', 'inviter:id,global_id,name'])
             ->oldest('joined_at')

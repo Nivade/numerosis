@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Billing\Promotions;
 
-use Illuminate\Support\Facades\Date;
 use Laravel\Cashier\Cashier;
 use Laravel\Cashier\PromotionCode;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -19,13 +18,8 @@ use Stripe\Exception\ApiErrorException;
 use Stripe\PromotionCode as StripePromotionCode;
 
 /**
- * Asks Stripe whether a code is usable by this customer for this plan, and
- * says which way it is not. Nothing is cached: a redemption limit moves under
- * you between the page load and the charge, which is why the answer is asked
- * again when the subscription is created.
- *
- * Reads the raw Stripe objects rather than Cashier's wrappers, whose fields
- * come through `__get()` and so carry no types.
+ * Nothing here is cached. A redemption limit moves between the page load and
+ * the charge, so the answer is asked again when the subscription is created.
  *
  * @method static PromotionData run(string $code, BillableUser|Tenant $billable, ?Plan $plan = null, ?BillingCycle $cycle = null)
  *
@@ -45,19 +39,7 @@ class ValidatePromotionCode
         $this->assertRestrictionsAllow($promotionCode, $billable, $plan, $cycle);
         $this->assertCouponAppliesTo($coupon, $plan, $cycle);
 
-        return new PromotionData(
-            code: $promotionCode->code,
-            promotion_code_id: $promotionCode->id,
-            coupon_id: $coupon->id,
-            percent_off: $coupon->percent_off === null ? null : (int) $coupon->percent_off,
-            amount_off: $coupon->amount_off,
-            currency: $coupon->currency,
-            duration: $coupon->duration,
-            duration_in_months: $coupon->duration_in_months,
-            expires_at: $promotionCode->expires_at === null
-                ? null
-                : Date::createFromTimestamp($promotionCode->expires_at),
-        );
+        return PromotionData::fromStripe($coupon, $promotionCode, $promotionCode->expires_at);
     }
 
     /**

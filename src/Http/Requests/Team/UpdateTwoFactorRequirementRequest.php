@@ -5,29 +5,10 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Http\Requests\Team;
 
 use Illuminate\Foundation\Http\Attributes\ErrorBag;
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Gate;
-use Nvade\Numerosis\Actions\Queries\FindMembershipForUser;
-use Nvade\Numerosis\Enums\Tenancy\Context;
-use Nvade\Numerosis\Models\Central\Membership;
-use Nvade\Numerosis\Models\Central\Tenant;
-use Nvade\Numerosis\Models\User;
 
-/**
- * No `#[RedirectToRoute]`: in path identification mode the tenant group is
- * prefixed `{tenant}` and nothing registers a URL default for that parameter,
- * so a named tenant route throws `UrlGenerationException`.
- */
 #[ErrorBag('twoFactorRequirement')]
-class UpdateTwoFactorRequirementRequest extends FormRequest
+class UpdateTwoFactorRequirementRequest extends TenantOwnerRequest
 {
-    public function authorize(): bool
-    {
-        $membership = $this->membership();
-
-        return $membership instanceof Membership && Gate::allows('manageSecurity', $membership);
-    }
-
     /**
      * @return array<string, mixed>
      */
@@ -35,11 +16,10 @@ class UpdateTwoFactorRequirementRequest extends FormRequest
     {
         $rules = ['required' => ['required', 'boolean']];
 
-        // In the form rather than `password.confirm.if-set` on the route,
-        // which redirects to `route('password.confirm')` and throws
-        // UrlGenerationException on a `{tenant}`-prefixed group.
-        if (filled($this->user()?->getAuthPassword())) {
-            $rules['password'] = ['required', 'string', 'current_password:'.Context::Tenant->guard()];
+        $password = $this->currentPasswordRule();
+
+        if ($password !== null) {
+            $rules['password'] = $password;
         }
 
         return $rules;
@@ -50,18 +30,8 @@ class UpdateTwoFactorRequirementRequest extends FormRequest
         return $this->boolean('required');
     }
 
-    public function membership(): ?Membership
+    protected function ability(): string
     {
-        $tenant = tenant();
-        $user = $this->user();
-
-        if (! $tenant instanceof Tenant) {
-            return null;
-        }
-
-        return FindMembershipForUser::run(
-            (string) $tenant->getTenantKey(),
-            $user instanceof User ? $user->global_id : null,
-        );
+        return 'manageSecurity';
     }
 }

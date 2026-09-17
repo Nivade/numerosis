@@ -11,13 +11,9 @@ use Nvade\Numerosis\Features\Admin\ImpersonationFeature;
 use Nvade\Numerosis\Models\Central\ImpersonationSession;
 
 /**
- * The open impersonation this request is running inside, read by the banner,
- * the causer resolver, the mail suppressor and the expiry guard — all of which
- * would otherwise each decide for themselves what "impersonating" means.
- *
- * Deliberately not memoized in a static: the four callers run on different
- * requests of one worker process, and a remembered answer there hands the
- * next request somebody else's session.
+ * Deliberately not memoized in a static. Callers run on different requests of
+ * one worker process, and a remembered answer hands the next request somebody
+ * else's session.
  *
  * @method static ?ImpersonationSession run()
  */

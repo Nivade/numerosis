@@ -36,6 +36,17 @@ enum SubscriptionStatus: string
     }
 
     /**
+     * An invoice the customer can still settle. Narrower than `isDelinquent()`:
+     * an expired incomplete subscription charged nothing and has nothing to pay.
+     *
+     * @return list<string>
+     */
+    public static function unpaidInvoiceValues(): array
+    {
+        return [self::PastDue->value, self::Unpaid->value];
+    }
+
+    /**
      * Deliberately narrower than `isSettled()` — a trial collects nothing
      * upfront, and the unpaid-tenant quota exists to stop free tenant
      * databases, not to gate on settlement.

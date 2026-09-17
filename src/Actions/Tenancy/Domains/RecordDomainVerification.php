@@ -15,13 +15,9 @@ use Nvade\Numerosis\Events\Tenancy\DomainVerified;
 use Nvade\Numerosis\Models\Central\Domain;
 
 /**
- * Moves a domain to where a check says it belongs, and fires the transition
- * events — once per transition, never once per check, because a listener that
- * calls a certificate API cannot be called hourly for a domain that has not
- * changed.
- *
- * A check that fails inside the verification window leaves the domain retryable:
- * DNS propagates on its own timetable, so "not found yet" is not "not ours".
+ * Transition events fire once per transition, never once per check. A listener
+ * that calls a certificate API cannot be called hourly for a domain that has
+ * not changed.
  *
  * @method static Domain run(Domain $domain, DomainVerificationResult $result)
  */
@@ -37,8 +33,6 @@ class RecordDomainVerification
         $domain->forceFill([
             'status' => $status,
             'last_checked_at' => now(),
-            'verified_at' => $status->isServable() ? ($domain->verified_at ?? now()) : null,
-            'verification_failed_at' => $status === DomainStatus::Failed ? now() : null,
         ])->save();
 
         GlobalCache::store()->forget(CacheKeys::servableDomain($domain->domain));

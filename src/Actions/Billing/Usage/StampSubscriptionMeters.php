@@ -12,13 +12,9 @@ use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\SubscriptionItem;
 
 /**
- * Writes `meter_id` and `meter_event_name` onto the items of a metered
- * subscription. Stripe carries the meter id on a usage-based price, but the
- * event name is the plan's own declaration, so the two meet here rather than
- * in the data object that reads Stripe.
- *
- * Idempotent: both writers of a subscription row reach this, and a second call
- * writes the same values.
+ * Stripe carries `meter_id` on a usage-based price, while `meter_event_name` is
+ * the plan's own declaration. The two sources meet here, outside the data
+ * object that reads Stripe.
  *
  * @method static int run(Subscription $subscription)
  */

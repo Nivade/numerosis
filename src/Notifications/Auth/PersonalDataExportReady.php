@@ -8,6 +8,8 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\URL;
+use Nvade\Numerosis\Concerns\Notifications\RespectsPreferences;
+use Nvade\Numerosis\Enums\Notifications\NotificationType;
 use Nvade\Numerosis\Models\Central\DataExportRequest;
 
 /**
@@ -17,15 +19,31 @@ use Nvade\Numerosis\Models\Central\DataExportRequest;
 class PersonalDataExportReady extends Notification
 {
     use Queueable;
+    use RespectsPreferences;
 
     public function __construct(public DataExportRequest $request) {}
 
-    /**
-     * @return list<string>
-     */
-    public function via(object $notifiable): array
+    public function notificationType(): NotificationType
     {
-        return ['mail'];
+        return NotificationType::DataExportReady;
+    }
+
+    /**
+     * No download link in the panel: the signed one expires with the artefact,
+     * and a dead link read back days later is worse than none.
+     *
+     * @return array<string, mixed>
+     */
+    public function toDatabase(object $notifiable): array
+    {
+        return [
+            'type' => NotificationType::DataExportReady->value,
+            'title' => NotificationType::DataExportReady->label(),
+            'body' => __('The copy of your data you asked for has been prepared.'),
+            'action_url' => null,
+            'tenant_id' => $this->request->tenant_id,
+            'tenant_name' => null,
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

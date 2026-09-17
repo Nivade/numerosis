@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Lorisleiva\Actions\Concerns\AsAction;
-use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Nvade\Numerosis\Exceptions\Tenancy\TenantClosureBlocked;
 use Nvade\Numerosis\Models\Central\Tenant;
 
@@ -27,15 +26,8 @@ class AssertTenantClosable
             return;
         }
 
-        $delinquent = $tenant->subscriptions()
-            ->whereIn('stripe_status', [
-                SubscriptionStatus::PastDue->value,
-                SubscriptionStatus::Unpaid->value,
-            ])
-            ->exists();
-
         throw_if(
-            $delinquent,
+            $tenant->subscriptions()->withUnpaidInvoice()->exists(),
             new TenantClosureBlocked(__('This workspace has an unpaid invoice. Confirm you want to close it anyway, or settle the invoice first.')),
         );
     }
