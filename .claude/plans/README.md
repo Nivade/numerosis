@@ -190,14 +190,13 @@ feature each and are listed here in the roadmap's wave order. Ten,
 `provisioning-observability.md`, `fleet-tenant-migrations.md`,
 `session-management.md`, `two-factor-authentication.md` and
 `security-hardening.md`, `audit-log-coverage.md`, `tenant-backup-restore.md`,
-`gdpr-data-export.md`, `runtime-entitlements.md`, `usage-metering.md` and
-`coupons-and-promotions.md`, have since been executed and archived; the rest are
-not.
+`gdpr-data-export.md`, `runtime-entitlements.md`, `usage-metering.md`,
+`coupons-and-promotions.md` and `custom-domain-verification.md`, have since been
+executed and archived; the rest are not.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `custom-domain-verification.md` | Not executed. Wave 5. A documented mode with no ownership proof |
 | `public-api-and-webhooks.md` | Not executed. Wave 5. Largest of the set; splits into three |
 | `notification-center.md` | Not executed. Wave 5. The `notifications` table has no writer |
 
@@ -265,6 +264,15 @@ applies, validates with one message per refusal, records redemptions in
 charge, a code that stops validating is dropped rather than refusing the sale,
 and the plan's swap-preserves-discount test is asserted as "no local write sends
 `discounts`" because the offline Stripe fake has no invoice endpoints.
+
+`custom-domain-verification.md` moved to `archive/` 2026-09-17, the day it was
+executed: ownership proof over a `TXT` challenge plus a `CNAME`/`A` target, the
+five-state `domains.status`, a scheduled re-check that also watches serving
+domains, the tenant claim screen, and the Caddy ask and Traefik routers
+endpoints over one verified-domain query. Two simplifications in its own "What
+shipped": `active` means proven *and* pointed here rather than "a certificate
+exists", and the screen is gated on the identification mode rather than on a
+`Feature` class.
 
 ## Abandoned
 

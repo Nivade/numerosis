@@ -219,6 +219,41 @@ A tenant with no active subscription gets `numerosis.billing.free_tier`, which
 ships empty — the behaviour that predates entitlements. Put `'seats' => 1`
 there to cap a workspace nobody is paying for.
 
+### Custom domains and TLS
+
+Under `IdentificationMode::CustomDomain` a tenant proves it controls a hostname
+before that hostname is served: a `TXT` record at
+`_numerosis-challenge.<domain>` carrying the domain's token, plus a `CNAME`
+(or an `A` record, for an apex zone that cannot carry one) pointing traffic
+here. Both halves are checked and reported separately, because a domain that
+verified fine and was never pointed still 404s.
+
+`verified` means ownership is proven. `active` means it is proven *and* pointed
+here. They are separate states on purpose — the gap between them is what support
+is asked about — and the tenant screen at `domain` states the difference in
+words.
+
+**The package issues no certificates.** It proves ownership and publishes the
+verified set; how a certificate appears is the deployment's business:
+
+| Deployment | How it gets certificates | What to switch on |
+|---|---|---|
+| Caddy (the shipped default) | On-demand TLS | `NUMEROSIS_TLS_ASK_ENDPOINT=1`. Caddy's `on_demand_tls.ask` points at `numerosis/tls/ask`, which answers 200 for a servable hostname and 404 otherwise |
+| Traefik | ACME per router | `NUMEROSIS_TLS_ROUTERS_ENDPOINT=1`. Point Traefik's HTTP provider at `numerosis/tls/routers`, and set `NUMEROSIS_TLS_TRAEFIK_SERVICE` / `NUMEROSIS_TLS_CERT_RESOLVER` to match your static config |
+| Cloudflare for SaaS | Their API | Neither endpoint. Listen for `Events\Tenancy\DomainVerified` and call Cloudflare from your own listener |
+| Anything else | Your own automation | The same event, plus `Actions\Queries\GetServableDomains` |
+
+Both endpoints are public by necessity — a proxy calls them before any
+certificate exists — so both are rate limited, cached for
+`NUMEROSIS_TLS_CACHE_SECONDS`, and answer nothing beyond whether a hostname is
+ours. The query behind them filters on tenant state as well as domain state: a
+suspended or closed tenant's hostname stops being served.
+
+Run `numerosis:verify-domains` on a schedule
+(`SCHEDULE_VERIFY_DOMAINS=true`). It re-checks claims waiting to verify *and*
+domains already serving, because DNS pulled from under a live domain has to stop
+being served and nothing else would notice.
+
 ### Discounts
 
 Coupons and promotion codes are Stripe objects. This package applies, validates,

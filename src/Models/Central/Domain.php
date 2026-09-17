@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Request;
+use Nvade\Numerosis\Enums\Tenancy\DomainStatus;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Observers\Tenancy\DomainObserver;
 use Stancl\Tenancy\Database\Concerns\InvalidatesTenantsResolverCache;
@@ -24,6 +25,11 @@ use Stancl\Tenancy\Database\Concerns\InvalidatesTenantsResolverCache;
  * @property string $id
  * @property string $domain
  * @property string $tenant_id
+ * @property DomainStatus $status
+ * @property string|null $verification_token
+ * @property Carbon|null $verified_at
+ * @property Carbon|null $verification_failed_at
+ * @property Carbon|null $last_checked_at
  * @property-read string $url
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -47,6 +53,54 @@ class Domain extends \Stancl\Tenancy\Database\Models\Domain
     use InvalidatesTenantsResolverCache;
 
     protected $keyType = 'string';
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'status' => DomainStatus::class,
+            'verified_at' => 'datetime',
+            'verification_failed_at' => 'datetime',
+            'last_checked_at' => 'datetime',
+        ];
+    }
+
+    /** The TXT record's host, which is where the token has to appear. */
+    public function challengeHost(): string
+    {
+        return Config::string('numerosis.tenancy.custom_domains.challenge_prefix', '_numerosis-challenge').'.'.$this->domain;
+    }
+
+    public function isServable(): bool
+    {
+        return $this->status->isServable();
+    }
+
+    /**
+     * @param  Builder<static>  $query
+     */
+    #[Scope]
+    protected function servable(Builder $query): void
+    {
+        $query->whereIn('status', [DomainStatus::Verified->value, DomainStatus::Active->value]);
+    }
+
+    /**
+     * Ordered by how long ago each was looked at, so a sweep with a limit takes
+     * the most overdue rather than whatever the driver returns first.
+     *
+     * @param  Builder<static>  $query
+     */
+    #[Scope]
+    protected function dueForCheck(Builder $query): void
+    {
+        // Active rows are re-checked too: a domain whose DNS was pulled has to
+        // stop being served, and nothing else would notice.
+        $query->where('status', '!=', DomainStatus::Revoked->value)
+            ->orderByRaw('last_checked_at is not null, last_checked_at asc');
+    }
 
     /**
      * @return Attribute<string, never>

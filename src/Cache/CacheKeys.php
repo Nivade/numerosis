@@ -96,6 +96,22 @@ final class CacheKeys
         return self::prefix().':auth:login_lockout:'.sha1($throttleKey);
     }
 
+    /**
+     * Global: whether one hostname may be served, which the TLS ask endpoint
+     * reads on every new SNI. Per domain rather than one big set, so a fleet's
+     * worth of domains never rides in a single cache entry.
+     */
+    public static function servableDomain(string $domain): string
+    {
+        return self::prefix().':tls:servable:'.strtolower($domain);
+    }
+
+    /** Global: every servable domain, for the Traefik router document. */
+    public static function servableDomains(): string
+    {
+        return self::prefix().':tls:servable_domains';
+    }
+
     /** Global: one divergence alert per tenant, meter and period, however often reconciliation runs. */
     public static function usageDivergenceAlert(string $tenantId, string $eventName, string $periodStart): string
     {

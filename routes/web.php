@@ -30,6 +30,8 @@ use Nvade\Numerosis\Http\Controllers\Observability\HealthController;
 use Nvade\Numerosis\Http\Controllers\Privacy\DownloadDataExportController;
 use Nvade\Numerosis\Http\Controllers\Tenancy\AcceptOwnershipNominationController;
 use Nvade\Numerosis\Http\Controllers\Tenancy\ShowOwnershipNominationController;
+use Nvade\Numerosis\Http\Controllers\Tls\AskController;
+use Nvade\Numerosis\Http\Controllers\Tls\RoutersController;
 use Nvade\Numerosis\Http\Middleware\EnsureStaffTwoFactor;
 use Nvade\Numerosis\Livewire\Settings\ConnectedAccounts;
 use Nvade\Numerosis\Livewire\Settings\Data as DataSettings;
@@ -62,6 +64,21 @@ Route::post(
     Config::string('numerosis.billing.webhook_path', 'billing/webhook'),
     [WebhookController::class, 'handleWebhook']
 )->name('billing.webhook');
+
+// TLS presenters for the proxy in front of this deployment. Unauthenticated by
+// necessity — the proxy calls them before any certificate exists — and rate
+// limited, since both are public and read the database.
+if (Config::boolean('numerosis.tenancy.custom_domains.tls.ask', false)) {
+    Route::get(Config::string('numerosis.tenancy.custom_domains.tls.ask_path'), AskController::class)
+        ->middleware('throttle:120,1')
+        ->name('numerosis.tls.ask');
+}
+
+if (Config::boolean('numerosis.tenancy.custom_domains.tls.routers', false)) {
+    Route::get(Config::string('numerosis.tenancy.custom_domains.tls.routers_path'), RoutersController::class)
+        ->middleware('throttle:60,1')
+        ->name('numerosis.tls.routers');
+}
 
 // Counts and booleans for an uptime monitor, unauthenticated and outside
 // every auth group. The framework's own `health:` slot stays the host's.
