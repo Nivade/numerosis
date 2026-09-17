@@ -7,6 +7,7 @@ namespace Nvade\Numerosis\Http\Requests\Team;
 use Illuminate\Foundation\Http\Attributes\ErrorBag;
 use Illuminate\Support\Facades\Gate;
 use Nvade\Numerosis\Models\Central\Membership;
+use Nvade\Numerosis\Numerosis;
 use Override;
 
 #[ErrorBag('ownershipTransfer')]
@@ -42,7 +43,7 @@ class NominateOwnerRequest extends TenantOwnerRequest
     /** Memoized: `authorize()` and the controller both ask for the same row. */
     public function target(): ?Membership
     {
-        return $this->resolvedTarget ??= Membership::query()->find($this->integer('membership'));
+        return $this->resolvedTarget ??= Numerosis::model(Membership::class)::query()->find($this->integer('membership'));
     }
 
     protected function ability(): string

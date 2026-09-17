@@ -48,7 +48,7 @@ Tick a row only when its phase is committed.
 | Done | Phase | Prerequisite |
 |---|---|---|
 | [x] | 1 — Security correctness (`e411bed`) | — |
-| [ ] | 2 — Contracts and the seat counter | — |
+| [x] | 2 — Contracts and the seat counter | — |
 | [ ] | 3 — Custom domain verification | — |
 | [ ] | 4 — Privacy, audit and backup | — |
 | [ ] | 5 — Notifications | — |

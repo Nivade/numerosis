@@ -45,7 +45,7 @@ class AcceptOwnershipNomination
             $tenantClass = Numerosis::model(Tenant::class);
             $tenant = $tenantClass::findOrFail($nomination->tenant_id);
 
-            $target = Membership::query()
+            $target = Numerosis::model(Membership::class)::query()
                 ->where('tenant_id', $nomination->tenant_id)
                 ->where('global_user_id', $nomination->nominee_global_id)
                 ->first();

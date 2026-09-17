@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Actions\Invitations;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Actions\Tenancy\AddTenantMember;
-use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
+use Nvade\Numerosis\Contracts\Billing\SeatPolicy;
 use Nvade\Numerosis\Events\Invitations\InvitationAccepted;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationAlreadyAccepted;
 use Nvade\Numerosis\Exceptions\Invitations\InvitationEmailMismatch;
@@ -31,7 +31,7 @@ class AcceptInvitation
     use AsAction;
 
     public function __construct(
-        private readonly PlanPolicy $planPolicy,
+        private readonly SeatPolicy $seatPolicy,
     ) {}
 
     public function handle(Invitation $invitation, CentralUser $user): Invitation
@@ -67,7 +67,7 @@ class AcceptInvitation
             // The throw rolls the claim back and the invitation stays
             // acceptable once the tenant has made room.
             throw_unless(
-                $this->planPolicy->hasSeatForNewMember($tenant),
+                $this->seatPolicy->hasSeatForNewMember($tenant),
                 SeatLimitReached::class,
                 'This workspace has no seats left. Ask an administrator to upgrade its plan, then open this invitation again.',
             );

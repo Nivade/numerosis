@@ -26,6 +26,7 @@ use Nvade\Numerosis\Contracts\Billing\CheckoutRegionResolver;
 use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
+use Nvade\Numerosis\Contracts\Billing\SeatPolicy;
 use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
 use Nvade\Numerosis\Contracts\Billing\TrialResolver;
 use Nvade\Numerosis\Contracts\Billing\UnpaidTenantQuota;
@@ -55,6 +56,7 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Consent;
 use Nvade\Numerosis\Models\Central\DataExportRequest;
 use Nvade\Numerosis\Models\Central\Domain;
+use Nvade\Numerosis\Models\Central\ImpersonationSession;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\Membership;
 use Nvade\Numerosis\Models\Central\NotificationPreference;
@@ -558,6 +560,7 @@ return [
         Consent::class => null,
         DataExportRequest::class => null,
         NotificationPreference::class => null,
+        ImpersonationSession::class => null,
     ],
 
     /*
@@ -590,6 +593,7 @@ return [
             SubscriptionRepository::class => EloquentSubscriptionRepository::class,
             BillableResolver::class => TenantOrUserBillableResolver::class,
             PlanPolicy::class => SeatLimitPlanPolicy::class,
+            SeatPolicy::class => SeatLimitPlanPolicy::class,
             TrialResolver::class => PlanOrDefaultTrialResolver::class,
             UnpaidTenantQuota::class => DefaultUnpaidTenantQuota::class,
             CheckoutRegionResolver::class => NullCheckoutRegionResolver::class,

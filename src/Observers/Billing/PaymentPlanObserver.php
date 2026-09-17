@@ -6,8 +6,10 @@ namespace Nvade\Numerosis\Observers\Billing;
 
 use Nvade\Numerosis\Actions\Cache\ForgetAvailablePaymentPlans;
 use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Observers\Concerns\ForgetsCacheKey;
+use Nvade\Numerosis\Services\Billing\PlanEntitlements;
 
 /**
  * Keeps {@see \Nvade\Numerosis\Services\Billing\EloquentPaymentPlanRepository::available()}'s
@@ -22,6 +24,12 @@ class PaymentPlanObserver
     public function saved(PaymentPlan $plan): void
     {
         ForgetAvailablePaymentPlans::run();
+
+        $entitlements = resolve(Entitlements::class);
+
+        if ($entitlements instanceof PlanEntitlements) {
+            $entitlements->forget();
+        }
     }
 
     /**

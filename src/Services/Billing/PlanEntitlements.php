@@ -29,8 +29,6 @@ use Stancl\Tenancy\Contracts\Tenant as TenantContract;
  */
 class PlanEntitlements implements Entitlements
 {
-    public const string SEATS = 'seats';
-
     /** @var array<string, array{capabilities: list<string>, limits: array<string, int>, plan: string|null, upgrade: string|null}> */
     private array $resolved = [];
 
@@ -299,6 +297,22 @@ class PlanEntitlements implements Entitlements
             ->first();
 
         return $next?->slug;
+    }
+
+    /** Drops the memo so the next read resolves the plan again. Null clears every tenant. */
+    public function forget(?TenantContract $tenant = null): void
+    {
+        if (! $tenant instanceof TenantContract) {
+            $this->resolved = [];
+            $this->meters = [];
+            $this->buckets = [];
+
+            return;
+        }
+
+        $key = (string) $tenant->getTenantKey();
+
+        unset($this->resolved[$key], $this->meters[$key], $this->buckets[$key]);
     }
 
     private function tenant(?TenantContract $tenant): ?TenantContract

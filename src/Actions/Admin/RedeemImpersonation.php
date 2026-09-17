@@ -11,6 +11,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Events\Admin\ImpersonationStarted;
 use Nvade\Numerosis\Models\Central\ImpersonationSession;
+use Nvade\Numerosis\Numerosis;
 use Stancl\Tenancy\Features\UserImpersonation;
 
 /**
@@ -29,7 +30,7 @@ class RedeemImpersonation
 
     public function handle(string $token): RedirectResponse
     {
-        $session = ImpersonationSession::query()
+        $session = Numerosis::model(ImpersonationSession::class)::query()
             ->where('token', $token)
             ->whereNull('started_at')
             ->firstOrFail();

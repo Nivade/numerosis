@@ -118,6 +118,27 @@ class EntitlementsTest extends TestCase
         $this->assertGreaterThan(1, $this->entitlements()->used(PlanEntitlements::SEATS, $tenant));
     }
 
+    /**
+     * The seat count reads the memoized cap, and a plan swap mid-request has
+     * to invalidate it or a downgrade written in the same request stays
+     * invisible to the next read.
+     */
+    public function test_a_plan_change_mid_request_is_visible_to_the_next_read(): void
+    {
+        $plan = $this->planWith(['reporting'], limits: ['seats' => 5]);
+        $tenant = $this->tenantOn($plan);
+
+        $this->assertSame(5, $this->entitlements()->limit(Entitlements::SEATS, $tenant));
+
+        $plan->update(['metadata' => ['options' => ['limits' => ['seats' => 2]]]]);
+
+        // A fresh tenant instance, not the one whose `subscriptions` relation
+        // is already loaded: the memo under test is PlanEntitlements', not
+        // Eloquent's own relation cache, which a real request never reuses
+        // across a plan write either.
+        $this->assertSame(2, $this->entitlements()->limit(Entitlements::SEATS, $tenant->fresh()));
+    }
+
     private function entitlements(): Entitlements
     {
         return resolve(Entitlements::class);

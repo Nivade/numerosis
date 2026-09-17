@@ -9,6 +9,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Features\Admin\ImpersonationFeature;
 use Nvade\Numerosis\Models\Central\ImpersonationSession;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * Deliberately not memoized in a static. Callers run on different requests of
@@ -36,7 +37,7 @@ class GetCurrentImpersonation
             return null;
         }
 
-        $session = ImpersonationSession::query()->whereKey($id)->whereNull('ended_at')->first();
+        $session = Numerosis::model(ImpersonationSession::class)::query()->whereKey($id)->whereNull('ended_at')->first();
 
         return $session instanceof ImpersonationSession ? $session : null;
     }

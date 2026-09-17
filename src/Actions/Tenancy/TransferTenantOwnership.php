@@ -11,6 +11,7 @@ use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Events\Tenancy\TenantOwnershipTransferred;
 use Nvade\Numerosis\Models\Central\Membership;
 use Nvade\Numerosis\Models\Central\Tenant;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * The Stripe customer is the tenant, not the owner, so nothing moves between
@@ -32,7 +33,7 @@ class TransferTenantOwnership
         AssertOwnershipTransferable::run($tenant, $target);
 
         $target->getConnection()->transaction(function () use ($target): void {
-            $current = Membership::query()
+            $current = Numerosis::model(Membership::class)::query()
                 ->where('tenant_id', $target->tenant_id)
                 ->where('role', MembershipRole::Owner->value)
                 ->lockForUpdate()
