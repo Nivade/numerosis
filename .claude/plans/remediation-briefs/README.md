@@ -50,7 +50,7 @@ Tick a row only when its phase is committed.
 | [x] | 1 — Security correctness (`e411bed`) | — |
 | [x] | 2 — Contracts and the seat counter | — |
 | [x] | 3 — Custom domain verification | — |
-| [ ] | 4 — Privacy, audit and backup | — |
+| [x] | 4 — Privacy, audit and backup | — |
 | [ ] | 5 — Notifications | — |
 | [ ] | 6 — Entitlements and billing | phase 2 |
 | [ ] | 7 — Feature gating and the API | — |
