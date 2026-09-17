@@ -132,6 +132,16 @@ Five deviations, each with its reason:
   use, with its own TTL. Signing it would mean generating a URL for another
   host, and path mode has no `URL::defaults(['tenant' => …])` to build one
   from — the same trap that keeps `route()` off tenant-group names.
+
+  **Reversed 2026-09-18 by the readiness remediation (D1, phase 1, `e411bed`).**
+  The roadmap had settled "short-TTL signed token" and this deviation
+  contradicted it, so the link is signed. `StartImpersonation::sign()` builds
+  the signature by hand over `$tenant->baseUrl().'/impersonate/'.$token`,
+  HMAC-SHA256 under `app.key` with an `expires` stamp, which is the shape
+  `Request::hasValidSignature()` verifies; the route carries Laravel's `signed`
+  middleware. Building it by hand is what the foreign-host problem actually
+  forces, not leaving it unsigned. The 128-character single-use token and its
+  TTL stay, with the signature as defence over them.
 - **`Authenticate` skips its central-to-tenant promotion while impersonating.**
   Otherwise a staff user who happens to be a member of the tenant is signed
   back in as themselves and the impersonation ends with no symptom. The

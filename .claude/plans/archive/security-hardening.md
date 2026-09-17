@@ -97,16 +97,30 @@ which needs a GeoIP database this package no longer depends on.
 
 All four phases, 2026-09-17.
 
-- `HostConfig::passwordDefaults()` sets `Password::min(8)->uncompromised()`
-  behind `numerosis.auth.check_compromised_passwords`, default on.
+- `HostConfig::passwordDefaults()` composes `uncompromised()` onto the host's
+  own `Password::defaults()` callback, behind
+  `numerosis.auth.check_compromised_passwords`, default on. It shipped as
+  `Password::min(8)->uncompromised()`, and D4 of the readiness remediation
+  settled that minimum as the drop (P13, `2ca23d9`): this item asked only for
+  `uncompromised()`, and a length nobody specified is the package deciding
+  something the host owns. With no host callback the base is Laravel's own
+  default.
   `Tests\TestCase` turns it off for the rest of the suite so no other test
   calls the range API; `CompromisedPasswordTest` opts back in with `Http::fake`.
 - `Http\Middleware\SecurityHeaders`, appended to the `web` group through a new
   `MiddlewareRegistrar::groupAppends()` — `groups()` replaces a stack and the
   `web` group is the host's, so appending needed its own seam. The `tenant`
-  group nests `web`, which is why one entry covers both.
+  group nests `web`, which is why one entry covers both. Its config prefix had
+  eight concatenated copies and it exposed five `protected` hooks with no
+  subclass in the tree; one accessor and five private methods since 2026-09-18
+  (S28, S30, `2ca23d9`). The two-factor route name is read from
+  `numerosis.routes.names` in the same commit, where both new middleware had it
+  as a literal (S29).
 - The webhook exemption is a path list (`numerosis.security.headers.except`),
-  not a content-type check: Cashier answers the webhook with `text/html`.
+  not a content-type check: Cashier answers the webhook with `text/html`. It
+  shipped carrying `telescope/*`, in both that list and the CSRF exceptions, for
+  a package this repo does not depend on; removed 2026-09-18 (P14, `2ca23d9`),
+  since a host running Telescope adds its own paths.
 - `Events\Auth\SuspiciousLoginDetected`, dispatched from a `Limit::response()`
   callback that **throws** `ThrottleRequestsException` rather than returning a
   response, so the limiter's behaviour is unchanged. Once per lockout window

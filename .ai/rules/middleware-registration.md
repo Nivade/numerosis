@@ -114,3 +114,6 @@ regenerates and discards. The facts are the same; only the home changed.
   `withMiddleware()` closure, before `RegisterFacades`), which is why it was
   simplest to drop the call there rather than make it config-driven; only the
   self-heal branch, which runs from `packageBooted()`, reads config.
+
+## Which gates can sit on the tenant group, and why the route group is not a substitute
+A gate that redirects to a *central* route is safe on the `tenant` group; one that redirects to a tenant route loops, which is why `tenancy.subscription` stays off it. `EnsureTwoFactorEnrolled` was kept off on the looping argument and does not loop, so a tenant requiring a second factor let an unenrolled member reach every route a host added. Gating only the routes this package registers leaves every host route ungated and no test here sees that: gate on the group and opt individual routes out.

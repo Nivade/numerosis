@@ -1,7 +1,8 @@
 # Remediation briefs — read this before any brief
 
-**Status: live.** One brief per phase of
-`.claude/plans/saas-readiness-review-remediation.md`, rewritten so a phase can
+**Status: executed 2026-09-18, all twelve phases. Archived with the plan they
+came from; nothing here is work still to do.** One brief per phase of
+`../saas-readiness-review-remediation.md`, rewritten so a phase can
 be executed without re-deriving the plan's context. The plan stays the record of
 *why*; a brief is the record of *what to do*. Where the two disagree, the brief
 wins — it was verified against HEAD, the plan was written before
@@ -58,7 +59,7 @@ Tick a row only when its phase is committed.
 | [x] | 9 — Hardening configuration | — |
 | [x] | 10 — Duplication and dead weight | 2–9 all done |
 | [x] | 11 — The comment sweep | phase 10 |
-| [ ] | 12 — Closing out | everything |
+| [x] | 12 — Closing out | everything |
 
 ## The contract every brief runs under
 

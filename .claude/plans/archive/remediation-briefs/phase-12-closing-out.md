@@ -1,7 +1,11 @@
 # Phase 12 — Closing out
 
-**Status: not executed.** Read `README.md` in this directory first. Runs after
-every other phase.
+**Status: executed 2026-09-18.** Read `README.md` in this directory first. Runs
+after every other phase.
+
+The briefs directory was archived with the plan rather than deleted: 12.1 left
+that choice open, and the anchors and per-phase scope are the record of what
+each commit was answering.
 
 No code changes. Documentation, plan hygiene and recorded rules.
 

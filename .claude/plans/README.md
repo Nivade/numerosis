@@ -183,23 +183,37 @@ user would never be challenged. Deviations in the plan's own "What shipped".
 Twenty-one files added 2026-09-16 from a capability sweep of the tree:
 `saas-readiness-roadmap.md` is the parent and holds the sequencing, the
 cross-cutting decisions and the shared foundations. The other twenty are one
-feature each and are listed here in the roadmap's wave order. Ten,
-`seat-limit-at-invite.md`, `team-members-management.md`,
+feature each and are listed here in the roadmap's wave order. Eighteen of those
+twenty — `seat-limit-at-invite.md`, `team-members-management.md`,
 `tenant-ownership-transfer.md`, `tenant-close-and-recovery.md`,
 `staff-admin-panel.md`, `support-impersonation.md`,
 `provisioning-observability.md`, `fleet-tenant-migrations.md`,
 `session-management.md`, `two-factor-authentication.md` and
 `security-hardening.md`, `audit-log-coverage.md`, `tenant-backup-restore.md`,
 `gdpr-data-export.md`, `runtime-entitlements.md`, `usage-metering.md`,
-`coupons-and-promotions.md` and `custom-domain-verification.md`, have since been
-executed and archived; the rest are not.
+`coupons-and-promotions.md` and `custom-domain-verification.md` — have since
+been executed and archived. The two below are what is left, and
+`saas-readiness-review-remediation.md` (added 2026-09-17, archived the next day)
+amended most of the eighteen.
 
 | Plan | State |
 |---|---|
 | `saas-readiness-roadmap.md` | Not executed. Parent of the twenty below; builds nothing itself |
-| `public-api-and-webhooks.md` | **Partially executed 2026-09-17.** Tokens, the read API and its docs shipped; outbound webhooks (phases 4–6) are what keeps it live. Wave 5. Largest of the set; splits into three |
-| `notification-center.md` | **Executed 2026-09-17 except the digest (phase 6), which has nothing to batch yet.** Wave 5. The `notifications` table has no writer |
-| `saas-readiness-review-remediation.md` | Not executed, partly overtaken. Added 2026-09-17. The sixty-eight findings of the two-axis review of `5d3a2cc...HEAD`, in twelve phases, with four decisions needed before phases 1, 5, 7 and 9. `refactor/saas-readiness-simplify` closed or contradicted twenty of them; read its Reconciliation section first |
+| `public-api-and-webhooks.md` | **Partially executed 2026-09-17.** Tokens, the read API and its docs shipped, and the remediation added the domains resource and put the whole surface behind `ReadApiFeature`, off by default; outbound webhooks (phases 4–6) are what keeps it live. Wave 5. Largest of the set; splits into three |
+| `notification-center.md` | **Executed 2026-09-17 except the digest (phase 6), which has nothing to batch yet.** Wave 5. The remediation dropped the `digest` column and `digestible()`, so phase 6 rebuilds the seam with the batching job |
+
+Re-derived 2026-09-18 by listing the directory rather than by editing the
+previous copy: three loose plans besides this README, one abandoned, 76
+archived.
+
+`saas-readiness-review-remediation.md` moved to `archive/` 2026-09-18, with its
+`remediation-briefs/` directory: all twelve phases executed on
+`fix/saas-readiness-remediation`, one commit each. Its four decisions settled as
+sign the impersonation link, drop the digest column, three feature classes, and
+drop `Password::min(8)`. Two of the sixty-eight findings closed without a code
+change — the Filament vendor-lang deletion was correct as it stood, and the
+staff panel's three extra detail panels are accepted additions. Every feature
+plan the remediation changed carries it in its own "What shipped".
 
 `security-hardening.md` moved to `archive/` 2026-09-17, the day it was
 executed: `uncompromised()` on `Password::defaults()` behind a flag the test

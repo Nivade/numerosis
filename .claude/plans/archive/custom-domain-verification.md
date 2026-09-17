@@ -154,6 +154,27 @@ the package now has an opinion about.
   have been a second switch saying the same thing as
   `numerosis.tenancy.identification.mode`.
 
+Three changes from the readiness remediation, 2026-09-18:
+
+- **`verified_at` and `verification_failed_at` are gone, and stay gone.** Both
+  were written as pure functions of `status`, and `verified_at` was nulled on
+  any transient failure, so it could not serve as a first-verified record
+  anyway. `refactor/saas-readiness-simplify` deleted them; the remediation's
+  phase 3 confirmed the deletion rather than restoring the columns. The history
+  lives in the activity log, since `DomainVerified` and `DomainRevoked` are
+  audited events.
+- **The give-up window measures the current failing streak** (P26, `88a3841`).
+  It measured from `created_at`, so a domain that had served for months and then
+  lost its DNS was marked `Failed` on its first bad check. A never-verified claim
+  behaves exactly as before.
+- **Rechecks back off** (P20, `88a3841`). One flat `recheck_minutes` polled a
+  domain nobody was going to fix at the same rate as one mid-setup. The interval
+  grows with how long the failure has lasted, and caps.
+
+Both needed a streak the table did not record: `last_checked_at` and `status`
+are overwritten on every check, so `domains.failing_since` is a new column,
+written by the same `forceFill()` that stamps the other two.
+
 `Contracts\Tenancy\DnsResolver` is the one seam to the network;
 `Services\Tenancy\SystemDnsResolver` is the default and
 `tests/Support/FakeDnsResolver` is what the suite binds, so no test resolves a

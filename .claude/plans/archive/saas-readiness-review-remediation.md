@@ -1,17 +1,20 @@
 # Remediating the SaaS readiness review
 
-> **Status: partly executed. Do not execute this file.**
+> **Status: executed 2026-09-18, all twelve phases. Do not execute this file.**
 >
-> Phase 1 is done (`e411bed`). Phases 2 through 12 are executed from
-> `.claude/plans/remediation-briefs/` — one brief per phase, anchors re-verified
-> against HEAD, every judgement call answered. **Start at that directory's
-> `README.md`**, which carries the kickoff prompt and the progress table.
+> Phase 1 ran from this file (`e411bed`). Phases 2 through 12 ran from
+> `remediation-briefs/`, archived beside it — one brief per phase, anchors
+> re-verified against HEAD, every judgement call answered. That directory's
+> `README.md` carries the progress table and the commit each phase landed as.
+>
+> The four decisions settled: D1 sign the impersonation link, D2 drop the
+> digest column, D3 three feature classes, D4 **drop** `Password::min(8)`, which
+> is the opposite of what note 9.1 below assumes. Each executed feature plan's
+> "What shipped" records what this changed.
 >
 > This file stays as the record of *why* each finding was raised. Its file:line
 > references predate `refactor/saas-readiness-simplify` and point at code that
-> has moved, and its D1–D4 decisions are settled (D1 sign, D2 drop, D3 three
-> feature classes, D4 **drop** `Password::min(8)` — note 9.1 below assumes the
-> opposite). Where this file and a brief disagree, the brief is right.
+> has moved. Where this file and a brief disagree, the brief is right.
 
 **Originally written 2026-09-17 after a
 two-axis review of `5d3a2cc...HEAD`, the twenty feature plans of
