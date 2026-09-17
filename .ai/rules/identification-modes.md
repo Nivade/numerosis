@@ -269,3 +269,13 @@ than a fourth edit in six files. Not done here because the two Blade views
 also need the *pre-tenant* (wizard) form of the URL, where there is no
 `Tenant` yet — so the signature needs designing rather than guessing, and
 doing it wrong would trade three honest branches for one leaky abstraction.
+
+## Custom-domain ownership proof and the TLS seam
+Added 2026-09-17 with `.claude/plans/archive/custom-domain-verification.md`.
+
+- **`verified` and `active` are different questions, and conflating them produces a domain that "verified fine" and 404s.** The `TXT` record at `_numerosis-challenge.<domain>` proves the zone; the `CNAME` (or an `A` record, for an apex that cannot carry one) is what makes traffic arrive. `VerifyDomainOwnership` reports the two halves separately and `DomainVerificationResult::proven()` is what decides which status that is.
+- **Serving domains have to keep being checked.** `Domain::dueForCheck()` excludes only `Revoked`: if `Active` rows were skipped, a domain whose DNS was pulled would go on being served and nothing else in the system would notice.
+- **The verified-domain query filters tenant state as well as domain state.** `GetServableDomains` excludes suspended and closed tenants — a closed tenant whose hostname still answers over HTTPS is a data-exposure bug, not a cosmetic one — and it is the single source both TLS presenters read, so a hostname cannot be servable to Caddy and not to Traefik.
+- **The ask endpoint is public and runs once per new SNI.** It is cached per hostname (`CacheKeys::servableDomain()`), never as one entry holding every domain, and `RecordDomainVerification` forgets both that key and the fleet key on every transition. It answers a status with an empty body; anything richer leaks the tenant list.
+- **Both TLS routes are registered at boot from `env()` read inside `config/numerosis.php`.** A test switching them on with `Config::set()` in `setUp()` gets 404s — `putenv()` before `parent::setUp()` is what works, the same trap `DOMAIN` already documents in `tests/TestCase.php`.
+- **`DomainVerified`/`DomainRevoked` fire once per transition, never per check.** A listener that calls a certificate API cannot be invoked every fifteen minutes for a domain that has not changed, which is why `RecordDomainVerification` compares the previous servability rather than the check result alone.

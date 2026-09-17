@@ -1,7 +1,8 @@
 # Custom domain ownership verification and TLS
 
-**Status: not executed. Written 2026-09-16.** Wave 5 of
-`saas-readiness-roadmap.md`. Fixes a mode the package documents as supported.
+**Status: executed 2026-09-17 on `feat/custom-domain-verification`.** Wave 5 of
+`saas-readiness-roadmap.md`. Fixed the mode the package documents as supported;
+"What shipped" records the two places the state model was simplified.
 
 ## The defect
 
@@ -128,3 +129,32 @@ the package now has an opinion about.
   first.
 - **Identification mode is a deploy-time choice.** Switching modes does not
   migrate tenants already provisioned; this plan does not change that.
+
+## What shipped
+
+- **Five states, not six.** `pending → verifying → verified → active` plus
+  `failed` and `revoked`, on `domains.status`. `active` means "proven *and*
+  pointed here" rather than "a certificate exists", because nothing in this
+  package can observe a certificate — the proxy issues it. The tenant screen
+  states that difference in words, which is what the plan actually wanted from
+  the distinction.
+- **`Active` rows stay checkable.** The plan's own phase 3 asks for it and the
+  first draft of `Domain::dueForCheck()` excluded them, which would have left a
+  domain serving after its DNS was pulled.
+- **The verified-domain query filters tenant state, and that is the first
+  assertion in the suite.** A suspended or closed tenant's hostname stops
+  answering, per the plan's risk section.
+- **Both TLS endpoints are off by default and env-switched**
+  (`NUMEROSIS_TLS_ASK_ENDPOINT`, `NUMEROSIS_TLS_ROUTERS_ENDPOINT`), because they
+  are registered at boot and public. Their answers are cached per hostname —
+  never one entry holding the whole fleet — and invalidated by
+  `RecordDomainVerification` on every transition.
+- **The screen is gated on the identification mode, not on a `Feature` class.**
+  There is nothing to claim under subdomain or path mode, so a feature flag would
+  have been a second switch saying the same thing as
+  `numerosis.tenancy.identification.mode`.
+
+`Contracts\Tenancy\DnsResolver` is the one seam to the network;
+`Services\Tenancy\SystemDnsResolver` is the default and
+`tests/Support/FakeDnsResolver` is what the suite binds, so no test resolves a
+real name.

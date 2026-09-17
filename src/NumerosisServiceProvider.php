@@ -76,6 +76,7 @@ use Nvade\Numerosis\Console\Commands\ReopenTenantCommand;
 use Nvade\Numerosis\Console\Commands\ReportUsage;
 use Nvade\Numerosis\Console\Commands\RestoreTenantCommand;
 use Nvade\Numerosis\Console\Commands\TransferTenantOwnershipCommand;
+use Nvade\Numerosis\Console\Commands\VerifyDomains;
 use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Contracts\Exceptions\ProvidesExceptionContext;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder as PackageDatabaseSeeder;
@@ -194,6 +195,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->hasCommand(RestoreTenantCommand::class)
             ->hasCommand(ProvisionTenantCommand::class)
             ->hasCommand(ReportUsage::class)
+            ->hasCommand(VerifyDomains::class)
             ->hasCommand(ReconcileUsage::class)
             ->hasCommand(TransferTenantOwnershipCommand::class);
     }
@@ -538,6 +540,12 @@ class NumerosisServiceProvider extends PackageServiceProvider
             // of a period boundary Stripe may already have closed.
             if (Config::boolean('numerosis.schedule.report_usage')) {
                 $schedule->command('billing:report-usage')->hourly()->withoutOverlapping();
+            }
+
+            // Claimed domains and serving ones both: DNS pulled from under a
+            // live domain has to stop being served.
+            if (Config::boolean('numerosis.schedule.verify_domains')) {
+                $schedule->command('numerosis:verify-domains')->everyFifteenMinutes()->withoutOverlapping();
             }
 
             if (Config::boolean('numerosis.schedule.reconcile_usage')) {

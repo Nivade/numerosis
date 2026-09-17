@@ -32,6 +32,7 @@ use Nvade\Numerosis\Contracts\Billing\UnpaidTenantQuota;
 use Nvade\Numerosis\Contracts\Billing\UsageCounter;
 use Nvade\Numerosis\Contracts\Notifications\NotifiesTenantOwner;
 use Nvade\Numerosis\Contracts\Notifications\OperatorRecipient;
+use Nvade\Numerosis\Contracts\Tenancy\DnsResolver;
 use Nvade\Numerosis\Contracts\Tenancy\EncryptsArtifacts;
 use Nvade\Numerosis\Contracts\Tenancy\ExportsTenantData;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
@@ -79,6 +80,7 @@ use Nvade\Numerosis\Services\Tenancy\DefaultTenantDomainPolicy;
 use Nvade\Numerosis\Services\Tenancy\PortableTenantDatabaseDumper;
 use Nvade\Numerosis\Services\Tenancy\SqliteFileTenantDatabaseDumper;
 use Nvade\Numerosis\Services\Tenancy\StanclTenantDatabaseManager;
+use Nvade\Numerosis\Services\Tenancy\SystemDnsResolver;
 use Nvade\Numerosis\Services\Tenancy\TenantDataExporter;
 
 $apex = env('NUMEROSIS_APEX_DOMAIN') ?: Domains::apexFromAppUrl();
@@ -177,6 +179,11 @@ return [
         // Compares those counters against Stripe's own summaries and alerts on
         // a gap. Worth having on wherever report_usage is.
         'reconcile_usage' => (bool) env('SCHEDULE_RECONCILE_USAGE', false),
+
+        // Re-checks custom-domain DNS: claims waiting to verify, and serving
+        // domains whose records may have been removed. Only meaningful under
+        // IdentificationMode::CustomDomain.
+        'verify_domains' => (bool) env('SCHEDULE_VERIFY_DOMAINS', false),
 
         // Closes impersonation rows nobody returned to. The per-request guard
         // covers the rest.
@@ -630,6 +637,52 @@ return [
             'mode' => env('NUMEROSIS_TENANCY_IDENTIFICATION_MODE', IdentificationMode::Subdomain->value),
         ],
 
+        // Ownership proof for IdentificationMode::CustomDomain. A tenant
+        // claiming a hostname proves it controls the zone with a TXT record,
+        // and points traffic here with a CNAME (or an A record).
+        'custom_domains' => [
+
+            // The TXT record's host is '<prefix>.<domain>'.
+            'challenge_prefix' => env('NUMEROSIS_DOMAIN_CHALLENGE_PREFIX', '_numerosis-challenge'),
+
+            // What a customer's CNAME must point at. Defaults to the central
+            // hostname, which is where traffic has to arrive.
+            'cname_target' => env('NUMEROSIS_DOMAIN_CNAME_TARGET'),
+
+            // A records accepted as an alternative to the CNAME, for zones
+            // whose apex cannot carry one.
+            'a_records' => array_values(array_filter(
+                explode(',', (string) env('NUMEROSIS_DOMAIN_A_RECORDS', '')),
+                static fn (string $address): bool => trim($address) !== '',
+            )),
+
+            // How long a claim keeps being retried before it is marked failed.
+            // DNS propagates on its own timetable, so a check that fails is
+            // 'not yet' rather than 'no'.
+            'verification_window_hours' => (int) env('NUMEROSIS_DOMAIN_VERIFICATION_WINDOW', 72),
+
+            // How long between automatic checks of one domain.
+            'recheck_minutes' => (int) env('NUMEROSIS_DOMAIN_RECHECK_MINUTES', 60),
+
+            // TLS presenters for the proxy in front of this deployment. The
+            // package issues no certificates; it publishes the verified set.
+            // See docs/host-requirements.md for the deployment matrix.
+            'tls' => [
+                'ask' => (bool) env('NUMEROSIS_TLS_ASK_ENDPOINT', false),
+                'ask_path' => env('NUMEROSIS_TLS_ASK_PATH', 'numerosis/tls/ask'),
+                'routers' => (bool) env('NUMEROSIS_TLS_ROUTERS_ENDPOINT', false),
+                'routers_path' => env('NUMEROSIS_TLS_ROUTERS_PATH', 'numerosis/tls/routers'),
+
+                // Caddy asks once per new SNI, so an uncached query here is a
+                // denial-of-service vector.
+                'cache_seconds' => (int) env('NUMEROSIS_TLS_CACHE_SECONDS', 60),
+
+                // What the Traefik router config points traffic at.
+                'service' => env('NUMEROSIS_TLS_TRAEFIK_SERVICE', 'numerosis'),
+                'cert_resolver' => env('NUMEROSIS_TLS_CERT_RESOLVER', 'letsencrypt'),
+            ],
+        ],
+
         // The stancl/tenancy central database connection name.
         'central_connection' => 'central',
 
@@ -747,6 +800,7 @@ return [
         // not tenancy, and live here because TenancyServiceProvider binds it.
         'implementations' => [
             TenantDomainPolicy::class => DefaultTenantDomainPolicy::class,
+            DnsResolver::class => SystemDnsResolver::class,
             ProvisionsTenant::class => ProvisionTenant::class,
             TenantDatabaseManager::class => StanclTenantDatabaseManager::class,
             NotifiesTenantOwner::class => NotifiesTenantOwnerDirectly::class,

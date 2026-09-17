@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Nvade\Numerosis\Enums\MiddlewareAlias;
 use Nvade\Numerosis\Enums\Tenancy\Context;
+use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Features\Admin\ImpersonationFeature;
 use Nvade\Numerosis\Features\Audit\ActivityLogFeature;
 use Nvade\Numerosis\Features\Billing\UsageMeteringFeature;
@@ -103,6 +104,12 @@ Route::middleware(['universal', MiddlewareAlias::TenancyAuth->value.':'.Context:
 
             if (FeatureRegistry::enabled(ActivityLogFeature::NAME)) {
                 Route::livewire('team/activity', 'numerosis-pages::tenant.activity')->name('team.activity');
+            }
+
+            // Only under custom-domain mode: there is nothing to claim when a
+            // tenant is identified by subdomain or by path.
+            if (IdentificationMode::current() === IdentificationMode::CustomDomain) {
+                Route::livewire('domain', 'numerosis-pages::tenant.domain')->name('domain.index');
             }
 
             if (FeatureRegistry::enabled(UsageMeteringFeature::NAME)) {
