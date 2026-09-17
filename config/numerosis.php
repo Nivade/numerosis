@@ -142,6 +142,11 @@ return [
         // Unauthenticated health document at 'routes.health_path', for uptime
         // monitors. Counts and booleans only. Off by default.
         // \Nvade\Numerosis\Features\Observability\HealthEndpointFeature::class,
+
+        // The current-period usage screen, for plans that declare
+        // `metadata.options.meters`. Off by default; reporting usage to Stripe
+        // is numerosis.schedule.report_usage and is separate.
+        // \Nvade\Numerosis\Features\Billing\UsageMeteringFeature::class,
     ],
 
     /*
@@ -163,6 +168,15 @@ return [
         'prune_orphaned_databases' => (bool) env('SCHEDULE_PRUNE_ORPHANED_DATABASES', false),
 
         'prune_stalled_provisions' => (bool) env('SCHEDULE_PRUNE_STALLED_PROVISIONS', true),
+
+        // Sends tenant usage counters to Stripe as meter events. Off by
+        // default: a plan with no `metadata.options.meters` reports nothing,
+        // and turning it on without meters configured only burns a cron slot.
+        'report_usage' => (bool) env('SCHEDULE_REPORT_USAGE', false),
+
+        // Compares those counters against Stripe's own summaries and alerts on
+        // a gap. Worth having on wherever report_usage is.
+        'reconcile_usage' => (bool) env('SCHEDULE_RECONCILE_USAGE', false),
 
         // Closes impersonation rows nobody returned to. The per-request guard
         // covers the rest.
@@ -546,6 +560,17 @@ return [
             'capabilities' => [],
 
             'limits' => [],
+        ],
+
+        // Usage-based billing. Which meters exist is plan data, not config:
+        // each plan's `metadata.options.meters` names the counter key, the
+        // Stripe event name, the meter id and the included allowance.
+        'metering' => [
+
+            // Units of difference billing:reconcile-usage accepts before it
+            // alerts. Zero is the honest default — a meter that disagrees at
+            // all disagrees about money.
+            'tolerance' => (int) env('BILLING_METERING_TOLERANCE', 0),
         ],
 
         // Provisioning happens before settlement, so this caps how many

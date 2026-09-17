@@ -60,6 +60,30 @@ class DatabaseUsageCounter implements UsageCounter
         $this->scoped($tenant, $key, $period)->delete();
     }
 
+    public function reported(Tenant $tenant, string $key, ?Carbon $period = null): int
+    {
+        $value = $this->scoped($tenant, $key, $period)->value('reported_value');
+
+        return is_numeric($value) ? (int) $value : 0;
+    }
+
+    /**
+     * Never walks backwards: a late-arriving report of an older total must not
+     * re-open usage Stripe already has, which would send it twice under a
+     * second identifier.
+     */
+    public function markReported(Tenant $tenant, string $key, int $value, string $identifier, ?Carbon $period = null): void
+    {
+        $this->scoped($tenant, $key, $period)
+            ->where('reported_value', '<', $value)
+            ->update([
+                'reported_value' => $value,
+                'report_identifier' => $identifier,
+                'reported_at' => now(),
+                'updated_at' => now(),
+            ]);
+    }
+
     /**
      * Loses the race deliberately: whoever inserted first owns the row, and
      * this increment lands on theirs.

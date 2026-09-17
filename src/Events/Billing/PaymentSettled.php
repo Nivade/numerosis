@@ -12,6 +12,10 @@ use Nvade\Numerosis\Models\Central\Tenant;
  * Fired when an asynchronous payment finally settles, from
  * `invoice.payment_succeeded`. A suspended tenant coming back is
  * {@see \Nvade\Numerosis\Events\Tenancy\TenantRestored} instead.
+ *
+ * `usageAmount` is the metered part of the invoice in minor units, null when
+ * the invoice carried no usage lines. A metered invoice has no fixed total, so
+ * nothing downstream may assume the plan's price.
  */
 class PaymentSettled
 {
@@ -23,6 +27,8 @@ class PaymentSettled
     public function __construct(
         public readonly Tenant $tenant,
         public readonly string|int $ownerId,
+        public readonly ?int $usageAmount = null,
+        public readonly ?string $currency = null,
     ) {
         $this->tenantId = (string) $tenant->getTenantKey();
     }

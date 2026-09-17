@@ -15,6 +15,7 @@ use Nvade\Numerosis\Actions\Billing\Checkout\SettleAttachedPaymentMethod;
 use Nvade\Numerosis\Actions\Billing\FindLocalSubscriptionPrice;
 use Nvade\Numerosis\Actions\Billing\FindTenantByStripeCustomer;
 use Nvade\Numerosis\Actions\Billing\ResolvePlanChangeDirection;
+use Nvade\Numerosis\Actions\Billing\Usage\SyncMeteredItems;
 use Nvade\Numerosis\Actions\Tenancy\RestoreTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendUnlessEntitled;
@@ -74,7 +75,7 @@ class WebhookController extends CashierWebhookController
     #[Override]
     protected function handleCustomerSubscriptionCreated(array $payload): Response
     {
-        /** @var array{data: array{object: array{id?: string, customer?: string, metadata?: array<string, mixed>}}} $payload */
+        /** @var array{data: array{object: array{id?: string, customer?: string, metadata?: array<string, mixed>, items?: array{data: list<array<array-key, mixed>>}}}} $payload */
         $stripeSubscription = $payload['data']['object'];
         $metadata = $stripeSubscription['metadata'] ?? [];
         $stripeSubscriptionId = $stripeSubscription['id'] ?? null;
@@ -121,6 +122,11 @@ class WebhookController extends CashierWebhookController
             // slug, so the redirect path cannot double-dispatch.
             $this->provisioning->queue(TenantProvisionData::fromProvision($pending));
         }
+
+        /** @var list<array<array-key, mixed>> $items */
+        $items = $stripeSubscription['items']['data'] ?? [];
+
+        SyncMeteredItems::run(is_string($stripeSubscriptionId) ? $stripeSubscriptionId : null, $items);
 
         Log::info('Subscription created', [
             'subscription_id' => $stripeSubscriptionId,
@@ -262,6 +268,8 @@ class WebhookController extends CashierWebhookController
         $items = $stripeSubscription['items']['data'] ?? [];
         $newPriceId = count($items) === 1 ? ($items[0]['price']['id'] ?? null) : null;
 
+        SyncMeteredItems::run(is_string($subscriptionId) ? $subscriptionId : null, $items);
+
         // A null previous price means this row was created by this very
         // webhook: a subscription appearing, where no plan has changed.
         if ($tenant !== null && is_string($newPriceId) && is_string($previousPriceId) && $newPriceId !== $previousPriceId) {
@@ -338,14 +346,56 @@ class WebhookController extends CashierWebhookController
         return $this->successMethod();
     }
 
-    private function announceSettlementFor(?string $customerId): void
+    private function announceSettlementFor(?string $customerId, ?int $usageAmount = null, ?string $currency = null): void
     {
         $tenant = FindTenantByStripeCustomer::run($customerId);
         $owner = $tenant?->owner();
 
         if ($tenant !== null && $owner !== null) {
-            event(new PaymentSettled($tenant, $owner->id));
+            event(new PaymentSettled($tenant, $owner->id, $usageAmount, $currency));
         }
+    }
+
+    /**
+     * The metered part of an invoice, in minor units. A usage line carries no
+     * amount until Stripe closes the period, so the total on a metered invoice
+     * is only knowable from the invoice itself.
+     *
+     * @param  array<array-key, mixed>  $invoice
+     */
+    private static function usageAmountOf(array $invoice): ?int
+    {
+        $lines = $invoice['lines'] ?? null;
+        $lines = is_array($lines) ? ($lines['data'] ?? null) : null;
+
+        if (! is_array($lines)) {
+            return null;
+        }
+
+        $total = 0;
+        $metered = false;
+
+        foreach ($lines as $line) {
+            if (! is_array($line)) {
+                continue;
+            }
+
+            $pricing = $line['pricing'] ?? [];
+            $price = is_array($pricing) ? ($pricing['price_details'] ?? []) : [];
+            $plan = $line['plan'] ?? [];
+            $isUsage = (is_array($plan) ? ($plan['usage_type'] ?? null) : null) === 'metered'
+                || (is_array($price) && isset($price['meter']));
+
+            if (! $isUsage) {
+                continue;
+            }
+
+            $metered = true;
+            $amount = $line['amount'] ?? null;
+            $total += is_numeric($amount) ? (int) $amount : 0;
+        }
+
+        return $metered ? $total : null;
     }
 
     private function notifyOfFailedPaymentFor(?string $customerId): void
@@ -365,7 +415,7 @@ class WebhookController extends CashierWebhookController
     {
         $response = parent::handleInvoicePaymentSucceeded($payload);
 
-        /** @var array{data: array{object: array{id?: string, customer?: string, subscription?: string, parent?: array{subscription_details?: array{subscription?: string}}}}} $payload */
+        /** @var array{data: array{object: array{id?: string, customer?: string, currency?: string, subscription?: string, lines?: array{data?: list<array<array-key, mixed>>}, parent?: array{subscription_details?: array{subscription?: string}}}}} $payload */
         $invoice = $payload['data']['object'];
         $subscriptionId = $invoice['subscription']
             ?? $invoice['parent']['subscription_details']['subscription']
@@ -383,7 +433,11 @@ class WebhookController extends CashierWebhookController
             // Zero rows means this delivery is a redelivery, so the
             // announcement is idempotent without a second guard.
             if ($settled > 0) {
-                $this->announceSettlementFor($invoice['customer'] ?? null);
+                $this->announceSettlementFor(
+                    $invoice['customer'] ?? null,
+                    self::usageAmountOf($invoice),
+                    is_string($invoice['currency'] ?? null) ? $invoice['currency'] : null,
+                );
             }
         }
 

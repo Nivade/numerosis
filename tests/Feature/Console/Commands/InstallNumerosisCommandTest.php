@@ -660,6 +660,18 @@ class InstallNumerosisCommandTest extends TestCase
             ->assertFailed();
     }
 
+    /** @verifies verifyPlanMeters */
+    public function test_it_fails_when_a_plan_meter_names_no_event(): void
+    {
+        PaymentPlan::query()->firstOrFail()->update([
+            'metadata' => ['options' => ['meters' => [['key' => 'api-calls']]]],
+        ]);
+
+        $this->install()
+            ->expectsOutputToContain('is missing a `key` or an `event_name`')
+            ->assertFailed();
+    }
+
     /** @verifies verifyBackupDumper */
     public function test_it_fails_when_the_configured_backup_dumper_cannot_run(): void
     {

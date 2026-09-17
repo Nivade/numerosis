@@ -440,6 +440,47 @@ class WebhookControllerLifecycleTest extends TestCase
         Event::assertDispatchedTimes(PaymentSettled::class, 1);
     }
 
+    /**
+     * A metered invoice has no fixed total, so the settlement carries what the
+     * usage lines came to — the notification names it rather than leaving a
+     * customer to find a number they did not expect.
+     */
+    public function test_invoice_payment_succeeded_carries_the_metered_amount(): void
+    {
+        Event::fake([PaymentSettled::class]);
+
+        $customerId = 'cus_metered_invoice';
+        $this->tenantWithStripeCustomer($customerId);
+
+        TenantProvision::factory()->create([
+            'stripe_subscription_id' => 'sub_metered',
+            'settled_at' => null,
+        ]);
+
+        $payload = [
+            'id' => 'evt_invoice_metered',
+            'type' => 'invoice.payment_succeeded',
+            'data' => [
+                'object' => [
+                    'id' => 'in_metered',
+                    'customer' => $customerId,
+                    'currency' => 'eur',
+                    'subscription' => 'sub_metered',
+                    'lines' => [
+                        'data' => [
+                            ['amount' => 2000, 'pricing' => ['price_details' => ['price' => 'price_flat']]],
+                            ['amount' => 750, 'pricing' => ['price_details' => ['price' => 'price_metered', 'meter' => 'mtr_test']]],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $this->postJson(Config::string('numerosis.billing.webhook_path', 'billing/webhook'), $payload)->assertOk();
+
+        Event::assertDispatched(fn (PaymentSettled $e): bool => $e->usageAmount === 750 && $e->currency === 'eur');
+    }
+
     public function test_invoice_payment_failed_notifies_without_suspending(): void
     {
         Notification::fake();

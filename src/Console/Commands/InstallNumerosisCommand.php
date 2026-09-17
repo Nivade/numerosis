@@ -15,6 +15,7 @@ use Laravel\Fortify\Features as FortifyFeatures;
 use Nvade\Numerosis\Boot\Assets;
 use Nvade\Numerosis\Boot\HostConfig;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseDumper;
+use Nvade\Numerosis\Data\Billing\MeterDefinitionData;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
@@ -401,6 +402,44 @@ class InstallNumerosisCommand extends Command
                 if (! is_numeric($value)) {
                     $this->failures[] = "Plan [{$plan->slug}] has a non-numeric limit for `{$capability}`, which reads as uncapped.";
                 }
+            }
+
+            $this->verifyPlanMeters($plan, $options);
+        }
+    }
+
+    /**
+     * A meter that fails to parse meters nothing, which under-bills silently.
+     * `meter_id` is a warning rather than a failure: reporting works without
+     * it, reconciliation is what needs it.
+     *
+     * @param  array<array-key, mixed>  $options
+     */
+    private function verifyPlanMeters(PaymentPlan $plan, array $options): void
+    {
+        $declared = $options['meters'] ?? null;
+
+        if ($declared === null) {
+            return;
+        }
+
+        if (! is_array($declared)) {
+            $this->failures[] = "Plan [{$plan->slug}] has a non-array `metadata.options.meters`.";
+
+            return;
+        }
+
+        foreach ($declared as $index => $entry) {
+            $meter = is_array($entry) ? MeterDefinitionData::tryFrom($entry) : null;
+
+            if (! $meter instanceof MeterDefinitionData) {
+                $this->failures[] = "Plan [{$plan->slug}] meter #{$index} is missing a `key` or an `event_name`, so nothing is reported for it.";
+
+                continue;
+            }
+
+            if ($meter->meter_id === null) {
+                $this->warnings[] = "Plan [{$plan->slug}] meter [{$meter->event_name}] declares no `meter_id`, so billing:reconcile-usage cannot compare it against Stripe.";
             }
         }
     }

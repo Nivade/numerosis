@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Billing\Subscriptions;
 
 use Illuminate\Support\Facades\Log;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Actions\Billing\Usage\StampSubscriptionMeters;
 use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
 use Nvade\Numerosis\Data\Billing\StripeSubscriptionData;
@@ -82,6 +83,10 @@ class LinkSubscriptionToTenant
                     'tenant_id' => $tenant->id,
                     'subscription_id' => $subscription->id,
                 ]);
+            }
+
+            if ($subscription instanceof Subscription) {
+                StampSubscriptionMeters::run($subscription->refresh());
             }
         });
     }
