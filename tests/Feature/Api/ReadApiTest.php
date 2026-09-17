@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Actions\Auth\Api\CreateApiToken;
 use Nvade\Numerosis\Actions\Queries\GetApiAbilities;
+use Nvade\Numerosis\Actions\Queries\GetTenantMembersPage;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Models\Tenant\User as BaseTenantUser;
 use Nvade\Numerosis\Tests\TestCase;
@@ -56,6 +57,34 @@ class ReadApiTest extends TestCase
             $this->sortedKeys($members[0]),
         );
         $this->assertSame(MembershipRole::Owner->value, $members[0]['role']);
+    }
+
+    /** An integration's workspace can be large; the page size is ours to cap. */
+    public function test_the_members_endpoint_pages_and_caps_the_page_size(): void
+    {
+        [$tenant, $domain, $user] = $this->workspace();
+
+        foreach (range(1, 3) as $index) {
+            $extra = CentralUser::factory()->create();
+            $tenant->users()->attach($extra->global_id, [
+                'role' => MembershipRole::Member->value,
+                'joined_at' => now()->addMinutes($index),
+            ]);
+        }
+
+        /** @var list<array<string, mixed>> $first */
+        $first = $this->getJson('http://'.$domain.'/api/v1/members?per_page=2', $this->tokenHeaders($tenant, $user))
+            ->assertOk()
+            ->assertJsonPath('meta.total', 4)
+            ->assertJsonPath('meta.per_page', 2)
+            ->assertJsonPath('meta.last_page', 2)
+            ->json('data');
+
+        $this->assertCount(2, $first);
+
+        $this->getJson('http://'.$domain.'/api/v1/members?per_page=9999', $this->tokenHeaders($tenant, $user))
+            ->assertOk()
+            ->assertJsonPath('meta.per_page', GetTenantMembersPage::MAX_PER_PAGE);
     }
 
     public function test_the_subscription_payload_reports_status_and_usage_without_stripe_ids(): void

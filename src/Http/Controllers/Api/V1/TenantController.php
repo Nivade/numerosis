@@ -16,6 +16,8 @@ class TenantController extends Controller
 
     public function __invoke(): JsonResponse
     {
+        $this->authorizeApi('viewAny');
+
         return new JsonResponse(['data' => TenantResource::fromTenant($this->apiTenant())->toArray()]);
     }
 }

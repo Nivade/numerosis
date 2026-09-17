@@ -21,6 +21,9 @@ class MembershipPolicy
 {
     use HandlesAuthorization;
 
+    /** @var array<string, MembershipRole|null> */
+    private array $roles = [];
+
     /** Seeing who is in the team is open to every member of it. */
     public function viewAny(User $user): bool
     {
@@ -32,6 +35,18 @@ class MembershipPolicy
      * is management information rather than team information.
      */
     public function viewActivity(User $user): bool
+    {
+        $tenant = tenant();
+
+        return $tenant instanceof TenancyTenant
+            && $this->manages($user, (string) $tenant->getTenantKey());
+    }
+
+    /**
+     * What the workspace pays and what it has consumed. No tenant screen shows
+     * this, so the API is the only reader and the gate has to be stated here.
+     */
+    public function viewBilling(User $user): bool
     {
         $tenant = tenant();
 
@@ -75,12 +90,7 @@ class MembershipPolicy
             return false;
         }
 
-        $role = Membership::query()
-            ->where('tenant_id', $membership->tenant_id)
-            ->where('global_user_id', $user->global_id)
-            ->value('role');
-
-        return $role === MembershipRole::Owner;
+        return $this->roleFor($membership->tenant_id, $user->global_id) === MembershipRole::Owner;
     }
 
     /** Closing and reopening a workspace is the owner's own decision, on their own membership row. */
@@ -116,11 +126,21 @@ class MembershipPolicy
             return true;
         }
 
-        $role = Membership::query()
-            ->where('tenant_id', $tenantId)
-            ->where('global_user_id', $user->global_id)
-            ->value('role');
+        return in_array(
+            $this->roleFor($tenantId, $user->global_id),
+            [MembershipRole::Owner, MembershipRole::Admin],
+            true,
+        );
+    }
 
-        return in_array($role, [MembershipRole::Owner, MembershipRole::Admin], true);
+    /**
+     * Memoized: the team screen asks `update` and `delete` of every row, and
+     * the acting user's role is the same answer each time.
+     */
+    private function roleFor(string $tenantId, ?string $globalUserId): ?MembershipRole
+    {
+        $key = $tenantId.'|'.($globalUserId ?? '');
+
+        return $this->roles[$key] ??= Membership::roleFor($tenantId, $globalUserId);
     }
 }

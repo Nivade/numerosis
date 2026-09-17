@@ -162,6 +162,43 @@ class ApiTokenTest extends TestCase
     }
 
     /**
+     * No tenant screen shows what the workspace pays, so the token is the only
+     * way to ask and the role has to be what answers.
+     */
+    public function test_a_plain_member_cannot_read_billing_through_a_token(): void
+    {
+        $id = 'member'.substr(uniqid(), -8);
+        $tenant = $this->createTenantWithDomain($id, 'Member Tenant');
+        $domain = $this->tenantDomain($id);
+        $member = $this->memberOf($tenant, MembershipRole::Member);
+
+        $ability = GetApiAbilities::ability(PermissionContext::Subscriptions, PermissionAction::View);
+
+        /** @var list<string> $offered */
+        $offered = $tenant->run(fn (): array => GetApiAbilities::forUser($member));
+
+        $this->assertNotContains($ability, $offered);
+
+        $plaintext = $this->tokenFor($tenant, $member, [$ability]);
+
+        $this->getJson('http://'.$domain.'/api/v1/subscription', $this->authorize($plaintext))
+            ->assertForbidden();
+    }
+
+    /** The owner of the same workspace reaches it. */
+    public function test_an_owner_reads_billing_through_a_token(): void
+    {
+        [$tenant, $domain, $owner] = $this->tenantWithMember('owner');
+
+        $plaintext = $this->tokenFor($tenant, $owner, [
+            GetApiAbilities::ability(PermissionContext::Subscriptions, PermissionAction::View),
+        ]);
+
+        $this->getJson('http://'.$domain.'/api/v1/subscription', $this->authorize($plaintext))
+            ->assertOk();
+    }
+
+    /**
      * @param  list<string>  $abilities
      * @param  list<string>  $ips
      */

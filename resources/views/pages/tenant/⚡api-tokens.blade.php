@@ -40,7 +40,9 @@ class extends Component
      */
     public function availableAbilities(): array
     {
-        return GetApiAbilities::run();
+        $user = $this->currentUser();
+
+        return $user instanceof User ? GetApiAbilities::forUser($user) : [];
     }
 
     public function create(): void

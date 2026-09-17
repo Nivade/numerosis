@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Nvade\Numerosis\Actions\Queries\GetActiveSubscription;
 use Nvade\Numerosis\Actions\Queries\GetTenantUsage;
 use Nvade\Numerosis\Data\Api\SubscriptionResource;
+use Nvade\Numerosis\Data\Api\UsageResource;
 use Nvade\Numerosis\Data\Billing\MeterUsage;
 use Nvade\Numerosis\Http\Controllers\Api\V1\Concerns\ResolvesApiTenant;
 use Nvade\Numerosis\Http\Controllers\Controller;
@@ -24,18 +25,13 @@ class SubscriptionController extends Controller
 
     public function __invoke(): JsonResponse
     {
+        $this->authorizeApi('viewBilling');
+
         $tenant = $this->apiTenant();
         $subscription = GetActiveSubscription::run($tenant);
 
         $usage = GetTenantUsage::run($tenant)
-            ->map(fn (MeterUsage $meter): array => [
-                'key' => $meter->key,
-                'used' => $meter->used,
-                'included' => $meter->included,
-                'overage' => $meter->overage(),
-                'period_start' => $meter->period->start->toIso8601String(),
-                'period_end' => $meter->period->end->toIso8601String(),
-            ])
+            ->map(fn (MeterUsage $meter): array => UsageResource::fromMeter($meter)->toArray())
             ->values()
             ->all();
 

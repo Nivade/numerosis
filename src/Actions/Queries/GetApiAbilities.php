@@ -4,18 +4,16 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Queries;
 
+use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Enums\Auth\PermissionAction;
 use Nvade\Numerosis\Enums\Auth\PermissionContext;
+use Nvade\Numerosis\Models\Central\Membership;
+use Nvade\Numerosis\Models\User;
 
 /**
- * The abilities a token may carry, as `context.action` pairs over the permission
- * vocabulary that already exists. Deliberately not a second vocabulary: a scope
- * a reviewer cannot map onto a permission is a scope nobody can reason about.
- *
- * Only read actions are offered while the API is read-only, so a token cannot be
- * granted a write ability that no endpoint honours — a granted ability nothing
- * enforces reads as a promise.
+ * Only read actions are offered while the API is read-only. A granted ability
+ * that no endpoint enforces reads to the grantee as a promise.
  *
  * @method static list<string> run()
  */
@@ -58,11 +56,20 @@ class GetApiAbilities
     }
 
     /**
-     * @param  list<string>  $requested
+     * What this person may mint. Defence in depth, not the enforcement: the
+     * endpoints ask again per request, because a role narrowed after the token
+     * was issued has to narrow the token with it.
+     *
      * @return list<string>
      */
-    public static function only(array $requested): array
+    public static function forUser(User $user): array
     {
-        return array_values(array_intersect(self::run(), $requested));
+        $gate = Gate::forUser($user);
+
+        return array_values(array_filter(
+            self::run(),
+            static fn (string $ability): bool => $ability !== self::ability(PermissionContext::Subscriptions, PermissionAction::View)
+                || $gate->allows('viewBilling', Membership::class),
+        ));
     }
 }
