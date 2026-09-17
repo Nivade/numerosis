@@ -51,6 +51,27 @@ class FakeStripeHttpClient implements ClientInterface
      */
     public array $meterSummaries = [];
 
+    /**
+     * Promotion codes a test seeded, keyed by the customer-facing code.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    public array $promotionCodes = [];
+
+    /**
+     * Coupons the seeded promotion codes point at, keyed by coupon id.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    public array $coupons = [];
+
+    /**
+     * Products per price id, for coupons restricted to products.
+     *
+     * @var array<string, string>
+     */
+    public array $priceProducts = [];
+
     private int $sequence = 0;
 
     /**
@@ -92,9 +113,13 @@ class FakeStripeHttpClient implements ClientInterface
                 $segments === ['setup_intents'] && $method === 'post' => $this->createSetupIntent($params),
                 \count($segments) === 2 && $segments[0] === 'setup_intents' && $method === 'get' => $this->retrieveSetupIntent($segments[1], $params),
                 \count($segments) === 3 && $segments[0] === 'setup_intents' && $segments[2] === 'confirm' && $method === 'post' => $this->confirmSetupIntent($segments[1], $params),
+                $segments === ['subscriptions'] && $method === 'post' => $this->createSubscription($params),
                 \count($segments) === 2 && $segments[0] === 'subscriptions' && $method === 'get' => $this->retrieveSubscription($segments[1]),
                 \count($segments) === 2 && $segments[0] === 'subscriptions' && $method === 'post' => $this->updateSubscription($segments[1], $params),
                 \count($segments) === 2 && $segments[0] === 'subscription_items' && $method === 'get' => $this->retrieveSubscriptionItem($segments[1]),
+                $segments === ['promotion_codes'] && $method === 'get' => $this->listPromotionCodes($params),
+                \count($segments) === 2 && $segments[0] === 'coupons' && $method === 'get' => $this->retrieveCoupon($segments[1]),
+                \count($segments) === 2 && $segments[0] === 'prices' && $method === 'get' => $this->retrievePrice($segments[1]),
                 $segments === ['billing', 'meter_events'] && $method === 'post' => $this->createMeterEvent($params),
                 \count($segments) === 4 && $segments[0] === 'billing' && $segments[1] === 'meters' && $segments[3] === 'event_summaries' && $method === 'get' => $this->listEventSummaries($segments[2]),
                 default => throw new RuntimeException("FakeStripeHttpClient has no handler for {$method} {$path} — add one, this is not a real Stripe API call."),
@@ -157,6 +182,131 @@ class FakeStripeHttpClient implements ClientInterface
                 'meter' => $meterId,
                 'aggregated_value' => $aggregated,
             ]],
+        ];
+    }
+
+    /**
+     * The subscription as the fake holds it, for a test asserting on what was
+     * sent rather than on what came back.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function subscriptionRecord(string $id): ?array
+    {
+        return $this->subscriptions[$id] ?? null;
+    }
+
+    /**
+     * Seeds a usable promotion code and its coupon, overridable per field so a
+     * test can make exactly one thing wrong with it.
+     *
+     * @param  array<string, mixed>  $promotionCode
+     * @param  array<string, mixed>  $coupon
+     */
+    public function addPromotionCode(string $code, array $promotionCode = [], array $coupon = []): void
+    {
+        $couponId = $this->id('coupon');
+
+        $this->coupons[$couponId] = $this->couponPayload(['id' => $couponId, ...$coupon]);
+
+        $this->promotionCodes[$code] = [
+            'id' => $this->id('promo'),
+            'object' => 'promotion_code',
+            'code' => $code,
+            'active' => true,
+            'customer' => null,
+            'expires_at' => null,
+            'max_redemptions' => null,
+            'times_redeemed' => 0,
+            'promotion' => ['type' => 'coupon', 'coupon' => $this->coupons[$couponId]],
+            'restrictions' => [
+                'first_time_transaction' => false,
+                'minimum_amount' => null,
+                'minimum_amount_currency' => null,
+            ],
+            ...$promotionCode,
+        ];
+    }
+
+    /**
+     * Pins a discount onto a subscription, the shape `Subscription::discount()`
+     * reads back.
+     *
+     * @param  array<string, mixed>  $discount
+     */
+    public function addSubscriptionDiscount(string $subscriptionId, array $discount): void
+    {
+        $this->retrieveSubscription($subscriptionId);
+
+        // An empty array clears it, which is how a test says the discount ended.
+        $this->subscriptions[$subscriptionId]['discounts'] = $discount === [] ? [] : [$discount];
+    }
+
+    /**
+     * A coupon with every field Stripe sends, so reading an absent one does not
+     * print a notice and turn a passing test risky.
+     *
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    public function couponPayload(array $overrides = []): array
+    {
+        return [
+            'id' => $this->id('coupon'),
+            'object' => 'coupon',
+            'valid' => true,
+            'percent_off' => 25,
+            'amount_off' => null,
+            'currency' => null,
+            'duration' => 'once',
+            'duration_in_months' => null,
+            'redeem_by' => null,
+            'applies_to' => null,
+            ...$overrides,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function listPromotionCodes(array $params): array
+    {
+        $code = $this->stringParam($params, 'code');
+        $found = $this->promotionCodes[$code] ?? null;
+
+        // `active=true` is Stripe's own filter, and the package deliberately
+        // does not pass it: an inactive code has to come back as inactive.
+        if ($found !== null && ($params['active'] ?? null) === true && ($found['active'] ?? true) !== true) {
+            $found = null;
+        }
+
+        return [
+            'object' => 'list',
+            'url' => '/v1/promotion_codes',
+            'has_more' => false,
+            'data' => $found === null ? [] : [$found],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function retrieveCoupon(string $id): array
+    {
+        return $this->coupons[$id] ?? [
+            'id' => $id,
+            'object' => 'coupon',
+            'valid' => true,
+            'duration' => 'once',
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function retrievePrice(string $id): array
+    {
+        return [
+            'id' => $id,
+            'object' => 'price',
+            'product' => $this->priceProducts[$id] ?? 'prod_fake',
         ];
     }
 
@@ -428,6 +578,104 @@ class FakeStripeHttpClient implements ClientInterface
      *
      * @return array<string, mixed>
      */
+    /**
+     * Enough of a created subscription for Cashier to persist one: an active
+     * status, so `handlePaymentFailure()` finds nothing to confirm. The
+     * `discounts` payload is kept as sent, which is how a test proves a
+     * promotion code reached subscription creation rather than being applied
+     * afterwards.
+     *
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function createSubscription(array $params): array
+    {
+        $id = $this->id('sub');
+        $items = $this->arrayParam($params, 'items');
+
+        $lines = [];
+
+        foreach ($items as $item) {
+            $price = is_array($item) ? ($item['price'] ?? null) : null;
+            $priceId = is_string($price) ? $price : 'price_fake';
+
+            $lines[] = [
+                'id' => $this->id('si'),
+                'object' => 'subscription_item',
+                'quantity' => is_array($item) ? ($item['quantity'] ?? 1) : 1,
+                'price' => [
+                    'id' => $priceId,
+                    'object' => 'price',
+                    'product' => $this->priceProducts[$priceId] ?? 'prod_fake',
+                ],
+                'current_period_start' => today()->getTimestamp(),
+                'current_period_end' => now()->addDays($this->currentPeriodEndsInDays)->getTimestamp(),
+            ];
+        }
+
+        $this->subscriptions[$id] = [
+            'id' => $id,
+            'object' => 'subscription',
+            'status' => isset($params['trial_end']) ? 'trialing' : 'active',
+            'cancel_at_period_end' => false,
+            'customer' => $params['customer'] ?? null,
+            'billing_mode' => ['type' => 'flexible'],
+            'discounts' => $this->discountsFrom($this->arrayParam($params, 'discounts')),
+            'metadata' => $this->arrayParam($params, 'metadata'),
+            'items' => ['object' => 'list', 'data' => $lines, 'has_more' => false, 'url' => '/v1/subscription_items'],
+        ];
+
+        return $this->subscriptions[$id];
+    }
+
+    /**
+     * Stripe answers with discount objects, not with the `{promotion_code: id}`
+     * pairs it was given.
+     *
+     * @param  array<array-key, mixed>  $discounts
+     * @return list<array<string, mixed>>
+     */
+    private function discountsFrom(array $discounts): array
+    {
+        $resolved = [];
+
+        foreach ($discounts as $discount) {
+            if (! is_array($discount)) {
+                continue;
+            }
+
+            $promotionCodeId = $discount['promotion_code'] ?? null;
+            $promotionCode = null;
+
+            foreach ($this->promotionCodes as $candidate) {
+                if (($candidate['id'] ?? null) === $promotionCodeId) {
+                    $promotionCode = $candidate;
+                }
+            }
+
+            $couponId = $discount['coupon'] ?? null;
+            $promotion = $promotionCode['promotion'] ?? null;
+
+            $coupon = is_string($couponId)
+                ? $this->retrieveCoupon($couponId)
+                : (is_array($promotion) ? ($promotion['coupon'] ?? null) : null);
+
+            // `source.coupon` is where the current API keeps it, and Cashier
+            // reads whichever shape `StripeApiVersions::current()` names.
+            $resolved[] = [
+                'id' => $this->id('di'),
+                'object' => 'discount',
+                'coupon' => $coupon,
+                'source' => ['type' => 'coupon', 'coupon' => $coupon],
+                'promotion_code' => $promotionCode,
+                'end' => null,
+            ];
+        }
+
+        return $resolved;
+    }
+
+    /** @return array<string, mixed> */
     private function retrieveSubscription(string $id): array
     {
         $this->subscriptions[$id] ??= [

@@ -27,6 +27,23 @@ return [
         'unbranded_card' => 'Card',
     ],
 
+    'promotion' => [
+        'label' => 'Promotion code',
+        'placeholder' => 'Have a code?',
+        'apply' => 'Apply',
+        'remove' => 'Remove',
+        'applied' => ':label applied',
+        'unknown' => "We can't find the code :code. Check it and try again.",
+        'expired' => 'That code has expired.',
+        'exhausted' => 'That code has reached its redemption limit.',
+        'other_customer' => 'That code belongs to a different account.',
+        'first_purchase_only' => 'That code is for a first subscription only.',
+        'product_restricted' => "That code doesn't apply to the plan you picked.",
+        'minimum_amount' => 'That code needs an order of at least :amount.',
+        'unreadable' => 'We could not check that code just now. Please try again.',
+        'retention_offer' => 'Stay with :discount',
+    ],
+
     'awaiting_payment' => [
         'title' => 'Payment settling',
         'description' => "Your payment method needs a few days to clear. We'll email you once it's confirmed — everything works in the meantime.",

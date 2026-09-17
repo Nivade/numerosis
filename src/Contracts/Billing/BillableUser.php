@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Contracts\Billing;
 
 use Illuminate\Support\Collection;
 use Laravel\Cashier\PaymentMethod as CashierPaymentMethod;
+use Laravel\Cashier\PromotionCode;
 use Laravel\Cashier\SubscriptionBuilder;
 use Nvade\Numerosis\Contracts\Auth\CentralUserModel;
 use Nvade\Numerosis\Contracts\Subscribable;
@@ -64,6 +65,14 @@ interface BillableUser extends CentralUserModel, Subscribable
     public function findSetupIntent(string $id, array $params = [], array $options = []);
 
     public function findPaymentMethod(PaymentMethod|string $paymentMethod): ?CashierPaymentMethod;
+
+    /**
+     * Unfiltered on purpose: an inactive code has to come back so the customer
+     * hears "expired" rather than "unknown".
+     *
+     * @param  array<string, mixed>  $options
+     */
+    public function findPromotionCode(string $code, array $options = []): ?PromotionCode;
 
     /**
      * @param  array<string, mixed>  $parameters

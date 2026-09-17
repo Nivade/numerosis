@@ -72,6 +72,7 @@ return [
         'members' => 'Members',
         'domains' => 'Domains',
         'subscription' => 'Subscription',
+        'promotions' => 'Promotions redeemed',
         'provision' => 'Provision',
         'tenant_users' => 'Tenant-side users',
         'no_members' => 'This tenant has no members.',

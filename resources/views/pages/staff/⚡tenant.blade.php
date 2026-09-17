@@ -24,6 +24,7 @@ use Nvade\Numerosis\Models\Activity;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Domain;
 use Nvade\Numerosis\Models\Central\Membership;
+use Nvade\Numerosis\Models\Central\AppliedPromotion;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Models\Central\TenantProvision;
@@ -98,6 +99,30 @@ class extends Component
     public function domains(): Collection
     {
         return $this->tenant->domains()->orderBy('domain')->get();
+    }
+
+    /**
+     * Matched by tenant or by the subscription's Stripe id: a code redeemed at
+     * checkout is recorded before the tenant row exists. A null subscription id
+     * is never a predicate — every unlinked row would match it.
+     *
+     * @return Collection<int, AppliedPromotion>
+     */
+    #[Computed]
+    public function appliedPromotions(): Collection
+    {
+        $stripeId = $this->subscription?->stripe_id;
+
+        /** @var Collection<int, AppliedPromotion> $promotions */
+        $promotions = Numerosis::model(AppliedPromotion::class)::query()
+            ->where(function ($query) use ($stripeId): void {
+                $query->where('tenant_id', $this->tenant->getKey())
+                    ->when($stripeId !== null, fn ($q) => $q->orWhere('stripe_subscription_id', $stripeId));
+            })
+            ->orderByDesc('applied_at')
+            ->get();
+
+        return $promotions;
     }
 
     #[Computed]
@@ -230,7 +255,7 @@ class extends Component
     {
         $this->tenant->refresh();
 
-        unset($this->memberships, $this->subscription, $this->provision, $this->tenantUserCount);
+        unset($this->memberships, $this->appliedPromotions, $this->subscription, $this->provision, $this->tenantUserCount);
 
         $message = __("numerosis::staff.logged.{$action}", [
             'tenant' => (string) $this->tenant->getKey(),
@@ -389,6 +414,21 @@ class extends Component
                         <dd>{{ $this->subscription->stripe_status }}</dd>
                     </div>
                 </dl>
+            @endif
+
+            @if ($this->appliedPromotions->isNotEmpty())
+                {{-- The local audit rows, not a Stripe read: what was redeemed,
+                     whoever answers the ticket asking about it. --}}
+                <x-numerosis::ui.heading :level="3" class="mt-4">{{ __('numerosis::staff.tenant.promotions') }}</x-numerosis::ui.heading>
+
+                <ul class="mt-2 space-y-1 text-sm">
+                    @foreach ($this->appliedPromotions as $promotion)
+                        <li class="flex justify-between gap-2">
+                            <span class="font-mono">{{ $promotion->code }}</span>
+                            <span class="text-zinc-500">{{ $promotion->applied_at->toFormattedDayDateString() }}</span>
+                        </li>
+                    @endforeach
+                </ul>
             @endif
         </x-numerosis::ui.card>
 

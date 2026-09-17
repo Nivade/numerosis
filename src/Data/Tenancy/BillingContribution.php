@@ -20,6 +20,7 @@ final class BillingContribution extends Data implements PersistsToProvisionColum
     public function __construct(
         public ?string $payment_plan = null,
         public ?BillingCycle $billing_cycle = null,
+        public ?string $promotion_code = null,
         public ?string $stripe_setup_intent_id = null,
         public ?string $stripe_subscription_id = null,
         public ?string $stripe_customer_id = null,
@@ -32,6 +33,7 @@ final class BillingContribution extends Data implements PersistsToProvisionColum
         $contribution = new self(
             payment_plan: $provision->payment_plan,
             billing_cycle: $provision->billing_cycle,
+            promotion_code: $provision->promotion_code,
             stripe_setup_intent_id: $provision->stripe_setup_intent_id,
             stripe_subscription_id: $provision->stripe_subscription_id,
             stripe_customer_id: $provision->stripe_customer_id,
@@ -50,6 +52,7 @@ final class BillingContribution extends Data implements PersistsToProvisionColum
         return [
             'payment_plan' => $this->payment_plan,
             'billing_cycle' => $this->billing_cycle,
+            'promotion_code' => $this->promotion_code,
             'stripe_setup_intent_id' => $this->stripe_setup_intent_id,
             'stripe_subscription_id' => $this->stripe_subscription_id,
             'stripe_customer_id' => $this->stripe_customer_id,

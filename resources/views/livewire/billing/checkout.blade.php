@@ -10,6 +10,11 @@
 
     <x-numerosis::billing.payment-error :message="$paymentError" />
 
+    <x-numerosis::billing.promotion-field
+        :applied="$appliedPromotion"
+        :error="$promotionError"
+    />
+
     @if($checkoutClientSecret && $checkoutPublishableKey)
         <div
             x-data="stripeCheckout(@js($checkoutClientSecret), @js($checkoutPublishableKey), @js(route('checkout.subscription.return')), @js(__('numerosis::billing.decline_codes')), @js($customerEmail), @js($savedBillingAddress), @js($savedPaymentMethods), @js($paymentMethodOrder), @js($detectedCountry))"

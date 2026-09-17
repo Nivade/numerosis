@@ -54,6 +54,10 @@ class StartCheckoutRequest extends FormRequest
             'global_id' => ['required', 'string', 'exists:users,global_id'],
             'payment_plan' => ['nullable', 'string', 'exists:central.payment_plans,slug'],
             'billing_cycle' => ['required', Rule::enum(BillingCycle::class)],
+
+            // Shape only. Whether the code exists and is usable is Stripe's
+            // answer, asked again when the subscription is created.
+            'promotion_code' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -63,7 +67,7 @@ class StartCheckoutRequest extends FormRequest
      */
     public function toProvisionData(): TenantProvisionData
     {
-        /** @var array{slug: string, name: string, global_id: string, payment_plan?: string|null, billing_cycle: string} $validated */
+        /** @var array{slug: string, name: string, global_id: string, payment_plan?: string|null, billing_cycle: string, promotion_code?: string|null} $validated */
         $validated = $this->validated();
 
         return new TenantProvisionData(
@@ -74,6 +78,7 @@ class StartCheckoutRequest extends FormRequest
                 new BillingContribution(
                     payment_plan: $validated['payment_plan'] ?? null,
                     billing_cycle: BillingCycle::from($validated['billing_cycle']),
+                    promotion_code: $validated['promotion_code'] ?? null,
                 ),
             ],
         );
