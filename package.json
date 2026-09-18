@@ -8,7 +8,7 @@
     "build": "npm run build:app-css && npm run build:app-js"
   },
   "devDependencies": {
-    "@stripe/stripe-js": "^4.10.0",
+    "@stripe/stripe-js": "^9.16.0",
     "@tailwindcss/cli": "^4.1.17",
     "playwright": "^1.62.1",
     "tailwindcss": "^4.1.17",
