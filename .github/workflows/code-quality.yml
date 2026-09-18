@@ -1,0 +1,95 @@
+name: code-quality
+
+on:
+  # Feature branches are covered by pull_request; without this filter a push
+  # and its PR run the same commit twice.
+  push:
+    branches:
+      - main
+    paths:
+      - '**.php'
+      - 'pint.json'
+      - 'rector.php'
+      - '**/composer.json'
+      - 'package-lock.json'
+      - '.github/workflows/code-quality.yml'
+  pull_request:
+    paths:
+      - '**.php'
+      - 'pint.json'
+      - 'rector.php'
+      - '**/composer.json'
+      - 'package-lock.json'
+      - '.github/workflows/code-quality.yml'
+  # The audit steps are the point: an advisory lands against a dependency
+  # already in the tree, with nothing here changing to trigger a run.
+  schedule:
+    - cron: '40 6 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  COMPOSER_NO_INTERACTION: '1'
+  COMPOSER_ROOT_VERSION: dev-main
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+
+      # Both manifests are published artifacts, so a malformed one has to fail
+      # here rather than at `composer require` time.
+      - name: Validate the manifests
+        run: |
+          composer validate --strict
+          composer validate --strict packages/ui/composer.json
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-8.5-${{ hashFiles('composer.json') }}
+          restore-keys: composer-8.5-
+
+      # --no-scripts keeps the workbench unbooted: Pint and Rector read files,
+      # and booting it is what would need a database here.
+      - name: Install dependencies
+        run: composer update --prefer-stable --prefer-dist --no-scripts
+
+      # composer.json's `lint:check` runs Rector, Pint and PHPStan; PHPStan is
+      # the static-analysis workflow, and these are the other two. Without this
+      # step Rector only ever runs locally, and its rewrites pile up until they
+      # land, unrelated, in whoever's diff triggers them next.
+      - name: Check for pending refactors
+        run: php -d memory_limit=1G vendor/bin/rector process --dry-run --no-progress-bar
+
+      # Read-only. Nothing pushes a "Fix styling" commit back.
+      - name: Check code style
+        run: vendor/bin/pint --test
+
+      - name: Audit PHP dependencies
+        run: composer audit
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # Reads package-lock.json directly, so no `npm ci` ahead of it.
+      - name: Audit npm dependencies
+        run: npm audit --audit-level=high

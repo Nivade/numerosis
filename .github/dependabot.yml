@@ -1,0 +1,23 @@
+version: 2
+
+updates:
+  # composer.lock is gitignored, so this raises the constraints in the two
+  # manifests rather than bumping resolved versions.
+  - package-ecosystem: composer
+    directories:
+      - '/'
+      - '/packages/ui'
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly

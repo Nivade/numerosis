@@ -1,14 +1,17 @@
 name: tests
 
 on:
+  # Feature branches are covered by pull_request; without this filter a push
+  # and its PR run the same commit twice.
   push:
+    branches:
+      - main
     paths:
       - '**.php'
       - '.github/workflows/tests.yml'
       - 'phpunit.xml.dist'
       - 'testbench.yaml'
       - '**/composer.json'
-      - 'composer.lock'
       - 'package.json'
       - 'package-lock.json'
   pull_request:
@@ -18,13 +21,21 @@ on:
       - 'phpunit.xml.dist'
       - 'testbench.yaml'
       - '**/composer.json'
-      - 'composer.lock'
       - 'package.json'
       - 'package-lock.json'
+  # composer.lock is gitignored and every job resolves fresh, so an upstream
+  # release breaks main with no commit here to hang it on. Catch it on a
+  # Monday rather than on whoever's branch pushes next.
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 env:
   COMPOSER_NO_INTERACTION: '1'
@@ -67,7 +78,9 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     strategy:
-      fail-fast: true
+      # One driver failing must not cancel the others, or a failure that is
+      # really universal reads as driver-specific.
+      fail-fast: false
       # Matches what composer.json claims to support. Widen only with a green
       # run behind it: Laravel 11/12 and Windows were in the generator's matrix
       # and nothing here has ever been tested on them.
@@ -142,10 +155,19 @@ jobs:
       # pestphp/pest-plugin-browser is installed its own Plugin::terminate()
       # starts the Playwright server on every Pest run, so a run without these
       # aborts with no test output at all. See tests/Browser/README.md.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ hashFiles('package-lock.json') }}
+
+      # Split so a cache hit skips the browser download; the system libraries
+      # are not cached and have to be installed either way.
       - name: Install Playwright
         run: |
           npm ci
-          npx playwright install --with-deps chromium
+          npx playwright install-deps chromium
+          npx playwright install chromium
 
       # SQLite runs serially. `--parallel` puts eight processes on one directory
       # of database files, which is what SQLite is worst at: the run fails
@@ -155,3 +177,14 @@ jobs:
         env:
           NUMEROSIS_TEST_DRIVER: ${{ matrix.database }}
         run: vendor/bin/pest --ci ${{ matrix.database == 'sqlite' && '' || '--parallel' }}
+
+      # A failed browser expectation points at this directory (Pest's
+      # Support/Screenshot.php writes it), which otherwise dies with the runner.
+      - name: Upload browser screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-screenshots-${{ matrix.php }}-${{ matrix.database }}
+          path: tests/Browser/Screenshots
+          if-no-files-found: ignore
+          retention-days: 7

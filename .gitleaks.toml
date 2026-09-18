@@ -1,0 +1,11 @@
+[extend]
+useDefault = true
+
+# Vendored skill documentation illustrates bad practice with fake credentials,
+# and history keeps them reachable after the files stop being tracked.
+[allowlist]
+description = "Illustrative credentials in skill documentation"
+paths = [
+    '''\.ai/skills/.*''',
+    '''\.claude/skills/.*''',
+]

@@ -9,10 +9,15 @@ on:
       - main
     tags:
       - '*'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
+
+# The mirror is pushed with SPLIT_SSH_KEY, never with GITHUB_TOKEN.
+permissions:
+  contents: read
 
 jobs:
   split:
