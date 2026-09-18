@@ -11,7 +11,11 @@ on:
       - 'pint.json'
       - 'rector.php'
       - '**/composer.json'
+      - 'package.json'
       - 'package-lock.json'
+      - 'vite.config.js'
+      - 'resources/**'
+      - 'dist/**'
       - '.github/workflows/code-quality.yml'
   pull_request:
     paths:
@@ -19,7 +23,11 @@ on:
       - 'pint.json'
       - 'rector.php'
       - '**/composer.json'
+      - 'package.json'
       - 'package-lock.json'
+      - 'vite.config.js'
+      - 'resources/**'
+      - 'dist/**'
       - '.github/workflows/code-quality.yml'
   # The audit steps are the point: an advisory lands against a dependency
   # already in the tree, with nothing here changing to trigger a run.
@@ -93,3 +101,14 @@ jobs:
       # Reads package-lock.json directly, so no `npm ci` ahead of it.
       - name: Audit npm dependencies
         run: npm audit --audit-level=high
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      # dist/ is committed and rebuilt by hand, so a dependency bump can change
+      # the shipped bundle and leave it behind. Bumping @stripe/stripe-js did
+      # exactly that, and the bundle is what hosts load.
+      - name: Check dist against its sources
+        run: |
+          npm run build
+          git diff --stat --exit-code dist
