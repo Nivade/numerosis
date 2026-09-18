@@ -12,6 +12,9 @@ use Nvade\Numerosis\Actions\Queries\GetActiveSubscription;
 use Nvade\Numerosis\Actions\Queries\GetBillingPeriod;
 use Nvade\Numerosis\Actions\Queries\GetTenantMeters;
 use Nvade\Numerosis\Actions\Queries\GetTenantSeatUsage;
+use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Cache\CacheTtl;
+use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Contracts\Billing\UsageCounter;
 use Nvade\Numerosis\Data\Billing\BillingPeriod;
@@ -29,8 +32,6 @@ use Stancl\Tenancy\Contracts\Tenant as TenantContract;
  */
 class PlanEntitlements implements Entitlements
 {
-    public const string SEATS = 'seats';
-
     /** @var array<string, array{capabilities: list<string>, limits: array<string, int>, plan: string|null, upgrade: string|null}> */
     private array $resolved = [];
 
@@ -75,9 +76,9 @@ class PlanEntitlements implements Entitlements
             return 0;
         }
 
-        // Seats are rows, not events: counting them off the usage table would
-        // drift the moment a member was removed anywhere but through the one
-        // action that decrements.
+        // Seats are counted as rows, never as events: counting them off the
+        // usage table would drift the moment a member was removed anywhere
+        // but through the one action that decrements.
         return $capability === self::SEATS
             ? GetTenantSeatUsage::run($tenant)->used()
             : $this->counter->value($tenant, $capability, $this->bucket($tenant, $capability));
@@ -110,8 +111,8 @@ class PlanEntitlements implements Entitlements
         $used = $this->used($capability, $tenant);
 
         // A metered capability's included allowance is where the overage
-        // starts, not where the customer is cut off: refusing it here would
-        // refuse usage the plan sells.
+        // starts; it is never where the customer is cut off, so refusing it
+        // here would refuse usage the plan sells.
         $metered = $this->meter($tenant, $capability) instanceof MeterDefinitionData;
 
         if (! $metered && $limit !== null && $used + $amount > $limit) {
@@ -171,7 +172,11 @@ class PlanEntitlements implements Entitlements
     {
         $key = (string) $tenant->getTenantKey();
 
-        return $this->resolved[$key] ??= $this->resolve($tenant);
+        return $this->resolved[$key] ??= GlobalCache::remember(
+            CacheKeys::entitlements($key),
+            CacheTtl::entitlements(),
+            fn (): array => $this->resolve($tenant),
+        );
     }
 
     /**
@@ -243,7 +248,7 @@ class PlanEntitlements implements Entitlements
 
         // A meter's included allowance reads as its limit, which is what the
         // usage screen compares against; consumption past it is billed.
-        foreach (GetTenantMeters::forPlan($plan) as $meter) {
+        foreach (GetTenantMeters::run($plan) as $meter) {
             if ($meter->included !== null) {
                 $limits[$meter->key] = $meter->included;
             }
@@ -299,6 +304,24 @@ class PlanEntitlements implements Entitlements
             ->first();
 
         return $next?->slug;
+    }
+
+    /** Drops the memo so the next read resolves the plan again. Null clears every tenant. */
+    public function forget(?TenantContract $tenant = null): void
+    {
+        if (! $tenant instanceof TenantContract) {
+            $this->resolved = [];
+            $this->meters = [];
+            $this->buckets = [];
+
+            return;
+        }
+
+        $key = (string) $tenant->getTenantKey();
+
+        GlobalCache::store()->forget(CacheKeys::entitlements($key));
+
+        unset($this->resolved[$key], $this->meters[$key], $this->buckets[$key]);
     }
 
     private function tenant(?TenantContract $tenant): ?TenantContract

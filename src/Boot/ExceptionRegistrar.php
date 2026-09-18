@@ -21,8 +21,8 @@ final class ExceptionRegistrar
 {
     /**
      * Replaces this class's registration entirely. Receives the `Exceptions`
-     * instance, not the `Application`, because it runs before the container
-     * exists.
+     * instance instead of the `Application`, because it runs before the
+     * container exists.
      */
     public static ?Closure $registerCallback = null;
 
@@ -50,8 +50,8 @@ final class ExceptionRegistrar
 
         self::$registeredFor[$exceptions->handler] = true;
 
-        // Resolved at report time, not here: this runs before the container
-        // exists.
+        // Resolved at report time instead of here, since this runs before
+        // the container exists.
         $exceptions->context(fn (): array => resolve(ProvidesExceptionContext::class)->handle());
 
         $exceptions->dontReportDuplicates();

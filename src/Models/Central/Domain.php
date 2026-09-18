@@ -16,8 +16,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Request;
+use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Enums\Tenancy\DomainStatus;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
+use Nvade\Numerosis\Numerosis;
 use Nvade\Numerosis\Observers\Tenancy\DomainObserver;
 use Stancl\Tenancy\Database\Concerns\InvalidatesTenantsResolverCache;
 
@@ -28,6 +31,7 @@ use Stancl\Tenancy\Database\Concerns\InvalidatesTenantsResolverCache;
  * @property DomainStatus $status
  * @property string|null $verification_token
  * @property Carbon|null $last_checked_at
+ * @property Carbon|null $failing_since
  * @property-read string $url
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -60,6 +64,7 @@ class Domain extends \Stancl\Tenancy\Database\Models\Domain
         return [
             'status' => DomainStatus::class,
             'last_checked_at' => 'datetime',
+            'failing_since' => 'datetime',
         ];
     }
 
@@ -84,18 +89,87 @@ class Domain extends \Stancl\Tenancy\Database\Models\Domain
     }
 
     /**
+     * Combines `servable()` with the tenant not being suspended or closed. A
+     * hostname still answering DNS for a shut-down workspace must not serve.
+     *
+     * @param  Builder<static>  $query
+     */
+    #[Scope]
+    protected function servableAcrossTenants(Builder $query): void
+    {
+        $tenantTable = (new (Numerosis::model(Tenant::class))())->getTable();
+
+        $query->servable()->whereExists(function ($q) use ($tenantTable): void {
+            $q->select('id')
+                ->from($tenantTable)
+                ->whereColumn($tenantTable.'.id', 'domains.tenant_id')
+                ->whereNull($tenantTable.'.suspended_at')
+                ->whereNull($tenantTable.'.closed_at');
+        });
+    }
+
+    /** The ask endpoint runs per new SNI, so this hostname gets its own cache entry. */
+    public static function isHostnameServable(string $hostname): bool
+    {
+        $hostname = strtolower(trim($hostname));
+        $seconds = Config::integer('numerosis.tenancy.custom_domains.tls.cache_seconds', 60);
+
+        return (bool) GlobalCache::store()->remember(
+            CacheKeys::servableDomain($hostname),
+            $seconds,
+            static fn (): bool => Numerosis::model(self::class)::query()
+                ->servableAcrossTenants()
+                ->where('domains.domain', $hostname)
+                ->exists(),
+        );
+    }
+
+    /**
      * Ordered by how long ago each was looked at, so a sweep with a limit takes
-     * the most overdue rather than whatever the driver returns first.
+     * the most overdue instead of whatever the driver returns first. Filters
+     * to the base interval, the shortest any domain can be due at; a caller
+     * still has to test recheckIntervalMinutes() per row, since a failing
+     * domain's real interval can be longer.
      *
      * @param  Builder<static>  $query
      */
     #[Scope]
     protected function dueForCheck(Builder $query): void
     {
+        $baseMinutes = Config::integer('numerosis.tenancy.custom_domains.recheck_minutes', 60);
+
         // Active rows are re-checked too: a domain whose DNS was pulled has to
         // stop being served, and nothing else would notice.
         $query->where('status', '!=', DomainStatus::Revoked->value)
+            ->where(fn (Builder $q) => $q->whereNull('last_checked_at')
+                ->orWhere('last_checked_at', '<', now()->subMinutes($baseMinutes)))
             ->orderByRaw('last_checked_at is not null, last_checked_at asc');
+    }
+
+    /**
+     * The interval doubles for every recheck_backoff_period_hours a domain has
+     * been failing, capped at recheck_backoff_cap_minutes. A domain that has
+     * never failed, or has recovered, uses the base interval.
+     */
+    public function recheckIntervalMinutes(): int
+    {
+        $base = Config::integer('numerosis.tenancy.custom_domains.recheck_minutes', 60);
+
+        if ($this->failing_since === null) {
+            return $base;
+        }
+
+        $periodHours = Config::integer('numerosis.tenancy.custom_domains.recheck_backoff_period_hours', 12);
+        $capMinutes = Config::integer('numerosis.tenancy.custom_domains.recheck_backoff_cap_minutes', 1440);
+        $doublings = intdiv(max(0, (int) $this->failing_since->diffInHours(now())), $periodHours);
+
+        return min($capMinutes, $base * 2 ** $doublings);
+    }
+
+    public function isDueForRecheck(): bool
+    {
+        return $this->last_checked_at === null
+            || $this->last_checked_at->lt(now()->subMinutes($this->recheckIntervalMinutes()));
     }
 
     /**

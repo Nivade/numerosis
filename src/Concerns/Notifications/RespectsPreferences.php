@@ -9,8 +9,8 @@ use Nvade\Numerosis\Enums\Notifications\NotificationType;
 
 /**
  * `via()` for a notification whose channels are the recipient's business. The
- * implementer declares its type; everything else — defaults, overrides, and the
- * mail nobody may switch off — is the resolver's.
+ * implementer declares its type; everything else (defaults, overrides, and the
+ * mail nobody may switch off) is the resolver's.
  */
 trait RespectsPreferences
 {

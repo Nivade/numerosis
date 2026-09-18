@@ -31,8 +31,8 @@ class MembershipPolicy
     }
 
     /**
-     * The audit trail names who removed whom and when a role changed, which
-     * is management information rather than team information.
+     * The audit trail names who removed whom and when a role changed. That
+     * is management information, kept out of team-facing views.
      */
     public function viewActivity(User $user): bool
     {
@@ -102,11 +102,6 @@ class MembershipPolicy
     }
 
     /** Requiring a second factor of everyone is the owner's decision too. */
-    public function manageSecurity(User $user, Membership $membership): bool
-    {
-        return $this->manageClosure($user, $membership);
-    }
-
     /**
      * `memberships` is a central table, so binding `{membership}` on a tenant
      * route resolves any id regardless of owner, and every tenant's `admin`

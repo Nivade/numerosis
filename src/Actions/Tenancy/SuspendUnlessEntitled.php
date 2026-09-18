@@ -11,10 +11,10 @@ use Nvade\Numerosis\Models\Central\Tenant;
 /**
  * Suspends a tenant only once no subscription still grants it access.
  *
- * The question is whether anything valid remains, not whether something just
- * ended: Cashier has already deleted the cancelled subscription's local row by
- * the time a `customer.subscription.deleted` handler runs, and a tenant may
- * hold several.
+ * The question is whether anything valid remains, distinct from whether
+ * something just ended. Cashier has already deleted the cancelled
+ * subscription's local row by the time a `customer.subscription.deleted`
+ * handler runs, and a tenant may hold several.
  *
  * @method static void run(Tenant $tenant)
  */

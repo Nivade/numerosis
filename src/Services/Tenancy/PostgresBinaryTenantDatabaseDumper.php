@@ -18,7 +18,7 @@ class PostgresBinaryTenantDatabaseDumper extends BinaryTenantDatabaseDumper
         parent::__construct($dumpBinary, $restoreBinary);
     }
 
-    public function dump(TenantWithDatabase $tenant, string $file): void
+    public function dump(TenantWithDatabase $tenant, string $file, int $chunk = 500): void
     {
         $this->run([$this->dumpBinary, '--clean', '--if-exists', '--no-owner', $this->connectionString($tenant)], $file, write: true);
     }

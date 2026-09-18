@@ -12,7 +12,6 @@ namespace Nvade\Numerosis\Database\Seeders\Tenant;
 
 use Illuminate\Database\Seeder;
 use Nvade\Numerosis\Database\Seeders\Concerns\SeedsAdminRole;
-use Nvade\Numerosis\Enums\Auth\PermissionAction;
 use Nvade\Numerosis\Enums\Auth\PermissionContext;
 use Nvade\Numerosis\Models\Permission;
 use Nvade\Numerosis\Models\Tenant\User;
@@ -32,25 +31,10 @@ class PermissionAndRoleSeeder extends Seeder
         $admin = $this->seedAdminRole(
             $this->contexts(),
             'tenant',
-            fn (string $context): array => [
-                ...array_map(fn (PermissionAction $action): string => $action->value, Permission::defaultActions()),
-                ...($this->additionalActions()[$context] ?? []),
-            ],
+            fn (string $context): array => Permission::actionsFor($context),
         );
 
         User::first()?->assignRole($admin);
-    }
-
-    /**
-     * Non-CRUD verbs for this guard, keyed by context. Delegates to the model
-     * so a subclass's {@see Permission::additionalActions()} still reaches the
-     * tenant guard, which is the only guard it ever reached.
-     *
-     * @return array<string, list<string>>
-     */
-    protected function additionalActions(): array
-    {
-        return Permission::additionalActions();
     }
 
     /**

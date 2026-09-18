@@ -149,8 +149,8 @@ manual replay — remain open, on this plan's own advice.
   `RevokeApiTokensForRemovedMember`, and a test.
 - **Abilities are `context.action` over the existing permission vocabulary**, and
   only read actions can be granted while the API is read-only: an ability no
-  endpoint honours would read as a promise. `GetApiAbilities::only()` filters
-  what a caller asks for rather than trusting it.
+  endpoint honours would read as a promise. `GetApiAbilities` filters what a
+  caller asks for rather than trusting it.
 - **Expiry answers 401 `token_expired` and an allowlist miss answers 403
   `address_not_allowed`.** The plan asked for the distinction; these are the two
   refusals Sanctum does not make.
@@ -160,6 +160,23 @@ manual replay — remain open, on this plan's own advice.
 - **Sanctum's `abilities` alias is registered under
   `numerosis.api-abilities`**, because `abilities` is a name the framework's
   default stack owns and a host may mean something else by it.
+
+Four changes from the readiness remediation, 2026-09-18 (`44b767c`):
+
+- **The API is behind `Features\Api\ReadApiFeature`, off by default** (P21).
+  It shipped unconditionally, against the roadmap's standing constraint that new
+  user-facing capability sits behind a `Feature` class. Off, because a token with
+  nothing to call is not a feature. The token screen is gated with it.
+- **`/api/v1/domains` exists** (P22). The foundations table promised the
+  verified-domain query read-only and nothing under `/api/v1` exposed it. It
+  reads the same `GetServableDomains` query the TLS endpoints do, scoped by
+  token ability.
+- **The static entrypoints beside `handle()` are gone** (S39), including
+  `GetApiAbilities::only()`, and `GetServableDomains` calls the
+  `Domain::servable()` scope instead of re-spelling it.
+- **`src/Data/Api/*Resource` are `*Data`** (S41). They are `spatie/laravel-data`
+  objects, and `*Resource` reads as a Laravel API Resource, which they are not.
+  The middleware aliases picked one naming convention in the same pass (S38).
 
 Two traps found on contact, both recorded in `.ai/rules/`: the test harness's
 tenant template databases survive between runs, so a new tenant migration needs

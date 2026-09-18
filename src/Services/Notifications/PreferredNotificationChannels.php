@@ -13,8 +13,8 @@ use Nvade\Numerosis\Numerosis;
  * Defaults from the type, overridden by whatever the recipient stored.
  *
  * Mail for a type the user may not disable is not negotiable here: the override
- * is ignored rather than trusted, so a row written by hand — or by a future
- * screen that forgot the rule — cannot silence a payment failure.
+ * is ignored instead of trusted, so a row written by hand, or by a future
+ * screen that forgot the rule, cannot silence a payment failure.
  */
 class PreferredNotificationChannels implements NotificationChannels
 {

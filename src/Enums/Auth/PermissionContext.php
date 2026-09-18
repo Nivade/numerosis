@@ -14,4 +14,11 @@ enum PermissionContext: string
     case PaymentPlans = 'payment_plans';
     case Users = 'users';
     case Invitations = 'invitations';
+    case Domains = 'domains';
+
+    /** The Sanctum token ability string a context and action combine into. */
+    public function abilityFor(PermissionAction $action): string
+    {
+        return $this->value.'.'.$action->value;
+    }
 }

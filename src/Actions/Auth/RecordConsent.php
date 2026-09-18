@@ -12,9 +12,9 @@ use Nvade\Numerosis\Models\Central\Consent;
 use Nvade\Numerosis\Numerosis;
 
 /**
- * Append-only. Withdrawing or re-granting writes another row, because the
- * question a regulator asks is what was agreed at the time, not what is
- * agreed now.
+ * Append-only. Withdrawing or re-granting writes another row, because a
+ * regulator asks what was agreed at the time, and the current state alone
+ * cannot answer that.
  *
  * @method static Consent run(CentralUser $user, string $purpose = 'terms')
  */

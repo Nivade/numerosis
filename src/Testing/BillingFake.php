@@ -8,8 +8,8 @@ use Nvade\Numerosis\Contracts\Billing\CheckoutGateway;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
 
 /**
- * Lives here, not on `BillingService`, so a published `src/` autoload never
- * instantiates a test double.
+ * Lives here instead of on `BillingService`, so a published `src/` autoload
+ * never instantiates a test double.
  */
 final class BillingFake
 {

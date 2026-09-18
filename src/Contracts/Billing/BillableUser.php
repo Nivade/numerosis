@@ -68,7 +68,7 @@ interface BillableUser extends CentralUserModel, Subscribable
 
     /**
      * Unfiltered on purpose: an inactive code has to come back so the customer
-     * hears "expired" rather than "unknown".
+     * hears "expired" instead of "unknown".
      *
      * @param  array<string, mixed>  $options
      */

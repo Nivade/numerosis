@@ -60,9 +60,9 @@ class Center extends Component
     }
 
     /**
-     * Read in `render()` rather than memoized: marking read changes both the
-     * list and the count, and a cached computed property would keep showing the
-     * badge the click was meant to clear.
+     * Read in `render()` instead of memoized: marking read changes both the
+     * list and the count, and a cached computed property would keep showing
+     * the badge the click was meant to clear.
      */
     public function render(): View
     {

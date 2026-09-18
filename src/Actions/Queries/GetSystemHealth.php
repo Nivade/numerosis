@@ -31,7 +31,7 @@ class GetSystemHealth
 
     public function handle(): HealthReport
     {
-        // The array is cached, not the Data object: a store whose
+        // The array is cached instead of the Data object. A store whose
         // `serializable_classes` does not name these classes reads an object
         // back as `__PHP_Incomplete_Class`, and every poll would re-measure.
         $cached = GlobalCache::remember(

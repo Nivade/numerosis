@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Tests\Feature\Billing;
 
+use App\Models\Central\CentralUser;
 use App\Models\Central\PaymentPlan;
 use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Contracts\Billing\Entitlements;
+use Nvade\Numerosis\Contracts\Billing\SeatPolicy;
 use Nvade\Numerosis\Exceptions\Billing\EntitlementDenied;
 use Nvade\Numerosis\Http\Middleware\EnsureEntitlement;
 use Nvade\Numerosis\Models\Central\PlanFeature;
 use Nvade\Numerosis\Models\Central\Subscription;
+use Nvade\Numerosis\Services\Billing\SeatLimitPlanPolicy;
 use Nvade\Numerosis\Tests\TestCase;
+use Stancl\Tenancy\Contracts\Tenant as TenantContract;
 
 /**
  * The middleware and the directive are presentation; the action check is the
@@ -42,6 +46,60 @@ class EntitlementSeamsTest extends TestCase
         $this->assertNull($this->refusalStatus('reporting'));
 
         tenancy()->end();
+    }
+
+    /**
+     * A host swapping `numerosis.billing.implementations[Entitlements::class]`
+     * has to reach the seat cap through that binding everywhere, including
+     * `GetTenantSeatUsage`: this tenant carries no subscription at all, so a
+     * seat cap re-derived from the plan (the pre-fix behaviour) reads as
+     * uncapped and reports room that is not there. Only reading the cap
+     * through the bound `Entitlements` sees the host's answer.
+     */
+    public function test_a_host_entitlements_implementation_is_what_the_seat_count_reads(): void
+    {
+        $tenant = $this->createTenantWithDomain('host-impl-'.substr(uniqid(), -8), 'Host Impl Tenant');
+        tenancy()->end();
+
+        $member = CentralUser::factory()->create();
+        $tenant->users()->attach($member->global_id, ['role' => 'member']);
+
+        $fake = new class implements Entitlements
+        {
+            public function allows(string $capability, ?TenantContract $tenant = null): bool
+            {
+                return true;
+            }
+
+            public function limit(string $capability, ?TenantContract $tenant = null): int
+            {
+                return 1;
+            }
+
+            public function used(string $capability, ?TenantContract $tenant = null): int
+            {
+                return 1;
+            }
+
+            public function remaining(string $capability, ?TenantContract $tenant = null): int
+            {
+                return 0;
+            }
+
+            public function consume(string $capability, int $amount = 1, ?TenantContract $tenant = null): int
+            {
+                return $amount;
+            }
+
+            public function assertAllowed(string $capability, ?TenantContract $tenant = null): void {}
+        };
+
+        app()->bind(Entitlements::class, fn (): Entitlements => $fake);
+
+        $policy = resolve(SeatPolicy::class);
+
+        $this->assertInstanceOf(SeatLimitPlanPolicy::class, $policy);
+        $this->assertFalse($policy->hasSeatForNewMember($tenant));
     }
 
     /**

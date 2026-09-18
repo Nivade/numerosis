@@ -11,6 +11,8 @@ use App\Models\Tenant\User;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Database\Connection;
+use Illuminate\Database\ConnectionResolverInterface;
+use Illuminate\Database\DatabaseTransactionsManager;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Config;
@@ -855,7 +857,36 @@ abstract class TestCase extends Orchestra
 
         parent::setUp();
 
+        $this->shareOneTransactionManager();
+
         $this->migrateWorkerDatabaseOnce();
+    }
+
+    /**
+     * `RefreshDatabase::beginDatabaseTransaction()` rebinds `db.transactions`
+     * and hands the new manager only to the default connection, so `central`,
+     * resolved earlier, keeps the old one. The dispatcher reads the
+     * container's, so a `ShouldDispatchAfterCommit` event raised inside a
+     * central transaction saw no pending transaction and fired immediately.
+     */
+    private function shareOneTransactionManager(): void
+    {
+        if ($this->app === null || ! $this->app->bound('db.transactions')) {
+            return;
+        }
+
+        // Array access, not make(): `db.transactions` has no class alias, so
+        // make(DatabaseTransactionsManager::class) builds a second manager
+        // that no connection and no dispatcher ever reads.
+        $manager = $this->app['db.transactions'];
+
+        if (! $manager instanceof DatabaseTransactionsManager) {
+            return;
+        }
+
+        foreach ($this->app->make(ConnectionResolverInterface::class)->getConnections() as $connection) {
+            $connection->setTransactionManager($manager);
+        }
     }
 
     /**

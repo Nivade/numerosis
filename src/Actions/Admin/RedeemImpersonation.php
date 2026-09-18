@@ -11,6 +11,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Enums\SessionKey;
 use Nvade\Numerosis\Events\Admin\ImpersonationStarted;
 use Nvade\Numerosis\Models\Central\ImpersonationSession;
+use Nvade\Numerosis\Numerosis;
 use Stancl\Tenancy\Features\UserImpersonation;
 
 /**
@@ -18,8 +19,8 @@ use Stancl\Tenancy\Features\UserImpersonation;
  * check, the login and the delete, and this stamps the audit row and marks the
  * session so the banner, the causer resolver and the expiry guard can see it.
  *
- * Runs after `EnsureSessionMatchesTenant`, which is what keeps the impersonated
- * session an ordinary tenant session rather than an exception to the rule.
+ * Runs after `EnsureSessionMatchesTenant`, which keeps the impersonated
+ * session an ordinary tenant session for the rest of the stack.
  *
  * @method static RedirectResponse run(string $token)
  */
@@ -29,7 +30,7 @@ class RedeemImpersonation
 
     public function handle(string $token): RedirectResponse
     {
-        $session = ImpersonationSession::query()
+        $session = Numerosis::model(ImpersonationSession::class)::query()
             ->where('token', $token)
             ->whereNull('started_at')
             ->firstOrFail();

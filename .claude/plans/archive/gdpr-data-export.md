@@ -154,6 +154,20 @@ Three things worth knowing, none of which the plan predicted:
   throwing: `CentralUserObserver` promotes the first user, and spatie caches
   the missed lookup. Seed in `setUp()` before any user exists.
 
+Two gaps the readiness review found, both closed 2026-09-18:
+
+- **Causer anonymization was never implemented** (P10, phase 4, `11609d8`).
+  `AnonymizeUser` redacted the central user and relied on every activity entry
+  resolving through the relation, which works centrally and not at all inside a
+  tenant database. It walks both connections now, nulls the causer morph and
+  scrubs the known name and email keys out of `properties`. The entries
+  themselves stay, which is what "anonymized causer, entry retained" asked for.
+- **A tenant archive that would not open was skipped in silence** (S21, phase 1,
+  `e411bed`). `PersonalDataExporter::addTenantArchive()` returned early on a
+  failed `ZipArchive::open()`, dropping a whole workspace from a subject access
+  request with nothing recorded. It throws, and the job records the failure: a
+  partial answer that looks complete is worse than none.
+
 `DeleteUserAccountTest` changed shape rather than meaning: it counted tenants
 off the event's user *after* the action, which erasure now empties, so it
 counts inside the listener — which is the only thing that event ever promised.

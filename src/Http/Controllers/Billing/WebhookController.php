@@ -21,6 +21,7 @@ use Nvade\Numerosis\Actions\Tenancy\SuspendTenant;
 use Nvade\Numerosis\Actions\Tenancy\SuspendUnlessEntitled;
 use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisionsTenant;
+use Nvade\Numerosis\Data\Billing\MeteredInvoiceAmount;
 use Nvade\Numerosis\Data\Tenancy\TenantProvisionData;
 use Nvade\Numerosis\Enums\Billing\SubscriptionStatus;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
@@ -292,7 +293,7 @@ class WebhookController extends CashierWebhookController
     /**
      * Every handler here and in Cashier reads `data.object.customer` as an id,
      * but Stripe sends the whole object whenever the account or the endpoint
-     * expands it. Flattened once at the front door rather than per handler:
+     * expands it. Flattened once at the front door instead of per handler:
      * Cashier reads it in six handlers of its own, one of which
      * (`payment_method.automatically_updated`) this class does not override.
      *
@@ -356,48 +357,6 @@ class WebhookController extends CashierWebhookController
         }
     }
 
-    /**
-     * The metered part of an invoice, in minor units. A usage line carries no
-     * amount until Stripe closes the period, so the total on a metered invoice
-     * is only knowable from the invoice itself.
-     *
-     * @param  array<array-key, mixed>  $invoice
-     */
-    private static function usageAmountOf(array $invoice): ?int
-    {
-        $lines = $invoice['lines'] ?? null;
-        $lines = is_array($lines) ? ($lines['data'] ?? null) : null;
-
-        if (! is_array($lines)) {
-            return null;
-        }
-
-        $total = 0;
-        $metered = false;
-
-        foreach ($lines as $line) {
-            if (! is_array($line)) {
-                continue;
-            }
-
-            $pricing = $line['pricing'] ?? [];
-            $price = is_array($pricing) ? ($pricing['price_details'] ?? []) : [];
-            $plan = $line['plan'] ?? [];
-            $isUsage = (is_array($plan) ? ($plan['usage_type'] ?? null) : null) === 'metered'
-                || (is_array($price) && isset($price['meter']));
-
-            if (! $isUsage) {
-                continue;
-            }
-
-            $metered = true;
-            $amount = $line['amount'] ?? null;
-            $total += is_numeric($amount) ? (int) $amount : 0;
-        }
-
-        return $metered ? $total : null;
-    }
-
     private function notifyOfFailedPaymentFor(?string $customerId): void
     {
         $tenant = FindTenantByStripeCustomer::run($customerId);
@@ -435,7 +394,7 @@ class WebhookController extends CashierWebhookController
             if ($settled > 0) {
                 $this->announceSettlementFor(
                     $invoice['customer'] ?? null,
-                    self::usageAmountOf($invoice),
+                    MeteredInvoiceAmount::fromInvoice($invoice)->amount,
                     is_string($invoice['currency'] ?? null) ? $invoice['currency'] : null,
                 );
             }

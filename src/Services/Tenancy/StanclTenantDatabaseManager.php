@@ -30,9 +30,9 @@ class StanclTenantDatabaseManager implements TenantDatabaseManager
             return $this->fileNamesMatchingPrefix($prefix);
         }
 
-        // pg_database, not information_schema.schemata: on PostgreSQL that
-        // view lists schemas, so the query succeeds and finds no tenant
-        // database at all.
+        // Queries pg_database instead of information_schema.schemata: on
+        // PostgreSQL that view lists schemas, so the query succeeds and
+        // finds no tenant database at all.
         $sql = $connection->getDriverName() === 'pgsql'
             ? 'SELECT datname AS name FROM pg_database WHERE datname LIKE ?'
             : 'SELECT SCHEMA_NAME AS name FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME LIKE ?';

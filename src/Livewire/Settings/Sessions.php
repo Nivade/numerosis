@@ -24,7 +24,7 @@ use Nvade\Numerosis\Numerosis;
  * Lists where this account is signed in and revokes any of it. Sessions are
  * read through {@see SessionRegistry}, which only the `database` driver can
  * enumerate; the revoke-everywhere path works on every driver, because it goes
- * through the password stamp rather than through stored rows.
+ * through the password stamp instead of through stored rows.
  */
 #[Layout('numerosis-layouts::app')]
 class Sessions extends Component

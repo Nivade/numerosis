@@ -19,10 +19,10 @@ use Nvade\Numerosis\Numerosis;
 /**
  * Makes the tenant's first non-bot user its admin.
  *
- * Its own step rather than a call inside `FinalizeTenantProvisioning`, so the
- * runner decides whether it applies: a tenant provisioned with no owner has
- * nobody to promote, and `NoPromotableUser` keeps meaning what it should —
- * an owner was contributed and the row that should exist does not.
+ * Its own step instead of a call inside `FinalizeTenantProvisioning`, so the
+ * runner decides whether it applies. A tenant provisioned with no owner has
+ * nobody to promote, and `NoPromotableUser` keeps meaning what it should: an
+ * owner was contributed and the row that should exist does not.
  */
 class PromoteFirstUserToAdmin implements RequiresContributions
 {

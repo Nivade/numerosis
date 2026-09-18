@@ -22,7 +22,7 @@ class EndImpersonationController extends Controller
 
         EndImpersonation::run($session, ImpersonationEndReason::Exit);
 
-        // Built rather than routed: this redirect leaves the tenant host for
+        // Built instead of routed: this redirect leaves the tenant host for
         // the central one, and in path mode `route()` on a tenant-group name
         // throws for want of a `{tenant}` parameter.
         return redirect()->away(RouteUrls::staffTenantDetail($session->tenant_id));

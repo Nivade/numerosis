@@ -24,7 +24,7 @@ abstract class TenantNotification extends Notification
     public function __construct(public Tenant $tenant) {}
 
     /**
-     * The in-app copy, rendered rather than raw: a notification centre listing
+     * The in-app copy, rendered instead of raw: a notification centre listing
      * payload keys is not a feature. Subclasses override it; this is the
      * fallback, built from the mail subject so a new notification is never
      * blank in the panel.
@@ -53,6 +53,13 @@ abstract class TenantNotification extends Notification
             'globalId' => $globalId,
             'type' => $this->notificationType()->value,
         ]);
+    }
+
+    protected function unsubscribeLine(object $notifiable): ?string
+    {
+        $unsubscribe = $this->unsubscribeUrl($notifiable);
+
+        return $unsubscribe === null ? null : "Stop these emails: {$unsubscribe}";
     }
 
     /**

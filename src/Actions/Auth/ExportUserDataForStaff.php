@@ -10,7 +10,7 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\DataExportRequest;
 
 /**
- * Support answering a request that arrived by mail rather than through the
+ * Support answering a request that arrived by mail instead of through the
  * product. The link still goes to the subject's own address: staff start the
  * export, they do not receive it.
  *

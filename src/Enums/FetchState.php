@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Enums;
 
 /**
- * Backed, not pure — Livewire only supports backed enums as public
- * properties.
+ * Backed instead of pure, since Livewire only supports backed enums as
+ * public properties.
  */
 enum FetchState: string
 {

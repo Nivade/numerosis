@@ -18,6 +18,7 @@ use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
+use Nvade\Numerosis\Features\Notifications\NotificationPreferencesFeature;
 use Nvade\Numerosis\Features\Observability\HealthEndpointFeature;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Http\Controllers\Auth\Social\DestroySocialAccountController;
@@ -150,7 +151,9 @@ Route::middleware($centralAuthenticated)->group(function () {
 
     Route::livewire('settings/data', DataSettings::class)->name('settings.data');
 
-    Route::livewire('settings/notifications', NotificationSettings::class)->name('settings.notifications');
+    if (FeatureRegistry::enabled(NotificationPreferencesFeature::NAME)) {
+        Route::livewire('settings/notifications', NotificationSettings::class)->name('settings.notifications');
+    }
 
     // Signed and single-use, and still behind the central guard: the artefact
     // is everything the package holds about one person, and a signature alone

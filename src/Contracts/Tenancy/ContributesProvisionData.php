@@ -7,9 +7,9 @@ namespace Nvade\Numerosis\Contracts\Tenancy;
 /**
  * A registration wizard step that collects something provisioning will need.
  *
- * Takes the step's own dehydrated state, not the live component: the step that
- * starts checkout is a different instance from the ones that collected the
- * data, which by then exist only as wizard state.
+ * Takes the step's own dehydrated state instead of the live component. The
+ * step that starts checkout is a different instance from the ones that
+ * collected the data, which by then exist only as wizard state.
  */
 interface ContributesProvisionData
 {

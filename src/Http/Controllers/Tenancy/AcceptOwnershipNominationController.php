@@ -21,7 +21,7 @@ class AcceptOwnershipNominationController extends Controller
         $user = Auth::guard(Context::Central->guard())->user();
 
         // `auth:web` guarantees this request is authenticated as a central
-        // user; the guard clause is for PHPStan, not a real branch.
+        // user; the guard clause is for PHPStan, never a real branch.
         abort_unless($user instanceof CentralUser, 403);
 
         try {

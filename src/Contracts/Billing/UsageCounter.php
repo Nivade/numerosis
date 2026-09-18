@@ -33,7 +33,7 @@ interface UsageCounter
 
     /**
      * Records that usage up to `$value` reached Stripe under `$identifier`.
-     * Cumulative rather than a delta, because the identifier derives from it
+     * Cumulative instead of a delta, because the identifier derives from it
      * and that is what makes a retry a no-op on Stripe's side.
      */
     public function markReported(Tenant $tenant, string $key, int $value, string $identifier, ?Carbon $period = null): void;

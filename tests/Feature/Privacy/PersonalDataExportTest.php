@@ -13,13 +13,16 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Nvade\Numerosis\Actions\Auth\RequestPersonalDataExport;
 use Nvade\Numerosis\Contracts\Auth\ExportsPersonalData;
+use Nvade\Numerosis\Contracts\Tenancy\ExportsTenantData;
 use Nvade\Numerosis\Enums\Auth\DataExportStatus;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
 use Nvade\Numerosis\Exceptions\Auth\DataExportThrottled;
+use Nvade\Numerosis\Exceptions\Tenancy\TenantBackupFailed;
 use Nvade\Numerosis\Models\Central\CentralUser as BaseCentralUser;
 use Nvade\Numerosis\Models\Central\DataExportRequest;
 use Nvade\Numerosis\Notifications\Auth\PersonalDataExportReady;
 use Nvade\Numerosis\Tests\TestCase;
+use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use ZipArchive;
 
 class PersonalDataExportTest extends TestCase
@@ -66,6 +69,30 @@ class PersonalDataExportTest extends TestCase
 
         $this->assertStringContainsString((string) $subject->email, $contents);
         $this->assertStringNotContainsString('bystander@example.test', $contents);
+    }
+
+    /**
+     * A partial archive answers a subject access request wrongly, so the whole
+     * export fails rather than dropping one workspace quietly.
+     */
+    public function test_an_unreadable_tenant_archive_fails_the_export(): void
+    {
+        $subject = CentralUser::factory()->create();
+        $this->tenantWith($subject);
+
+        app()->instance(ExportsTenantData::class, new class implements ExportsTenantData
+        {
+            public function export(TenantWithDatabase $tenant, ?string $forGlobalUserId = null, ?string $disk = null): string
+            {
+                Storage::disk((string) $disk)->put('broken.zip', 'not a zip archive');
+
+                return 'broken.zip';
+            }
+        });
+
+        $this->expectException(TenantBackupFailed::class);
+
+        resolve(ExportsPersonalData::class)->export((string) $subject->global_id);
     }
 
     public function test_a_request_is_queued_and_mails_a_single_use_link(): void

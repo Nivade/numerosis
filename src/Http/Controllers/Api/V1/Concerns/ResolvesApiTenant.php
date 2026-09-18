@@ -12,7 +12,7 @@ use Nvade\Numerosis\Models\User;
 /**
  * Every endpoint reads the tenant from tenancy, never from the request. A token
  * is issued inside one workspace and its identification middleware has already
- * decided which — accepting an id from the caller is how tenant A reads tenant
+ * decided which; accepting an id from the caller is how tenant A reads tenant
  * B.
  */
 trait ResolvesApiTenant

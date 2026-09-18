@@ -7,8 +7,8 @@ namespace Nvade\Numerosis\Enums\Tenancy;
 /**
  * What one tenant's leg of a fleet migration run did.
  *
- * `Skipped` is a tenant the run deliberately passed over — already at the
- * target, or resumed past — and is distinct from `Succeeded` so a resumed run
+ * `Skipped` is a tenant the run deliberately passed over (already at the
+ * target, or resumed past), and is distinct from `Succeeded` so a resumed run
  * does not read as having migrated the whole fleet again.
  */
 enum MigrationRunStatus: string
@@ -18,4 +18,14 @@ enum MigrationRunStatus: string
     case Succeeded = 'succeeded';
     case Failed = 'failed';
     case Skipped = 'skipped';
+
+    public function startsLeg(): bool
+    {
+        return $this === self::Running;
+    }
+
+    public function finishesLeg(): bool
+    {
+        return in_array($this, [self::Succeeded, self::Failed, self::Skipped], true);
+    }
 }

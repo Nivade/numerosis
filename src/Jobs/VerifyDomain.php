@@ -13,7 +13,7 @@ use Nvade\Numerosis\Models\Central\Domain;
 
 /**
  * One DNS check for one domain. Unique per domain, so a customer hammering the
- * re-check button queues one job rather than twenty, and the scheduled sweep
+ * re-check button queues one job instead of twenty, and the scheduled sweep
  * cannot pile onto a check already running.
  */
 class VerifyDomain implements ShouldBeUnique, ShouldQueue

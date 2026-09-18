@@ -139,3 +139,11 @@ Four deviations from the plan above:
 Phases 3 and 5 are narrower than written: the index searches name, slug and
 domain and filters by status, and the subscriptions screen deep-links to
 Stripe rather than reading Cashier state beyond plan, status and end date.
+
+**The tenant detail surface is wider than the four panels above.** Later wave-4
+plans added `entitlementUsage()`, `appliedPromotions()` and `recentActivity()`
+to `⚡tenant.blade.php`. The readiness review flagged them as undocumented
+scope (P4) and they are accepted as additions rather than removed, 2026-09-18:
+each is useful on an operator's one screen and each is already tested. The
+documented surface is memberships, domains, subscription, provision record,
+entitlement usage, applied promotions and recent activity.

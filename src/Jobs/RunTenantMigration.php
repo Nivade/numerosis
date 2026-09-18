@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Nvade\Numerosis\Actions\Tenancy\MigrateTenant;
 use Nvade\Numerosis\Actions\Tenancy\RecordTenantMigrationLeg;
+use Nvade\Numerosis\Enums\Tenancy\MigrationRunStatus;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Numerosis;
 use RuntimeException;
@@ -38,22 +39,22 @@ final class RunTenantMigration implements ShouldQueue
             throw new RuntimeException("No tenant [{$this->tenantId}] to migrate.");
         }
 
-        RecordTenantMigrationLeg::started($this->runId, $this->tenantId);
+        RecordTenantMigrationLeg::run($this->runId, $this->tenantId, MigrationRunStatus::Running);
 
         try {
             $applied = MigrateTenant::run($tenant);
         } catch (Throwable $e) {
-            RecordTenantMigrationLeg::failed($this->runId, $this->tenantId, $e->getMessage());
+            RecordTenantMigrationLeg::run($this->runId, $this->tenantId, MigrationRunStatus::Failed, [], $e->getMessage());
 
             throw $e;
         }
 
-        RecordTenantMigrationLeg::succeeded($this->runId, $this->tenantId, $applied);
+        RecordTenantMigrationLeg::run($this->runId, $this->tenantId, MigrationRunStatus::Succeeded, $applied);
     }
 
     /** The queue row is where a worker-side failure is visible; `failed_jobs` is not read by anything here. */
     public function failed(?Throwable $e): void
     {
-        RecordTenantMigrationLeg::failed($this->runId, $this->tenantId, $e?->getMessage() ?? 'Migration failed.');
+        RecordTenantMigrationLeg::run($this->runId, $this->tenantId, MigrationRunStatus::Failed, [], $e?->getMessage() ?? 'Migration failed.');
     }
 }

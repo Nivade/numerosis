@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Data\Observability;
 
+use Illuminate\Support\Facades\Config;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\MapOutputName;
 use Spatie\LaravelData\Data;
@@ -25,12 +26,26 @@ final class HealthReport extends Data
     ) {}
 
     /**
-     * Only the central database decides this. A deep provisioning queue is
-     * what an operator reads the counts for, and a monitor paging on it would
-     * page on every busy morning.
+     * The central database and the scheduler decide this. A deep provisioning
+     * queue is what an operator reads the counts for, and a monitor paging on
+     * it would page on every busy morning.
      */
     public function healthy(): bool
     {
-        return $this->centralDatabase;
+        return $this->centralDatabase && ! $this->schedulerStalled();
+    }
+
+    /**
+     * No heartbeat ever written counts as unknown, never as failed. A
+     * deployment running no scheduler at all must not report unhealthy on
+     * that basis alone.
+     */
+    private function schedulerStalled(): bool
+    {
+        if ($this->schedulerLastRunSeconds === null) {
+            return false;
+        }
+
+        return $this->schedulerLastRunSeconds > Config::integer('numerosis.health.scheduler_stale_after_seconds', 300);
     }
 }

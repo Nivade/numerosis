@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Http\Controllers\Api\V1;
 
 use Illuminate\Http\JsonResponse;
-use Nvade\Numerosis\Data\Api\TenantResource;
+use Nvade\Numerosis\Data\Api\TenantData;
 use Nvade\Numerosis\Http\Controllers\Api\V1\Concerns\ResolvesApiTenant;
 use Nvade\Numerosis\Http\Controllers\Controller;
 
@@ -18,6 +18,6 @@ class TenantController extends Controller
     {
         $this->authorizeApi('viewAny');
 
-        return new JsonResponse(['data' => TenantResource::fromTenant($this->apiTenant())->toArray()]);
+        return new JsonResponse(['data' => TenantData::fromTenant($this->apiTenant())->toArray()]);
     }
 }

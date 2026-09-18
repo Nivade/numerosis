@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Actions\Queries;
 
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Date;
 use Laravel\Cashier\SubscriptionItem as CashierSubscriptionItem;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Data\Billing\BillingPeriod;
-use Nvade\Numerosis\Models\Central\PaymentPlan;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\SubscriptionItem;
 use Nvade\Numerosis\Models\Central\Tenant;
@@ -37,7 +35,8 @@ class GetBillingPeriod
         return self::forSubscription($subscription);
     }
 
-    public static function forSubscription(Subscription $subscription): BillingPeriod
+    /** Null when Stripe stamped no period on any item: nothing is recorded locally to report against. */
+    public static function forSubscription(Subscription $subscription): ?BillingPeriod
     {
         $stamped = $subscription->items
             ->filter(fn (CashierSubscriptionItem $item): bool => $item instanceof SubscriptionItem
@@ -48,45 +47,15 @@ class GetBillingPeriod
             ->sortByDesc(fn (CashierSubscriptionItem $item): bool => $item instanceof SubscriptionItem && $item->isMetered())
             ->first();
 
-        if ($stamped instanceof SubscriptionItem
-            && $stamped->current_period_start instanceof Carbon
-            && $stamped->current_period_end instanceof Carbon) {
-            return new BillingPeriod(
-                start: $stamped->current_period_start->copy(),
-                end: $stamped->current_period_end->copy(),
-            );
-        }
-
-        return self::anniversary($subscription);
-    }
-
-    /**
-     * Cashier's own webhook write does not carry the period, so a subscription
-     * it created alone has none stored. Counting from the subscription's own
-     * anniversary keeps the boundary where the customer's invoice puts it.
-     */
-    private static function anniversary(Subscription $subscription): BillingPeriod
-    {
-        $months = self::intervalMonths($subscription);
-        $start = $subscription->created_at?->copy() ?? Date::now();
-
-        while ($start->copy()->addMonthsNoOverflow($months)->lessThanOrEqualTo(Date::now())) {
-            $start->addMonthsNoOverflow($months);
+        if (! $stamped instanceof SubscriptionItem
+            || ! $stamped->current_period_start instanceof Carbon
+            || ! $stamped->current_period_end instanceof Carbon) {
+            return null;
         }
 
         return new BillingPeriod(
-            start: $start,
-            end: $start->copy()->addMonthsNoOverflow($months),
-            anchored: false,
+            start: $stamped->current_period_start->copy(),
+            end: $stamped->current_period_end->copy(),
         );
-    }
-
-    /** A yearly price bills yearly, and bucketing it monthly resets an allowance eleven times too often. */
-    private static function intervalMonths(Subscription $subscription): int
-    {
-        $plan = $subscription->paymentPlan;
-        $yearlyPriceId = $plan instanceof PaymentPlan ? $plan->yearly_id : null;
-
-        return $yearlyPriceId !== null && $subscription->stripe_price === $yearlyPriceId ? 12 : 1;
     }
 }

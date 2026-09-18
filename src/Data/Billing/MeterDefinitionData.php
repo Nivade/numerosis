@@ -22,7 +22,7 @@ class MeterDefinitionData extends Data
     ) {}
 
     /**
-     * Malformed entries are dropped by the reader rather than repaired here;
+     * Malformed entries are dropped by the reader instead of repaired here;
      * `numerosis:install` is what reports them.
      *
      * @param  array<array-key, mixed>  $entry

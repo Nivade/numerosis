@@ -8,6 +8,8 @@ use App\Models\Central\TenantProvision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Nvade\Numerosis\Cache\CacheKeys;
+use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Features\Observability\HealthEndpointFeature;
 use Nvade\Numerosis\Tests\TestCase;
@@ -97,6 +99,26 @@ class HealthEndpointTest extends TestCase
             Config::set("database.connections.{$central}.database", $database);
             DB::purge($central);
         }
+    }
+
+    public function test_a_heartbeat_stale_past_the_threshold_reports_unhealthy(): void
+    {
+        Config::set('numerosis.health.scheduler_stale_after_seconds', 60);
+
+        GlobalCache::store()->put(CacheKeys::schedulerHeartbeat(), now()->subMinutes(5)->getTimestamp());
+
+        $this->get($this->healthPath())
+            ->assertServiceUnavailable()
+            ->assertJsonPath('central_database', true);
+    }
+
+    public function test_a_heartbeat_never_written_is_unknown_not_unhealthy(): void
+    {
+        Config::set('numerosis.health.scheduler_stale_after_seconds', 60);
+
+        $this->get($this->healthPath())
+            ->assertOk()
+            ->assertJsonPath('scheduler_last_run_seconds', null);
     }
 
     private function healthPath(): string

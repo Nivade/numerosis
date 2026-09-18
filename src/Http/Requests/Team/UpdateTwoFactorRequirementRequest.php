@@ -32,6 +32,6 @@ class UpdateTwoFactorRequirementRequest extends TenantOwnerRequest
 
     protected function ability(): string
     {
-        return 'manageSecurity';
+        return 'manageClosure';
     }
 }

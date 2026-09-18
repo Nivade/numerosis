@@ -8,9 +8,9 @@ use Nvade\Numerosis\Contracts\Tenancy\DnsResolver;
 
 /**
  * PHP's own resolver, which answers from whatever the host's stub resolver
- * decides — so a record added seconds ago may not be visible yet. That is why a
- * failed check is "not yet" rather than "no", and why this sits behind a
- * contract a host can replace with an authoritative lookup.
+ * decides, so a record added seconds ago may not be visible yet. That is why
+ * a failed check reads as "not yet" instead of "no", and why this sits behind
+ * a contract a host can replace with an authoritative lookup.
  */
 class SystemDnsResolver implements DnsResolver
 {
@@ -83,7 +83,7 @@ class SystemDnsResolver implements DnsResolver
 
     /**
      * `dns_get_record()` emits a warning and returns false for NXDOMAIN, which
-     * is a normal answer here rather than a fault.
+     * is a normal answer here instead of a fault.
      *
      * @return list<array<string, mixed>>
      */

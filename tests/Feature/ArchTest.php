@@ -9,6 +9,7 @@ use Nvade\Numerosis\Contracts\Tenancy\PersistsToProvisionColumns;
 use Nvade\Numerosis\Contracts\Tenancy\ProvisioningStep;
 use Nvade\Numerosis\Enums\Auth\PermissionContext;
 use Nvade\Numerosis\Policies\Concerns\ChecksContextPermissions;
+use Nvade\Numerosis\Services\Auth\GlobalIdSessionHandler;
 use Nvade\Numerosis\Services\Billing\BillingService;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\PasswordBrokerBootstrapper;
@@ -187,6 +188,7 @@ test('the middleware registry stays pure class-string literals', function (): vo
 test('everything in Services implements one of our contracts, or is a named exception', function (): void {
     $exceptions = [
         BillingService::class,
+        GlobalIdSessionHandler::class,
         PreservingPathTenantResolver::class,
         AuthGuardBootstrapper::class,
         PasswordBrokerBootstrapper::class,

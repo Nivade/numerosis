@@ -53,6 +53,29 @@ class ActivityScreensTest extends TestCase
             ->assertDontSee('Tenant suspended');
     }
 
+    public function test_the_staff_feed_filters_by_causer_and_by_actor_class(): void
+    {
+        $admin = $this->admin();
+        $tenant = TestTenant::provisioned(['provisioned_at' => now()]);
+        $causerA = CentralUser::factory()->create();
+        $causerB = CentralUser::factory()->create();
+
+        activity()->causedBy($causerA)->performedOn($tenant)->log('Did work as A');
+        activity()->causedBy($causerB)->performedOn($tenant)->log('Did work as B');
+
+        Livewire::actingAs($admin)
+            ->test('numerosis-pages::staff.activity', ['causer' => (string) $causerA->id])
+            ->assertOk()
+            ->assertSee('Did work as A')
+            ->assertDontSee('Did work as B');
+
+        Livewire::actingAs($admin)
+            ->test('numerosis-pages::staff.activity', ['actor' => 'user'])
+            ->assertOk()
+            ->assertSee('Did work as A')
+            ->assertSee('Did work as B');
+    }
+
     private function admin(): BaseCentralUser
     {
         $this->seedPermissions();

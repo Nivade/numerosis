@@ -49,4 +49,9 @@ final class RouteNames
     {
         return Config::string('numerosis.routes.names.checkout_subscription');
     }
+
+    public static function twoFactorSettings(): string
+    {
+        return Config::string('numerosis.routes.names.two_factor_settings');
+    }
 }

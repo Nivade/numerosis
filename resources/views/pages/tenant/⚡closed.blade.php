@@ -4,6 +4,8 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Nvade\Numerosis\Actions\Queries\GetAuthenticatedUser;
+use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
+use Nvade\Numerosis\Models\Central\Membership;
 use Nvade\Numerosis\Models\Central\Tenant;
 use Nvade\Numerosis\Routing\RouteNames;
 
@@ -31,6 +33,23 @@ class extends Component
 
         return $user !== null && $owner !== null && $owner->global_id === $user->global_id;
     }
+
+    #[Computed]
+    public function canSeeClosureDetail(): bool
+    {
+        if ($this->isOwner) {
+            return true;
+        }
+
+        $tenant = $this->tenant;
+        $user = GetAuthenticatedUser::run('tenant');
+
+        if ($tenant === null || $user === null) {
+            return false;
+        }
+
+        return Membership::roleFor((string) $tenant->getTenantKey(), $user->global_id) === MembershipRole::Admin;
+    }
 };
 ?>
 <div class="space-y-6 text-center">
@@ -50,6 +69,12 @@ class extends Component
             @endif
         </p>
     </div>
+
+    @if ($this->canSeeClosureDetail && $this->tenant?->closed_at !== null)
+        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+            {{ __('The owner closed this workspace on :date.', ['date' => $this->tenant->closed_at->toFormattedDayDateString()]) }}
+        </p>
+    @endif
 
     @if (session('status'))
         <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ session('status') }}</p>

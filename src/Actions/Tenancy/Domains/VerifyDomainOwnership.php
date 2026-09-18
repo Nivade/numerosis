@@ -14,8 +14,8 @@ use Nvade\Numerosis\Models\Central\Domain;
  * Reads DNS and says which half of the proof holds: the TXT record carrying the
  * domain's token, and the CNAME or A record that makes traffic arrive here.
  *
- * Decides nothing about state — {@see RecordDomainVerification} owns the
- * transition — so a caller can check a domain without writing to it.
+ * Decides nothing about state, since {@see RecordDomainVerification} owns the
+ * transition, so a caller can check a domain without writing to it.
  *
  * @method static DomainVerificationResult run(Domain $domain)
  */
@@ -48,7 +48,8 @@ class VerifyDomainOwnership
 
     /**
      * Either the CNAME names the configured target, or an A record matches one
-     * of the configured addresses — an apex zone often cannot carry a CNAME.
+     * of the configured addresses, since an apex zone often cannot carry a
+     * CNAME.
      */
     private function pointedHere(string $host): bool
     {

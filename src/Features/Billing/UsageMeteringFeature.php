@@ -8,8 +8,8 @@ use Nvade\Numerosis\Contracts\NamedFeature;
 use Nvade\Numerosis\Features\Concerns\IsNamedFeature;
 
 /**
- * The tenant-facing usage screen. Reporting counters to Stripe is
- * `numerosis.schedule.report_usage`, not this: a host may bill usage without
+ * The tenant-facing usage screen. Reporting counters to Stripe is a separate
+ * switch, `numerosis.schedule.report_usage`: a host may bill usage without
  * showing the breakdown, and hiding the screen must never stop the meter.
  */
 class UsageMeteringFeature implements NamedFeature

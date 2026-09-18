@@ -8,7 +8,6 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Actions\Tenancy\Domains\RecordDomainVerification;
 use Nvade\Numerosis\Actions\Tenancy\Domains\VerifyDomainOwnership;
 use Nvade\Numerosis\Enums\Tenancy\DomainStatus;
@@ -68,16 +67,14 @@ class VerifyDomains extends Command
             return $named;
         }
 
-        // The interval is per domain, not per run: a fleet of thousands is swept
-        // in batches without checking any one of them more often than this.
-        $minutes = Config::integer('numerosis.tenancy.custom_domains.recheck_minutes', 60);
-
+        // dueForCheck() only filters to the base interval; a domain still
+        // failing may have backed off past it, so the exact interval is
+        // tested per row before the limit is taken.
         /** @var Collection<int, Domain> $due */
-        $due = $query
-            ->where(fn ($q) => $q->whereNull('last_checked_at')
-                ->orWhere('last_checked_at', '<', now()->subMinutes($minutes)))
-            ->limit(max(1, (int) $this->option('limit')))
-            ->get();
+        $due = $query->get()
+            ->filter(fn (Domain $domain): bool => $domain->isDueForRecheck())
+            ->take(max(1, (int) $this->option('limit')))
+            ->values();
 
         return $due;
     }

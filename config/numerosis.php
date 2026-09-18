@@ -26,6 +26,7 @@ use Nvade\Numerosis\Contracts\Billing\CheckoutRegionResolver;
 use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Contracts\Billing\PaymentPlanRepository;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
+use Nvade\Numerosis\Contracts\Billing\SeatPolicy;
 use Nvade\Numerosis\Contracts\Billing\SubscriptionRepository;
 use Nvade\Numerosis\Contracts\Billing\TrialResolver;
 use Nvade\Numerosis\Contracts\Billing\UnpaidTenantQuota;
@@ -48,6 +49,8 @@ use Nvade\Numerosis\Features\Auth\PasswordResetFeature;
 use Nvade\Numerosis\Features\Auth\SocialLoginFeature;
 use Nvade\Numerosis\Features\Billing\BillingNotificationsFeature;
 use Nvade\Numerosis\Features\Invitations\InvitationsFeature;
+use Nvade\Numerosis\Features\Notifications\NotificationCenterFeature;
+use Nvade\Numerosis\Features\Notifications\NotificationPreferencesFeature;
 use Nvade\Numerosis\Features\Tenancy\RegistrationWizardFeature;
 use Nvade\Numerosis\Features\Turnstile\TurnstileFeature;
 use Nvade\Numerosis\Models\Central\AppliedPromotion;
@@ -55,6 +58,7 @@ use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Consent;
 use Nvade\Numerosis\Models\Central\DataExportRequest;
 use Nvade\Numerosis\Models\Central\Domain;
+use Nvade\Numerosis\Models\Central\ImpersonationSession;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\Membership;
 use Nvade\Numerosis\Models\Central\NotificationPreference;
@@ -137,6 +141,12 @@ return [
         // either way.
         ActivityLogFeature::class,
 
+        // The bell in the header.
+        NotificationCenterFeature::class,
+
+        // The 'settings/notifications' channel matrix.
+        NotificationPreferencesFeature::class,
+
         // Passwordless email OTP login, layered on Fortify rather than
         // replacing it. Off by default.
         // \Nvade\Numerosis\Features\Auth\OneTimePasswordFeature::class,
@@ -157,6 +167,10 @@ return [
         // `metadata.options.meters`. Off by default; reporting usage to Stripe
         // is numerosis.schedule.report_usage and is separate.
         // \Nvade\Numerosis\Features\Billing\UsageMeteringFeature::class,
+
+        // The read-only /api/v1 surface and the token screen that mints keys
+        // for it. Off by default.
+        // \Nvade\Numerosis\Features\Api\ReadApiFeature::class,
     ],
 
     /*
@@ -217,6 +231,10 @@ return [
         // audit log is a compliance decision, so the window is the host's.
         'prune_activity_log' => (bool) env('SCHEDULE_PRUNE_ACTIVITY_LOG', true),
 
+        // Runs numerosis:prune-sessions, deleting database session rows past
+        // session.lifetime. Only relevant when session.driver is database.
+        'prune_sessions' => (bool) env('SCHEDULE_PRUNE_SESSIONS', true),
+
         // Stamps a cache key every minute. The health document reports how
         // long ago, which is the only way to tell a stopped cron from a quiet
         // one.
@@ -225,11 +243,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Health
+    |--------------------------------------------------------------------------
+    |
+    | Read by HealthReport::healthy(). A scheduler heartbeat older than
+    | 'scheduler_stale_after_seconds' fails the check. A heartbeat that has
+    | never been written reads as unknown rather than failed, so a deployment
+    | running no scheduler at all still reports healthy.
+    */
+
+    'health' => [
+        'scheduler_stale_after_seconds' => env('NUMEROSIS_SCHEDULER_STALE_AFTER_SECONDS', 300),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Trusted proxies
     |--------------------------------------------------------------------------
     |
     | Only read by the un-wired fallback boot (an app whose bootstrap/app.php
-    | never called Numerosis::middleware() itself) — see docs/host-requirements.md.
+    | never called Numerosis::middleware() itself).
     | Empty trusts nobody, Laravel's own default: X-Forwarded-* headers are
     | ignored, and $request->ip() is the real socket peer. Set proxy IP(s)/CIDR
     | here, or the literal '*' to trust every request's forwarded headers.
@@ -264,6 +297,7 @@ return [
             'ownership_nomination_show' => 'ownership.nominations.show',
             'ownership_nomination_accept' => 'ownership.nominations.accept',
             'checkout_subscription' => 'checkout.subscription',
+            'two_factor_settings' => 'settings.two-factor',
         ],
 
         // Core registers 'home' unconditionally. Point this at your own view
@@ -399,7 +433,7 @@ return [
         'headers' => [
             'enabled' => env('NUMEROSIS_SECURITY_HEADERS', true),
 
-            'except' => ['stripe/*', 'billing/webhook', 'telescope/*'],
+            'except' => ['stripe/*', 'billing/webhook'],
 
             // includeSubDomains is load-bearing in subdomain identification
             // mode: without it every tenant host is exempt.
@@ -484,6 +518,7 @@ return [
             'available_payment_plans' => 3600,
             'popular_payment_plan_slug' => 300,
             'health_report' => 5,
+            'entitlements' => 300,
         ],
     ],
 
@@ -558,6 +593,7 @@ return [
         Consent::class => null,
         DataExportRequest::class => null,
         NotificationPreference::class => null,
+        ImpersonationSession::class => null,
     ],
 
     /*
@@ -590,6 +626,7 @@ return [
             SubscriptionRepository::class => EloquentSubscriptionRepository::class,
             BillableResolver::class => TenantOrUserBillableResolver::class,
             PlanPolicy::class => SeatLimitPlanPolicy::class,
+            SeatPolicy::class => SeatLimitPlanPolicy::class,
             TrialResolver::class => PlanOrDefaultTrialResolver::class,
             UnpaidTenantQuota::class => DefaultUnpaidTenantQuota::class,
             CheckoutRegionResolver::class => NullCheckoutRegionResolver::class,
@@ -730,9 +767,13 @@ return [
             // How long between automatic checks of one domain.
             'recheck_minutes' => (int) env('NUMEROSIS_DOMAIN_RECHECK_MINUTES', 60),
 
+            // The recheck interval doubles for every this-many hours a domain
+            // has been failing, and stops growing once it hits the cap below.
+            'recheck_backoff_period_hours' => (int) env('NUMEROSIS_DOMAIN_RECHECK_BACKOFF_PERIOD', 12),
+            'recheck_backoff_cap_minutes' => (int) env('NUMEROSIS_DOMAIN_RECHECK_BACKOFF_CAP', 1440),
+
             // TLS presenters for the proxy in front of this deployment. The
             // package issues no certificates; it publishes the verified set.
-            // See docs/host-requirements.md for the deployment matrix.
             'tls' => [
                 'ask' => (bool) env('NUMEROSIS_TLS_ASK_ENDPOINT', false),
                 'ask_path' => env('NUMEROSIS_TLS_ASK_PATH', 'numerosis/tls/ask'),

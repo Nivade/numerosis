@@ -38,3 +38,6 @@ sets it.** `new PDOException('...')` leaves `$code` at the default int `0`, so
 the first regression test passed against the unfixed code. Subclass and assign
 `$this->code = 'HY000'` in the constructor, then check the test fails with the
 fix reverted.
+
+## Never name a job helper fail()
+A job using `Queueable` already has `InteractsWithQueue::fail(?Throwable)`. A helper named `fail(DataExportRequest, string)` shadows it, so the framework's own failure path and yours are one name with two signatures. This is a live hazard, not a style point: call it `markFailed()`. `Jobs\Concerns\WritesDataExportOutcome` is where the two export jobs' shared shape went.

@@ -126,9 +126,9 @@ class CentralUser extends User implements BillableUser, CentralUserModel, HasTen
     }
 
     /**
-     * A `Model`-typed parameter, not `$this` directly: `$this` carries the
-     * concrete class, which `TDeclaringModel` will not accept against the
-     * interface's declared `Model`.
+     * A `Model`-typed parameter instead of `$this` directly. `$this` carries
+     * the concrete class, which `TDeclaringModel` will not accept against
+     * the interface's declared `Model`.
      *
      * @return BelongsToMany<Tenant, Model, Membership, 'pivot'>
      */

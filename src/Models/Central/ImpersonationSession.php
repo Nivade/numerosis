@@ -108,7 +108,7 @@ class ImpersonationSession extends Model
 
     /**
      * Redeemed, still open, and past the cap. The sweep and the per-request
-     * guard both read this state rather than deciding it for themselves.
+     * guard both read this state instead of deciding it for themselves.
      *
      * @param  Builder<static>  $query
      * @return Builder<static>

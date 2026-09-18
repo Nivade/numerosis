@@ -11,7 +11,7 @@ use Nvade\Numerosis\Exceptions\Tenancy\OwnerMembershipImmutable;
 use Nvade\Numerosis\Models\Central\Membership;
 
 /**
- * `MemberRoleChanged` comes from `MembershipObserver::updated()`, not from
+ * `MemberRoleChanged` comes from `MembershipObserver::updated()` instead of
  * here. Ownership moves through tenant-ownership transfer alone, so `Owner`
  * is neither a source nor a destination role.
  *

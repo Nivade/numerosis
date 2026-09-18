@@ -26,7 +26,7 @@ class UnavailableDumper implements TenantDatabaseDumper
         return true;
     }
 
-    public function dump(TenantWithDatabase $tenant, string $file): void
+    public function dump(TenantWithDatabase $tenant, string $file, int $chunk = 500): void
     {
         throw TenantBackupFailed::dumperUnavailable((string) $this->unavailableReason());
     }

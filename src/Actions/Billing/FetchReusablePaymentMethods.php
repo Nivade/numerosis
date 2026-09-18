@@ -18,8 +18,8 @@ use Stripe\Exception\ApiErrorException;
  * The saved cards a billable may pay with again, and which one is default.
  *
  * Takes an already-retrieved customer when the caller has one, so the checkout
- * screen pays for a single Stripe round trip rather than one per reader. A
- * customer belonging to somebody else is ignored, not read.
+ * screen pays for a single Stripe round trip instead of one per reader. A
+ * customer belonging to somebody else is ignored without being read.
  *
  * @method static ReusablePaymentMethods run(BillableUser $billable, ?Customer $customer = null)
  */

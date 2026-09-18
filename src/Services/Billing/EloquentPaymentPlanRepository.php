@@ -138,7 +138,7 @@ class EloquentPaymentPlanRepository implements PaymentPlanRepository
      * The plan tables are central data, computed once for all tenants
      * together: a plain `Cache::` call in tenant context is stancl's
      * tenant-tagged manager, which duplicates the computation per tenant and
-     * demands a taggable store. Caches the slug, not the id, so no
+     * demands a taggable store. Caches the slug instead of the id, so no
      * cache-round-trip coercion can get it wrong.
      *
      * @see \Nvade\Numerosis\Observers\Billing\SubscriptionObserver

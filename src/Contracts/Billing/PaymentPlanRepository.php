@@ -39,8 +39,8 @@ interface PaymentPlanRepository
     public function available(): Collection;
 
     /**
-     * The slug of the most-subscribed plan, a property of the catalogue as a
-     * whole rather than of any one plan.
+     * The slug of the most-subscribed plan, a property of the catalogue as
+     * a whole and not of any one plan.
      */
     public function mostPopularSlug(): ?string;
 

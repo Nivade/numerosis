@@ -19,3 +19,7 @@ paths:
 - **`withComposerBased(laravel: true)` already version-gates the `LARAVEL_*` upgrade sets**, including Cashier's, against what is actually installed. Listing `LaravelSetList::LARAVEL_130` next to it is redundant and pins a version the composer constraint will outgrow.
 
 - **`withSetProviders()` is deprecated and a no-op** — it takes no arguments now and only raises `E_USER_DEPRECATED`. `RectorLaravel\Set\LaravelSetProvider` no longer exists in `driftingly/rector-laravel` (2.6.2); the config named it for months without failing, because `::class` does not autoload.
+
+- **`LARAVEL_CONTAINER_STRING_TO_FULLY_QUALIFIED_NAME` rewrites bindings that have no class alias.** The set turns `make('db.transactions')` into `make(DatabaseTransactionsManager::class)`, but `db.transactions` is a plain singleton with no entry in `registerCoreContainerAliases()`, so the class-name form builds a second manager nothing else reads. The rewrite is silent and the suite can stay green while the object is wrong.
+
+  Resolve such bindings by array access (`$this->app['db.transactions']`) plus an `instanceof` check; `ArrayDimFetchToMethodCallRector` is already skipped, so Rector leaves that form alone.

@@ -11,10 +11,11 @@ use Stripe\Customer;
 use Stripe\Exception\ApiErrorException;
 
 /**
- * The billable's Stripe customer, with `tax_ids` expanded — one retrieve
+ * The billable's Stripe customer, with `tax_ids` expanded, in one retrieve
  * covering everything the checkout screen reads off it. `null` means the
  * lookup failed and has been reported; a billable with no Stripe customer at
- * all is the caller's `hasStripeId()` check, not this one's.
+ * all never reaches here, since the caller's own `hasStripeId()` check
+ * already excludes it.
  *
  * @method static ?Customer run(BillableUser $billable)
  */

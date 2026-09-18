@@ -11,8 +11,8 @@ use Nvade\Numerosis\Numerosis;
 
 /**
  * One override row per person per type. Mail for a type the type itself says may
- * not be disabled is stored as on, whatever was asked for — the rule lives on
- * the enum, so no screen or link can route around it.
+ * not be disabled is stored as on, whatever was asked for, since the rule lives
+ * on the enum and no screen or link can route around it.
  *
  * @method static NotificationPreference run(string $globalId, NotificationType $type, bool $mail, bool $database)
  */

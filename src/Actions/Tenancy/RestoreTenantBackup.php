@@ -14,7 +14,7 @@ use Nvade\Numerosis\Exceptions\Tenancy\TenantBackupFailed;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * Puts an artefact back into a tenant database — the same tenant, or a
+ * Puts an artefact back into a tenant database: the same tenant, or a
  * different one, which is how a production tenant is cloned into staging.
  *
  * @method static void run(Tenant $tenant, string $artefact, bool $force = false, ?string $disk = null)

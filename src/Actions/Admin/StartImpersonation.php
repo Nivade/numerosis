@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nvade\Numerosis\Actions\Admin;
 
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Config;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Exceptions\Admin\ImpersonationUnavailable;
@@ -15,10 +17,6 @@ use Nvade\Numerosis\Numerosis;
 use Stancl\Tenancy\Database\Models\ImpersonationToken;
 
 /**
- * The link carries no signature, since the token is already a 128-character
- * single-use secret with its own TTL. Signing it would need a URL built for
- * another host, and path mode has no `URL::defaults(['tenant' => …])` for that.
- *
  * @method static string run(Tenant $tenant, string $targetGlobalId, CentralUser $staff)
  */
 class StartImpersonation
@@ -43,7 +41,29 @@ class StartImpersonation
             'target_global_id' => $targetGlobalId,
         ]);
 
-        return $tenant->baseUrl().'/impersonate/'.$token->token;
+        return $this->sign($tenant->baseUrl().'/impersonate/'.$token->token);
+    }
+
+    /**
+     * Signed by hand instead of `URL::temporarySignedRoute()`. The link is
+     * minted on the central domain and spent on the tenant's, and path mode has
+     * no `URL::defaults(['tenant' => …])` to build that URL from a route name.
+     */
+    private function sign(string $url): string
+    {
+        $expires = CarbonImmutable::now()
+            ->addSeconds(Config::integer('numerosis.tenancy.impersonation.token_seconds', 60))
+            ->getTimestamp();
+
+        $signable = $url.'?expires='.$expires;
+
+        return $signable.'&signature='.hash_hmac('sha256', $signable, $this->signingKey());
+    }
+
+    /** The primary of the keys `Request::hasValidSignature()` verifies against. */
+    private function signingKey(): string
+    {
+        return Config::string('app.key');
     }
 
     /**

@@ -15,6 +15,8 @@ use Nvade\Numerosis\Actions\Tenancy\RemoveMember;
 use Nvade\Numerosis\Enums\Auth\PermissionAction;
 use Nvade\Numerosis\Enums\Auth\PermissionContext;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
+use Nvade\Numerosis\Features\Api\ReadApiFeature;
+use Nvade\Numerosis\Features\FeatureRegistry;
 use Nvade\Numerosis\Models\Central\Membership;
 use Nvade\Numerosis\Models\Tenant\ApiToken;
 use Nvade\Numerosis\Models\Tenant\User as BaseTenantUser;
@@ -29,12 +31,19 @@ class ApiTokenTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        FeatureRegistry::forceForTesting([ReadApiFeature::class]);
+
+        parent::setUp();
+    }
+
     public function test_a_token_reads_its_own_tenant(): void
     {
         [$tenant, $domain, $user] = $this->tenantWithMember('alpha');
 
         $plaintext = $this->tokenFor($tenant, $user, [
-            GetApiAbilities::ability(PermissionContext::Tenants, PermissionAction::View),
+            PermissionContext::Tenants->abilityFor(PermissionAction::View),
         ]);
 
         $this->getJson('http://'.$domain.'/api/v1/tenant', $this->authorize($plaintext))
@@ -49,7 +58,7 @@ class ApiTokenTest extends TestCase
         [, $betaDomain] = $this->tenantWithMember('beta');
 
         $plaintext = $this->tokenFor($alpha, $alphaUser, [
-            GetApiAbilities::ability(PermissionContext::Tenants, PermissionAction::View),
+            PermissionContext::Tenants->abilityFor(PermissionAction::View),
         ]);
 
         $this->getJson('http://'.$betaDomain.'/api/v1/tenant', $this->authorize($plaintext))
@@ -61,7 +70,7 @@ class ApiTokenTest extends TestCase
         [$tenant, $domain, $user] = $this->tenantWithMember('alpha');
 
         $plaintext = $this->tokenFor($tenant, $user, [
-            GetApiAbilities::ability(PermissionContext::Tenants, PermissionAction::View),
+            PermissionContext::Tenants->abilityFor(PermissionAction::View),
         ]);
 
         $this->getJson('http://'.$domain.'/api/v1/members', $this->authorize($plaintext))
@@ -94,7 +103,7 @@ class ApiTokenTest extends TestCase
         [$tenant, $domain, $user] = $this->tenantWithMember('alpha');
 
         $plaintext = $this->tokenFor($tenant, $user, [
-            GetApiAbilities::ability(PermissionContext::Tenants, PermissionAction::View),
+            PermissionContext::Tenants->abilityFor(PermissionAction::View),
         ], expiredDaysAgo: 1);
 
         $this->getJson('http://'.$domain.'/api/v1/tenant', $this->authorize($plaintext))
@@ -108,7 +117,7 @@ class ApiTokenTest extends TestCase
         $plaintext = $this->tokenFor(
             $tenant,
             $user,
-            [GetApiAbilities::ability(PermissionContext::Tenants, PermissionAction::View)],
+            [PermissionContext::Tenants->abilityFor(PermissionAction::View)],
             ips: ['198.51.100.9'],
         );
 
@@ -126,7 +135,7 @@ class ApiTokenTest extends TestCase
         $member = $this->memberOf($tenant, MembershipRole::Member);
 
         $plaintext = $this->tokenFor($tenant, $member, [
-            GetApiAbilities::ability(PermissionContext::Tenants, PermissionAction::View),
+            PermissionContext::Tenants->abilityFor(PermissionAction::View),
         ]);
 
         $this->getJson('http://'.$domain.'/api/v1/tenant', $this->authorize($plaintext))->assertOk();
@@ -172,10 +181,10 @@ class ApiTokenTest extends TestCase
         $domain = $this->tenantDomain($id);
         $member = $this->memberOf($tenant, MembershipRole::Member);
 
-        $ability = GetApiAbilities::ability(PermissionContext::Subscriptions, PermissionAction::View);
+        $ability = PermissionContext::Subscriptions->abilityFor(PermissionAction::View);
 
         /** @var list<string> $offered */
-        $offered = $tenant->run(fn (): array => GetApiAbilities::forUser($member));
+        $offered = $tenant->run(fn (): array => GetApiAbilities::run($member));
 
         $this->assertNotContains($ability, $offered);
 
@@ -191,7 +200,7 @@ class ApiTokenTest extends TestCase
         [$tenant, $domain, $owner] = $this->tenantWithMember('owner');
 
         $plaintext = $this->tokenFor($tenant, $owner, [
-            GetApiAbilities::ability(PermissionContext::Subscriptions, PermissionAction::View),
+            PermissionContext::Subscriptions->abilityFor(PermissionAction::View),
         ]);
 
         $this->getJson('http://'.$domain.'/api/v1/subscription', $this->authorize($plaintext))

@@ -288,7 +288,7 @@ class Tenant extends BaseTenant implements Closable, HasTenantOwner, Subscribabl
     /**
      * Deliberately not memoized on the instance: the global key is forgotten
      * whenever a domain is added or removed, and callers within the same
-     * request are expected to see that. Attributes are cached rather than the
+     * request are expected to see that. Attributes are cached instead of the
      * model, and "no domain" as `false`, which in path mode is every tenant.
      */
     public function primaryDomain(): ?Domain

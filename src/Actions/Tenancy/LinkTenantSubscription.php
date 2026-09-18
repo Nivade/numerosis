@@ -19,9 +19,9 @@ use Override;
  * Attaches the Stripe subscription paid for at checkout to the tenant it
  * created.
  *
- * Declaring what it consumes is what makes it skippable: a tenant provisioned
+ * Declaring what it consumes is what makes it skippable. A tenant provisioned
  * without billing has no BillingContribution, and the runner records the skip
- * rather than this step re-checking a fact the chain builder also knew.
+ * instead of this step re-checking a fact the chain builder also knew.
  */
 class LinkTenantSubscription implements RequiresContributions
 {

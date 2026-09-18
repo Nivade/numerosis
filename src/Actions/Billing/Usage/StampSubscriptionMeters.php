@@ -25,7 +25,7 @@ class StampSubscriptionMeters
     /** @return int How many items were stamped. */
     public function handle(Subscription $subscription): int
     {
-        $meters = GetTenantMeters::forPlan($subscription->paymentPlan);
+        $meters = GetTenantMeters::run($subscription->paymentPlan);
 
         if ($meters->isEmpty()) {
             return 0;
@@ -57,7 +57,7 @@ class StampSubscriptionMeters
 
     /**
      * Matched by price where the plan names one, and by the meter Stripe
-     * stamped on the price otherwise — a plan with a single meter and no price
+     * stamped on the price otherwise. A plan with a single meter and no price
      * declared is the common case.
      *
      * @param  Collection<int, MeterDefinitionData>  $meters

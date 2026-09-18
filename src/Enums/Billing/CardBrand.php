@@ -6,7 +6,7 @@ namespace Nvade\Numerosis\Enums\Billing;
 
 /**
  * Stripe's own card brand slugs. Classes are spelled out literally, never
- * interpolated — see `Nvade\NumerosisUi\Enums\Severity` for why: Tailwind's
+ * interpolated. See `Nvade\NumerosisUi\Enums\Severity` for why: Tailwind's
  * `@source` scanner needs a complete class string as raw text, and this file
  * is named in `resources/theme-src/app.css` / `resources/css/app.css` for
  * that reason.

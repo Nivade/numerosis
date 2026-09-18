@@ -128,6 +128,15 @@ a tenant primary key there and a central lookup by id returns the wrong rows.
 Every read decodes the payload and matches the guard's login key instead, with
 `last_activity` bounding the scan.
 
+  **Narrowed 2026-09-18 by the readiness remediation (P15, phase 1,
+  `e411bed`).** That bound was the whole session table inside `session.lifetime`,
+  unserialized row by row on every screen render, every revoke, every
+  `forgetOthers()` and every `forgetTenantAccess()`. Rows now carry an indexed
+  `global_user_id`, the one identity both guards share, stamped by
+  `Services\Auth\GlobalIdSessionHandler`. The query filters on it and the payload
+  check stays the authority for what a read returns. Rows written before the
+  stamp landed stay in the scan until they expire.
+
 **`MemberRemoved` strips keys from a session rather than deleting it.** One
 session row carries the central login and every tenant the user has visited, so
 deleting it would log them out of all of them. `forgetTenantAccess()` removes
@@ -143,3 +152,7 @@ id, and the screen labels it with the tenant's name.
 session holds stops matching without the plaintext travelling anywhere. The
 plaintext form is still what the screen's "sign out other devices" button uses,
 since that runs with the password unchanged.
+
+**The pruning risk is closed.** `session:prune` joined the scheduled prunes on
+2026-09-18 (P12, phase 4, `11609d8`). Database sessions became the preferred
+driver and nothing was removing the dead rows.

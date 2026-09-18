@@ -109,7 +109,8 @@ never silently. Without it, every lost phone is a database edit.
 
 ## What shipped
 
-Three deviations from the plan above.
+Three deviations from the plan above, and a fourth that shipped unrecorded and
+has since been closed.
 
 **Enrolment is central-only, not per-guard.** Phase 1 recommended two secrets,
 one per guard, on the premise that "the two guards authenticate separately".
@@ -139,6 +140,18 @@ route middleware does not reach it. Fortify's own endpoints keep
 `confirmPassword => true`, so a stolen session cannot enrol through them, while
 an account that registered through OAuth and has no password can still enrol
 through the screen.
+
+**The tenant requirement gated only this package's routes, and no longer does.**
+`EnsureTwoFactorEnrolled` was kept off the `tenant` middleware group on the
+grounds that it redirects to a central route, so a tenant that required a second
+factor still let an unenrolled member reach the dashboard and every route a host
+added. Closed 2026-09-18 by the readiness remediation (P8, phase 1, `e411bed`):
+the alias sits on the `tenant` group, since redirecting to a *central* route is
+exactly what makes it safe there — the subscription gate is the one that would
+loop. The team screen and the requirement switch opt out, so an owner who let
+the grace period lapse can still reach what turned it on.
+`TenantTwoFactorRequirementTest` asserts the dashboard and a product route, not
+one route.
 
 Two smaller notes. `RevokeSessionsAfterTwoFactorDisabled` now reads
 `$event->user` instead of the current guard's id — it was revoking the *staff*

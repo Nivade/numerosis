@@ -14,7 +14,13 @@ use Illuminate\Support\Facades\Config;
 use Nvade\Numerosis\Actions\Auth\Api\CreateApiToken;
 use Nvade\Numerosis\Actions\Queries\GetApiAbilities;
 use Nvade\Numerosis\Actions\Queries\GetTenantMembersPage;
+use Nvade\Numerosis\Enums\Auth\PermissionAction;
+use Nvade\Numerosis\Enums\Auth\PermissionContext;
+use Nvade\Numerosis\Enums\Tenancy\DomainStatus;
 use Nvade\Numerosis\Enums\Tenancy\MembershipRole;
+use Nvade\Numerosis\Features\Api\ReadApiFeature;
+use Nvade\Numerosis\Features\FeatureRegistry;
+use Nvade\Numerosis\Models\Central\SubscriptionItem;
 use Nvade\Numerosis\Models\Tenant\User as BaseTenantUser;
 use Nvade\Numerosis\Tests\TestCase;
 
@@ -26,6 +32,13 @@ use Nvade\Numerosis\Tests\TestCase;
 class ReadApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        FeatureRegistry::forceForTesting([ReadApiFeature::class]);
+
+        parent::setUp();
+    }
 
     public function test_the_tenant_payload_carries_only_declared_fields(): void
     {
@@ -102,9 +115,18 @@ class ReadApiTest extends TestCase
 
         Tenant::unsetEventDispatcher();
 
-        Subscription::factory()->create([
+        $subscription = Subscription::factory()->create([
             'subscribable_id' => $tenant->id,
             'payment_plan_id' => $plan->id,
+        ]);
+
+        // GetBillingPeriod only reads the period Stripe stamped on the item;
+        // nothing invents one from `created_at` any more.
+        SubscriptionItem::factory()->create([
+            'subscription_id' => $subscription->id,
+            'stripe_price' => $subscription->stripe_price,
+            'current_period_start' => now()->startOfMonth(),
+            'current_period_end' => now()->addMonthNoOverflow()->startOfMonth(),
         ]);
 
         /** @var array{subscription: array<string, mixed>, usage: list<array<string, mixed>>} $payload */
@@ -116,6 +138,45 @@ class ReadApiTest extends TestCase
         $this->assertSame('pro', $payload['subscription']['plan']);
         $this->assertStringNotContainsString('stripe_id', json_encode($payload, JSON_THROW_ON_ERROR));
         $this->assertSame('api-calls', $payload['usage'][0]['key']);
+    }
+
+    public function test_the_domains_payload_lists_only_this_tenants_servable_domains(): void
+    {
+        [$tenant, $domain, $user] = $this->workspace();
+
+        $tenant->domains()->create(['id' => $tenant->id.'-pending', 'domain' => 'pending.example.com', 'status' => DomainStatus::Pending]);
+        $tenant->domains()->create(['id' => $tenant->id.'-verified', 'domain' => 'custom.example.com', 'status' => DomainStatus::Verified]);
+
+        [$other] = $this->workspace();
+        $other->domains()->create(['id' => $other->id.'-verified', 'domain' => 'other.example.com', 'status' => DomainStatus::Verified]);
+
+        /** @var list<array<string, mixed>> $domains */
+        $domains = $this->getJson('http://'.$domain.'/api/v1/domains', $this->tokenHeaders($tenant, $user))
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame(
+            [$domain, 'custom.example.com'],
+            array_column($domains, 'domain'),
+        );
+    }
+
+    public function test_a_token_without_the_domains_ability_is_refused(): void
+    {
+        [$tenant, $domain, $user] = $this->workspace();
+
+        $plaintext = $tenant->run(fn (): string => CreateApiToken::run(
+            $user,
+            'no-domains',
+            [PermissionContext::Tenants->abilityFor(PermissionAction::View)],
+        )->plainTextToken);
+
+        $this->assertIsString($plaintext);
+
+        $this->getJson('http://'.$domain.'/api/v1/domains', [
+            'Authorization' => 'Bearer '.$plaintext,
+            'Accept' => 'application/json',
+        ])->assertForbidden();
     }
 
     public function test_an_unauthenticated_call_is_refused_rather_than_answered(): void

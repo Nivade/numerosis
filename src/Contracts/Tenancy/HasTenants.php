@@ -13,8 +13,8 @@ interface HasTenants
 {
     /**
      * Concrete `Tenant`, never stancl's, because callers need `subscriptions()`.
-     * `Model`, not `static`, for the second parameter: an interface is not a
-     * `Model`, so `static` resolves to `static(HasTenants)` and
+     * `Model` instead of `static` for the second parameter: an interface is
+     * not a `Model`, so `static` resolves to `static(HasTenants)` and
      * `TDeclaringModel` rejects it. {@see \Nvade\Numerosis\Contracts\Subscribable}.
      *
      * @return BelongsToMany<Tenant, Model, Membership, 'pivot'>

@@ -28,7 +28,7 @@ enum WizardStep
 
     /**
      * The Livewire component alias each step registers under, or null for a
-     * step that resolves by FQCN instead — `Payment`'s natural alias collides
+     * step that resolves by FQCN instead. `Payment`'s natural alias collides
      * with Cashier's published `payment.blade.php`.
      */
     public function alias(): ?string

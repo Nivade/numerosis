@@ -17,6 +17,7 @@ use Nvade\Numerosis\Models\Central\PlanFeature;
 use Nvade\Numerosis\Models\Central\Subscription;
 use Nvade\Numerosis\Models\Central\Tenant as BaseTenant;
 use Nvade\Numerosis\Services\Billing\PlanEntitlements;
+use Nvade\Numerosis\Tests\Concerns\PinsGlobalCache;
 use Nvade\Numerosis\Tests\TestCase;
 
 /**
@@ -25,6 +26,7 @@ use Nvade\Numerosis\Tests\TestCase;
  */
 class EntitlementsTest extends TestCase
 {
+    use PinsGlobalCache;
     use RefreshDatabase;
 
     public function test_a_capability_on_the_plan_is_allowed_and_one_off_it_is_not(): void
@@ -116,6 +118,90 @@ class EntitlementsTest extends TestCase
 
         $this->assertSame(0, $this->entitlements()->remaining(PlanEntitlements::SEATS, $tenant));
         $this->assertGreaterThan(1, $this->entitlements()->used(PlanEntitlements::SEATS, $tenant));
+    }
+
+    /**
+     * The seat count reads the memoized cap, and a plan swap mid-request has
+     * to invalidate it or a downgrade written in the same request stays
+     * invisible to the next read.
+     */
+    public function test_a_plan_change_mid_request_is_visible_to_the_next_read(): void
+    {
+        $plan = $this->planWith(['reporting'], limits: ['seats' => 5]);
+        $tenant = $this->tenantOn($plan);
+
+        $this->assertSame(5, $this->entitlements()->limit(Entitlements::SEATS, $tenant));
+
+        $plan->update(['metadata' => ['options' => ['limits' => ['seats' => 2]]]]);
+
+        // A fresh tenant instance, not the one whose `subscriptions` relation
+        // is already loaded: the memo under test is PlanEntitlements', not
+        // Eloquent's own relation cache, which a real request never reuses
+        // across a plan write either.
+        $this->assertSame(2, $this->entitlements()->limit(Entitlements::SEATS, $tenant->fresh()));
+    }
+
+    /** A fresh instance carries no request memo, so this proves the cache, not `$resolved`. */
+    public function test_cached_entitlements_do_not_leak_between_tenants(): void
+    {
+        $this->pinGlobalCache();
+
+        $withReporting = $this->tenantOn($this->planWith(['reporting'], slug: 'with-cache'));
+        $without = $this->tenantOn($this->planWith(['exports'], slug: 'without-cache'));
+
+        $this->freshEntitlements()->allows('reporting', $withReporting);
+        $this->freshEntitlements()->allows('exports', $without);
+
+        $fresh = $this->freshEntitlements();
+
+        $this->assertTrue($fresh->allows('reporting', $withReporting));
+        $this->assertFalse($fresh->allows('reporting', $without));
+        $this->assertTrue($fresh->allows('exports', $without));
+    }
+
+    /** Proves the read came from the cache: the plan row changed underneath it with no observer to invalidate. */
+    public function test_the_cached_scalars_survive_a_fresh_instance(): void
+    {
+        $this->pinGlobalCache();
+
+        $plan = $this->planWith(['reporting'], limits: ['seats' => 5]);
+        $tenant = $this->tenantOn($plan);
+
+        $this->freshEntitlements()->limit(PlanEntitlements::SEATS, $tenant);
+
+        BasePaymentPlan::query()->where('id', $plan->id)->update([
+            'metadata' => ['options' => ['limits' => ['seats' => 1]]],
+        ]);
+
+        $fresh = $this->freshEntitlements();
+
+        $this->assertSame(5, $fresh->limit(PlanEntitlements::SEATS, $tenant->fresh()));
+    }
+
+    public function test_a_subscription_change_invalidates_the_cached_scalars(): void
+    {
+        $this->pinGlobalCache();
+
+        $plan = $this->planWith(['reporting'], limits: ['seats' => 5]);
+        $tenant = $this->tenantOn($plan);
+
+        $this->freshEntitlements()->limit(PlanEntitlements::SEATS, $tenant);
+
+        $downgraded = $this->planWith(['reporting'], limits: ['seats' => 2], slug: 'downgraded');
+        $tenant->subscriptions()->first()?->update(['payment_plan_id' => $downgraded->id]);
+
+        $fresh = $this->freshEntitlements();
+
+        $this->assertSame(2, $fresh->limit(PlanEntitlements::SEATS, $tenant->fresh()));
+    }
+
+    private function freshEntitlements(): PlanEntitlements
+    {
+        $entitlements = $this->app?->make(PlanEntitlements::class);
+
+        $this->assertInstanceOf(PlanEntitlements::class, $entitlements);
+
+        return $entitlements;
     }
 
     private function entitlements(): Entitlements

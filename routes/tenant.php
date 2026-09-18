@@ -11,6 +11,7 @@ use Nvade\Numerosis\Enums\MiddlewareAlias;
 use Nvade\Numerosis\Enums\Tenancy\Context;
 use Nvade\Numerosis\Enums\Tenancy\IdentificationMode;
 use Nvade\Numerosis\Features\Admin\ImpersonationFeature;
+use Nvade\Numerosis\Features\Api\ReadApiFeature;
 use Nvade\Numerosis\Features\Audit\ActivityLogFeature;
 use Nvade\Numerosis\Features\Billing\UsageMeteringFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
@@ -49,10 +50,10 @@ Route::get('/', fn () => view(Config::string('numerosis.routes.home_view')))
 
 // Outside every auth group: the staff user redeeming this has no tenant
 // session yet, which is the whole point. The 128-character single-use token
-// with its own TTL is the secret.
+// with its own TTL is the secret, and the signature is defence over it.
 if (FeatureRegistry::enabled(ImpersonationFeature::NAME)) {
     Route::get('impersonate/{token}', RedeemImpersonationController::class)
-        ->middleware('throttle:10,1')
+        ->middleware(['signed', 'throttle:10,1'])
         ->name('impersonate.redeem');
 
     Route::post('impersonate/exit', EndImpersonationController::class)->name('impersonate.exit');
@@ -79,57 +80,58 @@ Route::middleware(['universal', MiddlewareAlias::TenancyAuth->value.':'.Context:
     // product itself. Fortify's own screens load outside it, since a suspended
     // tenant still has to verify an address.
     Route::middleware([MiddlewareAlias::TenancySubscription->value, MiddlewareAlias::TenancyMembership->value])->group(function () {
-        // Outside the enrolment gate below, and the team screen with it: an
-        // owner who let the grace period lapse has to be able to reach the
-        // switch that turned the requirement on.
-        Route::livewire('team', 'numerosis-pages::tenant.team')->name('team.index');
+        // Exempt from the enrolment gate on the `tenant` group, and the team
+        // screen with it: an owner who let the grace period lapse has to be
+        // able to reach the switch that turned the requirement on.
+        Route::livewire('team', 'numerosis-pages::tenant.team')
+            ->withoutMiddleware(MiddlewareAlias::TenancyTwoFactor->value)
+            ->name('team.index');
 
         Route::patch('team/two-factor', UpdateTwoFactorRequirementController::class)
+            ->withoutMiddleware(MiddlewareAlias::TenancyTwoFactor->value)
             ->name('team.two-factor.update');
 
-        // The enrolment gate: the product itself, for a tenant whose owner
-        // requires a second factor of every member.
-        Route::middleware(MiddlewareAlias::TenancyTwoFactor->value)->group(function () {
-            Route::patch('team/members/{membership}', UpdateMemberRoleController::class)->name('team.members.update');
-            Route::delete('team/members/{membership}', DestroyMemberController::class)->name('team.members.destroy');
+        Route::patch('team/members/{membership}', UpdateMemberRoleController::class)->name('team.members.update');
+        Route::delete('team/members/{membership}', DestroyMemberController::class)->name('team.members.destroy');
 
-            Route::post('team/ownership', StoreOwnershipNominationController::class)->name('team.ownership.store');
+        Route::post('team/ownership', StoreOwnershipNominationController::class)->name('team.ownership.store');
 
-            Route::post('team/close', CloseTenantController::class)->name('team.close');
+        Route::post('team/close', CloseTenantController::class)->name('team.close');
 
-            Route::post('team/close/retention-offer', AcceptRetentionOfferController::class)
-                ->name('team.retention-offer.accept');
+        Route::post('team/close/retention-offer', AcceptRetentionOfferController::class)
+            ->name('team.retention-offer.accept');
 
-            Route::post('team/export', ExportTenantDataController::class)->name('team.export');
+        Route::post('team/export', ExportTenantDataController::class)->name('team.export');
 
-            if (FeatureRegistry::enabled(ActivityLogFeature::NAME)) {
-                Route::livewire('team/activity', 'numerosis-pages::tenant.activity')->name('team.activity');
-            }
+        if (FeatureRegistry::enabled(ActivityLogFeature::NAME)) {
+            Route::livewire('team/activity', 'numerosis-pages::tenant.activity')->name('team.activity');
+        }
 
-            // Only under custom-domain mode: there is nothing to claim when a
-            // tenant is identified by subdomain or by path.
-            if (IdentificationMode::current() === IdentificationMode::CustomDomain) {
-                Route::livewire('domain', 'numerosis-pages::tenant.domain')->name('domain.index');
-            }
+        // Only under custom-domain mode: there is nothing to claim when a
+        // tenant is identified by subdomain or by path.
+        if (IdentificationMode::current() === IdentificationMode::CustomDomain) {
+            Route::livewire('domain', 'numerosis-pages::tenant.domain')->name('domain.index');
+        }
 
+        if (FeatureRegistry::enabled(ReadApiFeature::NAME)) {
             Route::livewire('api-tokens', 'numerosis-pages::tenant.api-tokens')->name('api-tokens.index');
+        }
 
-            if (FeatureRegistry::enabled(UsageMeteringFeature::NAME)) {
-                Route::livewire('usage', 'numerosis-pages::tenant.usage')->name('usage.index');
-            }
+        if (FeatureRegistry::enabled(UsageMeteringFeature::NAME)) {
+            Route::livewire('usage', 'numerosis-pages::tenant.usage')->name('usage.index');
+        }
 
-            Route::delete('team/ownership/{nomination}', DestroyOwnershipNominationController::class)
-                ->name('team.ownership.destroy');
+        Route::delete('team/ownership/{nomination}', DestroyOwnershipNominationController::class)
+            ->name('team.ownership.destroy');
 
-            if (FeatureRegistry::enabled(InvitationsFeature::NAME)) {
-                // The invitations screen folded into `team.index`; the name
-                // stays because a host may link it. `Str::beforeLast` on the
-                // current URL, not `route()`, which throws in path mode.
-                Route::get('team/invitations', fn (Request $request): RedirectResponse => redirect()->to(Str::beforeLast($request->url(), '/invitations')))
-                    ->name('team.invitations.index');
-                Route::post('team/invitations', StoreInvitationController::class)->name('team.invitations.store');
-                Route::delete('team/invitations/{invitation}', DestroyInvitationController::class)->name('team.invitations.destroy');
-            }
-        });
+        if (FeatureRegistry::enabled(InvitationsFeature::NAME)) {
+            // The invitations screen folded into `team.index`; the name
+            // stays because a host may link it. `Str::beforeLast` on the
+            // current URL, not `route()`, which throws in path mode.
+            Route::get('team/invitations', fn (Request $request): RedirectResponse => redirect()->to(Str::beforeLast($request->url(), '/invitations')))
+                ->name('team.invitations.index');
+            Route::post('team/invitations', StoreInvitationController::class)->name('team.invitations.store');
+            Route::delete('team/invitations/{invitation}', DestroyInvitationController::class)->name('team.invitations.destroy');
+        }
     });
 });

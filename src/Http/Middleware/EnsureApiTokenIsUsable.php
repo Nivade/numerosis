@@ -14,9 +14,9 @@ use Symfony\Component\HttpFoundation\Response;
  * The two refusals Sanctum does not make: an expired token, and a token used
  * from an address outside its allowlist.
  *
- * Expiry answers 401 with its own code rather than 403 — "your key is old" and
- * "your key may not do that" are different problems for whoever is reading the
- * integration's logs at 3am.
+ * Expiry answers 401 with its own code instead of 403, since "your key is old"
+ * and "your key may not do that" are different problems for whoever is
+ * reading the integration's logs at 3am.
  */
 class EnsureApiTokenIsUsable
 {

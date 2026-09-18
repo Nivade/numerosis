@@ -154,16 +154,71 @@ class SessionRegistryTest extends TestCase
      * @param  array<string, mixed>  $payload
      * @param  int  $lastActivity  seconds from now, so a row can be aged out
      */
-    private function insertSession(string $id, array $payload, int $lastActivity = 0): void
+    private function insertSession(string $id, array $payload, int $lastActivity = 0, ?string $globalId = null): void
     {
         DB::connection($this->connection)->table('sessions')->insert([
             'id' => $id,
             'user_id' => null,
+            'global_user_id' => $globalId,
             'ip_address' => '203.0.113.7',
             'user_agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Firefox/130.0',
             'payload' => base64_encode(serialize($payload)),
             'last_activity' => time() + $lastActivity,
         ]);
+    }
+
+    /**
+     * `global_user_id` is what keeps the read off every other live row, so a
+     * row stamped for somebody else stays unread however its payload looks.
+     */
+    public function test_a_row_stamped_for_another_person_is_never_decoded(): void
+    {
+        $user = CentralUser::factory()->create();
+        $other = CentralUser::factory()->create();
+
+        $this->insertSession('mine', [$this->centralGuardKey() => $user->id], globalId: $user->global_id);
+        $this->insertSession('mislaid', [$this->centralGuardKey() => $user->id], globalId: $other->global_id);
+
+        $sessions = $this->registry()->forUser(Context::Central->guard(), $user->id);
+
+        $this->assertSame(['mine'], array_map(fn ($session): string => $session->id, $sessions));
+    }
+
+    /** Rows written before the column landed carry no stamp and are still theirs. */
+    public function test_an_unstamped_row_is_still_found(): void
+    {
+        $user = CentralUser::factory()->create();
+
+        $this->insertSession('older-than-the-column', [$this->centralGuardKey() => $user->id]);
+
+        $sessions = $this->registry()->forUser(Context::Central->guard(), $user->id);
+
+        $this->assertSame(['older-than-the-column'], array_map(fn ($session): string => $session->id, $sessions));
+    }
+
+    /** One select, whatever the table holds: the scan is bounded by the index. */
+    public function test_listing_devices_runs_one_select_over_the_table(): void
+    {
+        $user = CentralUser::factory()->create();
+
+        foreach (range(1, 5) as $index) {
+            $this->insertSession('mine-'.$index, [$this->centralGuardKey() => $user->id], globalId: $user->global_id);
+        }
+
+        $connection = DB::connection($this->connection);
+        $connection->flushQueryLog();
+        $connection->enableQueryLog();
+
+        $this->registry()->forUser(Context::Central->guard(), $user->id);
+
+        $selects = array_filter(
+            $connection->getQueryLog(),
+            fn (array $query): bool => str_contains((string) $query['query'], 'from `sessions`'),
+        );
+
+        $connection->disableQueryLog();
+
+        $this->assertCount(1, $selects);
     }
 
     /** @return list<string> */

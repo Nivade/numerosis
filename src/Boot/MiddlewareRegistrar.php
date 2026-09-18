@@ -66,13 +66,11 @@ final class MiddlewareRegistrar
             // guard, so it belongs on the authenticated tenant routes only.
             MiddlewareAlias::TenancyMembership->value => EnsureTenantMembership::class,
 
-            // Off the `tenant` group as well: it redirects to the central
-            // enrolment screen, which no tenant route may gate.
             MiddlewareAlias::TenancyTwoFactor->value => EnsureTwoFactorEnrolled::class,
 
             MiddlewareAlias::Impersonation->value => GuardImpersonation::class,
 
-            // Takes the capability as a parameter: `entitlement:custom-branding`.
+            // Takes the capability as a parameter: `numerosis.entitlement:custom-branding`.
             MiddlewareAlias::Entitlement->value => EnsureEntitlement::class,
 
             // Expiry and the egress allowlist, neither of which Sanctum checks.
@@ -99,16 +97,20 @@ final class MiddlewareRegistrar
                 MiddlewareAlias::TenancyRoute->value,
                 MiddlewareAlias::TenancySession->value,
 
-                // After the three above, never before: it reads the tenant
-                // guard, which only exists once tenancy is initialized and
-                // `EnsureSessionMatchesTenant` has dropped another tenant's
-                // session state.
+                // Must run after the three above, since it reads the tenant
+                // guard that only exists once tenancy is initialized and
+                // `EnsureSessionMatchesTenant` has dropped the prior session.
                 AuthenticateSession::class,
 
-                // On the group, not on the authenticated routes: an expired
-                // impersonation has to end on whatever request arrives next,
-                // including the tenant's own landing page.
+                // On the group instead of the authenticated routes: an
+                // expired impersonation has to end on whatever request
+                // arrives next, including the tenant's own landing page.
                 MiddlewareAlias::Impersonation->value,
+
+                // On the group so a host's own product routes are gated too.
+                // It redirects to a central route, so it cannot loop the way
+                // the subscription gate would.
+                MiddlewareAlias::TenancyTwoFactor->value,
             ],
             // The API's own stack: tenancy identification without a session,
             // since a token carries the caller and a cookie must not.
@@ -122,7 +124,7 @@ final class MiddlewareRegistrar
     }
 
     /**
-     * Appended to a group the host owns, rather than replacing its stack the
+     * Appended to a group the host owns instead of replacing its stack the
      * way {@see self::groups()} does. The `tenant` group nests `web`, so one
      * entry there covers both sides of tenancy.
      *
@@ -144,7 +146,7 @@ final class MiddlewareRegistrar
      */
     public static function csrfExceptions(): array
     {
-        return ['stripe/*', 'billing/webhook', 'telescope/*'];
+        return ['stripe/*', 'billing/webhook'];
     }
 
     public static function apply(Middleware $middleware): void
@@ -175,7 +177,7 @@ final class MiddlewareRegistrar
     }
 
     /**
-     * The proxy IP(s)/CIDR — or the literal `'*'` — read from
+     * The proxy IP(s)/CIDR (or the literal `'*'`) read from
      * `numerosis.trusted_proxies`. Only meaningful once config exists, so it
      * is never called from {@see self::apply()} itself; the un-wired fallback
      * in `NumerosisServiceProvider::registerMiddleware()` is the one caller,

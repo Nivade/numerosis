@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Queries;
 
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Models\Central\Membership;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * @method static ?Membership run(string $tenantId, ?string $globalUserId)
@@ -20,7 +21,7 @@ class FindMembershipForUser
             return null;
         }
 
-        return Membership::query()
+        return Numerosis::model(Membership::class)::query()
             ->where('tenant_id', $tenantId)
             ->where('global_user_id', $globalUserId)
             ->first();

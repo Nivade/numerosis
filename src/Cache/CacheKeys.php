@@ -98,8 +98,8 @@ final class CacheKeys
 
     /**
      * Global: whether one hostname may be served, which the TLS ask endpoint
-     * reads on every new SNI. Per domain rather than one big set, so a fleet's
-     * worth of domains never rides in a single cache entry.
+     * reads on every new SNI. Keyed per domain instead of one big set, so a
+     * fleet's worth of domains never rides in a single cache entry.
      */
     public static function servableDomain(string $domain): string
     {
@@ -122,6 +122,15 @@ final class CacheKeys
     public static function provisioningAlertThrottle(): string
     {
         return self::prefix().':observability:provisioning_alert';
+    }
+
+    /**
+     * The tenant id is embedded in the key instead of relied on for
+     * isolation, since `global_cache()` carries no tenant prefix of its own.
+     */
+    public static function entitlements(string $tenantId): string
+    {
+        return self::prefix().":billing:entitlements:{$tenantId}";
     }
 
     /*

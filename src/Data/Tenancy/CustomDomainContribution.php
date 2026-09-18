@@ -12,7 +12,7 @@ use Spatie\LaravelData\Data;
 /**
  * The tenant's own fully-qualified domain, as opposed to the slug. Only
  * collected under {@see \Nvade\Numerosis\Enums\Tenancy\IdentificationMode::CustomDomain},
- * so its absence is the ordinary case rather than an error.
+ * so its absence is the ordinary case, never an error.
  */
 final class CustomDomainContribution extends Data implements PersistsToProvisionColumns
 {

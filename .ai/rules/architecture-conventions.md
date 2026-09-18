@@ -99,3 +99,6 @@ whose payoff — testing `CreateTenantDatabase` without a MySQL database —
 nothing collected, so it got `tests/Support/FakeTenantDatabaseManager` instead
 of being inlined. Which of the two applies is a judgement about whether the
 seam is worth having, and the test double is what settles it either way.
+
+## A contract hint that reads a constant off the implementation is not a seam
+Type-hinting an interface and then reading a constant off the concrete class hands a host that swapped the binding the concrete class anyway, and nothing goes red: `SeatLimitPlanPolicy` hinted `Contracts\Billing\Entitlements` and read `PlanEntitlements::SEATS`. Capability constants live on the interface now. Keep them strings, not an enum, so a host can extend the vocabulary.

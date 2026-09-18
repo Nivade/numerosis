@@ -51,8 +51,8 @@ class ReportUsage extends Command
     }
 
     /**
-     * Whether a plan meters anything lives in JSON metadata, so the filter is
-     * in PHP rather than in the query.
+     * Whether a plan meters anything lives in JSON metadata, so the filter
+     * runs in PHP instead of in the query.
      *
      * @return LazyCollection<int, Tenant>
      */

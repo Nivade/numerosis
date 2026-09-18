@@ -168,7 +168,7 @@ class TenancyServiceProvider extends ServiceProvider
 
     /**
      * Which dumper a backup uses is a question about the tenant connection's
-     * driver, so it is resolved per call rather than bound to one class.
+     * driver, so it is resolved per call instead of bound to one class.
      */
     protected function registerDatabaseDumper(): void
     {
@@ -254,14 +254,14 @@ class TenancyServiceProvider extends ServiceProvider
     {
         $tenancyMiddleware = [
             // Both the guard and what it delegates to: Laravel's priority
-            // sort runs against the alias's literal target class, not against
-            // what that class delegates to at request time.
+            // sort runs against the alias's literal target class instead of
+            // against what that class delegates to at request time.
             TenantRouteGuard::class,
             PreventAccessFromCentralDomains::class,
 
             // The `tenancy.identification` alias resolves to InitializeTenancy,
             // which delegates to whichever of the classes below matches
-            // IdentificationMode::current() — same reasoning as above.
+            // IdentificationMode::current(), the same reasoning as above.
             InitializeTenancy::class,
             InitializeTenancyByDomain::class,
             InitializeTenancyBySubdomain::class,

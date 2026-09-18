@@ -90,8 +90,8 @@ final class ModelResolver
     /**
      * The reverse of {@see self::factoryFor()}, resolved through
      * {@see self::resolve()} so a factory builds the same class production
-     * does — including a `numerosis.models.*` override outside `App\Models\`,
-     * which the conventional-path guess alone cannot see.
+     * does, including a `numerosis.models.*` override outside `App\Models\`
+     * that the conventional-path guess alone cannot see.
      *
      * @template TModel of Model
      *

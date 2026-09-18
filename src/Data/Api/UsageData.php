@@ -9,10 +9,10 @@ use Spatie\LaravelData\Data;
 
 /**
  * One meter's consumption this period. The period is flattened into two
- * timestamps because an integration reconciling against an invoice needs the
- * window, not the object modelling it.
+ * timestamps because an integration reconciling against an invoice needs
+ * the window itself, and no object modelling it would serve as well.
  */
-class UsageResource extends Data
+class UsageData extends Data
 {
     public function __construct(
         public string $key,

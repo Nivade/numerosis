@@ -160,3 +160,23 @@ Two deviations:
   shape", but it counts unpaid *tenants per user* and the counter is keyed on a
   tenant, with a foreign key to prove it. Moving it would need a second scope
   on the table for the sake of symmetry.
+
+Three things the readiness remediation changed, 2026-09-18:
+
+- **The scalars are cached, not only memoized** (P18, phase 6, `4990d9e`).
+  Phase 2 asked for a tenant-scoped cached read through `CacheTtl` and what
+  shipped recomputed on every request. Scalars only, never the models they came
+  from, invalidated on subscription change: a cached cap outliving a downgrade
+  is the same defect at a longer timescale.
+- **Plan metadata validates at boot** (P19, phase 6, `4990d9e`). The same phase
+  asked for validation "the way `ConfiguredSteps` validates the step lists", and
+  `verifyPlanMetadata()` landed in the install doctor instead, so a typo stayed
+  silent until somebody ran the command. It runs at boot, with the doctor as a
+  second caller of the same check.
+- **The seat cap has one definition** (P3/S8, phase 2, `d5a5151`).
+  `GetTenantSeatUsage` re-derived it from `options.max_users` through three
+  optionals and answered differently when the two disagreed. It counts members
+  and asks `Entitlements` for the cap. The per-request memo gained an explicit
+  invalidation, since a downgrade has to be visible to an accept later in the
+  same request; the capability constants moved onto the `Entitlements`
+  interface; and seat availability split out as `Contracts\Billing\SeatPolicy`.

@@ -25,12 +25,12 @@ class SecurityHeaders
             return $response;
         }
 
-        if (! Config::boolean('numerosis.security.headers.enabled', true) || $this->isExcepted($request)) {
+        if (! Config::boolean($this->key('enabled'), true) || $this->isExcepted($request)) {
             return $response;
         }
 
         foreach ($this->simpleHeaders() as $header => $key) {
-            $value = Config::get('numerosis.security.headers.'.$key);
+            $value = Config::get($this->key($key));
 
             if (is_string($value) && $value !== '') {
                 $response->headers->set($header, $value);
@@ -45,7 +45,7 @@ class SecurityHeaders
     /**
      * @return array<string, string>
      */
-    protected function simpleHeaders(): array
+    private function simpleHeaders(): array
     {
         return [
             'Strict-Transport-Security' => 'strict_transport_security',
@@ -56,9 +56,9 @@ class SecurityHeaders
         ];
     }
 
-    protected function applyContentSecurityPolicy(Response $response): void
+    private function applyContentSecurityPolicy(Response $response): void
     {
-        if (! Config::boolean('numerosis.security.headers.content_security_policy.enabled', false)) {
+        if (! Config::boolean($this->key('content_security_policy.enabled'), false)) {
             return;
         }
 
@@ -68,16 +68,16 @@ class SecurityHeaders
             return;
         }
 
-        $header = Config::boolean('numerosis.security.headers.content_security_policy.report_only', true)
+        $header = Config::boolean($this->key('content_security_policy.report_only'), true)
             ? 'Content-Security-Policy-Report-Only'
             : 'Content-Security-Policy';
 
         $response->headers->set($header, $policy);
     }
 
-    protected function policy(): string
+    private function policy(): string
     {
-        $directives = Config::array('numerosis.security.headers.content_security_policy.directives', []);
+        $directives = Config::array($this->key('content_security_policy.directives'), []);
 
         $compiled = [];
 
@@ -93,7 +93,7 @@ class SecurityHeaders
                 : $directive;
         }
 
-        $reportUri = Config::get('numerosis.security.headers.content_security_policy.report_uri');
+        $reportUri = Config::get($this->key('content_security_policy.report_uri'));
 
         if (is_string($reportUri) && $reportUri !== '') {
             $compiled[] = 'report-uri '.$reportUri;
@@ -102,20 +102,25 @@ class SecurityHeaders
         return implode('; ', $compiled);
     }
 
-    protected function isExcepted(Request $request): bool
+    private function isExcepted(Request $request): bool
     {
         $patterns = array_filter(
-            Config::array('numerosis.security.headers.except', []),
+            Config::array($this->key('except'), []),
             is_string(...)
         );
 
         return $patterns !== [] && $request->is(...array_values($patterns));
     }
 
-    protected function isHtml(Response $response): bool
+    private function isHtml(Response $response): bool
     {
         $contentType = $response->headers->get('Content-Type');
 
         return $contentType === null || str_contains($contentType, 'text/html');
+    }
+
+    private function key(string $suffix): string
+    {
+        return 'numerosis.security.headers.'.$suffix;
     }
 }

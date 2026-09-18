@@ -9,7 +9,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
- * Replaces the source tenant's id wherever the restored rows still carry it —
+ * Replaces the source tenant's id wherever the restored rows still carry it:
  * stored URLs, file paths, settings blobs. Without this a clone keeps pointing
  * at the tenant it was copied from, which looks like a working staging tenant
  * until something follows one of those references.
@@ -49,7 +49,7 @@ class RewriteClonedTenantReferences
                     $wrappedTable = $connection->getQueryGrammar()->wrapTable($name);
                     $wrappedColumn = $connection->getQueryGrammar()->wrap($columnName);
 
-                    // A raw statement rather than a query-builder update: the
+                    // A raw statement instead of a query-builder update. The
                     // new value is the old one with a substring replaced, and
                     // that reads the column it writes.
                     $affected = $connection->update(

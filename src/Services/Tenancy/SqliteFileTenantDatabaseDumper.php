@@ -13,7 +13,7 @@ use Nvade\Numerosis\Numerosis;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 
 /**
- * `VACUUM INTO`, not a file copy: copying a SQLite file while another
+ * `VACUUM INTO` instead of a file copy: copying a SQLite file while another
  * connection is mid-write produces an artefact that looks fine and opens
  * corrupt, and the write-ahead log is a second file a copy would miss.
  */
@@ -34,7 +34,7 @@ class SqliteFileTenantDatabaseDumper implements TenantDatabaseDumper
         return true;
     }
 
-    public function dump(TenantWithDatabase $tenant, string $file): void
+    public function dump(TenantWithDatabase $tenant, string $file, int $chunk = 500): void
     {
         @unlink($file);
 

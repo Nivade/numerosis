@@ -6,8 +6,9 @@ namespace Nvade\Numerosis\Http\Controllers\Tls;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Nvade\Numerosis\Actions\Queries\GetServableDomains;
 use Nvade\Numerosis\Http\Controllers\Controller;
+use Nvade\Numerosis\Models\Central\Domain;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * Caddy's on-demand TLS ask endpoint. A 200 tells Caddy to issue a certificate
@@ -23,7 +24,7 @@ class AskController extends Controller
             return response()->noContent(Response::HTTP_NOT_FOUND);
         }
 
-        return response()->noContent(GetServableDomains::includes($domain)
+        return response()->noContent(Numerosis::model(Domain::class)::isHostnameServable($domain)
             ? Response::HTTP_OK
             : Response::HTTP_NOT_FOUND);
     }

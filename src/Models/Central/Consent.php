@@ -12,7 +12,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
  * Append-only: a consent record is evidence of what was agreed and when, so
- * withdrawing consent writes a new row rather than editing this one. Survives
+ * withdrawing consent writes a new row instead of editing this one. Survives
  * anonymization, which is why it names a global id and holds no name or email.
  *
  * @property int $id

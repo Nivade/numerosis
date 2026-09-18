@@ -11,6 +11,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,6 +23,9 @@ use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Notifications\Events\NotificationSending;
+use Illuminate\Session\DatabaseSessionHandler;
+use Illuminate\Session\SessionManager;
+use Illuminate\Session\Store;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -55,6 +59,7 @@ use Nvade\Numerosis\Boot\Assets;
 use Nvade\Numerosis\Boot\ConfiguredSteps;
 use Nvade\Numerosis\Boot\HostConfig;
 use Nvade\Numerosis\Boot\MiddlewareRegistrar;
+use Nvade\Numerosis\Boot\PlanMetadata;
 use Nvade\Numerosis\Cache\CacheKeys;
 use Nvade\Numerosis\Cache\GlobalCache;
 use Nvade\Numerosis\Concerns\PublishesPackageAssets;
@@ -70,6 +75,7 @@ use Nvade\Numerosis\Console\Commands\PruneDataExports;
 use Nvade\Numerosis\Console\Commands\PruneNotifications;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedStripeCustomers;
 use Nvade\Numerosis\Console\Commands\PruneOrphanedTenantDatabases;
+use Nvade\Numerosis\Console\Commands\PruneSessions;
 use Nvade\Numerosis\Console\Commands\PruneStalledTenantProvisions;
 use Nvade\Numerosis\Console\Commands\PruneTenantBackups;
 use Nvade\Numerosis\Console\Commands\ReconcileUsage;
@@ -82,30 +88,17 @@ use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Contracts\Exceptions\ProvidesExceptionContext;
 use Nvade\Numerosis\Database\Seeders\DatabaseSeeder as PackageDatabaseSeeder;
 use Nvade\Numerosis\Enums\SessionKey;
-use Nvade\Numerosis\Events\Admin\ImpersonationEnded;
-use Nvade\Numerosis\Events\Admin\ImpersonationStarted;
 use Nvade\Numerosis\Events\Auth\PasswordChanged;
 use Nvade\Numerosis\Events\Auth\SocialAccountLinked;
 use Nvade\Numerosis\Events\Auth\SocialAccountUnlinked;
 use Nvade\Numerosis\Events\Auth\SuspiciousLoginDetected;
-use Nvade\Numerosis\Events\Auth\TwoFactorAuthenticationCleared;
-use Nvade\Numerosis\Events\Auth\UserAnonymized;
 use Nvade\Numerosis\Events\Billing\PaymentFailed;
 use Nvade\Numerosis\Events\Billing\PaymentSettled;
 use Nvade\Numerosis\Events\Billing\TenantSuspended;
-use Nvade\Numerosis\Events\Billing\UsageDivergenceDetected;
-use Nvade\Numerosis\Events\Invitations\InvitationAccepted;
 use Nvade\Numerosis\Events\Invitations\InvitationCreated;
-use Nvade\Numerosis\Events\Tenancy\DomainRevoked;
-use Nvade\Numerosis\Events\Tenancy\DomainVerified;
-use Nvade\Numerosis\Events\Tenancy\MemberJoined;
 use Nvade\Numerosis\Events\Tenancy\MemberRemoved;
-use Nvade\Numerosis\Events\Tenancy\MemberRoleChanged;
-use Nvade\Numerosis\Events\Tenancy\TenantClosed;
-use Nvade\Numerosis\Events\Tenancy\TenantOwnershipTransferred;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioned;
 use Nvade\Numerosis\Events\Tenancy\TenantProvisioningFailed;
-use Nvade\Numerosis\Events\Tenancy\TenantReopened;
 use Nvade\Numerosis\Events\Tenancy\TenantRestored;
 use Nvade\Numerosis\Features\Auth\OneTimePasswordFeature;
 use Nvade\Numerosis\Features\FeatureRegistry;
@@ -162,6 +155,7 @@ use Nvade\Numerosis\Policies\Tenancy\TenantPolicy;
 use Nvade\Numerosis\Providers\BillingServiceProvider;
 use Nvade\Numerosis\Providers\TenancyServiceProvider;
 use Nvade\Numerosis\Routing\RouteNames;
+use Nvade\Numerosis\Services\Auth\GlobalIdSessionHandler;
 use Nvade\Numerosis\Services\Exceptions\TenantAwareExceptionContext;
 use Nvade\Numerosis\Services\Tenancy\AuthGuardBootstrapper;
 use Nvade\Numerosis\Services\Tenancy\PasswordBrokerBootstrapper;
@@ -202,6 +196,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             ->hasCommand(ReportUsage::class)
             ->hasCommand(VerifyDomains::class)
             ->hasCommand(PruneNotifications::class)
+            ->hasCommand(PruneSessions::class)
             ->hasCommand(ReconcileUsage::class)
             ->hasCommand(TransferTenantOwnershipCommand::class);
     }
@@ -317,6 +312,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         $this->assertConfiguredStepsAreWellShaped();
 
+        $this->assertPlanMetadataIsWellShaped();
+
         $this->bootstrapFeatures();
 
         $this->registerPolicies();
@@ -328,6 +325,8 @@ class NumerosisServiceProvider extends PackageServiceProvider
         $this->registerEventListeners();
 
         $this->registerSchedule();
+
+        $this->registerSessionHandler();
 
         $this->registerMiddleware();
 
@@ -369,6 +368,21 @@ class NumerosisServiceProvider extends PackageServiceProvider
         }
 
         ConfiguredSteps::assertEveryProvisioningStepIsOne(ConfiguredSteps::provisioningSteps());
+    }
+
+    /**
+     * Plan metadata's shape, on console boots only, same terms as
+     * {@see self::assertConfiguredStepsAreWellShaped()}. `numerosis:install`
+     * calls {@see PlanMetadata::check()} directly for the second, warnings-
+     * carrying report.
+     */
+    protected function assertPlanMetadataIsWellShaped(): void
+    {
+        if (! $this->app->runningInConsole()) {
+            return;
+        }
+
+        PlanMetadata::assertWellShaped();
     }
 
     /**
@@ -532,6 +546,33 @@ class NumerosisServiceProvider extends PackageServiceProvider
     }
 
     /**
+     * Swaps the handler on the built store instead of registering a custom
+     * driver, so the cookie, encryption and serialization settings stay
+     * whatever the host configured.
+     */
+    protected function registerSessionHandler(): void
+    {
+        if (Config::get('session.driver') !== 'database') {
+            return;
+        }
+
+        $store = $this->app->make(SessionManager::class)->driver();
+
+        if (! $store instanceof Store || ! $store->getHandler() instanceof DatabaseSessionHandler) {
+            return;
+        }
+
+        $connection = Config::get('session.connection');
+
+        $store->setHandler(new GlobalIdSessionHandler(
+            $this->app->make(ConnectionResolverInterface::class)->connection(is_string($connection) ? $connection : null),
+            Config::string('session.table', 'sessions'),
+            Config::integer('session.lifetime'),
+            $this->app,
+        ));
+    }
+
+    /**
      * The package's scheduled commands. Toggle each through
      * `numerosis.schedule.*`; `telescope:prune` follows whether Telescope
      * is installed.
@@ -547,7 +588,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
                 $schedule->command('billing:prune-orphaned-customers')->daily();
             }
 
-            // Hourly rather than daily: an hour of unreported usage is an hour
+            // Hourly instead of daily: an hour of unreported usage is an hour
             // of a period boundary Stripe may already have closed.
             if (Config::boolean('numerosis.schedule.report_usage')) {
                 $schedule->command('billing:report-usage')->hourly()->withoutOverlapping();
@@ -585,9 +626,6 @@ class NumerosisServiceProvider extends PackageServiceProvider
                 $schedule->command('tenancy:prune-orphaned-databases', ['--force' => true])->daily();
             }
 
-            // `activitylog.clean_after_days` decides the window; the tenant
-            // databases' own logs are cleaned by the same command run inside
-            // tenancy, which is the host's own scheduling decision.
             if (Config::boolean('numerosis.schedule.prune_data_exports')) {
                 $schedule->command('numerosis:prune-data-exports')->daily();
             }
@@ -600,8 +638,15 @@ class NumerosisServiceProvider extends PackageServiceProvider
                 $schedule->command('numerosis:prune-notifications')->daily();
             }
 
+            // `activitylog.clean_after_days` decides the window; the tenant
+            // databases' own logs are cleaned by the same command run inside
+            // tenancy, which is the host's own scheduling decision.
             if (Config::boolean('numerosis.schedule.prune_activity_log')) {
                 $schedule->command('numerosis:prune-activity-log')->daily();
+            }
+
+            if (Config::boolean('numerosis.schedule.prune_sessions')) {
+                $schedule->command('numerosis:prune-sessions')->daily();
             }
 
             // Resolved through Numerosis::model() so a host that subclassed
@@ -625,32 +670,6 @@ class NumerosisServiceProvider extends PackageServiceProvider
      *
      * Billing and tenancy listeners are registered by their own providers.
      */
-    /**
-     * The domain events {@see RecordDomainEventActivity} writes an audit entry
-     * for, each one a question asked after the fact.
-     *
-     * @var list<class-string>
-     */
-    private const array AUDITED_EVENTS = [
-        MemberJoined::class,
-        MemberRemoved::class,
-        MemberRoleChanged::class,
-        InvitationAccepted::class,
-        TenantOwnershipTransferred::class,
-        TenantSuspended::class,
-        TenantRestored::class,
-        TenantClosed::class,
-        TenantReopened::class,
-        ImpersonationStarted::class,
-        ImpersonationEnded::class,
-        TwoFactorAuthenticationCleared::class,
-        SuspiciousLoginDetected::class,
-        UserAnonymized::class,
-        DomainVerified::class,
-        DomainRevoked::class,
-        UsageDivergenceDetected::class,
-    ];
-
     protected function registerEventListeners(): void
     {
         /** @var array<class-string, list<class-string>> $listeners */
@@ -685,7 +704,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             TwoFactorAuthenticationDisabled::class => [RevokeSessionsAfterTwoFactorDisabled::class],
         ];
 
-        foreach (self::AUDITED_EVENTS as $event) {
+        foreach (RecordDomainEventActivity::AUDITED_EVENTS as $event) {
             $listeners[$event][] = RecordDomainEventActivity::class;
         }
 
@@ -730,9 +749,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
             }
         }
 
-        // Defaults to trusting nobody — see `numerosis.trusted_proxies`. A
-        // host behind a real proxy that relies on this fallback (rather than
-        // wiring `Numerosis::middleware()` itself) must set that config key.
+        // Defaults to trusting nobody. See `numerosis.trusted_proxies`. A
+        // host behind a real proxy that relies on this fallback instead of
+        // wiring `Numerosis::middleware()` itself must set that config key.
         TrustProxies::at(MiddlewareRegistrar::trustedProxies());
 
         $this->app->make(Kernel::class)->prependMiddleware(TrustHosts::class);
@@ -812,7 +831,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
             $email = (string) $request->string(Fortify::username());
             $key = $this->authThrottleKey($request, $email);
 
-            // Throws rather than returns, which is what the limiter does
+            // Throws instead of returning, which is what the limiter does
             // without a response callback; the callback exists only to reach
             // the exhaustion moment.
             return Limit::perMinute(5)->by($key)->response(
@@ -838,9 +857,9 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
         RateLimiter::for('social', fn (Request $request): Limit => Limit::perMinute(10)->by($request->ip()));
 
-        // Per token, not per IP: two tenants behind one NAT must not spend each
-        // other's budget, and one tenant's runaway script must not spend the
-        // fleet's. Falls back to the address for an unauthenticated call.
+        // Keyed per token instead of per IP, so two tenants behind one NAT
+        // cannot spend each other's budget. Falls back to the address for
+        // an unauthenticated call.
         RateLimiter::for('numerosis-api', function (Request $request): Limit {
             $token = $request->user()?->currentAccessToken();
             $key = $token instanceof ApiToken ? $token->getKey() : null;
@@ -853,7 +872,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
 
     /**
      * Tenant + the account the password step challenged + IP. Keyed on
-     * `login.id` rather than the session id, so cycling the session cookie
+     * `login.id` instead of the session id, so cycling the session cookie
      * does not hand the same pending login a fresh set of guesses; the request
      * never carries that id, so a caller cannot choose whose bucket to spend.
      */
@@ -879,7 +898,7 @@ class NumerosisServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * One {@see SuspiciousLoginDetected} per lockout window, not per blocked
+     * One {@see SuspiciousLoginDetected} per lockout window, never per blocked
      * attempt: the marker is added for the limiter's own decay period and
      * every later attempt in that window finds it already there.
      */

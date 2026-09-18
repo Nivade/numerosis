@@ -12,7 +12,7 @@ use Spatie\LaravelData\Data;
  * user model carries the two-factor columns and the anonymisation stamp, none of
  * which belongs in an integration's payload.
  */
-class MemberResource extends Data
+class MemberData extends Data
 {
     public function __construct(
         public string $global_id,

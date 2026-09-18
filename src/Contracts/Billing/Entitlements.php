@@ -14,6 +14,8 @@ use Stancl\Tenancy\Contracts\Tenant;
  */
 interface Entitlements
 {
+    public const string SEATS = 'seats';
+
     public function allows(string $capability, ?Tenant $tenant = null): bool;
 
     /** Null when the plan puts no limit on it. */

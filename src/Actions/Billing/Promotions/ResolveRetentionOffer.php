@@ -15,8 +15,8 @@ use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
  * The code offered to an owner about to close their workspace, or null when
- * there is nothing to offer. Validated against Stripe before it is shown: a
- * host whose retention coupon was retired gets the plain close flow rather than
+ * there is nothing to offer. Validated against Stripe before it is shown, so a
+ * host whose retention coupon was retired gets the plain close flow instead of
  * a button that fails when pressed.
  *
  * @method static PromotionData|null run(Tenant $tenant)

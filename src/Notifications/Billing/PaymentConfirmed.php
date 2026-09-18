@@ -33,19 +33,19 @@ class PaymentConfirmed extends TenantNotification
             ->greeting('Good news!')
             ->line("Your payment for {$this->tenant->name} has been confirmed.");
 
-        // Named rather than left to be discovered on the invoice: a total that
+        // Named instead of left to be discovered on the invoice: a total that
         // moves every month reads as a billing error when nothing explains it.
         if ($this->usageAmount !== null) {
             $message->line("This invoice included {$this->formattedUsage()} of usage on top of your plan.");
         }
 
-        $unsubscribe = $this->unsubscribeUrl($notifiable);
-
         $message->line('Everything is back to normal — thanks for your patience.');
 
-        return $unsubscribe === null
+        $unsubscribeLine = $this->unsubscribeLine($notifiable);
+
+        return $unsubscribeLine === null
             ? $message
-            : $message->line("Stop these emails: {$unsubscribe}");
+            : $message->line($unsubscribeLine);
     }
 
     private function formattedUsage(): string

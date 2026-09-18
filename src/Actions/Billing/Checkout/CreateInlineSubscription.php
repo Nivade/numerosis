@@ -66,7 +66,7 @@ class CreateInlineSubscription
 
         throw_unless($billable instanceof BillableUser, UnsupportedBillable::class, 'Billable must be a central user to create an inline subscription.');
 
-        // Checked here rather than on the object Cashier returns: the same
+        // Checked here instead of on the object Cashier returns. The same
         // mismatch is knowable before the charge, and after it a throw leaves
         // the customer subscribed in Stripe with nothing local recording it.
         throw_unless(is_a(Cashier::$subscriptionModel, Subscription::class, true), RuntimeException::class, 'Cashier is configured with a subscription model that is not '.Subscription::class.'; check numerosis.billing.models.subscription.');
@@ -87,10 +87,9 @@ class CreateInlineSubscription
             $stripeSubscription->trialDays($trialDays);
         }
 
-        // Carried into the builder rather than applied to the subscription
-        // afterwards, so the first invoice is the discounted one. Re-validated
-        // here on purpose: the code was checked when it was typed, and a
-        // redemption limit can have been reached since.
+        // Carried into the builder instead of applied to the subscription
+        // afterwards, so the first invoice is the discounted one; also
+        // re-validated since a redemption limit can have been reached since typed.
         $promotion = $this->promotionFor($pending, $billable, $plan, $billingCycle);
 
         if ($promotion instanceof PromotionData) {
@@ -124,9 +123,9 @@ class CreateInlineSubscription
     }
 
     /**
-     * A code that no longer validates is dropped rather than fatal: the
-     * customer already entered a card for a subscription they asked for, and
-     * refusing the whole charge over a discount loses the sale.
+     * A code that no longer validates is dropped instead of raised as an
+     * error. The customer already entered a card for a subscription they
+     * asked for, and refusing the whole charge over a discount loses the sale.
      */
     private function promotionFor(
         TenantProvision $pending,

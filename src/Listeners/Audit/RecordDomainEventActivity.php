@@ -33,6 +33,33 @@ use Nvade\Numerosis\Numerosis;
  */
 class RecordDomainEventActivity
 {
+    /**
+     * The one place naming which events this listener is registered against;
+     * {@see NumerosisServiceProvider::registerEventListeners()} reads it
+     * instead of keeping its own copy.
+     *
+     * @var list<class-string>
+     */
+    public const array AUDITED_EVENTS = [
+        MemberJoined::class,
+        MemberRemoved::class,
+        MemberRoleChanged::class,
+        InvitationAccepted::class,
+        TenantOwnershipTransferred::class,
+        TenantSuspended::class,
+        TenantRestored::class,
+        TenantClosed::class,
+        TenantReopened::class,
+        ImpersonationStarted::class,
+        ImpersonationEnded::class,
+        TwoFactorAuthenticationCleared::class,
+        SuspiciousLoginDetected::class,
+        UserAnonymized::class,
+        DomainVerified::class,
+        DomainRevoked::class,
+        UsageDivergenceDetected::class,
+    ];
+
     public function handle(object $event): void
     {
         ['description' => $description, 'properties' => $properties, 'tenant' => $tenantId, 'causer' => $causer] = $this->describe($event);

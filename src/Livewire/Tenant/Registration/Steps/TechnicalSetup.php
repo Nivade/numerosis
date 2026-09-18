@@ -136,9 +136,9 @@ class TechnicalSetup extends StepComponent implements ContributesProvisionData, 
         abort_if($user === null, 403);
 
         try {
-            // This step's own values are not in the wizard state yet -- state
-            // is written on submit -- so the slug and its contribution are
-            // passed in rather than collected.
+            // This step's own values are not in the wizard state yet, since
+            // state is written on submit, so the slug and its contribution
+            // are passed in instead of collected.
             $data = $this->registrationState()
                 ->provisionData($user->global_id, slug: $this->domain)
                 ->withContributions(array_filter([$this->currentContribution()]));

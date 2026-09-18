@@ -16,7 +16,8 @@ use Nvade\Numerosis\Numerosis;
 #[Signature('tenancy:backup
                             {tenant? : The tenant id}
                             {--all : Back up every provisioned tenant}
-                            {--disk= : Filesystem disk to write to, defaulting to numerosis.tenancy.backup.disk}')]
+                            {--disk= : Filesystem disk to write to, defaulting to numerosis.tenancy.backup.disk}
+                            {--chunk= : Restore batch size the artefact is written for, defaulting to 500}')]
 class BackupTenantCommand extends Command
 {
     public function handle(): int
@@ -24,11 +25,14 @@ class BackupTenantCommand extends Command
         $disk = $this->option('disk');
         $disk = is_string($disk) && $disk !== '' ? $disk : null;
 
+        $chunk = $this->option('chunk');
+        $chunk = is_numeric($chunk) ? (int) $chunk : 500;
+
         $failures = 0;
 
         foreach ($this->tenants() as $tenant) {
             try {
-                $path = BackupTenant::run($tenant, $disk);
+                $path = BackupTenant::run($tenant, $disk, $chunk);
 
                 $this->components->info("Backed up [{$tenant->id}] to {$path}.");
             } catch (TenantBackupFailed $failure) {

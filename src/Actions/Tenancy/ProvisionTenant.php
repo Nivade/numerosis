@@ -58,9 +58,9 @@ class ProvisionTenant implements ProvisionsTenant
             throw new ProvisioningAlreadyClaimed("Provisioning for [{$data->slug}] is already running.");
         }
 
-        // Not `Bus::chain(...)->onConnection('sync')`: a chain defers the
-        // links after the first, so the failure of a later one surfaces
-        // through the queue rather than out of this call.
+        // Not `Bus::chain(...)->onConnection('sync')`. A chain defers the
+        // links after the first, so the failure of a later one would surface
+        // through the queue instead of out of this call.
         foreach ($this->links($slug) as $link) {
             try {
                 dispatch_sync($link);
@@ -78,8 +78,8 @@ class ProvisionTenant implements ProvisionsTenant
 
     /**
      * @return string|null The claimed slug, or null when a chain already holds
-     *                     it — the checkout redirect and the Stripe webhook
-     *                     both arrive for the same tenant.
+     *                     it, since the checkout redirect and the Stripe
+     *                     webhook both arrive for the same tenant.
      */
     private function claimFor(TenantProvisionData $data): ?string
     {
@@ -92,7 +92,7 @@ class ProvisionTenant implements ProvisionsTenant
 
     /**
      * The row is the pipeline's only input, so the request is written to it
-     * before the chain is dispatched rather than carried in every job payload.
+     * before the chain is dispatched, instead of carried in every job payload.
      */
     private function recordRequest(TenantProvisionData $data): TenantProvision
     {

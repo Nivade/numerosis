@@ -13,7 +13,7 @@ use Spatie\LaravelData\Data;
 /**
  * What checkout knows about a provision. Absent entirely when a tenant is
  * provisioned without billing, which is what makes `LinkTenantSubscription`
- * skippable rather than conditional on a field the pipeline has to know about.
+ * skippable instead of conditional on a field the pipeline has to know about.
  */
 final class BillingContribution extends Data implements PersistsToProvisionColumns
 {
@@ -61,9 +61,9 @@ final class BillingContribution extends Data implements PersistsToProvisionColum
     }
 
     /**
-     * A row with no billing columns set reads back as "no contribution", not
-     * as a contribution full of nulls — otherwise every step consuming this
-     * would run against a tenant provisioned without billing.
+     * A row with no billing columns set reads back as "no contribution"
+     * instead of a contribution full of nulls, since otherwise every step
+     * consuming this would run against a tenant provisioned without billing.
      */
     public function isEmpty(): bool
     {

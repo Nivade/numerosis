@@ -57,7 +57,8 @@ it('registers the middleware aliases and both groups, tenant group in order', fu
         'tenancy.route',
         'tenancy.session',
         AuthenticateSession::class,
-        'impersonation',
+        'numerosis.impersonation',
+        'tenancy.two_factor',
     ]);
 
     expect($groups)->toHaveKey('universal', []);
@@ -87,7 +88,7 @@ it('registers mode-agnostic middleware aliases with no facade application bound'
 
 it('returns the exact csrf exceptions list', function () {
     expect(Numerosis::csrfExceptions())->toBe([
-        'stripe/*', 'billing/webhook', 'telescope/*',
+        'stripe/*', 'billing/webhook',
     ]);
 });
 
@@ -207,7 +208,8 @@ it('registers the middleware aliases/groups against the real router with no host
         'tenancy.route',
         'tenancy.session',
         AuthenticateSession::class,
-        'impersonation',
+        'numerosis.impersonation',
+        'tenancy.two_factor',
     ]);
 
     $kernel = resolve(Kernel::class);

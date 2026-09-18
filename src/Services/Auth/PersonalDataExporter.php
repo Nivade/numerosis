@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Nvade\Numerosis\Services\Auth;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Nvade\Numerosis\Contracts\Auth\ExportsPersonalData;
 use Nvade\Numerosis\Contracts\Tenancy\ExportsTenantData;
 use Nvade\Numerosis\Exceptions\Tenancy\TenantBackupFailed;
+use Nvade\Numerosis\Jobs\Concerns\WritesDataExportOutcome;
 use Nvade\Numerosis\Models\Central\CentralUser;
 use Nvade\Numerosis\Models\Central\Consent;
 use Nvade\Numerosis\Models\Central\Membership;
@@ -28,6 +28,8 @@ use ZipArchive;
  */
 class PersonalDataExporter implements ExportsPersonalData
 {
+    use WritesDataExportOutcome;
+
     public function __construct(private readonly ExportsTenantData $tenantExporter) {}
 
     public function export(string $globalUserId, ?string $disk = null): string
@@ -38,7 +40,7 @@ class PersonalDataExporter implements ExportsPersonalData
             throw TenantBackupFailed::unreadable($globalUserId);
         }
 
-        $diskName = $disk ?? Config::string('numerosis.privacy.disk', Config::string('numerosis.tenancy.backup.disk', 'local'));
+        $diskName = $disk ?? $this->exportDisk();
         $storage = Storage::disk($diskName);
 
         $archivePath = (string) tempnam(sys_get_temp_dir(), 'numerosis-personal');
@@ -71,7 +73,7 @@ class PersonalDataExporter implements ExportsPersonalData
     }
 
     /**
-     * Copied entry by entry rather than embedded whole: a zip inside a zip is
+     * Copied entry by entry instead of embedded whole: a zip inside a zip is
      * one more thing the person receiving it has to work out.
      */
     private function addTenantArchive(ZipArchive $zip, Tenant $tenant, string $globalId, string $diskName): void
@@ -86,8 +88,10 @@ class PersonalDataExporter implements ExportsPersonalData
 
             $inner = new ZipArchive;
 
+            // A partial archive that looks complete answers a subject access
+            // request wrongly, so the whole export fails instead.
             if ($inner->open($local) !== true) {
-                return;
+                throw TenantBackupFailed::unreadable($path);
             }
 
             for ($index = 0; $index < $inner->numFiles; $index++) {

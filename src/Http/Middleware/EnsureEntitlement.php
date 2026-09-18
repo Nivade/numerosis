@@ -9,9 +9,9 @@ use Illuminate\Http\Request;
 use Nvade\Numerosis\Contracts\Billing\Entitlements;
 
 /**
- * UX, not enforcement: a route gate keeps a screen out of reach, and the
- * action behind it still has to check for itself. Anything reachable by a
- * queue job, a webhook or an API token never passes through here.
+ * UX only, never enforcement: a route gate keeps a screen out of reach, and
+ * the action behind it still has to check for itself. Anything reachable by
+ * a queue job, a webhook or an API token never passes through here.
  */
 class EnsureEntitlement
 {

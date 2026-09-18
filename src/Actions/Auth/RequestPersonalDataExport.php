@@ -15,8 +15,8 @@ use Nvade\Numerosis\Numerosis;
 
 /**
  * Records the request and queues the work, which crosses every tenant the
- * subject belongs to. Throttled per subject rather than per IP: the cost is
- * the databases read, and the person is known.
+ * subject belongs to. Throttled per subject instead of per IP, since the
+ * cost is the databases read, and the person is known.
  *
  * @method static DataExportRequest run(CentralUser $user)
  */

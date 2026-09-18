@@ -9,6 +9,7 @@ use Nvade\Numerosis\Actions\Queries\GetTenantSeatUsage;
 use Nvade\Numerosis\Contracts\Billing\Entitlements;
 use Nvade\Numerosis\Contracts\Billing\Plan;
 use Nvade\Numerosis\Contracts\Billing\PlanPolicy;
+use Nvade\Numerosis\Contracts\Billing\SeatPolicy;
 use Nvade\Numerosis\Contracts\Subscribable;
 use Nvade\Numerosis\Models\Central\Tenant;
 
@@ -19,7 +20,7 @@ use Nvade\Numerosis\Models\Central\Tenant;
  *
  * @see hasSeatForNewMember()
  */
-class SeatLimitPlanPolicy implements PlanPolicy
+class SeatLimitPlanPolicy implements PlanPolicy, SeatPolicy
 {
     public function __construct(private readonly Entitlements $entitlements) {}
 
@@ -46,7 +47,7 @@ class SeatLimitPlanPolicy implements PlanPolicy
     }
 
     /**
-     * Reads the entitlement rather than the plan directly, so a downgrade that
+     * Reads the entitlement instead of the plan directly, so a downgrade that
      * left the tenant over its new limit blocks the next addition instead of
      * being refused at swap time.
      */
@@ -56,7 +57,7 @@ class SeatLimitPlanPolicy implements PlanPolicy
             return true;
         }
 
-        $remaining = $this->entitlements->remaining(PlanEntitlements::SEATS, $for);
+        $remaining = $this->entitlements->remaining(Entitlements::SEATS, $for);
 
         return $remaining === null || $remaining > 0;
     }
@@ -67,10 +68,10 @@ class SeatLimitPlanPolicy implements PlanPolicy
             return true;
         }
 
-        $limit = $this->entitlements->limit(PlanEntitlements::SEATS, $for);
+        $limit = $this->entitlements->limit(Entitlements::SEATS, $for);
 
-        // Members, not members plus pending invitations: an invitation that
-        // was issued while a seat was free has to be acceptable.
+        // Counts members alone, never members plus pending invitations: an
+        // invitation issued while a seat was free has to be acceptable.
         return $limit === null || GetTenantSeatUsage::run($for)->hasRoomForAnotherMember();
     }
 

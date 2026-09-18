@@ -28,7 +28,7 @@ class CreateTenantDatabase implements ProvisioningStep
     {
         $tenant = $provision->tenant()->firstOrFail();
 
-        // Gated per step rather than all-or-nothing: the step record makes a
+        // Gated per step instead of all-or-nothing. The step record makes a
         // half-built database recoverable, which the old segment-wide guard
         // could not be without re-seeding an already-populated one.
         if ($this->databases->databaseExists($tenant)) {

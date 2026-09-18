@@ -10,6 +10,7 @@ use Illuminate\Console\Command;
 use Nvade\Numerosis\Actions\Admin\EndImpersonation;
 use Nvade\Numerosis\Enums\Tenancy\ImpersonationEndReason;
 use Nvade\Numerosis\Models\Central\ImpersonationSession;
+use Nvade\Numerosis\Numerosis;
 
 /**
  * Closes impersonation rows whose session ran past
@@ -25,7 +26,7 @@ class EndStaleImpersonations extends Command
 {
     public function handle(): void
     {
-        $stale = ImpersonationSession::query()->stale()->get();
+        $stale = Numerosis::model(ImpersonationSession::class)::query()->stale()->get();
 
         if ($this->option('dry-run')) {
             $this->line("Would close {$stale->count()} impersonation sessions");

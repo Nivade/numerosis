@@ -35,7 +35,7 @@ class GetTenantUsage
             return new Collection;
         }
 
-        // One read for every meter, not one per meter.
+        // One read total for every meter, avoiding one query per meter.
         $counts = $this->counter->all($tenant, $period->bucket());
 
         return GetTenantMeters::run($tenant)

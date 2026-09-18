@@ -7,7 +7,7 @@ namespace Nvade\Numerosis\Enums;
 /**
  * The alias each entry in `MiddlewareRegistrar::aliases()` registers under.
  * An enum case reference resolves without the container, so this stays safe
- * inside `aliases()`'s literals-only constraint — see that class's docblock.
+ * inside `aliases()`'s literals-only constraint. See that class's docblock.
  */
 enum MiddlewareAlias: string
 {
@@ -19,8 +19,8 @@ enum MiddlewareAlias: string
     case TenancySession = 'tenancy.session';
     case TenancyMembership = 'tenancy.membership';
     case TenancyTwoFactor = 'tenancy.two_factor';
-    case Impersonation = 'impersonation';
-    case Entitlement = 'entitlement';
+    case Impersonation = 'numerosis.impersonation';
+    case Entitlement = 'numerosis.entitlement';
     case ApiToken = 'numerosis.api-token';
     case ApiAbilities = 'numerosis.api-abilities';
 }

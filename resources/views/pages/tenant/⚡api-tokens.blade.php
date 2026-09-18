@@ -42,7 +42,7 @@ class extends Component
     {
         $user = $this->currentUser();
 
-        return $user instanceof User ? GetApiAbilities::forUser($user) : [];
+        return $user instanceof User ? GetApiAbilities::run($user) : [];
     }
 
     public function create(): void

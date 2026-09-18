@@ -143,11 +143,32 @@ unconfigured rather than throwing" behaviour the test list asked for.
   the central connection, because the command may run while tenancy has swapped
   the default one.
 
-**The digest (phase 6) is not built.** Only one type is marked `digestible()`
-(`MemberJoined`), which is off by mail by default, so the burst the digest exists
-to absorb cannot currently happen. Building the batching job now would be a
-scheduled command with nothing to batch; `NotificationType::digestible()` and the
-`notification_preferences.digest` column are the seam it will hang off.
+**The digest (phase 6) is not built, and its half-schema is gone.** Only one
+type was marked `digestible()` (`MemberJoined`), which is off by mail by
+default, so the burst the digest exists to absorb cannot currently happen.
+Shipping the seam without a reader is the half-schema the roadmap forbids, so
+D2 of the readiness remediation settled it as the drop: `NotificationType::digestible()`
+and the `notification_preferences.digest` column were both deleted 2026-09-17.
+Phase 6 rebuilds them alongside the batching job when there is something to
+batch. Phase 6 is what keeps this plan live.
+
+Three further changes from that remediation:
+
+- **Every notification routes through preferences** (P16). `InvitationNotification`
+  and `PersonalDataExportReady` hard-returned `['mail']` where phase 2 asked for
+  the database channel on every existing notification. So did `ProvisioningFailed`,
+  which is operator-facing; it routes through preferences too, which diverges
+  from the remediation plan's stated default of leaving the operator one
+  mail-only.
+- **The toggles with no sender are gone** (P17). The preferences screen rendered
+  a switch for every `NotificationType` case, and `MemberJoined` and
+  `SecurityAlert` had no sending class at all. Both enum cases were deleted with
+  the vacuous `mailByDefault()`/`databaseByDefault()` entries behind them. A
+  toggle wired to nothing is the defect either way; if the roadmap wants those
+  two notifications, the cases come back with senders in the same commit.
+- **The centre and the preferences screen are behind feature classes** (P21,
+  `44b767c`): `NotificationCenterFeature` and `NotificationPreferencesFeature`,
+  both on by default.
 
 Two harness traps found here and recorded in `.ai/rules/testing.md`: reaching for
 `DatabaseNotification::query()` in a test writes on the default connection while
