@@ -105,10 +105,15 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      # dist/ is committed and rebuilt by hand, so a dependency bump can change
-      # the shipped bundle and leave it behind. Bumping @stripe/stripe-js did
-      # exactly that, and the bundle is what hosts load.
-      - name: Check dist against its sources
+      # dist/numerosis.js is committed and rebuilt by hand, so a dependency
+      # bump can change the shipped bundle and leave it behind. Bumping
+      # @stripe/stripe-js did exactly that, and the bundle is what hosts load.
+      #
+      # Only the JS half. dist/numerosis.css is not reproducible between
+      # machines: theme-src/app.css points @source at vendor/livewire/flux and
+      # vendor/laravel/framework, and with no committed composer.lock every run
+      # resolves those afresh, so the emitted class set moves with upstream.
+      - name: Check dist/numerosis.js against its sources
         run: |
-          npm run build
-          git diff --stat --exit-code dist
+          npm run build:app-js
+          git diff --stat --exit-code dist/numerosis.js
