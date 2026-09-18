@@ -75,7 +75,10 @@ class PlanCardTest extends TestCase
     #[DataProvider('cardTypes')]
     public function test_it_displays_the_price_for_a_paid_plan(string $type): void
     {
+        // Pinned: the factory's faker->name() rolls 'Freeman' often enough
+        // that assertDontSee('Free') below caught it on one CI cell in five.
         $plan = PaymentPlan::factory()->create([
+            'name' => 'Growth',
             'monthly_price' => 1000,
             'yearly_price' => 10000,
         ]);
