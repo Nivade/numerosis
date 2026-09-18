@@ -63,11 +63,28 @@ test:
   # docker-compose.yml's local services so the same suite runs unmodified in
   # both places. Both services start for every job; the driver the job
   # exercises is NUMEROSIS_TEST_DRIVER's job.
+  # Durability off, in a container thrown away at the end of the job. The
+  # suite creates a database and migrates it per tenant, and fsyncing each of
+  # those put the mysql jobs at 29 minutes against pgsql's 5.
   services:
     - name: mysql:8.4
       alias: mysql
+      command:
+        - '--innodb-flush-log-at-trx-commit=0'
+        - '--innodb-doublewrite=0'
+        - '--sync-binlog=0'
+        - '--skip-log-bin'
+        - '--performance-schema=OFF'
     - name: postgres:17
       alias: pgsql
+      command:
+        - 'postgres'
+        - '-c'
+        - 'fsync=off'
+        - '-c'
+        - 'synchronous_commit=off'
+        - '-c'
+        - 'full_page_writes=off'
   variables:
     MYSQL_ROOT_PASSWORD: root
     MYSQL_DATABASE: testing
@@ -118,6 +135,10 @@ phpstan:
   services:
     - name: mysql:8.4
       alias: mysql
+      command:
+        - '--innodb-flush-log-at-trx-commit=0'
+        - '--skip-log-bin'
+        - '--performance-schema=OFF'
   variables:
     MYSQL_ROOT_PASSWORD: root
     MYSQL_DATABASE: testing
