@@ -84,13 +84,18 @@ jobs:
       # Matches what composer.json claims to support. Widen only with a green
       # run behind it: Laravel 11/12 and Windows were in the generator's matrix
       # and nothing here has ever been tested on them.
+      #
+      # A pull request runs the newest PHP against MySQL alone, five billed
+      # cells down to one; push to main and the weekly cron run the full grid.
+      # Nothing is gated on these, so the grid catching a driver-specific
+      # break after merge rather than before is the trade being made.
       matrix:
-        php: ['8.5', '8.4']
-        database: [mysql, pgsql]
-        include:
+        php: ${{ github.event_name == 'pull_request' && fromJSON('["8.5"]') || fromJSON('["8.5", "8.4"]') }}
+        database: ${{ github.event_name == 'pull_request' && fromJSON('["mysql"]') || fromJSON('["mysql", "pgsql", "sqlite"]') }}
+        exclude:
           # SQLite is supported for development rather than at production
           # scale, so it gets one job rather than a column.
-          - php: '8.5'
+          - php: '8.4'
             database: sqlite
 
     name: P${{ matrix.php }} - ${{ matrix.database }}

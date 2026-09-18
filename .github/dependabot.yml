@@ -1,5 +1,7 @@
 version: 2
 
+# One grouped pull request per ecosystem per week. Ungrouped, the first run
+# opened five, and each one costs a full CI pass.
 updates:
   # composer.lock is gitignored, so this raises the constraints in the two
   # manifests rather than bumping resolved versions.
@@ -9,15 +11,28 @@ updates:
       - '/packages/ui'
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    groups:
+      composer:
+        patterns:
+          - '*'
 
   - package-ecosystem: npm
     directory: '/'
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    groups:
+      npm:
+        patterns:
+          - '*'
 
   - package-ecosystem: github-actions
     directory: '/'
     schedule:
       interval: weekly
+    open-pull-requests-limit: 1
+    groups:
+      actions:
+        patterns:
+          - '*'
