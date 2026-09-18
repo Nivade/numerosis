@@ -1,8 +1,8 @@
 # Repo Role
 
 This repo (`numerosis`) is **the package** — a multi-tenant SaaS foundation
-for Laravel, developed as one repo and published as five read-only Composer
-splits. `numerosis-thin-app` (sibling checkout) is the only host app, and it
+for Laravel, developed as one repo and published with `packages/ui` split off
+as a read-only mirror. `numerosis-thin-app` (sibling checkout) is the only host app, and it
 exists to boot this package outside Testbench. **Changes belong here** unless
 they are genuinely host wiring (`bootstrap/app.php`, `config/*`, `.env`).
 

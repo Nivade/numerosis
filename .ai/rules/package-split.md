@@ -33,7 +33,7 @@ came after — right up until three of them folded back into core.
 > sibling repos: `nvade/numerosis-{ui,auth-ui,filament}` live in this repo
 > under `packages/*`, path-installed from one `{"type":"path","url":"packages/*"}`
 > entry and published as read-only splits on tag
-> (`.github/workflows/split.yml`). **Every mechanism below is unchanged** —
+> (`.gitlab-ci.yml`, `split:ui`). **Every mechanism below is unchanged** —
 > the shared view namespace, the register-vs-`booting()` phase rule, the
 > constant-vs-`use` autoload asymmetry, the escaped-namespace-in-a-string
 > trap — because none of them depended on the packages being separate repos.

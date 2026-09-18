@@ -60,6 +60,11 @@ abstract class TestCase extends Orchestra
     /** Read by both the connection array and the `CREATE DATABASE` that precedes it. */
     private const string MYSQL_HOST = '127.0.0.1';
 
+    /** CI reaches a service container by its alias, where docker-compose publishes on the loopback. */
+    private const string MYSQL_HOST_ENV = 'NUMEROSIS_TEST_MYSQL_HOST';
+
+    private const string PGSQL_HOST_ENV = 'NUMEROSIS_TEST_PGSQL_HOST';
+
     private const string MYSQL_PORT = '3306';
 
     private const string MYSQL_USERNAME = 'root';
@@ -691,7 +696,7 @@ abstract class TestCase extends Orchestra
             ],
             DatabaseDriver::Pgsql => [
                 'driver' => 'pgsql',
-                'host' => self::PGSQL_HOST,
+                'host' => self::pgsqlHost(),
                 'port' => self::PGSQL_PORT,
                 'database' => $database,
                 'username' => self::PGSQL_USERNAME,
@@ -710,7 +715,7 @@ abstract class TestCase extends Orchestra
             ],
             default => [
                 'driver' => static::databaseDriver()->value,
-                'host' => self::MYSQL_HOST,
+                'host' => self::mysqlHost(),
                 'port' => self::MYSQL_PORT,
                 'database' => $database,
                 'username' => self::MYSQL_USERNAME,
@@ -777,13 +782,23 @@ abstract class TestCase extends Orchestra
         $ensured[$database] = true;
     }
 
+    private static function mysqlHost(): string
+    {
+        return getenv(self::MYSQL_HOST_ENV) ?: self::MYSQL_HOST;
+    }
+
+    private static function pgsqlHost(): string
+    {
+        return getenv(self::PGSQL_HOST_ENV) ?: self::PGSQL_HOST;
+    }
+
     private static function ensureMysqlDatabaseExists(string $database): void
     {
         if (! extension_loaded('pdo_mysql')) {
             return;
         }
 
-        $connection = new PDO('mysql:host='.self::MYSQL_HOST.';port='.self::MYSQL_PORT, self::MYSQL_USERNAME, self::MYSQL_PASSWORD);
+        $connection = new PDO('mysql:host='.self::mysqlHost().';port='.self::MYSQL_PORT, self::MYSQL_USERNAME, self::MYSQL_PASSWORD);
         $connection->exec("create database if not exists `{$database}` character set utf8mb4 collate utf8mb4_0900_ai_ci");
     }
 
@@ -799,7 +814,7 @@ abstract class TestCase extends Orchestra
         }
 
         $connection = new PDO(
-            'pgsql:host='.self::PGSQL_HOST.';port='.self::PGSQL_PORT.';dbname='.self::PGSQL_MAINTENANCE_DATABASE,
+            'pgsql:host='.self::pgsqlHost().';port='.self::PGSQL_PORT.';dbname='.self::PGSQL_MAINTENANCE_DATABASE,
             self::PGSQL_USERNAME,
             self::PGSQL_PASSWORD,
         );

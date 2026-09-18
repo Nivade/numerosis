@@ -23,7 +23,7 @@ and removed: the plugin aborts before any `beforeEach()` can run, so it was
 dead code that read as protection — the failure mode
 `.ai/rules/auth-login.md` records for `ensureIsNotRateLimited()`.
 
-`.github/workflows/run-tests.yml` installs both.
+`.gitlab-ci.yml` installs both.
 
 ## How a request reaches a virtual host
 

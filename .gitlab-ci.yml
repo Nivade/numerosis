@@ -1,0 +1,135 @@
+# Ported from .github/workflows/ when the canonical remote moved to GitLab.
+# Four workflows became three jobs: run-tests and phpstan kept their coverage,
+# fix-php-code-style-issues became a read-only Pint check (nothing pushes a
+# "Fix styling" commit back), and update-changelog is gone because CHANGELOG.md
+# is written by hand here.
+
+stages:
+  - test
+  - publish
+
+variables:
+  COMPOSER_ALLOW_SUPERUSER: '1'
+  COMPOSER_NO_INTERACTION: '1'
+  GIT_DEPTH: '50'
+
+.php:
+  image: php:${PHP_VERSION}-cli
+  variables:
+    PHP_VERSION: '8.5'
+    PHP_EXTENSIONS: 'dom curl libxml mbstring zip pcntl pdo pdo_mysql pdo_pgsql pdo_sqlite bcmath soap intl gd exif iconv imagick fileinfo'
+  before_script:
+    - curl -sSLf -o /usr/local/bin/install-php-extensions https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions
+    - chmod +x /usr/local/bin/install-php-extensions
+    - install-php-extensions @composer $PHP_EXTENSIONS
+    - composer config cache-dir "$CI_PROJECT_DIR/.composer-cache"
+  cache:
+    key:
+      files:
+        - composer.lock
+    paths:
+      - .composer-cache/
+
+test:
+  extends: .php
+  stage: test
+  timeout: 30m
+  # tests/TestCase.php holds both sets of credentials, matching
+  # docker-compose.yml's local services so the same suite runs unmodified in
+  # both places. Both services start for every job; the driver the job
+  # exercises is NUMEROSIS_TEST_DRIVER's job. The hosts are the one difference:
+  # locally the containers publish on the loopback, here they answer on a
+  # service alias.
+  services:
+    - name: mysql:8.4
+      alias: mysql
+    - name: postgres:17
+      alias: pgsql
+  variables:
+    MYSQL_ROOT_PASSWORD: root
+    MYSQL_DATABASE: testing
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_DB: testing
+    NUMEROSIS_TEST_MYSQL_HOST: mysql
+    NUMEROSIS_TEST_PGSQL_HOST: pgsql
+  # Matches what composer.json claims to support. Widen only with a green run
+  # behind it: Laravel 11/12 and Windows were in the generator's matrix and
+  # nothing here has ever been tested on them. SQLite is supported for
+  # development rather than at production scale, so it gets one job rather than
+  # a column.
+  parallel:
+    matrix:
+      - PHP_VERSION: ['8.5', '8.4']
+        NUMEROSIS_TEST_DRIVER: [mysql, pgsql]
+      - PHP_VERSION: '8.5'
+        NUMEROSIS_TEST_DRIVER: sqlite
+  script:
+    - composer require "laravel/framework:13.*" "orchestra/testbench:11.*" --no-update
+    - composer update --prefer-stable --prefer-dist
+    - composer show -D
+    # Not optional, and not only for the Browser suite: once
+    # pestphp/pest-plugin-browser is installed its own Plugin::terminate()
+    # starts the Playwright server on every Pest run, so a run without these
+    # aborts with no test output at all. See tests/Browser/README.md.
+    - curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+    - apt-get install -y --no-install-recommends nodejs
+    - npm ci
+    - npx playwright install --with-deps chromium
+    # SQLite runs serially. `--parallel` puts eight processes on one directory
+    # of database files, which is what SQLite is worst at: the run fails
+    # somewhere different each time (SQLITE_BUSY, `attempt to write a readonly
+    # database`, a half-copied template) rather than failing consistently. The
+    # serial run covers the same tests.
+    - |
+      if [ "$NUMEROSIS_TEST_DRIVER" = "sqlite" ]; then
+        vendor/bin/pest --ci
+      else
+        vendor/bin/pest --ci --parallel
+      fi
+
+phpstan:
+  extends: .php
+  stage: test
+  timeout: 10m
+  script:
+    - composer install --prefer-dist
+    - php -d memory_limit=2G vendor/bin/phpstan analyse --no-progress
+
+pint:
+  extends: .php
+  stage: test
+  timeout: 10m
+  script:
+    - composer install --prefer-dist
+    - vendor/bin/pint --test
+
+# packages/ui is published as a read-only mirror; this pushes it there. `main`
+# keeps the mirror's default branch current for anyone tracking `@dev`, and a
+# tag push copies the tag across, which is what Composer resolves. Needs a
+# SPLIT_TOKEN CI variable holding a token with write access to the mirror.
+split:ui:
+  stage: publish
+  image: alpine/git:latest
+  timeout: 10m
+  variables:
+    # git subtree replays the whole history into the mirror; the default
+    # shallow fetch produces a mirror with one commit and no error.
+    GIT_DEPTH: '0'
+    PACKAGE_DIRECTORY: packages/ui
+    MIRROR: numerosis-ui
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == "main"
+  script:
+    - git config user.name "$GITLAB_USER_NAME"
+    - git config user.email "$GITLAB_USER_EMAIL"
+    - SPLIT_SHA=$(git subtree split --prefix="$PACKAGE_DIRECTORY")
+    - REMOTE="https://oauth2:${SPLIT_TOKEN}@gitlab.com/nvade-packages/${MIRROR}.git"
+    - |
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        git tag -f "$CI_COMMIT_TAG" "$SPLIT_SHA"
+        git push --force "$REMOTE" "refs/tags/$CI_COMMIT_TAG"
+      else
+        git push --force "$REMOTE" "$SPLIT_SHA:refs/heads/main"
+      fi
