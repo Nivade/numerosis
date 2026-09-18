@@ -131,7 +131,7 @@ jobs:
                   $c->exec("SELECT pg_reload_conf()");'
 
       - name: Cache Composer downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/composer
           key: composer-${{ matrix.php }}-${{ hashFiles('composer.json') }}
@@ -156,7 +156,7 @@ jobs:
       # starts the Playwright server on every Pest run, so a run without these
       # aborts with no test output at all. See tests/Browser/README.md.
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ hashFiles('package-lock.json') }}
