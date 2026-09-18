@@ -1,0 +1,70 @@
+name: static-analysis
+
+on:
+  push:
+    paths:
+      - '**.php'
+      - 'phpstan.neon.dist'
+      - 'phpstan-baseline.neon'
+      - '.github/workflows/static-analysis.yml'
+      - '**/composer.json'
+      - 'composer.lock'
+  pull_request:
+    paths:
+      - '**.php'
+      - 'phpstan.neon.dist'
+      - 'phpstan-baseline.neon'
+      - '.github/workflows/static-analysis.yml'
+      - '**/composer.json'
+      - 'composer.lock'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  COMPOSER_NO_INTERACTION: '1'
+  COMPOSER_ROOT_VERSION: dev-main
+
+jobs:
+  phpstan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The analysis needs a database for the same reason the tests do:
+    # composer's post-autoload-dump boots the workbench, and testbench.yaml
+    # pins DB_HOST to 127.0.0.1.
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: bcmath, intl, pcntl, pdo_mysql, pdo_pgsql, sockets, zip
+          coverage: none
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-8.5-${{ hashFiles('composer.json') }}
+          restore-keys: composer-8.5-
+
+      - name: Install dependencies
+        run: composer update --prefer-stable --prefer-dist
+
+      - name: Run PHPStan
+        run: php -d memory_limit=2G vendor/bin/phpstan analyse --no-progress --error-format=github

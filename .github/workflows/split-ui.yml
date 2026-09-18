@@ -1,0 +1,52 @@
+name: split-ui
+
+# packages/ui is published as a read-only mirror; this pushes it there. `main`
+# keeps the mirror's default branch current for anyone tracking `@dev`, and a
+# tag push copies the tag across, which is what Composer resolves.
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PACKAGE_DIRECTORY: packages/ui
+      MIRROR: git@github.com:Nivade/numerosis-ui.git
+    steps:
+      # Full history: git subtree replays it into the mirror, and a shallow
+      # fetch produces a mirror with one commit and no error.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # GITHUB_TOKEN is scoped to this repo, so it cannot push to the mirror.
+      # SPLIT_SSH_KEY is the private half of the mirror's write deploy key.
+      - name: Load the mirror's deploy key
+        env:
+          SPLIT_SSH_KEY: ${{ secrets.SPLIT_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SPLIT_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
+
+      - name: Push the split to the mirror
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          SPLIT_SHA=$(git subtree split --prefix="$PACKAGE_DIRECTORY")
+          if [ "$GITHUB_REF_TYPE" = 'tag' ]; then
+            git tag -f "$GITHUB_REF_NAME" "$SPLIT_SHA"
+            git push --force "$MIRROR" "refs/tags/$GITHUB_REF_NAME"
+          else
+            git push --force "$MIRROR" "$SPLIT_SHA:refs/heads/main"
+          fi

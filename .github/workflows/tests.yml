@@ -1,0 +1,155 @@
+name: tests
+
+on:
+  push:
+    paths:
+      - '**.php'
+      - '.github/workflows/tests.yml'
+      - 'phpunit.xml.dist'
+      - 'testbench.yaml'
+      - '**/composer.json'
+      - 'composer.lock'
+      - 'package.json'
+      - 'package-lock.json'
+  pull_request:
+    paths:
+      - '**.php'
+      - '.github/workflows/tests.yml'
+      - 'phpunit.xml.dist'
+      - 'testbench.yaml'
+      - '**/composer.json'
+      - 'composer.lock'
+      - 'package.json'
+      - 'package-lock.json'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  COMPOSER_NO_INTERACTION: '1'
+  # Core requires `nvade/numerosis-ui: self.version`, and CI checks out a
+  # detached HEAD, where Composer cannot read a branch name and guesses 1.0.0.
+  # The path repo under packages/* is always dev-main.
+  COMPOSER_ROOT_VERSION: dev-main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # tests/TestCase.php hardcodes both sets of credentials, matching
+    # docker-compose.yml so the same suite runs unmodified in both places.
+    # Both services start for every job; NUMEROSIS_TEST_DRIVER picks one.
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      pgsql:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    strategy:
+      fail-fast: true
+      # Matches what composer.json claims to support. Widen only with a green
+      # run behind it: Laravel 11/12 and Windows were in the generator's matrix
+      # and nothing here has ever been tested on them.
+      matrix:
+        php: ['8.5', '8.4']
+        database: [mysql, pgsql]
+        include:
+          # SQLite is supported for development rather than at production
+          # scale, so it gets one job rather than a column.
+          - php: '8.5'
+            database: sqlite
+
+    name: P${{ matrix.php }} - ${{ matrix.database }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          # gd, imagick and soap were generator boilerplate nothing here
+          # requires; dom, curl, mbstring, fileinfo, iconv and pdo_sqlite ship
+          # with the runner's PHP already.
+          extensions: bcmath, intl, pcntl, pdo_mysql, pdo_pgsql, sockets, zip
+          ini-values: memory_limit=1G
+          coverage: none
+
+      - name: Setup problem matchers
+        run: |
+          echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+          echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+      # Durability off, in containers thrown away at the end of the job. The
+      # suite creates and migrates a database per tenant, and fsyncing each of
+      # those put the mysql jobs at 29 minutes against pgsql's 5.
+      - name: Relax database durability
+        run: |
+          php -r '$c = new PDO("mysql:host=127.0.0.1;port=3306", "root", "root");
+                  $c->exec("SET GLOBAL innodb_flush_log_at_trx_commit = 0");
+                  $c->exec("SET GLOBAL sync_binlog = 0");'
+          php -r '$c = new PDO("pgsql:host=127.0.0.1;port=5432;dbname=testing", "postgres", "postgres");
+                  foreach (["fsync", "synchronous_commit", "full_page_writes"] as $setting) {
+                      $c->exec("ALTER SYSTEM SET {$setting} = off");
+                  }
+                  $c->exec("SELECT pg_reload_conf()");'
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ matrix.php }}-${{ hashFiles('composer.json') }}
+          restore-keys: composer-${{ matrix.php }}-
+
+      - name: Install dependencies
+        run: |
+          composer require "laravel/framework:13.*" "orchestra/testbench:11.*" --no-update
+          composer update --prefer-stable --prefer-dist
+
+      - name: List installed dependencies
+        run: composer show -D
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # Not optional, and not only for the Browser suite: once
+      # pestphp/pest-plugin-browser is installed its own Plugin::terminate()
+      # starts the Playwright server on every Pest run, so a run without these
+      # aborts with no test output at all. See tests/Browser/README.md.
+      - name: Install Playwright
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      # SQLite runs serially. `--parallel` puts eight processes on one directory
+      # of database files, which is what SQLite is worst at: the run fails
+      # somewhere different each time (SQLITE_BUSY, `attempt to write a readonly
+      # database`, a half-copied template) rather than failing consistently.
+      - name: Execute tests
+        env:
+          NUMEROSIS_TEST_DRIVER: ${{ matrix.database }}
+        run: vendor/bin/pest --ci ${{ matrix.database == 'sqlite' && '' || '--parallel' }}

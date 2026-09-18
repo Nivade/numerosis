@@ -65,31 +65,33 @@ Composer path repositories are not transitive, which is why a host names
 `packages/*` itself rather than inheriting it from core — `packages/ui` is
 what that glob resolves to today.
 
-A host that is not a sibling checkout installs tagged releases from the
-GitLab Composer registry of the `nvade-packages` group, which serves both
-packages from one endpoint:
+A host that is not a sibling checkout installs tagged releases straight from
+git. GitHub has no Composer registry, so both repositories are named as `vcs`
+repositories; `numerosis-ui` is separate because Composer does not resolve a
+dependency through another package's `repositories` block:
 
 ```jsonc
 "repositories": [
-    { "type": "composer", "url": "https://gitlab.com/api/v4/group/<group id>/-/packages/composer/packages.json" }
+    { "type": "vcs", "url": "git@github.com:Nivade/numerosis.git" },
+    { "type": "vcs", "url": "git@github.com:Nivade/numerosis-ui.git" }
 ],
 "require": { "nvade/numerosis": "^0.2" }
 ```
 
+Both repositories are private, so Composer needs credentials. An SSH key with
+read access to both is enough for a developer machine. A deploy host is better
+served by a token, which belongs to the project rather than to a person:
+
 ```bash
-composer config --global --auth gitlab-token.gitlab.com <personal-access-token>
+composer config --global --auth github-oauth.github.com <token>
 ```
 
-The token needs `read_api`. A group or project deploy token with
-`read_package_registry` works too, and is the one to reach for on a deploy
-host, since it belongs to the project rather than to a person — Composer takes
-it as `http-basic` with the token's own username:
+A fine-grained token needs `Contents: read` on both repositories. With a token
+in place Composer fetches dist zips through the GitHub API rather than cloning,
+which is the faster of the two.
 
-```bash
-composer config --global --auth http-basic.gitlab.com <deploy-token-username> <deploy-token>
-``` A tag only reaches the registry through the
-`publish:composer` pipeline job, so a tag pushed while CI was off is
-installable by VCS but invisible here.
+`nvade/numerosis-ui` resolves against the mirror the `split-ui` workflow
+pushes, so a tag is only installable once that workflow has carried it across.
 
 Adopting numerosis into an app you already have changes one line of
 `bootstrap/app.php` — `web:` becomes `using:`, because the package needs
