@@ -80,7 +80,14 @@ packages from one endpoint:
 composer config --global --auth gitlab-token.gitlab.com <personal-access-token>
 ```
 
-The token needs `read_api`. A tag only reaches the registry through the
+The token needs `read_api`. A group or project deploy token with
+`read_package_registry` works too, and is the one to reach for on a deploy
+host, since it belongs to the project rather than to a person — Composer takes
+it as `http-basic` with the token's own username:
+
+```bash
+composer config --global --auth http-basic.gitlab.com <deploy-token-username> <deploy-token>
+``` A tag only reaches the registry through the
 `publish:composer` pipeline job, so a tag pushed while CI was off is
 installable by VCS but invisible here.
 
