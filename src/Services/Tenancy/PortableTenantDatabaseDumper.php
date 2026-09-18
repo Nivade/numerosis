@@ -129,7 +129,9 @@ class PortableTenantDatabaseDumper implements TenantDatabaseDumper
      */
     private function prepareTables(Connection $connection, array $tables, array $schema): void
     {
-        foreach ($tables as $table) {
+        // Children first: emptying a parent whose children still hold rows is
+        // the same violation the insert order avoids, read backwards.
+        foreach (array_reverse($tables) as $table) {
             if ($schema === []) {
                 $connection->table($table)->delete();
 
@@ -184,7 +186,67 @@ class PortableTenantDatabaseDumper implements TenantDatabaseDumper
 
         sort($names);
 
-        return $names;
+        return $this->inDependencyOrder($connection, $names);
+    }
+
+    /**
+     * Parents before children, so a restore can insert in file order without
+     * a foreign key ever pointing at a row that is not there yet. PostgreSQL
+     * has no statement that turns the constraints off for a session, which is
+     * why the order has to be right rather than merely convenient.
+     *
+     * @param  list<string>  $names
+     * @return list<string>
+     */
+    private function inDependencyOrder(Connection $connection, array $names): array
+    {
+        $schema = $connection->getSchemaBuilder();
+        $parents = [];
+
+        foreach ($names as $name) {
+            $referenced = array_map(
+                static fn (array $key): string => (string) ($key['foreign_table'] ?? ''),
+                $schema->getForeignKeys($name)
+            );
+
+            $parents[$name] = array_values(array_unique(array_filter(
+                $referenced,
+                static fn (string $table): bool => $table !== $name && in_array($table, $names, true),
+            )));
+        }
+
+        $ordered = [];
+        $placed = [];
+
+        do {
+            $progress = false;
+
+            foreach ($names as $name) {
+                if (isset($placed[$name])) {
+                    continue;
+                }
+
+                foreach ($parents[$name] as $parent) {
+                    if (! isset($placed[$parent])) {
+                        continue 2;
+                    }
+                }
+
+                $ordered[] = $name;
+                $placed[$name] = true;
+                $progress = true;
+            }
+        } while ($progress);
+
+        // Whatever is left is part of a cycle, which no order satisfies; it
+        // keeps the alphabetical position it already had.
+        foreach ($names as $name) {
+            if (! isset($placed[$name])) {
+                $ordered[] = $name;
+            }
+        }
+
+        return $ordered;
     }
 
     /**

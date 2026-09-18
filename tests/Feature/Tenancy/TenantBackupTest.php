@@ -100,6 +100,30 @@ class TenantBackupTest extends TestCase
         $this->assertSame(1, $header['chunk']);
     }
 
+    /** Alphabetically `role_has_permissions` comes first, and restoring it first violates its own foreign key. */
+    public function test_the_artefact_lists_a_parent_table_before_its_child(): void
+    {
+        Config::set('numerosis.tenancy.backup.encrypt', false);
+
+        $tenant = $this->tenant();
+
+        $this->seedUsers($tenant, ['ordered@example.test']);
+
+        $path = BackupTenant::run($tenant);
+
+        $header = json_decode(strtok((string) Storage::disk('backups')->get($path), "\n") ?: '', true);
+
+        $this->assertIsArray($header);
+        $this->assertIsArray($header['tables']);
+
+        $tables = array_values($header['tables']);
+
+        $this->assertLessThan(
+            array_search('role_has_permissions', $tables, true),
+            array_search('roles', $tables, true),
+        );
+    }
+
     public function test_an_artefact_is_encrypted_at_rest(): void
     {
         $tenant = $this->tenant();

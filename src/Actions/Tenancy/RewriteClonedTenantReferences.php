@@ -52,11 +52,19 @@ class RewriteClonedTenantReferences
                     $wrappedTable = $connection->getQueryGrammar()->wrapTable($name);
                     $wrappedColumn = $connection->getQueryGrammar()->wrap($columnName);
 
+                    // PostgreSQL has no `like` or `replace` for json, so the
+                    // column is read as text and cast back on the way in.
+                    $jsonCast = $this->postgresJsonType($connection->getDriverName(), $column);
+                    $read = $jsonCast === null ? $wrappedColumn : $wrappedColumn.'::text';
+                    $written = $jsonCast === null
+                        ? "replace({$read}, ?, ?)"
+                        : "replace({$read}, ?, ?)::{$jsonCast}";
+
                     // A raw statement instead of a query-builder update. The
                     // new value is the old one with a substring replaced, and
                     // that reads the column it writes.
                     $affected = $connection->update(
-                        "update {$wrappedTable} set {$wrappedColumn} = replace({$wrappedColumn}, ?, ?) where {$wrappedColumn} like ?",
+                        "update {$wrappedTable} set {$wrappedColumn} = {$written} where {$read} like ?",
                         [$sourceTenantId, $into->id, '%'.$sourceTenantId.'%'],
                     );
 
@@ -68,6 +76,21 @@ class RewriteClonedTenantReferences
         });
 
         return $rewritten;
+    }
+
+    /**
+     * @param  array<string, mixed>  $column
+     */
+    private function postgresJsonType(string $driver, array $column): ?string
+    {
+        if (DatabaseDriver::tryFrom($driver) !== DatabaseDriver::Pgsql) {
+            return null;
+        }
+
+        $declared = $column['type_name'] ?? $column['type'] ?? '';
+        $type = strtolower(is_string($declared) ? $declared : '');
+
+        return in_array($type, ['json', 'jsonb'], true) ? $type : null;
     }
 
     /**
