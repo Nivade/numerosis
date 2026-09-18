@@ -65,6 +65,25 @@ Composer path repositories are not transitive, which is why a host names
 `packages/*` itself rather than inheriting it from core — `packages/ui` is
 what that glob resolves to today.
 
+A host that is not a sibling checkout installs tagged releases from the
+GitLab Composer registry of the `nvade-packages` group, which serves both
+packages from one endpoint:
+
+```jsonc
+"repositories": [
+    { "type": "composer", "url": "https://gitlab.com/api/v4/group/<group id>/-/packages/composer/packages.json" }
+],
+"require": { "nvade/numerosis": "^0.2" }
+```
+
+```bash
+composer config --global --auth gitlab-token.gitlab.com <personal-access-token>
+```
+
+The token needs `read_api`. A tag only reaches the registry through the
+`publish:composer` pipeline job, so a tag pushed while CI was off is
+installable by VCS but invisible here.
+
 Adopting numerosis into an app you already have changes one line of
 `bootstrap/app.php` — `web:` becomes `using:`, because the package needs
 per-central-domain route groups and that is the one thing `web:` cannot

@@ -104,6 +104,22 @@ pint:
     - composer install --prefer-dist
     - vendor/bin/pint --test
 
+# A tag in the Composer registry is what `"nvade/numerosis": "^0.2"` resolves
+# to; pushing the git tag alone leaves the registry empty. GitLab reads
+# composer.json out of the tag itself, so there is nothing to build first.
+publish:composer:
+  stage: publish
+  image: curlimages/curl:latest
+  timeout: 5m
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      curl --fail-with-body --silent --show-error \
+        --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+        --data tag="$CI_COMMIT_TAG" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/composer"
+
 # packages/ui is published as a read-only mirror; this pushes it there. `main`
 # keeps the mirror's default branch current for anyone tracking `@dev`, and a
 # tag push copies the tag across, which is what Composer resolves. Needs a
