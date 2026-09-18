@@ -39,16 +39,30 @@ variables:
     paths:
       - .composer-cache/
 
+# testbench.yaml pins DB_HOST to 127.0.0.1, and composer's post-autoload-dump
+# boots the workbench through `package:purge-skeleton`, so every composer call
+# that runs scripts needs a database on the loopback. A service container
+# answers on its alias instead, so socat forwards the two ports rather than
+# every hardcoded host in the tree learning a second spelling.
+.forwards-databases:
+  before_script:
+    - !reference [.php, before_script]
+    - apt-get update -qq && apt-get install -y -qq --no-install-recommends socat
+    - socat TCP-LISTEN:3306,fork,reuseaddr TCP:mysql:3306 &
+    - socat TCP-LISTEN:5432,fork,reuseaddr TCP:pgsql:5432 &
+    - |
+      until php -r 'exit(@fsockopen("127.0.0.1", 3306) ? 0 : 1);'; do
+        sleep 2
+      done
+
 test:
-  extends: .php
+  extends: [.php, .forwards-databases]
   stage: test
   timeout: 30m
   # tests/TestCase.php holds both sets of credentials, matching
   # docker-compose.yml's local services so the same suite runs unmodified in
   # both places. Both services start for every job; the driver the job
-  # exercises is NUMEROSIS_TEST_DRIVER's job. The hosts are the one difference:
-  # locally the containers publish on the loopback, here they answer on a
-  # service alias.
+  # exercises is NUMEROSIS_TEST_DRIVER's job.
   services:
     - name: mysql:8.4
       alias: mysql
@@ -60,8 +74,6 @@ test:
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: postgres
     POSTGRES_DB: testing
-    NUMEROSIS_TEST_MYSQL_HOST: mysql
-    NUMEROSIS_TEST_PGSQL_HOST: pgsql
   # Matches what composer.json claims to support. Widen only with a green run
   # behind it: Laravel 11/12 and Windows were in the generator's matrix and
   # nothing here has ever been tested on them. SQLite is supported for
@@ -97,10 +109,18 @@ test:
         vendor/bin/pest --ci --parallel
       fi
 
+# The analysis needs a database for the same reason the tests do: composer's
+# post-autoload-dump boots the workbench.
 phpstan:
-  extends: .php
+  extends: [.php, .forwards-databases]
   stage: test
   timeout: 10m
+  services:
+    - name: mysql:8.4
+      alias: mysql
+  variables:
+    MYSQL_ROOT_PASSWORD: root
+    MYSQL_DATABASE: testing
   script:
     - composer update --prefer-stable --prefer-dist
     - php -d memory_limit=2G vendor/bin/phpstan analyse --no-progress
@@ -110,7 +130,9 @@ pint:
   stage: test
   timeout: 10m
   script:
-    - composer update --prefer-stable --prefer-dist
+    # --no-scripts keeps the workbench unbooted: Pint reads files, and booting
+    # it is what would need a database here.
+    - composer update --prefer-stable --prefer-dist --no-scripts
     - vendor/bin/pint --test
 
 # A tag in the Composer registry is what `"nvade/numerosis": "^0.2"` resolves
