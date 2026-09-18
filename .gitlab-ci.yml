@@ -11,13 +11,22 @@ stages:
 variables:
   COMPOSER_ALLOW_SUPERUSER: '1'
   COMPOSER_NO_INTERACTION: '1'
+  # Core requires `nvade/numerosis-ui: self.version`, and CI checks out a
+  # detached HEAD, where Composer cannot read a branch name and guesses
+  # 1.0.0. The path repo under packages/* is always dev-main, so the two only
+  # meet if the root version is stated.
+  COMPOSER_ROOT_VERSION: dev-main
   GIT_DEPTH: '50'
 
 .php:
   image: php:${PHP_VERSION}-cli
   variables:
     PHP_VERSION: '8.5'
-    PHP_EXTENSIONS: 'dom curl libxml mbstring zip pcntl pdo pdo_mysql pdo_pgsql pdo_sqlite bcmath soap intl gd exif iconv imagick fileinfo'
+    # Only what the images lack. dom, curl, mbstring, fileinfo, iconv, pdo and
+    # pdo_sqlite are already in php:*-cli, and gd, imagick and soap were
+    # generator boilerplate nothing here requires: each one compiles from
+    # source on every job.
+    PHP_EXTENSIONS: 'bcmath intl pcntl pdo_mysql pdo_pgsql sockets zip'
   before_script:
     - curl -sSLf -o /usr/local/bin/install-php-extensions https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions
     - chmod +x /usr/local/bin/install-php-extensions
@@ -26,7 +35,7 @@ variables:
   cache:
     key:
       files:
-        - composer.lock
+        - composer.json
     paths:
       - .composer-cache/
 
@@ -93,7 +102,7 @@ phpstan:
   stage: test
   timeout: 10m
   script:
-    - composer install --prefer-dist
+    - composer update --prefer-stable --prefer-dist
     - php -d memory_limit=2G vendor/bin/phpstan analyse --no-progress
 
 pint:
@@ -101,7 +110,7 @@ pint:
   stage: test
   timeout: 10m
   script:
-    - composer install --prefer-dist
+    - composer update --prefer-stable --prefer-dist
     - vendor/bin/pint --test
 
 # A tag in the Composer registry is what `"nvade/numerosis": "^0.2"` resolves
