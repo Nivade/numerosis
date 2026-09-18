@@ -1131,3 +1131,8 @@ Added 2026-09-17 with the API token tests.
 Added 2026-09-17 with the notification centre.
 
 `$user->notifications()` is a morphMany on a `CentralConnection` model, so rows land on `central`. `DatabaseNotification::query()` in a test uses the **default** connection, which points at the same physical database under a different connection instance — and `RefreshDatabase` holds a transaction per connection. The result is a test that reads two rows through the relation and one through the model, or a `SQLSTATE 1205 Lock wait timeout` when one side deletes what the other side has locked. Read and write through the relation, and pin any command that sweeps the table (`numerosis:prune-notifications` does) to the central connection by name.
+
+## RefreshDatabase leaves the central connection on a stale transaction manager
+`RefreshDatabase::beginDatabaseTransaction()` rebinds `db.transactions` to a new manager and hands it only to `connectionsToTransact()`, which here is the default connection alone. The `central` connection is resolved before that and keeps the old manager, while the event dispatcher reads the container's, so a `ShouldDispatchAfterCommit` event raised inside a central transaction sees no pending transaction and fires immediately — a rollback then leaves the event already dispatched.
+
+`TestCase::shareOneTransactionManager()` re-points every resolved connection at the container's manager after `parent::setUp()`. Do not delete it, and do not conclude that an after-commit event asserted from a rolled-back central transaction is a flake.

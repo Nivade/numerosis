@@ -86,7 +86,7 @@ class DatabaseSessionRegistry implements SessionRegistry
 
         $ids = [];
 
-        foreach ($this->rowsFor($guard, $userId) as [$row, $payload]) {
+        foreach ($this->rowsFor($guard, $userId) as [$row]) {
             if ((string) $row->id !== $exceptSessionId) {
                 $ids[] = $row->id;
             }
