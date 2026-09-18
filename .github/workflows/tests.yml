@@ -178,10 +178,15 @@ jobs:
       # of database files, which is what SQLite is worst at: the run fails
       # somewhere different each time (SQLITE_BUSY, `attempt to write a readonly
       # database`, a half-copied template) rather than failing consistently.
+      #
+      # The flag sits on the truthy side deliberately. `A && '' || B` yields B
+      # whichever way A goes, because '' is falsy, so writing this the other
+      # way round ran SQLite in parallel and produced exactly the failures
+      # above.
       - name: Execute tests
         env:
           NUMEROSIS_TEST_DRIVER: ${{ matrix.database }}
-        run: vendor/bin/pest --ci ${{ matrix.database == 'sqlite' && '' || '--parallel' }}
+        run: vendor/bin/pest --ci ${{ matrix.database != 'sqlite' && '--parallel' || '' }}
 
       # A failed browser expectation points at this directory (Pest's
       # Support/Screenshot.php writes it), which otherwise dies with the runner.
