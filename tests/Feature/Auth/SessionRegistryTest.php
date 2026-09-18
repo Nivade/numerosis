@@ -213,7 +213,11 @@ class SessionRegistryTest extends TestCase
 
         $selects = array_filter(
             $connection->getQueryLog(),
-            fn (array $query): bool => str_contains((string) $query['query'], 'from `sessions`'),
+            // Each driver quotes the table its own way, and only MySQL uses backticks.
+            fn (array $query): bool => str_contains(
+                str_replace(['`', '"'], '', (string) $query['query']),
+                'from sessions',
+            ),
         );
 
         $connection->disableQueryLog();

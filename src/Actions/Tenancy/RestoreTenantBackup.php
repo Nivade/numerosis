@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Nvade\Numerosis\Contracts\Tenancy\EncryptsArtifacts;
 use Nvade\Numerosis\Contracts\Tenancy\TenantDatabaseDumper;
+use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Exceptions\Tenancy\TenantBackupFailed;
 use Nvade\Numerosis\Models\Central\Tenant;
 
@@ -92,7 +93,9 @@ class RestoreTenantBackup
         $holdsRows = $tenant->runHere(function (): bool {
             $connection = DB::connection();
 
-            foreach ($connection->getSchemaBuilder()->getTables($connection->getDatabaseName()) as $table) {
+            foreach ($connection->getSchemaBuilder()->getTables(
+                DatabaseDriver::from($connection->getDriverName())->schemaName($connection->getDatabaseName())
+            ) as $table) {
                 $name = (string) ($table['name'] ?? '');
 
                 if ($name !== '' && ! in_array($name, ['migrations', 'jobs', 'failed_jobs'], true)

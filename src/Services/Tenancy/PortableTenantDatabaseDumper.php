@@ -175,7 +175,9 @@ class PortableTenantDatabaseDumper implements TenantDatabaseDumper
         // every schema the connection can see otherwise, central included.
         $names = array_map(
             static fn (array $table): string => (string) ($table['name'] ?? ''),
-            $connection->getSchemaBuilder()->getTables($connection->getDatabaseName())
+            $connection->getSchemaBuilder()->getTables(
+                DatabaseDriver::from($connection->getDriverName())->schemaName($connection->getDatabaseName())
+            )
         );
 
         $names = array_values(array_filter($names, static fn (string $name): bool => $name !== ''));

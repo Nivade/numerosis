@@ -8,6 +8,7 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Nvade\Numerosis\Contracts\Tenancy\ExportsTenantData;
+use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Exceptions\Tenancy\TenantBackupFailed;
 use Nvade\Numerosis\Models\Central\Invitation;
 use Nvade\Numerosis\Models\Central\Membership;
@@ -78,7 +79,9 @@ class TenantDataExporter implements ExportsTenantData
             $connection = DB::connection();
             $written = [];
 
-            foreach ($connection->getSchemaBuilder()->getTables($connection->getDatabaseName()) as $table) {
+            foreach ($connection->getSchemaBuilder()->getTables(
+                DatabaseDriver::from($connection->getDriverName())->schemaName($connection->getDatabaseName())
+            ) as $table) {
                 $name = (string) ($table['name'] ?? '');
 
                 if ($name === '' || in_array($name, ['migrations', 'jobs', 'failed_jobs', 'cache', 'cache_locks', 'sessions'], true)) {

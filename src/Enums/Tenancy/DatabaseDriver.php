@@ -34,6 +34,16 @@ enum DatabaseDriver: string
         return $this !== self::Pgsql;
     }
 
+    /** What `getTables()` wants: MySQL names the database, the other two name a schema inside it. */
+    public function schemaName(string $database): string
+    {
+        return match ($this) {
+            self::Sqlite => 'main',
+            self::Pgsql => 'public',
+            default => $database,
+        };
+    }
+
     public function quotedIdentifier(string $name): string
     {
         return $this === self::Sqlite ? '"'.$name.'"' : '`'.$name.'`';

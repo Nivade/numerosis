@@ -6,6 +6,7 @@ namespace Nvade\Numerosis\Actions\Tenancy;
 
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Nvade\Numerosis\Enums\Tenancy\DatabaseDriver;
 use Nvade\Numerosis\Models\Central\Tenant;
 
 /**
@@ -32,7 +33,9 @@ class RewriteClonedTenantReferences
             $connection = DB::connection();
             $rewritten = 0;
 
-            foreach ($connection->getSchemaBuilder()->getTables($connection->getDatabaseName()) as $table) {
+            foreach ($connection->getSchemaBuilder()->getTables(
+                DatabaseDriver::from($connection->getDriverName())->schemaName($connection->getDatabaseName())
+            ) as $table) {
                 $name = (string) ($table['name'] ?? '');
 
                 if ($name === '' || $name === 'migrations') {
