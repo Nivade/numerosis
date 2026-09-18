@@ -101,12 +101,14 @@ jobs:
           echo "::add-matcher::${{ runner.tool_cache }}/php.json"
           echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
-      # Durability off, in containers thrown away at the end of the job. The
-      # suite creates and migrates a database per tenant, and fsyncing each of
-      # those put the mysql jobs at 29 minutes against pgsql's 5.
-      - name: Relax database durability
+      # testbench.yaml names numerosis_workbench, and composer's
+      # post-autoload-dump boots the workbench on every job including sqlite's.
+      # Durability off too: the suite migrates a database per tenant, and
+      # fsyncing each of those put the mysql jobs at 29 minutes against pgsql's 5.
+      - name: Prepare the databases
         run: |
           php -r '$c = new PDO("mysql:host=127.0.0.1;port=3306", "root", "root");
+                  $c->exec("CREATE DATABASE IF NOT EXISTS numerosis_workbench");
                   $c->exec("SET GLOBAL innodb_flush_log_at_trx_commit = 0");
                   $c->exec("SET GLOBAL sync_binlog = 0");'
           php -r '$c = new PDO("pgsql:host=127.0.0.1;port=5432;dbname=testing", "postgres", "postgres");

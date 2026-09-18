@@ -56,6 +56,13 @@ jobs:
           extensions: bcmath, intl, pcntl, pdo_mysql, pdo_pgsql, sockets, zip
           coverage: none
 
+      # testbench.yaml names numerosis_workbench, and the service container
+      # only creates the one MYSQL_DATABASE names.
+      - name: Prepare the database
+        run: |
+          php -r '$c = new PDO("mysql:host=127.0.0.1;port=3306", "root", "root");
+                  $c->exec("CREATE DATABASE IF NOT EXISTS numerosis_workbench");'
+
       - name: Cache Composer downloads
         uses: actions/cache@v4
         with:
