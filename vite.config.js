@@ -7,6 +7,9 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
 
+// Vite 8 loads this config natively and warns on __dirname.
+const here = import.meta.dirname;
+
 export default defineConfig({
   build: {
     outDir: 'dist',
@@ -15,9 +18,9 @@ export default defineConfig({
     // in either order.
     emptyOutDir: false,
     lib: {
-      entry: resolve(__dirname, 'resources/js/numerosis.js'),
+      entry: resolve(here, 'resources/js/numerosis.js'),
       // Never referenced — the entry has no exports (it's a side-effecting
-      // script, not a module a consumer imports), so Rollup's IIFE output
+      // script, not a module a consumer imports), so Rolldown's IIFE output
       // never assigns this name to `window`. Required by Vite's lib-mode
       // validation regardless.
       name: 'NumerosisApp',
