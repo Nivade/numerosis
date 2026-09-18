@@ -88,7 +88,12 @@ class ImpersonationTest extends TestCase
 
         $url = StartImpersonation::run($tenant, $member->global_id, $this->staff());
 
-        $this->get(substr($url, 0, -1).'0')->assertForbidden();
+        // Swapping in a character the signature does not already end with:
+        // appending '0' to a signature ending in '0' leaves the link valid,
+        // and the redeem then answers 302.
+        $tampered = substr($url, 0, -1).(str_ends_with($url, '0') ? '1' : '0');
+
+        $this->get($tampered)->assertForbidden();
 
         $this->assertNull(ImpersonationSession::query()->firstOrFail()->started_at);
     }
