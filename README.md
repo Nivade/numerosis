@@ -4,8 +4,6 @@ Multi-tenant SaaS foundation for Laravel. Tenancy, Fortify-backed auth and
 billing are the required core; invitations and the registration wizard are
 feature-gated but always installed.
 
-**Proprietary — not published to Packagist.** Install from a path or VCS repo.
-
 ## Documentation
 
 | Document | What it answers |
